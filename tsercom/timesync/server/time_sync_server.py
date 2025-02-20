@@ -16,6 +16,9 @@ class TimeSyncServer:
     """
     This class defines a simple NTP server, to allow for cross-device time
     synchronization.
+
+    NOTE: Use of this class requires administrator access on many file systems
+    in order to open a socket.
     """
     def __init__(self,
                  task_runner : TaskRunner,
