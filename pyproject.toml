@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name="tsercom"
+requires-python = ">=3.11"
+version = "0.1.0-alpha"
+license = "Apache-2.0"
+license-files = ["LICEN[CS]E.*"]
+readme = "README.md"
+keywords = ["ts", "time", "time series", "communication", "rpc", "serialization", "transport", "channel", "grpc"]
+description = "Utilities for communicating time-series data across a network using gRPC, for use with pytorch or other data science applications."
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+]
+authors = [
+  {name = "Ryan Keane"},
+]
+dependencies = [
+  "python>=3.11",
+  "pytorch>=2.0.0",
+  "grpcio>=1.62.2",
+  "grpcio-status>=1.62.2",
+  "ntplib>=0.4.0",
+  "zeroconf>=0.135.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pre-commit",
+]
+
+[project.urls]
+Homepage = "https://github.com/rwkeane/tsercom"
+Documentation = "https://github.com/rwkeane/tsercom"
+Repository = "https://github.com/rwkeane/tsercom"
+Issues = "https://github.com/rwkeane/tsercom/issues"
