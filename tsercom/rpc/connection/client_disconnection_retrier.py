@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 import asyncio
 from typing import Callable, Generic, Optional, TypeVar
 
-from rpc.client_reconnection_handler import ClientReconnectionManager
-from rpc.grpc_caller import delay_before_retry, is_grpc_error, is_server_unavailable_error
+from tsercom.rpc.connection.client_reconnection_handler import ClientReconnectionManager
+from tsercom.rpc.grpc.grpc_caller import delay_before_retry, is_grpc_error, is_server_unavailable_error
 from threading.task_runner import TaskRunner
 from util.stopable import Stopable
 

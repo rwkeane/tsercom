@@ -2,7 +2,7 @@ from typing import Callable, Optional
 
 from caller_id.caller_id_pb2 import GetIdRequest, GetIdResponse
 from caller_id.caller_identifier import CallerIdentifier
-from rpc.client_reconnection_handler import ClientReconnectionManager
+from tsercom.rpc.connection.client_reconnection_handler import ClientReconnectionManager
 
 
 class AsyncGetIdServer:

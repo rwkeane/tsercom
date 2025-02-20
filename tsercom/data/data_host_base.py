@@ -9,7 +9,7 @@ from threading.task_runner import TaskRunner
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)
-class DataHostBase(Generic[TDataType], DataHost[TDataType]):
+class DataHostBase(Generic[TDataType], DataHost[TDataType], RemoteDataReader):
     """
     This class defines the implementation of DataHost to be used for the impl
     versions of all ServerHost and ClientHost classes.
@@ -26,9 +26,8 @@ class DataHostBase(Generic[TDataType], DataHost[TDataType]):
     
         super().__init__(*args, **kwargs)
 
-    @property
-    def _remote_data_reader(self) -> RemoteDataReader[TDataType]:
-        return self.__aggregator
+    def _on_data_ready(self, new_data : TDataType):
+        self.__aggregator._on_data_ready(new_data)
     
     def _remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         return self.__aggregator

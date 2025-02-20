@@ -2,9 +2,9 @@ from functools import partial
 from typing import Callable, Iterable
 import grpc
 
-from rpc.async_grpc_exception_interceptor import AsyncGrpcExceptionInterceptor
+from tsercom.rpc.grpc.async_grpc_exception_interceptor import AsyncGrpcExceptionInterceptor
 from threading.task_runner import TaskRunner
-from util.addressing import get_all_address_strings
+from tsercom.rpc.grpc.addressing import get_all_address_strings
 
 AddServicerCB = Callable[[grpc.Server], None]
 class GrpcServicePublisher:

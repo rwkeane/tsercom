@@ -5,8 +5,8 @@ from typing import Generic, List, Set, TypeVar
 from caller_id.caller_identifier import CallerIdentifier
 from discovery.discovery_host import DiscoveryHost
 from discovery.service_info import ServiceInfo
-from rpc.channel_info import ChannelInfo
-from rpc.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.connection.channel_info import ChannelInfo
+from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
 from threading.task_runner import TaskRunner
 
 
