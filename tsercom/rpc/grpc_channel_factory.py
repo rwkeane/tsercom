@@ -1,8 +1,8 @@
 from typing import Callable
 import grpc
 
+from rpc.channel_info import ChannelInfo
 from util.addressing import get_all_address_strings
-from util.rpc.channel_info import ChannelInfo
 
 
 class GrpcChannelFactory:

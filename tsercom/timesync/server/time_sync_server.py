@@ -6,11 +6,11 @@ import socket
 import struct
 import time
 
+from threading.task_runner import TaskRunner
 from timesync.common.constants import kNtpPort, kNtpVersion
 from timesync.common.synchronized_clock import SynchronizedClock
 from timesync.server.server_synchronized_clock import ServerSynchronizedClock
 from util.is_running_tracker import IsRunningTracker
-from util.threading.task_runner import TaskRunner
 
 class TimeSyncServer:
     """

@@ -1,14 +1,12 @@
 import threading
 from typing import Callable, Dict, Generic, TypeVar
 
-from util.caller_id.caller_identifier import CallerIdentifier
-from util.threading.task_runner import TaskRunner
+from caller_id.caller_identifier import CallerIdentifier
 
 
 TType = TypeVar("TType")
 class CallerIdMap(Generic[TType]):
-    def __init__(self, task_runner : TaskRunner):
-        self.__task_runner = task_runner
+    def __init__(self):
         self.__lock = threading.Lock()
         self.__map : Dict[CallerIdentifier, TType] = {}
     

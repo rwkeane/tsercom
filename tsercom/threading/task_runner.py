@@ -8,8 +8,8 @@ from typing import Any, List, ParamSpec, TypeVar
 from collections.abc import Callable
 import uuid
 
-from util.threading.throwing_thread import ThrowingThread
-from util.threading.throwing_thread_pool_executor import ThrowingThreadPoolExecutor
+from threading.throwing_thread import ThrowingThread
+from threading.throwing_thread_pool_executor import ThrowingThreadPoolExecutor
 
 P = ParamSpec('P')
 T = TypeVar('T')

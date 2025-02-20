@@ -12,7 +12,7 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-import util.caller_id.caller_id_pb2 as caller__id__pb2
+import caller_id.caller_id_pb2 as caller__id__pb2
 import timesync.common.time_pb2 as time__pb2
 
 

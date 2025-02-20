@@ -2,12 +2,12 @@ from abc import ABC, abstractmethod
 import asyncio
 from typing import Generic, List, Set, TypeVar
 
+from caller_id.caller_identifier import CallerIdentifier
 from discovery.discovery_host import DiscoveryHost
 from discovery.service_info import ServiceInfo
-from util.caller_id.caller_identifier import CallerIdentifier
-from util.rpc.channel_info import ChannelInfo
-from util.rpc.grpc_channel_factory import GrpcChannelFactory
-from util.threading.task_runner import TaskRunner
+from rpc.channel_info import ChannelInfo
+from rpc.grpc_channel_factory import GrpcChannelFactory
+from threading.task_runner import TaskRunner
 
 
 TServiceInfo = TypeVar('TServiceInfo', bound = ServiceInfo)

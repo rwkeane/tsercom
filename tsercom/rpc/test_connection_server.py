@@ -1,4 +1,4 @@
-from util.rpc.common_pb2 import TestConnectionCall, TestConnectionResponse
+from rpc.common_pb2 import TestConnectionCall, TestConnectionResponse
 
 
 class AsyncTestConnectionServer:

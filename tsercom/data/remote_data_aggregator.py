@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 import datetime
 from typing import Dict, Generic, List, Optional, TypeVar, overload
 
-from util.caller_id.caller_identifier import CallerIdentifier
-from util.data.exposed_data import ExposedData
+from caller_id.caller_identifier import CallerIdentifier
+from data.exposed_data import ExposedData
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)

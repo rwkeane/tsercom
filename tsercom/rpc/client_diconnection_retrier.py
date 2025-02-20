@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 import asyncio
 from typing import Callable, Generic, Optional, TypeVar
 
-from util.rpc.client_reconnection_handler import ClientReconnectionManager
-from util.rpc.grpc_caller import delay_before_retry, is_grpc_error, is_server_unavailable_error
+from rpc.client_reconnection_handler import ClientReconnectionManager
+from rpc.grpc_caller import delay_before_retry, is_grpc_error, is_server_unavailable_error
+from threading.task_runner import TaskRunner
 from util.stopable import Stopable
-from util.threading.task_runner import TaskRunner
 
 
 TInstanceType = TypeVar("TInstanceType", bound = Stopable)

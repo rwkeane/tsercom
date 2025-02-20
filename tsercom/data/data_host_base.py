@@ -1,11 +1,11 @@
 from typing import Generic, Optional, TypeVar
 
-from util.data.data_host import DataHost
-from util.data.exposed_data import ExposedData
-from util.data.remote_data_aggregator import RemoteDataAggregator
-from util.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
-from util.data.remote_data_reader import RemoteDataReader
-from util.threading.task_runner import TaskRunner
+from data.data_host import DataHost
+from data.exposed_data import ExposedData
+from data.remote_data_aggregator import RemoteDataAggregator
+from data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
+from data.remote_data_reader import RemoteDataReader
+from threading.task_runner import TaskRunner
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)

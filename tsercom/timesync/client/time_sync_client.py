@@ -6,8 +6,8 @@ import threading
 from timesync.client.client_synchronized_clock import ClientSynchronizedClock
 from timesync.common.constants import kNtpPort, kNtpVersion
 from timesync.common.synchronized_clock import SynchronizedClock
+from threading.task_runner import TaskRunner
 from util.is_running_tracker import IsRunningTracker
-from util.threading.task_runner import TaskRunner
 
 class TimeSyncClient(ClientSynchronizedClock.Client):
     """

@@ -1,7 +1,7 @@
 from typing import Optional
 import uuid
 
-from util.caller_id.caller_id_pb2 import CallerId
+from caller_id.caller_id_pb2 import CallerId
 
 
 class CallerIdentifier:

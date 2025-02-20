@@ -1,7 +1,7 @@
 import asyncio
 
-from util.caller_id.caller_identifier import CallerIdentifier
-from util.rpc.common_pb2 import GetIdRequest, GetIdResponse
+from caller_id.caller_id_pb2 import GetIdRequest, GetIdResponse
+from caller_id.caller_identifier import CallerIdentifier
 
 
 class ClientIdFetcher:

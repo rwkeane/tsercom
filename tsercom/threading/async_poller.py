@@ -3,8 +3,8 @@ import asyncio
 import threading
 from typing import Deque, Generic, List, TypeVar
 
-from util.threading.atomic import Atomic
-from util.threading.task_runner import TaskRunner
+from threading.atomic import Atomic
+from threading.task_runner import TaskRunner
 
 
 kMaxResponses = 30

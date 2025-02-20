@@ -1,4 +1,4 @@
-import util.caller_id.caller_id_pb2 as _caller_id_pb2
+import caller_id.caller_id_pb2 as _caller_id_pb2
 import timesync.common.time_pb2 as _time_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor

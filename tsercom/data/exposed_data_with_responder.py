@@ -1,9 +1,9 @@
 import datetime
 from typing import Generic, TypeVar
 
-from util.caller_id.caller_identifier import CallerIdentifier
-from util.data.exposed_data import ExposedData
-from util.data.remote_data_responder import RemoteDataResponder
+from caller_id.caller_identifier import CallerIdentifier
+from data.exposed_data import ExposedData
+from data.remote_data_responder import RemoteDataResponder
 
 
 TResponseType = TypeVar("TResponseType")
