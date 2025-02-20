@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+import "caller_id.proto";
+import "time.proto";
+
+package dtp;
+
+/*
+python3 -m grpc_tools.protoc \
+   --proto_path=util/caller_id/proto \
+   --proto_path=util/rpc/proto \
+   --proto_path=timesync/common/proto \
+   --python_out=util/rpc \
+   --pyi_out=util/rpc \
+   util/rpc/proto/common.proto 
+*/
+
+message TestConnectionCall {}
+message TestConnectionResponse {}
+
+message Tensor {
+    ServerTimestamp timestamp = 1;
+    repeated int32 size = 2;
+    repeated float array = 3;
+}

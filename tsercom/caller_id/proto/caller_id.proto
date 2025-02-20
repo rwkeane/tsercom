@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package dtp;
+
+/*
+python3 -m grpc_tools.protoc \
+   --proto_path=util/caller_id/proto \
+   --python_out=util/caller_id \
+   --pyi_out=util/caller_id \
+   util/caller_id/proto/caller_id.proto 
+*/
+
+message CallerId {
+    string id = 1;
+}
+
+
+message GetIdRequest {}
+message GetIdResponse {
+    CallerId id = 1;
+}

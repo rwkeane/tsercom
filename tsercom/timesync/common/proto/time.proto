@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package dtp;
+
+/*
+python3 -m grpc_tools.protoc \
+   --proto_path=timesync/common/proto \
+   --python_out=timesync/common \
+   --pyi_out=timesync/common \
+   timesync/common/proto/time.proto 
+*/
+
+
+
+message ServerTimestamp {
+    google.protobuf.Timestamp timestamp = 1;
+}
