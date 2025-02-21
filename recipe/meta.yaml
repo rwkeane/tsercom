@@ -1,0 +1,33 @@
+package:
+  name: tsercom
+  version: 0.1.0-alpha  #  Update this as needed
+
+source:
+  path: ../  # Important: Relative path to the project root
+
+build:
+  number: 0
+  noarch: python
+  script: "{{ PYTHON }} -m scripts.generate_protos_for_conda"  # Execute the build script
+
+requirements:
+  build:
+    - python >=3.11
+    - pip
+    - grpcio-tools  # Needed for protoc
+    - mypy-protobuf  # Needed for .pyi generation
+
+  run:
+    - python >=3.11
+    - torch >=2.0.0
+    - grpcio >=1.62.0
+    - grpcio-status >=1.62.0
+    - ntplib >=0.4.0
+    - zeroconf >=0.135.0
+    # Add any other runtime dependencies here
+
+about:
+  home: "https://github.com/rwkeane/tsercom"  # Your project URL
+  license: Apache-2.0
+  license_file: ../LICENSE  # If you have a separate LICENSE file, put it at project root
+  summary: "Utilities for communicating time-series data across a network using gRPC."
