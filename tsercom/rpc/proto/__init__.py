@@ -15,10 +15,10 @@ if False:
     pass
 
 elif version_string == "v1_70":
-    from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import ServerTimestamp
+    from tsercom.rpc.proto.generated.v1_70.common_pb2 import TestConnectionCall, TestConnectionResponse, Tensor
 
 elif version_string == "v1_62":
-    from tsercom.timesync.common.proto.generated.v1_62.time_pb2 import ServerTimestamp
+    from tsercom.rpc.proto.generated.v1_62.common_pb2 import TestConnectionCall, TestConnectionResponse, Tensor
 
 else:
     raise ImportError(

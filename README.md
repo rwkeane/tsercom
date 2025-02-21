@@ -27,3 +27,6 @@ protobufs (for use with gRPC), as well as the proto files which must be imported
 in a gRPC Service definition to use these instances.
 - Threading utilities necessary to synchronize between a "main" thread and other
 "utility" threads.
+
+## Dependencies
+_NOTE_: If the gRPC dependency here gets out-of-date, it is a 2 minute fix to update it! Just check out the repo, run `scripts/generate_protos.py`, and put up a pull request!

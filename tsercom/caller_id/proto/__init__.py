@@ -15,10 +15,10 @@ if False:
     pass
 
 elif version_string == "v1_70":
-    from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import ServerTimestamp
+    from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import CallerId, GetIdRequest, GetIdResponse
 
 elif version_string == "v1_62":
-    from tsercom.timesync.common.proto.generated.v1_62.time_pb2 import ServerTimestamp
+    from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import CallerId, GetIdRequest, GetIdResponse
 
 else:
     raise ImportError(

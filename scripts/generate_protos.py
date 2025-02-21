@@ -1,10 +1,11 @@
+import ast
 from importlib.metadata import version as lib_version
 import subprocess
 import os
 import sys
 import re
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict, Iterable, List
 
 import grpc
 
@@ -41,13 +42,15 @@ def generate_proto_file(package_dir : Path,
 
     name = absolute_proto_path.name.split(".")[0]
 
+    generate_init(package_dir, proto_file_path, output_dir.parent)
+
     # --- Get generated file paths (relative to output_dir) ---
     pb2_file = Path.joinpath(output_dir, f"{name}_pb2.py")
     pyi_file = Path.joinpath(output_dir, f"{name}_pb2.pyi")
 
-    print("MODIFYING", pb2_file)
-    modify_generated_file(pb2_file)       #Modify
-    modify_generated_file(pyi_file)      #Modify
+    # String substitution.
+    modify_generated_file(pb2_file)
+    modify_generated_file(pyi_file)
 
 def make_versioned_output_dir(base_dir : Path):
     # --- Get current grpcio-tools version (MAJOR.MINOR only) ---
@@ -77,17 +80,16 @@ def modify_generated_file(file_path: Path):
     updates: Dict[str, str] = {
         "import caller_id_pb2\n": "import tsercom.caller_id.proto as caller_id_pb2\n",
         "import time_pb2\n": "import tsercom.timesync.common.proto as time_pb2\n",
-        "import common_pb2\n": "import tsercom.rpc.proto as common_pb2\n",
+        "import common_pb2\n ": "import tsercom.rpc.proto as common_pb2\n",
         "import caller_id_pb2 ": "import tsercom.caller_id.proto ",
         "import time_pb2 ": "import tsercom.timesync.common.proto ",
-        "import common_pb2 ": "import tsercom.rpc.proto ",
+        "import common_pb2 ": "import tsercom.rpc.proto.common_pb2 ",
     }
 
     try:
         with open(file_path, 'r+') as f:
             content = f.read()
             for original, replacement in updates.items():
-                print(f"REPLACING {original} with {replacement} in {file_path}")
                 content = content.replace(original, replacement)
             f.seek(0)
             f.write(content)
@@ -97,6 +99,75 @@ def modify_generated_file(file_path: Path):
     except Exception as e:
         print(f"Error modifying file {file_path}: {e}")
         raise
+
+def generate_init(package_dir, proto_path : str, generated_path : Path):
+    init_file_content = f'''
+import grpc
+import subprocess
+
+try:
+    version = grpc.__version__
+    major_minor_version = ".".join(version.split(".")[:2])  # Extract major.minor
+    version_string = f"v{{major_minor_version.replace('.', '_')}}" # e.g., v1_62
+except (subprocess.CalledProcessError, FileNotFoundError) as e:
+    raise RuntimeError(
+        f"Could not determine grpcio-tools version. Is it installed? Error: {{e}}"
+    ) from e
+
+if False:
+    pass
+'''
+    name = Path(proto_path).name.split(".")[0]
+    versioned_dirs = []
+    base_package = generated_path.relative_to(package_dir).__str__().replace("/", ".").replace("\\",".")
+    for item in generated_path.iterdir():
+        if item.is_dir() and item.name.startswith("v"):
+            file_path = item.joinpath(f"{name}_pb2.pyi")
+            classes = get_classes_from_file(file_path)
+            versioned_dirs.append((item.name, classes))
+    for versioned_dir_name, classes in versioned_dirs:
+        current_version = versioned_dir_name[1:]
+        init_file_content += f'''
+elif version_string == "v{current_version}":
+    from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}
+'''
+    init_file_content += f'''
+else:
+    raise ImportError(
+        f"No pre-generated protobuf code found for grpcio version: {{version}}.\\n"
+        f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
+    )
+'''
+    
+    init_file = Path.joinpath(Path.joinpath(package_dir, proto_path).parent, "__init__.py")
+    with open(init_file, 'w') as f:  # Open in write mode ('w')
+        f.write(init_file_content)
+
+def get_classes_from_file(filepath):
+    """
+    Gets a list of class names defined in a Python file (.py or .pyi).
+
+    Args:
+        module_name: The name of the module (without the .py or .pyi extension).
+
+    Returns:
+        A list of strings (class names), or raises FileNotFoundError if
+        neither .py nor .pyi files exist.  Returns an empty list if the
+        file exists but has syntax errors.
+    """
+
+    try:
+        with open(filepath, "r", encoding="utf-8") as file:
+            tree = ast.parse(file.read())
+    except SyntaxError:
+        print(f"Warning: Syntax error in {filepath}. Returning empty list.")
+        return []  # Or raise, depending on your needs
+
+    class_names = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            class_names.append(node.name)
+    return class_names
 
 def generate_protos(project_root : Path):
     """Generates Python files from .proto files."""
