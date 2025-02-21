@@ -1,6 +1,6 @@
 import asyncio
 
-from tsercom.caller_id.caller_id_pb2 import GetIdRequest, GetIdResponse
+from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 

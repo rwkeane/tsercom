@@ -1,7 +1,7 @@
 from typing import AsyncIterator, Callable, Optional, Tuple, TypeVar
 import grpc
 
-from tsercom.caller_id.caller_id_pb2 import CallerId as GrpcCallerId
+from tsercom.caller_id.proto import CallerId as GrpcCallerId
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.util.is_running_tracker import IsRunningTracker
 

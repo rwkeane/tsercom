@@ -1,3 +1,4 @@
+from importlib.metadata import version as lib_version
 import subprocess
 import os
 import sys
@@ -5,86 +6,117 @@ import re
 from pathlib import Path
 from typing import Dict, Iterable
 
+import grpc
+
+kGeneratedDir = "generated"
+
+
+def generate_proto_file(package_dir : Path,
+                        proto_file_path: str,
+                        import_paths: Iterable[str]):
+    """Generates Python files for a single .proto file."""
+
+    absolute_proto_path = Path.joinpath(package_dir, proto_file_path)
+    output_dir = make_versioned_output_dir(absolute_proto_path.parent)
+
+    command = [
+        sys.executable,  # python executable path
+        "-m",
+        "grpc_tools.protoc",
+        *[f"-I{package_dir / path}" for path in import_paths],
+        f"--python_out={output_dir}",
+        f"--mypy_out={output_dir}",
+        str(absolute_proto_path),
+    ]
+    print(f"Running command: {' '.join(command)}")
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"Error compiling {proto_file_path}:")
+        print(result.stderr)
+        raise RuntimeError(
+                f"protoc compilation failed for {proto_file_path}:\n{result.stderr}")
+    else:
+        print(f"Successfully compiled {proto_file_path}")
+
+    name = absolute_proto_path.name.split(".")[0]
+
+    # --- Get generated file paths (relative to output_dir) ---
+    pb2_file = Path.joinpath(output_dir, f"{name}_pb2.py")
+    pyi_file = Path.joinpath(output_dir, f"{name}_pb2.pyi")
+
+    print("MODIFYING", pb2_file)
+    modify_generated_file(pb2_file)       #Modify
+    modify_generated_file(pyi_file)      #Modify
+
+def make_versioned_output_dir(base_dir : Path):
+    # --- Get current grpcio-tools version (MAJOR.MINOR only) ---
+    try:
+        version = grpc.__version__
+        major_minor_version = ".".join(version.split(".")[:2])  # Extract major.minor
+        version_string = f"v{major_minor_version.replace('.', '_')}" # e.g., v1_62
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        raise RuntimeError(
+            f"Could not determine grpcio-tools version. Is it installed? Error: {e}"
+        ) from e
+
+    print(f"Generating protos for grpcio-tools version: {version_string}")
+
+    # --- Create Versioned Output Directory ---
+    generated_dir = Path.joinpath(base_dir, kGeneratedDir)
+    os.makedirs(generated_dir, exist_ok=True)
+    versioned_output_base = Path.joinpath(generated_dir, f"{version_string}")
+    os.makedirs(versioned_output_base, exist_ok=True)
+
+    return versioned_output_base
+
+def modify_generated_file(file_path: Path):
+    """Performs string replacement in the generated file."""
+
+    # TODO: Make this less hacky.
+    updates: Dict[str, str] = {
+        "import caller_id_pb2\n": "import tsercom.caller_id.proto as caller_id_pb2\n",
+        "import time_pb2\n": "import tsercom.timesync.common.proto as time_pb2\n",
+        "import common_pb2\n": "import tsercom.rpc.proto as common_pb2\n",
+        "import caller_id_pb2 ": "import tsercom.caller_id.proto ",
+        "import time_pb2 ": "import tsercom.timesync.common.proto ",
+        "import common_pb2 ": "import tsercom.rpc.proto ",
+    }
+
+    try:
+        with open(file_path, 'r+') as f:
+            content = f.read()
+            for original, replacement in updates.items():
+                print(f"REPLACING {original} with {replacement} in {file_path}")
+                content = content.replace(original, replacement)
+            f.seek(0)
+            f.write(content)
+            f.truncate()
+    except FileNotFoundError:
+        print(f"Warning: Generated file not found: {file_path}")
+    except Exception as e:
+        print(f"Error modifying file {file_path}: {e}")
+        raise
+
 def generate_protos(project_root : Path):
     """Generates Python files from .proto files."""
 
     assert isinstance(project_root, Path)
     package_dir = Path.joinpath(project_root, "tsercom")
 
-    def generate_proto_file(proto_file_path: str, import_paths: Iterable[str]):
-        """Generates Python files for a single .proto file."""
-
-        absolute_proto_path = Path.joinpath(package_dir, proto_file_path)
-        output_dir = absolute_proto_path.parent.parent
-
-        os.makedirs(output_dir, exist_ok=True)  # Ensure output dir exists
-
-        command = [
-            sys.executable,
-            "-m",
-            "grpc_tools.protoc",
-            *[f"-I{package_dir / path}" for path in import_paths],
-            f"--python_out={output_dir}",
-            f"--mypy_out={output_dir}",
-            str(absolute_proto_path),
-        ]
-        print(f"Running command: {' '.join(command)}")
-        result = subprocess.run(command, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            print(f"Error compiling {proto_file_path}:")
-            print(result.stderr)
-            raise RuntimeError(
-                    f"protoc compilation failed for {proto_file_path}:\n{result.stderr}")
-        else:
-            print(f"Successfully compiled {proto_file_path}")
-
-        name = absolute_proto_path.name.split(".")[0]
-
-        # --- Get generated file paths (relative to output_dir) ---
-        pb2_file = Path.joinpath(output_dir, f"{name}_pb2.py")
-        pb2_grpc_file = pb2_file = Path.joinpath(output_dir, f"{name}_pb2_grpc.py")
-        pyi_file = pb2_file = Path.joinpath(output_dir, f"{name}_pb2.pyi")
-
-        modify_generated_file(pb2_file)       #Modify
-        if os.path.exists(pb2_grpc_file): # Check if grpc exists
-            modify_generated_file(pb2_grpc_file)  # gRPC modify
-        modify_generated_file(pyi_file)      #Modify
-
-
-    def modify_generated_file(file_path: Path):
-        """Performs string replacement in the generated file."""
-
-        updates: Dict[str, str] = {
-            "\nimport caller_id_pb2": "\nfrom tsercom.caller_id import caller_id_pb2",
-            "\nimport time_pb2": "\nfrom tsercom.timesync.common import time_pb2",
-            "\nimport common_pb2": "\nfrom tsercom.rpc import common_pb2",
-        }
-
-        try:
-            with open(file_path, 'r+') as f:
-                content = f.read()
-                for original, replacement in updates.items():
-                    content = content.replace(original, replacement)
-                f.seek(0)
-                f.write(content)
-                f.truncate()
-        except FileNotFoundError:
-            print(f"Warning: Generated file not found: {file_path}")
-        except Exception as e:
-            print(f"Error modifying file {file_path}: {e}")
-            raise
-
     # --- Define your proto files and their import paths ---
     generate_proto_file(
+        package_dir,
         "timesync/common/proto/time.proto",
         ["timesync/common/proto"],
     )
     generate_proto_file(
+        package_dir,
         "caller_id/proto/caller_id.proto",
         ["caller_id/proto"],
     )
     generate_proto_file(
+        package_dir,
         "rpc/proto/common.proto",
         ["caller_id/proto",
          "rpc/proto",

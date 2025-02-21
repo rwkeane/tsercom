@@ -8,7 +8,7 @@ import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.message
-from tsercom.timesync.common import time_pb2
+import tsercom.timesync.common.proto as time_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor

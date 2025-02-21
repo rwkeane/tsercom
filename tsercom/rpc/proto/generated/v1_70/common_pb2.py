@@ -22,8 +22,8 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-import caller_id_pb2 as caller__id__pb2
-import time_pb2 as time__pb2
+import tsercom.caller_id.proto as caller__id__pb2
+import tsercom.timesync.common.proto as time__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x63ommon.proto\x12\x03\x64tp\x1a\x0f\x63\x61ller_id.proto\x1a\ntime.proto\"\x14\n\x12TestConnectionCall\"\x18\n\x16TestConnectionResponse\"N\n\x06Tensor\x12\'\n\ttimestamp\x18\x01 \x01(\x0b\x32\x14.dtp.ServerTimestamp\x12\x0c\n\x04size\x18\x02 \x03(\x05\x12\r\n\x05\x61rray\x18\x03 \x03(\x02\x62\x06proto3')

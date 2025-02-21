@@ -1,6 +1,6 @@
 from typing import Callable, Optional
 
-from tsercom.caller_id.caller_id_pb2 import GetIdRequest, GetIdResponse
+from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.rpc.connection.client_reconnection_handler import ClientReconnectionManager
 

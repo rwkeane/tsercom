@@ -1,7 +1,7 @@
 from typing import Optional
 import torch
 
-from tsercom.rpc.common_pb2 import Tensor as GrpcTensor
+from tsercom.rpc.proto import Tensor as GrpcTensor
 from tsercom.timesync.common.synchronized_timestamp import SynchronizedTimestamp
 
 
