@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import Callable, Dict, Generic, Optional, TypeVar, overload
 
-from caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 from discovery.mdns.instance_listener import InstanceListener
 from discovery.service_info import ServiceInfo
-from threading.task_runner import TaskRunner
+from tsercom.threading.task_runner import TaskRunner
 
 
 TServiceInfo = TypeVar('TServiceInfo', bound = ServiceInfo)

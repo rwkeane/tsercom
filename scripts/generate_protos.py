@@ -56,9 +56,9 @@ def generate_protos(project_root : Path):
         """Performs string replacement in the generated file."""
 
         updates: Dict[str, str] = {
-            "\nimport caller_id_pb2": "\nfrom caller_id import caller_id_pb2",
-            "\nimport time_pb2": "\nfrom timesync.common import time_pb2",
-            "\nimport common_pb2": "\nfrom rpc import common_pb2",
+            "\nimport caller_id_pb2": "\nfrom tsercom.caller_id import caller_id_pb2",
+            "\nimport time_pb2": "\nfrom tsercom.timesync.common import time_pb2",
+            "\nimport common_pb2": "\nfrom tsercom.rpc import common_pb2",
         }
 
         try:

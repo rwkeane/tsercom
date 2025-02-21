@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import datetime
 
-from timesync.common.synchronized_timestamp import SynchronizedTimestamp
+from tsercom.timesync.common.synchronized_timestamp import SynchronizedTimestamp
 
 
 class SynchronizedClock(ABC):

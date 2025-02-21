@@ -4,8 +4,8 @@ from typing import Callable, Generic, Optional, TypeVar
 
 from tsercom.rpc.connection.client_reconnection_handler import ClientReconnectionManager
 from tsercom.rpc.grpc.grpc_caller import delay_before_retry, is_grpc_error, is_server_unavailable_error
-from threading.task_runner import TaskRunner
-from util.stopable import Stopable
+from tsercom.threading.task_runner import TaskRunner
+from tsercom.util.stopable import Stopable
 
 
 TInstanceType = TypeVar("TInstanceType", bound = Stopable)

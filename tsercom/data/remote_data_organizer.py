@@ -4,11 +4,11 @@ from functools import partial
 import threading
 from typing import Deque, Generic, List, Optional, TypeVar
 
-from caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 from data.exposed_data import ExposedData
 from data.remote_data_reader import RemoteDataReader
-from threading.task_runner import TaskRunner
-from util.is_running_tracker import IsRunningTracker
+from tsercom.threading.task_runner import TaskRunner
+from tsercom.util.is_running_tracker import IsRunningTracker
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)

@@ -1,7 +1,7 @@
 import datetime
 from typing import Generic, TypeVar
 
-from caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 from data.exposed_data import ExposedData
 from data.remote_data_responder import RemoteDataResponder
 

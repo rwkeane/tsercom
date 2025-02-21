@@ -1,7 +1,7 @@
 import datetime
 from google.protobuf.timestamp_pb2 import Timestamp
 
-from timesync.common.time_pb2 import ServerTimestamp
+from tsercom.timesync.common.time_pb2 import ServerTimestamp
 
 
 class SynchronizedTimestamp:

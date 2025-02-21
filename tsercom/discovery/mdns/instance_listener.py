@@ -5,7 +5,7 @@ from typing import Dict, Generic, List, Optional, TypeVar
 
 from discovery.service_info import ServiceInfo
 from discovery.mdns.record_listener import RecordListener
-from threading.task_runner import TaskRunner
+from tsercom.threading.task_runner import TaskRunner
 
 TServiceInfo = TypeVar('TServiceInfo', bound = ServiceInfo)
 class InstanceListener(Generic[TServiceInfo], RecordListener.Client):

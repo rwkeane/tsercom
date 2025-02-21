@@ -1,8 +1,8 @@
 from typing import Optional
 import torch
 
-from rpc.common_pb2 import Tensor as GrpcTensor
-from timesync.common.synchronized_timestamp import SynchronizedTimestamp
+from tsercom.rpc.common_pb2 import Tensor as GrpcTensor
+from tsercom.timesync.common.synchronized_timestamp import SynchronizedTimestamp
 
 
 class SerializableTensor:

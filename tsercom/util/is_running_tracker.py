@@ -3,7 +3,7 @@ from collections.abc import Coroutine
 import threading
 from typing import Any, AsyncIterator, TypeVar
 
-from threading.atomic import Atomic
+from tsercom.threading.atomic import Atomic
 
 
 TReturnType = TypeVar("TReturnType")

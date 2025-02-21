@@ -2,12 +2,12 @@ import datetime
 import threading
 from typing import Dict, Generic, List, Optional, TypeVar, overload
 
-from caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 from data.exposed_data import ExposedData
 from data.remote_data_aggregator import RemoteDataAggregator
 from data.remote_data_organizer import RemoteDataOrganizer
 from data.remote_data_reader import RemoteDataReader
-from threading.task_runner import TaskRunner
+from tsercom.threading.task_runner import TaskRunner
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)

@@ -1,7 +1,7 @@
 from abc import ABC
 import datetime
 
-from caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
 class ExposedData(ABC):

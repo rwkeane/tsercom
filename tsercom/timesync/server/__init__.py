@@ -1,1 +1,1 @@
-from timesync.server.time_sync_server import TimeSyncServer
+from tsercom.timesync.server.time_sync_server import TimeSyncServer

@@ -1,6 +1,6 @@
 import asyncio
 
-from caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
 class CallerIdentifierWaiter:

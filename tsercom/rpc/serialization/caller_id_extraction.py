@@ -1,9 +1,9 @@
 from typing import AsyncIterator, Callable, Optional, Tuple, TypeVar
 import grpc
 
-from caller_id.caller_id_pb2 import CallerId as GrpcCallerId
-from caller_id.caller_identifier import CallerIdentifier
-from util.is_running_tracker import IsRunningTracker
+from tsercom.caller_id.caller_id_pb2 import CallerId as GrpcCallerId
+from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.util.is_running_tracker import IsRunningTracker
 
 
 TCallType = TypeVar("TCallType")

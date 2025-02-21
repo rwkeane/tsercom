@@ -3,8 +3,8 @@ import asyncio
 import threading
 from typing import Deque, Generic, List, TypeVar
 
-from threading.atomic import Atomic
-from threading.task_runner import TaskRunner
+from tsercom.threading.atomic import Atomic
+from tsercom.threading.task_runner import TaskRunner
 
 
 kMaxResponses = 30

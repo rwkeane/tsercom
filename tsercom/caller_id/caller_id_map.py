@@ -1,7 +1,7 @@
 import threading
 from typing import Callable, Dict, Generic, TypeVar
 
-from caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
 TType = TypeVar("TType")

@@ -1,7 +1,7 @@
 from typing import Awaitable, Callable
 import grpc
 
-from threading.task_runner import TaskRunner
+from tsercom.threading.task_runner import TaskRunner
 
 # NOTE: This class is in the |threading| directory to avoid weird circular
 # dependencies having |threading| -> |rpc| -> |threading|.

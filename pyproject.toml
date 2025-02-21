@@ -3,31 +3,31 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name="tsercom"
+name = "tsercom"
 requires-python = ">=3.11"
 version = "0.1.0-alpha"
 license = { text = "Apache-2.0" }
 readme = "README.md"
 keywords = ["ts", "time", "time series", "communication", "rpc", "serialization", "transport", "channel", "grpc"]
-description = "Utilities for communicating time-series data across a network using gRPC, for use with pytorch or other data science applications."
+description = "Utilities for communicating time-series data across a network using gRPC."
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "License :: OSI Approved :: Apache Software License"
 ]
 authors = [
-  {name = "Ryan Keane"},
+  { name = "Ryan Keane" },
 ]
 dependencies = [
   "torch>=2.0.0",
-  "grpcio>=1.62.0",
-  "grpcio-status>=1.62.0",
-  "grpcio-tools>=1.62.0",
+  "grpcio=1.62.0",
+  "grpcio-status=1.62.0",
+  "grpcio-tools=1.62.0",
   "ntplib>=0.4.0",
   "zeroconf>=0.135.0",
-  "pyproject-hooks>=1.0",
-  "mypy-protobuf>=3.0"
 ]
 
 [project.optional-dependencies]
@@ -43,5 +43,5 @@ Repository = "https://github.com/rwkeane/tsercom"
 Issues = "https://github.com/rwkeane/tsercom/issues"
 
 [tool.setuptools.packages.find]
-include = [ "tsercom*" ]
-exclude = [ "docs*", "tests*", "scripts" ]
+include = ["tsercom*"]  #  <--  Include tsercom and subpackages
+exclude = ["docs*", "tests*", "scripts"]
