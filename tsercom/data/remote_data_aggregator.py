@@ -3,7 +3,7 @@ import datetime
 from typing import Dict, Generic, List, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from data.exposed_data import ExposedData
+from tsercom.data.exposed_data import ExposedData
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)

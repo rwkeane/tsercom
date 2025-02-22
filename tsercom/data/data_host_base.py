@@ -1,10 +1,10 @@
 from typing import Generic, Optional, TypeVar
 
-from data.data_host import DataHost
-from data.exposed_data import ExposedData
-from data.remote_data_aggregator import RemoteDataAggregator
-from data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
-from data.remote_data_reader import RemoteDataReader
+from tsercom.data.data_host import DataHost
+from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_aggregator import RemoteDataAggregator
+from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.task_runner import TaskRunner
 
 

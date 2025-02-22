@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from data.exposed_data import ExposedData
+from tsercom.data.exposed_data import ExposedData
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)

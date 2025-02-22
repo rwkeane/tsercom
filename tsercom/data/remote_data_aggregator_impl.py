@@ -3,10 +3,10 @@ import threading
 from typing import Dict, Generic, List, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from data.exposed_data import ExposedData
-from data.remote_data_aggregator import RemoteDataAggregator
-from data.remote_data_organizer import RemoteDataOrganizer
-from data.remote_data_reader import RemoteDataReader
+from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_aggregator import RemoteDataAggregator
+from tsercom.data.remote_data_organizer import RemoteDataOrganizer
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.task_runner import TaskRunner
 
 

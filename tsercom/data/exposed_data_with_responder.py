@@ -2,8 +2,8 @@ import datetime
 from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from data.exposed_data import ExposedData
-from data.remote_data_responder import RemoteDataResponder
+from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_responder import RemoteDataResponder
 
 
 TResponseType = TypeVar("TResponseType")

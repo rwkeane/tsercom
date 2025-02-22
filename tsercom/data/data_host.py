@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from data.exposed_data import ExposedData
-from data.remote_data_aggregator import RemoteDataAggregator
+from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)

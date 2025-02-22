@@ -5,8 +5,8 @@ import threading
 from typing import Deque, Generic, List, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from data.exposed_data import ExposedData
-from data.remote_data_reader import RemoteDataReader
+from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.task_runner import TaskRunner
 from tsercom.util.is_running_tracker import IsRunningTracker
 

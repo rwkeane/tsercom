@@ -28,6 +28,7 @@ dependencies = [
   "grpcio-tools~=1.62.0",
   "ntplib>=0.4.0",
   "zeroconf>=0.135.0",
+  "psutil>=5.9.0",
   "mypy-protobuf",
 ]
 
@@ -44,5 +45,9 @@ Repository = "https://github.com/rwkeane/tsercom"
 Issues = "https://github.com/rwkeane/tsercom/issues"
 
 [tool.setuptools.packages.find]
+where = ["."]  # <---  THIS IS KEY: Look in the current directory
 include = ["tsercom*"]  #  <--  Include tsercom and subpackages
 exclude = ["docs*", "tests*", "scripts"]
+
+[tool.setuptools] # Add this section
+package-dir = {"" = "."}  #  <--  THIS IS THE KEY

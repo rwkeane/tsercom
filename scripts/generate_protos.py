@@ -80,10 +80,10 @@ def modify_generated_file(file_path: Path):
     updates: Dict[str, str] = {
         "import caller_id_pb2\n": "import tsercom.caller_id.proto as caller_id_pb2\n",
         "import time_pb2\n": "import tsercom.timesync.common.proto as time_pb2\n",
-        "import common_pb2\n ": "import tsercom.rpc.proto as common_pb2\n",
+        "import common_pb2\n": "import tsercom.rpc.proto as common_pb2\n",
         "import caller_id_pb2 ": "import tsercom.caller_id.proto ",
         "import time_pb2 ": "import tsercom.timesync.common.proto ",
-        "import common_pb2 ": "import tsercom.rpc.proto.common_pb2 ",
+        "import common_pb2 ": "import tsercom.rpc.proto ",
     }
 
     try:
