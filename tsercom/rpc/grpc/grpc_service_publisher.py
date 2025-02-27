@@ -4,7 +4,7 @@ import grpc
 
 from tsercom.rpc.grpc.async_grpc_exception_interceptor import AsyncGrpcExceptionInterceptor
 from tsercom.threading.task_runner import TaskRunner
-from tsercom.rpc.grpc.addressing import get_all_address_strings
+from tsercom.util.ip import get_all_address_strings
 
 AddServicerCB = Callable[[grpc.Server], None]
 class GrpcServicePublisher:

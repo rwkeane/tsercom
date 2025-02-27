@@ -1,8 +1,10 @@
 import asyncio
 from collections.abc import Coroutine
+from functools import partial
 import threading
 from typing import Any, AsyncIterator, TypeVar
 
+from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running_on_event_loop, run_on_event_loop
 from tsercom.threading.atomic import Atomic
 
 
@@ -63,8 +65,8 @@ class IsRunningTracker(Atomic[bool]):
                 return
             
         # Block to ensure the state internally matches the stored value.
-        task = asyncio.run_coroutine_threadsafe(self.__set_impl(value),
-                                                self.__event_loop)
+        task = run_on_event_loop(partial(self.__set_impl, value),
+                                 self.__event_loop)
         
         # To clear the event loop and similar.
         def clear(x : Any):
@@ -77,7 +79,7 @@ class IsRunningTracker(Atomic[bool]):
 
         # If already on the event loop to which the task gets posted,
         # calling .result() triggers deadlock.
-        if not self.__event_loop == asyncio._get_running_loop():
+        if not is_running_on_event_loop(self.__event_loop):
             task.result()
     
     async def wait_until_started(self):
@@ -90,7 +92,7 @@ class IsRunningTracker(Atomic[bool]):
             return
         
         await self.__ensure_event_loop_initialized()
-        assert self.__event_loop == asyncio._get_running_loop()
+        assert is_running_on_event_loop(self.__event_loop)
 
         await self.__running_barrier.wait()
     
@@ -104,7 +106,7 @@ class IsRunningTracker(Atomic[bool]):
             return
         
         await self.__ensure_event_loop_initialized()
-        assert self.__event_loop == asyncio._get_running_loop()
+        assert is_running_on_event_loop(self.__event_loop)
 
         await self.__stopped_barrier.wait()
             
@@ -130,7 +132,7 @@ class IsRunningTracker(Atomic[bool]):
             return None
 
         await self.__ensure_event_loop_initialized()
-        assert self.__event_loop == asyncio._get_running_loop()
+        assert is_running_on_event_loop(self.__event_loop)
 
         # Wait for either |call| to finish or for this instance to stop running.
         stop_check_task = asyncio.create_task(self.__stopped_barrier.wait())
@@ -160,7 +162,7 @@ class IsRunningTracker(Atomic[bool]):
         running.
         """
         await self.__ensure_event_loop_initialized()
-        assert self.__event_loop == asyncio._get_running_loop()
+        assert is_running_on_event_loop(self.__event_loop)
 
         return IsRunningTracker.__IteratorWrapper(iterator, self)
 
@@ -180,7 +182,8 @@ class IsRunningTracker(Atomic[bool]):
             if not self.__event_loop is None:
                 return
             
-            self.__event_loop = asyncio.get_running_loop()
+            self.__event_loop = get_running_loop_or_none()
+            assert not self.__event_loop is None
             value = self.get()
         await self.__set_impl(value)
 

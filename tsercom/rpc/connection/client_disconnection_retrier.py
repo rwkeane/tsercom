@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 import asyncio
+from functools import partial
 from typing import Callable, Generic, Optional, TypeVar
 
 from tsercom.rpc.connection.client_reconnection_handler import ClientReconnectionManager
 from tsercom.rpc.grpc.grpc_caller import delay_before_retry, is_grpc_error, is_server_unavailable_error
+from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running_on_event_loop, run_on_event_loop
 from tsercom.threading.task_runner import TaskRunner
 from tsercom.util.stopable import Stopable
 
@@ -29,7 +31,7 @@ class ClientDisconnectionRetrier(
 
     async def start(self) -> bool:
         try:
-            self.__event_loop = asyncio._get_running_loop()
+            self.__event_loop = get_running_loop_or_none()
             assert not self.__event_loop is None
 
             self.__instance = self._connect()
@@ -48,8 +50,8 @@ class ClientDisconnectionRetrier(
         if self.__event_loop is None:
             return
         
-        if not self.__event_loop == asyncio._get_running_loop():
-            asyncio.run_coroutine_threadsafe(self.stop)
+        if not is_running_on_event_loop(self.__event_loop):
+            run_on_event_loop(self.stop, self.__event_loop)
             return
 
         if not self.__instance is None:
@@ -58,13 +60,10 @@ class ClientDisconnectionRetrier(
     
     async def _on_disconnect(self, error : Optional[Exception] = None):
         # Jump to the same thread from which this instance was initially created
-        # to avoid any weird threading issues or race conditions. This is
-        # ESPECIALLY likely because gRPC manages the thread pool from which gRPC
-        # exceptions will often arise, and its not immediately clear what
-        # happens to those threads once I call instance.stop().
-        if not self.__event_loop == asyncio._get_running_loop():
-            asyncio.run_coroutine_threadsafe(self._on_disconnect(error),
-                                             self.__event_loop)
+        # to avoid any weird threading issues or race conditions.
+        if not is_running_on_event_loop(self.__event_loop):
+            run_on_event_loop(partial(self._on_disconnect, error),
+                              self.__event_loop)
             return
         
         # This should never happen, but check just in case.

@@ -6,6 +6,7 @@ import socket
 import struct
 import time
 
+from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.task_runner import TaskRunner
 from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
@@ -146,12 +147,14 @@ class TimeSyncServer:
                 raise
 
     async def __receive(self, s : socket.socket):
-        loop = asyncio.get_running_loop()
+        loop = get_running_loop_or_none()
+        assert not loop is None
         data, addr = await loop.run_in_executor(
                 self.__io_thread, partial(s.recvfrom, 1024))
         return data, addr
 
     async def __send(self, s : socket.socket, response_packet : bytes, addr):
-        loop = asyncio.get_running_loop()
+        loop = get_running_loop_or_none()
+        assert not loop is None
         await loop.run_in_executor(
                 self.__io_thread, partial(s.sendto, response_packet, addr))

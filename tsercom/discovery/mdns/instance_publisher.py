@@ -1,7 +1,7 @@
 import datetime
 from uuid import getnode as get_mac
 
-from discovery.mdns.record_publisher import RecordPublisher
+from tsercom.discovery.mdns.record_publisher import RecordPublisher
 
 
 class InstancePublisher:

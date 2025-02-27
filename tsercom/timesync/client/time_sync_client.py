@@ -3,10 +3,10 @@ import ntplib
 import time
 import threading
 
+from tsercom.threading.task_runner import TaskRunner
 from tsercom.timesync.client.client_synchronized_clock import ClientSynchronizedClock
 from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
-from tsercom.threading.task_runner import TaskRunner
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 class TimeSyncClient(ClientSynchronizedClock.Client):

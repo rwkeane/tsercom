@@ -3,8 +3,8 @@ from functools import partial
 import socket
 from typing import Dict, Generic, List, Optional, TypeVar
 
-from discovery.service_info import ServiceInfo
-from discovery.mdns.record_listener import RecordListener
+from tsercom.discovery.service_info import ServiceInfo
+from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.threading.task_runner import TaskRunner
 
 TServiceInfo = TypeVar('TServiceInfo', bound = ServiceInfo)

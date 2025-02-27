@@ -1,2 +1,2 @@
-from discovery.mdns.instance_listener import InstanceListener
-from discovery.mdns.instance_publisher import InstancePublisher
+from tsercom.discovery.mdns.instance_listener import InstanceListener
+from tsercom.discovery.mdns.instance_publisher import InstancePublisher

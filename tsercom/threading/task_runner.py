@@ -8,6 +8,8 @@ from typing import Any, List, ParamSpec, TypeVar
 from collections.abc import Callable
 import uuid
 
+from tsercom.threading.aio.aio_utils import run_on_event_loop
+from tsercom.threading.aio.event_loop_factory import EventLoopFactory
 from tsercom.threading.throwing_thread import ThrowingThread
 from tsercom.threading.throwing_thread_pool_executor import ThrowingThreadPoolExecutor
 
@@ -19,7 +21,7 @@ class TaskRunner:
     This class provides a simple wrapper around a single threaded thread pool,
     as well as providing a number of utility functions to simplify its use.
     """
-    def __init__(self):
+    def __init__(self, create_event_loop : bool = False):
         self.__thread_pool_id = uuid.uuid4()
         self.__prefix = f"TaskRunner-{self.__thread_pool_id}"
        
@@ -38,12 +40,12 @@ class TaskRunner:
         # Create the event loop, but don't return until the new thread has
         # started. Else, it creates a race condition with the first call to
         # get |self.__event_loop|.
-        self.__event_loop_thread : threading.Thread = None
-        self.__event_loop : asyncio.AbstractEventLoop = None
+        if create_event_loop:
+            self.__event_loop_helper = EventLoopFactory()
 
-        barrier = threading.Event()
-        self.__start_asyncio_loop(barrier)
-        barrier.wait()
+            barrier = threading.Event()
+            self.__event_loop_helper.start_asyncio_loop(barrier)
+            barrier.wait()
 
     def post_task(self,
                   call: Callable[P, T],
@@ -55,12 +57,8 @@ class TaskRunner:
         main EventLoop, which is on a thread owned by this instance. Exceptions
         are returned when run_until_exception() is called.
         """
-        if not asyncio.iscoroutinefunction(call):
-            return self.__executor.submit(call, *args, **kwargs)
-        else:
-            return asyncio.run_coroutine_threadsafe(
-                    self.__wrap_for_exception(call, *args, **kwargs),
-                    self.__event_loop)
+        assert not asyncio.iscoroutinefunction(call)
+        return self.__executor.submit(call, *args, **kwargs)
 
     def post_task_with_delay(self,
                              call: Callable[P, T],
@@ -86,9 +84,6 @@ class TaskRunner:
         Returns whether or not the current thread is owned by this TaskRunner.
         """
         return self.__prefix in threading.current_thread().name
-    
-    def is_running_on_task_runner_event_loop(self):
-        return asyncio._get_running_loop() == self.__event_loop
 
     def create_short_lived_thread(
             self, target : Callable[[], None]) -> threading.Thread:
@@ -137,28 +132,6 @@ class TaskRunner:
         assert not self.is_running_on_task_runner()
         time.sleep(delay_ms / 1000)
         self.post_task(call, *args, **kwargs)
-    
-    def __start_asyncio_loop(self, barrier : threading.Event):
-        def handle_exception(loop, context):
-            exception = context.get("exception")
-            print("HIT EXCEPTION", exception)
-            if exception:
-                self.on_exception_seen(exception)
-            else:
-                print("ERROR! NO EXCEPTION FOUND")
-
-        def start_event_loop():
-            self.__event_loop = asyncio.new_event_loop()
-            self.__event_loop.set_exception_handler(handle_exception)
-            asyncio.set_event_loop(self.__event_loop)
-
-            # The loop is in a good state. Continue execution of the ctor.
-            barrier.set()
-            self.__event_loop.run_forever()
-
-        self.__event_loop_thread = \
-                self.create_short_lived_thread(start_event_loop)
-        self.__event_loop_thread.start()
 
     async def __wrap_for_exception(self,
                                    call: Callable[P, T],

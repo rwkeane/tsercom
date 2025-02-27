@@ -1,2 +1,2 @@
-from discovery import discovery_host
-from discovery_host import ServiceInfo
+from tsercom.discovery.discovery_host import DiscoveryHost
+from tsercom.discovery.service_info import ServiceInfo

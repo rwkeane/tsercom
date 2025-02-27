@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 
-from tsercom.rpc.grpc.addressing import get_all_addresses
+from tsercom.util.ip import get_all_addresses
 
 class RecordPublisher:
     """

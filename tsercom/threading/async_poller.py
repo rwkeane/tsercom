@@ -3,6 +3,7 @@ import asyncio
 import threading
 from typing import Deque, Generic, List, TypeVar
 
+from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running_on_event_loop, run_on_event_loop
 from tsercom.threading.atomic import Atomic
 from tsercom.threading.task_runner import TaskRunner
 
@@ -43,8 +44,7 @@ class AsyncPoller(Generic[TResultType], ABC):
             return
 
         assert not self.__event_loop is None
-        asyncio.run_coroutine_threadsafe(self.__set_results_available(),
-                                         self.__event_loop)
+        run_on_event_loop(self.__set_results_available, self.__event_loop)
         
     async def __set_results_available(self):
         self.__barrier.set()
@@ -63,13 +63,13 @@ class AsyncPoller(Generic[TResultType], ABC):
         # Set the current loop if it has not yet been set.
         if not self.__is_loop_running.get():
             assert self.__event_loop is None
-            self.__event_loop = asyncio._get_running_loop()
+            self.__event_loop = get_running_loop_or_none()
             assert not self.__event_loop is None
 
             self.__is_loop_running.set(True)
 
         # Check the current loop.
-        assert self.__event_loop == asyncio._get_running_loop()
+        assert is_running_on_event_loop(self.__event_loop)
 
         # Keep trying to pull results until some are found.
         while self.__is_loop_running.get():

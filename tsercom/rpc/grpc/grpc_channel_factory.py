@@ -2,7 +2,7 @@ from typing import Callable
 import grpc
 
 from tsercom.rpc.connection.channel_info import ChannelInfo
-from tsercom.rpc.grpc.addressing import get_all_address_strings
+from tsercom.util.ip import get_all_address_strings
 
 
 class GrpcChannelFactory:

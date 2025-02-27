@@ -1,13 +1,18 @@
 from abc import ABC, abstractmethod
 import asyncio
+from functools import partial
 from typing import Generic, List, Set, TypeVar
+import typing
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from discovery.discovery_host import DiscoveryHost
-from discovery.service_info import ServiceInfo
+from tsercom.discovery.discovery_host import DiscoveryHost
+from tsercom.discovery.service_info import ServiceInfo
 from tsercom.rpc.connection.channel_info import ChannelInfo
-from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
+from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running_on_event_loop, run_on_event_loop
 from tsercom.threading.task_runner import TaskRunner
+
+if typing.TYPE_CHECKING:
+    from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
 
 
 TServiceInfo = TypeVar('TServiceInfo', bound = ServiceInfo)
@@ -29,7 +34,7 @@ class DiscoverableGrpcEndpointConnector(Generic[TServiceInfo],
     def __init__(self,
                  task_runner : TaskRunner,
                  client : 'DiscoverableGrpcEndpointConnector.Client',
-                 channel_factory : GrpcChannelFactory,
+                 channel_factory : "GrpcChannelFactory",
                  discovery_host : DiscoveryHost[TServiceInfo]):
         self.__client = client
         self.__discovery_host = discovery_host
@@ -52,9 +57,9 @@ class DiscoverableGrpcEndpointConnector(Generic[TServiceInfo],
         Marks that the client associated with |client_id| is unhealthy and
         can be replaced.
         """
-        if not self.__event_loop == asyncio._get_running_loop():
-            asyncio.run_coroutine_threadsafe(self.mark_client_failed(caller_id),
-                                             self.__event_loop)
+        if not is_running_on_event_loop(self.__event_loop):
+            run_on_event_loop(partial(self.mark_client_failed, caller_id),
+                              self.__event_loop)
             return
 
         assert caller_id in self.__callers
@@ -63,9 +68,10 @@ class DiscoverableGrpcEndpointConnector(Generic[TServiceInfo],
     async def _on_service_added(
             self, connection_info : TServiceInfo, caller_id : CallerIdentifier):
         if self.__event_loop is None:
-            self.__event_loop = asyncio._get_running_loop()
+            self.__event_loop = get_running_loop_or_none()
+            assert not self.__event_loop is None
         else:
-            assert self.__event_loop == asyncio._get_running_loop()
+            assert is_running_on_event_loop(self.__event_loop)
 
         # Check if a connection already exists.
         if caller_id in self.__callers:

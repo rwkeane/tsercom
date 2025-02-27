@@ -3,8 +3,8 @@ from functools import partial
 from typing import Callable, Dict, Generic, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from discovery.mdns.instance_listener import InstanceListener
-from discovery.service_info import ServiceInfo
+from tsercom.discovery.mdns.instance_listener import InstanceListener
+from tsercom.discovery.service_info import ServiceInfo
 from tsercom.threading.task_runner import TaskRunner
 
 
