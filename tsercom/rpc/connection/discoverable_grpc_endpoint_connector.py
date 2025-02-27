@@ -9,7 +9,7 @@ from tsercom.discovery.discovery_host import DiscoveryHost
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.rpc.connection.channel_info import ChannelInfo
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running_on_event_loop, run_on_event_loop
-from tsercom.threading.task_runner import TaskRunner
+from tsercom.threading.thread_watcher import ThreadWatcher
 
 if typing.TYPE_CHECKING:
     from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
@@ -32,7 +32,6 @@ class DiscoverableGrpcEndpointConnector(Generic[TServiceInfo],
             pass
         
     def __init__(self,
-                 task_runner : TaskRunner,
                  client : 'DiscoverableGrpcEndpointConnector.Client',
                  channel_factory : "GrpcChannelFactory",
                  discovery_host : DiscoveryHost[TServiceInfo]):

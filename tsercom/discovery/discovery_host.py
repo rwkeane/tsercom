@@ -5,7 +5,8 @@ from typing import Callable, Dict, Generic, Optional, TypeVar, overload
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.service_info import ServiceInfo
-from tsercom.threading.task_runner import TaskRunner
+from tsercom.threading.aio.aio_utils import run_on_event_loop
+from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 TServiceInfo = TypeVar('TServiceInfo', bound = ServiceInfo)
@@ -23,29 +24,25 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
         
     @overload
     def __init__(self,
-                 task_runner : TaskRunner,
                  *,
                  service_type : str):
         pass
     
     @overload
     def __init__(self,
-                 task_runner : TaskRunner,
                  *,
                  instance_listener_factory : \
-                        Callable[[TaskRunner], InstanceListener]):
+                        Callable[[InstanceListener.Client], InstanceListener]):
         pass
 
     def __init__(self,
-                 task_runner : TaskRunner,
                  *,
                  service_type : Optional[str] = None,
                  instance_listener_factory : Optional[
-                        Callable[[TaskRunner], InstanceListener]] = None):
+                        Callable[[ThreadWatcher], InstanceListener]] = None):
         assert (not service_type is None) != \
                (not instance_listener_factory is None)
 
-        self.__task_runner = task_runner
         self.__service_type = service_type
         self.__instance_listener_factory = instance_listener_factory
 
@@ -58,20 +55,18 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
         """
         Starts discovery. Results are returned by a call to the |client|.
         """
-        if not self.__task_runner.is_running_on_task_runner():
-            self.__task_runner.post_task(partial(self.start_discovery, client))
-            return
-        
         assert not client is None
+        run_on_event_loop(partial(self.__start_discovery_impl, client))
+
+    async def __start_discovery_impl(self, client : 'DiscoveryHost.Client'):
         assert self.__discoverer is None
 
         self.__client = client
         if not self.__instance_listener_factory is None:
-            self.__discoverer = self.__instance_listener_factory(
-                    self.__task_runner)
+            self.__discoverer = self.__instance_listener_factory(self)
         else:
             self.__discoverer = InstanceListener[TServiceInfo](
-                    self, self.__task_runner, self.__service_type)
+                    self, self.__service_type)
         
     async def _on_service_added(self, connection_info : TServiceInfo):
         print("ENDPOINT FOUND")

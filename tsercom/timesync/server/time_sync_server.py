@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import threading
 import errno
@@ -6,8 +7,8 @@ import socket
 import struct
 import time
 
-from tsercom.threading.aio.aio_utils import get_running_loop_or_none
-from tsercom.threading.task_runner import TaskRunner
+from tsercom.threading.aio.aio_utils import get_running_loop_or_none, run_on_event_loop
+from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.server_synchronized_clock import ServerSynchronizedClock
@@ -22,10 +23,8 @@ class TimeSyncServer:
     in order to open a socket.
     """
     def __init__(self,
-                 task_runner : TaskRunner,
                  address : str = "0.0.0.0",
                  ntp_port : int = kNtpPort):
-        self.__task_runner = task_runner
         self.__address = address
         self.__port = ntp_port
         self.__is_running = IsRunningTracker()
@@ -33,14 +32,13 @@ class TimeSyncServer:
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__socket_lock = threading.Lock()
 
-        self.__io_thread = task_runner.create_delegated_thread_pool_executor(
-                max_workers = 1)
+        self.__io_thread = ThreadPoolExecutor(max_workers = 1)
 
     @property
     def is_running(self):
         return self.__is_running.get()
     
-    def start_sync(self) -> bool:
+    def start_async(self) -> bool:
         """
         Starts the server. May only be called once.
         """
@@ -48,11 +46,11 @@ class TimeSyncServer:
 
         self.__bind_socket()
         if self.__is_running.get():
-            self.__task_runner.post_task(self.__run_server)
+            run_on_event_loop(self.__run_server)
 
         return self.__is_running.get()
     
-    def stop_sync(self):
+    def stop(self):
         """
         Stops the server. Following this call, the server will be in an
         unhealthy state and cannot be used again.

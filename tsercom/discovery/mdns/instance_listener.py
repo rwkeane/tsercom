@@ -5,7 +5,8 @@ from typing import Dict, Generic, List, Optional, TypeVar
 
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.discovery.mdns.record_listener import RecordListener
-from tsercom.threading.task_runner import TaskRunner
+from tsercom.threading.aio.aio_utils import run_on_event_loop
+from tsercom.threading.thread_watcher import ThreadWatcher
 
 TServiceInfo = TypeVar('TServiceInfo', bound = ServiceInfo)
 class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
@@ -19,15 +20,12 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         
     def __init__(self,
                  client : 'InstanceListener.Client',
-                 task_runner : TaskRunner,
                  service_type : str):
         assert not client is None and issubclass(
                 type(client), InstanceListener.Client)
-        assert issubclass(type(task_runner), TaskRunner)
         assert isinstance(service_type, str)
         
         self.__client = client
-        self.__task_runner = task_runner
 
         self.__listener = RecordListener(self, service_type)
 
@@ -74,7 +72,7 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         service_info = self.__populate_service_info(
                 record_name, port, addresses, txt_record)
         service_info = self._convert_service_info(service_info, txt_record)
-        self.__task_runner.post_task(
+        run_on_event_loop(
                 partial(self.__client._on_service_added, service_info))
         
         

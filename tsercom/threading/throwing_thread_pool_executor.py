@@ -17,12 +17,10 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
             try:
                 return fn(*args2, **kwargs2)
             except Exception as e:
-                print("CAUGHT IN TPE")
                 if not self.__error_cb is None:
                     self.__error_cb(e)
                 raise e
             except Warning as e:
-                print("CAUGHT IN TPE")
                 if not self.__error_cb is None:
                     self.__error_cb(e)
                 raise e

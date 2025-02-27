@@ -3,7 +3,7 @@ import ntplib
 import time
 import threading
 
-from tsercom.threading.task_runner import TaskRunner
+from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.client_synchronized_clock import ClientSynchronizedClock
 from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
@@ -16,10 +16,10 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
     client-server handshake, receiving the offset from a call to the server.
     """
     def __init__(self,
-                 task_runner : TaskRunner,
+                 watcher : ThreadWatcher,
                  server_ip : str,
                  ntp_port : int = kNtpPort):
-        self.__task_runner = task_runner
+        self.__watcher = watcher
         self.__server_ip = server_ip
         self.__ntp_port = ntp_port
 
@@ -62,7 +62,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         self.__is_running.set(True)
 
         # Run the request loop.
-        self.__sync_loop_thread = self.__task_runner.create_short_lived_thread(
+        self.__sync_loop_thread = self.__watcher.create_tracked_thread(
                 self.__run_sync_loop)
         self.__sync_loop_thread.start()
     
@@ -91,6 +91,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                 print(f"NTP error: {e}")
             except Exception as e:
                 print(f"Error during NTP sync: {e}")
+                if isinstance(e, AssertionError):
+                    self.__watcher.on_exception_seen(e)
+                    raise e
 
             # If this is the first call, set the startup barrier.
             if not self.__start_barrier.is_set():

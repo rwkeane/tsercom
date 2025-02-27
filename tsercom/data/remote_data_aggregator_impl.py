@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
 from typing import Dict, Generic, List, Optional, TypeVar, overload
@@ -7,7 +8,7 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_organizer import RemoteDataOrganizer
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.task_runner import TaskRunner
+from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)
@@ -20,10 +21,10 @@ class RemoteDataAggregatorImpl(Generic[TDataType],
     from the interface to limit what is shown to a user of the class.
     """
     def __init__(self,
-                 task_runner : TaskRunner,
+                 thread_pool : ThreadPoolExecutor,
                  client : Optional[RemoteDataAggregator.Client] = None,
                  timeout_seconds : int = 60):
-        self.__task_runner = task_runner
+        self.__thread_pool = thread_pool
         self.__client = client
         self.__timeout_seconds = timeout_seconds
 
@@ -101,7 +102,7 @@ class RemoteDataAggregatorImpl(Generic[TDataType],
             found = new_data.caller_id in self.__organizers
             if not found:
                 data_organizer = RemoteDataOrganizer(
-                        self.__task_runner,
+                        self.__thread_pool,
                         new_data.caller_id,
                         self,
                         self.__timeout_seconds)

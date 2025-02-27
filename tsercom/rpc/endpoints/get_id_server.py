@@ -30,3 +30,5 @@ class AsyncGetIdServer:
         except Exception as e:
             if not self.__on_disconnect_handler is None:
                 self.__on_disconnect_handler(e)
+            if isinstance(e, AssertionError):
+                raise

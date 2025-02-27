@@ -60,5 +60,7 @@ class GrpcChannelFactory:
                 
                 except Exception as e:
                     print(f"\t\tAddress Unreachable! Error '{e}'")
+                    if isinstance(e, AssertionError):
+                        raise e
 
         return None

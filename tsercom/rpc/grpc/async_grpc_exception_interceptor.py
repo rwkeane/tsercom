@@ -1,7 +1,7 @@
 from typing import Awaitable, Callable
 import grpc
 
-from tsercom.threading.task_runner import TaskRunner
+from tsercom.threading.thread_watcher import ThreadWatcher
 
 # NOTE: This class is in the |threading| directory to avoid weird circular
 # dependencies having |threading| -> |rpc| -> |threading|.
@@ -17,8 +17,8 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
     unlikely given how closely these methods already mirror the non-async
     versions. If that happens, this class may need to be reworked.
     """
-    def __init__(self, task_runner : TaskRunner):
-        self.__error_cb = task_runner.on_exception_seen
+    def __init__(self, watcher : ThreadWatcher):
+        self.__error_cb = watcher.on_exception_seen
         
         super().__init__()
 
@@ -114,6 +114,8 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
                                 context: grpc.aio.ServicerContext):
         """Handles exceptions raised by RPC methods."""
         if issubclass(type(e), StopAsyncIteration):
+            raise e
+        if isinstance(e, AssertionError):
             raise e
         
         self.__error_cb(e)
