@@ -6,6 +6,7 @@ import threading
 from typing import Deque, Generic, List, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.thread_watcher import ThreadWatcher
@@ -13,7 +14,9 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 
 
 TDataType = TypeVar("TDataType", bound = ExposedData)
-class RemoteDataOrganizer(Generic[TDataType], RemoteDataReader[TDataType]):
+class RemoteDataOrganizer(Generic[TDataType],
+                          RemoteDataReader[TDataType],
+                          DataTimeoutTracker.Tracked):
     """
     This class is responsible for organizing data received from a remote
     endpoint and exposing that to external viewers in a simple, thread-safe
@@ -27,12 +30,10 @@ class RemoteDataOrganizer(Generic[TDataType], RemoteDataReader[TDataType]):
     def __init__(self,
                  thread_pool : ThreadPoolExecutor,
                  caller_id : CallerIdentifier,
-                 client : Optional['RemoteDataOrganizer.Client'] = None,
-                 timeout_seconds : int = 60):
+                 client : Optional['RemoteDataOrganizer.Client'] = None):
         self.__thread_pool = thread_pool
         self.__caller_id = caller_id
         self.__client = client
-        self.__timeout_seconds = timeout_seconds
 
         # Stored data.
         self.__data_lock = threading.Lock()
@@ -41,9 +42,6 @@ class RemoteDataOrganizer(Generic[TDataType], RemoteDataReader[TDataType]):
 
         # Schedule timeout.
         self.__is_running = IsRunningTracker()
-        if timeout_seconds <= 0:
-            self.__thread_pool.submit(self.__timeout_old_data,
-                                      1000 * timeout_seconds / 2)
 
         super().__init__()
 
@@ -119,23 +117,6 @@ class RemoteDataOrganizer(Generic[TDataType], RemoteDataReader[TDataType]):
                 if timestamp > self.__data[i].timestamp:
                     return self.__data[i]
     
-    def __timeout_old_data(self):
-        # Get the timeout.
-        current_time = datetime.datetime.now()
-        timeout =  datetime.timedelta(seconds = self.__timeout_seconds)
-        oldest_allowed = current_time - timeout
-
-        # Eliminate old data.
-        with self.__data_lock:
-            while len(self.__data) > 0 and \
-                  self.__data[-1].timestamp < oldest_allowed:
-                self.__data.pop()
-
-        # Schedule next timeout task.
-        if self.__is_running.get():
-            self.__thread_pool.submit(self.__timeout_old_data,
-                                      1000 * self.__timeout_seconds / 2)
-    
     def _on_data_ready(self, new_data : TDataType):
         # Validate the data.
         assert issubclass(type(new_data), ExposedData), type(new_data)
@@ -171,3 +152,19 @@ class RemoteDataOrganizer(Generic[TDataType], RemoteDataReader[TDataType]):
         # If new data was added, inform the user.
         if not self.__client is None:
             self.__client._on_data_available(self)
+
+    def _on_triggered(self, timeout_seconds : int):
+        self.__thread_pool.submit(
+                partial(self.__timeout_old_data, timeout_seconds))
+    
+    def __timeout_old_data(self, timeout_seconds : int):
+        # Get the timeout.
+        current_time = datetime.datetime.now()
+        timeout =  datetime.timedelta(seconds = timeout_seconds)
+        oldest_allowed = current_time - timeout
+
+        # Eliminate old data.
+        with self.__data_lock:
+            while len(self.__data) > 0 and \
+                  self.__data[-1].timestamp < oldest_allowed:
+                self.__data.pop()

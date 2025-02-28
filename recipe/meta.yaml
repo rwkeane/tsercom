@@ -1,20 +1,31 @@
 package:
   name: tsercom
-  version: 0.1.0a  #  Update this as needed
+  version: {{ version }}  # Use Jinja2 templating for dynamic version
 
 source:
-  path: ../  # Important: Relative path to the project root
+  url: https://https://github.com/rwkeane/tsercom/archive/{{ version }}.tar.gz
 
 build:
   number: 0
   noarch: python
+  script: {{ PYTHON }} -m pip install . -vv  # Use pip for installation
 
 requirements:
   build:
     - python >=3.11
     - pip
+    - setuptools  # Add setuptools here
+    - wheel       # Add wheel
+    - setuptools-scm # CRUCIAL: Add setuptools-scm for dynamic versioning
     - grpcio-tools  # Needed for protoc
     - mypy-protobuf  # Needed for .pyi generation
+
+  host:  #  <--- IMPORTANT: Use 'host' section for build-time *and* runtime deps
+    - python >=3.11
+    - pip
+    - setuptools-scm # Also list it under host
+    - grpcio-tools
+    - mypy-protobuf
 
   run:
     - python >=3.11
@@ -23,10 +34,13 @@ requirements:
     - grpcio-status >=1.62.0
     - ntplib >=0.4.0
     - zeroconf >=0.135.0
-    # Add any other runtime dependencies here
 
 about:
-  home: "https://github.com/rwkeane/tsercom"  # Your project URL
+  home: "https://github.com/rwkeane/tsercom"  # project URL
   license: Apache-2.0
-  license_file: ../LICENSE  # If you have a separate LICENSE file, put it at project root
+  license_file: LICENSE
   summary: "Utilities for communicating time-series data across a network using gRPC."
+
+extra:
+  recipe-maintainers:
+    - rwkeane

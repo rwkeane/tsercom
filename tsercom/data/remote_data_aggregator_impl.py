@@ -4,6 +4,7 @@ import threading
 from typing import Dict, Generic, List, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_organizer import RemoteDataOrganizer
@@ -23,11 +24,12 @@ class RemoteDataAggregatorImpl(Generic[TDataType],
     def __init__(self,
                  thread_pool : ThreadPoolExecutor,
                  client : Optional[RemoteDataAggregator.Client] = None,
-                 timeout_seconds : int = 60):
+                 tracker : Optional[DataTimeoutTracker] = None):
         self.__thread_pool = thread_pool
         self.__client = client
-        self.__timeout_seconds = timeout_seconds
+        self.__tracker = tracker
 
+        # TODO: Can this be a CallerIdMap?
         self.__organizers : Dict[CallerIdentifier, RemoteDataOrganizer] = {}
         self.__lock = threading.Lock()
 
@@ -35,6 +37,7 @@ class RemoteDataAggregatorImpl(Generic[TDataType],
         with self.__lock:
             if not id is None:
                 assert id in self.__organizers
+                self.__organizers[id].stop()
                 return
             
             for key, val in self.__organizers.items():
@@ -104,8 +107,9 @@ class RemoteDataAggregatorImpl(Generic[TDataType],
                 data_organizer = RemoteDataOrganizer(
                         self.__thread_pool,
                         new_data.caller_id,
-                        self,
-                        self.__timeout_seconds)
+                        self)
+                if not self.__tracker is None:
+                    self.__tracker.register(data_organizer)
                 data_organizer.start()
                 self.__organizers[new_data.caller_id] = data_organizer
             else:

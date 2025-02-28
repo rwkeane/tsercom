@@ -1,6 +1,7 @@
 from typing import Generic, Optional, TypeVar
 
 from tsercom.data.data_host import DataHost
+from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
@@ -23,8 +24,14 @@ class DataHostBase(Generic[TDataType], DataHost[TDataType], RemoteDataReader):
                  **kwargs):
         thread_pool = watcher.create_tracked_thread_pool_executor(
                 max_workers = 1)
+        
+        tracker = None
+        if timeout_seconds > 0:
+            tracker = DataTimeoutTracker(timeout_seconds)
+            tracker.start()
+
         self.__aggregator = RemoteDataAggregatorImpl(
-                thread_pool, aggregation_client, timeout_seconds)
+                thread_pool, aggregation_client, tracker)
     
         super().__init__(*args, **kwargs)
 

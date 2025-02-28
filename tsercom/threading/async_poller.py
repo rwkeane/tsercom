@@ -34,7 +34,6 @@ class AsyncPoller(Generic[TResultType], ABC):
         """
         Enqueues a newly available |new_instance|.
         """
-
         with self.__lock:
             if len(self.__responses) > kMaxResponses:
                 self.__responses.popleft()
