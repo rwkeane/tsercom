@@ -1,4 +1,4 @@
-name: Upload Python Package to TestPyPI when a Release is Created
+name: Upload to TestPyPI
 
 on:
   release:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   pypi-publish:
-    name: Publish release to PyPI
+    name: Publish release to TestPyPI
     runs-on: ubuntu-latest
     environment:
       name: testpypi
