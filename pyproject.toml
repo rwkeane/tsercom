@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tsercom"
 requires-python = ">=3.11"
-version = "0.1.0-alpha"
+dynamic = ["version"]
 license = { text = "Apache-2.0" }
 readme = "README.md"
 keywords = ["ts", "time", "time series", "communication", "rpc", "serialization", "transport", "channel", "grpc"]
@@ -51,3 +51,7 @@ exclude = ["docs*", "tests*", "scripts"]
 
 [tool.setuptools] # Add this section
 package-dir = {"" = "."}  #  <--  THIS IS THE KEY
+
+[tool.setuptools_scm]
+write_to = "src/tsercom/_version.py"
+write_to_template = "__version__ = '{version}'"
