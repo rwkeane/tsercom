@@ -9,7 +9,7 @@ dynamic = ["version"]
 license = { text = "Apache-2.0" }
 readme = "README.md"
 keywords = ["ts", "time", "time series", "communication", "rpc", "serialization", "transport", "channel", "grpc"]
-description = "Utilities for communicating time-series data across a network using gRPC."
+description = "Time-SERies COMmunication using gRPC for data science and machine learning applications."
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python",
