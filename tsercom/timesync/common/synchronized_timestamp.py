@@ -13,8 +13,8 @@ class SynchronizedTimestamp:
 
     @classmethod
     def try_parse(
-            self,
-            other: Timestamp | ServerTimestamp) -> 'SynchronizedTimestamp':
+        self, other: Timestamp | ServerTimestamp
+    ) -> "SynchronizedTimestamp":
         if isinstance(other, ServerTimestamp):
             other = other.timestamp
 

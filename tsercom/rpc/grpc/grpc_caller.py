@@ -33,8 +33,10 @@ def is_server_unavailable_error(error: Exception) -> bool:
 
     status_code = get_grpc_status_code(error)
     print("FOUND STATUS CODE", status_code)
-    return status_code in (grpc.StatusCode.UNAVAILABLE,
-                           grpc.StatusCode.DEADLINE_EXCEEDED)
+    return status_code in (
+        grpc.StatusCode.UNAVAILABLE,
+        grpc.StatusCode.DEADLINE_EXCEEDED,
+    )
 
 
 def is_grpc_error(error: Exception):

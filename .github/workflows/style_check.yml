@@ -1,0 +1,16 @@
+name: YAPF Format Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: psf/black@stable
+        with:
+          options: "--verbose --exclude='.*_pb2(_grpc)?[.]py(i)?'"

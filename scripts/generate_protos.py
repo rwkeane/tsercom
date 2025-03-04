@@ -12,9 +12,9 @@ import grpc
 kGeneratedDir = "generated"
 
 
-def generate_proto_file(package_dir: Path,
-                        proto_file_path: str,
-                        import_paths: Iterable[str]):
+def generate_proto_file(
+    package_dir: Path, proto_file_path: str, import_paths: Iterable[str]
+):
     """Generates Python files for a single .proto file."""
 
     absolute_proto_path = Path.joinpath(package_dir, proto_file_path)
@@ -59,8 +59,11 @@ def make_versioned_output_dir(base_dir: Path):
     try:
         version = grpc.__version__
         major_minor_version = ".".join(
-            version.split(".")[:2])  # Extract major.minor
-        version_string = f"v{major_minor_version.replace('.', '_')}"  # e.g., v1_62
+            version.split(".")[:2]
+        )  # Extract major.minor
+        version_string = (
+            f"v{major_minor_version.replace('.', '_')}"  # e.g., v1_62
+        )
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         raise RuntimeError(
             f"Could not determine grpcio-tools version. Is it installed? Error: {e}"
@@ -82,10 +85,8 @@ def modify_generated_file(file_path: Path):
 
     # TODO: Make this less hacky.
     updates: Dict[str, str] = {
-        "import caller_id_pb2\n":
-        "import tsercom.caller_id.proto as caller_id_pb2\n",
-        "import time_pb2\n":
-        "import tsercom.timesync.common.proto as time_pb2\n",
+        "import caller_id_pb2\n": "import tsercom.caller_id.proto as caller_id_pb2\n",
+        "import time_pb2\n": "import tsercom.timesync.common.proto as time_pb2\n",
         "import common_pb2\n": "import tsercom.rpc.proto as common_pb2\n",
         "import caller_id_pb2 ": "import tsercom.caller_id.proto ",
         "import time_pb2 ": "import tsercom.timesync.common.proto ",
@@ -93,7 +94,7 @@ def modify_generated_file(file_path: Path):
     }
 
     try:
-        with open(file_path, 'r+') as f:
+        with open(file_path, "r+") as f:
             content = f.read()
             for original, replacement in updates.items():
                 content = content.replace(original, replacement)
@@ -108,7 +109,7 @@ def modify_generated_file(file_path: Path):
 
 
 def generate_init(package_dir, proto_path: str, generated_path: Path):
-    init_file_content = f'''
+    init_file_content = f"""
 import grpc
 import subprocess
 
@@ -123,11 +124,15 @@ except (subprocess.CalledProcessError, FileNotFoundError) as e:
 
 if False:
     pass
-'''
+"""
     name = Path(proto_path).name.split(".")[0]
     versioned_dirs = []
-    base_package = generated_path.relative_to(package_dir).__str__().replace(
-        "/", ".").replace("\\", ".")
+    base_package = (
+        generated_path.relative_to(package_dir)
+        .__str__()
+        .replace("/", ".")
+        .replace("\\", ".")
+    )
     for item in generated_path.iterdir():
         if item.is_dir() and item.name.startswith("v"):
             file_path = item.joinpath(f"{name}_pb2.pyi")
@@ -135,21 +140,22 @@ if False:
             versioned_dirs.append((item.name, classes))
     for versioned_dir_name, classes in versioned_dirs:
         current_version = versioned_dir_name[1:]
-        init_file_content += f'''
+        init_file_content += f"""
 elif version_string == "v{current_version}":
     from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}
-'''
-    init_file_content += f'''
+"""
+    init_file_content += f"""
 else:
     raise ImportError(
         f"No pre-generated protobuf code found for grpcio version: {{version}}.\\n"
         f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
     )
-'''
+"""
 
     init_file = Path.joinpath(
-        Path.joinpath(package_dir, proto_path).parent, "__init__.py")
-    with open(init_file, 'w') as f:  # Open in write mode ('w')
+        Path.joinpath(package_dir, proto_path).parent, "__init__.py"
+    )
+    with open(init_file, "w") as f:  # Open in write mode ('w')
         f.write(init_file_content)
 
 

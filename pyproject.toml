@@ -55,3 +55,6 @@ package-dir = {"" = "."}  #  <--  THIS IS THE KEY
 [tool.setuptools_scm]
 write_to = "tsercom/_version.py"
 write_to_template = "__version__ = '{version}'"
+
+[tool.black]
+line-length = 79

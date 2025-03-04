@@ -11,17 +11,22 @@ class RecordListener:
     class Client(ABC):
 
         @abstractmethod
-        def _on_service_added(self,
-                              name: str,
-                              port: int,
-                              addesses: List[bytes],
-                              txt_record: Dict[str, Optional[str]]):
+        def _on_service_added(
+            self,
+            name: str,
+            port: int,
+            addesses: List[bytes],
+            txt_record: Dict[str, Optional[str]],
+        ):
             raise NotImplementedError("This method must be implemented!")
 
     def __init__(self, client: Client, service_type: str):
-        assert not client is None and issubclass(type(client),
-                                                 RecordListener.Client), client
-        assert not service_type is None and service_type[0] == "_", service_type
+        assert not client is None and issubclass(
+            type(client), RecordListener.Client
+        ), client
+        assert (
+            not service_type is None and service_type[0] == "_"
+        ), service_type
 
         self.__client = client
         self.__expected_type = f"{service_type}._tcp.local."
@@ -41,10 +46,9 @@ class RecordListener:
             print("ERROR: Invalid service records found!")
             return
 
-        self.__client._on_service_added(info.name,
-                                        info.port,
-                                        info.addresses,
-                                        info.properties)
+        self.__client._on_service_added(
+            info.name, info.port, info.addresses, info.properties
+        )
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         print("Removed service of type ", type_, ", name ", name)
@@ -60,7 +64,6 @@ class RecordListener:
             print("ERROR: Invalid service records found!")
             return
 
-        self.__client._on_service_added(info.name,
-                                        info.port,
-                                        info.addresses,
-                                        info.properties)
+        self.__client._on_service_added(
+            info.name, info.port, info.addresses, info.properties
+        )

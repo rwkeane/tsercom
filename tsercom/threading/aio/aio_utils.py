@@ -45,17 +45,17 @@ def is_running_on_event_loop(event_loop: Optional[AbstractEventLoop] = None):
         return False
 
 
-P = ParamSpec('P')
-T = TypeVar('T')
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
-def run_on_event_loop(call: Callable[P, Coroutine[Any, Any, T]],
-                      event_loop: Optional[AbstractEventLoop] = None,
-                      *args,
-                      **kwargs: P.kwargs) -> Future[T]:
-    """
-    
-    """
+def run_on_event_loop(
+    call: Callable[P, Coroutine[Any, Any, T]],
+    event_loop: Optional[AbstractEventLoop] = None,
+    *args,
+    **kwargs: P.kwargs,
+) -> Future[T]:
+    """ """
     if event_loop is None:
         event_loop = get_global_event_loop()
         if event_loop is None:

@@ -4,7 +4,11 @@ from functools import partial
 import threading
 from typing import Any, AsyncIterator, TypeVar
 
-from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running_on_event_loop, run_on_event_loop
+from tsercom.threading.aio.aio_utils import (
+    get_running_loop_or_none,
+    is_running_on_event_loop,
+    run_on_event_loop,
+)
 from tsercom.threading.atomic import Atomic
 
 TReturnType = TypeVar("TReturnType")
@@ -56,7 +60,7 @@ class IsRunningTracker(Atomic[bool]):
 
     def set(self, value: bool):
         """
-        Sets the state of this instance be running when |value| is True and 
+        Sets the state of this instance be running when |value| is True and
         stopped when |value| is False at the next available opportunity. May be
         called from any thread.
         """
@@ -67,8 +71,9 @@ class IsRunningTracker(Atomic[bool]):
                 return
 
         # Block to ensure the state internally matches the stored value.
-        task = run_on_event_loop(partial(self.__set_impl, value),
-                                 self.__event_loop)
+        task = run_on_event_loop(
+            partial(self.__set_impl, value), self.__event_loop
+        )
 
         # To clear the event loop and similar.
         def clear(x: Any):
@@ -114,8 +119,8 @@ class IsRunningTracker(Atomic[bool]):
         await self.__stopped_barrier.wait()
 
     async def task_or_stopped(
-            self, call: Coroutine[Any, Any,
-                                  TReturnType]) -> TReturnType | None:
+        self, call: Coroutine[Any, Any, TReturnType]
+    ) -> TReturnType | None:
         """
         Runs |call| until completion, or until the current instance changes to
         False. May only be called from a single asyncio loop, along with the
@@ -139,8 +144,9 @@ class IsRunningTracker(Atomic[bool]):
 
         # Wait for either |call| to finish or for this instance to stop running.
         stop_check_task = asyncio.create_task(self.__stopped_barrier.wait())
-        done, pending = await asyncio.wait([call_task, stop_check_task],
-                                           return_when=asyncio.FIRST_COMPLETED)
+        done, pending = await asyncio.wait(
+            [call_task, stop_check_task], return_when=asyncio.FIRST_COMPLETED
+        )
 
         # Cancel everything not yet done.
         for task in pending:
@@ -153,12 +159,12 @@ class IsRunningTracker(Atomic[bool]):
         return None
 
     async def create_stoppable_iterator(
-            self, iterator: AsyncIterator[TReturnType]
+        self, iterator: AsyncIterator[TReturnType]
     ) -> AsyncIterator[TReturnType]:
         """
         Creates an iterator that can be used to ensure that iteration stops when
         this instance stops running.
-        
+
         Returns an AsyncIterator such that for each item retrieved from the
         iterator, it is either anext(|iterator|) or None if this instance stops
         running.
@@ -191,9 +197,11 @@ class IsRunningTracker(Atomic[bool]):
 
     class __IteratorWrapper:
 
-        def __init__(self,
-                     iterator: AsyncIterator[TReturnType],
-                     tracker: 'IsRunningTracker'):
+        def __init__(
+            self,
+            iterator: AsyncIterator[TReturnType],
+            tracker: "IsRunningTracker",
+        ):
             self.__iterator = iterator
             self.__tracker = tracker
 
@@ -202,7 +210,8 @@ class IsRunningTracker(Atomic[bool]):
 
         async def __anext__(self):
             result = await self.__tracker.task_or_stopped(
-                anext(self.__iterator))
+                anext(self.__iterator)
+            )
             if not self.__tracker.get():
                 raise StopAsyncIteration()
 

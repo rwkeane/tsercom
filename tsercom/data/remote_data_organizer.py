@@ -15,9 +15,9 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 
-class RemoteDataOrganizer(Generic[TDataType],
-                          RemoteDataReader[TDataType],
-                          DataTimeoutTracker.Tracked):
+class RemoteDataOrganizer(
+    Generic[TDataType], RemoteDataReader[TDataType], DataTimeoutTracker.Tracked
+):
     """
     This class is responsible for organizing data received from a remote
     endpoint and exposing that to external viewers in a simple, thread-safe
@@ -27,13 +27,15 @@ class RemoteDataOrganizer(Generic[TDataType],
     class Client(ABC):
 
         @abstractmethod
-        def _on_data_available(self, data_organizer: 'RemoteDataOrganizer'):
+        def _on_data_available(self, data_organizer: "RemoteDataOrganizer"):
             pass
 
-    def __init__(self,
-                 thread_pool: ThreadPoolExecutor,
-                 caller_id: CallerIdentifier,
-                 client: Optional['RemoteDataOrganizer.Client'] = None):
+    def __init__(
+        self,
+        thread_pool: ThreadPoolExecutor,
+        caller_id: CallerIdentifier,
+        client: Optional["RemoteDataOrganizer.Client"] = None,
+    ):
         self.__thread_pool = thread_pool
         self.__caller_id = caller_id
         self.__client = client
@@ -104,7 +106,8 @@ class RemoteDataOrganizer(Generic[TDataType],
             return self.__data[0]
 
     def get_data_for_timestamp(
-            self, timestamp: datetime.datetime) -> TDataType | None:
+        self, timestamp: datetime.datetime
+    ) -> TDataType | None:
         """
         Returns the data most recently received before |timestamp|, or None if
         that data either has not yet been received or has timed out.
@@ -123,8 +126,10 @@ class RemoteDataOrganizer(Generic[TDataType],
     def _on_data_ready(self, new_data: TDataType):
         # Validate the data.
         assert issubclass(type(new_data), ExposedData), type(new_data)
-        assert new_data.caller_id == self.caller_id, (new_data.caller_id,
-                                                      self.caller_id)
+        assert new_data.caller_id == self.caller_id, (
+            new_data.caller_id,
+            self.caller_id,
+        )
 
         # Do real processing.
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
@@ -158,7 +163,8 @@ class RemoteDataOrganizer(Generic[TDataType],
 
     def _on_triggered(self, timeout_seconds: int):
         self.__thread_pool.submit(
-            partial(self.__timeout_old_data, timeout_seconds))
+            partial(self.__timeout_old_data, timeout_seconds)
+        )
 
     def __timeout_old_data(self, timeout_seconds: int):
         # Get the timeout.
@@ -168,6 +174,8 @@ class RemoteDataOrganizer(Generic[TDataType],
 
         # Eliminate old data.
         with self.__data_lock:
-            while len(self.__data
-                      ) > 0 and self.__data[-1].timestamp < oldest_allowed:
+            while (
+                len(self.__data) > 0
+                and self.__data[-1].timestamp < oldest_allowed
+            ):
                 self.__data.pop()

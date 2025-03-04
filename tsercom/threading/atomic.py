@@ -1,7 +1,7 @@
 import threading
 from typing import Generic, TypeVar
 
-TType = TypeVar('TType')
+TType = TypeVar("TType")
 
 
 class Atomic(Generic[TType]):

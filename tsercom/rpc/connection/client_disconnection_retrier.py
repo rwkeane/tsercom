@@ -3,23 +3,34 @@ import asyncio
 from functools import partial
 from typing import Callable, Generic, Optional, TypeVar
 
-from tsercom.rpc.connection.client_reconnection_handler import ClientReconnectionManager
-from tsercom.rpc.grpc.grpc_caller import delay_before_retry, is_grpc_error, is_server_unavailable_error
-from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running_on_event_loop, run_on_event_loop
+from tsercom.rpc.connection.client_reconnection_handler import (
+    ClientReconnectionManager,
+)
+from tsercom.rpc.grpc.grpc_caller import (
+    delay_before_retry,
+    is_grpc_error,
+    is_server_unavailable_error,
+)
+from tsercom.threading.aio.aio_utils import (
+    get_running_loop_or_none,
+    is_running_on_event_loop,
+    run_on_event_loop,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.stopable import Stopable
 
 TInstanceType = TypeVar("TInstanceType", bound=Stopable)
 
 
-class ClientDisconnectionRetrier(ABC,
-                                 Generic[TInstanceType],
-                                 ClientReconnectionManager):
+class ClientDisconnectionRetrier(
+    ABC, Generic[TInstanceType], ClientReconnectionManager
+):
 
-    def __init__(self,
-                 watcher: ThreadWatcher,
-                 safe_disconnection_handler: Optional[Callable[[],
-                                                               None]] = None):
+    def __init__(
+        self,
+        watcher: ThreadWatcher,
+        safe_disconnection_handler: Optional[Callable[[], None]] = None,
+    ):
         assert issubclass(type(watcher), ThreadWatcher)
 
         self.__instance: TInstanceType = None
@@ -39,8 +50,9 @@ class ClientDisconnectionRetrier(ABC,
 
             self.__instance = self._connect()
             assert not self.__instance is None
-            assert issubclass(type(self.__instance),
-                              Stopable), type(self.__instance)
+            assert issubclass(type(self.__instance), Stopable), type(
+                self.__instance
+            )
             return True
         except Exception as error:
             if not is_server_unavailable_error(error):
@@ -65,8 +77,9 @@ class ClientDisconnectionRetrier(ABC,
         # Jump to the same thread from which this instance was initially created
         # to avoid any weird threading issues or race conditions.
         if not is_running_on_event_loop(self.__event_loop):
-            run_on_event_loop(partial(self._on_disconnect, error),
-                              self.__event_loop)
+            run_on_event_loop(
+                partial(self._on_disconnect, error), self.__event_loop
+            )
             return
 
         # This should never happen, but check just in case.

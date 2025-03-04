@@ -7,11 +7,16 @@ import socket
 import struct
 import time
 
-from tsercom.threading.aio.aio_utils import get_running_loop_or_none, run_on_event_loop
+from tsercom.threading.aio.aio_utils import (
+    get_running_loop_or_none,
+    run_on_event_loop,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
-from tsercom.timesync.server.server_synchronized_clock import ServerSynchronizedClock
+from tsercom.timesync.server.server_synchronized_clock import (
+    ServerSynchronizedClock,
+)
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 
@@ -62,7 +67,7 @@ class TimeSyncServer:
 
         # Create a temporary socket to unblock server's socket
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as temp_socket:
-            temp_socket.sendto(b'', (self.__address, self.__port))
+            temp_socket.sendto(b"", (self.__address, self.__port))
 
     def get_synchronized_clock(self) -> SynchronizedClock:
         return ServerSynchronizedClock()
@@ -99,8 +104,9 @@ class TimeSyncServer:
             try:
                 with self.__socket_lock:
                     receive_call = self.__receive(self.__socket)
-                    pair = await self.__is_running.task_or_stopped(receive_call
-                                                                   )
+                    pair = await self.__is_running.task_or_stopped(
+                        receive_call
+                    )
                     if not self.__is_running.get():
                         break
 
@@ -110,9 +116,14 @@ class TimeSyncServer:
                     current_time_ns = time.time_ns()
 
                     # Convert to NTP timestamp format.
-                    server_timestamp_sec = current_time_ns // 1_000_000_000 + NTP_DELTA
-                    server_timestamp_frac = (current_time_ns % 1_000_000_000
-                                             ) * (2**32) // 1_000_000_000
+                    server_timestamp_sec = (
+                        current_time_ns // 1_000_000_000 + NTP_DELTA
+                    )
+                    server_timestamp_frac = (
+                        (current_time_ns % 1_000_000_000)
+                        * (2**32)
+                        // 1_000_000_000
+                    )
 
                     # Unpack client's request (we only need the timestamp).
                     unpacked_data = struct.unpack(NTP_PACKET_FORMAT, data)
@@ -138,13 +149,14 @@ class TimeSyncServer:
                         server_timestamp_frac,
                         # Received timestamp (echo client's)
                         client_timestamp_sec,
-                        client_timestamp_frac)
+                        client_timestamp_frac,
+                    )
 
                     # Send the response.
                     with self.__socket_lock:
-                        send_task = self.__send(self.__socket,
-                                                response_packet,
-                                                addr)
+                        send_task = self.__send(
+                            self.__socket, response_packet, addr
+                        )
                         await self.__is_running.task_or_stopped(send_task)
 
                     # print(f"Responded to NTP request from {addr}")
@@ -158,12 +170,14 @@ class TimeSyncServer:
     async def __receive(self, s: socket.socket):
         loop = get_running_loop_or_none()
         assert not loop is None
-        data, addr = await loop.run_in_executor(self.__io_thread,
-                                                partial(s.recvfrom, 1024))
+        data, addr = await loop.run_in_executor(
+            self.__io_thread, partial(s.recvfrom, 1024)
+        )
         return data, addr
 
     async def __send(self, s: socket.socket, response_packet: bytes, addr):
         loop = get_running_loop_or_none()
         assert not loop is None
-        await loop.run_in_executor(self.__io_thread,
-                                   partial(s.sendto, response_packet, addr))
+        await loop.run_in_executor(
+            self.__io_thread, partial(s.sendto, response_packet, addr)
+        )

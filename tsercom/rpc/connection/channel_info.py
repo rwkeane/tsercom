@@ -3,7 +3,7 @@ import grpc
 
 class ChannelInfo:
     """
-    This class acts as a bucket of data, for a gRPC Channel and the address / 
+    This class acts as a bucket of data, for a gRPC Channel and the address /
     port to which it is connected.
     """
 

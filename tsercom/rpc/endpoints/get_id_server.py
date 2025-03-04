@@ -2,7 +2,9 @@ from typing import Callable, Optional
 
 from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.rpc.connection.client_reconnection_handler import ClientReconnectionManager
+from tsercom.rpc.connection.client_reconnection_handler import (
+    ClientReconnectionManager,
+)
 
 
 class AsyncGetIdServer:
@@ -12,11 +14,12 @@ class AsyncGetIdServer:
     """
 
     def __init__(
-            self,
-            on_id_created: Optional[Callable[[CallerIdentifier], None]] = None,
-            on_disconnect_handler: Optional[ClientReconnectionManager] = None,
-            *args,
-            **kwargs):
+        self,
+        on_id_created: Optional[Callable[[CallerIdentifier], None]] = None,
+        on_disconnect_handler: Optional[ClientReconnectionManager] = None,
+        *args,
+        **kwargs,
+    ):
         self.__callback = on_id_created
         self.__on_disconnect_handler = on_disconnect_handler
 

@@ -8,7 +8,7 @@ from tsercom.discovery.service_info import ServiceInfo
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-TServiceInfo = TypeVar('TServiceInfo', bound=ServiceInfo)
+TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
 class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
@@ -20,9 +20,9 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
     class Client(ABC):
 
         @abstractmethod
-        async def _on_service_added(self,
-                                    connection_info: TServiceInfo,
-                                    caller_id: CallerIdentifier):
+        async def _on_service_added(
+            self, connection_info: TServiceInfo, caller_id: CallerIdentifier
+        ):
             pass
 
     @overload
@@ -30,19 +30,26 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
         pass
 
     @overload
-    def __init__(self,
-                 *,
-                 instance_listener_factory: Callable[[InstanceListener.Client],
-                                                     InstanceListener]):
+    def __init__(
+        self,
+        *,
+        instance_listener_factory: Callable[
+            [InstanceListener.Client], InstanceListener
+        ],
+    ):
         pass
 
-    def __init__(self,
-                 *,
-                 service_type: Optional[str] = None,
-                 instance_listener_factory: Optional[Callable[
-                     [ThreadWatcher], InstanceListener]] = None):
-        assert (not service_type is None) != (not instance_listener_factory
-                                              is None)
+    def __init__(
+        self,
+        *,
+        service_type: Optional[str] = None,
+        instance_listener_factory: Optional[
+            Callable[[ThreadWatcher], InstanceListener]
+        ] = None,
+    ):
+        assert (not service_type is None) != (
+            not instance_listener_factory is None
+        )
 
         self.__service_type = service_type
         self.__instance_listener_factory = instance_listener_factory
@@ -52,14 +59,14 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
 
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
-    def start_discovery(self, client: 'DiscoveryHost.Client'):
+    def start_discovery(self, client: "DiscoveryHost.Client"):
         """
         Starts discovery. Results are returned by a call to the |client|.
         """
         assert not client is None
         run_on_event_loop(partial(self.__start_discovery_impl, client))
 
-    async def __start_discovery_impl(self, client: 'DiscoveryHost.Client'):
+    async def __start_discovery_impl(self, client: "DiscoveryHost.Client"):
         assert self.__discoverer is None
 
         self.__client = client
@@ -67,7 +74,8 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
             self.__discoverer = self.__instance_listener_factory(self)
         else:
             self.__discoverer = InstanceListener[TServiceInfo](
-                self, self.__service_type)
+                self, self.__service_type
+            )
 
     async def _on_service_added(self, connection_info: TServiceInfo):
         print("ENDPOINT FOUND")

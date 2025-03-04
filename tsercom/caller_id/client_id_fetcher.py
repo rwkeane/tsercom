@@ -6,7 +6,7 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 class ClientIdFetcher:
     """
-    This class provides a simple wrapper around the GetId() call that is 
+    This class provides a simple wrapper around the GetId() call that is
     supported by a number of different gRPC Services, allowing for a single
     GetId() call to be lazy-loaded and used as needed.
     """

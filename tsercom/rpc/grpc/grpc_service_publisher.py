@@ -2,7 +2,9 @@ from functools import partial
 from typing import Callable, Iterable
 import grpc
 
-from tsercom.rpc.grpc.async_grpc_exception_interceptor import AsyncGrpcExceptionInterceptor
+from tsercom.rpc.grpc.async_grpc_exception_interceptor import (
+    AsyncGrpcExceptionInterceptor,
+)
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings
@@ -15,10 +17,12 @@ class GrpcServicePublisher:
     This class Is a helper to publish a gRPC Service/
     """
 
-    def __init__(self,
-                 watcher: ThreadWatcher,
-                 port: int,
-                 addresses: str | Iterable[str] | None = None):
+    def __init__(
+        self,
+        watcher: ThreadWatcher,
+        port: int,
+        addresses: str | Iterable[str] | None = None,
+    ):
         """
         Creates a new gRPC Service hosted on a given |port| and network
         interfaces assocaited with |addresses|.
@@ -38,7 +42,8 @@ class GrpcServicePublisher:
         Starts a synchronous server.
         """
         self.__server: grpc.Server = grpc.server(
-            self.__watcher.create_tracked_thread_pool_executor(max_workers=10))
+            self.__watcher.create_tracked_thread_pool_executor(max_workers=10)
+        )
         connect_call(self.__server)
         self._connect()
         self.__server.start()
@@ -54,7 +59,8 @@ class GrpcServicePublisher:
         self.__server: grpc.Server = grpc.aio.server(
             self.__watcher.create_tracked_thread_pool_executor(max_workers=1),
             interceptors=[interceptor],
-            maximum_concurrent_rpcs=None)
+            maximum_concurrent_rpcs=None,
+        )
         connect_call(self.__server)
         self.__server
         self._connect()
@@ -66,9 +72,12 @@ class GrpcServicePublisher:
         for address in self.__addresses:
             try:
                 port_out = self.__server.add_insecure_port(
-                    f'{address}:{self.__port}')
-                print(f"\tRunning gRPC Server on {address}:{port_out} "
-                      f"(expected: {self.__port})")
+                    f"{address}:{self.__port}"
+                )
+                print(
+                    f"\tRunning gRPC Server on {address}:{port_out} "
+                    f"(expected: {self.__port})"
+                )
                 worked += 1
             except Exception as e:
                 if isinstance(e, AssertionError):

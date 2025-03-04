@@ -12,9 +12,9 @@ class CallerIdMap(Generic[TType]):
         self.__lock = threading.Lock()
         self.__map: Dict[CallerIdentifier, TType] = {}
 
-    def find_instance(self,
-                      caller_id: CallerIdentifier,
-                      factory: Callable[[], TType]):
+    def find_instance(
+        self, caller_id: CallerIdentifier, factory: Callable[[], TType]
+    ):
         with self.__lock:
             if not caller_id in self.__map:
                 self.__map[caller_id] = factory()

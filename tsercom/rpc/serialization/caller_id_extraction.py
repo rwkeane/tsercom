@@ -13,13 +13,13 @@ async def extract_id_from_first_call(
     is_running: Optional[IsRunningTracker] = None,
     context: Optional[grpc.aio.ServicerContext] = None,
     extractor: Optional[Callable[[TCallType], GrpcCallerId]] = None,
-    validate_against: Optional[CallerIdentifier] = None
+    validate_against: Optional[CallerIdentifier] = None,
 ) -> Tuple[CallerIdentifier | None, TCallType | None]:
     """
     Extracts the CallerIdentifier for the next available instance received from
     |iterator|, returning both the  CallerId and the call itself if the method
     succeeds.
-    
+
     |is_running| is the IsRunningTracker which should be watched, so that this
     call is cancelled if the calling instance stops running.
     |context| (if provided) is used to respond to the caller if an invalid
@@ -50,8 +50,9 @@ async def extract_id_from_first_call(
     except Exception as e:
         print("Hit exception", e)
         if not context is None:
-            await context.abort(grpc.StatusCode.CANCELLED,
-                                "Error processing first call!")
+            await context.abort(
+                grpc.StatusCode.CANCELLED, "Error processing first call!"
+            )
         # TODO: Maybe this should check the exception code and split behavior?
         raise e
 
@@ -59,14 +60,14 @@ async def extract_id_from_first_call(
     if first_response is None:
         print("ERROR: First call never received!")
         if not context is None:
-            await context.abort(grpc.StatusCode.CANCELLED,
-                                "First call never received!")
+            await context.abort(
+                grpc.StatusCode.CANCELLED, "First call never received!"
+            )
         return None, first_response
 
-    id = await extract_id_from_call(first_response,
-                                    context,
-                                    extractor,
-                                    validate_against)
+    id = await extract_id_from_call(
+        first_response, context, extractor, validate_against
+    )
     return id, first_response
 
 
@@ -74,12 +75,12 @@ async def extract_id_from_call(
     call: TCallType,
     context: Optional[grpc.aio.ServicerContext] = None,
     extractor: Optional[Callable[[TCallType], GrpcCallerId]] = None,
-    validate_against: Optional[CallerIdentifier] = None
+    validate_against: Optional[CallerIdentifier] = None,
 ) -> CallerIdentifier | None:
     """
     Extracts the CallerIdentifier associated with |call|, returning the CallerId
     if the method succeeds.
-    
+
     |context| (if provided) is used to respond to the caller if an invalid
     CallerId is given.
     |extractor| is used to get the CallerId from the provided |call|. If not
@@ -93,8 +94,9 @@ async def extract_id_from_call(
     if extractor(call) is None:
         print("ERROR: Missing CallerID!")
         if not context is None:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
-                                "Missing CallerID")
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, "Missing CallerID"
+            )
         return None
 
     # If the id is malformed, return.
@@ -103,16 +105,18 @@ async def extract_id_from_call(
     if caller_id is None:
         print("ERROR: Invalid CallerID Received!")
         if not context is None:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
-                                "Invalid CallerID received")
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, "Invalid CallerID received"
+            )
         return None
 
     # Validate it if needed.
     if not validate_against is None and caller_id != validate_against:
         print("ERROR: Invalid CallerID received!")
         if not context is None:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT,
-                                "Invalid CallerID received")
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, "Invalid CallerID received"
+            )
         return None
 
     return caller_id

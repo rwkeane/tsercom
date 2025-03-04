@@ -25,8 +25,9 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
 
     async def intercept_service(
         self,
-        continuation: Callable[[grpc.HandlerCallDetails],
-                               Awaitable[grpc.RpcMethodHandler]],
+        continuation: Callable[
+            [grpc.HandlerCallDetails], Awaitable[grpc.RpcMethodHandler]
+        ],
         handler_call_details: grpc.HandlerCallDetails,
     ) -> grpc.RpcMethodHandler:
         """
@@ -35,7 +36,8 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
 
         # Call the continuation to get the RPC method handler.
         handler: grpc.RpcMethodHandler = await continuation(
-            handler_call_details)
+            handler_call_details
+        )
 
         # If there's no handler, it means this RPC is not implemented.
         # Let gRPC handle it.
@@ -45,17 +47,29 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
         # Wrap each of the handler's methods (unary_unary, unary_stream, etc.)
         # to catch exceptions that occur within them.
         if handler.unary_unary is not None:
-            handler = handler._replace(unary_unary=self._wrap_unary_unary(
-                handler.unary_unary, handler_call_details))
+            handler = handler._replace(
+                unary_unary=self._wrap_unary_unary(
+                    handler.unary_unary, handler_call_details
+                )
+            )
         if handler.unary_stream is not None:
-            handler = handler._replace(unary_stream=self._wrap_unary_stream(
-                handler.unary_stream, handler_call_details))
+            handler = handler._replace(
+                unary_stream=self._wrap_unary_stream(
+                    handler.unary_stream, handler_call_details
+                )
+            )
         if handler.stream_unary is not None:
-            handler = handler._replace(stream_unary=self._wrap_stream_unary(
-                handler.stream_unary, handler_call_details))
+            handler = handler._replace(
+                stream_unary=self._wrap_stream_unary(
+                    handler.stream_unary, handler_call_details
+                )
+            )
         if handler.stream_stream is not None:
-            handler = handler._replace(stream_stream=self._wrap_stream_stream(
-                handler.stream_stream, handler_call_details))
+            handler = handler._replace(
+                stream_stream=self._wrap_stream_stream(
+                    handler.stream_stream, handler_call_details
+                )
+            )
 
         return handler
 
@@ -113,10 +127,9 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
 
         return wrapper
 
-    async def _handle_exception(self,
-                                e: Exception,
-                                method_name: str,
-                                context: grpc.aio.ServicerContext):
+    async def _handle_exception(
+        self, e: Exception, method_name: str, context: grpc.aio.ServicerContext
+    ):
         """Handles exceptions raised by RPC methods."""
         if issubclass(type(e), StopAsyncIteration):
             raise e

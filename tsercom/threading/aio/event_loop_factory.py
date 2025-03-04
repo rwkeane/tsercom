@@ -36,7 +36,8 @@ class EventLoopFactory:
             self.__event_loop.run_forever()
 
         self.__event_loop_thread = self.__watcher.create_tracked_thread(
-            start_event_loop)
+            start_event_loop
+        )
         self.__event_loop_thread.start()
         barrier.wait()
 

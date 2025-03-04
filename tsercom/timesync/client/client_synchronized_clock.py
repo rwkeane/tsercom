@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 import datetime
 
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
-from tsercom.timesync.common.synchronized_timestamp import SynchronizedTimestamp
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)
 
 
 class ClientSynchronizedClock(SynchronizedClock):
@@ -17,7 +19,7 @@ class ClientSynchronizedClock(SynchronizedClock):
         async def get_offset_seconds(self) -> float:
             pass
 
-    def __init__(self, client: 'ClientSynchronizedClock.Client'):
+    def __init__(self, client: "ClientSynchronizedClock.Client"):
         self.__client = client
         super().__init__()
 

@@ -17,24 +17,28 @@ class DataHostBase(Generic[TDataType], DataHost[TDataType], RemoteDataReader):
     versions of all ServerHost and ClientHost classes.
     """
 
-    def __init__(self,
-                 watcher: ThreadWatcher,
-                 aggregation_client: Optional[
-                     RemoteDataAggregator[TDataType].Client] = None,
-                 timeout_seconds: int = 60,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        watcher: ThreadWatcher,
+        aggregation_client: Optional[
+            RemoteDataAggregator[TDataType].Client
+        ] = None,
+        timeout_seconds: int = 60,
+        *args,
+        **kwargs,
+    ):
         thread_pool = watcher.create_tracked_thread_pool_executor(
-            max_workers=1)
+            max_workers=1
+        )
 
         tracker = None
         if timeout_seconds > 0:
             tracker = DataTimeoutTracker(timeout_seconds)
             tracker.start()
 
-        self.__aggregator = RemoteDataAggregatorImpl(thread_pool,
-                                                     aggregation_client,
-                                                     tracker)
+        self.__aggregator = RemoteDataAggregatorImpl(
+            thread_pool, aggregation_client, tracker
+        )
 
         super().__init__(*args, **kwargs)
 

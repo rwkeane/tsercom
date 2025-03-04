@@ -22,7 +22,7 @@ class CallerIdentifier:
         self.__id = id
 
     @classmethod
-    def try_parse(cls, id: str | CallerId) -> Optional['CallerIdentifier']:
+    def try_parse(cls, id: str | CallerId) -> Optional["CallerIdentifier"]:
         """
         Tries to parse |id| into a GUID, returning an insance of this object on
         success and None on failure.

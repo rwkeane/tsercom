@@ -22,9 +22,11 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         """
 
         @abstractmethod
-        def _on_data_available(self,
-                               aggregator: 'RemoteDataAggregator[TDataType]',
-                               caller_id: CallerIdentifier):
+        def _on_data_available(
+            self,
+            aggregator: "RemoteDataAggregator[TDataType]",
+            caller_id: CallerIdentifier,
+        ):
             """
             Called when new data is available for |caller_id|.
             """
@@ -32,9 +34,10 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
 
         @abstractmethod
         def _on_new_endpoint_began_transmitting(
-                self,
-                aggregator: 'RemoteDataAggregator[TDataType]',
-                caller_id: CallerIdentifier):
+            self,
+            aggregator: "RemoteDataAggregator[TDataType]",
+            caller_id: CallerIdentifier,
+        ):
             """
             Called when a new endpoint associated with |caller_id| is found.
             """
@@ -127,8 +130,8 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
 
     @overload
     def get_data_for_timestamp(
-            self, id: CallerIdentifier,
-            timestamp: datetime.datetime) -> TDataType | None:
+        self, id: CallerIdentifier, timestamp: datetime.datetime
+    ) -> TDataType | None:
         """
         Returns the most recent data received before |timestamp| for caller
         |id|, if such data has not yet timed out.
@@ -136,7 +139,9 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         ...
 
     @abstractmethod
-    def get_data_for_timestamp(self,
-                               id: CallerIdentifier,
-                               timestamp: Optional[datetime.datetime] = None):
+    def get_data_for_timestamp(
+        self,
+        id: CallerIdentifier,
+        timestamp: Optional[datetime.datetime] = None,
+    ):
         pass

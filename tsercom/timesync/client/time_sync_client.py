@@ -4,7 +4,9 @@ import time
 import threading
 
 from tsercom.threading.thread_watcher import ThreadWatcher
-from tsercom.timesync.client.client_synchronized_clock import ClientSynchronizedClock
+from tsercom.timesync.client.client_synchronized_clock import (
+    ClientSynchronizedClock,
+)
 from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.util.is_running_tracker import IsRunningTracker
@@ -17,10 +19,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
     client-server handshake, receiving the offset from a call to the server.
     """
 
-    def __init__(self,
-                 watcher: ThreadWatcher,
-                 server_ip: str,
-                 ntp_port: int = kNtpPort):
+    def __init__(
+        self, watcher: ThreadWatcher, server_ip: str, ntp_port: int = kNtpPort
+    ):
         self.__watcher = watcher
         self.__server_ip = server_ip
         self.__ntp_port = ntp_port
@@ -65,7 +66,8 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
 
         # Run the request loop.
         self.__sync_loop_thread = self.__watcher.create_tracked_thread(
-            self.__run_sync_loop)
+            self.__run_sync_loop
+        )
         self.__sync_loop_thread.start()
 
     def __run_sync_loop(self):
@@ -80,9 +82,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         while self.__is_running.get():
             try:
                 # NOTE: Blocking call.
-                response = ntp_client.request(self.__server_ip,
-                                              port=self.__ntp_port,
-                                              version=kNtpVersion)
+                response = ntp_client.request(
+                    self.__server_ip, port=self.__ntp_port, version=kNtpVersion
+                )
                 with self.__time_offset_lock:
                     self.__time_offsets.append(response.offset)
                     if len(self.__time_offsets) > kMaxOffsetCount:

@@ -3,18 +3,22 @@ import asyncio
 import threading
 from typing import Deque, Generic, List, TypeVar
 
-from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running_on_event_loop, run_on_event_loop
+from tsercom.threading.aio.aio_utils import (
+    get_running_loop_or_none,
+    is_running_on_event_loop,
+    run_on_event_loop,
+)
 from tsercom.threading.atomic import Atomic
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 kMaxResponses = 30
 
-TResultType = TypeVar('TResultType')
+TResultType = TypeVar("TResultType")
 
 
 class AsyncPoller(Generic[TResultType], ABC):
     """
-    This class provides an asynchronous queueing mechanism, to allow for 
+    This class provides an asynchronous queueing mechanism, to allow for
     subscribers to request the next available instance, and asynchronously
     await that until a new instance(s) is published.
     """

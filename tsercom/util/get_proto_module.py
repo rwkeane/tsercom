@@ -29,18 +29,22 @@ def get_proto_module(module_name: str, path: str):
         raise ImportError(
             f"No pre-generated protobuf code found for grpcio version: {version}.\n"
             f"Available versions: {version_string}.\n"
-            f"Please generate the code for your grpcio version.")
+            f"Please generate the code for your grpcio version."
+        )
 
     module_path = generated_dir / f"{module_name}.py"
     if not module_path.exists():
         raise FileNotFoundError(
-            f"Could not find module {module_name} at {module_path}")
+            f"Could not find module {module_name} at {module_path}"
+        )
 
     spec = importlib.util.spec_from_file_location(
-        f"tsercom.generated.{version_str}.{module_name}", str(module_path))
+        f"tsercom.generated.{version_str}.{module_name}", str(module_path)
+    )
     if spec is None:
         raise ImportError(
-            f"Could not create spec for {module_name} at {module_path}")
+            f"Could not create spec for {module_name} at {module_path}"
+        )
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
