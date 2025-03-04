@@ -120,8 +120,7 @@ class RemoteDataOrganizer(Generic[TDataType],
     def _on_data_ready(self, new_data : TDataType):
         # Validate the data.
         assert issubclass(type(new_data), ExposedData), type(new_data)
-        assert new_data.caller_id == self.caller_id, \
-                (new_data.caller_id, self.caller_id)
+        assert new_data.caller_id == self.caller_id, (new_data.caller_id, self.caller_id)
         
         # Do real processing.
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
@@ -165,6 +164,5 @@ class RemoteDataOrganizer(Generic[TDataType],
 
         # Eliminate old data.
         with self.__data_lock:
-            while len(self.__data) > 0 and \
-                  self.__data[-1].timestamp < oldest_allowed:
+            while len(self.__data) > 0 and  self.__data[-1].timestamp < oldest_allowed:
                 self.__data.pop()

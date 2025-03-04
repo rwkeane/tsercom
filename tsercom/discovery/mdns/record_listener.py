@@ -16,8 +16,7 @@ class RecordListener:
             raise NotImplementedError("This method must be implemented!")
             
     def __init__(self, client : Client, service_type : str):
-        assert not client is None and \
-                issubclass(type(client), RecordListener.Client), client
+        assert not client is None and  issubclass(type(client), RecordListener.Client), client
         assert not service_type is None and service_type[0] == "_", service_type
 
         self.__client = client

@@ -31,8 +31,7 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
     @overload
     def __init__(self,
                  *,
-                 instance_listener_factory : \
-                        Callable[[InstanceListener.Client], InstanceListener]):
+                 instance_listener_factory :Callable[[InstanceListener.Client], InstanceListener]):
         pass
 
     def __init__(self,
@@ -40,8 +39,7 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
                  service_type : Optional[str] = None,
                  instance_listener_factory : Optional[
                         Callable[[ThreadWatcher], InstanceListener]] = None):
-        assert (not service_type is None) != \
-               (not instance_listener_factory is None)
+        assert (not service_type is None) != (not instance_listener_factory is None)
 
         self.__service_type = service_type
         self.__instance_listener_factory = instance_listener_factory

@@ -33,8 +33,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
         """
 
         # Call the continuation to get the RPC method handler.
-        handler : grpc.RpcMethodHandler = \
-                await continuation(handler_call_details)
+        handler : grpc.RpcMethodHandler = await continuation(handler_call_details)
 
         # If there's no handler, it means this RPC is not implemented.
         # Let gRPC handle it.

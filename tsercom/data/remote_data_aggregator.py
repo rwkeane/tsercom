@@ -113,8 +113,7 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         pass
         
     @overload
-    def get_data_for_timestamp(self, timestamp : datetime.datetime) \
-            -> Dict[CallerIdentifier, TDataType | None]:
+    def get_data_for_timestamp(self, timestamp : datetime.datetime) -> Dict[CallerIdentifier, TDataType | None]:
         """
         Returns the most recent data received before |timestamp| for all
         callers, if such data has not yet timed out.

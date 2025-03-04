@@ -36,8 +36,7 @@ class ClientDisconnectionRetrier(
 
             self.__instance = self._connect()
             assert not self.__instance is None
-            assert issubclass(type(self.__instance), Stopable), \
-                    type(self.__instance)
+            assert issubclass(type(self.__instance), Stopable),   type(self.__instance)
             return True
         except Exception as error:
             if not is_server_unavailable_error(error):

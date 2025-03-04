@@ -15,10 +15,8 @@ class InstancePublisher:
                  instance_name : str | None = None):
         assert isinstance(port, int), type(port)
         assert isinstance(service_type, str), type(service_type)
-        assert readable_name is None or isinstance(readable_name, str), \
-                type(readable_name)
-        assert instance_name is None or isinstance(instance_name, str), \
-                type(instance_name)
+        assert readable_name is None or isinstance(readable_name, str), type(readable_name)
+        assert instance_name is None or isinstance(instance_name, str), type(instance_name)
 
         self.__name = readable_name
         if instance_name is None:
@@ -29,15 +27,13 @@ class InstancePublisher:
         
         txt_record = self._make_txt_record()
         assert not txt_record is None
-        self.__record_publisher = \
-            RecordPublisher(instance_name,
+        self.__record_publisher =RecordPublisher(instance_name,
                             service_type,
                             port,
                             txt_record)
         
     def _make_txt_record(self) -> dict[str, str | None]:
-        properties : dict[str, str | None] = \
-        {
+        properties : dict[str, str | None] = {
             "published_on".encode('utf-8'): self.__get_current_date_time_bytes()
         }
 

@@ -151,8 +151,7 @@ class IsRunningTracker(Atomic[bool]):
         return None
     
     async def create_stoppable_iterator(
-            self, iterator : AsyncIterator[TReturnType]) -> \
-                    AsyncIterator[TReturnType]:
+            self, iterator : AsyncIterator[TReturnType]) ->  AsyncIterator[TReturnType]:
         """
         Creates an iterator that can be used to ensure that iteration stops when
         this instance stops running.

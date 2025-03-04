@@ -12,8 +12,7 @@ async def extract_id_from_first_call(
         is_running : Optional[IsRunningTracker] = None,
         context : Optional[grpc.aio.ServicerContext] = None,
         extractor : Optional[Callable[[TCallType], GrpcCallerId]] = None,
-        validate_against : Optional[CallerIdentifier] = None) \
-                -> Tuple[CallerIdentifier | None, TCallType | None]:
+        validate_against : Optional[CallerIdentifier] = None)  -> Tuple[CallerIdentifier | None, TCallType | None]:
     
     """
     Extracts the CallerIdentifier for the next available instance received from
@@ -71,8 +70,7 @@ async def extract_id_from_call(
         call : TCallType,
         context : Optional[grpc.aio.ServicerContext] = None,
         extractor : Optional[Callable[[TCallType], GrpcCallerId]] = None,
-        validate_against : Optional[CallerIdentifier] = None) \
-                -> CallerIdentifier | None:
+        validate_against : Optional[CallerIdentifier] = None)  -> CallerIdentifier | None:
     """
     Extracts the CallerIdentifier associated with |call|, returning the CallerId
     if the method succeeds.

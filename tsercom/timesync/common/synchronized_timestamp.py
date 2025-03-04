@@ -11,8 +11,7 @@ class SynchronizedTimestamp:
         self.__timestamp = timestamp
 
     @classmethod
-    def try_parse(self, other : Timestamp | ServerTimestamp) \
-            -> 'SynchronizedTimestamp':
+    def try_parse(self, other : Timestamp | ServerTimestamp) -> 'SynchronizedTimestamp':
         if isinstance(other, ServerTimestamp):
             other = other.timestamp
 
