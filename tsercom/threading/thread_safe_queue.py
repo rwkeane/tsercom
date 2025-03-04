@@ -3,6 +3,7 @@ import threading
 
 
 class ThreadSafeQueue:
+
     def __init__(self):
         self._queue = queue.Queue()
         self._lock = threading.Lock()

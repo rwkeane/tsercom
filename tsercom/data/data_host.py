@@ -4,8 +4,9 @@ from typing import Generic, TypeVar
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
+TDataType = TypeVar("TDataType", bound=ExposedData)
 
-TDataType = TypeVar("TDataType", bound = ExposedData)
+
 class DataHost(ABC, Generic[TDataType]):
     """
     This is the base class that all ClientHost and ServerHost classes should
@@ -17,7 +18,7 @@ class DataHost(ABC, Generic[TDataType]):
     @property
     def remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         return self._remote_data_aggregator()
-    
+
     @abstractmethod
     def _remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         pass

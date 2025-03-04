@@ -8,8 +8,9 @@ from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.thread_watcher import ThreadWatcher
 
+TDataType = TypeVar("TDataType", bound=ExposedData)
 
-TDataType = TypeVar("TDataType", bound = ExposedData)
+
 class DataHostBase(Generic[TDataType], DataHost[TDataType], RemoteDataReader):
     """
     This class defines the implementation of DataHost to be used for the impl
@@ -23,20 +24,21 @@ class DataHostBase(Generic[TDataType], DataHost[TDataType], RemoteDataReader):
                  *args,
                  **kwargs):
         thread_pool = watcher.create_tracked_thread_pool_executor(
-                max_workers = 1)
-        
+            max_workers=1)
+
         tracker = None
         if timeout_seconds > 0:
             tracker = DataTimeoutTracker(timeout_seconds)
             tracker.start()
 
-        self.__aggregator = RemoteDataAggregatorImpl(
-                thread_pool, aggregation_client, tracker)
-    
+        self.__aggregator = RemoteDataAggregatorImpl(thread_pool,
+                                                     aggregation_client,
+                                                     tracker)
+
         super().__init__(*args, **kwargs)
 
-    def _on_data_ready(self, new_data : TDataType):
+    def _on_data_ready(self, new_data: TDataType):
         self.__aggregator._on_data_ready(new_data)
-    
+
     def _remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         return self.__aggregator

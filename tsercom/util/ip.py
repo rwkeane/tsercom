@@ -1,6 +1,7 @@
 import socket
 import psutil
 
+
 def get_all_address_strings():
     addresses = []
     for _, interface_addresses in psutil.net_if_addrs().items():
@@ -9,5 +10,6 @@ def get_all_address_strings():
                 addresses.append(address.address)
     return addresses
 
+
 def get_all_addresses():
-    return [ socket.inet_aton(a) for a in get_all_address_strings() ]
+    return [socket.inet_aton(a) for a in get_all_address_strings()]

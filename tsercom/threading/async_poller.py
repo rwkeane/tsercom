@@ -7,16 +7,18 @@ from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running
 from tsercom.threading.atomic import Atomic
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-
 kMaxResponses = 30
 
 TResultType = TypeVar('TResultType')
+
+
 class AsyncPoller(Generic[TResultType], ABC):
     """
     This class provides an asynchronous queueing mechanism, to allow for 
     subscribers to request the next available instance, and asynchronously
     await that until a new instance(s) is published.
     """
+
     def __init__(self):
         self.__responses = Deque[TResultType]()
         self.__barrier = asyncio.Event()
@@ -24,13 +26,13 @@ class AsyncPoller(Generic[TResultType], ABC):
 
         self.__is_loop_running = Atomic[bool](False)
 
-        self.__event_loop : asyncio.AbstractEventLoop = None
+        self.__event_loop: asyncio.AbstractEventLoop = None
 
     @property
     def event_loop(self):
         return self.__event_loop
 
-    def on_available(self, new_instance : TResultType):
+    def on_available(self, new_instance: TResultType):
         """
         Enqueues a newly available |new_instance|.
         """
@@ -44,7 +46,7 @@ class AsyncPoller(Generic[TResultType], ABC):
 
         assert not self.__event_loop is None
         run_on_event_loop(self.__set_results_available, self.__event_loop)
-        
+
     async def __set_results_available(self):
         self.__barrier.set()
 
@@ -88,17 +90,17 @@ class AsyncPoller(Generic[TResultType], ABC):
 
                 assert len(responses) > 0
                 return responses
-                
+
             # If there is NO pending item, wait for one to show up.
             await self.__barrier.wait()
             self.__barrier.clear()
-        
+
     def __aiter__(self):
         return self
-    
+
     async def __anext__(self):
         return await self.wait_instance()
-    
+
     def __len__(self):
         with self.__lock:
             return len(self.__responses)

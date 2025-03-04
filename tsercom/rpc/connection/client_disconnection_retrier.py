@@ -9,21 +9,23 @@ from tsercom.threading.aio.aio_utils import get_running_loop_or_none, is_running
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.stopable import Stopable
 
+TInstanceType = TypeVar("TInstanceType", bound=Stopable)
 
-TInstanceType = TypeVar("TInstanceType", bound = Stopable)
-class ClientDisconnectionRetrier(
-        ABC, Generic[TInstanceType], ClientReconnectionManager):
-    def __init__(
-            self,
-            watcher : ThreadWatcher,
-            safe_disconnection_handler : Optional[Callable[[], None]] = None):
+
+class ClientDisconnectionRetrier(ABC, Generic[TInstanceType],
+                                 ClientReconnectionManager):
+
+    def __init__(self,
+                 watcher: ThreadWatcher,
+                 safe_disconnection_handler: Optional[Callable[[],
+                                                               None]] = None):
         assert issubclass(type(watcher), ThreadWatcher)
 
-        self.__instance : TInstanceType = None
+        self.__instance: TInstanceType = None
         self.__watcher = watcher
         self.__disconnection_handler = safe_disconnection_handler
 
-        self.__event_loop : asyncio.AbstractEventLoop = None
+        self.__event_loop: asyncio.AbstractEventLoop = None
 
     @abstractmethod
     def _connect(self) -> TInstanceType:
@@ -36,19 +38,20 @@ class ClientDisconnectionRetrier(
 
             self.__instance = self._connect()
             assert not self.__instance is None
-            assert issubclass(type(self.__instance), Stopable),   type(self.__instance)
+            assert issubclass(type(self.__instance),
+                              Stopable), type(self.__instance)
             return True
         except Exception as error:
             if not is_server_unavailable_error(error):
                 raise error
-            
+
             print("Connection to server FAILED with error", error)
             return False
 
     async def stop(self):
         if self.__event_loop is None:
             return
-        
+
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(self.stop, self.__event_loop)
             return
@@ -56,22 +59,22 @@ class ClientDisconnectionRetrier(
         if not self.__instance is None:
             await self.__instance.stop()
             self.__instance = None
-    
-    async def _on_disconnect(self, error : Optional[Exception] = None):
+
+    async def _on_disconnect(self, error: Optional[Exception] = None):
         # Jump to the same thread from which this instance was initially created
         # to avoid any weird threading issues or race conditions.
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(partial(self._on_disconnect, error),
                               self.__event_loop)
             return
-        
+
         # This should never happen, but check just in case.
         assert not error is None, "ERROR: NO EXCEPTION FOUND!"
 
         # These should NEVER be swallowed. So raise it first.
         if isinstance(error, AssertionError):
             self.__watcher.on_exception_seen(error)
-        
+
         # Since a thread hop might happen, there is a possibility of a race
         # condition here. So check against self.__instance to avoid it.
         if self.__instance is None:
@@ -91,12 +94,12 @@ class ClientDisconnectionRetrier(
         # crash.
         elif not is_server_unavailable_error(error):
             self.__watcher.on_exception_seen(error)
-        
+
         # If it IS a server unavailable error, retry until the server becomes
         # available. This is done on the same thread from which the instance was
-        # initially started to avoid any weirdness if the underlying 
+        # initially started to avoid any weirdness if the underlying
         print("WILL RETRY")  # TODO: Remove this
-        
+
         while True:
             try:
                 await delay_before_retry()

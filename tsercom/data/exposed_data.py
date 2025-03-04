@@ -9,9 +9,9 @@ class ExposedData(ABC):
     This is the base class for data returned to the user from a client or server
     host instance.
     """
-    def __init__(self,
-                 caller_id : CallerIdentifier,
-                 timestamp : datetime.datetime):
+
+    def __init__(self, caller_id: CallerIdentifier,
+                 timestamp: datetime.datetime):
         self.__caller_id = caller_id
         self.__timestamp = timestamp
 

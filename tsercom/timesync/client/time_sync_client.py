@@ -9,22 +9,24 @@ from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.util.is_running_tracker import IsRunningTracker
 
+
 class TimeSyncClient(ClientSynchronizedClock.Client):
     """
     This class is used to synchronize clocks with an endpoint running an
     TimeSyncServer. Specifically, this class defines the client-side of an NTP
     client-server handshake, receiving the offset from a call to the server.
     """
+
     def __init__(self,
-                 watcher : ThreadWatcher,
-                 server_ip : str,
-                 ntp_port : int = kNtpPort):
+                 watcher: ThreadWatcher,
+                 server_ip: str,
+                 ntp_port: int = kNtpPort):
         self.__watcher = watcher
         self.__server_ip = server_ip
         self.__ntp_port = ntp_port
 
         # The running task for the sync loop.
-        self.__sync_loop_thread : threading.Thread = None
+        self.__sync_loop_thread: threading.Thread = None
 
         # To keep time_offset safe.
         self.__time_offset_lock = threading.Lock()
@@ -38,11 +40,11 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
 
     def get_synchronized_clock(self) -> SynchronizedClock:
         return ClientSynchronizedClock(self)
-    
+
     def get_offset_seconds(self) -> float:
         self.__start_barrier.wait()
 
-        # Average the currently stored values of 
+        # Average the currently stored values of
         with self.__time_offset_lock:
             count = len(self.__time_offsets)
             assert count > 0
@@ -54,7 +56,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
     def stop(self):
         """Stops the NTP synchronization thread."""
         self.__is_running.set(False)
-        
+
     def start_async(self):
         """Starts the NTP synchronization thread."""
         # Set the service to started.
@@ -63,9 +65,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
 
         # Run the request loop.
         self.__sync_loop_thread = self.__watcher.create_tracked_thread(
-                self.__run_sync_loop)
+            self.__run_sync_loop)
         self.__sync_loop_thread.start()
-    
+
     def __run_sync_loop(self):
         """Periodically synchronizes with the NTP server."""
         # Make the "real" offset the average of the returned values over the
@@ -79,8 +81,8 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
             try:
                 # NOTE: Blocking call.
                 response = ntp_client.request(self.__server_ip,
-                                              port = self.__ntp_port,
-                                              version = kNtpVersion)
+                                              port=self.__ntp_port,
+                                              version=kNtpVersion)
                 with self.__time_offset_lock:
                     self.__time_offsets.append(response.offset)
                     if len(self.__time_offsets) > kMaxOffsetCount:
@@ -102,5 +104,5 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                         print("WARNING: Fake time sync data used.")
                         self.__time_offsets.append(0)
                 self.__start_barrier.set()
-            
+
             time.sleep(kOffsetFrequencySeconds)  # Resynchronize periodically.
