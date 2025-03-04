@@ -15,4 +15,4 @@ jobs:
     - name: run YAPF to test if python code is correctly formatted
       uses: AlexanderMelde/yapf-action@v2.0
       with:
-        args: --verbose --exclude='**/proto/*.py'
+        args: --verbose --exclude='**/proto/*.py' --exclude='**/*.pyi'
