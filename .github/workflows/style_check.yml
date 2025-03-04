@@ -1,4 +1,4 @@
-name: YAPF Format Check
+name: Code Style Check
 
 on:
   push:
