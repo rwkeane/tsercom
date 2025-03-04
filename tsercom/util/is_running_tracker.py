@@ -191,7 +191,8 @@ class IsRunningTracker(Atomic[bool]):
 
     class __IteratorWrapper:
 
-        def __init__(self, iterator: AsyncIterator[TReturnType],
+        def __init__(self,
+                     iterator: AsyncIterator[TReturnType],
                      tracker: 'IsRunningTracker'):
             self.__iterator = iterator
             self.__tracker = tracker

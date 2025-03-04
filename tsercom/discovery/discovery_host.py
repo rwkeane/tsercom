@@ -20,7 +20,8 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
     class Client(ABC):
 
         @abstractmethod
-        async def _on_service_added(self, connection_info: TServiceInfo,
+        async def _on_service_added(self,
+                                    connection_info: TServiceInfo,
                                     caller_id: CallerIdentifier):
             pass
 
@@ -29,7 +30,8 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
         pass
 
     @overload
-    def __init__(self, *,
+    def __init__(self,
+                 *,
                  instance_listener_factory: Callable[[InstanceListener.Client],
                                                      InstanceListener]):
         pass

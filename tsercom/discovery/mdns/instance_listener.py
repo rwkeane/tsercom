@@ -31,7 +31,9 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
 
         self.__listener = RecordListener(self, service_type)
 
-    def __populate_service_info(self, record_name: str, port: int,
+    def __populate_service_info(self,
+                                record_name: str,
+                                port: int,
                                 addresses: List[bytes],
                                 txt_record: Dict[bytes, Optional[str]]):
         if len(addresses) == 0:
@@ -59,15 +61,20 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         return ServiceInfo(readable_name, port, addresses_out, record_name)
 
     def _convert_service_info(
-            self, service_info: ServiceInfo,
+            self,
+            service_info: ServiceInfo,
             txt_record: Dict[bytes, Optional[str]]) -> TServiceInfo:
         return service_info
 
-    def _on_service_added(self, record_name: str, port: int,
+    def _on_service_added(self,
+                          record_name: str,
+                          port: int,
                           addresses: List[bytes],
                           txt_record: Dict[bytes, Optional[str]]):
-        service_info = self.__populate_service_info(record_name, port,
-                                                    addresses, txt_record)
+        service_info = self.__populate_service_info(record_name,
+                                                    port,
+                                                    addresses,
+                                                    txt_record)
         service_info = self._convert_service_info(service_info, txt_record)
         run_on_event_loop(
             partial(self.__client._on_service_added, service_info))

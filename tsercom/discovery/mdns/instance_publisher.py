@@ -30,8 +30,10 @@ class InstancePublisher:
 
         txt_record = self._make_txt_record()
         assert not txt_record is None
-        self.__record_publisher = RecordPublisher(instance_name, service_type,
-                                                  port, txt_record)
+        self.__record_publisher = RecordPublisher(instance_name,
+                                                  service_type,
+                                                  port,
+                                                  txt_record)
 
     def _make_txt_record(self) -> dict[str, str | None]:
         properties: dict[str, str | None] = {

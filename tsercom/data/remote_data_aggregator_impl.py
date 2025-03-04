@@ -106,7 +106,8 @@ class RemoteDataAggregatorImpl(Generic[TDataType],
             found = new_data.caller_id in self.__organizers
             if not found:
                 data_organizer = RemoteDataOrganizer(self.__thread_pool,
-                                                     new_data.caller_id, self)
+                                                     new_data.caller_id,
+                                                     self)
                 if not self.__tracker is None:
                     self.__tracker.register(data_organizer)
                 data_organizer.start()

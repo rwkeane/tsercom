@@ -63,7 +63,9 @@ async def extract_id_from_first_call(
                                 "First call never received!")
         return None, first_response
 
-    id = await extract_id_from_call(first_response, context, extractor,
+    id = await extract_id_from_call(first_response,
+                                    context,
+                                    extractor,
                                     validate_against)
     return id, first_response
 

@@ -11,7 +11,9 @@ class RecordListener:
     class Client(ABC):
 
         @abstractmethod
-        def _on_service_added(self, name: str, port: int,
+        def _on_service_added(self,
+                              name: str,
+                              port: int,
                               addesses: List[bytes],
                               txt_record: Dict[str, Optional[str]]):
             raise NotImplementedError("This method must be implemented!")
@@ -39,7 +41,9 @@ class RecordListener:
             print("ERROR: Invalid service records found!")
             return
 
-        self.__client._on_service_added(info.name, info.port, info.addresses,
+        self.__client._on_service_added(info.name,
+                                        info.port,
+                                        info.addresses,
                                         info.properties)
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
@@ -56,5 +60,7 @@ class RecordListener:
             print("ERROR: Invalid service records found!")
             return
 
-        self.__client._on_service_added(info.name, info.port, info.addresses,
+        self.__client._on_service_added(info.name,
+                                        info.port,
+                                        info.addresses,
                                         info.properties)

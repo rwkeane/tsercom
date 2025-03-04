@@ -12,7 +12,8 @@ def load_versioned_protos(current_file_path):
             version.split(".")[:2])  # Extract major.minor
         version_string = f"v{major_minor_version.replace('.', '_')}"  # e.g., v1_62
         generated_dir = Path.joinpath(
-            Path(current_file_path).resolve().parent, "generated",
+            Path(current_file_path).resolve().parent,
+            "generated",
             version_string)
 
         if not generated_dir.exists():

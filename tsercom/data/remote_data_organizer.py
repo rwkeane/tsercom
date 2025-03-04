@@ -15,7 +15,8 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 
-class RemoteDataOrganizer(Generic[TDataType], RemoteDataReader[TDataType],
+class RemoteDataOrganizer(Generic[TDataType],
+                          RemoteDataReader[TDataType],
                           DataTimeoutTracker.Tracked):
     """
     This class is responsible for organizing data received from a remote

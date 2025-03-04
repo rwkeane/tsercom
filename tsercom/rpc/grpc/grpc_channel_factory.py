@@ -20,7 +20,8 @@ class GrpcChannelFactory:
         Finds an asyncronous channel, for asynchronous stub use.
         """
         print("FINDING CHANNEL")
-        return self.__find_channel_impl(grpc.aio.insecure_channel, addresses,
+        return self.__find_channel_impl(grpc.aio.insecure_channel,
+                                        addresses,
                                         port)
 
     def find_channel(self, addresses: list[str] | str,
@@ -30,8 +31,8 @@ class GrpcChannelFactory:
         """
         return self.__find_channel_impl(grpc.insecure_channel, addresses, port)
 
-    def __find_channel_impl(self, channel_factory: Callable[[str],
-                                                            grpc.Channel],
+    def __find_channel_impl(self,
+                            channel_factory: Callable[[str], grpc.Channel],
                             addresses: list[str] | str,
                             port: int) -> ChannelInfo:
         # Parse the address

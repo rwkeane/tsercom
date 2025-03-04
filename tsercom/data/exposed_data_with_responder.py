@@ -14,7 +14,8 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
     host instance and returns a value to the caller.
     """
 
-    def __init__(self, caller_id: CallerIdentifier,
+    def __init__(self,
+                 caller_id: CallerIdentifier,
                  timestamp: datetime.datetime,
                  responder: RemoteDataResponder[TResponseType]):
         assert not responder is None

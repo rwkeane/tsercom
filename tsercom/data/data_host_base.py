@@ -16,11 +16,12 @@ class DataHostBase(Generic[TDataType], DataHost[TDataType], RemoteDataReader):
     This class defines the implementation of DataHost to be used for the impl
     versions of all ServerHost and ClientHost classes.
     """
+
     def __init__(self,
-                 watcher : ThreadWatcher,
-                 aggregation_client : \
-                        Optional[RemoteDataAggregator[TDataType].Client] = None,
-                 timeout_seconds : int = 60,
+                 watcher: ThreadWatcher,
+                 aggregation_client: Optional[
+                     RemoteDataAggregator[TDataType].Client] = None,
+                 timeout_seconds: int = 60,
                  *args,
                  **kwargs):
         thread_pool = watcher.create_tracked_thread_pool_executor(

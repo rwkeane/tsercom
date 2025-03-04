@@ -142,7 +142,8 @@ class TimeSyncServer:
 
                     # Send the response.
                     with self.__socket_lock:
-                        send_task = self.__send(self.__socket, response_packet,
+                        send_task = self.__send(self.__socket,
+                                                response_packet,
                                                 addr)
                         await self.__is_running.task_or_stopped(send_task)
 

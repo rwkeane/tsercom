@@ -10,7 +10,8 @@ class ExposedData(ABC):
     host instance.
     """
 
-    def __init__(self, caller_id: CallerIdentifier,
+    def __init__(self,
+                 caller_id: CallerIdentifier,
                  timestamp: datetime.datetime):
         self.__caller_id = caller_id
         self.__timestamp = timestamp

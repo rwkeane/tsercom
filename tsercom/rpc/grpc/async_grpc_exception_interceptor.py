@@ -113,7 +113,9 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
 
         return wrapper
 
-    async def _handle_exception(self, e: Exception, method_name: str,
+    async def _handle_exception(self,
+                                e: Exception,
+                                method_name: str,
                                 context: grpc.aio.ServicerContext):
         """Handles exceptions raised by RPC methods."""
         if issubclass(type(e), StopAsyncIteration):

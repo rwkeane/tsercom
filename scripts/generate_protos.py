@@ -12,7 +12,8 @@ import grpc
 kGeneratedDir = "generated"
 
 
-def generate_proto_file(package_dir: Path, proto_file_path: str,
+def generate_proto_file(package_dir: Path,
+                        proto_file_path: str,
                         import_paths: Iterable[str]):
     """Generates Python files for a single .proto file."""
 

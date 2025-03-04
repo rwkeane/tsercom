@@ -12,7 +12,8 @@ from tsercom.util.stopable import Stopable
 TInstanceType = TypeVar("TInstanceType", bound=Stopable)
 
 
-class ClientDisconnectionRetrier(ABC, Generic[TInstanceType],
+class ClientDisconnectionRetrier(ABC,
+                                 Generic[TInstanceType],
                                  ClientReconnectionManager):
 
     def __init__(self,

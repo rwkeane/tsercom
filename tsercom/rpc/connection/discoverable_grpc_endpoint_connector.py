@@ -28,12 +28,14 @@ class DiscoverableGrpcEndpointConnector(Generic[TServiceInfo],
     class Client(ABC):
 
         @abstractmethod
-        async def _on_channel_connected(self, connection_info: TServiceInfo,
+        async def _on_channel_connected(self,
+                                        connection_info: TServiceInfo,
                                         caller_id: CallerIdentifier,
                                         channel_info: ChannelInfo):
             pass
 
-    def __init__(self, client: 'DiscoverableGrpcEndpointConnector.Client',
+    def __init__(self,
+                 client: 'DiscoverableGrpcEndpointConnector.Client',
                  channel_factory: "GrpcChannelFactory",
                  discovery_host: DiscoveryHost[TServiceInfo]):
         self.__client = client
@@ -65,7 +67,8 @@ class DiscoverableGrpcEndpointConnector(Generic[TServiceInfo],
         assert caller_id in self.__callers
         self.__callers.remove(caller_id)
 
-    async def _on_service_added(self, connection_info: TServiceInfo,
+    async def _on_service_added(self,
+                                connection_info: TServiceInfo,
                                 caller_id: CallerIdentifier):
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
@@ -89,5 +92,6 @@ class DiscoverableGrpcEndpointConnector(Generic[TServiceInfo],
 
         # Pass it along to the next layer up.
         self.__callers.add(caller_id)
-        await self.__client._on_channel_connected(connection_info, caller_id,
+        await self.__client._on_channel_connected(connection_info,
+                                                  caller_id,
                                                   channel)

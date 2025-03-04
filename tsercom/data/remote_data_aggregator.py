@@ -32,7 +32,8 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
 
         @abstractmethod
         def _on_new_endpoint_began_transmitting(
-                self, aggregator: 'RemoteDataAggregator[TDataType]',
+                self,
+                aggregator: 'RemoteDataAggregator[TDataType]',
                 caller_id: CallerIdentifier):
             """
             Called when a new endpoint associated with |caller_id| is found.
