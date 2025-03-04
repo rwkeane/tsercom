@@ -25,18 +25,21 @@ jobs:
       - name: Run yapf format check (dry run)
         id: yapf
         run: |
-          yapf --diff --recursive --exclude='**/proto/*.py' .
-        continue-on-error: true
+          OUTPUT=$(yapf --diff --recursive --exclude='**/proto/*.py' .)
+          echo "::set-output name=diff_output::$OUTPUT"
+        continue-on-error: true  # Capture output even on "failure"
 
       - name: Check for formatting differences
         run: |
-          if [[ "${{ steps.yapf.outcome }}" == "failure" ]]; then
+          if [[ -n "${{ steps.yapf.outputs.diff_output }}" ]]; then
             echo "::error::YAPF format check failed. Please format your code."
-            echo "::group::Formatting differences"
-            echo "${{ steps.yapf.outputs.stdout }}"
+            echo "::group::Formatting differences (stdout)"
+            echo "${{ steps.yapf.outputs.diff_output }}"
             echo "::endgroup::"
-            echo "You can format your code locally with:  yapf --recursive --in-place --exclude='**/proto/*.py' ."
+            echo "Exit code from yapf: ${{ steps.yapf.outcome }}"
+            echo "You can format your code locally with: yapf --recursive --in-place --exclude='**/proto/*.py' ."
             exit 1
-          else:
+          else
             echo "YAPF format check passed."
+            echo "Exit code from yapf: ${{ steps.yapf.outcome }}" # Might still be useful
           fi
