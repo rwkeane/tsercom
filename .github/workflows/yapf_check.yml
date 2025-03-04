@@ -1,0 +1,36 @@
+name: YAPF Format Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  yapf-format-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install yapf
+        run: pip install yapf
+
+      - name: Run yapf format check
+        run: |
+          find . -type d -name proto -prune -o -type f -name '*.py' -print0 | xargs -0 yapf -d
+
+      - name: Check for differences
+        run: |
+          if [[ -n $(git diff --name-only) ]]; then
+            echo "Error: YAPF format check failed. Please run 'yapf -r -i .' to format your code."
+            exit 1
+          else
+            echo "YAPF format check passed."
+          fi
