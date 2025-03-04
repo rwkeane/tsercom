@@ -38,7 +38,7 @@ class TimeSyncServer:
         self.__io_thread = ThreadPoolExecutor(max_workers=1)
 
     @property
-    def is_running(self):
+    def is_running(self) -> bool:
         return self.__is_running.get()
 
     def start_async(self) -> bool:
@@ -53,12 +53,12 @@ class TimeSyncServer:
 
         return self.__is_running.get()
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stops the server. Following this call, the server will be in an
         unhealthy state and cannot be used again.
         """
-        self.__is_running.get(False)
+        self.__is_running.set(False)
 
         with self.__socket_lock:
             self.__socket.close()
@@ -70,7 +70,7 @@ class TimeSyncServer:
     def get_synchronized_clock(self) -> SynchronizedClock:
         return ServerSynchronizedClock()
 
-    def __bind_socket(self):
+    def __bind_socket(self) -> None:
         # Check if the NTP port is already in use, and bind if not.
         try:
             with self.__socket_lock:
@@ -87,7 +87,7 @@ class TimeSyncServer:
             else:
                 raise  # Re-raise other socket errors
 
-    async def __run_server(self):
+    async def __run_server(self) -> None:
         """Starts the NTP server."""
         # NTP packet format (version 4, mode 3 for server)
         NTP_PACKET_FORMAT = "!B B B b 11I"
@@ -108,7 +108,7 @@ class TimeSyncServer:
                     if not self.__is_running.get():
                         break
 
-                data, addr = pair
+                data, addr = pair # type: ignore
                 if data:
                     # Get the current time in nanoseconds.
                     current_time_ns = time.time_ns()
@@ -165,7 +165,7 @@ class TimeSyncServer:
 
                 raise
 
-    async def __receive(self, s: socket.socket):
+    async def __receive(self, s: socket.socket) -> tuple[bytes, tuple[str, int]]:
         loop = get_running_loop_or_none()
         assert loop is not None
         data, addr = await loop.run_in_executor(
@@ -173,7 +173,9 @@ class TimeSyncServer:
         )
         return data, addr
 
-    async def __send(self, s: socket.socket, response_packet: bytes, addr):
+    async def __send(
+        self, s: socket.socket, response_packet: bytes, addr: tuple[str, int]
+    ) -> None:
         loop = get_running_loop_or_none()
         assert loop is not None
         await loop.run_in_executor(

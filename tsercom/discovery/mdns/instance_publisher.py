@@ -38,8 +38,8 @@ class InstancePublisher:
             instance_name, service_type, port, txt_record
         )
 
-    def _make_txt_record(self) -> dict[str, str | None]:
-        properties: dict[str, str | None] = {
+    def _make_txt_record(self) -> dict[bytes, bytes | None]:
+        properties: dict[bytes, bytes | None] = {
             "published_on".encode(
                 "utf-8"
             ): self.__get_current_date_time_bytes()
@@ -50,10 +50,10 @@ class InstancePublisher:
 
         return properties
 
-    def publish(self):
+    def publish(self) -> None:
         self.__record_publisher.publish()
 
-    def __get_current_date_time_bytes(self):
+    def __get_current_date_time_bytes(self) -> bytes:
         now = datetime.datetime.now()
         as_str = now.strftime("%F %T.%f")
         return as_str.encode("utf-8")

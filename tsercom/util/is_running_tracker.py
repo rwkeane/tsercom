@@ -25,7 +25,7 @@ class IsRunningTracker(Atomic[bool]):
     may only be called from that loop in future.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # For tracking the current state.
         self.__running_barrier = asyncio.Event()
         self.__stopped_barrier = asyncio.Event()
@@ -33,33 +33,33 @@ class IsRunningTracker(Atomic[bool]):
         # For keeping the event loop with which this instance is associated in
         # sync.
         self.__event_loop_lock = threading.Lock()
-        self.__event_loop: asyncio.AbstractEventLoop = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
         super().__init__(False)
 
     @property
-    def is_running(self):
+    def is_running(self) -> bool:
         """
         Returns whether or not this instance is currently running.
         """
         return self.get()
 
-    def start(self):
+    def start(self) -> None:
         """
         Sets this instance to running at the next available opportunity. May be
         called from any thread.
         """
         return self.set(True)
-
-    def stop(self):
+    
+    def stop(self) -> None:
         """
         Sets this instance to stopped at the next available opportunity. May be
         called from any thread.
         """
         return self.set(False)
 
-    def set(self, value: bool):
-        """
+    def set(self, value: bool) -> None:
+        """ 
         Sets the state of this instance be running when |value| is True and
         stopped when |value| is False at the next available opportunity. May be
         called from any thread.
@@ -76,7 +76,7 @@ class IsRunningTracker(Atomic[bool]):
         )
 
         # To clear the event loop and similar.
-        def clear(x: Any):
+        def clear(x: Any) -> None:
             with self.__event_loop_lock:
                 self.__running_barrier = asyncio.Event()
                 self.__stopped_barrier = asyncio.Event()
@@ -90,7 +90,7 @@ class IsRunningTracker(Atomic[bool]):
         if not is_running_on_event_loop(self.__event_loop):
             task.result()
 
-    async def wait_until_started(self):
+    async def wait_until_started(self) -> None:
         """
         Waits until the event loop has been started before continuing. May only
         be called from a single asyncio loop, along with the other asyncio
@@ -104,7 +104,7 @@ class IsRunningTracker(Atomic[bool]):
 
         await self.__running_barrier.wait()
 
-    async def wait_until_stopped(self):
+    async def wait_until_stopped(self) -> None:
         """
         Waits until the event loop has been stopped before continuing. May only
         be called from a single asyncio loop, along with the other asyncio
@@ -144,13 +144,13 @@ class IsRunningTracker(Atomic[bool]):
 
         # Wait for either |call| to finish or for this instance to stop running.
         stop_check_task = asyncio.create_task(self.__stopped_barrier.wait())
-        done, pending = await asyncio.wait(
+        done, pending = await asyncio.wait(  # type: ignore
             [call_task, stop_check_task], return_when=asyncio.FIRST_COMPLETED
         )
 
         # Cancel everything not yet done.
         for task in pending:
-            task.cancel()
+            task.cancel()  # type: ignore
 
         # Return the result if |call| completed, and None otherwise.
         if call_task in done:
@@ -174,7 +174,7 @@ class IsRunningTracker(Atomic[bool]):
 
         return IsRunningTracker.__IteratorWrapper(iterator, self)
 
-    async def __set_impl(self, value: bool):
+    async def __set_impl(self, value: bool) -> None:
         if value:
             self.__running_barrier.set()
             self.__stopped_barrier.clear()
@@ -182,7 +182,7 @@ class IsRunningTracker(Atomic[bool]):
             self.__stopped_barrier.set()
             self.__running_barrier.clear()
 
-    async def __ensure_event_loop_initialized(self):
+    async def __ensure_event_loop_initialized(self) -> None:
         if self.__event_loop is not None:
             return
 
@@ -205,14 +205,14 @@ class IsRunningTracker(Atomic[bool]):
             self.__iterator = iterator
             self.__tracker = tracker
 
-        def __aiter__(self):
+        def __aiter__(self): # type: ignore
             return self
 
-        async def __anext__(self):
-            result = await self.__tracker.task_or_stopped(
-                anext(self.__iterator)
+        async def __anext__(self) -> TReturnType:
+            result = await self.__tracker.task_or_stopped(  # type: ignore
+                anext(self.__iterator)  # type: ignore
             )
             if not self.__tracker.get():
                 raise StopAsyncIteration()
 
-            return result
+            return result  # type: ignore

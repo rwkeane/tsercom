@@ -29,13 +29,20 @@ dependencies = [
   "ntplib>=0.4.0",
   "zeroconf>=0.135.0",
   "psutil>=5.9.0",
-  "mypy-protobuf",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest",
-  "pre-commit",
+    "pytest",
+    "pre-commit",
+    "ruff",
+    "black",
+    "mypy",
+]
+typing = [
+    "types-psutil",
+    "types-requests",
+    "mypy-protobuf"
 ]
 
 [project.urls]
@@ -77,3 +84,38 @@ fixable = ["ALL"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Ignore F401 (unused import) ONLY in __init__.py files
+
+[tool.mypy]
+strict = true
+warn_unused_ignores = true
+show_error_codes = true # Add for readability
+check_untyped_defs = true  # Start with this
+pretty = true
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    ".*_pb2.py",        # Exclude Protocol Buffer generated files
+    ".*_pb2_grpc.py",   # Exclude gRPC generated files
+    ".*_pb2.pyi",       # Exclude Protocol Buffer stub files
+    "migrations",
+    "scripts"
+]
+
+[[tool.mypy.overrides]]
+module = "*.__init__"  # Match all __init__.py files
+check_untyped_defs = false # Disable checking of untyped defs in init
+
+[[tool.mypy.overrides]]
+module = [
+    "*.proto.*", 
+    "*.proto", 
+]
+ignore_errors = true
+disable_error_code = ["attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*" ]  # Target the grpc module and its submodules
+ignore_missing_imports = true

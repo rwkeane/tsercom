@@ -14,11 +14,11 @@ class SerializableTensor:
         self.__timestamp = timestamp
 
     @property
-    def tensor(self):
+    def tensor(self) -> torch.Tensor:
         return self.__tensor
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> SynchronizedTimestamp:
         return self.__timestamp
 
     def to_grpc_type(self) -> GrpcTensor:

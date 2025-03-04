@@ -36,7 +36,7 @@ class DiscoverableGrpcEndpointConnector(
             connection_info: TServiceInfo,
             caller_id: CallerIdentifier,
             channel_info: ChannelInfo,
-        ):
+        ) -> None:
             pass
 
     def __init__(
@@ -55,13 +55,13 @@ class DiscoverableGrpcEndpointConnector(
 
         super().__init__()
 
-    def start(self):
+    def start(self) -> None:
         """
         Starts service discovery.
         """
         self.__discovery_host.start_discovery(self)
 
-    async def mark_client_failed(self, caller_id: CallerIdentifier):
+    async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
         """
         Marks that the client associated with |client_id| is unhealthy and
         can be replaced.
@@ -76,10 +76,10 @@ class DiscoverableGrpcEndpointConnector(
         self.__callers.remove(caller_id)
 
     async def _on_service_added(
-        self, connection_info: TServiceInfo, caller_id: CallerIdentifier
-    ):
+        self, connection_info: TServiceInfo, caller_id: CallerIdentifier # type: ignore
+    ) -> None:
         if self.__event_loop is None:
-            self.__event_loop = get_running_loop_or_none()
+            self.__event_loop = get_running_loop_or_none()  # type: ignore
             assert self.__event_loop is not None
         else:
             assert is_running_on_event_loop(self.__event_loop)

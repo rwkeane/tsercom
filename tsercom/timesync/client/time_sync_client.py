@@ -1,5 +1,5 @@
 from typing import Deque
-import ntplib
+import ntplib # type: ignore
 import time
 import threading
 
@@ -27,7 +27,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         self.__ntp_port = ntp_port
 
         # The running task for the sync loop.
-        self.__sync_loop_thread: threading.Thread = None
+        self.__sync_loop_thread: threading.Thread | None = None
 
         # To keep time_offset safe.
         self.__time_offset_lock = threading.Lock()
@@ -51,14 +51,14 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
             assert count > 0
             return sum(self.__time_offsets) / count
 
-    def is_running(self):
+    def is_running(self) -> bool:
         return self.__is_running.get()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stops the NTP synchronization thread."""
         self.__is_running.set(False)
 
-    def start_async(self):
+    def start_async(self) -> None:
         """Starts the NTP synchronization thread."""
         # Set the service to started.
         assert not self.__is_running.get()
@@ -70,7 +70,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         )
         self.__sync_loop_thread.start()
 
-    def __run_sync_loop(self):
+    def __run_sync_loop(self) -> None:
         """Periodically synchronizes with the NTP server."""
         # Make the "real" offset the average of the returned values over the
         # last 30 seconds.

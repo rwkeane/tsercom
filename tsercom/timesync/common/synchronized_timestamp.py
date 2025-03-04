@@ -1,9 +1,10 @@
 import datetime
+from typing import TypeAlias, Union
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from tsercom.timesync.common.proto import ServerTimestamp
 
-
+TimestampType: TypeAlias = Union["SynchronizedTimestamp", datetime.datetime]
 class SynchronizedTimestamp:
 
     def __init__(self, timestamp: datetime.datetime):
@@ -30,44 +31,46 @@ class SynchronizedTimestamp:
         timestamp_pb.FromDatetime(self.__timestamp)
         return ServerTimestamp(timestamp=timestamp_pb)
 
-    def __gt__(self, other):
-        if issubclass(type(other), SynchronizedTimestamp):
+    def __gt__(self, other : TimestampType) -> bool:
+        if isinstance(other, SynchronizedTimestamp):
             other = other.as_datetime()
 
         assert isinstance(other, datetime.datetime)
         return self.as_datetime() > other
 
-    def __ge__(self, other):
-        if issubclass(type(other), SynchronizedTimestamp):
+    def __ge__(self, other: TimestampType) -> bool:
+        if isinstance(other, SynchronizedTimestamp):
             other = other.as_datetime()
 
         assert isinstance(other, datetime.datetime)
         return self.as_datetime() >= other
 
-    def __lt__(self, other):
-        if issubclass(type(other), SynchronizedTimestamp):
+    def __lt__(self, other: TimestampType) -> bool:
+        if isinstance(other, SynchronizedTimestamp):
             other = other.as_datetime()
 
         assert isinstance(other, datetime.datetime)
         return self.as_datetime() < other
 
-    def __le__(self, other):
-        if issubclass(type(other), SynchronizedTimestamp):
+    def __le__(self, other: TimestampType) -> bool:
+        if isinstance(other, SynchronizedTimestamp):
             other = other.as_datetime()
 
         assert isinstance(other, datetime.datetime)
         return self.as_datetime() <= other
 
-    def __eq__(self, other):
-        if issubclass(type(other), SynchronizedTimestamp):
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, SynchronizedTimestamp):
             other = other.as_datetime()
 
-        assert isinstance(other, datetime.datetime)
+        elif not isinstance(other, datetime.datetime):
+            return False
         return self.as_datetime() == other
 
-    def __ne__(self, other):
-        if issubclass(type(other), SynchronizedTimestamp):
+    def __ne__(self, other: object) -> bool:
+        if isinstance(other, SynchronizedTimestamp):
             other = other.as_datetime()
 
-        assert isinstance(other, datetime.datetime)
+        elif not isinstance(other, datetime.datetime):
+            return True
         return self.as_datetime() != other

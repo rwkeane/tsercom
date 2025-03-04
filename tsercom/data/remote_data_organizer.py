@@ -26,7 +26,7 @@ class RemoteDataOrganizer(
     class Client(ABC):
 
         @abstractmethod
-        def _on_data_available(self, data_organizer: "RemoteDataOrganizer"):
+        def _on_data_available(self, data_organizer: "RemoteDataOrganizer[TDataType]") -> None:
             pass
 
     def __init__(
@@ -50,17 +50,17 @@ class RemoteDataOrganizer(
         super().__init__()
 
     @property
-    def caller_id(self):
+    def caller_id(self) -> CallerIdentifier:
         return self.__caller_id
 
-    def start(self):
+    def start(self) -> None:
         """
         Starts this instance.
         """
         assert not self.__is_running.get()
         self.__is_running.set(True)
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stops this instance from running. After this call, no new data is added
         and no data times out.
@@ -77,7 +77,7 @@ class RemoteDataOrganizer(
             if len(self.__data) == 0:
                 return False
 
-            return self.__data[0].timestamp > self.__last_access
+            return (self.__data[0].timestamp > self.__last_access)
 
     def get_new_data(self) -> List[TDataType]:
         """
@@ -121,8 +121,10 @@ class RemoteDataOrganizer(
             for i in range(len(self.__data)):
                 if timestamp > self.__data[i].timestamp:
                     return self.__data[i]
+                
+        return None
 
-    def _on_data_ready(self, new_data: TDataType):
+    def _on_data_ready(self, new_data: TDataType)  -> None:
         # Validate the data.
         assert issubclass(type(new_data), ExposedData), type(new_data)
         assert new_data.caller_id == self.caller_id, (
@@ -133,7 +135,7 @@ class RemoteDataOrganizer(
         # Do real processing.
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
-    def __on_data_ready_impl(self, new_data: TDataType):
+    def __on_data_ready_impl(self, new_data: TDataType) -> None:
         # Exit early if not running.
         if not self.__is_running.get():
             return
@@ -160,12 +162,12 @@ class RemoteDataOrganizer(
         if self.__client is not None:
             self.__client._on_data_available(self)
 
-    def _on_triggered(self, timeout_seconds: int):
+    def _on_triggered(self, timeout_seconds: int) -> None:
         self.__thread_pool.submit(
             partial(self.__timeout_old_data, timeout_seconds)
         )
 
-    def __timeout_old_data(self, timeout_seconds: int):
+    def __timeout_old_data(self, timeout_seconds: int) -> None:
         # Get the timeout.
         current_time = datetime.datetime.now()
         timeout = datetime.timedelta(seconds=timeout_seconds)

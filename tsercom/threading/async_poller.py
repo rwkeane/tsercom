@@ -22,20 +22,20 @@ class AsyncPoller(Generic[TResultType], ABC):
     await that until a new instance(s) is published.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__responses = Deque[TResultType]()
         self.__barrier = asyncio.Event()
         self.__lock = threading.Lock()
 
         self.__is_loop_running = Atomic[bool](False)
 
-        self.__event_loop: asyncio.AbstractEventLoop = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
     @property
-    def event_loop(self):
+    def event_loop(self) -> asyncio.AbstractEventLoop | None:
         return self.__event_loop
 
-    def on_available(self, new_instance: TResultType):
+    def on_available(self, new_instance: TResultType) -> None:
         """
         Enqueues a newly available |new_instance|.
         """
@@ -50,10 +50,10 @@ class AsyncPoller(Generic[TResultType], ABC):
         assert self.__event_loop is not None
         run_on_event_loop(self.__set_results_available, self.__event_loop)
 
-    async def __set_results_available(self):
+    async def __set_results_available(self) -> None:
         self.__barrier.set()
 
-    def flush(self):
+    def flush(self) -> None:
         """
         Flushes any unread data out of the queue.
         """
@@ -98,12 +98,16 @@ class AsyncPoller(Generic[TResultType], ABC):
             await self.__barrier.wait()
             self.__barrier.clear()
 
-    def __aiter__(self):
+            return await self.wait_instance()
+        
+        return None  # type: ignore
+
+    def __aiter__(self):  # type: ignore
         return self
 
-    async def __anext__(self):
+    async def __anext__(self) -> List[TResultType]:
         return await self.wait_instance()
 
-    def __len__(self):
+    def __len__(self) -> int:
         with self.__lock:
             return len(self.__responses)

@@ -26,7 +26,7 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
             self,
             aggregator: "RemoteDataAggregator[TDataType]",
             caller_id: CallerIdentifier,
-        ):
+        ) -> None:
             """
             Called when new data is available for |caller_id|.
             """
@@ -37,28 +37,28 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
             self,
             aggregator: "RemoteDataAggregator[TDataType]",
             caller_id: CallerIdentifier,
-        ):
+        ) -> None:
             """
             Called when a new endpoint associated with |caller_id| is found.
             """
             pass
 
     @overload
-    def stop(self):
+    def stop(self) -> None:
         """
         Stops all RemoteDataOrganizers currently tracked by this instance.
         """
         ...
 
     @overload
-    def stop(self, id: CallerIdentifier):
+    def stop(self, id: CallerIdentifier) -> None:
         """
         Stops the RemoteDataOrganizer assocaited with |id|.
         """
         ...
 
     @abstractmethod
-    def stop(self, id: Optional[CallerIdentifier] = None):
+    def stop(self, id: Optional[CallerIdentifier] = None) -> None:
         pass
 
     @overload
@@ -77,7 +77,7 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         ...
 
     @abstractmethod
-    def has_new_data(self, id: Optional[CallerIdentifier] = None):
+    def has_new_data(self, id: Optional[CallerIdentifier] = None) -> Dict[CallerIdentifier, bool] | bool:
         pass
 
     @overload
@@ -95,7 +95,9 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         ...
 
     @abstractmethod
-    def get_new_data(self, id: Optional[CallerIdentifier] = None):
+    def get_new_data(
+        self, id: Optional[CallerIdentifier] = None
+    ) -> Dict[CallerIdentifier, List[TDataType]] | List[TDataType]:
         pass
 
     @overload
@@ -115,7 +117,9 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         ...
 
     @abstractmethod
-    def get_most_recent_data(self, id: Optional[CallerIdentifier] = None):
+    def get_most_recent_data(
+        self, id: Optional[CallerIdentifier] = None
+    ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
         pass
 
     @overload
@@ -130,7 +134,7 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
 
     @overload
     def get_data_for_timestamp(
-        self, id: CallerIdentifier, timestamp: datetime.datetime
+        self, timestamp: datetime.datetime, id: CallerIdentifier
     ) -> TDataType | None:
         """
         Returns the most recent data received before |timestamp| for caller
@@ -141,7 +145,9 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
     @abstractmethod
     def get_data_for_timestamp(
         self,
-        id: CallerIdentifier,
-        timestamp: Optional[datetime.datetime] = None,
-    ):
+        timestamp: datetime.datetime,
+        id: CallerIdentifier | None = None,
+    ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
         pass
+
+

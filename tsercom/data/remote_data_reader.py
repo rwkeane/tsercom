@@ -14,5 +14,5 @@ class RemoteDataReader(ABC, Generic[TDataType]):
     """
 
     @abstractmethod
-    def _on_data_ready(self, new_data: TDataType):
+    def _on_data_ready(self, new_data: TDataType) -> None:
         pass

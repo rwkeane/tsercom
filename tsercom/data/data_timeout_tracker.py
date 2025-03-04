@@ -14,7 +14,7 @@ class DataTimeoutTracker:
     class Tracked(ABC):
 
         @abstractmethod
-        def _on_triggered(self, timeout_seconds: int):
+        def _on_triggered(self, timeout_seconds: int) -> None:
             pass
 
     def __init__(self, timeout_seconds: int = 60):
@@ -22,18 +22,18 @@ class DataTimeoutTracker:
 
         self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
 
-    def register(self, tracked: Tracked):
+    def register(self, tracked: Tracked) -> None:
         run_on_event_loop(partial(self.__register_impl, tracked))
 
-    async def __register_impl(self, tracked: Tracked):
+    async def __register_impl(self, tracked: Tracked) -> None:
         assert is_running_on_event_loop()
 
         self.__tracked_list.append(tracked)
 
-    def start(self):
+    def start(self) -> None:
         run_on_event_loop(self.__execute_periodically)
 
-    async def __execute_periodically(self):
+    async def __execute_periodically(self) -> None:
         while True:
             await asyncio.sleep(self.__timeout_seconds)
             for tracked in self.__tracked_list:

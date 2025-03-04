@@ -16,7 +16,7 @@ class ThreadWatcher:
     thread.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Waits for an exception, and passes it to waiting thread when an
         # exception is thrown.
         self.__barrier = threading.Event()
@@ -34,18 +34,18 @@ class ThreadWatcher:
             target=target, on_error_cb=self.on_exception_seen
         )
 
-    def create_tracked_thread_pool_executor(
+    def create_tracked_thread_pool_executor( # type: ignore
         self, *args, **kwargs
     ) -> ThreadPoolExecutor:
         """
         Creates a ThreadPool such that each thread of the ThreadPool has error
         handling as would be done for an exception on this TaskRunner instance.
         """
-        return ThrowingThreadPoolExecutor(
+        return ThrowingThreadPoolExecutor( # type: ignore
             error_cb=self.on_exception_seen, *args, **kwargs
         )
 
-    def run_until_exception(self):
+    def run_until_exception(self) -> None:
         """
         Runs until an exception is seen, at which point it will be thrown.
         """
@@ -59,7 +59,11 @@ class ThreadWatcher:
                     "Errors hit in async thread(s)!", self.__exceptions
                 )
 
-    def on_exception_seen(self, e: Exception):
+    def on_exception_seen(self, e: Exception) -> None:
+        """
+        To be called when an exception that the watcher should surface is
+        called.
+        """
         with self.__exceptions_lock:
             self.__exceptions.append(e)
             self.__barrier.set()

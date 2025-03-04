@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
-from typing import Dict, Generic, Optional, TypeVar
+from typing import Dict, Generic, List, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -35,10 +35,10 @@ class RemoteDataAggregatorImpl(
         self.__tracker = tracker
 
         # TODO: Can this be a CallerIdMap?
-        self.__organizers: Dict[CallerIdentifier, RemoteDataOrganizer] = {}
+        self.__organizers: Dict[CallerIdentifier, RemoteDataOrganizer[TDataType]] = {}
         self.__lock = threading.Lock()
 
-    def stop(self, id: Optional[CallerIdentifier] = None):
+    def stop(self, id: Optional[CallerIdentifier] = None) -> None:
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
@@ -48,7 +48,7 @@ class RemoteDataAggregatorImpl(
             for key, val in self.__organizers.items():
                 val.stop()
 
-    def has_new_data(self, id: Optional[CallerIdentifier] = None):
+    def has_new_data(self, id: Optional[CallerIdentifier] = None) -> Dict[CallerIdentifier, bool] | bool:   # type: ignore
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
@@ -59,7 +59,7 @@ class RemoteDataAggregatorImpl(
                 results[key] = val.has_new_data()
             return results
 
-    def get_new_data(self, id: Optional[CallerIdentifier] = None):
+    def get_new_data(self, id: Optional[CallerIdentifier] = None) -> Dict[CallerIdentifier, List[TDataType]] | List[TDataType]:   # type: ignore
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
@@ -70,7 +70,7 @@ class RemoteDataAggregatorImpl(
                 results[key] = val.get_new_data()
             return results
 
-    def get_most_recent_data(self, id: Optional[CallerIdentifier] = None):
+    def get_most_recent_data(self, id: Optional[CallerIdentifier] = None) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:   # type: ignore
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
@@ -81,33 +81,33 @@ class RemoteDataAggregatorImpl(
                 results[key] = val.get_most_recent_data()
             return results
 
-    def get_data_for_timestamp(
+    def get_data_for_timestamp(  # type: ignore
         self,
         id: CallerIdentifier,
-        timestamp: Optional[datetime.datetime] = None,
-    ):
+        timestamp: datetime.datetime,
+    ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
                 return self.__organizers[id].get_data_for_timestamp(
-                    id, timestamp
-                )
+                    timestamp
+                ) 
 
             results = {}
             for key, val in self.__organizers.items():
                 results[key] = val.get_data_for_timestamp(id, timestamp)
             return results
 
-    def _on_data_available(self, data_organizer: "RemoteDataOrganizer"):
+    def _on_data_available(self, data_organizer: "RemoteDataOrganizer[TDataType]") -> None:   # type: ignore
         if self.__client is not None:
             self.__client._on_data_available(self, data_organizer.caller_id)
 
-    def _on_data_ready(self, new_data: TDataType):
+    def _on_data_ready(self, new_data: TDataType) -> None:
         assert issubclass(type(new_data), ExposedData), type(new_data)
 
         # Find or create the RemoteDataOrganizer.
         found = False
-        data_organizer: RemoteDataOrganizer = None
+        data_organizer: RemoteDataOrganizer = None   # type: ignore
         with self.__lock:
             found = new_data.caller_id in self.__organizers
             if not found:

@@ -148,13 +148,13 @@ else:
         f"No pre-generated protobuf code found for grpcio version: {version}.\\n"
         f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
     )
-"""
 
-    init_file = Path.joinpath(
-        Path.joinpath(package_dir, proto_path).parent, "__init__.py"
-    )
-    with open(init_file, "w") as f:  # Open in write mode ('w')
-        f.write(init_file_content)
+if TYPE_CHECKING:
+"""
+    versioned_dir_name, classes = versioned_dirs[-1]
+    current_version = versioned_dir_name[1:]
+    init_file_content += f"""
+    from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}"""
 
 
 def get_classes_from_file(filepath):

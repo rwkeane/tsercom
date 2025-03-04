@@ -17,9 +17,9 @@ class ExposedData(ABC):
         self.__timestamp = timestamp
 
     @property
-    def caller_id(self):
+    def caller_id(self) -> CallerIdentifier:
         return self.__caller_id
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> datetime.datetime:
         return self.__timestamp

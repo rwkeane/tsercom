@@ -11,10 +11,10 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
     None in all other cases.
     """
     if issubclass(type(error), grpc.aio.AioRpcError):
-        return error.code()
+        return error.code() # type: ignore
 
     if not issubclass(type(error), grpc.RpcError):
-        return
+        return None
 
     status: Status = rpc_status.from_call(error)
     if status is None:
@@ -39,11 +39,11 @@ def is_server_unavailable_error(error: Exception) -> bool:
     )
 
 
-def is_grpc_error(error: Exception):
+def is_grpc_error(error: Exception) -> bool:
     return get_grpc_status_code(error) is not None
 
 
-async def delay_before_retry():
+async def delay_before_retry() -> None:
     """
     Delays between 4 and 8 seconds.
     """

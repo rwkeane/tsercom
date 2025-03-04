@@ -15,17 +15,18 @@ class ServiceInfo:
         self.__addresses = addresses
 
     @property
-    def mdns_name(self):
+    def mdns_name(self) -> str:
         return self.__mdns_name
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__name
 
     @property
-    def port(self):
+    def port(self) -> int:
         return self.__port
 
     @property
-    def addresses(self):
+    def addresses(self) -> List[str]:
         return self.__addresses
+

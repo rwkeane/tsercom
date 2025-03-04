@@ -1,6 +1,10 @@
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import Any, TypeVar, ParamSpec
 
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
     """
@@ -8,14 +12,17 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
     for better exception handling.
     """
 
-    def __init__(self, error_cb: Callable[[Exception], None], *args, **kwargs):
+    def __init__(  
+        self, error_cb: Callable[[Exception], None], *args: Any, **kwargs: Any, 
+    ) -> None:
         self.__error_cb = error_cb
 
         super().__init__(*args, **kwargs)
 
-    def submit(self, fn, /, *args, **kwargs):
 
-        def wrapper(*args2, **kwargs2):
+    def submit(self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
+        
+        def wrapper(*args2: P.args, **kwargs2: P.kwargs) -> T:
             try:
                 return fn(*args2, **kwargs2)
             except Exception as e:

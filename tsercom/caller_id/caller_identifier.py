@@ -27,15 +27,15 @@ class CallerIdentifier:
         Tries to parse |id| into a GUID, returning an insance of this object on
         success and None on failure.
         """
-        if issubclass(type(id), CallerId):
+        if isinstance(id, CallerId):
             id = id.id
 
         if not isinstance(id, str):
             return None
 
         try:
-            id = uuid.UUID(id)
-            return CallerIdentifier(id)
+            id = uuid.UUID(id) # type: ignore
+            return CallerIdentifier(id) # type: ignore
         except ValueError:
             return None
 
@@ -45,26 +45,26 @@ class CallerIdentifier:
         """
         return CallerId(id=str(self.__id))
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.__id.__hash__()
 
-    def __eq__(self, other):
+    def __eq__(self, other : object) -> bool:
         if other is None:
             return False
 
         if not issubclass(type(other), CallerIdentifier):
             return False
 
-        return self.__id == other.__id
+        return self.__id == other.__id # type: ignore
 
-    def __ne__(self, other):
+    def __ne__(self, other : object) -> bool:
         return not self.__eq__(other)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__id.__str__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__id.__repr__()
 
-    def __format__(self, format_spec: str):
+    def __format__(self, format_spec: str) -> str:
         return self.__id.__format__(format_spec)

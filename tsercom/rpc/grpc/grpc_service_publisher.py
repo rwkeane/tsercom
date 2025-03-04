@@ -37,26 +37,26 @@ class GrpcServicePublisher:
         self.__server: grpc.Server = None
         self.__watcher = watcher
 
-    def start(self, connect_call: AddServicerCB):
+    def start(self, connect_call: AddServicerCB) -> None:
         """
         Starts a synchronous server.
         """
-        self.__server: grpc.Server = grpc.server(
+        self.__server: grpc.Server = grpc.server(  # type: ignore
             self.__watcher.create_tracked_thread_pool_executor(max_workers=10)
         )
         connect_call(self.__server)
         self._connect()
         self.__server.start()
 
-    def start_async(self, connect_call: AddServicerCB):
+    def start_async(self, connect_call: AddServicerCB) -> None:
         """
         Starts an asynchronous server.
         """
         run_on_event_loop(partial(self.__start_async_impl, connect_call))
 
-    async def __start_async_impl(self, connect_call: AddServicerCB):
+    async def __start_async_impl(self, connect_call: AddServicerCB) -> None:
         interceptor = AsyncGrpcExceptionInterceptor(self.__watcher)
-        self.__server: grpc.Server = grpc.aio.server(
+        self.__server: grpc.Server = grpc.aio.server(  # type: ignore
             self.__watcher.create_tracked_thread_pool_executor(max_workers=1),
             interceptors=[interceptor],
             maximum_concurrent_rpcs=None,
@@ -90,6 +90,11 @@ class GrpcServicePublisher:
 
         return worked != 0
 
-    def stop(self):
+    def stop(self) -> None:
+        """
+        Stops the server.
+        """
+        if self.__server is None:
+            raise RuntimeError("Server not started")
         self.__server.stop()
         print("Server stopped!")

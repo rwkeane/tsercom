@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
-from zeroconf import ServiceBrowser, Zeroconf
+from typing import Dict, List
+from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
 
 
-class RecordListener:
+class RecordListener(ServiceListener):
     """
     Low-level listener class to interface with mDNS, for discovering services.
     """
@@ -16,8 +16,8 @@ class RecordListener:
             name: str,
             port: int,
             addesses: List[bytes],
-            txt_record: Dict[str, Optional[str]],
-        ):
+            txt_record: Dict[bytes, bytes | None],
+        ) -> None:
             raise NotImplementedError("This method must be implemented!")
 
     def __init__(self, client: Client, service_type: str):
@@ -45,6 +45,10 @@ class RecordListener:
         if info is None:
             print("ERROR: Invalid service records found!")
             return
+        
+        if info.port is None:
+            print("ERROR: No port found!")
+            return
 
         self.__client._on_service_added(
             info.name, info.port, info.addresses, info.properties
@@ -62,6 +66,10 @@ class RecordListener:
         info = zc.get_service_info(type_, name)
         if info is None:
             print("ERROR: Invalid service records found!")
+            return
+        
+        if info.port is None:
+            print("ERROR: No port found!")
             return
 
         self.__client._on_service_added(

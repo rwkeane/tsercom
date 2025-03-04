@@ -33,11 +33,11 @@ class ClientDisconnectionRetrier(
     ):
         assert issubclass(type(watcher), ThreadWatcher)
 
-        self.__instance: TInstanceType = None
+        self.__instance: TInstanceType | None = None
         self.__watcher = watcher
         self.__disconnection_handler = safe_disconnection_handler
 
-        self.__event_loop: asyncio.AbstractEventLoop = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
     @abstractmethod
     def _connect(self) -> TInstanceType:
@@ -61,7 +61,7 @@ class ClientDisconnectionRetrier(
             print("Connection to server FAILED with error", error)
             return False
 
-    async def stop(self):
+    async def stop(self) -> None:
         if self.__event_loop is None:
             return
 
@@ -73,7 +73,7 @@ class ClientDisconnectionRetrier(
             await self.__instance.stop()
             self.__instance = None
 
-    async def _on_disconnect(self, error: Optional[Exception] = None):
+    async def _on_disconnect(self, error: Optional[Exception] = None) -> None:
         # Jump to the same thread from which this instance was initially created
         # to avoid any weird threading issues or race conditions.
         if not is_running_on_event_loop(self.__event_loop):
@@ -101,7 +101,10 @@ class ClientDisconnectionRetrier(
         if is_grpc_error(error) and not is_server_unavailable_error(error):
             print("WARNING: gRPC Session Ended Unexpectedly:", error)
             if self.__disconnection_handler is not None:
-                await self.__disconnection_handler()
+                if asyncio.iscoroutine(self.__disconnection_handler):
+                    await self.__disconnection_handler()
+                else:
+                    self.__disconnection_handler()
             return
 
         # If its NOT a gRPC error, expose it to the runtime since it was a local

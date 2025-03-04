@@ -13,13 +13,13 @@ class ChannelInfo:
         self.__port = port
 
     @property
-    def channel(self):
+    def channel(self) -> grpc.Channel:
         return self.__channel
 
     @property
-    def address(self):
+    def address(self) -> str:
         return self.__address
 
     @property
-    def port(self):
+    def port(self) -> int:
         return self.__port

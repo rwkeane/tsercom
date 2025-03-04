@@ -11,5 +11,5 @@ class RemoteDataResponder(ABC, Generic[TResponseType]):
     """
 
     @abstractmethod
-    def _on_response_ready(self, response: TResponseType):
+    def _on_response_ready(self, response: TResponseType) -> None:
         pass

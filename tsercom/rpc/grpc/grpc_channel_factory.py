@@ -11,12 +11,9 @@ class GrpcChannelFactory:
     definition, by testing against various |addresses| and a given |port|.
     """
 
-    def __init__(self):
-        pass
-
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
-    ) -> ChannelInfo:
+    ) -> ChannelInfo | None:
         """
         Finds an asyncronous channel, for asynchronous stub use.
         """
@@ -27,7 +24,7 @@ class GrpcChannelFactory:
 
     def find_channel(
         self, addresses: list[str] | str, port: int
-    ) -> ChannelInfo:
+    ) -> ChannelInfo | None:
         """
         Finds a synchronous channel, for synchonous stub use.
         """
@@ -38,7 +35,7 @@ class GrpcChannelFactory:
         channel_factory: Callable[[str], grpc.Channel],
         addresses: list[str] | str,
         port: int,
-    ) -> ChannelInfo:
+    ) -> ChannelInfo | None:
         # Parse the address
         print("Started!")
         if addresses is None:

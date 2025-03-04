@@ -11,13 +11,13 @@ class ClientIdFetcher:
     GetId() call to be lazy-loaded and used as needed.
     """
 
-    def __init__(self, stub):
+    def __init__(self, stub) -> None: # type: ignore
         self.__stub = stub
 
-        self.__id: CallerIdentifier = None
+        self.__id: CallerIdentifier | None = None
         self.__lock = asyncio.Lock()
 
-    async def get_id_async(self):
+    async def get_id_async(self) -> CallerIdentifier:
         async with self.__lock:
             if self.__id is None:
                 id = await self.__stub.GetId(GetIdRequest())

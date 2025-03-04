@@ -27,5 +27,5 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
 
         super().__init__(caller_id, timestamp)
 
-    def _respond(self, response: TResponseType):
+    def _respond(self, response: TResponseType) -> None:
         self.__responder._on_response_ready(response)

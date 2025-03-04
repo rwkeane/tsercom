@@ -16,7 +16,7 @@ class ClientSynchronizedClock(SynchronizedClock):
     class Client(ABC):
 
         @abstractmethod
-        async def get_offset_seconds(self) -> float:
+        def get_offset_seconds(self) -> float:
             pass
 
     def __init__(self, client: "ClientSynchronizedClock.Client"):
@@ -26,9 +26,9 @@ class ClientSynchronizedClock(SynchronizedClock):
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
         offset = self.__client.get_offset_seconds()
         timestamp = time.as_datetime()
-        offset = datetime.timedelta(seconds=offset)
+        offset_ts = datetime.timedelta(seconds=offset)
 
-        return timestamp - offset
+        return timestamp - offset_ts
 
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
         delta_future = self.__client.get_offset_seconds()

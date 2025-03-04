@@ -8,20 +8,20 @@ TType = TypeVar("TType")
 
 class CallerIdMap(Generic[TType]):
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__lock = threading.Lock()
         self.__map: Dict[CallerIdentifier, TType] = {}
 
     def find_instance(
         self, caller_id: CallerIdentifier, factory: Callable[[], TType]
-    ):
+    ) -> TType:
         with self.__lock:
             if caller_id not in self.__map:
                 self.__map[caller_id] = factory()
 
             return self.__map[caller_id]
 
-    def for_all_items(self, function: Callable[[TType], None]):
+    def for_all_items(self, function: Callable[[TType], None]) -> None:
         items = []
         with self.__lock:
             items = list(self.__map.values())
@@ -29,9 +29,9 @@ class CallerIdMap(Generic[TType]):
         for val in items:
             function(val)
 
-    def count(self):
+    def count(self) -> int:
         with self.__lock:
             return len(self.__map)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.count()

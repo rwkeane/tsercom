@@ -14,7 +14,7 @@ class RecordPublisher:
         name: str,
         type_: str,
         port: int,
-        properties: Optional[Dict[str, Optional[str]]] = None,
+        properties: Optional[Dict[bytes, bytes | None]] = None,
     ):
         assert type_ is not None and type_[0] == "_", type_
 
@@ -28,7 +28,7 @@ class RecordPublisher:
         # print("publishing txt:",self.__txt)
         print("Publishing service:", self.__srv)
 
-    def publish(self):
+    def publish(self) -> None:
         info = ServiceInfo(
             self.__ptr,
             self.__srv,
