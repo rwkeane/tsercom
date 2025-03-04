@@ -17,20 +17,26 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.11'  # Consider using a .python-version file
 
       - name: Install yapf
         run: pip install yapf
 
-      - name: Run yapf format check
+      - name: Run yapf format check (dry run)
+        id: yapf
         run: |
-          find . -type d -name proto -prune -o -type f -name '*.py' -print0 | xargs -0 yapf -d
+          yapf --diff --recursive --exclude='**/proto/*.py' .
+        continue-on-error: true
 
-      - name: Check for differences
+      - name: Check for formatting differences
         run: |
-          if [[ -n $(git diff --name-only) ]]; then
-            echo "Error: YAPF format check failed. Please run 'yapf -r -i .' to format your code."
+          if [[ "${{ steps.yapf.outcome }}" == "failure" ]]; then
+            echo "::error::YAPF format check failed. Please format your code."
+            echo "::group::Formatting differences"
+            echo "${{ steps.yapf.outputs.stdout }}"
+            echo "::endgroup::"
+            echo "You can format your code locally with:  yapf --recursive --in-place --exclude='**/proto/*.py' ."
             exit 1
-          else
+          else:
             echo "YAPF format check passed."
           fi
