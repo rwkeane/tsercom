@@ -7,39 +7,12 @@ on:
   pull_request:
 
 jobs:
-  yapf-format-check:
+  formatting-check:
+    name: Formatting Check
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'  # Consider using a .python-version file
-
-      - name: Install yapf
-        run: pip install yapf
-
-      - name: Run yapf format check (dry run)
-        id: yapf
-        run: |
-          OUTPUT=$(yapf --diff --recursive --exclude='**/proto/*.py' .)
-          echo "::set-output name=diff_output::$OUTPUT"
-        continue-on-error: true  # Capture output even on "failure"
-
-      - name: Check for formatting differences
-        run: |
-          if [[ -n "${{ steps.yapf.outputs.diff_output }}" ]]; then
-            echo "::error::YAPF format check failed. Please format your code."
-            echo "::group::Formatting differences (stdout)"
-            echo "${{ steps.yapf.outputs.diff_output }}"
-            echo "::endgroup::"
-            echo "Exit code from yapf: ${{ steps.yapf.outcome }}"
-            echo "You can format your code locally with: yapf --recursive --in-place --exclude='**/proto/*.py' ."
-            exit 1
-          else
-            echo "YAPF format check passed."
-            echo "Exit code from yapf: ${{ steps.yapf.outcome }}" # Might still be useful
-          fi
+    - uses: actions/checkout@v2
+    - name: run YAPF to test if python code is correctly formatted
+      uses: AlexanderMelde/yapf-action@v2.0
+      with:
+        args: --verbose --exclude='**/proto/*.py'
