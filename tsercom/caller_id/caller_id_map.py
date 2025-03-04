@@ -14,7 +14,7 @@ class CallerIdMap(Generic[TType]):
 
     def find_instance(self, caller_id: CallerIdentifier,
                       factory: Callable[[], TType]):
-        with self.__lock:
+        with self.__lock:  # A test comment.
             if not caller_id in self.__map:
                 self.__map[caller_id] = factory()
 
