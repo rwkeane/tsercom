@@ -1,6 +1,5 @@
 import asyncio
 import threading
-from typing import Optional
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 
@@ -8,7 +7,7 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 class EventLoopFactory:
 
     def __init__(self, watcher: "ThreadWatcher"):
-        assert not watcher is None
+        assert watcher is not None
         assert issubclass(type(watcher), ThreadWatcher), type(watcher)
         self.__watcher = watcher
 

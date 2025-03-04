@@ -1,11 +1,9 @@
 import ast
-from importlib.metadata import version as lib_version
 import subprocess
 import os
 import sys
-import re
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable
 
 import grpc
 
@@ -109,17 +107,17 @@ def modify_generated_file(file_path: Path):
 
 
 def generate_init(package_dir, proto_path: str, generated_path: Path):
-    init_file_content = f"""
+    init_file_content = """
 import grpc
 import subprocess
 
 try:
     version = grpc.__version__
     major_minor_version = ".".join(version.split(".")[:2])  # Extract major.minor
-    version_string = f"v{{major_minor_version.replace('.', '_')}}" # e.g., v1_62
+    version_string = f"v{major_minor_version.replace('.', '_')}" # e.g., v1_62
 except (subprocess.CalledProcessError, FileNotFoundError) as e:
     raise RuntimeError(
-        f"Could not determine grpcio-tools version. Is it installed? Error: {{e}}"
+        f"Could not determine grpcio-tools version. Is it installed? Error: {e}"
     ) from e
 
 if False:
@@ -144,10 +142,10 @@ if False:
 elif version_string == "v{current_version}":
     from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}
 """
-    init_file_content += f"""
+    init_file_content += """
 else:
     raise ImportError(
-        f"No pre-generated protobuf code found for grpcio version: {{version}}.\\n"
+        f"No pre-generated protobuf code found for grpcio version: {version}.\\n"
         f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
     )
 """

@@ -23,6 +23,6 @@ class ClientIdFetcher:
                 id = await self.__stub.GetId(GetIdRequest())
                 assert isinstance(id, GetIdResponse)
                 self.__id = CallerIdentifier.try_parse(id.id)
-                assert not self.__id is None
+                assert self.__id is not None
 
             return self.__id

@@ -9,7 +9,6 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
@@ -158,7 +157,7 @@ class RemoteDataOrganizer(
                     self.__data.appendleft(new_data)
 
         # If new data was added, inform the user.
-        if not self.__client is None:
+        if self.__client is not None:
             self.__client._on_data_available(self)
 
     def _on_triggered(self, timeout_seconds: int):

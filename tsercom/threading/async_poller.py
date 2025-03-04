@@ -9,7 +9,6 @@ from tsercom.threading.aio.aio_utils import (
     run_on_event_loop,
 )
 from tsercom.threading.atomic import Atomic
-from tsercom.threading.thread_watcher import ThreadWatcher
 
 kMaxResponses = 30
 
@@ -48,7 +47,7 @@ class AsyncPoller(Generic[TResultType], ABC):
         if not self.__is_loop_running.get():
             return
 
-        assert not self.__event_loop is None
+        assert self.__event_loop is not None
         run_on_event_loop(self.__set_results_available, self.__event_loop)
 
     async def __set_results_available(self):
@@ -69,7 +68,7 @@ class AsyncPoller(Generic[TResultType], ABC):
         if not self.__is_loop_running.get():
             assert self.__event_loop is None
             self.__event_loop = get_running_loop_or_none()
-            assert not self.__event_loop is None
+            assert self.__event_loop is not None
 
             self.__is_loop_running.set(True)
 
@@ -87,7 +86,7 @@ class AsyncPoller(Generic[TResultType], ABC):
 
             # Return the results, but do it outside the mutex to avoid blocking
             # as much as possible.
-            if not queue is None:
+            if queue is not None:
                 responses = []
                 while len(queue) > 0:
                     responses.append(queue.popleft())

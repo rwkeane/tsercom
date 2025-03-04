@@ -16,7 +16,7 @@ class CallerIdMap(Generic[TType]):
         self, caller_id: CallerIdentifier, factory: Callable[[], TType]
     ):
         with self.__lock:
-            if not caller_id in self.__map:
+            if caller_id not in self.__map:
                 self.__map[caller_id] = factory()
 
             return self.__map[caller_id]

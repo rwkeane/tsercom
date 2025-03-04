@@ -40,7 +40,7 @@ def is_server_unavailable_error(error: Exception) -> bool:
 
 
 def is_grpc_error(error: Exception):
-    return not get_grpc_status_code(error) is None
+    return get_grpc_status_code(error) is not None
 
 
 async def delay_before_retry():

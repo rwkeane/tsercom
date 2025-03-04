@@ -183,15 +183,15 @@ class IsRunningTracker(Atomic[bool]):
             self.__running_barrier.clear()
 
     async def __ensure_event_loop_initialized(self):
-        if not self.__event_loop is None:
+        if self.__event_loop is not None:
             return
 
         with self.__event_loop_lock:
-            if not self.__event_loop is None:
+            if self.__event_loop is not None:
                 return
 
             self.__event_loop = get_running_loop_or_none()
-            assert not self.__event_loop is None
+            assert self.__event_loop is not None
             value = self.get()
         await self.__set_impl(value)
 

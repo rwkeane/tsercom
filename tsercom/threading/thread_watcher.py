@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import threading
-from typing import Any, List
+from typing import List
 from collections.abc import Callable
 
 from tsercom.threading.throwing_thread import ThrowingThread

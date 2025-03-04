@@ -46,10 +46,10 @@ class ClientDisconnectionRetrier(
     async def start(self) -> bool:
         try:
             self.__event_loop = get_running_loop_or_none()
-            assert not self.__event_loop is None
+            assert self.__event_loop is not None
 
             self.__instance = self._connect()
-            assert not self.__instance is None
+            assert self.__instance is not None
             assert issubclass(type(self.__instance), Stopable), type(
                 self.__instance
             )
@@ -69,7 +69,7 @@ class ClientDisconnectionRetrier(
             run_on_event_loop(self.stop, self.__event_loop)
             return
 
-        if not self.__instance is None:
+        if self.__instance is not None:
             await self.__instance.stop()
             self.__instance = None
 
@@ -83,7 +83,7 @@ class ClientDisconnectionRetrier(
             return
 
         # This should never happen, but check just in case.
-        assert not error is None, "ERROR: NO EXCEPTION FOUND!"
+        assert error is not None, "ERROR: NO EXCEPTION FOUND!"
 
         # These should NEVER be swallowed. So raise it first.
         if isinstance(error, AssertionError):
@@ -100,7 +100,7 @@ class ClientDisconnectionRetrier(
         # die without crashing the entire runtime.
         if is_grpc_error(error) and not is_server_unavailable_error(error):
             print("WARNING: gRPC Session Ended Unexpectedly:", error)
-            if not self.__disconnection_handler is None:
+            if self.__disconnection_handler is not None:
                 await self.__disconnection_handler()
             return
 

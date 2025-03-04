@@ -27,12 +27,12 @@ class AsyncGetIdServer:
 
     async def GetId(self, request: GetIdRequest, context):
         id = CallerIdentifier()
-        if not self.__callback is None:
+        if self.__callback is not None:
             self.__callback(id)
         try:
             return GetIdResponse(id=id.to_grpc_type())
         except Exception as e:
-            if not self.__on_disconnect_handler is None:
+            if self.__on_disconnect_handler is not None:
                 self.__on_disconnect_handler(e)
             if isinstance(e, AssertionError):
                 raise

@@ -20,7 +20,7 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
         timestamp: datetime.datetime,
         responder: RemoteDataResponder[TResponseType],
     ):
-        assert not responder is None
+        assert responder is not None
         assert issubclass(type(responder), RemoteDataResponder)
 
         self.__responder = responder

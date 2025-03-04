@@ -6,7 +6,6 @@ from typing import Dict, Generic, List, Optional, TypeVar
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.threading.aio.aio_utils import run_on_event_loop
-from tsercom.threading.thread_watcher import ThreadWatcher
 
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
@@ -23,7 +22,7 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
             raise NotImplementedError("This method must be implemented!")
 
     def __init__(self, client: "InstanceListener.Client", service_type: str):
-        assert not client is None and issubclass(
+        assert client is not None and issubclass(
             type(client), InstanceListener.Client
         )
         assert isinstance(service_type, str)
@@ -48,7 +47,7 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
             try:
                 address = socket.inet_ntoa(addresses[i])
                 addresses_out.append(address)
-            except:
+            except Exception:
                 continue
 
         if len(addresses_out) == 0:

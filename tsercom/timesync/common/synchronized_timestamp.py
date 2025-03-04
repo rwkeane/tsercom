@@ -7,7 +7,7 @@ from tsercom.timesync.common.proto import ServerTimestamp
 class SynchronizedTimestamp:
 
     def __init__(self, timestamp: datetime.datetime):
-        assert not timestamp is None
+        assert timestamp is not None
         assert isinstance(timestamp, datetime.datetime)
         self.__timestamp = timestamp
 

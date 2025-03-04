@@ -16,7 +16,7 @@ class RecordPublisher:
         port: int,
         properties: Optional[Dict[str, Optional[str]]] = None,
     ):
-        assert not type_ is None and type_[0] == "_", type_
+        assert type_ is not None and type_[0] == "_", type_
 
         if properties is None:
             properties = {}

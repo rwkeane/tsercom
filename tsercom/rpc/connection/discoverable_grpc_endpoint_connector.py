@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-import asyncio
 from functools import partial
-from typing import Generic, List, Set, TypeVar
+from typing import Generic, TypeVar
 import typing
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -13,7 +12,6 @@ from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
-from tsercom.threading.thread_watcher import ThreadWatcher
 
 if typing.TYPE_CHECKING:
     from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
@@ -82,7 +80,7 @@ class DiscoverableGrpcEndpointConnector(
     ):
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
-            assert not self.__event_loop is None
+            assert self.__event_loop is not None
         else:
             assert is_running_on_event_loop(self.__event_loop)
 

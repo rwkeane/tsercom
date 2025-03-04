@@ -1,4 +1,3 @@
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import threading
@@ -11,7 +10,6 @@ from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
     run_on_event_loop,
 )
-from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.server_synchronized_clock import (
@@ -169,7 +167,7 @@ class TimeSyncServer:
 
     async def __receive(self, s: socket.socket):
         loop = get_running_loop_or_none()
-        assert not loop is None
+        assert loop is not None
         data, addr = await loop.run_in_executor(
             self.__io_thread, partial(s.recvfrom, 1024)
         )
@@ -177,7 +175,7 @@ class TimeSyncServer:
 
     async def __send(self, s: socket.socket, response_packet: bytes, addr):
         loop = get_running_loop_or_none()
-        assert not loop is None
+        assert loop is not None
         await loop.run_in_executor(
             self.__io_thread, partial(s.sendto, response_packet, addr)
         )

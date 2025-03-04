@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import asyncio
 from functools import partial
-import threading
 from typing import List
 
 from tsercom.threading.aio.aio_utils import (

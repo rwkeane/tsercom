@@ -92,4 +92,4 @@ class GrpcServicePublisher:
 
     def stop(self):
         self.__server.stop()
-        print(f"Server stopped!")
+        print("Server stopped!")

@@ -29,11 +29,12 @@ async def extract_id_from_first_call(
     |validate_against| is the expected CallerId, if such a value exists.
     """
     # Clean up input.
-    if not is_running is None:
+    if is_running is not None:
         iterator = await is_running.create_stoppable_iterator(iterator)
 
     if extractor is None:
-        extractor = lambda x: x.id
+        def extractor(x):
+            return x.id
 
     # Extract the first call, without throwing if a StopAsyncIteration is
     # thrown.
@@ -41,7 +42,7 @@ async def extract_id_from_first_call(
     try:
         async for result in iterator:
             first_response = result
-            if not is_running is None and not is_running.get():
+            if is_running is not None and not is_running.get():
                 return None, None
 
             if first_response is None:
@@ -49,7 +50,7 @@ async def extract_id_from_first_call(
             break
     except Exception as e:
         print("Hit exception", e)
-        if not context is None:
+        if context is not None:
             await context.abort(
                 grpc.StatusCode.CANCELLED, "Error processing first call!"
             )
@@ -59,7 +60,7 @@ async def extract_id_from_first_call(
     # If it exited before the first response, return.
     if first_response is None:
         print("ERROR: First call never received!")
-        if not context is None:
+        if context is not None:
             await context.abort(
                 grpc.StatusCode.CANCELLED, "First call never received!"
             )
@@ -88,12 +89,13 @@ async def extract_id_from_call(
     |validate_against| is the expected CallerId, if such a value exists.
     """
     if extractor is None:
-        extractor = lambda x: x.id
+        def extractor(x):
+            return x.id
 
     # If the id can't be extracted, return.
     if extractor(call) is None:
         print("ERROR: Missing CallerID!")
-        if not context is None:
+        if context is not None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT, "Missing CallerID"
             )
@@ -104,16 +106,16 @@ async def extract_id_from_call(
     caller_id = CallerIdentifier.try_parse(extracted)
     if caller_id is None:
         print("ERROR: Invalid CallerID Received!")
-        if not context is None:
+        if context is not None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT, "Invalid CallerID received"
             )
         return None
 
     # Validate it if needed.
-    if not validate_against is None and caller_id != validate_against:
+    if validate_against is not None and caller_id != validate_against:
         print("ERROR: Invalid CallerID received!")
-        if not context is None:
+        if context is not None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT, "Invalid CallerID received"
             )

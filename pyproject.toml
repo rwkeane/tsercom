@@ -58,3 +58,22 @@ write_to_template = "__version__ = '{version}'"
 
 [tool.black]
 line-length = 79
+
+[tool.ruff]
+line-length = 79  # Must match Black's line-length
+
+[tool.ruff.lint]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    "**/*_pb2.py",     # Clearer exclusion for .py files
+    "**/*_pb2.pyi",    # Explicitly exclude .pyi files
+    "**/*_pb2_grpc.py", # Clearer exclusion
+]
+fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Ignore F401 (unused import) ONLY in __init__.py files

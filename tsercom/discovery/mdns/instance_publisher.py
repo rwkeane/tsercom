@@ -33,7 +33,7 @@ class InstancePublisher:
                 instance_name = instance_name[:15]
 
         txt_record = self._make_txt_record()
-        assert not txt_record is None
+        assert txt_record is not None
         self.__record_publisher = RecordPublisher(
             instance_name, service_type, port, txt_record
         )
@@ -45,7 +45,7 @@ class InstancePublisher:
             ): self.__get_current_date_time_bytes()
         }
 
-        if not self.__name is None:
+        if self.__name is not None:
             properties["name".encode("utf-8")] = self.__name.encode("utf-8")
 
         return properties

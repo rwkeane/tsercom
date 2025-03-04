@@ -19,11 +19,11 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
             try:
                 return fn(*args2, **kwargs2)
             except Exception as e:
-                if not self.__error_cb is None:
+                if self.__error_cb is not None:
                     self.__error_cb(e)
                 raise e
             except Warning as e:
-                if not self.__error_cb is None:
+                if self.__error_cb is not None:
                     self.__error_cb(e)
                 raise e
 

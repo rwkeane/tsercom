@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
-from typing import Dict, Generic, List, Optional, TypeVar, overload
+from typing import Dict, Generic, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -9,7 +9,6 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_organizer import RemoteDataOrganizer
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.thread_watcher import ThreadWatcher
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
@@ -41,7 +40,7 @@ class RemoteDataAggregatorImpl(
 
     def stop(self, id: Optional[CallerIdentifier] = None):
         with self.__lock:
-            if not id is None:
+            if id is not None:
                 assert id in self.__organizers
                 self.__organizers[id].stop()
                 return
@@ -51,7 +50,7 @@ class RemoteDataAggregatorImpl(
 
     def has_new_data(self, id: Optional[CallerIdentifier] = None):
         with self.__lock:
-            if not id is None:
+            if id is not None:
                 assert id in self.__organizers
                 return self.__organizers[id].has_new_data()
 
@@ -62,7 +61,7 @@ class RemoteDataAggregatorImpl(
 
     def get_new_data(self, id: Optional[CallerIdentifier] = None):
         with self.__lock:
-            if not id is None:
+            if id is not None:
                 assert id in self.__organizers
                 return self.__organizers[id].get_new_data()
 
@@ -73,7 +72,7 @@ class RemoteDataAggregatorImpl(
 
     def get_most_recent_data(self, id: Optional[CallerIdentifier] = None):
         with self.__lock:
-            if not id is None:
+            if id is not None:
                 assert id in self.__organizers
                 return self.__organizers[id].get_most_recent_data()
 
@@ -88,7 +87,7 @@ class RemoteDataAggregatorImpl(
         timestamp: Optional[datetime.datetime] = None,
     ):
         with self.__lock:
-            if not id is None:
+            if id is not None:
                 assert id in self.__organizers
                 return self.__organizers[id].get_data_for_timestamp(
                     id, timestamp
@@ -100,7 +99,7 @@ class RemoteDataAggregatorImpl(
             return results
 
     def _on_data_available(self, data_organizer: "RemoteDataOrganizer"):
-        if not self.__client is None:
+        if self.__client is not None:
             self.__client._on_data_available(self, data_organizer.caller_id)
 
     def _on_data_ready(self, new_data: TDataType):
@@ -115,7 +114,7 @@ class RemoteDataAggregatorImpl(
                 data_organizer = RemoteDataOrganizer(
                     self.__thread_pool, new_data.caller_id, self
                 )
-                if not self.__tracker is None:
+                if self.__tracker is not None:
                     self.__tracker.register(data_organizer)
                 data_organizer.start()
                 self.__organizers[new_data.caller_id] = data_organizer
@@ -123,11 +122,11 @@ class RemoteDataAggregatorImpl(
                 data_organizer = self.__organizers[new_data.caller_id]
 
         # Call into it.
-        assert not data_organizer is None
+        assert data_organizer is not None
         data_organizer._on_data_ready(new_data)
 
         # Inform the client if needed
-        if not found and not self.__client is None:
+        if not found and self.__client is not None:
             self.__client._on_new_endpoint_began_transmitting(
                 self, data_organizer.caller_id
             )
