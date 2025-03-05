@@ -50,7 +50,7 @@ class IsRunningTracker(Atomic[bool]):
         called from any thread.
         """
         return self.set(True)
-    
+
     def stop(self) -> None:
         """
         Sets this instance to stopped at the next available opportunity. May be
@@ -59,7 +59,7 @@ class IsRunningTracker(Atomic[bool]):
         return self.set(False)
 
     def set(self, value: bool) -> None:
-        """ 
+        """
         Sets the state of this instance be running when |value| is True and
         stopped when |value| is False at the next available opportunity. May be
         called from any thread.
@@ -196,7 +196,6 @@ class IsRunningTracker(Atomic[bool]):
         await self.__set_impl(value)
 
     class __IteratorWrapper:
-
         def __init__(
             self,
             iterator: AsyncIterator[TReturnType],
@@ -205,7 +204,7 @@ class IsRunningTracker(Atomic[bool]):
             self.__iterator = iterator
             self.__tracker = tracker
 
-        def __aiter__(self): # type: ignore
+        def __aiter__(self):  # type: ignore
             return self
 
         async def __anext__(self) -> TReturnType:

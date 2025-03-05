@@ -82,9 +82,6 @@ exclude = [
 ]
 fixable = ["ALL"]
 
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]  # Ignore F401 (unused import) ONLY in __init__.py files
-
 [tool.mypy]
 strict = true
 warn_unused_ignores = true

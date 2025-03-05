@@ -11,7 +11,7 @@ class ClientIdFetcher:
     GetId() call to be lazy-loaded and used as needed.
     """
 
-    def __init__(self, stub) -> None: # type: ignore
+    def __init__(self, stub) -> None:  # type: ignore
         self.__stub = stub
 
         self.__id: CallerIdentifier | None = None

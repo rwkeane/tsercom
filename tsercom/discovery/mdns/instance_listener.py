@@ -16,9 +16,10 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
     """
 
     class Client(ABC):
-
         @abstractmethod
-        async def _on_service_added(self, connection_info: TServiceInfo) -> None:
+        async def _on_service_added(
+            self, connection_info: TServiceInfo
+        ) -> None:
             raise NotImplementedError("This method must be implemented!")
 
     def __init__(self, client: "InstanceListener.Client", service_type: str):
@@ -51,17 +52,17 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
                 continue
 
         if len(addresses_out) == 0:
-            print(f"Failed to connect to service at {addresses[0]}:{port}") # type: ignore
+            print(f"Failed to connect to service at {addresses[0]}:{port}")  # type: ignore
             return None
 
         name_encoded = "name".encode("utf-8")
         if name_encoded in txt_record:  # b'str' is byte casted 'str'
-            readable_name: bytes = txt_record[name_encoded] # type: ignore
-            readable_name = readable_name.decode("utf-8") # type: ignore
+            readable_name: bytes = txt_record[name_encoded]  # type: ignore
+            readable_name = readable_name.decode("utf-8")  # type: ignore
         else:
-            readable_name = record_name # type: ignore
+            readable_name = record_name  # type: ignore
 
-        return ServiceInfo(readable_name, port, addresses_out, record_name) # type: ignore
+        return ServiceInfo(readable_name, port, addresses_out, record_name)  # type: ignore
 
     def _convert_service_info(
         self, service_info: ServiceInfo, txt_record: Dict[bytes, bytes | None]

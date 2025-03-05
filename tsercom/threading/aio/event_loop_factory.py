@@ -5,19 +5,18 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 class EventLoopFactory:
-
     def __init__(self, watcher: "ThreadWatcher") -> None:
         assert watcher is not None
         assert issubclass(type(watcher), ThreadWatcher), type(watcher)
         self.__watcher = watcher
 
-        self.__event_loop_thread: threading.Thread = None # type: ignore
-        self.__event_loop: asyncio.AbstractEventLoop = None # type: ignore
+        self.__event_loop_thread: threading.Thread = None  # type: ignore
+        self.__event_loop: asyncio.AbstractEventLoop = None  # type: ignore
 
     def start_asyncio_loop(self) -> asyncio.AbstractEventLoop:
         barrier = threading.Event()
 
-        def handle_exception(loop, context): # type: ignore
+        def handle_exception(loop, context):  # type: ignore
             exception = context.get("exception")
             print("HIT EXCEPTION", exception)
             if exception:

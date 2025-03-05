@@ -77,7 +77,9 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         ...
 
     @abstractmethod
-    def has_new_data(self, id: Optional[CallerIdentifier] = None) -> Dict[CallerIdentifier, bool] | bool:
+    def has_new_data(
+        self, id: Optional[CallerIdentifier] = None
+    ) -> Dict[CallerIdentifier, bool] | bool:
         pass
 
     @overload
@@ -149,5 +151,3 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         id: CallerIdentifier | None = None,
     ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
         pass
-
-

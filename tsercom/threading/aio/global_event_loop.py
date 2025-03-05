@@ -5,8 +5,8 @@ import threading
 from tsercom.threading.aio.event_loop_factory import EventLoopFactory
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-__g_global_event_loop: AbstractEventLoop = None # type: ignore
-__g_event_loop_factory: EventLoopFactory = None # type: ignore
+__g_global_event_loop: AbstractEventLoop = None  # type: ignore
+__g_event_loop_factory: EventLoopFactory = None  # type: ignore
 
 __g_global_event_loop_lock = threading.Lock()
 
@@ -25,7 +25,7 @@ def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
 
     The Global Event Loop may only be set once.
     """
-    global __g_global_event_loop 
+    global __g_global_event_loop
     global __g_global_event_loop_lock
     global __g_event_loop_factory
 

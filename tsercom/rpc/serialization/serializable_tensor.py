@@ -8,7 +8,6 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 class SerializableTensor:
-
     def __init__(self, tensor: torch.Tensor, timestamp: SynchronizedTimestamp):
         self.__tensor = tensor
         self.__timestamp = timestamp

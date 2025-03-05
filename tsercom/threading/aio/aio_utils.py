@@ -18,8 +18,11 @@ def get_running_loop_or_none() -> AbstractEventLoop | None:
     except RuntimeError:
         return None
 
+
 # TODO: Pull this into cpython repo.
-def is_running_on_event_loop(event_loop: Optional[AbstractEventLoop] = None) -> bool:
+def is_running_on_event_loop(
+    event_loop: Optional[AbstractEventLoop] = None,
+) -> bool:
     """
     Returns true if the current function is being executed from SPECIFICALLY
     the EventLoop |event_loop|, or from ANY event loop if |event_loop| is None.
@@ -46,4 +49,4 @@ def run_on_event_loop(
         event_loop = get_global_event_loop()
         if event_loop is None:
             raise RuntimeError("ERROR: tsercom global event loop not set!")
-    return asyncio.run_coroutine_threadsafe(call(*args, **kwargs), event_loop) # type: ignore
+    return asyncio.run_coroutine_threadsafe(call(*args, **kwargs), event_loop)  # type: ignore

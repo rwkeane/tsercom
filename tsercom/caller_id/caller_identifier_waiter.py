@@ -4,9 +4,8 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
 class CallerIdentifierWaiter:
-
     def __init__(self) -> None:
-        self.__caller_id : CallerIdentifier | None = None
+        self.__caller_id: CallerIdentifier | None = None
 
         self.__barrier = asyncio.Event()
 

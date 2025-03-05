@@ -108,7 +108,7 @@ class TimeSyncServer:
                     if not self.__is_running.get():
                         break
 
-                data, addr = pair # type: ignore
+                data, addr = pair  # type: ignore
                 if data:
                     # Get the current time in nanoseconds.
                     current_time_ns = time.time_ns()
@@ -165,7 +165,9 @@ class TimeSyncServer:
 
                 raise
 
-    async def __receive(self, s: socket.socket) -> tuple[bytes, tuple[str, int]]:
+    async def __receive(
+        self, s: socket.socket
+    ) -> tuple[bytes, tuple[str, int]]:
         loop = get_running_loop_or_none()
         assert loop is not None
         data, addr = await loop.run_in_executor(

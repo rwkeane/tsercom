@@ -8,12 +8,12 @@ class ThrowingThread(threading.Thread):
     error handline.
     """
 
-    def __init__( # type: ignore
+    def __init__(  # type: ignore
         self, target, on_error_cb: Callable[[Exception], None], *args, **kwargs
-    ) -> None: 
+    ) -> None:
         assert on_error_cb is not None
         self.__on_error_cb = on_error_cb
-        super().__init__( # type: ignore
+        super().__init__(  # type: ignore
             group=None, target=target, daemon=True, *args, **kwargs
         )
 

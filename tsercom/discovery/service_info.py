@@ -29,4 +29,3 @@ class ServiceInfo:
     @property
     def addresses(self) -> List[str]:
         return self.__addresses
-

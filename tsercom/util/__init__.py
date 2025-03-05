@@ -3,8 +3,8 @@ from tsercom.util.stopable import Stopable
 from tsercom.util.ip import get_all_address_strings, get_all_addresses
 
 __all__ = [
-    'IsRunningTracker',
-    'Stopable',
-    'get_all_address_strings',
-    'get_all_addresses'
+    "IsRunningTracker",
+    "Stopable",
+    "get_all_address_strings",
+    "get_all_addresses",
 ]

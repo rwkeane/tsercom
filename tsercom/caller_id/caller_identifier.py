@@ -34,8 +34,8 @@ class CallerIdentifier:
             return None
 
         try:
-            id = uuid.UUID(id) # type: ignore
-            return CallerIdentifier(id) # type: ignore
+            id = uuid.UUID(id)  # type: ignore
+            return CallerIdentifier(id)  # type: ignore
         except ValueError:
             return None
 
@@ -48,16 +48,16 @@ class CallerIdentifier:
     def __hash__(self) -> int:
         return self.__id.__hash__()
 
-    def __eq__(self, other : object) -> bool:
+    def __eq__(self, other: object) -> bool:
         if other is None:
             return False
 
         if not issubclass(type(other), CallerIdentifier):
             return False
 
-        return self.__id == other.__id # type: ignore
+        return self.__id == other.__id  # type: ignore
 
-    def __ne__(self, other : object) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
     def __str__(self) -> str:

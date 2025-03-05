@@ -7,11 +7,11 @@ from tsercom.data.remote_data_responder import RemoteDataResponder
 from tsercom.data.remote_data_reader import RemoteDataReader
 
 __all__ = [
-    'DataHostBase',
-    'DataHost',
-    'ExposedData',
-    'ExposedDataWithResponder',
-    'RemoteDataAggregator',
-    'RemoteDataResponder',
-    'RemoteDataReader',
+    "DataHostBase",
+    "DataHost",
+    "ExposedData",
+    "ExposedDataWithResponder",
+    "RemoteDataAggregator",
+    "RemoteDataResponder",
+    "RemoteDataReader",
 ]

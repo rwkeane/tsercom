@@ -9,7 +9,6 @@ class RecordListener(ServiceListener):
     """
 
     class Client(ABC):
-
         @abstractmethod
         def _on_service_added(
             self,
@@ -24,9 +23,11 @@ class RecordListener(ServiceListener):
         assert client is not None and issubclass(
             type(client), RecordListener.Client
         ), client
+        # fmt: off
         assert (
             service_type is not None and service_type[0] == "_"
         ), service_type
+        # fmt: on
 
         self.__client = client
         self.__expected_type = f"{service_type}._tcp.local."
@@ -45,7 +46,7 @@ class RecordListener(ServiceListener):
         if info is None:
             print("ERROR: Invalid service records found!")
             return
-        
+
         if info.port is None:
             print("ERROR: No port found!")
             return
@@ -67,7 +68,7 @@ class RecordListener(ServiceListener):
         if info is None:
             print("ERROR: Invalid service records found!")
             return
-        
+
         if info.port is None:
             print("ERROR: No port found!")
             return

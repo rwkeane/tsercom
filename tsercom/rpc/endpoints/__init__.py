@@ -7,5 +7,5 @@ from tsercom.rpc.endpoints.test_connection_server import (
 __all__ = [
     "AsyncGetIdServer",
     "TestConnectionServer",
-    "AsyncTestConnectionServer"
+    "AsyncTestConnectionServer",
 ]

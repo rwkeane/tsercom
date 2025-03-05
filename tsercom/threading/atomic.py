@@ -14,7 +14,7 @@ class Atomic(Generic[TType]):
         self.__value: TType = value
         self.__lock = threading.Lock()
 
-    def set(self, value : TType) -> None:
+    def set(self, value: TType) -> None:
         with self.__lock:
             self.__value = value
 

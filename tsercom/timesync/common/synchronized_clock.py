@@ -7,7 +7,6 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 class SynchronizedClock(ABC):
-
     @property
     def now(self) -> SynchronizedTimestamp:
         return self.sync(datetime.datetime.now())

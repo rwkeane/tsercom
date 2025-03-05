@@ -5,8 +5,9 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from tsercom.timesync.common.proto import ServerTimestamp
 
 TimestampType: TypeAlias = Union["SynchronizedTimestamp", datetime.datetime]
-class SynchronizedTimestamp:
 
+
+class SynchronizedTimestamp:
     def __init__(self, timestamp: datetime.datetime):
         assert timestamp is not None
         assert isinstance(timestamp, datetime.datetime)
@@ -31,7 +32,7 @@ class SynchronizedTimestamp:
         timestamp_pb.FromDatetime(self.__timestamp)
         return ServerTimestamp(timestamp=timestamp_pb)
 
-    def __gt__(self, other : TimestampType) -> bool:
+    def __gt__(self, other: TimestampType) -> bool:
         if isinstance(other, SynchronizedTimestamp):
             other = other.as_datetime()
 

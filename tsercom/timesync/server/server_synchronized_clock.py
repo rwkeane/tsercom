@@ -7,7 +7,6 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 class ServerSynchronizedClock(SynchronizedClock):
-
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
         return time.as_datetime()
 

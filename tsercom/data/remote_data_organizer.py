@@ -24,9 +24,10 @@ class RemoteDataOrganizer(
     """
 
     class Client(ABC):
-
         @abstractmethod
-        def _on_data_available(self, data_organizer: "RemoteDataOrganizer[TDataType]") -> None:
+        def _on_data_available(
+            self, data_organizer: "RemoteDataOrganizer[TDataType]"
+        ) -> None:
             pass
 
     def __init__(
@@ -77,7 +78,7 @@ class RemoteDataOrganizer(
             if len(self.__data) == 0:
                 return False
 
-            return (self.__data[0].timestamp > self.__last_access)
+            return self.__data[0].timestamp > self.__last_access
 
     def get_new_data(self) -> List[TDataType]:
         """
@@ -121,10 +122,10 @@ class RemoteDataOrganizer(
             for i in range(len(self.__data)):
                 if timestamp > self.__data[i].timestamp:
                     return self.__data[i]
-                
+
         return None
 
-    def _on_data_ready(self, new_data: TDataType)  -> None:
+    def _on_data_ready(self, new_data: TDataType) -> None:
         # Validate the data.
         assert issubclass(type(new_data), ExposedData), type(new_data)
         assert new_data.caller_id == self.caller_id, (

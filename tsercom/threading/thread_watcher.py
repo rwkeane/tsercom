@@ -34,14 +34,14 @@ class ThreadWatcher:
             target=target, on_error_cb=self.on_exception_seen
         )
 
-    def create_tracked_thread_pool_executor( # type: ignore
+    def create_tracked_thread_pool_executor(  # type: ignore
         self, *args, **kwargs
     ) -> ThreadPoolExecutor:
         """
         Creates a ThreadPool such that each thread of the ThreadPool has error
         handling as would be done for an exception on this TaskRunner instance.
         """
-        return ThrowingThreadPoolExecutor( # type: ignore
+        return ThrowingThreadPoolExecutor(  # type: ignore
             error_cb=self.on_exception_seen, *args, **kwargs
         )
 

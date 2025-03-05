@@ -35,7 +35,9 @@ class RemoteDataAggregatorImpl(
         self.__tracker = tracker
 
         # TODO: Can this be a CallerIdMap?
-        self.__organizers: Dict[CallerIdentifier, RemoteDataOrganizer[TDataType]] = {}
+        self.__organizers: Dict[
+            CallerIdentifier, RemoteDataOrganizer[TDataType]
+        ] = {}
         self.__lock = threading.Lock()
 
     def stop(self, id: Optional[CallerIdentifier] = None) -> None:
@@ -48,7 +50,9 @@ class RemoteDataAggregatorImpl(
             for key, val in self.__organizers.items():
                 val.stop()
 
-    def has_new_data(self, id: Optional[CallerIdentifier] = None) -> Dict[CallerIdentifier, bool] | bool:   # type: ignore
+    def has_new_data(  # type: ignore
+        self, id: Optional[CallerIdentifier] = None
+    ) -> Dict[CallerIdentifier, bool] | bool:
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
@@ -59,7 +63,9 @@ class RemoteDataAggregatorImpl(
                 results[key] = val.has_new_data()
             return results
 
-    def get_new_data(self, id: Optional[CallerIdentifier] = None) -> Dict[CallerIdentifier, List[TDataType]] | List[TDataType]:   # type: ignore
+    def get_new_data(  # type: ignore
+        self, id: Optional[CallerIdentifier] = None
+    ) -> Dict[CallerIdentifier, List[TDataType]] | List[TDataType]:
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
@@ -70,7 +76,9 @@ class RemoteDataAggregatorImpl(
                 results[key] = val.get_new_data()
             return results
 
-    def get_most_recent_data(self, id: Optional[CallerIdentifier] = None) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:   # type: ignore
+    def get_most_recent_data(  # type: ignore
+        self, id: Optional[CallerIdentifier] = None
+    ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
@@ -89,16 +97,16 @@ class RemoteDataAggregatorImpl(
         with self.__lock:
             if id is not None:
                 assert id in self.__organizers
-                return self.__organizers[id].get_data_for_timestamp(
-                    timestamp
-                ) 
+                return self.__organizers[id].get_data_for_timestamp(timestamp)
 
             results = {}
             for key, val in self.__organizers.items():
                 results[key] = val.get_data_for_timestamp(id, timestamp)
             return results
 
-    def _on_data_available(self, data_organizer: "RemoteDataOrganizer[TDataType]") -> None:   # type: ignore
+    def _on_data_available(  # type: ignore
+        self, data_organizer: "RemoteDataOrganizer[TDataType]"
+    ) -> None:
         if self.__client is not None:
             self.__client._on_data_available(self, data_organizer.caller_id)
 
@@ -107,7 +115,7 @@ class RemoteDataAggregatorImpl(
 
         # Find or create the RemoteDataOrganizer.
         found = False
-        data_organizer: RemoteDataOrganizer = None   # type: ignore
+        data_organizer: RemoteDataOrganizer = None  # type: ignore
         with self.__lock:
             found = new_data.caller_id in self.__organizers
             if not found:

@@ -1,5 +1,5 @@
 from typing import Deque
-import ntplib # type: ignore
+import ntplib  # type: ignore
 import time
 import threading
 

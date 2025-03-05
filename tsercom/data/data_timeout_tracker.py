@@ -10,9 +10,7 @@ from tsercom.threading.aio.aio_utils import (
 
 
 class DataTimeoutTracker:
-
     class Tracked(ABC):
-
         @abstractmethod
         def _on_triggered(self, timeout_seconds: int) -> None:
             pass

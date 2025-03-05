@@ -7,7 +7,6 @@ TType = TypeVar("TType")
 
 
 class CallerIdMap(Generic[TType]):
-
     def __init__(self) -> None:
         self.__lock = threading.Lock()
         self.__map: Dict[CallerIdentifier, TType] = {}

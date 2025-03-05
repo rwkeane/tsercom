@@ -29,7 +29,6 @@ class DiscoverableGrpcEndpointConnector(
     """
 
     class Client(ABC):
-
         @abstractmethod
         async def _on_channel_connected(
             self,
@@ -75,8 +74,10 @@ class DiscoverableGrpcEndpointConnector(
         assert caller_id in self.__callers
         self.__callers.remove(caller_id)
 
-    async def _on_service_added(
-        self, connection_info: TServiceInfo, caller_id: CallerIdentifier # type: ignore
+    async def _on_service_added(  # type: ignore
+        self,
+        connection_info: TServiceInfo,
+        caller_id: CallerIdentifier,
     ) -> None:
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()  # type: ignore

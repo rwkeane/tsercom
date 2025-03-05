@@ -27,7 +27,9 @@ class AsyncGetIdServer:
 
         super().__init__(*args, **kwargs)
 
-    async def GetId(self, request: GetIdRequest, context : grpc.aio.ServicerContext) -> GetIdResponse:
+    async def GetId(
+        self, request: GetIdRequest, context: grpc.aio.ServicerContext
+    ) -> GetIdResponse:
         id = CallerIdentifier()
         if self.__callback is not None:
             self.__callback(id)

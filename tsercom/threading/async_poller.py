@@ -99,7 +99,7 @@ class AsyncPoller(Generic[TResultType], ABC):
             self.__barrier.clear()
 
             return await self.wait_instance()
-        
+
         return None  # type: ignore
 
     def __aiter__(self):  # type: ignore

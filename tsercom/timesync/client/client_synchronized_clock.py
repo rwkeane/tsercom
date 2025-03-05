@@ -14,7 +14,6 @@ class ClientSynchronizedClock(SynchronizedClock):
     """
 
     class Client(ABC):
-
         @abstractmethod
         def get_offset_seconds(self) -> float:
             pass

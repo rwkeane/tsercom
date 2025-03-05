@@ -10,14 +10,16 @@ from tsercom.threading.aio.aio_utils import run_on_event_loop
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
-class DiscoveryHost(Generic[TServiceInfo], InstanceListener[TServiceInfo].Client):  # type: ignore
+class DiscoveryHost(
+    Generic[TServiceInfo],
+    InstanceListener[TServiceInfo].Client,  # type: ignore
+):
     """
     Helper object, to wrap CallerId management (for reconnection) with service
     discovery.
     """
 
     class Client(ABC):
-
         @abstractmethod
         async def _on_service_added(
             self, connection_info: TServiceInfo, caller_id: CallerIdentifier
@@ -65,7 +67,9 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener[TServiceInfo].Client
         assert client is not None
         run_on_event_loop(partial(self.__start_discovery_impl, client))
 
-    async def __start_discovery_impl(self, client: "DiscoveryHost.Client") -> None:
+    async def __start_discovery_impl(
+        self, client: "DiscoveryHost.Client"
+    ) -> None:
         assert self.__discoverer is None
 
         self.__client = client
@@ -80,7 +84,7 @@ class DiscoveryHost(Generic[TServiceInfo], InstanceListener[TServiceInfo].Client
     async def _on_service_added(self, connection_info: TServiceInfo) -> None:
         print("ENDPOINT FOUND")
         assert self.__client is not None
-        caller_id: CallerIdentifier = None # type: ignore
+        caller_id: CallerIdentifier = None  # type: ignore
         if connection_info.mdns_name in self.__caller_id_map:
             caller_id = self.__caller_id_map[connection_info.mdns_name]
         else:
