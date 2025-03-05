@@ -5,3 +5,11 @@ from tsercom.rpc.grpc.grpc_caller import (
 )
 from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
 from tsercom.rpc.grpc.grpc_service_publisher import GrpcServicePublisher
+
+__all__ = [
+    "GrpcChannelFactory",
+    "GrpcServicePublisher",
+    "get_client_ip",
+    "is_server_unavailable_error",
+    "is_grpc_error",
+]

@@ -110,18 +110,20 @@ def generate_init(package_dir, proto_path: str, generated_path: Path):
     init_file_content = """
 import grpc
 import subprocess
+from typing import TYPE_CHECKING
 
-try:
-    version = grpc.__version__
-    major_minor_version = ".".join(version.split(".")[:2])  # Extract major.minor
-    version_string = f"v{major_minor_version.replace('.', '_')}" # e.g., v1_62
-except (subprocess.CalledProcessError, FileNotFoundError) as e:
-    raise RuntimeError(
-        f"Could not determine grpcio-tools version. Is it installed? Error: {e}"
-    ) from e
+if not TYPE_CHECKING:
+    try:
+        version = grpc.__version__
+        major_minor_version = ".".join(version.split(".")[:2])  # Extract major.minor
+        version_string = f"v{major_minor_version.replace('.', '_')}" # e.g., v1_62
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        raise RuntimeError(
+            f"Could not determine grpcio-tools version. Is it installed? Error: {e}"
+        ) from e
 
-if False:
-    pass
+    if False:
+        pass
 """
     name = Path(proto_path).name.split(".")[0]
     versioned_dirs = []
@@ -139,22 +141,27 @@ if False:
     for versioned_dir_name, classes in versioned_dirs:
         current_version = versioned_dir_name[1:]
         init_file_content += f"""
-elif version_string == "v{current_version}":
-    from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}
+    elif version_string == "v{current_version}":
+        from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}
 """
     init_file_content += """
-else:
-    raise ImportError(
-        f"No pre-generated protobuf code found for grpcio version: {version}.\\n"
-        f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
-    )
+    else:
+        raise ImportError(
+            f"No pre-generated protobuf code found for grpcio version: {version}.\\n"
+            f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
+        )
 
-if TYPE_CHECKING:
+else: # When TYPE_CHECKING
 """
     versioned_dir_name, classes = versioned_dirs[-1]
     current_version = versioned_dir_name[1:]
-    init_file_content += f"""
-    from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}"""
+    for clazz in classes:
+        init_file_content += f"""
+    from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {clazz} as {clazz}"""
+
+    f = open(generated_path.parent.joinpath("__init__.py"), "w")
+    f.write(init_file_content)
+    f.close()
 
 
 def get_classes_from_file(filepath):

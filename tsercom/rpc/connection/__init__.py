@@ -8,3 +8,10 @@ from tsercom.rpc.connection.client_reconnection_handler import (
 from tsercom.rpc.connection.discoverable_grpc_endpoint_connector import (
     DiscoverableGrpcEndpointConnector,
 )
+
+__all__ = [
+    "ChannelInfo",
+    "ClientDisconnectionRetrier",
+    "ClientReconnectionManager",
+    "DiscoverableGrpcEndpointConnector",
+]

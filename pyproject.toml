@@ -105,10 +105,6 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
-module = "*.__init__"  # Match all __init__.py files
-check_untyped_defs = false # Disable checking of untyped defs in init
-
-[[tool.mypy.overrides]]
 module = [
     "*.proto.*", 
     "*.proto", 
