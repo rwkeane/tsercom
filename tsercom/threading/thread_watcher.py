@@ -3,13 +3,14 @@ import threading
 from typing import List
 from collections.abc import Callable
 
+from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.throwing_thread import ThrowingThread
 from tsercom.threading.throwing_thread_pool_executor import (
     ThrowingThreadPoolExecutor,
 )
 
 
-class ThreadWatcher:
+class ThreadWatcher(ErrorWatcher):
     """
     This class provides a simple interface for managing a threaded environment,
     as well as tracking and surfacing exceptions that appear from any such
