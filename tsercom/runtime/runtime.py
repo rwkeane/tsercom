@@ -5,14 +5,16 @@ from tsercom.util.stopable import Stopable
 
 
 TEventType = TypeVar("TEventType")
+
+
 class Runtime(Generic[TEventType], ABC, Stopable):
     def __init__(self):
         pass
-    
+
     @abstractmethod
     def start_async(self):
         pass
 
     @abstractmethod
-    def on_event(self, event : TEventType):
+    def on_event(self, event: TEventType):
         pass

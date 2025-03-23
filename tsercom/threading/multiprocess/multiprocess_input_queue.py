@@ -11,9 +11,9 @@ class MultiprocessQueueSink(Generic[TQueueType]):
     def __init__(self, queue: multiprocessing.Queue):
         self.__queue = queue
 
-    def put_blocking(self,
-                     obj: TQueueType,
-                     timeout: float | None = None) -> bool:
+    def put_blocking(
+        self, obj: TQueueType, timeout: float | None = None
+    ) -> bool:
         try:
             self.__queue.put(obj, block=True, timeout=timeout)
             return True

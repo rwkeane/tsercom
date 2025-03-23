@@ -8,6 +8,8 @@ from tsercom.runtime.runtime import Runtime
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
+
+
 class RunningRuntime(Generic[TDataType, TEventType], Runtime[TEventType]):
     def __init__(self):
         super().__init__()
