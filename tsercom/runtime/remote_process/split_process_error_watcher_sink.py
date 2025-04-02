@@ -1,12 +1,16 @@
 from tsercom.threading.error_watcher import ErrorWatcher
-from tsercom.threading.multiprocess.multiprocess_queue_sink import MultiprocessQueueSink
+from tsercom.threading.multiprocess.multiprocess_queue_sink import (
+    MultiprocessQueueSink,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 class SplitProcessErrorWatcherSink(ErrorWatcher):
-    def __init__(self,
-                 thread_watcher : ThreadWatcher,
-                 exception_queue: MultiprocessQueueSink[Exception]):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        exception_queue: MultiprocessQueueSink[Exception],
+    ):
         self.__thread_watcher = thread_watcher
         self.__queue = exception_queue
 

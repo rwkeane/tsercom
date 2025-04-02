@@ -11,7 +11,9 @@ from tsercom.runtime.runtime_command import RuntimeCommand
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
-from tsercom.threading.multiprocess.multiprocess_queue_source import MultiprocessQueueSource
+from tsercom.threading.multiprocess.multiprocess_queue_source import (
+    MultiprocessQueueSource,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
@@ -24,8 +26,8 @@ class ShimRunningRuntime(
 ):
     def __init__(
         self,
-        thread_watcher : ThreadWatcher,
-        aggregator_thread_pool : ThreadPoolExecutor,
+        thread_watcher: ThreadWatcher,
+        aggregator_thread_pool: ThreadPoolExecutor,
         event_queue: MultiprocessQueueSink[TEventType],
         data_queue: MultiprocessQueueSource[TDataType],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
@@ -34,7 +36,9 @@ class ShimRunningRuntime(
 
         self.__event_queue = event_queue
         self.__runtime_command_queue = runtime_command_queue
-        self.__data_reader_source = DataReaderSource(thread_watcher, data_queue, self.__data_aggregtor)
+        self.__data_reader_source = DataReaderSource(
+            thread_watcher, data_queue, self.__data_aggregtor
+        )
 
         self.__data_aggregtor: RemoteDataAggregatorImpl = (
             RemoteDataAggregatorImpl(aggregator_thread_pool)
