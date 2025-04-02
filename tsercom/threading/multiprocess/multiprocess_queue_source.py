@@ -12,8 +12,8 @@ class MultiprocessQueueSource(Generic[TQueueType]):
 
     def get_blocking(self, timeout: float | None = None) -> TQueueType | None:
         try:
-            return self.__queue.get(blobk=True, timeout=timeout)
-        except Empty:
+            return self.__queue.get(block=True, timeout=timeout)
+        except TimeoutError:
             return None
 
     def get_or_none(self) -> TQueueType | None:

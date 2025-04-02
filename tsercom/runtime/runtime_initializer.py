@@ -23,4 +23,11 @@ class RuntimeInitializer(ABC, Generic[TDataType, TEventType]):
         clock: SynchronizedClock,
         data_reader: RemoteDataReader[TDataType],
     ) -> Runtime[TEventType]:
+        """
+        Creates a new Runtime instance. This method will only be called once
+        per instance.
+
+        |clock| is the Clock used for sycnhronizing with remote clients.
+        |data_reader| is the endpoint to which received data should be passed.
+        """
         pass

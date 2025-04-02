@@ -3,7 +3,7 @@ from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.multiprocess.multiprocess_output_queue import (
+from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
