@@ -65,16 +65,30 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
 
     @property
     def has_started(self) -> bool:
+        """
+        Returns whether this instance is currently running.
+        """
         return self.__has_started
 
     def register_runtime_initializer(
         self, runtime_initializer: InitializerType
     ):
+        """
+        Registers a new RuntimeInitializer which should be initialized when this
+        instance is started. May only be called prior to this instance starting.
+        """
+        assert not self.has_started
         self.__initializers.append(runtime_initializer)
 
     def start_in_process(
-        self, runtime_event_loop: AbstractEventLoop
+        self,
+        runtime_event_loop: AbstractEventLoop,
     ) -> List[RunningRuntime[TDataType, TEventType]]:
+        """
+        Creates runtimes from all registered RuntimeInitializer instances, and
+        then starts each creaed instance, all in the current process. These
+        created instances are then returned.
+        """
         assert not self.__has_started
         self.__has_started = True
 
@@ -95,6 +109,13 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
     def start_out_of_process(
         self,
     ) -> List[RunningRuntime[TDataType, TEventType]]:
+        """
+        Creates runtimes from all registered RuntimeInitializer instances, and
+        then starts each creaed instance in a new process separate from the
+        current process. Commands to such runtimes are forwarded from the
+        returned Runtime instances, and data received from it can be accessed
+        through the RemoteDataAggregator instance available in it.
+        """
         assert not self.__has_started
         self.__has_started = True
 
@@ -134,10 +155,24 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         ]
 
     def run_until_exception(self) -> None:
+        """
+        Runs the current thread until an exception as been raised, throwing the
+        exception upon receipt.
+        """
         assert self.has_started
         assert self.__error_watcher is not None
 
         self.__error_watcher.run_until_exception()
+
+    def check_for_exception(self) -> None:
+        """
+        If an exception has been seen, throw it. Else, do nothing. This method
+        is thread safe and can be called from any thread.
+        """
+        assert self.has_started
+        assert self.__error_watcher is not None
+
+        self.__error_watcher.check_for_exception()
 
     async def __out_of_process_main(
         self,
@@ -168,13 +203,10 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
                 runtime.stop()
 
     def __wrap_initializer_for_remote(
-        self, initializer: InitializerType, thread_pool: ThreadPoolExecutor
+        self,
+        initializer: InitializerType,
+        thread_pool: ThreadPoolExecutor,
     ) -> Tuple[InitializerType, ShimRunningRuntime[TDataType, TEventType]]:
-        # TODO: Wrap this so that |initializer| takes a pipe input, which writes
-        # events to the instance. HAVE IT WRITE INSTANCES USING A SINGLE
-        # THREADED THREAD POOL to ensure that writing is done in single
-        # thredded manner.
-
         # Create the pipes between source and destination.
         event_sink, event_source = create_multiprocess_queues()
         data_sink, data_source = create_multiprocess_queues()
@@ -188,12 +220,15 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         )
 
         # Return the local ends along with the wrapped instance.
+        aggregator = RemoteDataAggregatorImpl[TDataType](
+            thread_pool, initializer.client(), initializer.timeout()
+        )
         runtime = ShimRunningRuntime[TEventType, TDataType](
             self.__thread_watcher,
-            thread_pool,
             event_sink,
             data_source,
             runtime_command_sink,
+            aggregator,
         )
 
         return wrapped, runtime
@@ -204,6 +239,8 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         clock: SynchronizedClock,
         thread_pool: ThreadPoolExecutor,
     ) -> RunningRuntime:
-        aggregator = RemoteDataAggregatorImpl[TDataType](thread_pool)
+        aggregator = RemoteDataAggregatorImpl[TDataType](
+            thread_pool, initializer.client(), initializer.timeout()
+        )
         runtime = initializer.create(clock, aggregator)
-        return RuntimeWrapper(runtime, aggregator)
+        return RuntimeWrapper(runtime, aggregator, initializer)

@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar
 
 from tsercom.data.exposed_data import ExposedData
@@ -8,6 +7,7 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.local_process.data_reader_source import DataReaderSource
 from tsercom.runtime.running_runtime import RunningRuntime
 from tsercom.runtime.runtime_command import RuntimeCommand
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
@@ -22,15 +22,16 @@ TEventType = TypeVar("TEventType")
 
 
 class ShimRunningRuntime(
-    RunningRuntime[TEventType, TDataType], RemoteDataReader[TDataType]
+    RunningRuntime[TDataType, TEventType], RemoteDataReader[TDataType]
 ):
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
-        aggregator_thread_pool: ThreadPoolExecutor,
         event_queue: MultiprocessQueueSink[TEventType],
         data_queue: MultiprocessQueueSource[TDataType],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
+        data_aggregator: RemoteDataAggregatorImpl[TDataType],
+        initializer: RuntimeInitializer[TDataType, TEventType],
     ):
         super().__init__()
 
@@ -39,10 +40,8 @@ class ShimRunningRuntime(
         self.__data_reader_source = DataReaderSource(
             thread_watcher, data_queue, self.__data_aggregtor
         )
-
-        self.__data_aggregtor: RemoteDataAggregatorImpl = (
-            RemoteDataAggregatorImpl(aggregator_thread_pool)
-        )
+        self.__data_aggregtor = data_aggregator
+        self.__initializer = initializer
 
     def start_async(self):
         self.__data_reader_source.start()
@@ -63,3 +62,6 @@ class ShimRunningRuntime(
 
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator:
         return self.__data_aggregtor
+
+    def _get_initializer(self) -> RuntimeInitializer[TDataType, TEventType]:
+        return self.__initializer

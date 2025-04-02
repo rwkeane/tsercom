@@ -48,7 +48,8 @@ class ThreadWatcher(ErrorWatcher):
 
     def run_until_exception(self) -> None:
         """
-        Runs until an exception is seen, at which point it will be thrown.
+        Runs until an exception is seen, at which point it will be thrown. This
+        method is thread safe and can be called from any thread.
         """
         while True:
             self.__barrier.wait()
@@ -59,6 +60,22 @@ class ThreadWatcher(ErrorWatcher):
                 raise ExceptionGroup(
                     "Errors hit in async thread(s)!", self.__exceptions
                 )
+
+    def check_for_exception(self) -> None:
+        """
+        If an exception has been seen, throw it. Else, do nothing. This method
+        is thread safe and can be called from any thread.
+        """
+        if not self.__barrier.is_set():
+            return
+
+        with self.__exceptions_lock:
+            if len(self.__exceptions) == 0:
+                return
+
+            raise ExceptionGroup(
+                "Errors hit in async thread(s)!", self.__exceptions
+            )
 
     def on_exception_seen(self, e: Exception) -> None:
         """
