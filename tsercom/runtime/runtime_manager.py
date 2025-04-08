@@ -3,9 +3,8 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from multiprocessing.dummy import Process
-from typing import Generic, List, Tuple, TypeVar
+from typing import Any, List, Tuple
 
-from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.local_process.runtime_wrapper import RuntimeWrapper
 from tsercom.runtime.remote_process.split_process_error_watcher_sink import (
@@ -22,6 +21,7 @@ from tsercom.runtime.local_process.shim_running_runtime import (
 from tsercom.runtime.local_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
+from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
     create_tsercom_event_loop_from_watcher,
     set_tsercom_event_loop,
@@ -38,11 +38,7 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
-
-
-class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
+class RuntimeManager(ABC, ErrorWatcher):
     """
     This is the top-level class for managing runtimes for user-defined
     functionality. It is used to create such runtimes from RuntimeInitializer
@@ -53,9 +49,7 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
     def __init__(self):
         super().__init__()
 
-        self.__initializers: list[
-            RuntimeInitializer[TDataType, TEventType]
-        ] = []
+        self.__initializers: list[RuntimeInitializer[Any, Any]] = []
         self.__has_started = False
 
         self.__thread_watcher = ThreadWatcher()
@@ -69,7 +63,7 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         return self.__has_started
 
     def register_runtime_initializer(
-        self, runtime_initializer: RuntimeInitializer[TDataType, TEventType]
+        self, runtime_initializer: RuntimeInitializer[Any, Any]
     ):
         """
         Registers a new RuntimeInitializer which should be initialized when this
@@ -78,14 +72,26 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         assert not self.has_started
         self.__initializers.append(runtime_initializer)
 
-    def start_in_process(
-        self,
-        runtime_event_loop: AbstractEventLoop,
-    ) -> List[RunningRuntime[TDataType, TEventType]]:
+    async def start_in_process_async(self) -> List[RunningRuntime[Any, Any]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
-        created instances are then returned.
+        created instances are then returned. Tsercom operations are run on the
+        event loop from which this operation is called.
+        """
+        running_loop = get_running_loop_or_none()
+        assert running_loop is not None
+        return self.start_in_process(running_loop)
+
+    def start_in_process(
+        self,
+        runtime_event_loop: AbstractEventLoop,
+    ) -> List[RunningRuntime[Any, Any]]:
+        """
+        Creates runtimes from all registered RuntimeInitializer instances, and
+        then starts each creaed instance, all in the current process. These
+        created instances are then returned. Tsercom operations are run on the
+        provided event loop.
         """
         assert not self.__has_started
         self.__has_started = True
@@ -115,7 +121,7 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
 
     def start_out_of_process(
         self,
-    ) -> List[RunningRuntime[TDataType, TEventType]]:
+    ) -> List[RunningRuntime[Any, Any]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance in a new process separate from the
@@ -181,11 +187,11 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
 
     def __wrap_initializer_for_remote(
         self,
-        initializer: RuntimeInitializer[TDataType, TEventType],
+        initializer: RuntimeInitializer[Any, Any],
         thread_pool: ThreadPoolExecutor,
     ) -> Tuple[
-        RuntimeInitializer[TDataType, TEventType],
-        ShimRunningRuntime[TDataType, TEventType],
+        RuntimeInitializer[Any, Any],
+        ShimRunningRuntime[Any, Any],
     ]:
         # Create the pipes between source and destination.
         event_sink, event_source = create_multiprocess_queues()
@@ -200,10 +206,10 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         )
 
         # Return the local ends along with the wrapped instance.
-        aggregator = RemoteDataAggregatorImpl[TDataType](
+        aggregator = RemoteDataAggregatorImpl[Any](
             thread_pool, initializer.client(), initializer.timeout()
         )
-        runtime = ShimRunningRuntime[TEventType, TDataType](
+        runtime = ShimRunningRuntime[Any, Any](
             self.__thread_watcher,
             event_sink,
             data_source,
@@ -215,11 +221,11 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
 
     def __start_initializer(
         self,
-        initializer: RuntimeInitializer[TDataType, TEventType],
+        initializer: RuntimeInitializer[Any, Any],
         clock: SynchronizedClock,
         thread_pool: ThreadPoolExecutor,
     ) -> RunningRuntime:
-        aggregator = RemoteDataAggregatorImpl[TDataType](
+        aggregator = RemoteDataAggregatorImpl[Any](
             thread_pool, initializer.client(), initializer.timeout()
         )
         runtime = initializer.create(clock, aggregator)
@@ -228,7 +234,7 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
 
 async def __out_of_process_main(
     error_queue: MultiprocessQueueSink[Exception],
-    initializers: List[WrappedRuntimeInitializer[TDataType, TEventType]],
+    initializers: List[WrappedRuntimeInitializer[Any, Any]],
 ):
     thread_watcher = ThreadWatcher()
     create_tsercom_event_loop_from_watcher(thread_watcher)

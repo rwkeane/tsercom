@@ -22,7 +22,6 @@ class RuntimeInitializer(ABC, Generic[TDataType, TEventType]):
     def create(
         self,
         clock: SynchronizedClock,
-        # TODO: Add a parameter for the GrpcChannel
         data_reader: RemoteDataReader[TDataType],
     ) -> Runtime[TEventType]:
         """
