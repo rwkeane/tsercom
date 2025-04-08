@@ -3,7 +3,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from multiprocessing.dummy import Process
-from typing import Generic, List, Tuple, TypeVar, TypeAlias
+from typing import Generic, List, Tuple, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
@@ -35,29 +35,27 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
-from tsercom.timesync.server.server_synchronized_clock import (
-    ServerSynchronizedClock,
-)
+from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
-InitializerType: TypeAlias = RuntimeInitializer[TDataType, TEventType]
 
 
 class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
-    # Requires from user:
-    #   - timeout_seconds : int
-    #   - RemoteDataAggregator.Client
-    # Always local. The remaining parameter is a:
-    #     thread_pool: ThreadPoolExecutor which can be created here.
-    #
-    # So add these as required parameters in the RuntimeInitializer class, and
-    # only use them locally.
+    """
+    This is the top-level class for managing runtimes for user-defined
+    functionality. It is used to create such runtimes from RuntimeInitializer
+    instances, and handles the complexity associated with starting either in the
+    local or a remote process, as well as all associated error handling.
+    """
+
     def __init__(self):
         super().__init__()
 
-        self.__initializers: list[InitializerType] = []
+        self.__initializers: list[
+            RuntimeInitializer[TDataType, TEventType]
+        ] = []
         self.__has_started = False
 
         self.__thread_watcher = ThreadWatcher()
@@ -71,7 +69,7 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         return self.__has_started
 
     def register_runtime_initializer(
-        self, runtime_initializer: InitializerType
+        self, runtime_initializer: RuntimeInitializer[TDataType, TEventType]
     ):
         """
         Registers a new RuntimeInitializer which should be initialized when this
@@ -96,8 +94,17 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         self.__error_watcher = ThreadWatcher()
         set_tsercom_event_loop(runtime_event_loop)
 
-        # Create all runtimes.
-        clock = ServerSynchronizedClock()
+        # Create the timing server.
+        time_server = TimeSyncServer()
+        time_started = time_server.start_async()
+        if not time_started:
+            print("WARNING: TimeSync server failed to start")
+        else:
+            print("Time Sync server started!")
+
+        clock = time_server.get_synchronized_clock()
+
+        # Create all runtime instances.
         thread_pool = self.__error_watcher.create_tracked_thread_pool_executor(
             max_workers=1
         )
@@ -140,11 +147,9 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         self.__error_watcher.start()
 
         # Create a new process, passing this instance (with replaced
-        # initializers) by calling into self.__out_of_process_main().
+        # initializers) by calling into __out_of_process_main().
         self.__process = Process(
-            target=partial(
-                self.__out_of_process_main, error_sink, initializers
-            )
+            target=partial(__out_of_process_main, error_sink, initializers)
         )
         self.__process.start()
 
@@ -174,39 +179,14 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
 
         self.__error_watcher.check_for_exception()
 
-    async def __out_of_process_main(
-        self,
-        error_queue: MultiprocessQueueSink[Exception],
-        initializers: List[WrappedRuntimeInitializer[TDataType, TEventType]],
-    ):
-        thread_watcher: ThreadWatcher = ThreadWatcher
-        create_tsercom_event_loop_from_watcher(thread_watcher)
-        sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
-
-        clock = ServerSynchronizedClock()
-
-        # Start all runtimes.
-        runtimes = [
-            initializer.create_runtime(clock, thread_watcher)
-            for initializer in initializers
-        ]
-        for runtime in runtimes:
-            await runtime.start_async()
-
-        # Call into run_until_error and, on error, stop all runtimes.
-        try:
-            sink.run_until_exception()
-        except Exception as e:
-            raise e
-        finally:
-            for runtime in runtimes:
-                runtime.stop()
-
     def __wrap_initializer_for_remote(
         self,
-        initializer: InitializerType,
+        initializer: RuntimeInitializer[TDataType, TEventType],
         thread_pool: ThreadPoolExecutor,
-    ) -> Tuple[InitializerType, ShimRunningRuntime[TDataType, TEventType]]:
+    ) -> Tuple[
+        RuntimeInitializer[TDataType, TEventType],
+        ShimRunningRuntime[TDataType, TEventType],
+    ]:
         # Create the pipes between source and destination.
         event_sink, event_source = create_multiprocess_queues()
         data_sink, data_source = create_multiprocess_queues()
@@ -235,7 +215,7 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
 
     def __start_initializer(
         self,
-        initializer: InitializerType,
+        initializer: RuntimeInitializer[TDataType, TEventType],
         clock: SynchronizedClock,
         thread_pool: ThreadPoolExecutor,
     ) -> RunningRuntime:
@@ -244,3 +224,39 @@ class RuntimeManager(ABC, Generic[TDataType, TEventType], ErrorWatcher):
         )
         runtime = initializer.create(clock, aggregator)
         return RuntimeWrapper(runtime, aggregator, initializer)
+
+
+async def __out_of_process_main(
+    error_queue: MultiprocessQueueSink[Exception],
+    initializers: List[WrappedRuntimeInitializer[TDataType, TEventType]],
+):
+    thread_watcher = ThreadWatcher()
+    create_tsercom_event_loop_from_watcher(thread_watcher)
+    sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
+
+    # Create the timing server.
+    time_server = TimeSyncServer()
+    time_started = time_server.start_async()
+    if not time_started:
+        print("WARNING: TimeSync server failed to start")
+    else:
+        print("Time Sync server started!")
+
+    clock = time_server.get_synchronized_clock()
+
+    # Start all runtimes.
+    runtimes = [
+        initializer.create_runtime(clock, thread_watcher)
+        for initializer in initializers
+    ]
+    for runtime in runtimes:
+        runtime.start_async()
+
+    # Call into run_until_error and, on error, stop all runtimes.
+    try:
+        sink.run_until_exception()
+    except Exception as e:
+        raise e
+    finally:
+        for runtime in runtimes:
+            await runtime.stop()

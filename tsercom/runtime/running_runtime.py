@@ -17,10 +17,17 @@ class RunningRuntime(Generic[TDataType, TEventType], Runtime[TEventType]):
 
     @property
     def data_aggregator(self) -> RemoteDataAggregator[TDataType]:
+        """
+        The RemoteDataAggregator that can be used to retrieve data from this
+        runtime.
+        """
         return self._get_remote_data_aggregator()
 
     @property
     def initializer(self) -> RuntimeInitializer[TDataType, TEventType]:
+        """
+        The initializer with which this runtime is associated.
+        """
         return self._get_initializer()
 
     @abstractmethod

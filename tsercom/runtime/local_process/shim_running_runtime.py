@@ -32,6 +32,7 @@ class ShimRunningRuntime(
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
         data_aggregator: RemoteDataAggregatorImpl[TDataType],
         initializer: RuntimeInitializer[TDataType, TEventType],
+        block: bool = False,
     ):
         super().__init__()
 
@@ -42,13 +43,14 @@ class ShimRunningRuntime(
         )
         self.__data_aggregtor = data_aggregator
         self.__initializer = initializer
+        self.__block = block
 
     def start_async(self):
         self.__data_reader_source.start()
         self.__runtime_command_queue.put_blocking(RuntimeCommand.kStart)
 
-    def on_event(self, event: TEventType, block: bool = False):
-        if block:
+    def on_event(self, event: TEventType):
+        if self.__block:
             self.__event_queue.put_blocking(event)
         else:
             self.__event_queue.put_nowait(event)
