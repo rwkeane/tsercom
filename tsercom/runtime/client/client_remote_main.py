@@ -1,9 +1,17 @@
 from typing import Any, List
-from tsercom.runtime.remote_process.split_process_error_watcher_sink import SplitProcessErrorWatcherSink
-from tsercom.runtime.remote_process.wrapped_runtime_initializer import WrappedRuntimeInitializer
+from tsercom.runtime.remote_process.split_process_error_watcher_sink import (
+    SplitProcessErrorWatcherSink,
+)
+from tsercom.runtime.remote_process.wrapped_runtime_initializer import (
+    WrappedRuntimeInitializer,
+)
 from tsercom.runtime.runtime import Runtime
-from tsercom.threading.aio.global_event_loop import create_tsercom_event_loop_from_watcher
-from tsercom.threading.multiprocess.multiprocess_queue_sink import MultiprocessQueueSink
+from tsercom.threading.aio.global_event_loop import (
+    create_tsercom_event_loop_from_watcher,
+)
+from tsercom.threading.multiprocess.multiprocess_queue_sink import (
+    MultiprocessQueueSink,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
@@ -16,7 +24,7 @@ async def client_remote_main(
     sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
     # Start all runtimes.
-    runtimes : List[Runtime] = [
+    runtimes: List[Runtime] = [
         initializer.create_runtime(thread_watcher)
         for initializer in initializers
     ]

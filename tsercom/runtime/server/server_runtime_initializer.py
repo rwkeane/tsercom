@@ -12,7 +12,9 @@ TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
 
 
-class ServerRuntimeInitializer(ABC, Generic[TDataType, TEventType], RuntimeInitializer[TDataType]):
+class ServerRuntimeInitializer(
+    ABC, Generic[TDataType, TEventType], RuntimeInitializer[TDataType]
+):
 
     @abstractmethod
     def create(

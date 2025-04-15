@@ -9,10 +9,14 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
-TInitializerType = TypeVar("TInitializerType", bound=RuntimeInitializer[TDataType, TEventType])
+TInitializerType = TypeVar(
+    "TInitializerType", bound=RuntimeInitializer[TDataType, TEventType]
+)
 
 
-class RunningRuntime(Generic[TDataType, TEventType, TInitializerType], Runtime[TEventType]):
+class RunningRuntime(
+    Generic[TDataType, TEventType, TInitializerType], Runtime[TEventType]
+):
     def __init__(self):
         super().__init__()
 

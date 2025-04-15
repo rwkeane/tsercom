@@ -7,7 +7,9 @@ from tsercom.runtime.remote_process.runtime_data_source import (
 )
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_command import RuntimeCommand
-from tsercom.runtime.server.server_runtime_initializer import ServerRuntimeInitializer
+from tsercom.runtime.server.server_runtime_initializer import (
+    ServerRuntimeInitializer,
+)
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )

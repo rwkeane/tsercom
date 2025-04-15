@@ -35,6 +35,8 @@ from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
 TInitializerType = TypeVar("TInitializerType", bound=RuntimeInitializer)
+
+
 class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
     """
     This is the top-level class for managing runtimes for user-defined
@@ -43,7 +45,16 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
     local or a remote process, as well as all associated error handling.
     """
 
-    def __init__(self, out_of_process_main : Callable[[MultiprocessQueueSink[Exception], List[WrappedRuntimeInitializer[Any, Any]], None]]):
+    def __init__(
+        self,
+        out_of_process_main: Callable[
+            [
+                MultiprocessQueueSink[Exception],
+                List[WrappedRuntimeInitializer[Any, Any]],
+                None,
+            ]
+        ],
+    ):
         super().__init__()
 
         self.__out_of_process_main = out_of_process_main
@@ -71,7 +82,9 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         assert not self.has_started
         self.__initializers.append(runtime_initializer)
 
-    async def start_in_process_async(self) -> List[RunningRuntime[Any, Any, TInitializerType]]:
+    async def start_in_process_async(
+        self,
+    ) -> List[RunningRuntime[Any, Any, TInitializerType]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
@@ -155,7 +168,9 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         # Create a new process, passing this instance (with replaced
         # initializers) by calling into __out_of_process_main().
         self.__process = Process(
-            target=partial(self.__out_of_process_main, error_sink, initializers)
+            target=partial(
+                self.__out_of_process_main, error_sink, initializers
+            )
         )
         self.__process.start()
 
@@ -187,8 +202,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         self.__error_watcher.check_for_exception()
 
     def __create_runtime_map(
-        self,
-        runtimes : List[RunningRuntime[Any, Any, TInitializerType]]
+        self, runtimes: List[RunningRuntime[Any, Any, TInitializerType]]
     ) -> Dict[TInitializerType, RunningRuntime[Any, Any, TInitializerType]]:
         map = {}
         for runtime in runtimes:

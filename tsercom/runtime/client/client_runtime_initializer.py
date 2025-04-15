@@ -11,10 +11,13 @@ TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
 
 
-class ClientRuntimeInitializer(ABC, Generic[TDataType, TEventType], RuntimeInitializer[TDataType]):
+class ClientRuntimeInitializer(
+    ABC, Generic[TDataType, TEventType], RuntimeInitializer[TDataType]
+):
     @abstractmethod
     def create(
-        self, data_reader: RemoteDataReader[TDataType],
+        self,
+        data_reader: RemoteDataReader[TDataType],
     ) -> Runtime[TEventType]:
         """
         Creates a new Runtime instance. This method will only be called once
@@ -23,4 +26,3 @@ class ClientRuntimeInitializer(ABC, Generic[TDataType, TEventType], RuntimeIniti
         |data_reader| is the endpoint to which received data should be passed.
         """
         pass
-

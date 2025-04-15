@@ -23,7 +23,8 @@ TInitializerType = TypeVar("TInitializerType", bound=RuntimeInitializer)
 
 
 class ShimRunningRuntime(
-    RunningRuntime[TDataType, TEventType, TInitializerType], RemoteDataReader[TDataType]
+    RunningRuntime[TDataType, TEventType, TInitializerType],
+    RemoteDataReader[TDataType],
 ):
     def __init__(
         self,
