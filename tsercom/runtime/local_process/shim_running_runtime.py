@@ -19,10 +19,11 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
+TInitializerType = TypeVar("TInitializerType", bound=RuntimeInitializer)
 
 
 class ShimRunningRuntime(
-    RunningRuntime[TDataType, TEventType], RemoteDataReader[TDataType]
+    RunningRuntime[TDataType, TEventType, TInitializerType], RemoteDataReader[TDataType]
 ):
     def __init__(
         self,
@@ -31,7 +32,7 @@ class ShimRunningRuntime(
         data_queue: MultiprocessQueueSource[TDataType],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
         data_aggregator: RemoteDataAggregatorImpl[TDataType],
-        initializer: RuntimeInitializer[TDataType, TEventType],
+        initializer: TInitializerType,
         block: bool = False,
     ):
         super().__init__()
@@ -65,5 +66,5 @@ class ShimRunningRuntime(
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator:
         return self.__data_aggregtor
 
-    def _get_initializer(self) -> RuntimeInitializer[TDataType, TEventType]:
+    def _get_initializer(self) -> TInitializerType:
         return self.__initializer

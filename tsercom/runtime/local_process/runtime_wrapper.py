@@ -6,7 +6,7 @@ from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.running_runtime import RunningRuntime
 from tsercom.runtime.runtime import Runtime
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from tsercom.runtime.server.server_runtime_initializer import ServerRuntimeInitializer
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
@@ -21,7 +21,7 @@ class RuntimeWrapper(
         self,
         runtime: Runtime,
         data_aggregator: RemoteDataAggregatorImpl[TDataType],
-        initializer: RuntimeInitializer[TDataType, TEventType],
+        initializer: ServerRuntimeInitializer[TDataType, TEventType],
     ):
         self.__runtime = runtime
         self.__aggregator = data_aggregator
@@ -42,5 +42,5 @@ class RuntimeWrapper(
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         return self.__aggregator
 
-    def _get_initializer(self) -> RuntimeInitializer[TDataType, TEventType]:
+    def _get_initializer(self) -> ServerRuntimeInitializer[TDataType, TEventType]:
         return self.__initializer

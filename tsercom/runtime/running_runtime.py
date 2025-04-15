@@ -9,9 +9,10 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
+TInitializerType = TypeVar("TInitializerType", bound=RuntimeInitializer[TDataType, TEventType])
 
 
-class RunningRuntime(Generic[TDataType, TEventType], Runtime[TEventType]):
+class RunningRuntime(Generic[TDataType, TEventType, TInitializerType], Runtime[TEventType]):
     def __init__(self):
         super().__init__()
 
@@ -24,7 +25,7 @@ class RunningRuntime(Generic[TDataType, TEventType], Runtime[TEventType]):
         return self._get_remote_data_aggregator()
 
     @property
-    def initializer(self) -> RuntimeInitializer[TDataType, TEventType]:
+    def initializer(self) -> TInitializerType:
         """
         The initializer with which this runtime is associated.
         """
@@ -35,5 +36,5 @@ class RunningRuntime(Generic[TDataType, TEventType], Runtime[TEventType]):
         raise NotImplementedError()
 
     @abstractmethod
-    def _get_initializer(self) -> RuntimeInitializer[TDataType, TEventType]:
+    def _get_initializer(self) -> TInitializerType:
         raise NotImplementedError()

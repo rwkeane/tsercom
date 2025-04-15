@@ -7,7 +7,7 @@ from tsercom.runtime.remote_process.runtime_data_source import (
 )
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_command import RuntimeCommand
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from tsercom.runtime.server.server_runtime_initializer import ServerRuntimeInitializer
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
@@ -15,7 +15,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
@@ -25,7 +24,7 @@ TEventType = TypeVar("TEventType")
 class WrappedRuntimeInitializer(Generic[TDataType, TEventType]):
     def __init__(
         self,
-        initializer: RuntimeInitializer[TDataType, TEventType],
+        initializer: ServerRuntimeInitializer[TDataType, TEventType],
         event_queue: MultiprocessQueueSource[TEventType],
         data_queue: MultiprocessQueueSink[TDataType],
         runtime_command_queue: MultiprocessQueueSource[RuntimeCommand],
@@ -38,10 +37,10 @@ class WrappedRuntimeInitializer(Generic[TDataType, TEventType]):
         self.__runtime_data_source: RuntimeDataSource | None = None
 
     def create_runtime(
-        self, clock: SynchronizedClock, thread_watcher: ThreadWatcher
+        self, thread_watcher: ThreadWatcher, *args, **kwargs
     ) -> Runtime[TEventType]:
         data_reader = DataReaderSink(self.__data_queue)
-        runtime = self.__initializer.create(clock, data_reader)
+        runtime = self.__initializer.create(data_reader, *args, **kwargs)
         self.__runtime_data_source = RuntimeDataSource(
             thread_watcher, self.__event_queue, self.__runtime_command_queue
         )

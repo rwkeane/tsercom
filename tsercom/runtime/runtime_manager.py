@@ -3,27 +3,23 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from multiprocessing.dummy import Process
-from typing import Any, List, Tuple
+from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar
 
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.local_process.runtime_wrapper import RuntimeWrapper
-from tsercom.runtime.remote_process.split_process_error_watcher_sink import (
-    SplitProcessErrorWatcherSink,
-)
 from tsercom.runtime.remote_process.wrapped_runtime_initializer import (
     WrappedRuntimeInitializer,
 )
 from tsercom.runtime.running_runtime import RunningRuntime
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.runtime.local_process.shim_running_runtime import (
     ShimRunningRuntime,
 )
 from tsercom.runtime.local_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
-    create_tsercom_event_loop_from_watcher,
     set_tsercom_event_loop,
 )
 from tsercom.threading.error_watcher import ErrorWatcher
@@ -38,7 +34,8 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
-class RuntimeManager(ABC, ErrorWatcher):
+TInitializerType = TypeVar("TInitializerType", bound=RuntimeInitializer)
+class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
     """
     This is the top-level class for managing runtimes for user-defined
     functionality. It is used to create such runtimes from RuntimeInitializer
@@ -46,10 +43,12 @@ class RuntimeManager(ABC, ErrorWatcher):
     local or a remote process, as well as all associated error handling.
     """
 
-    def __init__(self):
+    def __init__(self, out_of_process_main : Callable[[MultiprocessQueueSink[Exception], List[WrappedRuntimeInitializer[Any, Any]], None]]):
         super().__init__()
 
-        self.__initializers: list[RuntimeInitializer[Any, Any]] = []
+        self.__out_of_process_main = out_of_process_main
+
+        self.__initializers: list[TInitializerType] = []
         self.__has_started = False
 
         self.__thread_watcher = ThreadWatcher()
@@ -63,7 +62,7 @@ class RuntimeManager(ABC, ErrorWatcher):
         return self.__has_started
 
     def register_runtime_initializer(
-        self, runtime_initializer: RuntimeInitializer[Any, Any]
+        self, runtime_initializer: TInitializerType
     ):
         """
         Registers a new RuntimeInitializer which should be initialized when this
@@ -72,7 +71,7 @@ class RuntimeManager(ABC, ErrorWatcher):
         assert not self.has_started
         self.__initializers.append(runtime_initializer)
 
-    async def start_in_process_async(self) -> List[RunningRuntime[Any, Any]]:
+    async def start_in_process_async(self) -> List[RunningRuntime[Any, Any, TInitializerType]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
@@ -86,7 +85,7 @@ class RuntimeManager(ABC, ErrorWatcher):
     def start_in_process(
         self,
         runtime_event_loop: AbstractEventLoop,
-    ) -> List[RunningRuntime[Any, Any]]:
+    ) -> Dict[TInitializerType, RunningRuntime[Any, Any, TInitializerType]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
@@ -114,14 +113,15 @@ class RuntimeManager(ABC, ErrorWatcher):
         thread_pool = self.__error_watcher.create_tracked_thread_pool_executor(
             max_workers=1
         )
-        return [
+        results = [
             self.__start_initializer(initializer, clock, thread_pool)
             for initializer in self.__initializers
         ]
+        return self.__create_runtime_map(results)
 
     def start_out_of_process(
         self,
-    ) -> List[RunningRuntime[Any, Any]]:
+    ) -> Dict[TInitializerType, RunningRuntime[Any, Any, TInitializerType]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance in a new process separate from the
@@ -155,15 +155,16 @@ class RuntimeManager(ABC, ErrorWatcher):
         # Create a new process, passing this instance (with replaced
         # initializers) by calling into __out_of_process_main().
         self.__process = Process(
-            target=partial(__out_of_process_main, error_sink, initializers)
+            target=partial(self.__out_of_process_main, error_sink, initializers)
         )
         self.__process.start()
 
         # Return all runtimes.
-        return [
+        results = [
             wrapped_initializer[1]
             for wrapped_initializer in wrapped_initializers
         ]
+        return self.__create_runtime_map(results)
 
     def run_until_exception(self) -> None:
         """
@@ -185,13 +186,22 @@ class RuntimeManager(ABC, ErrorWatcher):
 
         self.__error_watcher.check_for_exception()
 
+    def __create_runtime_map(
+        self,
+        runtimes : List[RunningRuntime[Any, Any, TInitializerType]]
+    ) -> Dict[TInitializerType, RunningRuntime[Any, Any, TInitializerType]]:
+        map = {}
+        for runtime in runtimes:
+            map[runtime.initializer] = runtime
+        return map
+
     def __wrap_initializer_for_remote(
         self,
-        initializer: RuntimeInitializer[Any, Any],
+        initializer: TInitializerType,
         thread_pool: ThreadPoolExecutor,
     ) -> Tuple[
-        RuntimeInitializer[Any, Any],
-        ShimRunningRuntime[Any, Any],
+        TInitializerType,
+        ShimRunningRuntime[Any, Any, TInitializerType],
     ]:
         # Create the pipes between source and destination.
         event_sink, event_source = create_multiprocess_queues()
@@ -209,7 +219,7 @@ class RuntimeManager(ABC, ErrorWatcher):
         aggregator = RemoteDataAggregatorImpl[Any](
             thread_pool, initializer.client(), initializer.timeout()
         )
-        runtime = ShimRunningRuntime[Any, Any](
+        runtime = ShimRunningRuntime[Any, Any, TInitializerType](
             self.__thread_watcher,
             event_sink,
             data_source,
@@ -221,48 +231,12 @@ class RuntimeManager(ABC, ErrorWatcher):
 
     def __start_initializer(
         self,
-        initializer: RuntimeInitializer[Any, Any],
+        initializer: TInitializerType,
         clock: SynchronizedClock,
         thread_pool: ThreadPoolExecutor,
-    ) -> RunningRuntime:
+    ) -> RunningRuntime[Any, Any, TInitializerType]:
         aggregator = RemoteDataAggregatorImpl[Any](
             thread_pool, initializer.client(), initializer.timeout()
         )
         runtime = initializer.create(clock, aggregator)
         return RuntimeWrapper(runtime, aggregator, initializer)
-
-
-async def __out_of_process_main(
-    error_queue: MultiprocessQueueSink[Exception],
-    initializers: List[WrappedRuntimeInitializer[Any, Any]],
-):
-    thread_watcher = ThreadWatcher()
-    create_tsercom_event_loop_from_watcher(thread_watcher)
-    sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
-
-    # Create the timing server.
-    time_server = TimeSyncServer()
-    time_started = time_server.start_async()
-    if not time_started:
-        print("WARNING: TimeSync server failed to start")
-    else:
-        print("Time Sync server started!")
-
-    clock = time_server.get_synchronized_clock()
-
-    # Start all runtimes.
-    runtimes = [
-        initializer.create_runtime(clock, thread_watcher)
-        for initializer in initializers
-    ]
-    for runtime in runtimes:
-        runtime.start_async()
-
-    # Call into run_until_error and, on error, stop all runtimes.
-    try:
-        sink.run_until_exception()
-    except Exception as e:
-        raise e
-    finally:
-        for runtime in runtimes:
-            await runtime.stop()
