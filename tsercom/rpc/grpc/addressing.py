@@ -13,3 +13,13 @@ def get_client_ip(context: grpc.aio.ServicerContext) -> str | None:
         return "localhost"  # Or handle Unix socket addresses as needed
     else:
         return None  # Unknown format
+
+
+def get_client_port(context: grpc.aio.ServicerContext) -> int | None:
+    peer_address = context.peer()
+
+    try:
+        result = int(peer_address.split(":")[-1])
+        return result
+    except ValueError:
+        return None

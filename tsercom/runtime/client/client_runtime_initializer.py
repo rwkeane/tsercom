@@ -19,7 +19,7 @@ class ClientRuntimeInitializer(
     def create(
         self,
         data_reader: RemoteDataReader[TDataType],
-        grpc_channel_factory : GrpcChannelFactory,
+        grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime[TEventType]:
         """
         Creates a new Runtime instance. This method will only be called once

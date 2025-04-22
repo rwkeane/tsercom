@@ -1,5 +1,7 @@
 from typing import Any, List
-from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import InsecureGrpcChannelFactory
+from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import (
+    InsecureGrpcChannelFactory,
+)
 from tsercom.runtime.remote_process.split_process_error_watcher_sink import (
     SplitProcessErrorWatcherSink,
 )

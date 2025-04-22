@@ -21,7 +21,7 @@ class ServerRuntimeInitializer(
     def create(
         self,
         data_reader: RemoteDataReader[TDataType],
-        grpc_channel_factory : GrpcChannelFactory,
+        grpc_channel_factory: GrpcChannelFactory,
         clock: SynchronizedClock,
     ) -> Runtime[TEventType]:
         """
