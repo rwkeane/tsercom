@@ -1,4 +1,5 @@
 from typing import Any, List
+from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import InsecureGrpcChannelFactory
 from tsercom.runtime.remote_process.split_process_error_watcher_sink import (
     SplitProcessErrorWatcherSink,
 )
@@ -31,11 +32,13 @@ async def server_remote_main(
     else:
         print("Time Sync server started!")
 
-    clock = time_server.get_synchronized_clock()
+    # Create the gRPC Channel Factory.
+    channel_factory = InsecureGrpcChannelFactory()
 
     # Start all runtimes.
+    clock = time_server.get_synchronized_clock()
     runtimes = [
-        initializer.create_runtime(thread_watcher, clock)
+        initializer.create_runtime(thread_watcher, channel_factory, clock)
         for initializer in initializers
     ]
     for runtime in runtimes:

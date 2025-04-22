@@ -1,6 +1,7 @@
 from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
+from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.remote_process.data_reader_sink import DataReaderSink
 from tsercom.runtime.remote_process.runtime_data_source import (
     RuntimeDataSource,
@@ -39,10 +40,10 @@ class WrappedRuntimeInitializer(Generic[TDataType, TEventType]):
         self.__runtime_data_source: RuntimeDataSource | None = None
 
     def create_runtime(
-        self, thread_watcher: ThreadWatcher, *args, **kwargs
+        self, thread_watcher: ThreadWatcher, grpc_channel_factory : GrpcChannelFactory, *args, **kwargs
     ) -> Runtime[TEventType]:
         data_reader = DataReaderSink(self.__data_queue)
-        runtime = self.__initializer.create(data_reader, *args, **kwargs)
+        runtime = self.__initializer.create(data_reader, grpc_channel_factory, *args, **kwargs)
         self.__runtime_data_source = RuntimeDataSource(
             thread_watcher, self.__event_queue, self.__runtime_command_queue
         )

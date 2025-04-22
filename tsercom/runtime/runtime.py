@@ -8,9 +8,6 @@ TEventType = TypeVar("TEventType")
 
 
 class Runtime(Generic[TEventType], ABC, Stopable):
-    def __init__(self):
-        pass
-
     @abstractmethod
     def start_async(self):
         pass

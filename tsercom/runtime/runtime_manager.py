@@ -6,6 +6,7 @@ from multiprocessing.dummy import Process
 from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar
 
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
+from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import InsecureGrpcChannelFactory
 from tsercom.runtime.local_process.runtime_wrapper import RuntimeWrapper
 from tsercom.runtime.remote_process.wrapped_runtime_initializer import (
     WrappedRuntimeInitializer,
@@ -111,6 +112,9 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         # Initialization.
         self.__error_watcher = ThreadWatcher()
         set_tsercom_event_loop(runtime_event_loop)
+
+        # Create the gRPC Channel Factory.
+        channel_factory = InsecureGrpcChannelFactory()
 
         # Create the timing server.
         time_server = TimeSyncServer()

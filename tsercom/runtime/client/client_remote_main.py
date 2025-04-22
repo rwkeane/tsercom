@@ -1,4 +1,5 @@
 from typing import Any, List
+from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import InsecureGrpcChannelFactory
 from tsercom.runtime.remote_process.split_process_error_watcher_sink import (
     SplitProcessErrorWatcherSink,
 )
@@ -23,9 +24,12 @@ async def client_remote_main(
     create_tsercom_event_loop_from_watcher(thread_watcher)
     sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
+    # Create the gRPC Channel Factory.
+    channel_factory = InsecureGrpcChannelFactory()
+
     # Start all runtimes.
     runtimes: List[Runtime] = [
-        initializer.create_runtime(thread_watcher)
+        initializer.create_runtime(thread_watcher, channel_factory)
         for initializer in initializers
     ]
     for runtime in runtimes:
