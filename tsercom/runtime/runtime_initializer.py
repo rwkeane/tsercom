@@ -17,11 +17,12 @@ class RuntimeInitializer(ABC, Generic[TDataType, TEventType]):
     A base class for server and client runtime initializer instances. Mainly
     used to simplify sharing of code between client and server.
     """
+
     @abstractmethod
     def create(
         self,
-        thread_watcher : ThreadWatcher,
-        data_handler : RuntimeDataHandler[TDataType, TEventType],
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[TDataType, TEventType],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime[TEventType]:
         """

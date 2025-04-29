@@ -1,7 +1,9 @@
 from typing import Generic, TypeVar
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
+from tsercom.data.serializable_annotated_instance import (
+    SerializableAnnotatedInstance,
+)
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.id_tracker import IdTracker
@@ -19,10 +21,12 @@ class ClientRuntimeDataHandler(
     Generic[TDataType, TEventType],
     RuntimeDataHandlerBase[TDataType, TEventType],
 ):
-    def __init__(self,
-                 thread_watcher: ThreadWatcher,
-                 data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-                 event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
+    ):
         super().__init__(data_reader, event_source)
 
         self.__clock_tracker = TimeSyncTracker(thread_watcher)

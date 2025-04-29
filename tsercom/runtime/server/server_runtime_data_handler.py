@@ -1,14 +1,15 @@
 from typing import Generic, TypeVar
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
+from tsercom.data.serializable_annotated_instance import (
+    SerializableAnnotatedInstance,
+)
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
-
 
 
 TEventType = TypeVar("TEventType")
@@ -19,9 +20,11 @@ class ServerRuntimeDataHandler(
     Generic[TDataType, TEventType],
     RuntimeDataHandlerBase[TDataType, TEventType],
 ):
-    def __init__(self,
-                 data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-                 event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]]):
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
+    ):
         super().__init__(data_reader, event_source)
 
         self.__server = TimeSyncServer()

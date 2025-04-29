@@ -29,8 +29,7 @@ class RemoteDataAggregatorImpl(
         self,
         thread_pool: ThreadPoolExecutor,
         client: Optional[RemoteDataAggregator.Client] = None,
-    ):
-        ...
+    ): ...
 
     @overload
     def __init__(
@@ -39,9 +38,8 @@ class RemoteDataAggregatorImpl(
         client: Optional[RemoteDataAggregator.Client] = None,
         *,
         tracker: DataTimeoutTracker,
-    ):
-        ...
-        
+    ): ...
+
     @overload
     def __init__(
         self,
@@ -49,9 +47,8 @@ class RemoteDataAggregatorImpl(
         client: Optional[RemoteDataAggregator.Client] = None,
         *,
         timeout: int,
-    ):
-        ...
-        
+    ): ...
+
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
