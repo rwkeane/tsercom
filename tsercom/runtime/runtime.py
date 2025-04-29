@@ -11,7 +11,3 @@ class Runtime(Generic[TEventType], ABC, Stopable):
     @abstractmethod
     async def start_async(self):
         pass
-
-    @abstractmethod
-    async def on_event(self, event: TEventType):
-        pass

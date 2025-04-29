@@ -1,17 +1,32 @@
-from typing import TypeVar
-from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
-from tsercom.runtime.runtime import Runtime
-from tsercom.threading.thread_watcher import ThreadWatcher
+from abc import ABC, abstractmethod
+from typing import Generic, TypeVar
+from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.remote_data_reader import RemoteDataReader
+from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from tsercom.threading.async_poller import AsyncPoller
 
 
 TEventType = TypeVar("TEventType")
-class RuntimeFactory:
-    def __init__(self):
+TDataType = TypeVar("TDataType")
+
+
+class RuntimeFactory(
+        ABC,
+        Generic[TDataType, TEventType],
+        RuntimeInitializer[TDataType, TEventType]):
+    @property
+    def remote_data_reader(self) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
         pass
-    
-    def create(
-        self,
-        thread_watcher : ThreadWatcher,
-        grpc_channel_factory: GrpcChannelFactory,
-    ) -> Runtime[TEventType]:
+
+    @property
+    def event_poller(self) -> AsyncPoller[SerializableAnnotatedInstance[TEventType]]:
+        pass
+
+    @abstractmethod
+    def _remote_data_reader(self) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
+        pass
+
+    @abstractmethod
+    def _event_poller(self) -> AsyncPoller[SerializableAnnotatedInstance[TEventType]]:
         pass

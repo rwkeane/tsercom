@@ -3,8 +3,7 @@ from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
-from tsercom.runtime.runtime import Runtime
-from tsercom.api.runtime_initializer import RuntimeInitializer
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
@@ -14,12 +13,7 @@ TInitializerType = TypeVar(
 )
 
 
-class RuntimeHandle(
-    Generic[TDataType, TEventType, TInitializerType], Runtime[TEventType]
-):
-    def __init__(self):
-        super().__init__()
-
+class RuntimeHandle(Generic[TDataType, TEventType, TInitializerType]):
     @property
     def data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         """
@@ -34,6 +28,18 @@ class RuntimeHandle(
         The initializer with which this runtime is associated.
         """
         return self._get_initializer()
+
+    @abstractmethod
+    def start(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def stop(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def on_event(self, event: TEventType):
+        raise NotImplementedError()
 
     @abstractmethod
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:

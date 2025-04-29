@@ -20,7 +20,7 @@ from tsercom.api.split_process.shim_runtime_handle import (
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
-from tsercom.api.runtime_initializer import RuntimeInitializer
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop,

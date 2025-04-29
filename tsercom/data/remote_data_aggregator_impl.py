@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
-from typing import Dict, Generic, List, Optional, TypeVar
+from typing import Dict, Generic, List, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -24,12 +24,47 @@ class RemoteDataAggregatorImpl(
     from the interface to limit what is shown to a user of the class.
     """
 
+    @overload
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
         client: Optional[RemoteDataAggregator.Client] = None,
-        tracker: Optional[DataTimeoutTracker] = None,
     ):
+        ...
+
+    @overload
+    def __init__(
+        self,
+        thread_pool: ThreadPoolExecutor,
+        client: Optional[RemoteDataAggregator.Client] = None,
+        *,
+        tracker: DataTimeoutTracker,
+    ):
+        ...
+        
+    @overload
+    def __init__(
+        self,
+        thread_pool: ThreadPoolExecutor,
+        client: Optional[RemoteDataAggregator.Client] = None,
+        *,
+        timeout: int,
+    ):
+        ...
+        
+    def __init__(
+        self,
+        thread_pool: ThreadPoolExecutor,
+        client: Optional[RemoteDataAggregator.Client] = None,
+        *,
+        tracker: Optional[DataTimeoutTracker] = None,
+        timeout: Optional[int] = None,
+    ):
+        assert not timeout or not tracker
+        if tracker is None and timeout is not None:
+            tracker = DataTimeoutTracker(timeout)
+            tracker.start()
+
         self.__thread_pool = thread_pool
         self.__client = client
         self.__tracker = tracker
