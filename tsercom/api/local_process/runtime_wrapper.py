@@ -4,7 +4,7 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.runtime.running_runtime import RunningRuntime
+from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.server.server_runtime_initializer import (
     ServerRuntimeInitializer,
@@ -16,7 +16,7 @@ TEventType = TypeVar("TEventType")
 
 class RuntimeWrapper(
     Generic[TDataType, TEventType],
-    RunningRuntime[TDataType, TEventType],
+    RuntimeHandle[TDataType, TEventType],
     RemoteDataReader[TDataType],
 ):
     def __init__(

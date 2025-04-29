@@ -9,18 +9,18 @@ from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import (
     InsecureGrpcChannelFactory,
 )
-from tsercom.runtime.local_process.runtime_wrapper import RuntimeWrapper
-from tsercom.runtime.remote_process.wrapped_runtime_initializer import (
+from tsercom.api.local_process.runtime_wrapper import RuntimeWrapper
+from tsercom.api.split_process.wrapped_runtime_initializer import (
     WrappedRuntimeInitializer,
 )
-from tsercom.runtime.running_runtime import RunningRuntime
-from tsercom.runtime.local_process.shim_running_runtime import (
-    ShimRunningRuntime,
+from tsercom.api.runtime_handle import RuntimeHandle
+from tsercom.api.split_process.shim_runtime_handle import (
+    ShimRuntimeHandle,
 )
-from tsercom.runtime.local_process.split_process_error_watcher_source import (
+from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from tsercom.api.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop,
@@ -87,7 +87,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
 
     async def start_in_process_async(
         self,
-    ) -> List[RunningRuntime[Any, Any, TInitializerType]]:
+    ) -> List[RuntimeHandle[Any, Any, TInitializerType]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
@@ -101,7 +101,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
     def start_in_process(
         self,
         runtime_event_loop: AbstractEventLoop,
-    ) -> Dict[TInitializerType, RunningRuntime[Any, Any, TInitializerType]]:
+    ) -> Dict[TInitializerType, RuntimeHandle[Any, Any, TInitializerType]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
@@ -140,7 +140,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
 
     def start_out_of_process(
         self,
-    ) -> Dict[TInitializerType, RunningRuntime[Any, Any, TInitializerType]]:
+    ) -> Dict[TInitializerType, RuntimeHandle[Any, Any, TInitializerType]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance in a new process separate from the
@@ -208,8 +208,8 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         self.__error_watcher.check_for_exception()
 
     def __create_runtime_map(
-        self, runtimes: List[RunningRuntime[Any, Any, TInitializerType]]
-    ) -> Dict[TInitializerType, RunningRuntime[Any, Any, TInitializerType]]:
+        self, runtimes: List[RuntimeHandle[Any, Any, TInitializerType]]
+    ) -> Dict[TInitializerType, RuntimeHandle[Any, Any, TInitializerType]]:
         map = {}
         for runtime in runtimes:
             map[runtime.initializer] = runtime
@@ -221,7 +221,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         thread_pool: ThreadPoolExecutor,
     ) -> Tuple[
         TInitializerType,
-        ShimRunningRuntime[Any, Any, TInitializerType],
+        ShimRuntimeHandle[Any, Any, TInitializerType],
     ]:
         # Create the pipes between source and destination.
         event_sink, event_source = create_multiprocess_queues()
@@ -239,7 +239,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         aggregator = RemoteDataAggregatorImpl[Any](
             thread_pool, initializer.client(), initializer.timeout()
         )
-        runtime = ShimRunningRuntime[Any, Any, TInitializerType](
+        runtime = ShimRuntimeHandle[Any, Any, TInitializerType](
             self.__thread_watcher,
             event_sink,
             data_source,
@@ -254,7 +254,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         initializer: TInitializerType,
         clock: SynchronizedClock,
         thread_pool: ThreadPoolExecutor,
-    ) -> RunningRuntime[Any, Any, TInitializerType]:
+    ) -> RuntimeHandle[Any, Any, TInitializerType]:
         aggregator = RemoteDataAggregatorImpl[Any](
             thread_pool, initializer.client(), initializer.timeout()
         )

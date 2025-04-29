@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.timesync.common.proto import ServerTimestamp
@@ -9,7 +9,7 @@ from tsercom.timesync.common.proto import ServerTimestamp
 TDataType = TypeVar("TDataType")
 
 
-class EndpointDataProcessor(ABC):
+class EndpointDataProcessor(ABC, Generic[TDataType]):
     def __init__(self, caller_id: CallerIdentifier):
         self.__caller_id = caller_id
 

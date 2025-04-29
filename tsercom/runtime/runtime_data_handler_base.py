@@ -5,15 +5,15 @@ from typing import Dict, Generic, List, Optional, TypeVar
 
 import grpc
 
-from tsercom.api.annotated_instance import AnnotatedInstance
-from tsercom.api.endpoint_data_processor import EndpointDataProcessor
-from tsercom.api.runtime_data_handler import RuntimeDataHandler
-from tsercom.api.serializable_annotated_instance import (
+from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.remote_data_reader import RemoteDataReader
+from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
+from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.rpc.grpc.addressing import get_client_ip, get_client_port
-from tsercom.runtime.remote_process.data_reader_sink import DataReaderSink
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
@@ -23,11 +23,11 @@ TDataType = TypeVar("TDataType")
 
 
 class RuntimeDataHandlerBase(
-    Generic[TDataType, TEventType], RuntimeDataHandler[TDataType]
+    Generic[TDataType, TEventType], RuntimeDataHandler[TDataType, TEventType]
 ):
     def __init__(
         self,
-        data_reader: DataReaderSink[AnnotatedInstance[TDataType]],
+        data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
         event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
     ):
         super().__init__()

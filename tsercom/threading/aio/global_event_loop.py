@@ -11,6 +11,11 @@ __g_event_loop_factory: EventLoopFactory = None  # type: ignore
 __g_global_event_loop_lock = threading.Lock()
 
 
+def is_global_event_loop_set() -> bool:
+    global __g_global_event_loop
+    return __g_global_event_loop is not None
+
+
 def get_global_event_loop() -> AbstractEventLoop:
     global __g_global_event_loop
     assert __g_global_event_loop is not None

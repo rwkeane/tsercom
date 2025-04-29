@@ -4,7 +4,7 @@ from typing import Generic, TypeVar
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.runtime.runtime import Runtime
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from tsercom.api.runtime_initializer import RuntimeInitializer
 
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
@@ -14,7 +14,7 @@ TInitializerType = TypeVar(
 )
 
 
-class RunningRuntime(
+class RuntimeHandle(
     Generic[TDataType, TEventType, TInitializerType], Runtime[TEventType]
 ):
     def __init__(self):

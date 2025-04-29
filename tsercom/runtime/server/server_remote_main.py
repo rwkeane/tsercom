@@ -2,10 +2,10 @@ from typing import Any, List
 from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import (
     InsecureGrpcChannelFactory,
 )
-from tsercom.runtime.remote_process.split_process_error_watcher_sink import (
+from tsercom.api.split_process.split_process_error_watcher_sink import (
     SplitProcessErrorWatcherSink,
 )
-from tsercom.runtime.remote_process.wrapped_runtime_initializer import (
+from tsercom.api.split_process.wrapped_runtime_initializer import (
     WrappedRuntimeInitializer,
 )
 from tsercom.threading.aio.global_event_loop import (

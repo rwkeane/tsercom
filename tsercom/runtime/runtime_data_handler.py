@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, List, Optional, TypeVar, overload
+from typing import AsyncIterator, Generic, List, Optional, TypeVar, overload
 
 import grpc
 
-from tsercom.api.endpoint_data_processor import EndpointDataProcessor
-from tsercom.api.serializable_annotated_instance import (
+from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
+from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -15,11 +15,11 @@ TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
 
 
-class RuntimeDataHandler(ABC):
+class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
     @abstractmethod
     def get_data_iterator(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance]]:
+    ) -> AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]]:
         pass
 
     @abstractmethod
@@ -31,13 +31,13 @@ class RuntimeDataHandler(ABC):
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor:
+    ) -> EndpointDataProcessor[TDataType]:
         pass
 
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> EndpointDataProcessor | None:
+    ) -> EndpointDataProcessor[TDataType] | None:
         pass
 
     @abstractmethod
@@ -47,5 +47,5 @@ class RuntimeDataHandler(ABC):
         endpoint: Optional[str] = None,
         port: Optional[int] = None,
         context: Optional[grpc.aio.ServicerContext] = None,
-    ) -> EndpointDataProcessor | None:
+    ) -> EndpointDataProcessor[TDataType] | None:
         pass

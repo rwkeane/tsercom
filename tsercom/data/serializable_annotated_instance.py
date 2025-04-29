@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.timesync.common.synchronized_timestamp import (
@@ -9,7 +9,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 TDataType = TypeVar("TDataType")
 
 
-class SerializableAnnotatedInstance:
+class SerializableAnnotatedInstance(Generic[TDataType]):
     def __init__(
         self,
         data: TDataType,

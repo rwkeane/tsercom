@@ -2,12 +2,12 @@ from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
-from tsercom.runtime.remote_process.data_reader_sink import DataReaderSink
-from tsercom.runtime.remote_process.runtime_data_source import (
+from tsercom.api.split_process.data_reader_sink import DataReaderSink
+from tsercom.api.split_process.runtime_data_source import (
     RuntimeDataSource,
 )
 from tsercom.runtime.runtime import Runtime
-from tsercom.runtime.runtime_command import RuntimeCommand
+from tsercom.api.split_process.runtime_command import RuntimeCommand
 from tsercom.runtime.server.server_runtime_initializer import (
     ServerRuntimeInitializer,
 )
