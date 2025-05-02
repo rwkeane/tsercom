@@ -1,6 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar
-from tsercom.api.local_process.runtime_command_bridge import RuntimeCommandBridge
+from tsercom.api.local_process.runtime_command_bridge import (
+    RuntimeCommandBridge,
+)
 from tsercom.api.local_process.runtime_wrapper import RuntimeWrapper
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.local_process.local_runtime_factory import LocalRuntimeFactory
@@ -16,18 +18,27 @@ TDataType = TypeVar("TDataType")
 TEventType = TypeVar("TEventType")
 
 
-class LocalRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
-    def __init__(self, thread_pool : ThreadPoolExecutor):
+class LocalRuntimeFactoryFactory(RuntimeFactoryFactory):
+    def __init__(self, thread_pool: ThreadPoolExecutor):
         super().__init__()
 
         self.__thread_pool = thread_pool
 
-    def _create_pair(self, initializer : RuntimeInitializer[TDataType, TEventType]) -> tuple[RuntimeHandle[TDataType, TEventType], RuntimeFactory[TDataType, TEventType]]:
-        data_aggregator = RemoteDataAggregatorImpl[TDataType](self.__thread_pool, initializer.client(), initializer.timeout())
+    def _create_pair(
+        self, initializer: RuntimeInitializer[TDataType, TEventType]
+    ) -> tuple[
+        RuntimeHandle[TDataType, TEventType],
+        RuntimeFactory[TDataType, TEventType],
+    ]:
+        data_aggregator = RemoteDataAggregatorImpl[TDataType](
+            self.__thread_pool, initializer.client(), initializer.timeout()
+        )
         event_poller = AsyncPoller[EventInstance[TEventType]]()
         bridge = RuntimeCommandBridge()
-        
-        factory = LocalRuntimeFactory[TDataType, TEventType](initializer, data_aggregator, event_poller, bridge)
+
+        factory = LocalRuntimeFactory[TDataType, TEventType](
+            initializer, data_aggregator, event_poller, bridge
+        )
         handle = RuntimeWrapper(event_poller, data_aggregator, bridge)
 
         return handle, factory

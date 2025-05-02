@@ -19,7 +19,7 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
         runtime.
         """
         return self._get_remote_data_aggregator()
-    
+
     @abstractmethod
     def start(self):
         raise NotImplementedError()
@@ -29,23 +29,31 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
         raise NotImplementedError()
 
     @overload
-    def on_event(self, event: TEventType):
-        ...
+    def on_event(self, event: TEventType): ...
 
     @overload
-    def on_event(self, event: TEventType, caller_id : CallerIdentifier):
-        ...
+    def on_event(self, event: TEventType, caller_id: CallerIdentifier): ...
 
     @overload
-    def on_event(self, event: TEventType, *, timestamp : datetime.datetime):
-        ...
+    def on_event(self, event: TEventType, *, timestamp: datetime.datetime): ...
 
     @overload
-    def on_event(self, event: TEventType, caller_id : CallerIdentifier, *, timestamp : datetime.datetime):
-        ...
+    def on_event(
+        self,
+        event: TEventType,
+        caller_id: CallerIdentifier,
+        *,
+        timestamp: datetime.datetime,
+    ): ...
 
     @abstractmethod
-    def on_event(self, event: TEventType, caller_id : Optional[CallerIdentifier] = None, *, timestamp : Optional[datetime.datetime] = None):
+    def on_event(
+        self,
+        event: TEventType,
+        caller_id: Optional[CallerIdentifier] = None,
+        *,
+        timestamp: Optional[datetime.datetime] = None,
+    ):
         raise NotImplementedError()
 
     @abstractmethod

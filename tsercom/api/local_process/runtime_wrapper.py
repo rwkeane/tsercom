@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Generic, Optional, TypeVar
 
-from tsercom.api.local_process.runtime_command_bridge import RuntimeCommandBridge
+from tsercom.api.local_process.runtime_command_bridge import (
+    RuntimeCommandBridge,
+)
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
@@ -22,9 +24,9 @@ class RuntimeWrapper(
 ):
     def __init__(
         self,
-        event_poller : AsyncPoller[EventInstance[TEventType]],
+        event_poller: AsyncPoller[EventInstance[TEventType]],
         data_aggregator: RemoteDataAggregatorImpl[TDataType],
-        bridge: RuntimeCommandBridge
+        bridge: RuntimeCommandBridge,
     ):
         self.__event_poller = event_poller
         self.__aggregator = data_aggregator
@@ -36,7 +38,13 @@ class RuntimeWrapper(
     async def stop(self) -> None:
         self.__bridge.stop()
 
-    def on_event(self, event: TEventType, caller_id : Optional[CallerIdentifier] = None, *, timestamp : Optional[datetime.datetime] = None):
+    def on_event(
+        self,
+        event: TEventType,
+        caller_id: Optional[CallerIdentifier] = None,
+        *,
+        timestamp: Optional[datetime.datetime] = None,
+    ):
         if timestamp is None:
             timestamp = datetime.now()
 

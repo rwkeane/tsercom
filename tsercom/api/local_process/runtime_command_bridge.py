@@ -9,10 +9,10 @@ class RuntimeCommandBridge:
     def __init__(self):
         self.__state = Atomic[RuntimeCommand](None)
 
-        self.__runtime : Runtime | None = None
+        self.__runtime: Runtime | None = None
         self.__runtime_mutex = Lock()
 
-    def set_runtime(self, runtime : Runtime):
+    def set_runtime(self, runtime: Runtime):
         with self.__runtime_mutex:
             assert self.__runtime is None, "Runtime already set"
             self.__runtime = runtime

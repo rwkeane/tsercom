@@ -1,27 +1,28 @@
 from abc import ABC
 from asyncio import AbstractEventLoop
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future
 from functools import partial
 from multiprocessing.dummy import Process
-from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar
+from typing import Any, Generic, List, TypeVar
 
 from tsercom.api.initialization_pair import InitializationPair
-from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
-from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import (
-    InsecureGrpcChannelFactory,
+from tsercom.api.local_process.local_runtime_factory_factory import (
+    LocalRuntimeFactoryFactory,
 )
-from tsercom.api.local_process.runtime_wrapper import RuntimeWrapper
-from tsercom.api.split_process.wrapped_runtime_initializer import (
-    WrappedRuntimeInitializer,
+from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
+from tsercom.api.split_process.split_runtime_factory_factory import (
+    SplitRuntimeFactoryFactory,
 )
 from tsercom.api.runtime_handle import RuntimeHandle
-from tsercom.api.split_process.shim_runtime_handle import (
-    ShimRuntimeHandle,
-)
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
+from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from tsercom.runtime.runtime_main import (
+    initialize_runtimes,
+    remote_process_main,
+)
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop,
@@ -30,16 +31,13 @@ from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     create_multiprocess_queues,
 )
-from tsercom.threading.multiprocess.multiprocess_queue_sink import (
-    MultiprocessQueueSink,
-)
 from tsercom.threading.thread_watcher import ThreadWatcher
-from tsercom.timesync.common.synchronized_clock import SynchronizedClock
-from tsercom.timesync.server.time_sync_server import TimeSyncServer
+from tsercom.util.is_running_tracker import IsRunningTracker
 
 
 TDataType = TypeVar("TDataType")
 TEventType = TypeVar("TEventType")
+
 
 class RuntimeManager(ABC, ErrorWatcher):
     """
@@ -51,22 +49,14 @@ class RuntimeManager(ABC, ErrorWatcher):
 
     def __init__(
         self,
-        out_of_process_main: Callable[
-            [
-                MultiprocessQueueSink[Exception],
-                List[WrappedRuntimeInitializer[Any, Any]],
-                None,
-            ]
-        ],
     ):
         super().__init__()
 
-        self.__out_of_process_main = out_of_process_main
-
         self.__initializers: list[InitializationPair[Any, Any]] = []
-        self.__has_started = False
+        self.__has_started = IsRunningTracker()
 
         self.__thread_watcher = ThreadWatcher()
+        self.__error_watcher: ErrorWatcher | None = None
         self.__process: Process | None = None
 
     @property
@@ -74,7 +64,7 @@ class RuntimeManager(ABC, ErrorWatcher):
         """
         Returns whether this instance is currently running.
         """
-        return self.__has_started
+        return self.__has_started.get()
 
     def register_runtime_initializer(
         self, runtime_initializer: RuntimeInitializer[TDataType, TEventType]
@@ -86,7 +76,9 @@ class RuntimeManager(ABC, ErrorWatcher):
         assert not self.has_started
 
         future = Future[RuntimeHandle[TDataType, TEventType]]()
-        pair = InitializationPair[TDataType, TEventType](future, runtime_initializer)
+        pair = InitializationPair[TDataType, TEventType](
+            future, runtime_initializer
+        )
         self.__initializers.append(pair)
 
         return future
@@ -114,35 +106,21 @@ class RuntimeManager(ABC, ErrorWatcher):
         created instances are then returned. Tsercom operations are run on the
         provided event loop.
         """
-        assert not self.__has_started
-        self.__has_started = True
+        assert not self.__has_started.get()
+        self.__has_started.start()
 
         # Initialization.
-        self.__error_watcher = ThreadWatcher()
         set_tsercom_event_loop(runtime_event_loop)
+        self.__error_watcher = self.__thread_watcher
 
-        # Create the gRPC Channel Factory.
-        channel_factory = InsecureGrpcChannelFactory()
-
-        # Create the timing server.
-        time_server = TimeSyncServer()
-        time_started = time_server.start_async()
-        if not time_started:
-            print("WARNING: TimeSync server failed to start")
-        else:
-            print("Time Sync server started!")
-
-        clock = time_server.get_synchronized_clock()
-
-        # Create all runtime instances.
-        thread_pool = self.__error_watcher.create_tracked_thread_pool_executor(
-            max_workers=1
+        thread_pool = (
+            self.__thread_watcher.create_tracked_thread_pool_executor(
+                max_workers=1
+            )
         )
-        results = [
-            self.__start_initializer(initializer, clock, thread_pool)
-            for initializer in self.__initializers
-        ]
-        return self.__create_runtime_map(results)
+        factory_factory = LocalRuntimeFactoryFactory(thread_pool)
+        factories = self.__create_factories(factory_factory)
+        initialize_runtimes(self.__thread_watcher, factories)
 
     def start_out_of_process(
         self,
@@ -154,21 +132,8 @@ class RuntimeManager(ABC, ErrorWatcher):
         returned Runtime instances, and data received from it can be accessed
         through the RemoteDataAggregator instance available in it.
         """
-        assert not self.__has_started
-        self.__has_started = True
-
-        # Wrap all initializers
-        thread_pool = self.__error_watcher.create_tracked_thread_pool_executor(
-            max_workers=1
-        )
-        wrapped_initializers = [
-            self.__wrap_initializer_for_remote(initializer, thread_pool)
-            for initializer in self.__initializers
-        ]
-        initializers = [
-            wrapped_initializers[0]
-            for wrapped_initializers in wrapped_initializers
-        ]
+        assert not self.__has_started.get()
+        self.__has_started.start()
 
         # Save the local end of the error watcher and begin listening.
         error_sink, error_source = create_multiprocess_queues()
@@ -177,21 +142,22 @@ class RuntimeManager(ABC, ErrorWatcher):
         )
         self.__error_watcher.start()
 
-        # Create a new process, passing this instance (with replaced
-        # initializers) by calling into __out_of_process_main().
-        self.__process = Process(
-            target=partial(
-                self.__out_of_process_main, error_sink, initializers
+        # Wrap all initializers
+        thread_pool = (
+            self.__thread_watcher.create_tracked_thread_pool_executor(
+                max_workers=1
             )
         )
-        self.__process.start()
+        factory_factory = SplitRuntimeFactoryFactory(
+            thread_pool, self.__thread_watcher
+        )
+        factories = self.__create_factories(factory_factory)
 
-        # Return all runtimes.
-        results = [
-            wrapped_initializer[1]
-            for wrapped_initializer in wrapped_initializers
-        ]
-        return self.__create_runtime_map(results)
+        # Create a new process, passing initializers and error queue endpoint.
+        self.__process = Process(
+            target=partial(remote_process_main, factories, error_sink)
+        )
+        self.__process.start()
 
     def run_until_exception(self) -> None:
         """
@@ -201,7 +167,7 @@ class RuntimeManager(ABC, ErrorWatcher):
         assert self.has_started
         assert self.__error_watcher is not None
 
-        self.__error_watcher.run_until_exception()
+        self.__thread_watcher.run_until_exception()
 
     def check_for_exception(self) -> None:
         """
@@ -211,58 +177,27 @@ class RuntimeManager(ABC, ErrorWatcher):
         assert self.has_started
         assert self.__error_watcher is not None
 
-        self.__error_watcher.check_for_exception()
+        self.__thread_watcher.check_for_exception()
 
-    def __create_runtime_map(
-        self, runtimes: List[RuntimeHandle[Any, Any, TInitializerType]]
-    ) -> Dict[TInitializerType, RuntimeHandle[Any, Any, TInitializerType]]:
-        map = {}
-        for runtime in runtimes:
-            map[runtime.initializer] = runtime
-        return map
+    def __create_factories(
+        self, factory_factory: RuntimeFactoryFactory
+    ) -> List[RuntimeFactory]:
+        results = []
+        for pair in self.__initializers:
+            factory = factory_factory.create_factory(
+                RuntimeFuturePopulator[Any, Any](pair.handle_future),
+                pair.initializer,
+            )
+            results.append(factory)
 
-    def __wrap_initializer_for_remote(
-        self,
-        initializer: TInitializerType,
-        thread_pool: ThreadPoolExecutor,
-    ) -> Tuple[
-        TInitializerType,
-        ShimRuntimeHandle[Any, Any, TInitializerType],
-    ]:
-        # Create the pipes between source and destination.
-        event_sink, event_source = create_multiprocess_queues()
-        data_sink, data_source = create_multiprocess_queues()
-        runtime_command_sink, runtime_command_source = (
-            create_multiprocess_queues()
-        )
+        return results
 
-        # Put the first end of each in a to-be-remotely-called initializer.
-        wrapped = WrappedRuntimeInitializer(
-            initializer, event_source, data_sink, runtime_command_source
-        )
 
-        # Return the local ends along with the wrapped instance.
-        aggregator = RemoteDataAggregatorImpl[Any](
-            thread_pool, initializer.client(), initializer.timeout()
-        )
-        runtime = ShimRuntimeHandle[Any, Any, TInitializerType](
-            self.__thread_watcher,
-            event_sink,
-            data_source,
-            runtime_command_sink,
-            aggregator,
-        )
+class RuntimeFuturePopulator(
+    RuntimeFactoryFactory.Client, Generic[TDataType, TEventType]
+):
+    def __init__(self, future: Future[RuntimeHandle[TDataType, TEventType]]):
+        self.__future = future
 
-        return wrapped, runtime
-
-    def __start_initializer(
-        self,
-        initializer: TInitializerType,
-        clock: SynchronizedClock,
-        thread_pool: ThreadPoolExecutor,
-    ) -> RuntimeHandle[Any, Any, TInitializerType]:
-        aggregator = RemoteDataAggregatorImpl[Any](
-            thread_pool, initializer.client(), initializer.timeout()
-        )
-        runtime = initializer.create(clock, aggregator)
-        return RuntimeWrapper(runtime, aggregator, initializer)
+    def _on_handle_ready(self, handle: RuntimeHandle[TDataType, TEventType]):
+        self.__future.set_result(handle)

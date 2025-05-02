@@ -7,7 +7,10 @@ TDataType = TypeVar("TDataType")
 
 class EventInstance(Generic[TDataType]):
     def __init__(
-        self, data: TDataType, caller_id: Optional[CallerIdentifier], timestamp: datetime
+        self,
+        data: TDataType,
+        caller_id: Optional[CallerIdentifier],
+        timestamp: datetime,
     ):
         self.__data = data
         self.__caller_id = caller_id
@@ -16,13 +19,11 @@ class EventInstance(Generic[TDataType]):
     @property
     def data(self):
         return self.__data
-    
+
     @property
     def caller_id(self):
         return self.__caller_id
-    
+
     @property
     def timestamp(self):
         return self.__timestamp
-    
-

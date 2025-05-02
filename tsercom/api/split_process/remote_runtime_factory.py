@@ -1,7 +1,10 @@
 from typing import Generic, TypeVar
 
-from tsercom.api.local_process.runtime_command_bridge import (
-    RuntimeCommandBridge,
+from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.api.split_process.data_reader_sink import DataReaderSink
+from tsercom.api.split_process.event_source import EventSource
+from tsercom.api.split_process.runtime_command_source import (
+    RuntimeCommandSource,
 )
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
@@ -12,26 +15,36 @@ from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.multiprocess.multiprocess_queue_sink import (
+    MultiprocessQueueSink,
+)
+from tsercom.threading.multiprocess.multiprocess_queue_source import (
+    MultiprocessQueueSource,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 TEventType = TypeVar("TEventType")
 TDataType = TypeVar("TDataType")
 
 
-class LocalRuntimeFactory(
+class RemoteRuntimeFactory(
     Generic[TDataType, TEventType], RuntimeFactory[TDataType, TEventType]
 ):
     def __init__(
         self,
         initializer: RuntimeInitializer,
-        data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-        event_poller: AsyncPoller[EventInstance[TEventType]],
-        bridge: RuntimeCommandBridge,
+        event_source: MultiprocessQueueSource[TEventType],
+        data_reader_sink: MultiprocessQueueSink[TDataType],
+        command_source: MultiprocessQueueSource[RuntimeCommand],
     ):
         self.__initializer = initializer
-        self.__data_reader = data_reader
-        self.__event_poller = event_poller
-        self.__bridge = bridge
+        self.__event_queue_source = event_source
+        self.__data_reader_queue_sink = data_reader_sink
+        self.__command_queue_source = command_source
+
+        self.__event_source: EventSource | None = None
+        self.__data_reader: DataReaderSink | None = None
+        self.__command_source: RuntimeCommandSource | None = None
 
         super().__init__()
 
@@ -44,7 +57,17 @@ class LocalRuntimeFactory(
         runtime = self.__initializer.create(
             thread_watcher, data_handler, grpc_channel_factory
         )
-        self.__bridge.set_runtime(runtime)
+
+        self.__event_source = EventSource(self.__event_queue_source)
+
+        self.__data_reader = DataReaderSink(self.__data_reader_queue_sink)
+        self.__event_source.start(thread_watcher)
+
+        self.__command_source = RuntimeCommandSource(
+            self.__command_queue_source
+        )
+        self.__command_source.start_async(thread_watcher, runtime)
+
         return runtime
 
     def _remote_data_reader(
@@ -55,4 +78,4 @@ class LocalRuntimeFactory(
     def _event_poller(
         self,
     ) -> AsyncPoller[EventInstance[TEventType]]:
-        return self.__event_poller
+        return self.__event_source

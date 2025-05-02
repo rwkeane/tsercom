@@ -33,7 +33,6 @@ class ShimRuntimeHandle(
         data_queue: MultiprocessQueueSource[TDataType],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
         data_aggregator: RemoteDataAggregatorImpl[TDataType],
-        initializer: TInitializerType,
         block: bool = False,
     ):
         super().__init__()
@@ -44,7 +43,6 @@ class ShimRuntimeHandle(
             thread_watcher, data_queue, self.__data_aggregtor
         )
         self.__data_aggregtor = data_aggregator
-        self.__initializer = initializer
         self.__block = block
 
     def start_async(self):
@@ -66,6 +64,3 @@ class ShimRuntimeHandle(
 
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator:
         return self.__data_aggregtor
-
-    def _get_initializer(self) -> TInitializerType:
-        return self.__initializer
