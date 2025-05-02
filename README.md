@@ -1,4 +1,5 @@
-# tsercom
+# TSERCOM
+## Time SERies COMmunication
 This library provides utilities for transmitting time-series data across a 
 network, from client to server and back again (if needed) using gRPC.
 
