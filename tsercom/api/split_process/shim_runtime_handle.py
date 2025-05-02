@@ -6,7 +6,7 @@ from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.api.split_process.data_reader_source import DataReaderSource
 from tsercom.api.runtime_handle import RuntimeHandle
-from tsercom.api.split_process.runtime_command import RuntimeCommand
+from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,

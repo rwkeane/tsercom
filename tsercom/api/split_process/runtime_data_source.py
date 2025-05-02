@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Generic, TypeVar
 
 from tsercom.runtime.runtime import Runtime
-from tsercom.api.split_process.runtime_command import RuntimeCommand
+from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )

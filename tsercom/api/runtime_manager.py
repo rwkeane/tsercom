@@ -1,10 +1,11 @@
 from abc import ABC
 from asyncio import AbstractEventLoop
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from functools import partial
 from multiprocessing.dummy import Process
 from typing import Any, Callable, Dict, Generic, List, Tuple, TypeVar
 
+from tsercom.api.initialization_pair import InitializationPair
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import (
     InsecureGrpcChannelFactory,
@@ -37,10 +38,10 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
-TInitializerType = TypeVar("TInitializerType", bound=RuntimeInitializer)
+TDataType = TypeVar("TDataType")
+TEventType = TypeVar("TEventType")
 
-
-class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
+class RuntimeManager(ABC, ErrorWatcher):
     """
     This is the top-level class for managing runtimes for user-defined
     functionality. It is used to create such runtimes from RuntimeInitializer
@@ -62,7 +63,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
 
         self.__out_of_process_main = out_of_process_main
 
-        self.__initializers: list[TInitializerType] = []
+        self.__initializers: list[InitializationPair[Any, Any]] = []
         self.__has_started = False
 
         self.__thread_watcher = ThreadWatcher()
@@ -76,18 +77,23 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
         return self.__has_started
 
     def register_runtime_initializer(
-        self, runtime_initializer: TInitializerType
-    ):
+        self, runtime_initializer: RuntimeInitializer[TDataType, TEventType]
+    ) -> Future[RuntimeHandle[TDataType, TEventType]]:
         """
         Registers a new RuntimeInitializer which should be initialized when this
         instance is started. May only be called prior to this instance starting.
         """
         assert not self.has_started
-        self.__initializers.append(runtime_initializer)
+
+        future = Future[RuntimeHandle[TDataType, TEventType]]()
+        pair = InitializationPair[TDataType, TEventType](future, runtime_initializer)
+        self.__initializers.append(pair)
+
+        return future
 
     async def start_in_process_async(
         self,
-    ) -> List[RuntimeHandle[Any, Any, TInitializerType]]:
+    ) -> List[RuntimeHandle[Any, Any]]:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
@@ -101,7 +107,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
     def start_in_process(
         self,
         runtime_event_loop: AbstractEventLoop,
-    ) -> Dict[TInitializerType, RuntimeHandle[Any, Any, TInitializerType]]:
+    ) -> None:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
@@ -140,7 +146,7 @@ class RuntimeManager(ABC, Generic[TInitializerType], ErrorWatcher):
 
     def start_out_of_process(
         self,
-    ) -> Dict[TInitializerType, RuntimeHandle[Any, Any, TInitializerType]]:
+    ) -> None:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance in a new process separate from the

@@ -1,19 +1,17 @@
 from abc import abstractmethod
-from typing import Generic, TypeVar
+import datetime
+from typing import Generic, Optional, TypeVar, overload
 
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
-TInitializerType = TypeVar(
-    "TInitializerType", bound=RuntimeInitializer[TDataType, TEventType]
-)
 
 
-class RuntimeHandle(Generic[TDataType, TEventType, TInitializerType]):
+class RuntimeHandle(Generic[TDataType, TEventType]):
     @property
     def data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         """
@@ -21,14 +19,7 @@ class RuntimeHandle(Generic[TDataType, TEventType, TInitializerType]):
         runtime.
         """
         return self._get_remote_data_aggregator()
-
-    @property
-    def initializer(self) -> TInitializerType:
-        """
-        The initializer with which this runtime is associated.
-        """
-        return self._get_initializer()
-
+    
     @abstractmethod
     def start(self):
         raise NotImplementedError()
@@ -37,14 +28,26 @@ class RuntimeHandle(Generic[TDataType, TEventType, TInitializerType]):
     def stop(self):
         raise NotImplementedError()
 
-    @abstractmethod
+    @overload
     def on_event(self, event: TEventType):
+        ...
+
+    @overload
+    def on_event(self, event: TEventType, caller_id : CallerIdentifier):
+        ...
+
+    @overload
+    def on_event(self, event: TEventType, *, timestamp : datetime.datetime):
+        ...
+
+    @overload
+    def on_event(self, event: TEventType, caller_id : CallerIdentifier, *, timestamp : datetime.datetime):
+        ...
+
+    @abstractmethod
+    def on_event(self, event: TEventType, caller_id : Optional[CallerIdentifier] = None, *, timestamp : Optional[datetime.datetime] = None):
         raise NotImplementedError()
 
     @abstractmethod
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def _get_initializer(self) -> TInitializerType:
         raise NotImplementedError()

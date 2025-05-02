@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
+
 from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.event_instance import EventInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.data.serializable_annotated_instance import (
-    SerializableAnnotatedInstance,
-)
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
 
@@ -27,7 +26,7 @@ class RuntimeFactory(
     @property
     def event_poller(
         self,
-    ) -> AsyncPoller[SerializableAnnotatedInstance[TEventType]]:
+    ) -> AsyncPoller[EventInstance[TEventType]]:
         pass
 
     @abstractmethod
@@ -39,5 +38,5 @@ class RuntimeFactory(
     @abstractmethod
     def _event_poller(
         self,
-    ) -> AsyncPoller[SerializableAnnotatedInstance[TEventType]]:
+    ) -> AsyncPoller[EventInstance[TEventType]]:
         pass
