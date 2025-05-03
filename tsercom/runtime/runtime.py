@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
 
 from tsercom.util.stopable import Stopable
 
 
-TEventType = TypeVar("TEventType")
+class Runtime(ABC, Stopable):
+    """
+    Specifies an instance that starts up and then later can be stopped.
+    """
 
-
-class Runtime(Generic[TEventType], ABC, Stopable):
     @abstractmethod
     async def start_async(self):
-        pass
+        """
+        Starts running this instance.
+        """

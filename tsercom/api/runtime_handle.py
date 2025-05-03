@@ -12,6 +12,12 @@ TEventType = TypeVar("TEventType")
 
 
 class RuntimeHandle(Generic[TDataType, TEventType]):
+    """
+    This class provides a "Handle" for a currently running Runtime. In other
+    words, it provides simple APIs to control and send local events to the
+    Runtime, as well as a simplified way to receive data back from it.
+    """
+
     @property
     def data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         """
@@ -22,20 +28,42 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
 
     @abstractmethod
     def start(self):
+        """
+        Starts the service.
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def stop(self):
+        """
+        Stops the service.
+        """
         raise NotImplementedError()
 
     @overload
     def on_event(self, event: TEventType): ...
 
+    """
+    Sends the |event| to the runtime to be sent out to connected endpoints with
+    ANY CallerId.
+    """
+
     @overload
     def on_event(self, event: TEventType, caller_id: CallerIdentifier): ...
 
+    """
+    Sends the |event| to the runtime with |caller_id| as specified, or does
+    nothing if no endpoint with that ID is connected.
+    """
+
     @overload
     def on_event(self, event: TEventType, *, timestamp: datetime.datetime): ...
+
+    """
+    Sends the |event| to the runtime to be sent out to connected endpoints with
+    ANY CallerId. Uses |timestamp| as the time associated with |event| instead
+    of the current time.
+    """
 
     @overload
     def on_event(
@@ -45,6 +73,12 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
         *,
         timestamp: datetime.datetime,
     ): ...
+
+    """
+    Sends the |event| to the runtime with |caller_id| as specified, or does
+    nothing if no endpoint with that ID is connected. Uses |timestamp| as the
+    time associated with |event| instead of the current time.
+    """
 
     @abstractmethod
     def on_event(

@@ -62,7 +62,8 @@ class RuntimeManager(ABC, ErrorWatcher):
     @property
     def has_started(self) -> bool:
         """
-        Returns whether this instance is currently running.
+        Returns whether this instance is currently running. This method is
+        thread safe.
         """
         return self.__has_started.get()
 
@@ -72,6 +73,11 @@ class RuntimeManager(ABC, ErrorWatcher):
         """
         Registers a new RuntimeInitializer which should be initialized when this
         instance is started. May only be called prior to this instance starting.
+
+        Returns a Future associated with the RuntimeHandle that can be used to
+        control the Runtime this |runtime_initializer| will create. It will
+        become valid once either start_in_process() or start_out_of_process()
+        has been called.
         """
         assert not self.has_started
 
@@ -87,7 +93,7 @@ class RuntimeManager(ABC, ErrorWatcher):
         self,
     ) -> List[RuntimeHandle[Any, Any]]:
         """
-        Creates runtimes from all registered RuntimeInitializer instances, and
+        Creates Runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
         created instances are then returned. Tsercom operations are run on the
         event loop from which this operation is called.
@@ -101,7 +107,7 @@ class RuntimeManager(ABC, ErrorWatcher):
         runtime_event_loop: AbstractEventLoop,
     ) -> None:
         """
-        Creates runtimes from all registered RuntimeInitializer instances, and
+        Creates Runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance, all in the current process. These
         created instances are then returned. Tsercom operations are run on the
         provided event loop.
@@ -113,6 +119,7 @@ class RuntimeManager(ABC, ErrorWatcher):
         set_tsercom_event_loop(runtime_event_loop)
         self.__error_watcher = self.__thread_watcher
 
+        # Create all factories
         thread_pool = (
             self.__thread_watcher.create_tracked_thread_pool_executor(
                 max_workers=1
@@ -120,6 +127,10 @@ class RuntimeManager(ABC, ErrorWatcher):
         )
         factory_factory = LocalRuntimeFactoryFactory(thread_pool)
         factories = self.__create_factories(factory_factory)
+
+        # Start running them. Initialization is performed on the local thread
+        # but computation will quickly change using to the provided
+        # |event_loop|.
         initialize_runtimes(self.__thread_watcher, factories)
 
     def start_out_of_process(
@@ -162,7 +173,8 @@ class RuntimeManager(ABC, ErrorWatcher):
     def run_until_exception(self) -> None:
         """
         Runs the current thread until an exception as been raised, throwing the
-        exception upon receipt.
+        exception upon receipt. This method is thread-safe and can be called
+        from any thread.
         """
         assert self.has_started
         assert self.__error_watcher is not None

@@ -17,7 +17,7 @@ class RuntimeDataSource(Generic[TEventType]):
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
-        event_queue: MultiprocessQueueSource[TEventType],
+        event_queue: MultiprocessQueueSource,
         runtime_command_queue: MultiprocessQueueSource[RuntimeCommand],
     ):
         self.__thread_watcher = thread_watcher
@@ -26,9 +26,9 @@ class RuntimeDataSource(Generic[TEventType]):
         self.__is_running = IsRunningTracker()
 
         self.__thread_pool: ThreadPoolExecutor | None = None
-        self.__runtime: Runtime[TEventType] | None = None
+        self.__runtime: Runtime | None = None
 
-    def start_async(self, runtime: Runtime[TEventType]):
+    def start_async(self, runtime: Runtime):
         assert not self.__is_running.get()
         assert self.__runtime is None
 

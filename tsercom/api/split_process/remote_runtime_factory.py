@@ -53,7 +53,7 @@ class RemoteRuntimeFactory(
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[TDataType, TEventType],
         grpc_channel_factory: GrpcChannelFactory,
-    ) -> Runtime[TEventType]:
+    ) -> Runtime:
         runtime = self.__initializer.create(
             thread_watcher, data_handler, grpc_channel_factory
         )
