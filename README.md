@@ -54,9 +54,9 @@ this `Runtime`).
 to create your Runtime instance. This will provide a [`ThreadWatcher`](https://github.com/rwkeane/tsercom/blob/main/tsercom/threading/thread_watcher.py)
 (for `Exception` Handling, to ensure exceptions get back to the caller), a 
 [`RuntimeDataHandler`](https://github.com/rwkeane/tsercom/blob/main/tsercom/runtime/runtime_data_handler.py)
-to pass data between the main process and the Tsercom process), a [`GrpcChannelFactory`](https://github.com/rwkeane/tsercom/blob/main/tsercom/runtime/runtime_initializer.py), and a [`GrpcChannelFactory`](https://github.com/rwkeane/tsercom/blob/main/tsercom/runtime/runtime_initializer.py)
-to simplify forming `gRPC` connection, if required - not used in the suggested
-architecture) and create your `Runtime` as implemented in 1.
+(to pass data between the main process and the Tsercom process), a [`GrpcChannelFactory`](https://github.com/rwkeane/tsercom/blob/main/tsercom/runtime/runtime_initializer.py), and a [`GrpcChannelFactory`](https://github.com/rwkeane/tsercom/blob/main/tsercom/runtime/runtime_initializer.py)
+(to simplify forming `gRPC` connection, if required - not used by the CLIENT in
+the suggested architecture) and create your `Runtime` as implemented in 1.
 4. Call on [`RuntimeManager`](https://github.com/rwkeane/tsercom/blob/main/tsercom/api/runtime_manager.py)
 first `register_runtime_initializer()` to get a [handle](https://github.com/rwkeane/tsercom/blob/main/tsercom/api/runtime_handle.py)
 for the Runtime that will be created, and then either `start_in_process()` or
@@ -71,8 +71,8 @@ Each Tsercom SERVER will do largely the same thing:
 and `stop()` to stop its execution.)
 2. From within the client, use the provided `mDNS` API by implementing 
 [`InstanceListener.Client`](https://github.com/rwkeane/tsercom/blob/main/tsercom/discovery/mdns/instance_listener.py)
-to respond to instance discoveries.
-3. - 4.: Exactly as above.
+to respond to instance discoveries to initialize gRPC Connections.
+3. and .4: Exactly as above.
 
 Internally, the library will handle:
 
@@ -84,7 +84,7 @@ which Tsercom and the local client are running.
 - Re-connection upon disconnection due to network conditions. 
 
 NOTE: It is perfectly find to reverse this and have the Tsercom SERVER host the
-gRPC Server. Doing so will just lost the consistency of CallerID across client
+gRPC Server. Doing so will just lose the consistency of CallerID across client
 restarts.
 
 
