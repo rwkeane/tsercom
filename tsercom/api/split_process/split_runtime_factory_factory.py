@@ -48,7 +48,9 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory):
 
         # Create the runtime instance.
         aggregator = RemoteDataAggregatorImpl[TDataType](
-            self.__thread_pool, initializer.client(), initializer.timeout()
+            self.__thread_pool,
+            client=initializer.data_aggregator_client,
+            timeout=initializer.timeout_seconds,
         )
         runtime = ShimRuntimeHandle[TDataType, TEventType](
             self.__thread_watcher,

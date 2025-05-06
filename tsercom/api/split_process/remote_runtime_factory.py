@@ -46,7 +46,7 @@ class RemoteRuntimeFactory(
         self.__data_reader: DataReaderSink | None = None
         self.__command_source: RuntimeCommandSource | None = None
 
-        super().__init__()
+        super().__init__(other_config=self.__initializer)
 
     def create(
         self,

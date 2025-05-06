@@ -20,7 +20,9 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
     """
 
     @property
-    def data_aggregator(self) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+    def data_aggregator(
+        self,
+    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         """
         The RemoteDataAggregator that can be used to retrieve data from this
         runtime.
@@ -50,7 +52,9 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
     """
 
     @overload
-    def on_event(self, event: TEventType, caller_id: CallerIdentifier) -> None: ...
+    def on_event(
+        self, event: TEventType, caller_id: CallerIdentifier
+    ) -> None: ...
 
     """
     Sends the |event| to the runtime with |caller_id| as specified, or does
@@ -58,7 +62,9 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
     """
 
     @overload
-    def on_event(self, event: TEventType, *, timestamp: datetime.datetime) -> None: ...
+    def on_event(
+        self, event: TEventType, *, timestamp: datetime.datetime
+    ) -> None: ...
 
     """
     Sends the |event| to the runtime to be sent out to connected endpoints with
@@ -92,5 +98,7 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
         raise NotImplementedError()
 
     @abstractmethod
-    def _get_remote_data_aggregator(self) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+    def _get_remote_data_aggregator(
+        self,
+    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         raise NotImplementedError()

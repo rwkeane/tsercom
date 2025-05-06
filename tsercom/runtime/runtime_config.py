@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Literal, Optional, TypeVar
+from typing import Literal, Optional, TypeVar, overload
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
 TDataType = TypeVar("TDataType")
@@ -7,19 +7,62 @@ TEventType = TypeVar("TEventType")
 
 
 class RuntimeConfig:
+    @overload
+    def __init__(
+        self,
+        service_type: "ServiceType",
+        *,
+        data_aggregator_client: Optional[RemoteDataAggregator] = None,
+        timeout_seconds: Optional[int] = 60,
+    ): ...
+
+    @overload
     def __init__(
         self,
         service_type: Literal["Client", "Server"],
         *,
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
         timeout_seconds: Optional[int] = 60,
+    ): ...
+
+    @overload
+    def __init__(self, *, other_config: "RuntimeConfig"): ...
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | "ServiceType"
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig"] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator] = None,
+        timeout_seconds: Optional[int] = 60,
     ):
-        if service_type == "Client":
-            self.__service_type = ServiceType.kClient
-        elif service_type == "Server":
-            self.__service_type = ServiceType.kServer
+        assert (service_type is None) != (other_config is None), (
+            service_type,
+            other_config,
+        )
+
+        # Handle the delegating option.
+        if other_config is not None:
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.__service_type,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+            )
+            return
+
+        # Handle the default case.
+        if isinstance(service_type, str):
+            if service_type == "Client":
+                self.__service_type = ServiceType.kClient
+            elif service_type == "Server":
+                self.__service_type = ServiceType.kServer
+            else:
+                raise ValueError(f"Invalid service type: {service_type}")
         else:
-            raise ValueError(f"Invalid service type: {service_type}")
+            self.__service_type = service_type
 
         self.__data_aggregator_client = data_aggregator_client
         self.__timeout_seconds = timeout_seconds

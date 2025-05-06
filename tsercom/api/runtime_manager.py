@@ -1,4 +1,3 @@
-from abc import ABC
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
@@ -25,6 +24,7 @@ from tsercom.runtime.runtime_main import (
 )
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
+    create_tsercom_event_loop_from_watcher,
     set_tsercom_event_loop,
 )
 from tsercom.threading.error_watcher import ErrorWatcher
@@ -108,11 +108,11 @@ class RuntimeManager(ErrorWatcher):
     ) -> None:
         """
         Creates Runtimes from all registered RuntimeInitializer instances, and
-        then starts each creaed instance, all in the current process. These
+        then starts each created instance, all in the current process. These
         created instances are then returned. Tsercom operations are run on the
         provided event loop.
         """
-        assert not self.__has_started.get()
+        assert not self.has_started
         self.__has_started.start()
 
         # Initialization.
@@ -143,8 +143,12 @@ class RuntimeManager(ErrorWatcher):
         returned Runtime instances, and data received from it can be accessed
         through the RemoteDataAggregator instance available in it.
         """
-        assert not self.__has_started.get()
+        assert not self.has_started
         self.__has_started.start()
+
+        # Set a local Tsercom event loop. It is rarely used, but is required for
+        # some operations.
+        create_tsercom_event_loop_from_watcher(self.__thread_watcher)
 
         # Save the local end of the error watcher and begin listening.
         error_sink, error_source = create_multiprocess_queues()

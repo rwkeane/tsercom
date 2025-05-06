@@ -31,7 +31,9 @@ class LocalRuntimeFactoryFactory(RuntimeFactoryFactory):
         RuntimeFactory[TDataType, TEventType],
     ]:
         data_aggregator = RemoteDataAggregatorImpl[TDataType](
-            self.__thread_pool, initializer.client(), initializer.timeout()
+            self.__thread_pool,
+            client=initializer.data_aggregator_client,
+            timeout=initializer.timeout_seconds,
         )
         event_poller = AsyncPoller[EventInstance[TEventType]]()
         bridge = RuntimeCommandBridge()

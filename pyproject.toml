@@ -82,6 +82,22 @@ exclude = [
 ]
 fixable = ["ALL"]
 
+[tool.pytest.ini_options]
+python_files = [
+    "*_test.py",
+    "*_tests.py",
+    "*_unittest.py",
+    "*_unittests.py",
+    "*_e2etest.py",
+    "*_e2etests.py",
+]
+python_classes = [
+    "*Test*",
+]
+python_functions = [
+    "test_*",
+]
+
 [tool.mypy]
 strict = true
 warn_unused_ignores = true

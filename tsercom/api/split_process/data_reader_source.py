@@ -25,7 +25,7 @@ class DataReaderSource(Generic[TDataType]):
         self.__watcher = watcher
 
         self.__thread: threading.Thread | None = None
-        self.__is_running = IsRunningTracker(self)
+        self.__is_running = IsRunningTracker()
 
     @property
     def is_running(self):

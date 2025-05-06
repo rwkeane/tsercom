@@ -1,4 +1,5 @@
 from typing import Any, List, Literal
+from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.channel_factory_selector import ChannelFactorySelector
 from tsercom.runtime.client.client_runtime_data_handler import (
@@ -23,29 +24,34 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 def initialize_runtimes(
     thread_watcher: ThreadWatcher,
-    endpoint_type: Literal["client", "server"],
     initializers: List[RuntimeFactory[Any, Any]],
 ):
     assert is_global_event_loop_set()
 
     # Get the gRPC Channel Factory.
-    factory_selector = ChannelFactorySelector()
-    factory = factory_selector.get_instance()
+    channel_factory_selector = ChannelFactorySelector()
+    channel_factory = channel_factory_selector.get_instance()
 
     # Create all runtimes.
-    runtimes = []
+    runtimes: List[Runtime] = []
     for initializer in initializers:
         # Create the data handler.
-        if endpoint_type == "client":
-            data_handler = ClientRuntimeDataHandler(thread_watcher)
-        elif endpoint_type == "server":
-            data_handler = ServerRuntimeDataHandler()
+        if initializer.is_client():
+            data_handler = ClientRuntimeDataHandler(
+                thread_watcher,
+                initializer.remote_data_reader,
+                initializer.event_poller,
+            )
+        elif initializer.is_server():
+            data_handler = ServerRuntimeDataHandler(
+                initializer.remote_data_reader, initializer.event_poller
+            )
         else:
-            raise ValueError(f"Invalid endpoint type: {endpoint_type}")
+            raise ValueError("Invalid endpoint type!")
 
         # Create the runtime with this data handler.
         runtimes.append(
-            initializer.create(thread_watcher, data_handler, factory)
+            initializer.create(thread_watcher, data_handler, channel_factory)
         )
 
     # Start them all.
@@ -66,7 +72,9 @@ def remote_process_main(
     sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
     # Create and start all runtimes.
-    runtimes = initialize_runtimes(thread_watcher, endpoint_type, initializers)
+    runtimes: List[Runtime] = initialize_runtimes(
+        thread_watcher, endpoint_type, initializers
+    )
 
     # Call into run_until_error and, on error, stop all runtimes.
     try:

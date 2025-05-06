@@ -37,13 +37,14 @@ class ShimRuntimeHandle(
 
         self.__event_queue = event_queue
         self.__runtime_command_queue = runtime_command_queue
-        self.__data_reader_source = DataReaderSource(
-            thread_watcher, data_queue, self.__data_aggregtor
-        )
         self.__data_aggregtor = data_aggregator
         self.__block = block
 
-    def start_async(self):
+        self.__data_reader_source = DataReaderSource(
+            thread_watcher, data_queue, self.__data_aggregtor
+        )
+
+    def start(self):
         self.__data_reader_source.start()
         self.__runtime_command_queue.put_blocking(RuntimeCommand.kStart)
 

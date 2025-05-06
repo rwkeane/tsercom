@@ -39,6 +39,6 @@ class RuntimeFactoryFactory(ABC):
         assert client is not None
         assert isinstance(client, RuntimeFactoryFactory.Client), type(client)
 
-        handle, factory = self._create_pair(client, initializer)
+        handle, factory = self._create_pair(initializer)
         client._on_handle_ready(handle)
         return factory

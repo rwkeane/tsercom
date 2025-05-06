@@ -33,7 +33,7 @@ class LocalRuntimeFactory(
         self.__event_poller = event_poller
         self.__bridge = bridge
 
-        super().__init__()
+        super().__init__(other_config=self.__initializer)
 
     def create(
         self,

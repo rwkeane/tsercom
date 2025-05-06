@@ -32,10 +32,10 @@ class RuntimeWrapper(
         self.__aggregator = data_aggregator
         self.__bridge = bridge
 
-    def start_async(self):
+    def start(self):
         self.__bridge.start()
 
-    async def stop(self) -> None:
+    def stop(self) -> None:
         self.__bridge.stop()
 
     def on_event(

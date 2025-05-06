@@ -25,7 +25,6 @@ class CallerIdentifier:
         id = uuid.uuid4()
         return CallerIdentifier(id)
 
-
     @classmethod
     def try_parse(cls, id: str | CallerId) -> Optional["CallerIdentifier"]:
         """
