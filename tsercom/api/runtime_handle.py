@@ -3,6 +3,7 @@ import datetime
 from typing import Generic, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
@@ -19,7 +20,7 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
     """
 
     @property
-    def data_aggregator(self) -> RemoteDataAggregator[TDataType]:
+    def data_aggregator(self) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         """
         The RemoteDataAggregator that can be used to retrieve data from this
         runtime.
@@ -41,7 +42,7 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
         raise NotImplementedError()
 
     @overload
-    def on_event(self, event: TEventType): ...
+    def on_event(self, event: TEventType) -> None: ...
 
     """
     Sends the |event| to the runtime to be sent out to connected endpoints with
@@ -49,7 +50,7 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
     """
 
     @overload
-    def on_event(self, event: TEventType, caller_id: CallerIdentifier): ...
+    def on_event(self, event: TEventType, caller_id: CallerIdentifier) -> None: ...
 
     """
     Sends the |event| to the runtime with |caller_id| as specified, or does
@@ -57,7 +58,7 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
     """
 
     @overload
-    def on_event(self, event: TEventType, *, timestamp: datetime.datetime): ...
+    def on_event(self, event: TEventType, *, timestamp: datetime.datetime) -> None: ...
 
     """
     Sends the |event| to the runtime to be sent out to connected endpoints with
@@ -72,7 +73,7 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
         caller_id: CallerIdentifier,
         *,
         timestamp: datetime.datetime,
-    ): ...
+    ) -> None: ...
 
     """
     Sends the |event| to the runtime with |caller_id| as specified, or does
@@ -87,9 +88,9 @@ class RuntimeHandle(Generic[TDataType, TEventType]):
         caller_id: Optional[CallerIdentifier] = None,
         *,
         timestamp: Optional[datetime.datetime] = None,
-    ):
+    ) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
+    def _get_remote_data_aggregator(self) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         raise NotImplementedError()

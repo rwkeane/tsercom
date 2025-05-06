@@ -7,7 +7,6 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.api.split_process.data_reader_source import DataReaderSource
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.api.runtime_command import RuntimeCommand
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
@@ -19,11 +18,10 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
-TInitializerType = TypeVar("TInitializerType", bound=RuntimeInitializer)
 
 
 class ShimRuntimeHandle(
-    RuntimeHandle[TDataType, TEventType, TInitializerType],
+    RuntimeHandle[TDataType, TEventType],
     RemoteDataReader[TDataType],
 ):
     def __init__(

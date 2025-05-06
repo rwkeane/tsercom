@@ -13,9 +13,9 @@ TDataType = TypeVar("TDataType")
 
 
 class RuntimeFactory(
-    ABC,
     Generic[TDataType, TEventType],
     RuntimeInitializer[TDataType, TEventType],
+    ABC,
 ):
     @property
     def remote_data_reader(

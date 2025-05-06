@@ -39,7 +39,7 @@ TDataType = TypeVar("TDataType")
 TEventType = TypeVar("TEventType")
 
 
-class RuntimeManager(ABC, ErrorWatcher):
+class RuntimeManager(ErrorWatcher):
     """
     This is the top-level class for managing runtimes for user-defined
     functionality. It is used to create such runtimes from RuntimeInitializer

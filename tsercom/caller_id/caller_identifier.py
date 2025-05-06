@@ -10,16 +10,21 @@ class CallerIdentifier:
     serialization both to and from the gRPC CallerId type as well.
     """
 
-    def __init__(self, id: Optional[uuid.UUID] = None):
+    def __init__(self, id: uuid.UUID):
         """
-        Creates a new instance, either using |id| or a random GUID if no |id| is
-        provided.
+        Creates a new instance using |id|.
         """
-        if id is None:
-            id = uuid.uuid4()
-
         assert issubclass(type(id), uuid.UUID)
         self.__id = id
+
+    @staticmethod
+    def random():
+        """
+        Creates a new CallerIdentifier from a random GUID.
+        """
+        id = uuid.uuid4()
+        return CallerIdentifier(id)
+
 
     @classmethod
     def try_parse(cls, id: str | CallerId) -> Optional["CallerIdentifier"]:

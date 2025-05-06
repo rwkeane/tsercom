@@ -43,7 +43,7 @@ class RuntimeWrapper(
         event: TEventType,
         caller_id: Optional[CallerIdentifier] = None,
         *,
-        timestamp: Optional[datetime.datetime] = None,
+        timestamp: Optional[datetime] = None,
     ):
         if timestamp is None:
             timestamp = datetime.now()
