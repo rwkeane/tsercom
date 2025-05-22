@@ -14,7 +14,9 @@ from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.threading.aio.global_event_loop import clear_tsercom_event_loop_for_test
+from tsercom.threading.aio.global_event_loop import (
+    clear_tsercom_event_loop_for_test,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 

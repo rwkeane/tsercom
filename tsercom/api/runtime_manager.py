@@ -192,7 +192,7 @@ class RuntimeManager(ErrorWatcher):
         """
         if not self.has_started:
             return
-        
+
         assert self.__error_watcher is not None
 
         self.__thread_watcher.check_for_exception()
