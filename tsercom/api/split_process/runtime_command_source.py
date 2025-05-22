@@ -19,7 +19,8 @@ class RuntimeCommandSource(Generic[TEventType]):
         runtime_command_queue: MultiprocessQueueSource[RuntimeCommand],
     ):
         self.__runtime_command_queue = runtime_command_queue
-        self.__is_running: IsRunningTracker = None
+        self.__is_running: IsRunningTracker | None = None
+        self.__runtime: Runtime | None = None
 
     def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime):
         assert self.__is_running is None

@@ -15,7 +15,7 @@ from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.global_event_loop import (
-    clear_tsercom_event_loop_for_test,
+    clear_tsercom_event_loop,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
@@ -156,12 +156,12 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
 
 
 def test_out_of_process_init():
-    clear_tsercom_event_loop_for_test()
+    clear_tsercom_event_loop()
     __check_initialization(RuntimeManager.start_out_of_process)
 
 
 def test_in_process_init():
-    clear_tsercom_event_loop_for_test()
+    clear_tsercom_event_loop()
 
     loop_future = Future()
 

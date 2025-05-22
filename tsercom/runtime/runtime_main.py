@@ -1,4 +1,4 @@
-from typing import Any, List, Literal
+from typing import Any, List
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.channel_factory_selector import ChannelFactorySelector
@@ -13,6 +13,7 @@ from tsercom.runtime.server.server_runtime_data_handler import (
 )
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.aio.global_event_loop import (
+    clear_tsercom_event_loop,
     create_tsercom_event_loop_from_watcher,
     is_global_event_loop_set,
 )
@@ -62,19 +63,19 @@ def initialize_runtimes(
 
 
 def remote_process_main(
-    endpoint_type: Literal["client", "server"],
     initializers: List[RuntimeFactory[Any, Any]],
     error_queue: MultiprocessQueueSink[Exception],
 ):
+    # Only needed on linux systems.
+    clear_tsercom_event_loop()
+
     # Initialize the global types.
     thread_watcher = ThreadWatcher()
     create_tsercom_event_loop_from_watcher(thread_watcher)
     sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
     # Create and start all runtimes.
-    runtimes: List[Runtime] = initialize_runtimes(
-        thread_watcher, endpoint_type, initializers
-    )
+    runtimes: List[Runtime] = initialize_runtimes(thread_watcher, initializers)
 
     # Call into run_until_error and, on error, stop all runtimes.
     try:

@@ -22,11 +22,16 @@ def get_global_event_loop() -> AbstractEventLoop:
     return __g_global_event_loop
 
 
-def clear_tsercom_event_loop_for_test() -> None:
+def clear_tsercom_event_loop() -> None:
     global __g_global_event_loop
+    global __g_event_loop_factory
     if __g_global_event_loop is not None:
-        __g_global_event_loop.stop()
+        # If the loop was created by our factory, stopping it allows the
+        # factory's thread to terminate.
+        if __g_event_loop_factory is not None:
+            __g_global_event_loop.stop()
         __g_global_event_loop = None
+        __g_event_loop_factory = None
 
 
 def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
@@ -44,8 +49,14 @@ def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
     with __g_global_event_loop_lock:
         if __g_global_event_loop is not None:
             raise RuntimeError("Only one Global Event Loop may be set")
-    __g_event_loop_factory = EventLoopFactory(watcher)
-    __g_global_event_loop = __g_event_loop_factory.start_asyncio_loop()
+
+        # Create and assign under lock to prevent race conditions
+        # if called concurrently within the same process.
+        factory = EventLoopFactory(watcher)
+        __g_global_event_loop = factory.start_asyncio_loop()
+        __g_event_loop_factory = (
+            factory  # Store factory after loop is successfully started
+        )
 
 
 def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
@@ -63,7 +74,8 @@ def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
         if __g_global_event_loop is not None:
             raise RuntimeError("Only one Global Event Loop may be set")
 
-    __g_global_event_loop = event_loop
+        # Assign under lock
+        __g_global_event_loop = event_loop
 
 
 def set_tsercom_event_loop_to_current_thread() -> None:
@@ -80,4 +92,5 @@ def set_tsercom_event_loop_to_current_thread() -> None:
         if __g_global_event_loop is not None:
             raise RuntimeError("Only one Global Event Loop may be set")
 
-    __g_global_event_loop = asyncio.get_event_loop()
+        # Assign under lock
+        __g_global_event_loop = asyncio.get_event_loop()

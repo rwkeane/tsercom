@@ -1,7 +1,7 @@
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
-from multiprocessing.dummy import Process
+from multiprocessing import Process
 from typing import Any, Generic, List, TypeVar
 
 from tsercom.api.initialization_pair import InitializationPair
