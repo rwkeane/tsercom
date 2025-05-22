@@ -23,9 +23,9 @@ authors = [
 ]
 dependencies = [
   "torch>=2.0.0",
-  "grpcio~=1.62.0",
-  "grpcio-status~=1.62.0",
-  "grpcio-tools~=1.62.0",
+  "grpcio~=1.70.0",
+  "grpcio-status~=1.70.0",
+  "grpcio-tools~=1.70.0",
   "ntplib>=0.4.0",
   "zeroconf>=0.135.0",
   "psutil>=5.9.0",
