@@ -190,7 +190,9 @@ class RuntimeManager(ErrorWatcher):
         If an exception has been seen, throw it. Else, do nothing. This method
         is thread safe and can be called from any thread.
         """
-        assert self.has_started
+        if not self.has_started:
+            return
+        
         assert self.__error_watcher is not None
 
         self.__thread_watcher.check_for_exception()

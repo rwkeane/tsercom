@@ -82,6 +82,10 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
     ) -> Dict[CallerIdentifier, bool] | bool:
         pass
 
+    def any_new_data(self) -> bool:
+        all_data = self.has_new_data()
+        return any(all_data.values())
+
     @overload
     def get_new_data(self) -> Dict[CallerIdentifier, List[TDataType]]:
         """

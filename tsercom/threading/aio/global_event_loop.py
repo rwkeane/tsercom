@@ -21,6 +21,11 @@ def get_global_event_loop() -> AbstractEventLoop:
     assert __g_global_event_loop is not None
     return __g_global_event_loop
 
+def clear_tsercom_event_loop_for_test() -> None:
+    global __g_global_event_loop
+    if __g_global_event_loop is not None:
+        __g_global_event_loop.stop()
+        __g_global_event_loop = None
 
 def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
     """
