@@ -40,7 +40,7 @@ class IdTracker:
 
         else:
             with self.__lock:
-                if id not in self.__address_to_id:
+                if (address, port) not in self.__address_to_id:
                     return None
                 return self.__address_to_id[(address, port)]
 

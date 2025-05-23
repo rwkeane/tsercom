@@ -18,10 +18,8 @@ from tsercom.api.split_process.split_process_error_watcher_source import (
 )
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.runtime.runtime_main import (
-    initialize_runtimes,
-    remote_process_main,
-)
+# Imports for initialize_runtimes and remote_process_main moved into methods
+# to break circular dependency.
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
     create_tsercom_event_loop_from_watcher,
@@ -131,6 +129,7 @@ class RuntimeManager(ErrorWatcher):
         # Start running them. Initialization is performed on the local thread
         # but computation will quickly change using to the provided
         # |event_loop|.
+        from tsercom.runtime.runtime_main import initialize_runtimes # Moved import
         initialize_runtimes(self.__thread_watcher, factories)
 
     def start_out_of_process(
@@ -169,6 +168,7 @@ class RuntimeManager(ErrorWatcher):
         factories = self.__create_factories(factory_factory)
 
         # Create a new process, passing initializers and error queue endpoint.
+        from tsercom.runtime.runtime_main import remote_process_main # Moved import
         self.__process = Process(
             target=partial(remote_process_main, factories, error_sink)
         )
