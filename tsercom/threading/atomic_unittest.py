@@ -3,6 +3,7 @@ import threading
 from typing import Any
 from tsercom.threading.atomic import Atomic
 
+
 # Custom object for testing
 class MyObject:
     def __init__(self, value: Any):
@@ -15,6 +16,7 @@ class MyObject:
 
     def __repr__(self) -> str:
         return f"MyObject(value={self.value})"
+
 
 def test_atomic_set_get_basic() -> None:
     """Test basic set and get functionality."""
@@ -29,6 +31,7 @@ def test_atomic_set_get_basic() -> None:
 
     atomic_str.set("world")
     assert atomic_str.get() == "world"
+
 
 def test_atomic_type_consistency() -> None:
     """Test type consistency with different data types."""
@@ -53,15 +56,14 @@ def test_atomic_type_consistency() -> None:
     atomic_list = Atomic[list[int]]([1, 2, 3])
     assert isinstance(atomic_list.get(), list)
     assert atomic_list.get() == [1, 2, 3]
-    atomic_list.set([4,5,6])
-    assert atomic_list.get() == [4,5,6]
-
+    atomic_list.set([4, 5, 6])
+    assert atomic_list.get() == [4, 5, 6]
 
     atomic_dict = Atomic[dict[str, int]]({"a": 1, "b": 2})
     assert isinstance(atomic_dict.get(), dict)
     assert atomic_dict.get() == {"a": 1, "b": 2}
-    atomic_dict.set({"c":3})
-    assert atomic_dict.get() == {"c":3}
+    atomic_dict.set({"c": 3})
+    assert atomic_dict.get() == {"c": 3}
 
 
 def test_atomic_thread_safety() -> None:
@@ -91,6 +93,7 @@ def test_atomic_thread_safety() -> None:
     assert final_value in possible_values
     assert isinstance(final_value, int)
 
+
 def test_atomic_thread_safety_custom_object() -> None:
     """Test thread safety with a custom object."""
     num_threads = 5
@@ -98,7 +101,9 @@ def test_atomic_thread_safety_custom_object() -> None:
     initial_obj = MyObject("initial")
     atomic_custom = Atomic[MyObject](initial_obj)
 
-    possible_final_objects = {MyObject(f"thread_{i}") for i in range(num_threads)}
+    possible_final_objects = {
+        MyObject(f"thread_{i}") for i in range(num_threads)
+    }
     # Add the initial object as a possible value if no thread successfully sets its value first
     # or if threads complete so quickly only the initial/last set value is seen.
     # More accurately, any object set by any thread is a possible final value.
@@ -123,6 +128,7 @@ def test_atomic_thread_safety_custom_object() -> None:
     assert final_obj in possible_final_objects
     assert isinstance(final_obj, MyObject)
 
+
 def test_atomic_get_does_not_modify() -> None:
     """Ensure get() operation doesn't modify the stored value, especially for mutable types."""
     initial_list = [1, 2, 3]
@@ -145,15 +151,16 @@ def test_atomic_get_does_not_modify() -> None:
     # If get() returns a direct reference, the internal list will now be [1, 2, 3, 4]
     # If get() returns a copy, the internal list will still be [1, 2, 3]
     # The current implementation of Atomic returns a direct reference.
-    assert atomic_list.get() == [1, 2, 3, 4] # This confirms it's a reference
+    assert atomic_list.get() == [1, 2, 3, 4]  # This confirms it's a reference
 
     # To ensure 'get' itself doesn't change state if the user *doesn't* modify the returned object:
-    atomic_list.set([10, 20]) # Reset to a known state
+    atomic_list.set([10, 20])  # Reset to a known state
     val1 = atomic_list.get()
     val2 = atomic_list.get()
     assert val1 == [10, 20]
-    assert val2 == [10, 20] # Value should be consistent across multiple gets
-    assert val1 is val2 # Confirms it's the same object reference
+    assert val2 == [10, 20]  # Value should be consistent across multiple gets
+    assert val1 is val2  # Confirms it's the same object reference
+
 
 def test_atomic_set_different_instances() -> None:
     """Test that setting a value in one Atomic instance does not affect another."""
@@ -162,10 +169,10 @@ def test_atomic_set_different_instances() -> None:
 
     atomic1.set(5)
     assert atomic1.get() == 5
-    assert atomic2.get() == 100 # atomic2 should remain unchanged
+    assert atomic2.get() == 100  # atomic2 should remain unchanged
 
     atomic2.set(200)
-    assert atomic1.get() == 5 # atomic1 should remain unchanged
+    assert atomic1.get() == 5  # atomic1 should remain unchanged
     assert atomic2.get() == 200
 
     atomic_str1 = Atomic[str]("abc")

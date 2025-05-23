@@ -1,9 +1,10 @@
 import pytest
 import threading
 import time
-import queue # For queue.Empty exception
+import queue  # For queue.Empty exception
 from typing import Any, List
 from tsercom.threading.thread_safe_queue import ThreadSafeQueue
+
 
 def test_basic_functionality() -> None:
     """Test basic push, pop, size, and empty functionality."""
@@ -29,6 +30,7 @@ def test_basic_functionality() -> None:
     assert q.size() == 0
     assert q.empty()
 
+
 def test_fifo_order() -> None:
     """Ensure items are popped in First-In, First-Out order."""
     q = ThreadSafeQueue()
@@ -44,6 +46,7 @@ def test_fifo_order() -> None:
         popped_items.append(q.pop())
 
     assert popped_items == items_to_push
+
 
 def test_pop_blocking_timeout() -> None:
     """Test pop(block=True, timeout=...) on an empty queue."""
@@ -62,6 +65,7 @@ def test_pop_blocking_timeout() -> None:
     # And not excessively longer (e.g., more than twice the timeout)
     assert elapsed_time < timeout_duration * 2
 
+
 def test_pop_non_blocking() -> None:
     """Test pop(block=False) on an empty queue."""
     q = ThreadSafeQueue()
@@ -72,6 +76,7 @@ def test_pop_non_blocking() -> None:
     assert q.pop(block=False) == 1
     with pytest.raises(queue.Empty):
         q.pop(block=False)
+
 
 def test_thread_safety_concurrent_pushes() -> None:
     """Test multiple threads concurrently push items."""
@@ -97,17 +102,18 @@ def test_thread_safety_concurrent_pushes() -> None:
         thread.join()
 
     assert q.size() == total_items
-    
+
     all_pushed_items = set()
     for thread_items in pushed_items_collection:
         all_pushed_items.update(thread_items)
-        
+
     popped_items_set = set()
     for _ in range(total_items):
         popped_items_set.add(q.pop())
-        
+
     assert q.empty()
     assert popped_items_set == all_pushed_items
+
 
 def test_thread_safety_concurrent_pops() -> None:
     """Test multiple threads concurrently pop items."""
@@ -117,51 +123,54 @@ def test_thread_safety_concurrent_pops() -> None:
 
     for item in items_to_push:
         q.push(item)
-    
+
     assert q.size() == num_items
 
     num_threads = 10
     popped_items_collection: List[List[Any]] = [[] for _ in range(num_threads)]
     threads: List[threading.Thread] = []
-    lock = threading.Lock() # To safely append to popped_items_collection lists
-    
+    lock = (
+        threading.Lock()
+    )  # To safely append to popped_items_collection lists
+
     # Use a barrier to try and start all threads as close to simultaneously as possible
     # after the queue is populated.
     # Add 1 for the main thread that waits on the barrier.
     barrier = threading.Barrier(num_threads + 1)
 
-
     def popper(thread_id: int) -> None:
-        barrier.wait() # Wait for all threads to be ready
+        barrier.wait()  # Wait for all threads to be ready
         while True:
             try:
-                item = q.pop(block=True, timeout=0.01) # Short timeout to avoid indefinite block if queue is empty
+                item = q.pop(
+                    block=True, timeout=0.01
+                )  # Short timeout to avoid indefinite block if queue is empty
                 with lock:
                     popped_items_collection[thread_id].append(item)
             except queue.Empty:
                 # Queue is empty, or seemed empty during this pop attempt
-                if q.empty(): # Double check if truly empty
+                if q.empty():  # Double check if truly empty
                     break
-
 
     for i in range(num_threads):
         thread = threading.Thread(target=popper, args=(i,))
         threads.append(thread)
         thread.start()
 
-    barrier.wait() # Main thread signals barrier
+    barrier.wait()  # Main thread signals barrier
 
     for thread in threads:
-        thread.join(timeout=5) # Add a timeout to join to prevent test hangs
+        thread.join(timeout=5)  # Add a timeout to join to prevent test hangs
 
     assert q.empty(), f"Queue should be empty. Size: {q.size()}"
-    
+
     all_popped_items = set()
     for thread_items in popped_items_collection:
         all_popped_items.update(thread_items)
-        
-    assert all_popped_items == set(items_to_push), \
-        f"Mismatch. Expected: {len(items_to_push)}, Got: {len(all_popped_items)}"
+
+    assert all_popped_items == set(
+        items_to_push
+    ), f"Mismatch. Expected: {len(items_to_push)}, Got: {len(all_popped_items)}"
 
 
 def test_thread_safety_mixed_push_pop() -> None:
@@ -177,12 +186,11 @@ def test_thread_safety_mixed_push_pop() -> None:
 
     popped_items_global = []
     popped_items_lock = threading.Lock()
-    
+
     # Barrier to synchronize start of threads
     # Add 1 for the main thread.
     num_total_threads = num_pusher_threads + num_popper_threads
     barrier = threading.Barrier(num_total_threads + 1)
-
 
     def pusher_worker(pusher_id: int) -> None:
         thread_pushed_items = set()
@@ -204,22 +212,24 @@ def test_thread_safety_mixed_push_pop() -> None:
         local_popped_list = []
         while len(popped_items_global) < total_items_to_push:
             try:
-                item = q.pop(block=True, timeout=0.1) # Increased timeout
+                item = q.pop(block=True, timeout=0.1)  # Increased timeout
                 local_popped_list.append(item)
             except queue.Empty:
                 # If all pushers are done and queue is empty, we can stop
                 # This check is heuristic, assumes pushers will finish in reasonable time
-                all_pushers_done = True # This needs to be properly signaled if used as a stop condition
-                                        # For simplicity, we'll rely on the count and timeout.
-                if len(popped_items_global) + len(local_popped_list) >= total_items_to_push:
-                    break # Likely all items are processed
+                all_pushers_done = True  # This needs to be properly signaled if used as a stop condition
+                # For simplicity, we'll rely on the count and timeout.
+                if (
+                    len(popped_items_global) + len(local_popped_list)
+                    >= total_items_to_push
+                ):
+                    break  # Likely all items are processed
                 # Or if a longer timeout occurs, assume done.
                 # This loop condition itself (len(popped_items_global) < total_items_to_push)
                 # requires popped_items_global to be updated thread-safely.
 
         with popped_items_lock:
             popped_items_global.extend(local_popped_list)
-
 
     threads: List[threading.Thread] = []
     for i in range(num_pusher_threads):
@@ -231,29 +241,35 @@ def test_thread_safety_mixed_push_pop() -> None:
         thread = threading.Thread(target=popper_worker)
         threads.append(thread)
         thread.start()
-    
-    barrier.wait() # Main thread signals barrier
+
+    barrier.wait()  # Main thread signals barrier
 
     # Wait for all threads to complete
     for thread in threads:
-        thread.join(timeout=10) # Generous timeout for completion
+        thread.join(timeout=10)  # Generous timeout for completion
 
     # Additional pops by main thread to drain queue if poppers timed out early
     # This is to ensure all items are collected for assertion
     while len(popped_items_global) < total_items_to_push:
         try:
-            item = q.pop(block=True, timeout=0.05) # Short timeout
+            item = q.pop(block=True, timeout=0.05)  # Short timeout
             popped_items_global.append(item)
         except queue.Empty:
-            break # Queue is exhausted
+            break  # Queue is exhausted
 
-    assert q.empty(), f"Queue should be empty after all operations. Size: {q.size()}"
-    assert len(pushed_items_global) == total_items_to_push, \
-        f"Number of unique pushed items should be {total_items_to_push}. Got: {len(pushed_items_global)}"
-    assert len(popped_items_global) == total_items_to_push, \
-        f"Number of popped items should be {total_items_to_push}. Got: {len(popped_items_global)}"
-    assert set(popped_items_global) == pushed_items_global, \
-        "Set of popped items must match set of pushed items."
+    assert (
+        q.empty()
+    ), f"Queue should be empty after all operations. Size: {q.size()}"
+    assert (
+        len(pushed_items_global) == total_items_to_push
+    ), f"Number of unique pushed items should be {total_items_to_push}. Got: {len(pushed_items_global)}"
+    assert (
+        len(popped_items_global) == total_items_to_push
+    ), f"Number of popped items should be {total_items_to_push}. Got: {len(popped_items_global)}"
+    assert (
+        set(popped_items_global) == pushed_items_global
+    ), "Set of popped items must match set of pushed items."
+
 
 # Note: Testing push blocking on a full queue is not directly applicable here
 # because ThreadSafeQueue uses a queue.Queue with no maxsize by default.
