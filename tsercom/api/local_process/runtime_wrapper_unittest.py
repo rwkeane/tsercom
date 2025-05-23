@@ -4,7 +4,9 @@ import importlib
 
 from tsercom.api.local_process.runtime_wrapper import RuntimeWrapper
 from tsercom.data.event_instance import EventInstance
-from tsercom.caller_id.caller_identifier import CallerIdentifier # For creating test_caller_id
+from tsercom.caller_id.caller_identifier import (
+    CallerIdentifier,
+)  # For creating test_caller_id
 
 
 class FakeAsyncPoller:
@@ -74,7 +76,7 @@ def wrapper(fake_poller, fake_aggregator, fake_bridge):
 @pytest.fixture
 def patch_datetime_now(request):
     """Fixture to monkeypatch datetime.datetime.now."""
-    mock_now = datetime.datetime(2024, 1, 1, 12, 0, 0) # A fixed point in time
+    mock_now = datetime.datetime(2024, 1, 1, 12, 0, 0)  # A fixed point in time
 
     # Patch datetime.datetime.now
     # We need to patch it where it's looked up. RuntimeWrapper imports datetime directly.
@@ -83,7 +85,7 @@ def patch_datetime_now(request):
 
     # Path to the module where 'datetime.datetime' is used
     module_path = "tsercom.api.local_process.runtime_wrapper"
-    
+
     # Import the module
     target_module = importlib.import_module(module_path)
 
@@ -94,7 +96,7 @@ def patch_datetime_now(request):
     class PatchedDatetime(datetime.datetime):
         @classmethod
         def now(cls, tz=None):
-            if tz: # pragma: no cover
+            if tz:  # pragma: no cover
                 return mock_now_fixed_time.replace(tzinfo=tz)
             return mock_now_fixed_time
 
@@ -104,6 +106,7 @@ def patch_datetime_now(request):
     def restore():
         # Restore the original datetime class in the target module
         target_module.datetime = original_datetime_in_module
+
     request.addfinalizer(restore)
 
     return mock_now_fixed_time
@@ -141,12 +144,14 @@ def test_on_event_only_event(wrapper, fake_poller, patch_datetime_now):
     assert isinstance(event_instance, EventInstance)
     assert event_instance.data == test_event_data
     assert event_instance.caller_id is None
-    assert event_instance.timestamp == patch_datetime_now # Exact match due to patching
+    assert (
+        event_instance.timestamp == patch_datetime_now
+    )  # Exact match due to patching
 
 
 def test_on_event_with_caller_id(wrapper, fake_poller, patch_datetime_now):
     test_event_data = "event_with_caller"
-    test_caller_id = CallerIdentifier.random() # Corrected initialization
+    test_caller_id = CallerIdentifier.random()  # Corrected initialization
     wrapper.on_event(test_event_data, test_caller_id)
 
     assert fake_poller.on_available_called
@@ -172,9 +177,11 @@ def test_on_event_with_explicit_timestamp(wrapper, fake_poller):
 
 def test_on_event_with_caller_id_and_timestamp(wrapper, fake_poller):
     test_event_data = "event_all_args"
-    test_caller_id = CallerIdentifier.random() # Corrected initialization
+    test_caller_id = CallerIdentifier.random()  # Corrected initialization
     fixed_timestamp = datetime.datetime(2022, 1, 1, 0, 0, 0)
-    wrapper.on_event(test_event_data, test_caller_id, timestamp=fixed_timestamp)
+    wrapper.on_event(
+        test_event_data, test_caller_id, timestamp=fixed_timestamp
+    )
 
     assert fake_poller.on_available_called
     event_instance = fake_poller.on_available_arg
@@ -186,7 +193,7 @@ def test_on_event_with_caller_id_and_timestamp(wrapper, fake_poller):
 
 # Test _on_data_ready()
 def test_on_data_ready(wrapper, fake_aggregator):
-    test_data_payload = "my_test_payload" # Assuming ExposedData or similar can be faked with a string for test
+    test_data_payload = "my_test_payload"  # Assuming ExposedData or similar can be faked with a string for test
     wrapper._on_data_ready(test_data_payload)
 
     assert fake_aggregator.on_data_ready_called

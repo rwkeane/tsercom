@@ -1,8 +1,11 @@
 import pytest
 
-from tsercom.api.split_process.split_process_error_watcher_sink import SplitProcessErrorWatcherSink
+from tsercom.api.split_process.split_process_error_watcher_sink import (
+    SplitProcessErrorWatcherSink,
+)
 
 # --- Fake Classes ---
+
 
 class FakeThreadWatcher:
     def __init__(self):
@@ -35,30 +38,43 @@ class FakeMultiprocessQueueSink:
 
 # --- Pytest Fixtures ---
 
+
 @pytest.fixture
 def fake_thread_watcher():
     return FakeThreadWatcher()
+
 
 @pytest.fixture
 def fake_exception_queue():
     return FakeMultiprocessQueueSink()
 
+
 @pytest.fixture
 def error_watcher_sink(fake_thread_watcher, fake_exception_queue):
     return SplitProcessErrorWatcherSink(
         thread_watcher=fake_thread_watcher,
-        exception_queue=fake_exception_queue
+        exception_queue=fake_exception_queue,
     )
+
 
 # --- Unit Tests ---
 
+
 def test_init(error_watcher_sink, fake_thread_watcher, fake_exception_queue):
     """Test SplitProcessErrorWatcherSink.__init__."""
-    assert error_watcher_sink._SplitProcessErrorWatcherSink__thread_watcher is fake_thread_watcher # Corrected name
-    assert error_watcher_sink._SplitProcessErrorWatcherSink__queue is fake_exception_queue # Corrected name
+    assert (
+        error_watcher_sink._SplitProcessErrorWatcherSink__thread_watcher
+        is fake_thread_watcher
+    )  # Corrected name
+    assert (
+        error_watcher_sink._SplitProcessErrorWatcherSink__queue
+        is fake_exception_queue
+    )  # Corrected name
 
 
-def test_run_until_exception_no_exception_scenario(error_watcher_sink, fake_thread_watcher, fake_exception_queue):
+def test_run_until_exception_no_exception_scenario(
+    error_watcher_sink, fake_thread_watcher, fake_exception_queue
+):
     """Test run_until_exception() when no exception is raised by the watcher."""
     # Configure watcher to not raise an error (default for FakeThreadWatcher)
     # fake_thread_watcher.set_exception_to_raise(None) # Default behavior
@@ -67,10 +83,14 @@ def test_run_until_exception_no_exception_scenario(error_watcher_sink, fake_thre
 
     assert fake_thread_watcher.run_until_exception_called
     assert fake_thread_watcher.run_until_exception_call_count == 1
-    assert fake_exception_queue.put_nowait_call_count == 0 # Should NOT be called
+    assert (
+        fake_exception_queue.put_nowait_call_count == 0
+    )  # Should NOT be called
 
 
-def test_run_until_exception_with_exception_scenario(error_watcher_sink, fake_thread_watcher, fake_exception_queue):
+def test_run_until_exception_with_exception_scenario(
+    error_watcher_sink, fake_thread_watcher, fake_exception_queue
+):
     """Test run_until_exception() when an exception is raised by the watcher."""
     test_exception = RuntimeError("Test Error")
     fake_thread_watcher.set_exception_to_raise(test_exception)

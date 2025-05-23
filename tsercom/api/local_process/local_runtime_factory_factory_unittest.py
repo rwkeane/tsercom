@@ -1,13 +1,17 @@
 import pytest
 from concurrent.futures import ThreadPoolExecutor
 
-from tsercom.api.local_process.local_runtime_factory_factory import LocalRuntimeFactoryFactory
+from tsercom.api.local_process.local_runtime_factory_factory import (
+    LocalRuntimeFactoryFactory,
+)
 from tsercom.api.local_process.local_runtime_factory import LocalRuntimeFactory
 from tsercom.api.local_process.runtime_wrapper import RuntimeWrapper
-from tsercom.api.local_process.runtime_command_bridge import RuntimeCommandBridge
-from tsercom.threading.async_poller import AsyncPoller # Corrected path
+from tsercom.api.local_process.runtime_command_bridge import (
+    RuntimeCommandBridge,
+)
+from tsercom.threading.async_poller import AsyncPoller  # Corrected path
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
-from tsercom.runtime.runtime_config import ServiceType # Added import
+from tsercom.runtime.runtime_config import ServiceType  # Added import
 
 
 class FakeThreadPoolExecutor:
@@ -33,7 +37,12 @@ class FakeThreadPoolExecutor:
 
 
 class FakeRuntimeInitializer:
-    def __init__(self, service_type="Server", data_aggregator_client=None, timeout_seconds=60):
+    def __init__(
+        self,
+        service_type="Server",
+        data_aggregator_client=None,
+        timeout_seconds=60,
+    ):
         # Attributes needed by RuntimeConfig logic
         self._RuntimeConfig__service_type = service_type
         self.data_aggregator_client = data_aggregator_client
@@ -65,12 +74,13 @@ def fake_initializer():
 def patch_run_on_event_loop(request):
     # Path to the module and function to patch
     # Patching where it's *used* if 'from x import y' is used by the target module
-    module_path = "tsercom.data.data_timeout_tracker" 
+    module_path = "tsercom.data.data_timeout_tracker"
     func_name = "run_on_event_loop"
 
     try:
         # Import the module
         import importlib
+
         target_module = importlib.import_module(module_path)
 
         # Store the original function if it exists
@@ -91,12 +101,15 @@ def patch_run_on_event_loop(request):
             else:
                 # If the function didn't exist before, remove our fake one
                 delattr(target_module, func_name)
+
         request.addfinalizer(restore)
     except ImportError:
         # If the module itself doesn't exist, there's nothing to patch.
         # This might happen if the codebase structure changes.
         # Allow tests to proceed; they might fail for other reasons if this patch was critical.
-        print(f"Warning: Module {module_path} not found for patching {func_name}.")
+        print(
+            f"Warning: Module {module_path} not found for patching {func_name}."
+        )
         pass
 
 
@@ -105,19 +118,25 @@ def factory_factory(fake_executor):
     return LocalRuntimeFactoryFactory(thread_pool=fake_executor)
 
 
-def test_create_pair_return_types(factory_factory, fake_initializer, patch_run_on_event_loop):
+def test_create_pair_return_types(
+    factory_factory, fake_initializer, patch_run_on_event_loop
+):
     """Tests that _create_pair returns objects of the expected types."""
     wrapper, factory = factory_factory._create_pair(fake_initializer)
     assert isinstance(wrapper, RuntimeWrapper)
     assert isinstance(factory, LocalRuntimeFactory)
 
 
-def test_create_pair_remote_data_aggregator_wiring(factory_factory, fake_initializer, fake_executor, patch_run_on_event_loop):
+def test_create_pair_remote_data_aggregator_wiring(
+    factory_factory, fake_initializer, fake_executor, patch_run_on_event_loop
+):
     """Tests the creation and wiring of RemoteDataAggregatorImpl."""
     wrapper, factory = factory_factory._create_pair(fake_initializer)
 
     # Check LocalRuntimeFactory's data_reader
-    assert isinstance(factory._LocalRuntimeFactory__data_reader, RemoteDataAggregatorImpl)
+    assert isinstance(
+        factory._LocalRuntimeFactory__data_reader, RemoteDataAggregatorImpl
+    )
     aggregator_in_factory = factory._LocalRuntimeFactory__data_reader
 
     # Check RuntimeWrapper's data_reader (which is an aggregator)
@@ -128,19 +147,29 @@ def test_create_pair_remote_data_aggregator_wiring(factory_factory, fake_initial
     # or use a more sophisticated fake if we can't access its init args.
     # For now, we check it got the thread_pool.
     # Accessing private attributes like _thread_pool is for testing purposes.
-    assert aggregator_in_factory._RemoteDataAggregatorImpl__thread_pool is fake_executor # Corrected attribute
-    assert aggregator_in_factory._RemoteDataAggregatorImpl__client is fake_initializer.data_aggregator_client # Corrected attribute
+    assert (
+        aggregator_in_factory._RemoteDataAggregatorImpl__thread_pool
+        is fake_executor
+    )  # Corrected attribute
+    assert (
+        aggregator_in_factory._RemoteDataAggregatorImpl__client
+        is fake_initializer.data_aggregator_client
+    )  # Corrected attribute
     # The RemoteDataAggregatorImpl takes timeout OR tracker.
     # LocalRuntimeFactoryFactory._create_pair passes timeout, so tracker is created internally.
     # We need to inspect the tracker's timeout if timeout is passed to RemoteDataAggregatorImpl
     # For now, let's assume the direct timeout field on the tracker if it exists or check the tracker itself.
     # The current RemoteDataAggregatorImpl.__init__ creates a tracker if timeout is given.
     # Let's verify the tracker's timeout.
-    assert aggregator_in_factory._RemoteDataAggregatorImpl__tracker._DataTimeoutTracker__timeout_seconds == fake_initializer.timeout_seconds
+    assert (
+        aggregator_in_factory._RemoteDataAggregatorImpl__tracker._DataTimeoutTracker__timeout_seconds
+        == fake_initializer.timeout_seconds
+    )
 
 
-
-def test_create_pair_async_poller_wiring(factory_factory, fake_initializer, patch_run_on_event_loop):
+def test_create_pair_async_poller_wiring(
+    factory_factory, fake_initializer, patch_run_on_event_loop
+):
     """Tests the creation and wiring of AsyncPoller."""
     wrapper, factory = factory_factory._create_pair(fake_initializer)
 
@@ -152,35 +181,48 @@ def test_create_pair_async_poller_wiring(factory_factory, fake_initializer, patc
     assert wrapper._RuntimeWrapper__event_poller is poller_in_factory
 
 
-def test_create_pair_runtime_command_bridge_wiring(factory_factory, fake_initializer, patch_run_on_event_loop):
+def test_create_pair_runtime_command_bridge_wiring(
+    factory_factory, fake_initializer, patch_run_on_event_loop
+):
     """Tests the creation and wiring of RuntimeCommandBridge."""
     wrapper, factory = factory_factory._create_pair(fake_initializer)
 
     # Check LocalRuntimeFactory's bridge
-    assert isinstance(factory._LocalRuntimeFactory__bridge, RuntimeCommandBridge)
+    assert isinstance(
+        factory._LocalRuntimeFactory__bridge, RuntimeCommandBridge
+    )
     bridge_in_factory = factory._LocalRuntimeFactory__bridge
 
     # Check RuntimeWrapper's bridge
     assert wrapper._RuntimeWrapper__bridge is bridge_in_factory
 
 
-def test_create_pair_local_runtime_factory_initializer(factory_factory, fake_initializer, patch_run_on_event_loop):
+def test_create_pair_local_runtime_factory_initializer(
+    factory_factory, fake_initializer, patch_run_on_event_loop
+):
     """Tests that LocalRuntimeFactory is created with the correct initializer."""
     _wrapper, factory = factory_factory._create_pair(fake_initializer)
     assert factory._LocalRuntimeFactory__initializer is fake_initializer
 
+
 # Further tests could verify RuntimeWrapper arguments if necessary,
 # but they are largely covered by checking the shared instances of poller, aggregator, and bridge.
+
 
 # Test for __init__ of LocalRuntimeFactoryFactory itself
 def test_local_runtime_factory_factory_init():
     fake_exec = FakeThreadPoolExecutor()
     factory_fac = LocalRuntimeFactoryFactory(thread_pool=fake_exec)
-    assert factory_fac._LocalRuntimeFactoryFactory__thread_pool is fake_exec # Corrected attribute
+    assert (
+        factory_fac._LocalRuntimeFactoryFactory__thread_pool is fake_exec
+    )  # Corrected attribute
 
     real_exec = ThreadPoolExecutor(max_workers=1)
     factory_fac_real_exec = LocalRuntimeFactoryFactory(thread_pool=real_exec)
-    assert factory_fac_real_exec._LocalRuntimeFactoryFactory__thread_pool is real_exec
+    assert (
+        factory_fac_real_exec._LocalRuntimeFactoryFactory__thread_pool
+        is real_exec
+    )
     real_exec.shutdown()
 
 
@@ -196,7 +238,9 @@ class FakeRuntimeFactoryFactoryClient(LocalRuntimeFactoryFactory.Client):
 
 
 # Test that the _create_pair method is correctly called via the public create_factory interface
-def test_create_factory_calls_create_pair(factory_factory, fake_initializer, patch_run_on_event_loop):
+def test_create_factory_calls_create_pair(
+    factory_factory, fake_initializer, patch_run_on_event_loop
+):
     """Tests that create_factory calls _create_pair and wires client."""
     fake_client = FakeRuntimeFactoryFactoryClient()
 
@@ -207,12 +251,20 @@ def test_create_factory_calls_create_pair(factory_factory, fake_initializer, pat
     assert fake_client.handle_ready_called
     handle = fake_client.received_handle
 
-    assert isinstance(handle, RuntimeWrapper) # wrapper is the handle
+    assert isinstance(handle, RuntimeWrapper)  # wrapper is the handle
     assert isinstance(factory, LocalRuntimeFactory)
     assert factory._LocalRuntimeFactory__initializer is fake_initializer
-    assert handle._RuntimeWrapper__aggregator is factory._LocalRuntimeFactory__data_reader # Corrected attribute
-    assert handle._RuntimeWrapper__event_poller is factory._LocalRuntimeFactory__event_poller
-    assert handle._RuntimeWrapper__bridge is factory._LocalRuntimeFactory__bridge
+    assert (
+        handle._RuntimeWrapper__aggregator
+        is factory._LocalRuntimeFactory__data_reader
+    )  # Corrected attribute
+    assert (
+        handle._RuntimeWrapper__event_poller
+        is factory._LocalRuntimeFactory__event_poller
+    )
+    assert (
+        handle._RuntimeWrapper__bridge is factory._LocalRuntimeFactory__bridge
+    )
 
     # Check that the initializer passed to LocalRuntimeFactory has the correct RuntimeConfig attributes
     # based on the fake_initializer passed to _create_pair.
@@ -226,5 +278,10 @@ def test_create_factory_calls_create_pair(factory_factory, fake_initializer, pat
     else:
         raise ValueError("Invalid service type in fake_initializer for test")
     assert factory._RuntimeConfig__service_type == expected_service_type
-    assert factory.data_aggregator_client == fake_initializer.data_aggregator_client # property access
-    assert factory.timeout_seconds == fake_initializer.timeout_seconds # property access
+    assert (
+        factory.data_aggregator_client
+        == fake_initializer.data_aggregator_client
+    )  # property access
+    assert (
+        factory.timeout_seconds == fake_initializer.timeout_seconds
+    )  # property access

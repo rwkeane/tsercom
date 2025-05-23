@@ -4,13 +4,15 @@ import importlib
 # Module to be tested & whose attributes will be patched
 import tsercom.api.split_process.shim_runtime_handle as shim_module
 from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
-from tsercom.api.runtime_command import RuntimeCommand # Actual enum
+from tsercom.api.runtime_command import RuntimeCommand  # Actual enum
 
 # --- Fake Classes for Dependencies ---
 
+
 class FakeThreadWatcher:
     def __init__(self):
-        self.name = "FakeThreadWatcher" # For debugging
+        self.name = "FakeThreadWatcher"  # For debugging
+
 
 class FakeMultiprocessQueueSink:
     def __init__(self, name="FakeQueueSink"):
@@ -19,17 +21,19 @@ class FakeMultiprocessQueueSink:
         self.put_blocking_call_count = 0
         self.put_nowait_called_with = None
         self.put_nowait_call_count = 0
-        self._put_nowait_return_value = True # Default to success
+        self._put_nowait_return_value = True  # Default to success
 
-    def put_blocking(self, data, timeout=None): # ShimRuntimeHandle uses default timeout
+    def put_blocking(
+        self, data, timeout=None
+    ):  # ShimRuntimeHandle uses default timeout
         self.put_blocking_called_with = data
         self.put_blocking_call_count += 1
         # Simulate success, real queue might raise Full
-        
+
     def put_nowait(self, data):
         self.put_nowait_called_with = data
         self.put_nowait_call_count += 1
-        return self._put_nowait_return_value # Real queue returns bool
+        return self._put_nowait_return_value  # Real queue returns bool
 
     def set_put_nowait_return_value(self, return_value: bool):
         self._put_nowait_return_value = return_value
@@ -40,6 +44,7 @@ class FakeMultiprocessQueueSource:
         self.name = name
         # Not used by ShimRuntimeHandle directly, but DataReaderSource uses it
 
+
 class FakeRemoteDataAggregatorImpl:
     def __init__(self):
         self.on_data_ready_called_with = None
@@ -49,8 +54,10 @@ class FakeRemoteDataAggregatorImpl:
         self.on_data_ready_called_with = new_data
         self.on_data_ready_call_count += 1
 
+
 # --- Fake for DataReaderSource (to be patched) ---
-g_fake_data_reader_source_instances = [] # Global to track instances
+g_fake_data_reader_source_instances = []  # Global to track instances
+
 
 class FakeDataReaderSource:
     def __init__(self, watcher, queue, data_reader):
@@ -70,10 +77,14 @@ class FakeDataReaderSource:
     def stop(self):
         self.stop_called = True
         self.stop_call_count += 1
-    
+
     @classmethod
     def get_last_instance(cls):
-        return g_fake_data_reader_source_instances[-1] if g_fake_data_reader_source_instances else None
+        return (
+            g_fake_data_reader_source_instances[-1]
+            if g_fake_data_reader_source_instances
+            else None
+        )
 
     @classmethod
     def clear_instances(cls):
@@ -83,81 +94,114 @@ class FakeDataReaderSource:
 
 # --- Pytest Fixtures ---
 
+
 @pytest.fixture
 def fake_watcher():
     return FakeThreadWatcher()
+
 
 @pytest.fixture
 def fake_event_q_sink():
     return FakeMultiprocessQueueSink(name="EventQSink")
 
+
 @pytest.fixture
 def fake_data_q_source():
     return FakeMultiprocessQueueSource(name="DataQSource")
+
 
 @pytest.fixture
 def fake_command_q_sink():
     return FakeMultiprocessQueueSink(name="CommandQSink")
 
+
 @pytest.fixture
 def fake_aggregator():
     return FakeRemoteDataAggregatorImpl()
 
-@pytest.fixture(autouse=True) # Ensure instance list is cleared for each test
+
+@pytest.fixture(autouse=True)  # Ensure instance list is cleared for each test
 def clear_drs_instances():
     FakeDataReaderSource.clear_instances()
+
 
 @pytest.fixture
 def patch_data_reader_source_in_shim_module(request):
     """Monkeypatches DataReaderSource in the shim_runtime_handle module's namespace."""
     original_class = getattr(shim_module, "DataReaderSource", None)
     setattr(shim_module, "DataReaderSource", FakeDataReaderSource)
-    
+
     def cleanup():
         if original_class:
             setattr(shim_module, "DataReaderSource", original_class)
-        elif hasattr(shim_module, "DataReaderSource"): # If we added it
-             delattr(shim_module, "DataReaderSource")
+        elif hasattr(shim_module, "DataReaderSource"):  # If we added it
+            delattr(shim_module, "DataReaderSource")
+
     request.addfinalizer(cleanup)
 
 
 @pytest.fixture
-def handle_block_true(fake_watcher, fake_event_q_sink, fake_data_q_source, 
-                      fake_command_q_sink, fake_aggregator, patch_data_reader_source_in_shim_module):
+def handle_block_true(
+    fake_watcher,
+    fake_event_q_sink,
+    fake_data_q_source,
+    fake_command_q_sink,
+    fake_aggregator,
+    patch_data_reader_source_in_shim_module,
+):
     # patch_data_reader_source_in_shim_module ensures FakeDataReaderSource is used
-    return ShimRuntimeHandle[str, str]( # Assuming str for TDataType and TEventType for simplicity
+    return ShimRuntimeHandle[
+        str, str
+    ](  # Assuming str for TDataType and TEventType for simplicity
         thread_watcher=fake_watcher,
         event_queue=fake_event_q_sink,
         data_queue=fake_data_q_source,
         runtime_command_queue=fake_command_q_sink,
         data_aggregator=fake_aggregator,
-        block=True
+        block=True,
     )
 
+
 @pytest.fixture
-def handle_block_false(fake_watcher, fake_event_q_sink, fake_data_q_source, 
-                       fake_command_q_sink, fake_aggregator, patch_data_reader_source_in_shim_module):
+def handle_block_false(
+    fake_watcher,
+    fake_event_q_sink,
+    fake_data_q_source,
+    fake_command_q_sink,
+    fake_aggregator,
+    patch_data_reader_source_in_shim_module,
+):
     return ShimRuntimeHandle[str, str](
         thread_watcher=fake_watcher,
         event_queue=fake_event_q_sink,
         data_queue=fake_data_q_source,
         runtime_command_queue=fake_command_q_sink,
         data_aggregator=fake_aggregator,
-        block=False # Explicitly false, also default
+        block=False,  # Explicitly false, also default
     )
+
 
 @pytest.fixture
 def test_event_data():
     return "sample_event"
 
+
 @pytest.fixture
 def test_exposed_data():
-    return "sample_exposed_data" # Simple string for testing
+    return "sample_exposed_data"  # Simple string for testing
+
 
 # --- Unit Tests ---
 
-def test_init(fake_watcher, fake_event_q_sink, fake_data_q_source, 
-              fake_command_q_sink, fake_aggregator, patch_data_reader_source_in_shim_module):
+
+def test_init(
+    fake_watcher,
+    fake_event_q_sink,
+    fake_data_q_source,
+    fake_command_q_sink,
+    fake_aggregator,
+    patch_data_reader_source_in_shim_module,
+):
     """Test ShimRuntimeHandle.__init__."""
     # Instantiate within the test to ensure patch is active via fixture argument
     handle = ShimRuntimeHandle(
@@ -166,38 +210,56 @@ def test_init(fake_watcher, fake_event_q_sink, fake_data_q_source,
         data_queue=fake_data_q_source,
         runtime_command_queue=fake_command_q_sink,
         data_aggregator=fake_aggregator,
-        block=True # Explicit block value for this test instance
+        block=True,  # Explicit block value for this test instance
     )
 
     # thread_watcher is not stored directly on ShimRuntimeHandle, its usage is verified via DataReaderSource init
     assert handle._ShimRuntimeHandle__event_queue is fake_event_q_sink
-    assert handle._ShimRuntimeHandle__runtime_command_queue is fake_command_q_sink
-    assert handle._ShimRuntimeHandle__data_aggregtor is fake_aggregator # Corrected attribute name (with typo)
-    assert handle._ShimRuntimeHandle__block is True # Corrected attribute name
+    assert (
+        handle._ShimRuntimeHandle__runtime_command_queue is fake_command_q_sink
+    )
+    assert (
+        handle._ShimRuntimeHandle__data_aggregtor is fake_aggregator
+    )  # Corrected attribute name (with typo)
+    assert handle._ShimRuntimeHandle__block is True  # Corrected attribute name
 
     # Verify DataReaderSource instantiation
     drs_instance = FakeDataReaderSource.get_last_instance()
     assert drs_instance is not None
     assert drs_instance.watcher is fake_watcher
     assert drs_instance.queue is fake_data_q_source
-    assert drs_instance.data_reader is fake_aggregator # ShimRuntimeHandle passes its aggregator
-    assert handle._ShimRuntimeHandle__data_reader_source is drs_instance # Corrected attribute name
+    assert (
+        drs_instance.data_reader is fake_aggregator
+    )  # ShimRuntimeHandle passes its aggregator
+    assert (
+        handle._ShimRuntimeHandle__data_reader_source is drs_instance
+    )  # Corrected attribute name
 
 
-def test_start(handle_block_false, fake_command_q_sink): # Using handle_block_false, block doesn't matter for start
+def test_start(
+    handle_block_false, fake_command_q_sink
+):  # Using handle_block_false, block doesn't matter for start
     """Test ShimRuntimeHandle.start()."""
-    drs_instance = FakeDataReaderSource.get_last_instance() # Get instance created by fixture
-    assert drs_instance is not None, "FakeDataReaderSource not instantiated by handle fixture"
+    drs_instance = (
+        FakeDataReaderSource.get_last_instance()
+    )  # Get instance created by fixture
+    assert (
+        drs_instance is not None
+    ), "FakeDataReaderSource not instantiated by handle fixture"
 
     handle_block_false.start()
 
     assert drs_instance.start_called
     assert drs_instance.start_call_count == 1
     assert fake_command_q_sink.put_blocking_call_count == 1
-    assert fake_command_q_sink.put_blocking_called_with == RuntimeCommand.kStart
+    assert (
+        fake_command_q_sink.put_blocking_called_with == RuntimeCommand.kStart
+    )
 
 
-def test_on_event_block_true(handle_block_true, fake_event_q_sink, test_event_data):
+def test_on_event_block_true(
+    handle_block_true, fake_event_q_sink, test_event_data
+):
     """Test on_event() when block is True."""
     handle_block_true.on_event(test_event_data)
 
@@ -206,9 +268,11 @@ def test_on_event_block_true(handle_block_true, fake_event_q_sink, test_event_da
     assert fake_event_q_sink.put_nowait_call_count == 0
 
 
-def test_on_event_block_false(handle_block_false, fake_event_q_sink, test_event_data):
+def test_on_event_block_false(
+    handle_block_false, fake_event_q_sink, test_event_data
+):
     """Test on_event() when block is False."""
-    fake_event_q_sink.set_put_nowait_return_value(True) # Simulate success
+    fake_event_q_sink.set_put_nowait_return_value(True)  # Simulate success
     handle_block_false.on_event(test_event_data)
 
     assert fake_event_q_sink.put_nowait_call_count == 1
@@ -216,10 +280,12 @@ def test_on_event_block_false(handle_block_false, fake_event_q_sink, test_event_
     assert fake_event_q_sink.put_blocking_call_count == 0
 
 
-def test_on_event_block_false_queue_full(handle_block_false, fake_event_q_sink, test_event_data):
+def test_on_event_block_false_queue_full(
+    handle_block_false, fake_event_q_sink, test_event_data
+):
     """Test on_event() when block is False and queue is full (put_nowait returns False)."""
-    fake_event_q_sink.set_put_nowait_return_value(False) # Simulate queue full
-    
+    fake_event_q_sink.set_put_nowait_return_value(False)  # Simulate queue full
+
     # ShimRuntimeHandle's on_event for block=False does not check the return of put_nowait,
     # so no exception is expected here from ShimRuntimeHandle itself.
     # The real MultiprocessQueueSink might log, but ShimRuntimeHandle doesn't act on the bool.
@@ -230,7 +296,9 @@ def test_on_event_block_false_queue_full(handle_block_false, fake_event_q_sink, 
     assert fake_event_q_sink.put_blocking_call_count == 0
 
 
-def test_stop(handle_block_false, fake_command_q_sink): # Using handle_block_false, block doesn't matter for stop
+def test_stop(
+    handle_block_false, fake_command_q_sink
+):  # Using handle_block_false, block doesn't matter for stop
     """Test ShimRuntimeHandle.stop()."""
     drs_instance = FakeDataReaderSource.get_last_instance()
     assert drs_instance is not None
@@ -252,8 +320,10 @@ def test_on_data_ready(handle_block_false, fake_aggregator, test_exposed_data):
     # DataReaderSource calls aggregator._on_data_ready.
     # The test should be: ShimRuntimeHandle IS A RemoteDataAggregator.Client
     # So, ShimRuntimeHandle._on_data_ready IS the method to test.
-    
-    handle_block_false._on_data_ready(test_exposed_data) # Call the method on ShimRuntimeHandle which calls self.__data_aggregtor._on_data_ready
+
+    handle_block_false._on_data_ready(
+        test_exposed_data
+    )  # Call the method on ShimRuntimeHandle which calls self.__data_aggregtor._on_data_ready
 
     assert fake_aggregator.on_data_ready_call_count == 1
     assert fake_aggregator.on_data_ready_called_with == test_exposed_data

@@ -90,7 +90,9 @@ def fake_grpc_channel_factory():
     return FakeGrpcChannelFactory()
 
 
-def test_local_runtime_factory_init(fake_initializer, fake_data_reader, fake_event_poller, fake_bridge):
+def test_local_runtime_factory_init(
+    fake_initializer, fake_data_reader, fake_event_poller, fake_bridge
+):
     """Tests the __init__ method of LocalRuntimeFactory."""
     factory = LocalRuntimeFactory(
         initializer=fake_initializer,

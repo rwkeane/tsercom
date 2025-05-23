@@ -1,6 +1,7 @@
 import pytest
 
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
+
 # from tsercom.data.exposed_data import ExposedData # Not strictly needed if we use generic data for tests
 # from tsercom.utils.multiprocess_queue_sink import MultiprocessQueueSink # This is what we're faking
 
@@ -41,7 +42,9 @@ def test_on_data_ready_lossy_queue_not_full(fake_queue, test_data):
     - No exception should be raised.
     """
     fake_queue.set_put_nowait_return_value(True)
-    sink = DataReaderSink[str](fake_queue)  # Explicitly typing with str for TDataType
+    sink = DataReaderSink[str](
+        fake_queue
+    )  # Explicitly typing with str for TDataType
 
     sink._on_data_ready(test_data)
 
@@ -89,7 +92,9 @@ def test_on_data_ready_not_lossy_queue_not_full(fake_queue, test_data):
     # No exception expected
 
 
-def test_on_data_ready_not_lossy_queue_full_raises_assertion_error(fake_queue, test_data):
+def test_on_data_ready_not_lossy_queue_full_raises_assertion_error(
+    fake_queue, test_data
+):
     """
     Case 2: is_lossy=False, Queue Full
     - Configure FakeMultiprocessQueueSink.put_nowait to return False.
@@ -110,9 +115,13 @@ def test_on_data_ready_not_lossy_queue_full_raises_assertion_error(fake_queue, t
 # Test constructor default for is_lossy
 def test_constructor_default_is_lossy(fake_queue):
     sink = DataReaderSink[str](fake_queue)
-    assert sink._DataReaderSink__is_lossy is True # Accessing private for verification
+    assert (
+        sink._DataReaderSink__is_lossy is True
+    )  # Accessing private for verification
 
 
 def test_constructor_is_lossy_false(fake_queue):
     sink = DataReaderSink[str](fake_queue, is_lossy=False)
-    assert sink._DataReaderSink__is_lossy is False # Accessing private for verification
+    assert (
+        sink._DataReaderSink__is_lossy is False
+    )  # Accessing private for verification
