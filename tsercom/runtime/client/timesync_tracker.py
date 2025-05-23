@@ -28,7 +28,7 @@ class TimeSyncTracker:
 
     def on_disconnect(self, ip: str):
         assert ip in self.__map
-        
+
         # Retrieve and update the count.
         # Note: Tuples are immutable, so we have to create a new one.
         current_count, client_instance = self.__map[ip]

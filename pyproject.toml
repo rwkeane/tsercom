@@ -79,6 +79,7 @@ exclude = [
     "**/*_pb2.py",     # Clearer exclusion for .py files
     "**/*_pb2.pyi",    # Explicitly exclude .pyi files
     "**/*_pb2_grpc.py", # Clearer exclusion
+    "**/*_unittest.py", # Clearer exclusion
 ]
 fixable = ["ALL"]
 

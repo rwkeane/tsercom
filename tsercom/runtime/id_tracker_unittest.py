@@ -1,8 +1,6 @@
 """Tests for IdTracker."""
 
 import pytest
-from unittest import mock
-import uuid
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.runtime.id_tracker import IdTracker
@@ -15,7 +13,7 @@ class TestIdTracker:
         """Test adding and retrieving an ID."""
         tracker = IdTracker()
         caller_id = CallerIdentifier.random()
-        ip_address = '127.0.0.1'
+        ip_address = "127.0.0.1"
         port = 8080
         tracker.add(caller_id, ip_address, port)
 
@@ -26,20 +24,22 @@ class TestIdTracker:
         """Test try_get method."""
         tracker = IdTracker()
         caller_id = CallerIdentifier.random()
-        ip_address = '127.0.0.1'
+        ip_address = "127.0.0.1"
         port = 8080
         tracker.add(caller_id, ip_address, port)
 
         assert tracker.try_get(address=ip_address, port=port) == caller_id
         assert tracker.try_get(id=caller_id) == (ip_address, port)
-        assert tracker.try_get(address='nonexistent', port=123) is None
-        assert tracker.try_get(id=CallerIdentifier.random()) is None # Test with a new random ID
+        assert tracker.try_get(address="nonexistent", port=123) is None
+        assert (
+            tracker.try_get(id=CallerIdentifier.random()) is None
+        )  # Test with a new random ID
 
     def test_get_non_existing(self):
         """Test get method for non-existing entries."""
         tracker = IdTracker()
         with pytest.raises(KeyError):
-            tracker.get(address='127.0.0.1', port=8080)
+            tracker.get(address="127.0.0.1", port=8080)
         with pytest.raises(KeyError):
             tracker.get(id=CallerIdentifier.random())
 
@@ -47,22 +47,22 @@ class TestIdTracker:
         """Test has_id and has_address methods."""
         tracker = IdTracker()
         caller_id = CallerIdentifier.random()
-        ip_address = '127.0.0.1'
+        ip_address = "127.0.0.1"
         port = 8080
         tracker.add(caller_id, ip_address, port)
 
         assert tracker.has_id(caller_id)
         assert not tracker.has_id(CallerIdentifier.random())
         assert tracker.has_address(ip_address, port)
-        assert not tracker.has_address('nonexistent', 123)
+        assert not tracker.has_address("nonexistent", 123)
 
     def test_add_duplicate_id_raises_key_error(self):
         """Test adding a duplicate ID raises KeyError."""
         tracker = IdTracker()
         caller_id1 = CallerIdentifier.random()
-        ip_address1 = '127.0.0.1'
+        ip_address1 = "127.0.0.1"
         port1 = 8080
-        ip_address2 = '192.168.1.1'
+        ip_address2 = "192.168.1.1"
         port2 = 9090
         tracker.add(caller_id1, ip_address1, port1)
         with pytest.raises(KeyError):
@@ -73,7 +73,7 @@ class TestIdTracker:
         tracker = IdTracker()
         caller_id1 = CallerIdentifier.random()
         caller_id2 = CallerIdentifier.random()
-        ip_address = '127.0.0.1'
+        ip_address = "127.0.0.1"
         port = 8080
         tracker.add(caller_id1, ip_address, port)
         with pytest.raises(KeyError):
@@ -84,13 +84,13 @@ class TestIdTracker:
         tracker = IdTracker()
         assert len(tracker) == 0
         caller_id1 = CallerIdentifier.random()
-        ip_address1 = '127.0.0.1'
+        ip_address1 = "127.0.0.1"
         port1 = 8080
         tracker.add(caller_id1, ip_address1, port1)
         assert len(tracker) == 1
-        
+
         caller_id2 = CallerIdentifier.random()
-        ip_address2 = '192.168.1.1'
+        ip_address2 = "192.168.1.1"
         port2 = 9090
         tracker.add(caller_id2, ip_address2, port2)
         assert len(tracker) == 2
@@ -98,12 +98,12 @@ class TestIdTracker:
     def test_iter(self):
         """Test __iter__ method."""
         tracker = IdTracker()
-        
+
         ids_to_add = {CallerIdentifier.random() for _ in range(3)}
         addresses = [
-            ('127.0.0.1', 8080),
-            ('127.0.0.2', 8081),
-            ('127.0.0.3', 8082),
+            ("127.0.0.1", 8080),
+            ("127.0.0.2", 8081),
+            ("127.0.0.3", 8082),
         ]
 
         added_ids = set()
@@ -126,7 +126,7 @@ class TestIdTracker:
     def test_integration_add_get_has_len(self):
         """Test a sequence of operations: add, get, has_id, has_address, len."""
         tracker = IdTracker()
-        
+
         # Initial state
         assert len(tracker) == 0
         random_id_init = CallerIdentifier.random()
@@ -137,14 +137,16 @@ class TestIdTracker:
         caller1 = CallerIdentifier.random()
         addr1 = ("10.0.0.1", 1001)
         tracker.add(caller1, addr1[0], addr1[1])
-        
+
         assert len(tracker) == 1
         assert tracker.has_id(caller1)
-        assert not tracker.has_id(random_id_init) # Should still be false for a different ID
+        assert not tracker.has_id(
+            random_id_init
+        )  # Should still be false for a different ID
         assert tracker.has_address(addr1[0], addr1[1])
         assert tracker.get(id=caller1) == addr1
         assert tracker.get(address=addr1[0], port=addr1[1]) == caller1
-        
+
         # Add second entry
         caller2 = CallerIdentifier.random()
         addr2 = ("10.0.0.2", 1002)
@@ -160,7 +162,7 @@ class TestIdTracker:
         assert tracker.has_id(caller1)
         assert tracker.has_address(addr1[0], addr1[1])
         assert tracker.get(id=caller1) == addr1
-        
+
         # Test try_get for existing and non-existing
         assert tracker.try_get(id=caller1) == addr1
         non_existing_caller = CallerIdentifier.random()
@@ -181,11 +183,15 @@ class TestIdTracker:
 
         # Test KeyErrors for duplicate adds
         caller_temp = CallerIdentifier.random()
-        with pytest.raises(KeyError): # Duplicate address
+        with pytest.raises(KeyError):  # Duplicate address
             tracker.add(caller_temp, addr1[0], addr1[1])
-        with pytest.raises(KeyError): # Duplicate ID
+        with pytest.raises(KeyError):  # Duplicate ID
             tracker.add(caller1, "10.0.0.4", 1004)
-        
-        assert len(tracker) == 2 # Length should remain unchanged after failed adds
+
+        assert (
+            len(tracker) == 2
+        )  # Length should remain unchanged after failed adds
+
+
 # Removed accidental backticks from previous edit
 # ``` was here
