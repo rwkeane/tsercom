@@ -1,7 +1,7 @@
 import grpc
 
 
-def get_client_ip(context: grpc.aio.ServicerContext) -> str | None:
+def get_client_ip(context: "grpc.aio.ServicerContext") -> str | None:
     peer_address = context.peer()
 
     # Extract the IP address based on the format
@@ -15,7 +15,7 @@ def get_client_ip(context: grpc.aio.ServicerContext) -> str | None:
         return None  # Unknown format
 
 
-def get_client_port(context: grpc.aio.ServicerContext) -> int | None:
+def get_client_port(context: "grpc.aio.ServicerContext") -> int | None:
     peer_address = context.peer()
 
     try:
