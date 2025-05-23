@@ -1,9 +1,8 @@
 import typing
-from typing import Optional # Keep this for Optional
+from typing import Optional  # Keep this for Optional
 import uuid
 
-# Import for type hinting if needed, but we'll use string literals
-# from tsercom.caller_id.proto import CallerId
+from tsercom.caller_id.proto import CallerId
 
 
 class CallerIdentifier:
@@ -29,7 +28,9 @@ class CallerIdentifier:
         return CallerIdentifier(id)
 
     @classmethod
-    def try_parse(cls, id: typing.Union[str, "CallerId"]) -> Optional["CallerIdentifier"]:
+    def try_parse(
+        cls, id: typing.Union[str, CallerId]
+    ) -> Optional["CallerIdentifier"]:
         """
         Tries to parse |id| into a GUID, returning an insance of this object on
         success and None on failure.
@@ -37,7 +38,9 @@ class CallerIdentifier:
         # Check if it's the gRPC-like object by checking for 'id' attribute
         # instead of strict isinstance, to better work with mocks.
         # The actual tsercom.caller_id.proto.CallerId is checked by string literal later if needed.
-        if hasattr(id, 'id') and not isinstance(id, str): # Check it's not a string itself
+        if hasattr(id, "id") and not isinstance(
+            id, str
+        ):  # Check it's not a string itself
             # Heuristic: if it has an 'id' attribute, assume it's gRPC-like.
             # The real check for CallerId type is implicitly handled if it's a real proto object.
             # For mocks, this allows duck typing.
@@ -64,12 +67,16 @@ class CallerIdentifier:
             # For now, I'll assume the import is there.
             try:
                 # This will only work if CallerId is the actual protobuf type or a perfect mock class
-                from tsercom.caller_id.proto import CallerId as ActualProtoCallerId
+                from tsercom.caller_id.proto import (
+                    CallerId as ActualProtoCallerId,
+                )
+
                 if isinstance(id, ActualProtoCallerId):
                     id = id.id
-            except ImportError: # If actual protobufs are not there, this path won't be taken for real objects
+            except (
+                ImportError
+            ):  # If actual protobufs are not there, this path won't be taken for real objects
                 pass
-
 
         if not isinstance(id, str):
             return None
@@ -80,12 +87,15 @@ class CallerIdentifier:
         except ValueError:
             return None
 
-    def to_grpc_type(self) -> "CallerId":
+    def to_grpc_type(self) -> CallerId:
         """
         Returns a gRPC CallerId representation of this object.
         """
         # This will use the globally available CallerId (real or mocked)
-        from tsercom.caller_id.proto import CallerId as ActualProtoCallerId # Ensure it's using the (potentially mocked) import
+        from tsercom.caller_id.proto import (
+            CallerId as ActualProtoCallerId,
+        )  # Ensure it's using the (potentially mocked) import
+
         return ActualProtoCallerId(id=str(self.__id))
 
     def __hash__(self) -> int:

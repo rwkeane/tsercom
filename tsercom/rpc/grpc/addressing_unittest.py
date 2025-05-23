@@ -21,8 +21,8 @@ mock_grpc_module.aio = mock_aio
 # Inject the mock_grpc_module into sys.modules.
 # This ensures that when 'tsercom.rpc.grpc.addressing' (or any other module)
 # tries to 'import grpc' or 'from grpc import aio', it gets our mock.
-sys.modules['grpc'] = mock_grpc_module
-sys.modules['grpc.aio'] = mock_aio
+sys.modules["grpc"] = mock_grpc_module
+sys.modules["grpc.aio"] = mock_aio
 # --- End of GRPC mock ---
 
 # Now we can safely import the functions to be tested
@@ -43,6 +43,7 @@ def mock_context_instance() -> MagicMock:
     # which is now resolved to our MockServicerContext due to sys.modules patching.
     return context_instance
 
+
 # Tests for get_client_ip
 @pytest.mark.parametrize(
     "peer_string, expected_ip",
@@ -59,13 +60,16 @@ def mock_context_instance() -> MagicMock:
         # Additional tricky cases
         ("ipv4:127.0.0.1:8080", "127.0.0.1"),
         ("ipv6:[::ffff:192.0.2.128]:80", "::ffff:192.0.2.128"),
-        ("ipv4::12345", None), 
+        ("ipv4::12345", None),
         ("ipv6:::12345", None),
     ],
 )
-def test_get_client_ip(mock_context_instance: MagicMock, peer_string: str, expected_ip: str | None):
+def test_get_client_ip(
+    mock_context_instance: MagicMock, peer_string: str, expected_ip: str | None
+):
     mock_context_instance.peer.return_value = peer_string
     assert get_client_ip(mock_context_instance) == expected_ip
+
 
 # Tests for get_client_port
 @pytest.mark.parametrize(
@@ -84,6 +88,10 @@ def test_get_client_ip(mock_context_instance: MagicMock, peer_string: str, expec
         ("ipv4:1.2.3.4:12345extra", None),
     ],
 )
-def test_get_client_port(mock_context_instance: MagicMock, peer_string: str, expected_port: int | None):
+def test_get_client_port(
+    mock_context_instance: MagicMock,
+    peer_string: str,
+    expected_port: int | None,
+):
     mock_context_instance.peer.return_value = peer_string
     assert get_client_port(mock_context_instance) == expected_port

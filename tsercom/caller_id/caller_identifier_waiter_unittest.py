@@ -19,7 +19,10 @@ async def test_set_then_get_id():
     # Get the ID
     retrieved_cid = await waiter.get_caller_id_async()
 
-    assert retrieved_cid is cid, "Retrieved CID should be the same as the one set."
+    assert (
+        retrieved_cid is cid
+    ), "Retrieved CID should be the same as the one set."
+
 
 @pytest.mark.asyncio
 async def test_get_then_set_id():
@@ -30,17 +33,17 @@ async def test_get_then_set_id():
     cid_to_set = CallerIdentifier.random()
 
     async def setter_task():
-        await asyncio.sleep(0.01) # Ensure get_caller_id_async starts waiting
+        await asyncio.sleep(0.01)  # Ensure get_caller_id_async starts waiting
         await waiter.set_caller_id(cid_to_set)
 
     # Concurrently get the ID and run the task that sets it
-    results = await asyncio.gather(
-        waiter.get_caller_id_async(),
-        setter_task()
-    )
+    results = await asyncio.gather(waiter.get_caller_id_async(), setter_task())
 
-    retrieved_cid = results[0] # Result from get_caller_id_async()
-    assert retrieved_cid is cid_to_set, "Retrieved CID should be the one set by the concurrent task."
+    retrieved_cid = results[0]  # Result from get_caller_id_async()
+    assert (
+        retrieved_cid is cid_to_set
+    ), "Retrieved CID should be the one set by the concurrent task."
+
 
 @pytest.mark.asyncio
 async def test_set_id_multiple_times_raises_assertion():
@@ -57,7 +60,7 @@ async def test_set_id_multiple_times_raises_assertion():
     # Second call with a different ID should raise AssertionError
     with pytest.raises(AssertionError):
         await waiter.set_caller_id(cid2)
-    
+
     # Also test that setting with the same ID raises AssertionError
     with pytest.raises(AssertionError):
         await waiter.set_caller_id(cid1)
@@ -82,10 +85,14 @@ async def test_has_id():
     waiter = CallerIdentifierWaiter()
 
     # Initially, __caller_id is None, so has_id (which implies "is ID slot empty / waiting for ID?") should be True.
-    assert await waiter.has_id() is True, "Initially, has_id should be True (waiting for ID)."
+    assert (
+        await waiter.has_id() is True
+    ), "Initially, has_id should be True (waiting for ID)."
 
     cid = CallerIdentifier.random()
     await waiter.set_caller_id(cid)
 
     # After setting, __caller_id is not None, so has_id should be False.
-    assert await waiter.has_id() is False, "After setting ID, has_id should be False."
+    assert (
+        await waiter.has_id() is False
+    ), "After setting ID, has_id should be False."
