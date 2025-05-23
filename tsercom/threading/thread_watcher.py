@@ -57,9 +57,12 @@ class ThreadWatcher(ErrorWatcher):
                 if len(self.__exceptions) == 0:
                     continue
 
-                raise ExceptionGroup(
-                    "Errors hit in async thread(s)!", self.__exceptions
-                )
+                # TODO: Change to ExceptionGroup.
+                # raise ExceptionGroup(
+                #     "Errors hit in async thread(s)!", self.__exceptions
+                # )
+
+                raise self.__exceptions[0]
 
     def check_for_exception(self) -> None:
         """
@@ -73,9 +76,12 @@ class ThreadWatcher(ErrorWatcher):
             if len(self.__exceptions) == 0:
                 return
 
-            raise ExceptionGroup(
-                "Errors hit in async thread(s)!", self.__exceptions
-            )
+            # TODO: Change to ExceptionGroup.
+            # raise ExceptionGroup(
+            #     "Errors hit in async thread(s)!", self.__exceptions
+            # )
+
+            raise self.__exceptions[0]
 
     def on_exception_seen(self, e: Exception) -> None:
         """
