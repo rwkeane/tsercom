@@ -29,8 +29,14 @@ class IdTracker:
         address: Optional[str] = None,
         port: Optional[int] = None,
     ):
-        assert (id is None) != (address is None), (id, address, port)
-        assert (address is None) == (port is None), (id, address, port)
+        if (id is None) == (address is None):
+            raise ValueError(
+                f"Exactly one of 'id' or 'address' must be provided to try_get. Got id={id}, address={address}."
+            )
+        if (address is None) != (port is None):
+            raise ValueError(
+                f"If 'address' is provided, 'port' must also be provided, and vice-versa. Got address={address}, port={port}."
+            )
 
         if id is not None:
             with self.__lock:
@@ -90,3 +96,23 @@ class IdTracker:
     def __iter__(self):
         with self.__lock:
             return self.__id_to_address.__iter__()
+
+    def remove(self, id: CallerIdentifier) -> bool:
+        """
+        Removes the given CallerIdentifier and its associated address/port
+        from the tracker.
+        Returns True if the id was found and removed, False otherwise.
+        """
+        with self.__lock:
+            if id not in self.__id_to_address:
+                return False
+
+            address_port_tuple = self.__id_to_address[id]
+            del self.__id_to_address[id]
+            if address_port_tuple in self.__address_to_id:
+                del self.__address_to_id[address_port_tuple]
+            # else:
+            # It's possible that the address_port_tuple is not in __address_to_id
+            # if there was some inconsistency, but we prioritize removing the id.
+            # Consider logging a warning here if such a state is unexpected.
+            return True

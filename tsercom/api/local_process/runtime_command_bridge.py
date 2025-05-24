@@ -40,7 +40,8 @@ class RuntimeCommandBridge:
         """
         with self.__runtime_mutex:
             # Ensure runtime is set only once.
-            assert self.__runtime is None, "Runtime already set"
+            if self.__runtime is not None:
+                raise RuntimeError("Runtime has already been set and cannot be changed.")
             self.__runtime = runtime
 
             # Check for and execute any pending command.

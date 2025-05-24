@@ -86,9 +86,10 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
                             RuntimeFactoryFactory.Client.
         """
         # Ensure the client is valid before proceeding.
-        assert client is not None, "Client cannot be None."
-        assert isinstance(client, RuntimeFactoryFactory.Client), \
-            f"Client must be an instance of RuntimeFactoryFactory.Client, got {type(client)}"
+        if client is None:
+            raise ValueError("Client argument cannot be None for create_factory.")
+        if not isinstance(client, RuntimeFactoryFactory.Client):
+            raise TypeError(f"Client must be an instance of RuntimeFactoryFactory.Client, got {type(client).__name__}.")
 
         # Delegate to the subclass's implementation to create the handle and factory.
         handle, factory = self._create_pair(initializer)

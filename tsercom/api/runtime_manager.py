@@ -102,7 +102,8 @@ class RuntimeManager(ErrorWatcher):
             AssertionError: If called after the manager has started.
         """
         # Ensure initializers are registered only before starting.
-        assert not self.has_started, "Cannot register initializers after starting."
+        if self.has_started:
+            raise RuntimeError("Cannot register runtime initializer after the manager has started.")
 
         handle_future = Future[RuntimeHandle[TDataType, TEventType]]()
         pair = InitializationPair[TDataType, TEventType](
@@ -139,17 +140,20 @@ class RuntimeManager(ErrorWatcher):
             AssertionError: If no event loop is running.
         """
         running_loop = get_running_loop_or_none()
-        assert running_loop is not None, "No running event loop found for start_in_process_async."
+        
+        if running_loop is None:
+            raise RuntimeError("Could not determine the current running event loop for start_in_process_async.")
+            
         # The `start_in_process` method doesn't return handles directly.
         # Handles are obtained via the Futures.
         self.start_in_process(running_loop)
+        
         # Collect handles from futures for convenience, if desired by original intent.
         # However, the current start_in_process doesn't facilitate this directly.
         # For now, aligning with start_in_process's void return.
         # If handles were to be returned, it would look like:
         # return [pair.handle_future.result() for pair in self.__initializers]
         return [pair.handle_future.result(timeout=0) for pair in self.__initializers if pair.handle_future.done()]
-
 
     def start_in_process(
         self,
@@ -168,7 +172,8 @@ class RuntimeManager(ErrorWatcher):
         Raises:
             AssertionError: If called after the manager has started.
         """
-        assert not self.has_started, "Manager has already started."
+        if self.has_started:
+            raise RuntimeError("RuntimeManager has already been started.")
         self.__has_started.start()
 
         # Basic initialization for in-process execution.
@@ -197,9 +202,11 @@ class RuntimeManager(ErrorWatcher):
     def start_out_of_process(self, start_as_daemon: bool = False) -> None:
         """Creates and starts registered runtimes in a new, separate process.
 
-        RuntimeHandles (obtained from `register_runtime_initializer`) are used
-        to forward commands to these remote runtimes. Data is received via
-        their `RemoteDataAggregator`.
+        Creates runtimes from all registered RuntimeInitializer instances, and
+        then starts each created instance in a new process separate from the
+        current process. Commands to such runtimes are forwarded from the
+        returned Runtime instances, and data received from it can be accessed
+        through the RemoteDataAggregator instance available in it.
 
         Args:
             start_as_daemon: If True, the new process will be a daemon process.
@@ -209,7 +216,9 @@ class RuntimeManager(ErrorWatcher):
         Raises:
             AssertionError: If called after the manager has started.
         """
-        assert not self.has_started, "Manager has already started."
+        if self.has_started:
+            raise RuntimeError("RuntimeManager has already been started.")
+            
         self.__has_started.start()
 
         # Set up a minimal local Tsercom event loop, primarily for utilities.
@@ -254,6 +263,10 @@ class RuntimeManager(ErrorWatcher):
 
     def run_until_exception(self) -> None:
         """Blocks execution until an exception is raised by any managed runtime.
+        
+        Runs the current thread until an exception as been raised, throwing the
+        exception upon receipt. This method is thread-safe and can be called
+        from any thread.
 
         This method is thread-safe. It re-raises the caught exception in the
         calling thread.
@@ -262,8 +275,11 @@ class RuntimeManager(ErrorWatcher):
             Any exception propagated from the managed runtimes.
             AssertionError: If the manager hasn't started or error watcher isn't set.
         """
-        assert self.has_started, "Manager has not been started."
-        assert self.__error_watcher is not None, "Error watcher not initialized."
+        if not self.has_started:
+            # Added this check for consistency, as __error_watcher depends on has_started
+            raise RuntimeError("RuntimeManager has not been started.")
+        if self.__error_watcher is None:
+            raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
 
         # Delegate to ThreadWatcher to wait for and propagate exceptions.
         self.__thread_watcher.run_until_exception()
@@ -282,7 +298,9 @@ class RuntimeManager(ErrorWatcher):
         if not self.has_started:
             return # No exceptions to check if not started.
 
-        assert self.__error_watcher is not None, "Error watcher not initialized but manager started."
+        if self.__error_watcher is None:
+            # This implies it wasn't started correctly or state is corrupted.
+            raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
 
         # Delegate to ThreadWatcher to check and propagate exceptions.
         self.__thread_watcher.check_for_exception()

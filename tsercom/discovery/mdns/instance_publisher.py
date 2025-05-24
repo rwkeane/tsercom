@@ -16,14 +16,21 @@ class InstancePublisher:
         readable_name: str | None = None,
         instance_name: str | None = None,
     ):
-        assert isinstance(port, int), type(port)
-        assert isinstance(service_type, str), type(service_type)
-        assert readable_name is None or isinstance(readable_name, str), type(
-            readable_name
-        )
-        assert instance_name is None or isinstance(instance_name, str), type(
-            instance_name
-        )
+        if port is None: # Though type hint implies non-optional, being explicit
+            raise ValueError("port argument cannot be None for InstancePublisher.")
+        if not isinstance(port, int):
+            raise TypeError(f"port must be an integer, got {type(port).__name__}.")
+
+        if service_type is None: # Though type hint implies non-optional, being explicit
+            raise ValueError("service_type argument cannot be None for InstancePublisher.")
+        if not isinstance(service_type, str):
+            raise TypeError(f"service_type must be a string, got {type(service_type).__name__}.")
+
+        if readable_name is not None and not isinstance(readable_name, str):
+            raise TypeError(f"readable_name must be a string or None, got {type(readable_name).__name__}.")
+
+        if instance_name is not None and not isinstance(instance_name, str):
+            raise TypeError(f"instance_name must be a string or None, got {type(instance_name).__name__}.")
 
         self.__name = readable_name
         if instance_name is None:
@@ -33,7 +40,8 @@ class InstancePublisher:
                 instance_name = instance_name[:15]
 
         txt_record = self._make_txt_record()
-        assert txt_record is not None
+        if txt_record is None: # Should not happen based on _make_txt_record logic
+            raise RuntimeError("_make_txt_record failed to produce a TXT record.")
         self.__record_publisher = RecordPublisher(
             instance_name, service_type, port, txt_record
         )

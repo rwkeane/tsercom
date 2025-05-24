@@ -1,5 +1,5 @@
 from typing import Callable, Optional
-
+import logging
 import grpc
 
 from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
@@ -40,5 +40,6 @@ class AsyncGetIdServer:
                 await self.__on_disconnect_handler._on_disconnect(e)
             if isinstance(e, AssertionError):
                 raise
+            logging.error(f"Error during GetId processing for context {context.peer() if context else 'Unknown'}: {e}", exc_info=True)
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION)
             return GetIdResponse()

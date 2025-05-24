@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import asyncio
 from functools import partial
 from typing import Callable, Generic, Optional, TypeVar
+import logging
 
 from tsercom.rpc.connection.client_reconnection_handler import (
     ClientReconnectionManager,
@@ -30,7 +31,8 @@ class ClientDisconnectionRetrier(
         watcher: ThreadWatcher,
         safe_disconnection_handler: Optional[Callable[[], None]] = None,
     ):
-        assert issubclass(type(watcher), ThreadWatcher)
+        if not issubclass(type(watcher), ThreadWatcher):
+            raise TypeError(f"Watcher must be a subclass of ThreadWatcher, got {type(watcher).__name__}.")
 
         self.__instance: TInstanceType | None = None
         self.__watcher = watcher
@@ -45,19 +47,24 @@ class ClientDisconnectionRetrier(
     async def start(self) -> bool:
         try:
             self.__event_loop = get_running_loop_or_none()
-            assert self.__event_loop is not None
+            if self.__event_loop is None:
+                raise RuntimeError("Event loop not initialized before starting ClientDisconnectionRetrier.")
 
             self.__instance = self._connect()
-            assert self.__instance is not None
-            assert issubclass(type(self.__instance), Stopable), type(
-                self.__instance
-            )
+            if self.__instance is None:
+                # _connect() failing to return an instance is an issue.
+                # The original assert would catch this.
+                # If _connect can raise specific connection errors, those will propagate.
+                # If it returns None without error, this is an internal issue.
+                raise RuntimeError("Instance not created successfully by _connect() during start.")
+            if not issubclass(type(self.__instance), Stopable):
+                raise TypeError(f"Connected instance must be Stopable, got {type(self.__instance).__name__}.")
             return True
         except Exception as error:
             if not is_server_unavailable_error(error):
                 raise error
 
-            print("Connection to server FAILED with error", error)
+            logging.warning(f"Initial connection to server FAILED with error: {error}")
             return False
 
     async def stop(self) -> None:
@@ -81,8 +88,8 @@ class ClientDisconnectionRetrier(
             )
             return
 
-        # This should never happen, but check just in case.
-        assert error is not None, "ERROR: NO EXCEPTION FOUND!"
+        if error is None:
+            raise ValueError("error argument cannot be None for _on_disconnect.")
 
         # These should NEVER be swallowed. So raise it first.
         if isinstance(error, AssertionError):
@@ -98,7 +105,7 @@ class ClientDisconnectionRetrier(
         # If the gRPC connection failed for an unexpected reason, just let it
         # die without crashing the entire runtime.
         if is_grpc_error(error) and not is_server_unavailable_error(error):
-            print("WARNING: gRPC Session Ended Unexpectedly:", error)
+            logging.warning(f"gRPC Session Ended Unexpectedly: {error}")
             if self.__disconnection_handler is not None:
                 if asyncio.iscoroutine(self.__disconnection_handler):
                     await self.__disconnection_handler()
@@ -114,12 +121,12 @@ class ClientDisconnectionRetrier(
         # If it IS a server unavailable error, retry until the server becomes
         # available. This is done on the same thread from which the instance was
         # initially started to avoid any weirdness if the underlying
-        print("WILL RETRY")  # TODO: Remove this
+        logging.debug("Will retry connection after server unavailable error.")
 
         while True:
             try:
                 await delay_before_retry()
-                print("RETRYING CONNECTION")  # TODO: Remove this line.
+                logging.debug("Retrying connection...")
                 self.__instance = self._connect()
                 break
             except Exception as error:

@@ -1,5 +1,6 @@
 from collections.abc import Callable
 import threading
+import logging
 
 
 class ThrowingThread(threading.Thread):
@@ -21,7 +22,9 @@ class ThrowingThread(threading.Thread):
         try:
             return super().start()
         except Exception as e:
-            print("CAUGHT IN THREAD")
+            # This log captures the point where the exception is caught by the ThrowingThread's start method.
+            # The actual handling (reporting via callback and re-raising) is preserved.
+            logging.error(f"Exception caught in ThrowingThread during start: {e}", exc_info=True)
             if self.__on_error_cb is not None:
                 self.__on_error_cb(e)
 

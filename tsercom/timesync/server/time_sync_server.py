@@ -5,6 +5,7 @@ import errno
 import socket
 import struct
 import time
+import logging
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -80,8 +81,8 @@ class TimeSyncServer:
             self.__is_running.set(False)
 
             if e.errno == errno.EADDRINUSE:
-                print(
-                    f"Error: Port {self.__port} is already in use. Another NTP server might be running."
+                logging.error(
+                    f"Port {self.__port} on address {self.__address} is already in use. Another NTP server might be running."
                 )
                 return
             else:
@@ -96,7 +97,7 @@ class TimeSyncServer:
         NTP_DELTA = 2208988800
 
         # Binding succeeded, so run the server.
-        print(f"NTP server listening on {self.__address}:{self.__port}")
+        logging.info(f"NTP server listening on {self.__address}:{self.__port}")
 
         while self.__is_running.get():
             try:
