@@ -17,17 +17,20 @@ class ClientIdFetcher:
         self.__id: CallerIdentifier | None = None
         self.__lock = asyncio.Lock()
 
-    async def get_id_async(self) -> CallerIdentifier:
-        async with self.__lock:
-            if self.__id is None:
-                grpc_response = await self.__stub.GetId(GetIdRequest())
-                if not isinstance(grpc_response, GetIdResponse):
-                    raise TypeError(
-                        f"Expected GetIdResponse from stub.GetId, but got {type(grpc_response).__name__}."
-                    )
-                self.__id = CallerIdentifier.try_parse(grpc_response.id)
+    async def get_id_async(self) -> CallerIdentifier | None: # Return type can be None
+        try:
+            async with self.__lock:
                 if self.__id is None:
-                    raise ValueError(
-                        f"Failed to parse CallerIdentifier from GetIdResponse. Received ID: {grpc_response.id}"
-                    )
-            return self.__id
+                    # Make the RPC call
+                    id_response = await self.__stub.GetId(GetIdRequest()) # type: ignore
+                    assert isinstance(id_response, GetIdResponse)
+                    
+                    # try_parse can return None if the id string is invalid
+                    self.__id = CallerIdentifier.try_parse(id_response.id.id)
+                    
+                    # If parsing fails (self.__id is None), self.__id will be None,
+                    # and that will be returned.
+                return self.__id
+        except Exception: # pylint: disable=broad-except
+            print(f"Error fetching client ID: {e}")
+            return None
