@@ -38,10 +38,11 @@ class RuntimeConfig:
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
         timeout_seconds: Optional[int] = 60,
     ):
-        assert (service_type is None) != (other_config is None), (
-            service_type,
-            other_config,
-        )
+        if (service_type is None) == (other_config is None):
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be provided to RuntimeConfig. "
+                f"Got service_type={service_type}, other_config={'<Provided>' if other_config is not None else None}."
+            )
 
         # Handle the delegating option.
         if other_config is not None:

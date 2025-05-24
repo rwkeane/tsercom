@@ -65,7 +65,14 @@ class RemoteDataAggregatorImpl(
         self.__thread_pool = thread_pool
         self.__client = client
         self.__tracker = tracker
-
+        
+        # TODO: Can this be a CallerIdMap?
+        # Not a straightforward replacement with the current CallerIdMap API (as of 2024-03-15).
+        # CallerIdMap is optimized for find_instance (get-or-create) and for_all_items (iterate values).
+        # It lacks direct get(id), contains(id), or general items()/values() iteration
+        # that would allow raising KeyError for missing IDs or constructing result dicts with keys easily,
+        # which are patterns used in this class. Modifying CallerIdMap or using workarounds
+        # would be needed. The current Dict + Lock is more flexible for these specific access patterns.
         self.__organizers: Dict[
             CallerIdentifier, RemoteDataOrganizer[TDataType]
         ] = {}
@@ -92,7 +99,8 @@ class RemoteDataAggregatorImpl(
     def stop(self, id: Optional[CallerIdentifier] = None) -> None:
         with self.__lock:
             if id is not None:
-                assert id in self.__organizers
+                if id not in self.__organizers:
+                    raise KeyError(f"Caller ID '{id}' not found in active organizers during stop.")
                 self.__organizers[id].stop()
                 return
 
@@ -105,7 +113,9 @@ class RemoteDataAggregatorImpl(
         with self.__lock:
             if id is not None:
                 if id not in self.__organizers:
-                    return False
+                    # Depending on desired behavior, could return False or raise error.
+                    # Raising error for consistency with other methods.
+                    raise KeyError(f"Caller ID '{id}' not found in active organizers for has_new_data.")
                 return self.__organizers[id].has_new_data()
 
             results = {}
@@ -119,7 +129,7 @@ class RemoteDataAggregatorImpl(
         with self.__lock:
             if id is not None:
                 if id not in self.__organizers:
-                    return []
+                    raise KeyError(f"Caller ID '{id}' not found in active organizers for get_new_data.")
                 return self.__organizers[id].get_new_data()
 
             results = {}
@@ -133,7 +143,7 @@ class RemoteDataAggregatorImpl(
         with self.__lock:
             if id is not None:
                 if id not in self.__organizers:
-                    return None 
+                    raise KeyError(f"Caller ID '{id}' not found in active organizers for get_most_recent_data.")
                 return self.__organizers[id].get_most_recent_data()
 
             results = {}
@@ -147,9 +157,15 @@ class RemoteDataAggregatorImpl(
         timestamp: datetime.datetime,
     ) -> TDataType | None: 
         with self.__lock:
-            if id not in self.__organizers:
-                return None 
-            return self.__organizers[id].get_data_for_timestamp(timestamp)
+            if id is not None: # This 'id' is the first parameter of the method, not the loop variable
+                if id not in self.__organizers:
+                    raise KeyError(f"Caller ID '{id}' not found in active organizers for get_data_for_timestamp.")
+                return self.__organizers[id].get_data_for_timestamp(timestamp) # timestamp is the second parameter
+
+            results = {}
+            for key, val in self.__organizers.items():
+                results[key] = val.get_data_for_timestamp(id, timestamp)
+            return results
 
     def _on_data_available(  # type: ignore
         self, data_organizer: "RemoteDataOrganizer[TDataType]"
@@ -158,7 +174,8 @@ class RemoteDataAggregatorImpl(
             self.__client._on_data_available(self, data_organizer.caller_id)
 
     def _on_data_ready(self, new_data: TDataType) -> None:
-        assert issubclass(type(new_data), ExposedData), type(new_data)
+        if not issubclass(type(new_data), ExposedData):
+            raise TypeError(f"Expected new_data to be a subclass of ExposedData, but got {type(new_data).__name__}.")
 
         data_organizer: RemoteDataOrganizer[TDataType] 
         with self.__lock:

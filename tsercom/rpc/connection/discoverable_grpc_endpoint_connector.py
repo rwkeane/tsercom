@@ -12,6 +12,7 @@ from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
+import logging
 
 if typing.TYPE_CHECKING:
     from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
@@ -87,7 +88,7 @@ class DiscoverableGrpcEndpointConnector(
 
         # Check if a connection already exists.
         if caller_id in self.__callers:
-            print("DROPPING CALL: Already in use!")
+            logging.warning(f"Caller ID {caller_id} already in use. Dropping new connection for service {connection_info.name_str}.")
             return
 
         # Try and create the gRPC connection.
@@ -95,10 +96,10 @@ class DiscoverableGrpcEndpointConnector(
             connection_info.addresses, connection_info.port
         )
         if channel is None:
-            print("Invalid endpoint found!")
+            logging.warning(f"Could not establish channel for endpoint: {connection_info.name_str} at {connection_info.addresses}:{connection_info.port}.")
             return
 
-        print("Endpoint connected!")
+        logging.info(f"Endpoint connected: {connection_info.name_str} with caller_id {caller_id}")
 
         # Pass it along to the next layer up.
         self.__callers.add(caller_id)

@@ -20,8 +20,12 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
         timestamp: datetime.datetime,
         responder: RemoteDataResponder[TResponseType],
     ):
-        assert responder is not None
-        assert issubclass(type(responder), RemoteDataResponder)
+        if responder is None:
+            raise ValueError("Responder argument cannot be None for ExposedDataWithResponder.")
+        if not issubclass(type(responder), RemoteDataResponder):
+            raise TypeError(
+                f"Responder must be a subclass of RemoteDataResponder, got {type(responder).__name__}."
+            )
 
         self.__responder = responder
 

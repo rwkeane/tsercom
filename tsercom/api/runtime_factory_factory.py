@@ -36,8 +36,10 @@ class RuntimeFactoryFactory(ABC):
         client: "RuntimeFactoryFactory[TDataType, TEventType].Client",
         initializer: RuntimeInitializer[TDataType, TEventType],
     ) -> RuntimeFactory[TDataType, TEventType]:
-        assert client is not None
-        assert isinstance(client, RuntimeFactoryFactory.Client), type(client)
+        if client is None:
+            raise ValueError("Client argument cannot be None for create_factory.")
+        if not isinstance(client, RuntimeFactoryFactory.Client):
+            raise TypeError(f"Client must be an instance of RuntimeFactoryFactory.Client, got {type(client).__name__}.")
 
         handle, factory = self._create_pair(initializer)
         client._on_handle_ready(handle)
