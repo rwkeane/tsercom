@@ -42,16 +42,35 @@ class RuntimeDataHandlerBase(
         port: Optional[int] = None,
         context: Optional[grpc.aio.ServicerContext] = None,
     ) -> EndpointDataProcessor | None:
-        assert (endpoint is None) != (context is None)
-        assert (port is None) == (endpoint is None)
+        if (endpoint is None) == (context is None):
+            raise ValueError(
+                "Exactly one of 'endpoint'/'port' combination or 'context' must be provided to register_caller. "
+                f"Got endpoint={endpoint}, context={'<Provided>' if context is not None else None}."
+            )
+        # This check implies that if endpoint is not None, port must not be None.
+        # And if endpoint is None, port must be None.
+        if (port is None) != (endpoint is None):
+            raise ValueError(
+                "If 'endpoint' is provided, 'port' must also be provided. If 'endpoint' is None, 'port' must also be None. "
+                f"Got endpoint={endpoint}, port={port}."
+            )
 
         if context is not None:
-            assert isinstance(context, grpc.aio.ServicerContext)
-            endpoint = get_client_ip(caller_id)
-            port = get_client_port(caller_id)
+            if not isinstance(context, grpc.aio.ServicerContext):
+                raise TypeError(
+                    f"Expected context to be an instance of grpc.aio.ServicerContext, but got {type(context).__name__}."
+                )
+            endpoint = get_client_ip(context)
+            port = get_client_port(context)
             if endpoint is None:
+                # If endpoint is None, we cannot register the caller.
+                # This case is already handled by returning None.
                 return None
-            assert port is not None
+            if port is None:
+                # If port is None, but endpoint was determined, this indicates an unexpected issue.
+                raise ValueError(
+                    f"Could not determine client port from context for endpoint {endpoint}."
+                )
 
         return self._register_caller(caller_id, endpoint, port)
 

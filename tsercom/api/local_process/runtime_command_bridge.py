@@ -14,7 +14,8 @@ class RuntimeCommandBridge:
 
     def set_runtime(self, runtime: Runtime):
         with self.__runtime_mutex:
-            assert self.__runtime is None, "Runtime already set"
+            if self.__runtime is not None:
+                raise RuntimeError("Runtime has already been set and cannot be changed.")
             self.__runtime = runtime
 
             state = self.__state.get()

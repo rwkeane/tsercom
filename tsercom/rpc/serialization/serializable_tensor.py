@@ -1,5 +1,6 @@
 from typing import Optional
 import torch
+import logging
 
 from tsercom.rpc.proto import Tensor as GrpcTensor
 from tsercom.timesync.common.synchronized_timestamp import (
@@ -42,5 +43,5 @@ class SerializableTensor:
 
             return SerializableTensor(tensor, timestamp)
         except Exception as e:
-            print("Error deserializing Tensor:", e)
+            logging.error(f"Error deserializing Tensor from grpc_type {grpc_type}: {e}", exc_info=True)
             return None

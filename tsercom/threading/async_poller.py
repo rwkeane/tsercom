@@ -65,15 +65,24 @@ class AsyncPoller(Generic[TResultType], ABC):
         Asynchronously waits for new data to be available in the queue.
         """
         # Set the current loop if it has not yet been set.
-        if not self.__is_loop_running.get():
-            assert self.__event_loop is None
+        if self.__event_loop is None:
+            # If called when a previous loop was shut down,
+            # or if this is the first call.
             self.__event_loop = get_running_loop_or_none()
             assert self.__event_loop is not None
+            self.__is_loop_running.set(True) # Mark as running ONLY when we have a loop
+        elif not self.__is_loop_running.get():
+             # Explicitly stopped and event_loop might still be set from previous run
+            raise RuntimeError("AsyncPoller is stopped")
 
-            self.__is_loop_running.set(True)
 
         # Check the current loop.
+        assert self.__event_loop is not None # Should be set by now
         assert is_running_on_event_loop(self.__event_loop)
+
+        # Initial check before entering the loop
+        if not self.__is_loop_running.get():
+            raise RuntimeError("AsyncPoller is stopped")
 
         # Keep trying to pull results until some are found.
         while self.__is_loop_running.get():
@@ -95,12 +104,26 @@ class AsyncPoller(Generic[TResultType], ABC):
                 return responses
 
             # If there is NO pending item, wait for one to show up.
-            await self.__barrier.wait()
+            # Ensure barrier is cleared before waiting.
             self.__barrier.clear()
+            try:
+                # Wait for results to become available or for a short timeout
+                # to re-check the __is_loop_running flag.
+                # A timeout helps to make the loop more responsive to stopping.
+                await asyncio.wait_for(self.__barrier.wait(), timeout=0.1)
+            except asyncio.TimeoutError:
+                # Timeout occurred, loop will check __is_loop_running again.
+                pass
+            
+            # Check if poller was stopped while waiting
+            if not self.__is_loop_running.get():
+                raise RuntimeError("AsyncPoller is stopped")
+            
+            # If barrier was set, loop again to grab items.
+            # No recursive call needed here.
 
-            return await self.wait_instance()
-
-        return None  # type: ignore
+        # If the loop exits, it means __is_loop_running is false.
+        raise RuntimeError("AsyncPoller is stopped")
 
     def __aiter__(self):  # type: ignore
         return self

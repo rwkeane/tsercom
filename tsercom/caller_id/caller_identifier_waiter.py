@@ -17,6 +17,7 @@ class CallerIdentifierWaiter:
         return self.__caller_id is None
 
     async def set_caller_id(self, caller_id: CallerIdentifier) -> None:
-        assert self.__caller_id is None
+        if self.__caller_id is not None:
+            raise RuntimeError("Caller ID has already been set and cannot be changed.")
         self.__caller_id = caller_id
         self.__barrier.set()

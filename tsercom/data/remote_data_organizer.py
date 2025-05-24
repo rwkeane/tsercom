@@ -58,7 +58,8 @@ class RemoteDataOrganizer(
         """
         Starts this instance.
         """
-        assert not self.__is_running.get()
+        if self.__is_running.get():
+            raise RuntimeError(f"RemoteDataOrganizer for caller ID '{self.caller_id}' is already running.")
         self.__is_running.set(True)
 
     def stop(self) -> None:
@@ -66,7 +67,8 @@ class RemoteDataOrganizer(
         Stops this instance from running. After this call, no new data is added
         and no data times out.
         """
-        assert self.__is_running.get()
+        if not self.__is_running.get():
+            raise RuntimeError(f"RemoteDataOrganizer for caller ID '{self.caller_id}' is not running or has already been stopped.")
         self.__is_running.set(False)
 
     def has_new_data(self) -> bool:
@@ -127,7 +129,8 @@ class RemoteDataOrganizer(
 
     def _on_data_ready(self, new_data: TDataType) -> None:
         # Validate the data.
-        assert issubclass(type(new_data), ExposedData), type(new_data)
+        if not issubclass(type(new_data), ExposedData):
+            raise TypeError(f"Expected new_data to be a subclass of ExposedData, but got {type(new_data).__name__}.")
         assert new_data.caller_id == self.caller_id, (
             new_data.caller_id,
             self.caller_id,

@@ -58,6 +58,7 @@ class ThreadWatcher(ErrorWatcher):
                     continue
 
                 # TODO: Change to ExceptionGroup.
+                # Requires Python 3.11+. For now, raising the first exception.
                 # raise ExceptionGroup(
                 #     "Errors hit in async thread(s)!", self.__exceptions
                 # )
@@ -77,6 +78,7 @@ class ThreadWatcher(ErrorWatcher):
                 return
 
             # TODO: Change to ExceptionGroup.
+            # Requires Python 3.11+. For now, raising the first exception.
             # raise ExceptionGroup(
             #     "Errors hit in async thread(s)!", self.__exceptions
             # )

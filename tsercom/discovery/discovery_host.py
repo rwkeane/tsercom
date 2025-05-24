@@ -48,9 +48,10 @@ class DiscoveryHost(
             Callable[[InstanceListener.Client], InstanceListener[TServiceInfo]]
         ] = None,
     ) -> None:
-        assert (service_type is not None) != (
-            instance_listener_factory is not None
-        )
+        if not ((service_type is not None) ^ (instance_listener_factory is not None)):
+            raise ValueError(
+                "Exactly one of 'service_type' or 'instance_listener_factory' must be provided."
+            )
 
         self.__service_type = service_type
         self.__instance_listener_factory = instance_listener_factory
@@ -64,13 +65,21 @@ class DiscoveryHost(
         """
         Starts discovery. Results are returned by a call to the |client|.
         """
-        assert client is not None
+        # client validation will be done in __start_discovery_impl
         run_on_event_loop(partial(self.__start_discovery_impl, client))
 
     async def __start_discovery_impl(
         self, client: "DiscoveryHost.Client"
     ) -> None:
-        assert self.__discoverer is None
+        if client is None:
+            raise ValueError("Client argument cannot be None for start_discovery.")
+        # It's good practice to also check the type, though type hints help.
+        # For this exercise, sticking to explicit None check as per original assert focus.
+        # if not issubclass(type(client), DiscoveryHost.Client):
+        #     raise TypeError(f"Client must be a subclass of DiscoveryHost.Client, got {type(client).__name__}.")
+
+        if self.__discoverer is not None:
+            raise RuntimeError("Discovery has already been started.")
 
         self.__client = client
         if self.__instance_listener_factory is not None:
@@ -82,8 +91,9 @@ class DiscoveryHost(
             )
 
     async def _on_service_added(self, connection_info: TServiceInfo) -> None:
-        print("ENDPOINT FOUND")
-        assert self.__client is not None
+        # print("ENDPOINT FOUND") # Handled by logging subtask
+        if self.__client is None:
+            raise RuntimeError("Client not set; discovery may not have been started correctly.")
         caller_id: CallerIdentifier = None  # type: ignore
         if connection_info.mdns_name in self.__caller_id_map:
             caller_id = self.__caller_id_map[connection_info.mdns_name]

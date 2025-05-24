@@ -78,7 +78,8 @@ class RuntimeManager(ErrorWatcher):
         become valid once either start_in_process() or start_out_of_process()
         has been called.
         """
-        assert not self.has_started
+        if self.has_started:
+            raise RuntimeError("Cannot register runtime initializer after the manager has started.")
 
         future = Future[RuntimeHandle[TDataType, TEventType]]()
         pair = InitializationPair[TDataType, TEventType](
@@ -98,7 +99,8 @@ class RuntimeManager(ErrorWatcher):
         event loop from which this operation is called.
         """
         running_loop = get_running_loop_or_none()
-        assert running_loop is not None
+        if running_loop is None:
+            raise RuntimeError("Could not determine the current running event loop for start_in_process_async.")
         return self.start_in_process(running_loop)
 
     def start_in_process(
@@ -111,7 +113,8 @@ class RuntimeManager(ErrorWatcher):
         created instances are then returned. Tsercom operations are run on the
         provided event loop.
         """
-        assert not self.has_started
+        if self.has_started:
+            raise RuntimeError("RuntimeManager has already been started.")
         self.__has_started.start()
 
         # Initialization.
@@ -146,7 +149,8 @@ class RuntimeManager(ErrorWatcher):
         returned Runtime instances, and data received from it can be accessed
         through the RemoteDataAggregator instance available in it.
         """
-        assert not self.has_started
+        if self.has_started:
+            raise RuntimeError("RuntimeManager has already been started.")
         self.__has_started.start()
 
         # Set a local Tsercom event loop. It is rarely used, but is required for
@@ -193,8 +197,11 @@ class RuntimeManager(ErrorWatcher):
         exception upon receipt. This method is thread-safe and can be called
         from any thread.
         """
-        assert self.has_started
-        assert self.__error_watcher is not None
+        if not self.has_started:
+            # Added this check for consistency, as __error_watcher depends on has_started
+            raise RuntimeError("RuntimeManager has not been started.")
+        if self.__error_watcher is None:
+            raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
 
         self.__thread_watcher.run_until_exception()
 
@@ -206,7 +213,9 @@ class RuntimeManager(ErrorWatcher):
         if not self.has_started:
             return
 
-        assert self.__error_watcher is not None
+        if self.__error_watcher is None:
+            # This implies it wasn't started correctly or state is corrupted.
+            raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
 
         self.__thread_watcher.check_for_exception()
 

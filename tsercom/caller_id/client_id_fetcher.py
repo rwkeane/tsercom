@@ -20,9 +20,14 @@ class ClientIdFetcher:
     async def get_id_async(self) -> CallerIdentifier:
         async with self.__lock:
             if self.__id is None:
-                id = await self.__stub.GetId(GetIdRequest())
-                assert isinstance(id, GetIdResponse)
-                self.__id = CallerIdentifier.try_parse(id.id)
-                assert self.__id is not None
-
+                grpc_response = await self.__stub.GetId(GetIdRequest())
+                if not isinstance(grpc_response, GetIdResponse):
+                    raise TypeError(
+                        f"Expected GetIdResponse from stub.GetId, but got {type(grpc_response).__name__}."
+                    )
+                self.__id = CallerIdentifier.try_parse(grpc_response.id)
+                if self.__id is None:
+                    raise ValueError(
+                        f"Failed to parse CallerIdentifier from GetIdResponse. Received ID: {grpc_response.id}"
+                    )
             return self.__id
