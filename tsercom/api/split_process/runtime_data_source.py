@@ -50,12 +50,12 @@ class RuntimeDataSource(Generic[TEventType]):
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
         self.__thread_pool: ThreadPoolExecutor | None = None
-        self.__runtime: Runtime[Any, TEventType] | None = None # Runtime can handle any data type
+        self.__runtime: Runtime | None = None # Changed type hint
         self.__command_thread: threading.Thread | None = None
         self.__event_thread: threading.Thread | None = None
 
 
-    def start_async(self, runtime: Runtime[Any, TEventType]) -> None:
+    def start_async(self, runtime: Runtime) -> None: # Changed type hint
         """Starts the threads for watching command and event queues.
 
         Associates the provided runtime instance and starts two dedicated threads:

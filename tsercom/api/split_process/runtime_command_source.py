@@ -32,10 +32,10 @@ class RuntimeCommandSource:
         """
         self.__runtime_command_queue = runtime_command_queue
         self.__is_running: IsRunningTracker | None = None
-        self.__runtime: Runtime[Any, Any] | None = None # Updated type hint
+        self.__runtime: Runtime | None = None # Changed type hint
         self.__command_thread: threading.Thread | None = None
 
-    def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime[Any, Any]) -> None:
+    def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime) -> None: # Changed type hint
         """Starts the command watching thread and associates the runtime.
 
         This method initializes the running state and stores the runtime instance.

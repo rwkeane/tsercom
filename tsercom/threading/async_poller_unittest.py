@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 import pytest_asyncio # For async fixtures if needed, though direct async tests are fine
-from unittest.mock import patch, AsyncMock, MagicMock
+# from unittest.mock import patch, AsyncMock, MagicMock # Removed
 import functools # For functools.partial
 from collections import deque # For kMaxResponses verification
 
@@ -13,8 +13,8 @@ import tsercom.threading.aio.aio_utils as aio_utils_to_patch
 # kMaxResponses from async_poller.py, assuming it's 30
 K_MAX_RESPONSES = 30
 
-@pytest.fixture
-async def mock_aio_utils(monkeypatch):
+@pytest_asyncio.fixture # Changed to pytest_asyncio.fixture
+async def mock_aio_utils(monkeypatch, mocker): 
     """
     Mocks aio_utils functions used by AsyncPoller.
     run_on_event_loop is mocked to execute the passed partial (which wraps a sync method)
@@ -22,41 +22,29 @@ async def mock_aio_utils(monkeypatch):
     to make the mock_run_on_event_loop itself async or await the partial.
     """
     
-    # Mock for run_on_event_loop:
-    # The target method __set_results_available is synchronous.
-    # run_on_event_loop in SUT is called without await, returning a Future.
-    # Our mock will execute the partial immediately and return a completed Future.
-    mock_run_on_event_loop_sync_exec = MagicMock(name="mock_run_on_event_loop_sync_exec")
+    mock_run_on_event_loop_sync_exec = mocker.MagicMock(name="mock_run_on_event_loop_sync_exec") # mocker.MagicMock
 
     def simplified_run_on_loop_side_effect(partial_func, loop=None, *args, **kwargs):
         print(f"MOCKED run_on_event_loop CALLED with partial: {partial_func}")
-        # partial_func is functools.partial(self._AsyncPoller__set_results_available)
-        # This is a synchronous method.
-        partial_func() # Execute the synchronous method
+        partial_func() 
         print(f"  Partial function {getattr(partial_func, 'func', 'N/A').__name__} executed.")
         
-        # Return a completed Future, as the original does
         f = asyncio.Future()
-        # Ensure the future is associated with the correct loop for awaiters
         try:
             current_loop = asyncio.get_running_loop()
             if not current_loop.is_closed():
                  asyncio.ensure_future(f, loop=current_loop)
         except RuntimeError: # pragma: no cover
-            pass # No loop running or other issue
+            pass 
         f.set_result(None)
         return f
         
     mock_run_on_event_loop_sync_exec.side_effect = simplified_run_on_loop_side_effect
 
-    # Mock for get_running_loop_or_none:
-    mock_get_running_loop = MagicMock(name="mock_get_running_loop_or_none")
-    # Default: return the current loop the test is running on
+    mock_get_running_loop = mocker.MagicMock(name="mock_get_running_loop_or_none") # mocker.MagicMock
     mock_get_running_loop.return_value = asyncio.get_running_loop() 
 
-    # Mock for is_running_on_event_loop:
-    mock_is_on_loop = MagicMock(name="mock_is_running_on_event_loop")
-    # Default: pretend we are always on the "correct" loop initially
+    mock_is_on_loop = mocker.MagicMock(name="mock_is_running_on_event_loop") # mocker.MagicMock
     mock_is_on_loop.return_value = True 
 
     monkeypatch.setattr(aio_utils_to_patch, "run_on_event_loop", mock_run_on_event_loop_sync_exec)
@@ -82,7 +70,7 @@ class TestAsyncPoller:
 
     async def test_on_available_and_wait_instance_single_item(self):
         print("\n--- Test: test_on_available_and_wait_instance_single_item ---")
-        poller = AsyncPoller[str](name="TestPollerSingle")
+        poller = AsyncPoller[str]() # Removed name="TestPollerSingle"
         item1 = "item_one"
 
         poller.on_available(item1)
@@ -97,7 +85,7 @@ class TestAsyncPoller:
 
     async def test_wait_instance_blocks_until_on_available(self):
         print("\n--- Test: test_wait_instance_blocks_until_on_available ---")
-        poller = AsyncPoller[str](name="TestPollerBlocks")
+        poller = AsyncPoller[str]() # Removed name="TestPollerBlocks"
         item1 = "item_blocker"
 
         wait_task = asyncio.create_task(poller.wait_instance())
@@ -120,7 +108,7 @@ class TestAsyncPoller:
 
     async def test_multiple_items_retrieved_in_order(self):
         print("\n--- Test: test_multiple_items_retrieved_in_order ---")
-        poller = AsyncPoller[int](name="TestPollerMultiOrder")
+        poller = AsyncPoller[int]() # Removed name="TestPollerMultiOrder"
         item1, item2, item3 = 1, 2, 3
 
         poller.on_available(item1)
@@ -138,7 +126,7 @@ class TestAsyncPoller:
 
     async def test_queue_limit_kMaxResponses(self):
         print("\n--- Test: test_queue_limit_kMaxResponses ---")
-        poller = AsyncPoller[int](name="TestPollerLimit")
+        poller = AsyncPoller[int]() # Removed name="TestPollerLimit"
         
         # Add more items than K_MAX_RESPONSES
         num_items_to_add = K_MAX_RESPONSES + 5 
@@ -163,7 +151,7 @@ class TestAsyncPoller:
 
     async def test_flush_clears_queue(self):
         print("\n--- Test: test_flush_clears_queue ---")
-        poller = AsyncPoller[str](name="TestPollerFlush")
+        poller = AsyncPoller[str]() # Removed name="TestPollerFlush"
         poller.on_available("item_a")
         poller.on_available("item_b")
         assert len(poller) == 2
@@ -190,7 +178,7 @@ class TestAsyncPoller:
 
     async def test_len_accurate(self):
         print("\n--- Test: test_len_accurate ---")
-        poller = AsyncPoller[float](name="TestPollerLen")
+        poller = AsyncPoller[float]() # Removed name="TestPollerLen"
         assert len(poller) == 0
         
         poller.on_available(1.0)
@@ -207,7 +195,7 @@ class TestAsyncPoller:
 
     async def test_async_iterator(self):
         print("\n--- Test: test_async_iterator ---")
-        poller = AsyncPoller[str](name="TestPollerAsyncIter")
+        poller = AsyncPoller[str]() # Removed name="TestPollerAsyncIter"
         item_x = "item_x"
         item_y = "item_y"
 
@@ -263,7 +251,7 @@ class TestAsyncPoller:
 
     async def test_event_loop_property_set(self, mock_aio_utils):
         print("\n--- Test: test_event_loop_property_set ---")
-        poller = AsyncPoller[int](name="TestPollerEventLoop")
+        poller = AsyncPoller[int]() # Removed name="TestPollerEventLoop"
         
         assert poller.event_loop is None, "Event loop should initially be None"
         print("  event_loop is None initially.")
@@ -283,7 +271,7 @@ class TestAsyncPoller:
 
     async def test_run_on_event_loop_called_for_set_results_available(self, mock_aio_utils):
         print("\n--- Test: test_run_on_event_loop_called_for_set_results_available ---")
-        poller = AsyncPoller[str](name="TestPollerRunOnLoop")
+        poller = AsyncPoller[str]() # Removed name="TestPollerRunOnLoop"
         item_signal = "signal_item"
 
         # First, call wait_instance to set the poller's __event_loop and __is_loop_running

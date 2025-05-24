@@ -2,10 +2,11 @@
 
 from typing import Generic, TypeVar
 
-from tsercom.api.data_handler import DataHandler
-from tsercom.api.grpc_channel_factory import GrpcChannelFactory
-from tsercom.api.runtime_factory import RuntimeFactory
-from tsercom.api.runtime_initializer import RuntimeInitializer
+# from tsercom.api.data_handler import DataHandler # Original problematic import
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler # Corrected import
+from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory # Corrected import path
+from tsercom.runtime.runtime_factory import RuntimeFactory # Corrected import path
+from tsercom.runtime.runtime_initializer import RuntimeInitializer # Corrected import path
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
 from tsercom.api.split_process.event_source import EventSource
 from tsercom.api.split_process.runtime_command_source import RuntimeCommandSource
@@ -14,7 +15,7 @@ from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.runtime import Runtime
-from tsercom.runtime.runtime_command import RuntimeCommand
+from tsercom.api.runtime_command import RuntimeCommand # Corrected import path
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -31,9 +32,8 @@ TEventType = TypeVar("TEventType")
 
 class RemoteRuntimeFactory(
     Generic[TDataType, TEventType],
-    RuntimeFactory[
-        Runtime[TDataType, TEventType],
-        AnnotatedInstance[TDataType],
+    RuntimeFactory[ # Correctly pass TDataType and TEventType from RemoteRuntimeFactory's own generics
+        TDataType,
         TEventType,
     ],
 ):
@@ -60,7 +60,8 @@ class RemoteRuntimeFactory(
             data_reader_queue: Queue sink for sending `AnnotatedInstance` data to the remote runtime.
             command_source_queue: Queue source for receiving `RuntimeCommand` objects from the handle.
         """
-        super().__init__(initializer)
+        super().__init__(other_config=initializer) # Changed this line
+        self._initializer_instance = initializer # Added this line
         self.__event_source_queue = event_source_queue
         self.__data_reader_queue = data_reader_queue
         self.__command_source_queue = command_source_queue
@@ -104,9 +105,9 @@ class RemoteRuntimeFactory(
     def create(
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: DataHandler[TDataType],
+        data_handler: RuntimeDataHandler[TDataType, TEventType], # Corrected type hint
         grpc_channel_factory: GrpcChannelFactory | None,
-    ) -> Runtime[TDataType, TEventType]:
+    ) -> Runtime: # Changed
         """Creates the remote Runtime instance and sets up command handling.
 
         This method initializes the core runtime using the provided initializer.
@@ -122,7 +123,7 @@ class RemoteRuntimeFactory(
             The created Runtime instance, configured for remote operation.
         """
         # Create the core runtime instance using the provided initializer and components.
-        runtime = self._initializer.create(
+        runtime = self._initializer_instance.create( # Changed self._initializer to self._initializer_instance
             data_handler=data_handler,
             event_poller=self._event_poller(),
             remote_data_reader=self._remote_data_reader(),
