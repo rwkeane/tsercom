@@ -58,24 +58,18 @@ class FakeRuntime(Runtime):
         super().__init__()
 
     async def start_async(self) -> None:
-        # Wait to allow initialization to complete. Not needed in the current
-        # infra, but its a reasonable assumption so just include this here to
-        # document that it's allowed for future.
         await asyncio.sleep(0.01)
 
-        # Register a fake endpoint to allow returning data.
         self.__responder = self.__data_handler.register_caller(
             test_id, "0.0.0.0", 443
         )
 
-        # Return the data.
         data = FakeData(started)
-        print(f"DEBUG: [FakeRuntime.start_async] Processing data: {data.value} for caller_id: {test_id}")
         try:
             await self.__responder.process_data(data, start_timestamp)
-            print(f"DEBUG: [FakeRuntime.start_async] Successfully processed data: {data.value} for caller_id: {test_id}")
-        except Exception as e:
-            print(f"DEBUG: [FakeRuntime.start_async] Error processing data for {test_id}: {e}")
+        except Exception:
+            # In a real scenario, proper error logging/handling would be here
+            pass
 
 
     async def stop(self) -> None:
@@ -94,38 +88,31 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
 
 
 def __check_initialization(init_call: Callable[[RuntimeManager], None]):
-    # 1. Object Instantiation
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_manager.check_for_exception()
     runtime_future = runtime_manager.register_runtime_initializer(
-        FakeRuntimeInitializer(service_type="Client") # service_type="Client" to match ServerRuntimeDataHandler expectation
+        FakeRuntimeInitializer(service_type="Client")
     )
 
-    # Create the runtime.
     assert not runtime_future.done()
     assert not runtime_manager.has_started
     init_call(runtime_manager)
     assert runtime_manager.has_started
     assert runtime_future.done()
 
-    # Start the runtime.
     runtime_manager.check_for_exception()
     runtime = runtime_future.result()
     data_aggregator = runtime.data_aggregator
-    # Initial check: no data should be present for test_id specifically, or overall.
-    # Using test_id is more precise if the aggregator could have other data.
     assert not data_aggregator.has_new_data(test_id), "Aggregator should not have new data for test_id before runtime start"
     runtime.start()
 
-    # Sleep to allow the runtime to process the call and respond.
-    time.sleep(0.5) # Keep increased sleep
+    time.sleep(0.5) 
 
-    # Check that the runtime sent its "starting" message.
     runtime_manager.check_for_exception()
-    assert data_aggregator.any_new_data(), "Aggregator should have some new data (any_new_data)" # General check
-    assert data_aggregator.has_new_data(test_id), f"Aggregator should have new data for test_id ({test_id})" # Specific check
+    assert data_aggregator.any_new_data(), "Aggregator should have some new data (any_new_data)"
+    assert data_aggregator.has_new_data(test_id), f"Aggregator should have new data for test_id ({test_id})"
 
-    values = data_aggregator.get_new_data(test_id) # Get data specifically for test_id
+    values = data_aggregator.get_new_data(test_id) 
     assert isinstance(values, list), f"Expected list for get_new_data(test_id), got {type(values)}"
     assert len(values) == 1, f"Expected 1 item for test_id, got {len(values)}"
     
@@ -136,20 +123,16 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     assert first.timestamp == start_timestamp
     assert first.caller_id == test_id
 
-    # After get_new_data(test_id), there should be no new data for test_id
     assert not data_aggregator.has_new_data(test_id), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data"
     runtime_manager.check_for_exception()
 
-    # Stop the runtime.
     runtime.stop()
     runtime_manager.check_for_exception()
 
-    # Sleep to allow the runtime to process the call and respond.
-    time.sleep(0.5) # Keep increased sleep
+    time.sleep(0.5)
 
-    # Check that the runtime sent its "stopping" message.
     assert data_aggregator.has_new_data(test_id), f"Aggregator should have new data (stop message) for test_id ({test_id})"
-    values = data_aggregator.get_new_data(test_id) # Get data specifically for test_id
+    values = data_aggregator.get_new_data(test_id) 
     assert isinstance(values, list), f"Expected list for get_new_data(test_id) for stop, got {type(values)}"
     assert len(values) == 1, f"Expected 1 stop item for test_id, got {len(values)}"
 
