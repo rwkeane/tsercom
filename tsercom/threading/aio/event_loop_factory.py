@@ -1,13 +1,16 @@
 import asyncio
 import threading
+import logging
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 class EventLoopFactory:
     def __init__(self, watcher: "ThreadWatcher") -> None:
-        assert watcher is not None
-        assert issubclass(type(watcher), ThreadWatcher), type(watcher)
+        if watcher is None:
+            raise ValueError("Watcher argument cannot be None for EventLoopFactory.")
+        if not issubclass(type(watcher), ThreadWatcher):
+            raise TypeError(f"Watcher must be a subclass of ThreadWatcher, got {type(watcher).__name__}.")
         self.__watcher = watcher
 
         self.__event_loop_thread: threading.Thread = None  # type: ignore
@@ -18,11 +21,12 @@ class EventLoopFactory:
 
         def handle_exception(loop, context):  # type: ignore
             exception = context.get("exception")
-            print("HIT EXCEPTION", exception)
+            message = context.get("message")
             if exception:
+                logging.error(f"Unhandled exception in event loop: {message}", exc_info=exception)
                 self.__watcher.on_exception_seen(exception)
             else:
-                print("ERROR! NO EXCEPTION FOUND")
+                logging.critical(f"Event loop exception handler called without an exception. Context message: {message}")
 
         def start_event_loop() -> None:
             self.__event_loop = asyncio.new_event_loop()

@@ -6,7 +6,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
 
-
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 
@@ -19,4 +18,5 @@ class DataReaderSink(Generic[TDataType], RemoteDataReader[TDataType]):
 
     def _on_data_ready(self, new_data: TDataType) -> None:
         success = self.__queue.put_nowait(new_data)
-        assert success or self.__is_lossy, "Queue is full"
+        if not success and not self.__is_lossy:
+            raise RuntimeError("Queue is full and data would be lost on a non-lossy sink.")

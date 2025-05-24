@@ -2,6 +2,7 @@ from typing import Deque
 import ntplib  # type: ignore
 import time
 import threading
+import logging
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.client_synchronized_clock import (
@@ -89,22 +90,25 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                     self.__time_offsets.append(response.offset)
                     if len(self.__time_offsets) > kMaxOffsetCount:
                         self.__time_offsets.popleft()
-
-                print(f"New NTP Offset: {response.offset:.6f} seconds")
+                # Successfully received and processed an offset
+                logging.info(f"New NTP Offset: {response.offset:.6f} seconds")
             except ntplib.NTPException as e:
-                print(f"NTP error: {e}")
+                logging.error(f"NTP error: {e}")
             except Exception as e:
-                print(f"Error during NTP sync: {e}")
+                # Maintain the original behavior for AssertionError regarding the watcher
                 if isinstance(e, AssertionError):
-                    self.__watcher.on_exception_seen(e)
-                    raise e
+                    logging.error(f"AssertionError during NTP sync: {e}") # Log it as an error
+                    self.__watcher.on_exception_seen(e) # Call watcher as originally intended
+                    raise # Re-raise AssertionError to halt as before
+                logging.error(f"Error during NTP sync: {e}")
 
-            # If this is the first call, set the startup barrier.
+            # Set the startup barrier only if it hasn't been set yet AND we have valid offsets.
             if not self.__start_barrier.is_set():
                 with self.__time_offset_lock:
-                    if len(self.__time_offsets) == 0:
-                        print("WARNING: Fake time sync data used.")
-                        self.__time_offsets.append(0)
-                self.__start_barrier.set()
+                    if len(self.__time_offsets) > 0:
+                        self.__start_barrier.set()
+                        logging.info("TimeSyncClient initialized with first valid offset.")
+                    # If len(self.__time_offsets) is still 0, the barrier remains unset.
+                    # The warning about fake data and appending 0 is removed.
 
             time.sleep(kOffsetFrequencySeconds)  # Resynchronize periodically.

@@ -6,6 +6,7 @@ from tsercom.data.serializable_annotated_instance import (
 )
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
+import logging
 from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -43,10 +44,28 @@ class ClientRuntimeDataHandler(
         clock = self.__clock_tracker.on_connect(endpoint)
         return self._create_data_processor(caller_id, clock)
 
-    def _unregister_caller(self, caller_id: CallerIdentifier) -> None:
-        address, port = self.__id_tracker.get(caller_id)
-        assert False, "Find out if I should be keeping or deleting these?"
-        self.__clock_tracker.on_disconnect(address)
+    def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
+        """
+        Unregisters a caller.
+
+        Args:
+            caller_id: The ID of the caller to unregister.
+
+        Returns:
+            True if the caller was found and unregistered, False otherwise.
+        """
+        address_port_tuple = self.__id_tracker.try_get(caller_id)
+
+        if address_port_tuple is not None:
+            address, _ = address_port_tuple  # port is not needed for on_disconnect
+            self.__id_tracker.remove(caller_id)
+            self.__clock_tracker.on_disconnect(address)
+            return True
+        else:
+            logging.warning(
+                f"Attempted to unregister non-existent caller_id: {caller_id}"
+            )
+            return False
 
     def _try_get_caller_id(
         self, endpoint: str, port: int

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from functools import partial
 import socket
 from typing import Dict, Generic, List, TypeVar
+import logging
 
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.discovery.mdns.record_listener import RecordListener
@@ -23,10 +24,16 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
             raise NotImplementedError("This method must be implemented!")
 
     def __init__(self, client: "InstanceListener.Client", service_type: str):
-        assert client is not None and issubclass(
-            type(client), InstanceListener.Client
-        )
-        assert isinstance(service_type, str)
+        if client is None:
+            raise ValueError("Client argument cannot be None for InstanceListener.")
+        if not issubclass(type(client), InstanceListener.Client):
+            raise TypeError(
+                f"Client must be a subclass of InstanceListener.Client, got {type(client).__name__}."
+            )
+        if not isinstance(service_type, str):
+            raise TypeError(
+                f"service_type must be a string, got {type(service_type).__name__}."
+            )
 
         self.__client = client
 
@@ -40,7 +47,7 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         txt_record: Dict[bytes, bytes | None],
     ) -> ServiceInfo | None:
         if len(addresses) == 0:
-            print(f"Failed to connect to service at UNKNOWN:{port}")
+            logging.warning(f"No addresses available for service at port {port}. Cannot populate ServiceInfo.")
             return None
 
         addresses_out = []
@@ -52,7 +59,13 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
                 continue
 
         if len(addresses_out) == 0:
-            print(f"Failed to connect to service at {addresses[0]}:{port}")  # type: ignore
+            # Log the first binary address if available, otherwise just port.
+            # addresses[0] is bytes, so it might not be directly human-readable without further processing.
+            # For logging, it's better to indicate the failure clearly.
+            first_address_info = f"first address (binary): {addresses[0]}" if addresses else "unknown address"
+            logging.warning(
+                f"Failed to convert any binary addresses to string format for service at {first_address_info}, port {port}."
+            )
             return None
 
         name_encoded = "name".encode("utf-8")

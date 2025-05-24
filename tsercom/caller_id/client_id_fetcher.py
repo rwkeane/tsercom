@@ -24,12 +24,13 @@ class ClientIdFetcher:
                     # Make the RPC call
                     id_response = await self.__stub.GetId(GetIdRequest()) # type: ignore
                     assert isinstance(id_response, GetIdResponse)
+                    
                     # try_parse can return None if the id string is invalid
                     self.__id = CallerIdentifier.try_parse(id_response.id.id)
+                    
                     # If parsing fails (self.__id is None), self.__id will be None,
                     # and that will be returned.
                 return self.__id
         except Exception: # pylint: disable=broad-except
-            # TODO: Log this error
-            # print(f"Error fetching client ID: {e}")
+            print(f"Error fetching client ID: {e}")
             return None

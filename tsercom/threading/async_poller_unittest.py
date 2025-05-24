@@ -1,9 +1,11 @@
 import asyncio
 import pytest
+import pytest_asyncio # For async fixtures if needed, though direct async tests are fine
 from unittest.mock import patch, AsyncMock, MagicMock
 import functools # For functools.partial
 from collections import deque # For kMaxResponses verification
 
+from tsercom.threading.atomic import Atomic # For manipulating internal state in tests
 from tsercom.threading.async_poller import AsyncPoller
 # Import the module to be patched
 import tsercom.threading.aio.aio_utils as aio_utils_to_patch
@@ -318,39 +320,119 @@ class TestAsyncPoller:
         print("  run_on_event_loop assertions passed.")
         print("--- Test: test_run_on_event_loop_called_for_set_results_available finished ---")
 
-```
+@pytest.mark.asyncio
+class TestAsyncPollerWaitInstanceStopped:
+    """Tests for AsyncPoller.wait_instance when the poller is stopped."""
 
-**Summary of Implementation:**
-1.  **Imports**: Added necessary modules.
-2.  **`K_MAX_RESPONSES`**: Defined for test clarity.
-3.  **`mock_aio_utils` Fixture**:
-    *   Patches `run_on_event_loop`, `get_running_loop_or_none`, and `is_running_on_event_loop` in `tsercom.threading.aio.aio_utils` (the source module, which `AsyncPoller` then imports from).
-    *   The mock for `run_on_event_loop` (`mock_run_on_event_loop_sync_exec`) is designed to directly execute the synchronous `_AsyncPoller__set_results_available` method (when wrapped by `functools.partial`) and return a completed `Future`. This is based on the assumption that `__set_results_available` is synchronous.
-4.  **`TestAsyncPoller` Class**:
-    *   Uses an `autouse` fixture `_ensure_aio_utils_mocked` to activate `mock_aio_utils` for all tests.
-    *   **`test_on_available_and_wait_instance_single_item`**: Verifies basic add and retrieve.
-    *   **`test_wait_instance_blocks_until_on_available`**: Checks that `wait_instance` blocks until an item is available using `asyncio.sleep` and task state.
-    *   **`test_multiple_items_retrieved_in_order`**: Checks multiple items are retrieved in FIFO order and queue is cleared.
-    *   **`test_queue_limit_kMaxResponses`**: Verifies the queue size limit (30) and that the last 30 items are kept.
-    *   **`test_flush_clears_queue`**: Checks `flush()` empties the queue and `wait_instance` subsequently blocks.
-    *   **`test_len_accurate`**: Verifies `len(poller)` reports correct size.
-    *   **`test_async_iterator`**: Tests `async for item_list in poller:`. It verifies that items added dynamically are picked up. The current `AsyncPoller` yields all available items in one list per `wait_instance` call.
-    *   **`test_event_loop_property_set`**: Confirms `poller.event_loop` is set after the first `wait_instance`.
-    *   **`test_run_on_event_loop_called_for_set_results_available`**: Checks that `run_on_event_loop` (the mock) is called by `on_available` when `__is_loop_running` is true and the current loop is different (simulated by setting `is_running_on_event_loop` mock to `False`).
+    async def test_wait_instance_raises_runtime_error_if_stopped_before_first_call(self):
+        """Test wait_instance raises RuntimeError if poller is already stopped."""
+        poller = AsyncPoller[str]()
+        
+        # Directly manipulate internal state to simulate a stopped poller
+        # Assuming _AsyncPoller__is_loop_running is an Atomic[bool]
+        # And that it's initialized to True or gets set to True on first call if not stopped.
+        # For this test, we explicitly stop it BEFORE any call to wait_instance that might set it.
+        # The AsyncPoller's __is_loop_running is initialized to Atomic[bool](False)
+        # and set to True within wait_instance if self.__event_loop is None.
+        # So, to ensure it's seen as "stopped", we need to set it after it might have been set to True,
+        # or ensure event_loop is not None.
+        
+        # Simulate that an event loop was previously acquired and then poller stopped
+        poller._AsyncPoller__event_loop = asyncio.get_running_loop() # Assign a dummy loop for test
+        poller._AsyncPoller__is_loop_running.set(False)
 
-This suite of tests covers the specified methods and scenarios. The mocking strategy for `aio_utils` is central to enabling these tests.The test file `tsercom/threading/async_poller_unittest.py` has been written.
-It includes:
-- A fixture `mock_aio_utils` that patches `run_on_event_loop`, `get_running_loop_or_none`, and `is_running_on_event_loop` from `tsercom.threading.aio.aio_utils`. The mock for `run_on_event_loop` executes the synchronous `_AsyncPoller__set_results_available` method (when wrapped by `functools.partial`) and returns a completed `Future`.
-- A test class `TestAsyncPoller` with various test methods for `AsyncPoller`'s functionality:
-    - `test_on_available_and_wait_instance_single_item`
-    - `test_wait_instance_blocks_until_on_available`
-    - `test_multiple_items_retrieved_in_order`
-    - `test_queue_limit_kMaxResponses` (verifying queue truncation at 30 items)
-    - `test_flush_clears_queue`
-    - `test_len_accurate`
-    - `test_async_iterator` (verifying `async for` behavior)
-    - `test_event_loop_property_set`
-    - `test_run_on_event_loop_called_for_set_results_available` (verifying `run_on_event_loop` is called under specific conditions)
+        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+            await poller.wait_instance()
 
-The tests are designed to cover the methods and scenarios outlined in the subtask description.
-I will now run these tests. The print statements within the tests and mocks will help diagnose any issues.
+    async def test_wait_instance_raises_runtime_error_if_stopped_during_wait(self):
+        """Test wait_instance raises RuntimeError if poller is stopped while waiting."""
+        poller = AsyncPoller[str]()
+
+        wait_task = asyncio.create_task(poller.wait_instance())
+
+        # Allow wait_instance to start and enter the waiting state
+        await asyncio.sleep(0.01) 
+
+        # Ensure the loop was actually started by wait_instance
+        assert poller._AsyncPoller__is_loop_running.get() is True
+        assert poller._AsyncPoller__event_loop is not None
+        
+        # Stop the poller
+        poller._AsyncPoller__is_loop_running.set(False)
+        poller._AsyncPoller__barrier.set() # Signal the barrier to wake up wait_instance
+
+        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+            await wait_task
+            
+    async def test_wait_instance_raises_error_even_if_data_queued_then_stopped(self):
+        """Test wait_instance raises RuntimeError if stopped, even if data was previously queued."""
+        poller = AsyncPoller[str]()
+        poller.on_available("test_data_should_not_be_retrieved")
+
+        # Simulate that an event loop was previously acquired
+        poller._AsyncPoller__event_loop = asyncio.get_running_loop()
+        poller._AsyncPoller__is_loop_running.set(False) # Stop it
+
+        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+            await poller.wait_instance()
+
+    async def test_wait_instance_after_on_available_and_stop_then_wait(self):
+        """Test behavior when on_available is called, then poller is stopped, then wait_instance."""
+        poller = AsyncPoller[str]()
+        
+        # Call on_available - this might try to set the barrier on an event loop
+        # if __is_loop_running is True.
+        # We need to ensure __is_loop_running is True and an event_loop is set for on_available
+        # to interact with the barrier as it would in a running poller.
+        poller._AsyncPoller__event_loop = asyncio.get_running_loop()
+        poller._AsyncPoller__is_loop_running.set(True) 
+        poller.on_available("some_data")
+        
+        # Now stop the poller
+        poller._AsyncPoller__is_loop_running.set(False)
+        
+        # wait_instance should raise because the poller is stopped,
+        # regardless of data being in __responses or barrier being set by on_available.
+        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+            await poller.wait_instance()
+        
+        # Double check that data is still in the queue, but wait_instance didn't yield it
+        assert len(poller._AsyncPoller__responses) == 1
+
+    async def test_multiple_wait_calls_on_stopped_poller(self):
+        """Ensure subsequent calls to wait_instance on a stopped poller also raise."""
+        poller = AsyncPoller[str]()
+        poller._AsyncPoller__event_loop = asyncio.get_running_loop()
+        poller._AsyncPoller__is_loop_running.set(False)
+
+        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+            await poller.wait_instance()
+        
+        # And again
+        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+            await poller.wait_instance()
+            
+    async def test_stop_poller_after_wait_instance_already_returned_data(self):
+        """Test stopping poller after wait_instance successfully returned data."""
+        poller = AsyncPoller[str]()
+        
+        poller.on_available("data1")
+        results = await poller.wait_instance()
+        assert results == ["data1"]
+        
+        # Now stop the poller
+        assert poller._AsyncPoller__event_loop is not None # wait_instance should have set it
+        poller._AsyncPoller__is_loop_running.set(False)
+        poller._AsyncPoller__barrier.set() # Wake any potential waiters (though none here)
+
+        # Call wait_instance again, should raise error
+        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+            await poller.wait_instance()
+
+        # Add more data, try to wait again, should still be stopped
+        poller.on_available("data2")
+        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+            await poller.wait_instance()
+        
+        assert len(poller._AsyncPoller__responses) == 1 # "data2" should be in the queue
+        assert poller._AsyncPoller__responses[0] == "data2"

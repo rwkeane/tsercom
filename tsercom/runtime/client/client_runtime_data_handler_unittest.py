@@ -161,6 +161,46 @@ class TestClientRuntimeDataHandler:
             excinfo.value
         )
 
+    # Remove the old test_unregister_caller as its testing an assert False
+    # The new tests will cover the updated logic.
+
+    def test_unregister_caller_valid_id(self, handler):
+        """Test _unregister_caller with a valid and existing caller_id."""
+        mock_caller_id = CallerIdentifier.random()
+        mock_address = "192.168.1.100"
+        mock_port = 12345
+        
+        # Configure mocks
+        handler._mock_id_tracker_instance.try_get.return_value = (mock_address, mock_port)
+        # remove() should return True if successful, though _unregister_caller doesn't check this return
+        handler._mock_id_tracker_instance.remove.return_value = True 
+
+        result = handler._unregister_caller(mock_caller_id)
+
+        assert result is True
+        handler._mock_id_tracker_instance.try_get.assert_called_once_with(mock_caller_id)
+        handler._mock_id_tracker_instance.remove.assert_called_once_with(mock_caller_id)
+        handler._mock_time_sync_tracker_instance.on_disconnect.assert_called_once_with(mock_address)
+
+    def test_unregister_caller_invalid_id_not_found(self, handler):
+        """Test _unregister_caller with a non-existent caller_id."""
+        mock_caller_id = CallerIdentifier.random()
+        
+        # Configure mocks
+        handler._mock_id_tracker_instance.try_get.return_value = None
+
+        # Patch logging.warning for this specific test
+        with mock.patch("tsercom.runtime.client.client_runtime_data_handler.logging") as mock_logging:
+            result = handler._unregister_caller(mock_caller_id)
+
+        assert result is False
+        handler._mock_id_tracker_instance.try_get.assert_called_once_with(mock_caller_id)
+        handler._mock_id_tracker_instance.remove.assert_not_called()
+        handler._mock_time_sync_tracker_instance.on_disconnect.assert_not_called()
+        mock_logging.warning.assert_called_once_with(
+            f"Attempted to unregister non-existent caller_id: {mock_caller_id}"
+        )
+        
     def test_try_get_caller_id(self, handler):
         mock_endpoint = "10.0.0.1"
         mock_port = 8080
