@@ -77,13 +77,13 @@ class RemoteRuntimeFactory(
         """Provides the data reader sink for the remote runtime.
 
         Lazily initializes and returns a `DataReaderSink`.
-        Note: The base `RuntimeFactory` expects `RemoteDataReader[AnnotatedInstance[TDataType]]`.
-        Ensure `DataReaderSink` is compatible or this may indicate a type inconsistency.
 
         Returns:
             A `DataReaderSink` instance.
         """
         # Lazily initializes DataReaderSink if not already created.
+        # Note: The base `RuntimeFactory` expects `RemoteDataReader[AnnotatedInstance[TDataType]]`.
+        # DataReaderSink is designed to be compatible with this expectation.
         if self.__data_reader_sink is None:
             self.__data_reader_sink = DataReaderSink(self.__data_reader_queue)
         return self.__data_reader_sink
@@ -121,6 +121,7 @@ class RemoteRuntimeFactory(
         Returns:
             The created Runtime instance, configured for remote operation.
         """
+        # Create the core runtime instance using the provided initializer and components.
         runtime = self._initializer.create(
             data_handler=data_handler,
             event_poller=self._event_poller(),
@@ -137,9 +138,10 @@ class RemoteRuntimeFactory(
             # This might indicate an issue if events are expected to be processed
             # immediately after runtime creation without a prior call to _event_poller.
             # Consider if _event_poller should always be called, e.g., in __init__ or at the start of create.
-            pass  # Or log a warning
+            pass  # Or log a warning, though current design relies on _event_poller being called if needed.
 
-        # Initialize and start the command source to listen for commands for this runtime.
+        # Initialize and start the command source to listen for and relay commands
+        # from the handle (via a queue) to this specific runtime instance.
         self.__command_source = RuntimeCommandSource(
             thread_watcher, self.__command_source_queue, runtime
         )

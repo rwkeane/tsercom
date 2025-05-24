@@ -1,36 +1,72 @@
+"""Defines ClientIdFetcher for lazily fetching a CallerIdentifier via gRPC."""
+
 import asyncio
+from typing import Any, Optional # Added Any and Optional
 
 from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
 class ClientIdFetcher:
-    """
-    This class provides a simple wrapper around the GetId() call that is
-    supported by a number of different gRPC Services, allowing for a single
-    GetId() call to be lazy-loaded and used as needed.
+    """Fetches and caches a client ID (CallerIdentifier) from a gRPC service.
+
+    This class provides a method `get_id_async` to retrieve a `CallerIdentifier`.
+    The first call to this method makes a gRPC `GetId` request to the provided
+    stub and caches the result. Subsequent calls return the cached ID.
+    Access is thread-safe using an asyncio.Lock.
     """
 
-    def __init__(self, stub) -> None:  # type: ignore
-        self.__stub = stub
+    def __init__(self, stub: Any) -> None:
+        """Initializes the ClientIdFetcher.
 
-        self.__id: CallerIdentifier | None = None
+        Args:
+            stub: The gRPC stub that provides the `GetId` method.
+                  Expected to have a method like `async def GetId(GetIdRequest) -> GetIdResponse`.
+        """
+        self.__stub: Any = stub # Store the gRPC stub.
+        self.__id: Optional[CallerIdentifier] = None # Cached CallerIdentifier.
+        # Lock to ensure thread-safe lazy initialization of the ID.
         self.__lock = asyncio.Lock()
 
-    async def get_id_async(self) -> CallerIdentifier | None: # Return type can be None
+    async def get_id_async(self) -> Optional[CallerIdentifier]:
+        """Lazily fetches and returns the client ID.
+
+        The first time this method is called, it makes a gRPC call to the
+        `GetId` method of the stub provided during initialization. The ID is
+        then cached. Subsequent calls return the cached ID. If the gRPC call
+        fails or the returned ID is invalid, None is returned.
+
+        Returns:
+            The `CallerIdentifier` if successfully fetched and parsed,
+            otherwise `None`.
+        """
         try:
+            # Ensure only one coroutine attempts to fetch the ID at a time.
             async with self.__lock:
+                # If the ID hasn't been fetched yet (lazy loading).
                 if self.__id is None:
-                    # Make the RPC call
-                    id_response = await self.__stub.GetId(GetIdRequest()) # type: ignore
-                    assert isinstance(id_response, GetIdResponse)
+                    # Make the asynchronous gRPC call.
+                    id_response: GetIdResponse = await self.__stub.GetId(GetIdRequest())
                     
-                    # try_parse can return None if the id string is invalid
-                    self.__id = CallerIdentifier.try_parse(id_response.id.id)
+                    # Ensure the response is of the expected type.
+                    assert isinstance(id_response, GetIdResponse), \
+                        f"Expected GetIdResponse, got {type(id_response)}"
                     
-                    # If parsing fails (self.__id is None), self.__id will be None,
-                    # and that will be returned.
+                    # Attempt to parse the ID from the response.
+                    # CallerIdentifier.try_parse can return None if the string is invalid.
+                    if id_response.id and id_response.id.id:
+                        self.__id = CallerIdentifier.try_parse(id_response.id.id)
+                    else:
+                        # Handle cases where response or its nested id is missing.
+                        self.__id = None 
+                        # Optionally log a warning here if this case is unexpected.
+                        # print("Warning: GetIdResponse or its ID field was empty.")
+                
+                # Return the (potentially newly fetched or previously cached) ID.
+                # This could be None if fetching or parsing failed.
                 return self.__id
-        except Exception: # pylint: disable=broad-except
-            print(f"Error fetching client ID: {e}")
+        except Exception as e: # pylint: disable=broad-except
+            # Broad exception catch for any issues during RPC call or processing.
+            # In a production system, more specific error handling and logging would be preferred.
+            print(f"Error fetching client ID: {e}") # Basic error logging.
             return None

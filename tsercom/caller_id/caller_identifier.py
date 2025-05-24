@@ -1,123 +1,180 @@
-import typing
-from typing import Optional  # Keep this for Optional
+"""Defines the CallerIdentifier class for uniquely identifying callers."""
+
+import typing # Retained for typing.Union, though | can be used in Python 3.10+
+from typing import Optional, Union # Explicitly import Union
 import uuid
 
-from tsercom.caller_id.proto import CallerId
+# Attempt to import the gRPC CallerId type for type checking and conversion.
+# This import might not be available in all environments (e.g., if protos not generated),
+# so its absence is handled gracefully in methods like try_parse and to_grpc_type.
+try:
+    from tsercom.caller_id.proto import CallerId
+except ImportError:
+    # Define a placeholder type if CallerId proto is not available.
+    # This helps type hints to not raise NameError immediately.
+    # Actual runtime isinstance checks will handle this.
+    CallerId = typing.NewType("CallerId", object) # type: ignore
 
 
 class CallerIdentifier:
-    """
-    This class acts as a simple wrapper around a GUID, allowing for
-    serialization both to and from the gRPC CallerId type as well.
+    """A wrapper around a UUID for unique caller identification.
+
+    This class encapsulates a UUID, providing methods for random generation,
+    parsing from strings or gRPC `CallerId` objects, and conversion to
+    the gRPC `CallerId` type. It ensures type safety and provides standard
+    comparison and representation methods.
     """
 
-    def __init__(self, id: uuid.UUID):
+    def __init__(self, id_value: uuid.UUID) -> None:
+        """Initializes a new CallerIdentifier instance.
+
+        Args:
+            id_value: The UUID to wrap. Must be an instance of `uuid.UUID`.
+
+        Raises:
+            TypeError: If `id_value` is not an instance of `uuid.UUID`.
         """
-        Creates a new instance using |id|.
-        """
-        if not isinstance(id, uuid.UUID):
-            raise TypeError(f"id must be a UUID instance, got {type(id)}")
-        self.__id = id
+        if not isinstance(id_value, uuid.UUID):
+            raise TypeError(f"id_value must be a UUID instance, got {type(id_value)}")
+        self.__id: uuid.UUID = id_value
 
     @staticmethod
-    def random():
+    def random() -> "CallerIdentifier":
+        """Creates a new CallerIdentifier from a randomly generated UUID.
+
+        Returns:
+            A new `CallerIdentifier` instance.
         """
-        Creates a new CallerIdentifier from a random GUID.
-        """
-        id = uuid.uuid4()
-        return CallerIdentifier(id)
+        # Generate a new version 4 UUID.
+        random_id = uuid.uuid4()
+        return CallerIdentifier(random_id)
 
     @classmethod
     def try_parse(
-        cls, id: typing.Union[str, CallerId]
+        cls, value: Union[str, CallerId] # Using typing.Union for broader compatibility
     ) -> Optional["CallerIdentifier"]:
+        """Tries to parse a string or gRPC CallerId object into a CallerIdentifier.
+
+        Args:
+            value: The value to parse. Can be a string representation of a UUID
+                   or an instance of the gRPC `CallerId` protobuf message.
+
+        Returns:
+            A `CallerIdentifier` instance if parsing is successful,
+            otherwise `None`.
         """
-        Tries to parse |id| into a GUID, returning an insance of this object on
-        success and None on failure.
-        """
-        # Check if it's the gRPC-like object by checking for 'id' attribute
-        # instead of strict isinstance, to better work with mocks.
-        # The actual tsercom.caller_id.proto.CallerId is checked by string literal later if needed.
-        if hasattr(id, "id") and not isinstance(
-            id, str
-        ):  # Check it's not a string itself
-            # Heuristic: if it has an 'id' attribute, assume it's gRPC-like.
-            # The real check for CallerId type is implicitly handled if it's a real proto object.
-            # For mocks, this allows duck typing.
-            # We need to be careful here: if 'id' object's 'id' attribute is not a string,
-            # it will fail later.
-            # The original code was: if isinstance(id, CallerId): id = id.id
-            # We need to ensure our mock strategy aligns or that the real CallerId is used if available
-            # and string hints are used.
-            # For now, let's assume the type hint "CallerId" will be resolved correctly
-            # by Python if the real one is available, or our mock if we inject one.
-            # So, the original isinstance check might be fine if the mock is perfect.
-            # For now, let's assume the type hint ` "CallerId" ` and `from tsercom.caller_id.proto import CallerId`
-            # (even if commented out or mock-injected) handles this.
-            # The problem description mentions using string literals for hints,
-            # but `isinstance` needs a real type or a mock type.
-            # Let's revert to the original isinstance check for now, and focus on making the mock work.
-            # The type hint `id: str | "CallerId"` is good.
-            # The `from tsercom.caller_id.proto import CallerId` should be present for `isinstance`
-            # to work with the real type. If it's not there, `NameError` unless `CallerId` is defined/mocked.
+        parsed_id_str: Optional[str] = None
 
-            # Let's assume 'CallerId' will be resolved to either the real one or our mock.
-            # This requires `from tsercom.caller_id.proto import CallerId` to be active
-            # or `CallerId` to be present in globals() via sys.modules mocking.
-            # For now, I'll assume the import is there.
-            try:
-                # This will only work if CallerId is the actual protobuf type or a perfect mock class
-                from tsercom.caller_id.proto import (
-                    CallerId as ActualProtoCallerId,
-                )
+        # Attempt to extract ID string if input is a gRPC CallerId object or mock.
+        # This check uses hasattr for compatibility with mocks and duck typing,
+        # falling back to isinstance for the actual imported CallerId type if available.
+        if hasattr(value, "id") and not isinstance(value, str):
+            # Check if it's the actual imported protobuf type first.
+            # This relies on the try-except import of CallerId at the module level.
+            if 'tsercom.caller_id.proto.CallerId' in str(type(value)): # Check type by string name to avoid direct dependency if mock
+                 parsed_id_str = getattr(value, "id")
+            elif isinstance(value, CallerId) and hasattr(value, "id"): # Fallback for other cases or mocks
+                 parsed_id_str = getattr(value, "id")
 
-                if isinstance(id, ActualProtoCallerId):
-                    id = id.id
-            except (
-                ImportError
-            ):  # If actual protobufs are not there, this path won't be taken for real objects
-                pass
 
-        if not isinstance(id, str):
+        elif isinstance(value, str):
+            parsed_id_str = value
+
+        # If we couldn't get a string ID (e.g., input was neither string nor valid CallerId-like), return None.
+        if not isinstance(parsed_id_str, str):
             return None
 
+        # Try to convert the string to a UUID.
         try:
-            id = uuid.UUID(id)  # type: ignore
-            return CallerIdentifier(id)  # type: ignore
+            uuid_obj = uuid.UUID(parsed_id_str)
+            return CallerIdentifier(uuid_obj)
         except ValueError:
+            # Parsing failed (e.g., string is not a valid UUID format).
             return None
 
     def to_grpc_type(self) -> CallerId:
-        """
-        Returns a gRPC CallerId representation of this object.
-        """
-        # This will use the globally available CallerId (real or mocked)
-        from tsercom.caller_id.proto import (
-            CallerId as ActualProtoCallerId,
-        )  # Ensure it's using the (potentially mocked) import
+        """Converts this CallerIdentifier to its gRPC `CallerId` representation.
 
+        Returns:
+            A gRPC `CallerId` protobuf message instance.
+        
+        Raises:
+            ImportError: If the `CallerId` protobuf type cannot be imported.
+                         (This is implicitly handled by the module-level try-except import)
+        """
+        # Dynamically import CallerId here to ensure the most up-to-date version is used,
+        # especially if it was initially a placeholder.
+        try:
+            from tsercom.caller_id.proto import CallerId as ActualProtoCallerId
+        except ImportError:
+            # This should ideally not happen if the placeholder logic is robust,
+            # or it indicates a setup issue where protos are expected but not found.
+            raise ImportError(
+                "CallerId protobuf type not found. Please ensure protobufs are generated."
+            ) from None # Raise from None to break chain
+        
         return ActualProtoCallerId(id=str(self.__id))
 
     def __hash__(self) -> int:
-        return self.__id.__hash__()
+        """Returns the hash of the underlying UUID.
+
+        Returns:
+            An integer hash value.
+        """
+        return hash(self.__id)
 
     def __eq__(self, other: object) -> bool:
-        if other is None:
-            return False
+        """Checks equality with another CallerIdentifier.
 
-        if not issubclass(type(other), CallerIdentifier):
-            return False
+        Two `CallerIdentifier` instances are equal if their underlying UUIDs are equal.
 
-        return self.__id == other.__id  # type: ignore
+        Args:
+            other: The object to compare with.
+
+        Returns:
+            True if the other object is a `CallerIdentifier` and their UUIDs
+            are equal, False otherwise.
+        """
+        if not isinstance(other, CallerIdentifier):
+            return NotImplemented # Use NotImplemented for type mismatches in comparison
+        return self.__id == other.__id
 
     def __ne__(self, other: object) -> bool:
-        return not self.__eq__(other)
+        """Checks inequality with another CallerIdentifier.
+
+        Args:
+            other: The object to compare with.
+
+        Returns:
+            True if the objects are not equal, False otherwise.
+        """
+        equal = self.__eq__(other)
+        return NotImplemented if equal is NotImplemented else not equal
 
     def __str__(self) -> str:
-        return self.__id.__str__()
+        """Returns the string representation of the underlying UUID.
+
+        Returns:
+            A string representation of the UUID.
+        """
+        return str(self.__id)
 
     def __repr__(self) -> str:
+        """Returns a developer-friendly string representation of this instance.
+
+        Returns:
+            A string in the format `CallerIdentifier('uuid_string')`.
+        """
         return f"CallerIdentifier('{self.__id}')"
 
     def __format__(self, format_spec: str) -> str:
-        return self.__id.__format__(format_spec)
+        """Formats the underlying UUID according to the given format specification.
+
+        Args:
+            format_spec: The format specification string (e.g., 's' for simple,
+                         'n' for URN, 'h' for hex).
+
+        Returns:
+            The formatted string representation of the UUID.
+        """
+        return format(self.__id, format_spec)

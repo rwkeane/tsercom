@@ -12,20 +12,27 @@ kGeneratedDir = "generated"
 
 def generate_proto_file(
     package_dir: Path, proto_file_path: str, import_paths: Iterable[str]
-):
-    """Generates Python files for a single .proto file."""
+) -> None:
+    """Generates Python files for a single .proto file.
 
+    Args:
+        package_dir: The root directory of the package.
+        proto_file_path: The path to the .proto file, relative to package_dir.
+        import_paths: An iterable of import paths relative to package_dir.
+    """
+    # Construct the absolute path to the .proto file.
     absolute_proto_path = Path.joinpath(package_dir, proto_file_path)
     output_dir = make_versioned_output_dir(absolute_proto_path.parent)
 
+    # Construct the protoc command.
     command = [
-        sys.executable,  # python executable path
-        "-m",
-        "grpc_tools.protoc",
-        *[f"-I{package_dir / path}" for path in import_paths],
-        f"--python_out={output_dir}",
-        f"--mypy_out={output_dir}",
-        str(absolute_proto_path),
+        sys.executable,  # Path to the Python interpreter.
+        "-m",  # Run library module as a script.
+        "grpc_tools.protoc",  # The gRPC tools protoc module.
+        *[f"-I{package_dir / path}" for path in import_paths],  # Include paths for proto imports.
+        f"--python_out={output_dir}",  # Output directory for generated Python code.
+        f"--mypy_out={output_dir}",  # Output directory for generated mypy stubs.
+        str(absolute_proto_path),  # The .proto file to compile.
     ]
     print(f"Running command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True)
@@ -52,7 +59,22 @@ def generate_proto_file(
     modify_generated_file(pyi_file)
 
 
-def make_versioned_output_dir(base_dir: Path):
+def make_versioned_output_dir(base_dir: Path) -> Path:
+    """Creates a versioned output directory for generated protobuf files.
+
+    The version is derived from the currently installed grpcio-tools package.
+    This ensures that generated code is compatible with the gRPC runtime.
+
+    Args:
+        base_dir: The base directory where the 'generated/vX_Y' structure
+            will be created.
+
+    Returns:
+        The path to the versioned output directory (e.g., base_dir/generated/v1_62).
+
+    Raises:
+        RuntimeError: If the grpcio-tools version cannot be determined.
+    """
     # --- Get current grpcio-tools version (MAJOR.MINOR only) ---
     try:
         version = grpc.__version__
@@ -78,17 +100,31 @@ def make_versioned_output_dir(base_dir: Path):
     return versioned_output_base
 
 
-def modify_generated_file(file_path: Path):
-    """Performs string replacement in the generated file."""
+def modify_generated_file(file_path: Path) -> None:
+    """Performs string replacement in the generated file.
 
+    This function modifies the import statements in the generated protobuf files
+    to use fully qualified paths. This is a workaround for how protoc generates
+    imports.
+
+    Args:
+        file_path: The path to the generated file to modify.
+
+    Raises:
+        FileNotFoundError: If the specified file_path does not exist.
+        Exception: For other file I/O errors.
+    """
     # TODO: Make this less hacky.
+    # Dictionary of import statements to find and replace.
+    # This is necessary because protoc generates relative imports, but we need
+    # fully qualified imports for our project structure.
     updates: Dict[str, str] = {
         "import caller_id_pb2\n": "import tsercom.caller_id.proto as caller_id_pb2\n",
         "import time_pb2\n": "import tsercom.timesync.common.proto as time_pb2\n",
         "import common_pb2\n": "import tsercom.rpc.proto as common_pb2\n",
-        "import caller_id_pb2 ": "import tsercom.caller_id.proto ",
-        "import time_pb2 ": "import tsercom.timesync.common.proto ",
-        "import common_pb2 ": "import tsercom.rpc.proto ",
+        "import caller_id_pb2 ": "import tsercom.caller_id.proto ",  # For typing imports
+        "import time_pb2 ": "import tsercom.timesync.common.proto ",  # For typing imports
+        "import common_pb2 ": "import tsercom.rpc.proto ",  # For typing imports
     }
 
     try:
@@ -106,7 +142,21 @@ def modify_generated_file(file_path: Path):
         raise
 
 
-def generate_init(package_dir, proto_path: str, generated_path: Path):
+def generate_init(package_dir: Path, proto_path: str, generated_path: Path) -> None:
+    """Generates an __init__.py file for the generated protobuf package.
+
+    This __init__.py file dynamically imports the correct version of the
+    protobuf modules based on the installed grpcio-tools version. It also
+    provides type hints for static analysis when TYPE_CHECKING is true.
+
+    Args:
+        package_dir: The root directory of the tsercom package.
+        proto_path: The path to the original .proto file (used to derive the module name).
+        generated_path: The path to the 'generated' directory where versioned
+            protobuf files are located (e.g., tsercom/rpc/proto/generated).
+    """
+    # Initial content for the __init__.py file.
+    # This part handles runtime imports.
     init_file_content = """
 import grpc
 import subprocess
@@ -133,17 +183,22 @@ if not TYPE_CHECKING:
         .replace("/", ".")
         .replace("\\", ".")
     )
+    # Iterate through versioned directories (e.g., v1_62, v1_63)
+    # to find all generated _pb2.pyi files and extract class names.
     for item in generated_path.iterdir():
         if item.is_dir() and item.name.startswith("v"):
             file_path = item.joinpath(f"{name}_pb2.pyi")
             classes = get_classes_from_file(file_path)
             versioned_dirs.append((item.name, classes))
+
+    # Add runtime import statements for each version found.
     for versioned_dir_name, classes in versioned_dirs:
-        current_version = versioned_dir_name[1:]
+        current_version = versioned_dir_name[1:] # Remove the 'v' prefix
         init_file_content += f"""
     elif version_string == "v{current_version}":
         from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}
 """
+    # Add a fallback else clause for runtime if no matching version is found.
     init_file_content += """
     else:
         raise ImportError(
@@ -151,30 +206,40 @@ if not TYPE_CHECKING:
             f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
         )
 
+# This part handles type hinting for static analysis (e.g., mypy).
+# It imports symbols from the latest available version.
 else: # When TYPE_CHECKING
 """
+    # Get the latest version for type checking.
+    # Assumes versioned_dirs is sorted or the last one is the newest.
+    # TODO: Consider explicitly sorting by version if not guaranteed.
     versioned_dir_name, classes = versioned_dirs[-1]
     current_version = versioned_dir_name[1:]
     for clazz in classes:
         init_file_content += f"""
     from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {clazz} as {clazz}"""
 
+    # Write the generated __init__.py content.
+    # The __init__.py is placed one level up from the 'generated' directory,
+    # e.g., tsercom/rpc/proto/__init__.py
     f = open(generated_path.parent.joinpath("__init__.py"), "w")
     f.write(init_file_content)
     f.close()
 
 
-def get_classes_from_file(filepath):
+def get_classes_from_file(filepath: Path) -> list[str]:
     """
     Gets a list of class names defined in a Python file (.py or .pyi).
 
     Args:
-        module_name: The name of the module (without the .py or .pyi extension).
+        filepath: The path to the Python source file.
 
     Returns:
-        A list of strings (class names), or raises FileNotFoundError if
-        neither .py nor .pyi files exist.  Returns an empty list if the
-        file exists but has syntax errors.
+        A list of strings (class names). Returns an empty list if the
+        file exists but has syntax errors or contains no class definitions.
+    
+    Raises:
+        FileNotFoundError: If the specified filepath does not exist.
     """
 
     try:
@@ -191,9 +256,15 @@ def get_classes_from_file(filepath):
     return class_names
 
 
-def generate_protos(project_root: Path):
-    """Generates Python files from .proto files."""
+def generate_protos(project_root: Path) -> None:
+    """Generates Python files from .proto files for the entire project.
 
+    This function orchestrates the protobuf generation process for all
+    defined .proto files in the project.
+
+    Args:
+        project_root: The root directory of the project.
+    """
     assert isinstance(project_root, Path)
     package_dir = Path.joinpath(project_root, "tsercom")
 

@@ -49,19 +49,18 @@ class RuntimeCommandSource:
         Raises:
             AssertionError: If called multiple times or if internal state is inconsistent.
         """
-        # Ensure start_async is called only once.
-        assert self.__is_running is None
+        # Ensure that start_async is called only once and in a valid state.
+        assert self.__is_running is None, "RuntimeCommandSource already started or in an inconsistent state."
         self.__is_running = IsRunningTracker()
-
-        assert not self.__is_running.get()
-        # Ensure runtime is not already set.
-        assert self.__runtime is None
+        assert not self.__is_running.get(), "IsRunningTracker started prematurely."
+        assert self.__runtime is None, "Runtime instance already set before start_async."
 
         self.__is_running.start()
         self.__runtime = runtime
 
         def watch_commands() -> None:
-            while self.__is_running and self.__is_running.get(): # Added check for self.__is_running
+            """Polls for commands and executes them on the runtime."""
+            while self.__is_running and self.__is_running.get(): # Check both instance and its value
                 # Poll the queue with a timeout to allow checking is_running periodically.
                 command = self.__runtime_command_queue.get_blocking(timeout=1)
                 if command is None:
@@ -99,11 +98,11 @@ class RuntimeCommandSource:
         Raises:
             AssertionError: If not currently running or if internal state is inconsistent.
         """
-        # Ensure stop_async is called only when running.
-        assert self.__is_running is not None
-        # Verify it's currently marked as running.
-        assert self.__is_running.get()
+        # Ensure that stop_async is called only when running and in a valid state.
+        assert self.__is_running is not None, "RuntimeCommandSource not started or in an inconsistent state."
+        assert self.__is_running.get(), "RuntimeCommandSource is not marked as running."
+
         self.__is_running.stop()
-        # It might be good practice to also join the thread here if necessary,
-        # or set self.__runtime to None, depending on lifecycle management.
-        # For now, sticking to the provided instructions.
+        # Note: Thread joining and resource cleanup (like setting self.__runtime to None)
+        # might be considered here for robust lifecycle management, but are
+        # currently outside the scope of these changes.
