@@ -2,10 +2,11 @@
 
 from typing import Generic, TypeVar
 
-from tsercom.api.data_handler import DataHandler
-from tsercom.api.grpc_channel_factory import GrpcChannelFactory
-from tsercom.api.runtime_factory import RuntimeFactory
-from tsercom.api.runtime_initializer import RuntimeInitializer
+# from tsercom.api.data_handler import DataHandler # Original problematic import
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler # Corrected import
+from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory # Corrected import path
+from tsercom.runtime.runtime_factory import RuntimeFactory # Corrected import path
+from tsercom.runtime.runtime_initializer import RuntimeInitializer # Corrected import path
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
 from tsercom.api.split_process.event_source import EventSource
 from tsercom.api.split_process.runtime_command_source import RuntimeCommandSource
@@ -104,7 +105,7 @@ class RemoteRuntimeFactory(
     def create(
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: DataHandler[TDataType],
+        data_handler: RuntimeDataHandler[TDataType, TEventType], # Corrected type hint
         grpc_channel_factory: GrpcChannelFactory | None,
     ) -> Runtime[TDataType, TEventType]:
         """Creates the remote Runtime instance and sets up command handling.
