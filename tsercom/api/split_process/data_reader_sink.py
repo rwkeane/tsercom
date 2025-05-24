@@ -6,7 +6,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
 
-
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 

@@ -40,12 +40,10 @@ class RemoteDataOrganizer(
         self.__caller_id = caller_id
         self.__client = client
 
-        # Stored data.
         self.__data_lock = threading.Lock()
         self.__data = Deque[TDataType]()
-        self.__last_access = datetime.datetime.min
+        self.__last_access = datetime.datetime.min 
 
-        # Schedule timeout.
         self.__is_running = IsRunningTracker()
 
         super().__init__()
@@ -79,7 +77,7 @@ class RemoteDataOrganizer(
         with self.__data_lock:
             if len(self.__data) == 0:
                 return False
-
+            
             return self.__data[0].timestamp > self.__last_access
 
     def get_new_data(self) -> List[TDataType]:
@@ -89,12 +87,19 @@ class RemoteDataOrganizer(
         """
         with self.__data_lock:
             results = []
+            if not self.__data: 
+                return results
+
             for i in range(len(self.__data)):
                 if self.__data[i].timestamp > self.__last_access:
                     results.append(self.__data[i])
                 else:
                     break
-
+            
+            if results and self.__data: 
+                new_last_access = self.__data[0].timestamp 
+                self.__last_access = new_last_access
+            
             return results
 
     def get_most_recent_data(self) -> TDataType | None:
@@ -131,39 +136,37 @@ class RemoteDataOrganizer(
         # Validate the data.
         if not issubclass(type(new_data), ExposedData):
             raise TypeError(f"Expected new_data to be a subclass of ExposedData, but got {type(new_data).__name__}.")
+
         assert new_data.caller_id == self.caller_id, (
             new_data.caller_id,
             self.caller_id,
         )
-
-        # Do real processing.
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: TDataType) -> None:
-        # Exit early if not running.
         if not self.__is_running.get():
             return
 
-        # Try to insert the data.
+        data_inserted_or_updated = False
         with self.__data_lock:
             if len(self.__data) == 0:
                 self.__data.append(new_data)
+                data_inserted_or_updated = True
             else:
                 first_time = self.__data[0].timestamp
                 other_time = new_data.timestamp
 
                 if other_time < first_time:
-                    return
-
+                    return 
                 elif other_time == first_time:
-                    self.__data[0] = new_data
+                    self.__data[0] = new_data 
+                    data_inserted_or_updated = True
                     return
-
-                else:
+                else: 
                     self.__data.appendleft(new_data)
+                    data_inserted_or_updated = True
 
-        # If new data was added, inform the user.
-        if self.__client is not None:
+        if data_inserted_or_updated and self.__client is not None:
             self.__client._on_data_available(self)
 
     def _on_triggered(self, timeout_seconds: int) -> None:
@@ -172,12 +175,10 @@ class RemoteDataOrganizer(
         )
 
     def __timeout_old_data(self, timeout_seconds: int) -> None:
-        # Get the timeout.
         current_time = datetime.datetime.now()
         timeout = datetime.timedelta(seconds=timeout_seconds)
         oldest_allowed = current_time - timeout
 
-        # Eliminate old data.
         with self.__data_lock:
             while (
                 len(self.__data) > 0

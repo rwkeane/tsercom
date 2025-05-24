@@ -37,33 +37,35 @@ def initialize_runtimes(
 
     # Create all runtimes.
     runtimes: List[Runtime] = []
-    for initializer in initializers:
+    for initializer_factory in initializers:
         # Create the data handler.
-        if initializer.is_client():
+        data_reader = initializer_factory._remote_data_reader()
+        event_poller = initializer_factory._event_poller()
+
+        if initializer_factory.is_client():
             data_handler = ClientRuntimeDataHandler(
                 thread_watcher,
-                initializer.remote_data_reader,
-                initializer.event_poller,
+                data_reader,
+                event_poller,
                 is_testing=is_testing,
             )
-        elif initializer.is_server():
+        elif initializer_factory.is_server():
             data_handler = ServerRuntimeDataHandler(
-                initializer.remote_data_reader,
-                initializer.event_poller,
+                data_reader,
+                event_poller,
                 is_testing=is_testing,
             )
         else:
             raise ValueError("Invalid endpoint type!")
 
         # Create the runtime with this data handler.
-        runtimes.append(
-            initializer.create(thread_watcher, data_handler, channel_factory)
-        )
+        runtime_instance = initializer_factory.create(thread_watcher, data_handler, channel_factory)
+        runtimes.append(runtime_instance)
 
     # Start them all.
     for runtime in runtimes:
         run_on_event_loop(runtime.start_async)
-
+    
     return runtimes
 
 

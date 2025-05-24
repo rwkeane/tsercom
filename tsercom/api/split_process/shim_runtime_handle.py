@@ -28,20 +28,20 @@ class ShimRuntimeHandle(
         self,
         thread_watcher: ThreadWatcher,
         event_queue: MultiprocessQueueSink[TEventType],
-        data_queue: MultiprocessQueueSource[TDataType],
+        data_queue: MultiprocessQueueSource[TDataType], 
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
-        data_aggregator: RemoteDataAggregatorImpl[TDataType],
+        data_aggregator: RemoteDataAggregatorImpl[TDataType], 
         block: bool = False,
     ):
         super().__init__()
 
         self.__event_queue = event_queue
         self.__runtime_command_queue = runtime_command_queue
-        self.__data_aggregtor = data_aggregator
+        self.__data_aggregator = data_aggregator # Corrected variable name to match convention
         self.__block = block
 
         self.__data_reader_source = DataReaderSource(
-            thread_watcher, data_queue, self.__data_aggregtor
+            thread_watcher, data_queue, self.__data_aggregator 
         )
 
     def start(self):
@@ -59,7 +59,12 @@ class ShimRuntimeHandle(
         self.__data_reader_source.stop()
 
     def _on_data_ready(self, new_data: TDataType) -> None:
-        self.__data_aggregtor._on_data_ready(new_data)
+        # This method is part of RemoteDataReader interface.
+        # Data is received from data_queue via DataReaderSource and fed to __data_aggregator.
+        # If ShimRuntimeHandle itself needs to process data directly, this would be used.
+        # Current implementation directly forwards to the main aggregator.
+        self.__data_aggregator._on_data_ready(new_data)
+
 
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator:
-        return self.__data_aggregtor
+        return self.__data_aggregator
