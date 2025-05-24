@@ -56,7 +56,7 @@ class RuntimeManager(ErrorWatcher):
             is_testing: If True, configures some operations for testing purposes,
                         such as making out-of-process runtimes daemonic.
         """
-        super().__init__()
+        super().__init__(is_testing=False)
 
         # Stores pairs of Futures and their corresponding RuntimeInitializers.
         self.__initializers: list[InitializationPair[Any, Any]] = []

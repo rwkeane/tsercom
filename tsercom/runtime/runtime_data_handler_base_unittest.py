@@ -2,7 +2,7 @@ import asyncio
 import pytest
 import grpc.aio # For ServicerContext
 from unittest import mock
-from mock import AsyncMock, MagicMock, patch, call
+# from mock import AsyncMock, MagicMock, patch, call # Removed this line
 from typing import Optional, Any, TypeVar # Removed Tuple, List as they are not used here
 import datetime
 
@@ -14,7 +14,7 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.serializable_annotated_instance import ServerTimestamp # SerializableAnnotatedInstance not directly used
+# ServerTimestamp removed, SerializableAnnotatedInstance will be used for spec if appropriate, or no spec.
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -32,19 +32,19 @@ import tsercom.rpc.grpc.addressing as grpc_addressing_module
 DataType = TypeVar("DataType")
 
 # Test Subclass of RuntimeDataHandlerBase
-class TestableRuntimeDataHandler(RuntimeDataHandlerBase[DataType]):
+class TestableRuntimeDataHandler(RuntimeDataHandlerBase[DataType, Any]): # Added Any for TEventType
     def __init__(self, data_reader: RemoteDataReader[DataType], event_source: AsyncPoller[Any]):
         super().__init__(data_reader, event_source)
-        self.mock_register_caller = AsyncMock(name="_register_caller_impl")
-        self.mock_unregister_caller = AsyncMock(name="_unregister_caller_impl")
-        self.mock_try_get_caller_id = MagicMock(name="_try_get_caller_id_impl")
+        self.mock_register_caller = mock.AsyncMock(name="_register_caller_impl")
+        self.mock_unregister_caller = mock.AsyncMock(name="_unregister_caller_impl")
+        self.mock_try_get_caller_id = mock.MagicMock(name="_try_get_caller_id_impl")
         # Mock the protected _on_data_ready to inspect calls to it
-        self._on_data_ready = MagicMock(name="handler_on_data_ready_mock") # type: ignore
+        self._on_data_ready = mock.MagicMock(name="handler_on_data_ready_mock") # type: ignore
         # print("TestableRuntimeDataHandler initialized.") # Reduced verbosity
 
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> Optional[RuntimeDataHandlerBase.EndpointDataProcessor]:
+    ) -> Optional[EndpointDataProcessor]: # Corrected reference
         # print(f"TestableRuntimeDataHandler._register_caller called with: {caller_id}, {endpoint}, {port}") # Reduced verbosity
         return await self.mock_register_caller(caller_id, endpoint, port)
 
@@ -61,36 +61,36 @@ class TestRuntimeDataHandlerBaseBehavior:
 
     @pytest.fixture
     def mock_data_reader(self):
-        reader = MagicMock(spec=RemoteDataReader)
+        reader = mock.MagicMock(spec=RemoteDataReader)
         # The SUT's _on_data_ready calls self.__data_reader._on_data_ready.
         # So, we mock this method on the reader instance passed to the SUT.
-        reader._on_data_ready = MagicMock(name="data_reader_on_data_ready_on_reader_mock")
+        reader._on_data_ready = mock.MagicMock(name="data_reader_on_data_ready_on_reader_mock")
         return reader
 
     @pytest.fixture
     def mock_event_source(self):
-        poller = MagicMock(spec=AsyncPoller)
-        poller.__anext__ = AsyncMock(name="event_source_anext")
+        poller = mock.MagicMock(spec=AsyncPoller)
+        poller.__anext__ = mock.AsyncMock(name="event_source_anext")
         return poller
 
     @pytest.fixture
     def mock_caller_id(self): # Renamed to avoid conflict with test_caller_id_fixture
-        return MagicMock(spec=CallerIdentifier, name="MockCallerIdInstance")
+        return mock.MagicMock(spec=CallerIdentifier, name="MockCallerIdInstance")
 
     @pytest.fixture
     def mock_servicer_context(self):
-        context = AsyncMock(spec=ServicerContext)
-        context.peer = MagicMock(return_value="ipv4:127.0.0.1:12345")
+        context = mock.AsyncMock(spec=ServicerContext)
+        context.peer = mock.MagicMock(return_value="ipv4:127.0.0.1:12345")
         return context
 
     @pytest.fixture
     def patch_get_client_ip(self):
-        with patch.object(grpc_addressing_module, 'get_client_ip', autospec=True) as mock_get_ip:
+        with mock.patch.object(grpc_addressing_module, 'get_client_ip', autospec=True) as mock_get_ip:
             yield mock_get_ip
 
     @pytest.fixture
     def patch_get_client_port(self):
-        with patch.object(grpc_addressing_module, 'get_client_port', autospec=True) as mock_get_port:
+        with mock.patch.object(grpc_addressing_module, 'get_client_port', autospec=True) as mock_get_port:
             yield mock_get_port
             
     @pytest.fixture
@@ -100,8 +100,8 @@ class TestRuntimeDataHandlerBaseBehavior:
     # Fixtures for DataProcessorImpl tests
     @pytest.fixture
     def mock_sync_clock(self):
-        clock = MagicMock(spec=SynchronizedClock)
-        clock.desync = AsyncMock(name="sync_clock_desync") # desync is async
+        clock = mock.MagicMock(spec=SynchronizedClock)
+        clock.desync = mock.AsyncMock(name="sync_clock_desync") # desync is async
         return clock
 
     @pytest.fixture
@@ -123,7 +123,7 @@ class TestRuntimeDataHandlerBaseBehavior:
     async def test_register_caller_endpoint_port(self, handler, mock_caller_id):
         endpoint_str = "10.0.0.1"
         port_num = 9999
-        mock_processor_instance = MagicMock(spec=RuntimeDataHandlerBase.EndpointDataProcessor)
+        mock_processor_instance = mock.MagicMock(spec=RuntimeDataHandlerBase.EndpointDataProcessor)
         handler.mock_register_caller.return_value = mock_processor_instance
         returned_processor = await handler.register_caller(mock_caller_id, endpoint_str, port_num)
         handler.mock_register_caller.assert_called_once_with(mock_caller_id, endpoint_str, port_num)
@@ -137,7 +137,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         expected_port = 5678
         patch_get_client_ip.return_value = expected_ip
         patch_get_client_port.return_value = expected_port
-        mock_processor_instance = MagicMock(spec=RuntimeDataHandlerBase.EndpointDataProcessor)
+        mock_processor_instance = mock.MagicMock(spec=RuntimeDataHandlerBase.EndpointDataProcessor)
         handler.mock_register_caller.return_value = mock_processor_instance
         returned_processor = await handler.register_caller(mock_caller_id, mock_servicer_context)
         patch_get_client_ip.assert_called_once_with(mock_servicer_context)
@@ -161,8 +161,8 @@ class TestRuntimeDataHandlerBaseBehavior:
         assert handler.get_data_iterator() is handler
 
     async def test_async_iteration_with_event_source(self, handler, mock_event_source):
-        item1 = MagicMock(name="EventItem1")
-        item2 = MagicMock(name="EventItem2")
+        item1 = mock.MagicMock(name="EventItem1")
+        item2 = mock.MagicMock(name="EventItem2")
         mock_event_source.__anext__.side_effect = [item1, item2, StopAsyncIteration]
         collected_items = []
         async for item in handler.get_data_iterator():
@@ -182,7 +182,7 @@ class TestRuntimeDataHandlerBaseBehavior:
     # The SUT's _on_data_ready calls the reader's _on_data_ready.
     def test_handler_on_data_ready_calls_reader_on_data_ready(self, handler, mock_data_reader):
         print("\n--- Test: test_handler_on_data_ready_calls_reader_on_data_ready ---")
-        mock_annotated_instance = MagicMock(spec=AnnotatedInstance)
+        mock_annotated_instance = mock.MagicMock(spec=AnnotatedInstance)
         # Call the public method on handler, which should internally call its own _on_data_ready
         # which then calls the reader's _on_data_ready.
         # Actually, _on_data_ready is a method of the data processor, which then calls
@@ -199,7 +199,7 @@ class TestRuntimeDataHandlerBaseBehavior:
     
     async def test_processor_desynchronize(self, data_processor, mock_sync_clock):
         print("\n--- Test: test_processor_desynchronize ---")
-        mock_server_ts = MagicMock(spec=ServerTimestamp)
+        mock_server_ts = mock.MagicMock(spec=SerializableAnnotatedInstance) # Changed spec
         expected_datetime = datetime.datetime.now(datetime.timezone.utc)
         mock_sync_clock.desync.return_value = expected_datetime
 
@@ -238,7 +238,7 @@ class TestRuntimeDataHandlerBaseBehavior:
     ):
         print("\n--- Test: test_processor_process_data_with_server_timestamp ---")
         test_payload = "payload_with_server_ts"
-        mock_server_ts = MagicMock(spec=ServerTimestamp)
+        mock_server_ts = mock.MagicMock(spec=SerializableAnnotatedInstance) # Changed spec
         expected_desynced_dt = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=5)
         
         # Mock the desynchronize method of the specific processor instance
@@ -265,7 +265,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         # Patch datetime.now inside the SUT module (runtime_data_handler_base)
         # to control the timestamp for "now"
         fixed_now = datetime.datetime.now(datetime.timezone.utc)
-        with patch("tsercom.runtime.runtime_data_handler_base.datetime", wraps=datetime) as mock_dt_module:
+        with mock.patch("tsercom.runtime.runtime_data_handler_base.datetime", wraps=datetime) as mock_dt_module:
             mock_dt_module.now.return_value = fixed_now
             
             await data_processor.process_data(test_payload, timestamp=None)
@@ -298,7 +298,7 @@ class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):
 
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor:
+    ) -> Optional[EndpointDataProcessor]: # Corrected reference and made Optional to match base class for test stub
         return self._register_caller_mock(caller_id, endpoint, port)
 
     def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:

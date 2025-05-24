@@ -22,11 +22,11 @@ class RuntimeCommandBridge:
         self.__state: Atomic[Optional[RuntimeCommand]] = Atomic[Optional[RuntimeCommand]](None)
 
         # The Runtime instance, to be set later.
-        self.__runtime: Optional[Runtime[Any, Any]] = None
+        self.__runtime: Optional[Runtime] = None
         # Mutex to protect access to the __runtime attribute.
         self.__runtime_mutex: Lock = Lock()
 
-    def set_runtime(self, runtime: Runtime[Any, Any]) -> None:
+    def set_runtime(self, runtime: Runtime) -> None:
         """Sets the Runtime instance and executes any pending command.
 
         This method should only be called once. If a command (start/stop) was
