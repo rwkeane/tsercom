@@ -1,3 +1,5 @@
+"""Provides a thread-safe map for associating CallerIdentifiers with generic objects."""
+
 import threading
 from typing import Callable, Dict, Generic, TypeVar
 

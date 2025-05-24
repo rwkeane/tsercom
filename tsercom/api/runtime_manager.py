@@ -99,7 +99,7 @@ class RuntimeManager(ErrorWatcher):
             runtime is initialized.
         
         Raises:
-            AssertionError: If called after the manager has started.
+            RuntimeError: If called after the manager has started.
         """
         # Ensure initializers are registered only before starting.
         if self.has_started:
@@ -172,7 +172,7 @@ class RuntimeManager(ErrorWatcher):
                                 operations will run.
         
         Raises:
-            AssertionError: If called after the manager has started.
+            RuntimeError: If called after the manager has started.
         """
         if self.has_started:
             raise RuntimeError("RuntimeManager has already been started.")
@@ -216,7 +216,7 @@ class RuntimeManager(ErrorWatcher):
                              tasks and are terminated when the main program exits.
         
         Raises:
-            AssertionError: If called after the manager has started.
+            RuntimeError: If called after the manager has started.
         """
         if self.has_started:
             raise RuntimeError("RuntimeManager has already been started.")
@@ -275,7 +275,7 @@ class RuntimeManager(ErrorWatcher):
 
         Raises:
             Any exception propagated from the managed runtimes.
-            AssertionError: If the manager hasn't started or error watcher isn't set.
+            RuntimeError: If the manager hasn't started or the error watcher isn't set.
         """
         if not self.has_started:
             # Added this check for consistency, as __error_watcher depends on has_started
@@ -295,7 +295,7 @@ class RuntimeManager(ErrorWatcher):
 
         Raises:
             Any exception propagated from the managed runtimes.
-            AssertionError: If called when manager started but error watcher isn't set.
+            RuntimeError: If the manager has started but the error watcher isn't set.
         """
         if not self.has_started:
             return # No exceptions to check if not started.

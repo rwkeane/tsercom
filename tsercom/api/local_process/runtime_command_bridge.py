@@ -36,7 +36,7 @@ class RuntimeCommandBridge:
             runtime: The Runtime instance to be managed by this bridge.
 
         Raises:
-            AssertionError: If the runtime has already been set.
+            RuntimeError: If the runtime has already been set.
         """
         with self.__runtime_mutex:
             # Ensure runtime is set only once.

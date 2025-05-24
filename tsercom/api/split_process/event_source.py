@@ -51,6 +51,7 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
         self.__is_running.start()
 
         def loop_until_exception() -> None:
+            """Polls events from queue and calls on_available until stopped."""
             while self.__is_running.get():
                 # Poll the queue with a timeout to allow checking is_running periodically.
                 remote_instance = self.__event_source.get_blocking(timeout=1)
