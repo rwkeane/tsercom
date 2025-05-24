@@ -118,26 +118,28 @@ class RuntimeManager(ErrorWatcher):
     ) -> List[RuntimeHandle[Any, Any]]:
         """Creates and starts all registered runtimes in the current process.
 
-        Tsercom operations will run on the event loop from which this method
-        is called. The actual `RuntimeHandle` instances are provided via the
-        Futures returned by `register_runtime_initializer`.
+        This method calls the synchronous `start_in_process` method, providing
+        it with the currently running asyncio event loop. Tsercom operations
+        will run on this event loop.
+
+        The primary mechanism for retrieving `RuntimeHandle` instances is through
+        the `Future` objects returned by `register_runtime_initializer`.
 
         Returns:
-            A list of RuntimeHandles for all initialized runtimes.
-            Note: This return seems inconsistent with the mechanism of
-            populating Futures. The primary way to get handles is via the
-            Futures from `register_runtime_initializer`. This method's
-            return might be an aggregation for convenience if implemented,
-            but current `start_in_process` doesn't return handles.
-            *Self-correction during implementation: The original code for `start_in_process`
-            does not return handles. The handles are obtained via the futures.
-            The method should return `None` if `start_in_process` returns `None`.
-            Given `start_in_process` returns `None`, this async wrapper should also return `None`.
-            The docstring of the original method `start_in_process` was misleading.
-            I will adjust this method's return type to `None` and clarify its docstring.
+            A list containing `RuntimeHandle` instances for any runtimes whose
+            initialization `Future` had already completed (i.e., `future.done()` is true)
+            at the time of this call. This is checked by attempting to retrieve the
+            result with a zero timeout (`future.result(timeout=0)`).
+            This list may be empty or incomplete if runtime initializations are
+            still pending. The primary method for obtaining all `RuntimeHandle`
+            instances remains the `Future` objects returned by
+            `register_runtime_initializer`.
 
         Raises:
-            AssertionError: If no event loop is running.
+            RuntimeError: If no event loop is running when this method is called.
+            Exception: If `future.result(timeout=0)` raises an exception because
+                       the future completed with an exception (e.g., `CancelledError`
+                       or any exception set on the future by the task it was awaiting).
         """
         running_loop = get_running_loop_or_none()
         

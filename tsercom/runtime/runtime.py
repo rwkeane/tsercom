@@ -9,7 +9,7 @@ class Runtime(Stopable, ABC):
     """
 
     @abstractmethod
-    async def start_async(self):
+    async def start_async(self) -> None:
         """
         Starts running this instance.
         """

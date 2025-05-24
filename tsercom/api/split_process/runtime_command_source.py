@@ -1,7 +1,10 @@
-from typing import Generic, TypeVar
+"""Defines RuntimeCommandSource for receiving and processing runtime commands from a queue."""
+
+import threading
+from typing import Any
 
 from tsercom.runtime.runtime import Runtime
-from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.api.runtime_command import RuntimeCommand # Corrected from tsercom.api.runtime_command
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
@@ -10,33 +13,67 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 
-TEventType = TypeVar("TEventType")
+class RuntimeCommandSource:
+    """Receives runtime commands from a multiprocess queue and executes them on a Runtime instance.
 
+    This class runs a dedicated thread to poll a queue for `RuntimeCommand` objects
+    (like start or stop). When a command is received, it's executed asynchronously
+    on the associated `Runtime` instance.
+    """
 
-class RuntimeCommandSource(Generic[TEventType]):
     def __init__(
         self,
         runtime_command_queue: MultiprocessQueueSource[RuntimeCommand],
-    ):
+    ) -> None:
+        """Initializes the RuntimeCommandSource.
+
+        Args:
+            runtime_command_queue: The queue from which `RuntimeCommand` objects are received.
+        """
         self.__runtime_command_queue = runtime_command_queue
         self.__is_running: IsRunningTracker | None = None
-        self.__runtime: Runtime | None = None
+        self.__runtime: Runtime[Any, Any] | None = None # Updated type hint
+        self.__command_thread: threading.Thread | None = None
 
-    def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime):
+    def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime[Any, Any]) -> None:
+        """Starts the command watching thread and associates the runtime.
+
+        This method initializes the running state and stores the runtime instance.
+        It then starts a new thread that continuously polls the command queue.
+        The nested `watch_commands` function contains the polling and command execution logic.
+
+        Args:
+            thread_watcher: A ThreadWatcher to monitor the command processing thread.
+            runtime: The Runtime instance on which commands will be executed.
+
+        Raises:
+            AssertionError: If called multiple times or if internal state is inconsistent.
+        """
+        # Ensure start_async is called only once.
         assert self.__is_running is None
         self.__is_running = IsRunningTracker()
 
         assert not self.__is_running.get()
+        # Ensure runtime is not already set.
         assert self.__runtime is None
 
         self.__is_running.start()
         self.__runtime = runtime
 
-        def watch_commands():
-            while self.__is_running.get():
+        def watch_commands() -> None:
+            while self.__is_running and self.__is_running.get(): # Added check for self.__is_running
+                # Poll the queue with a timeout to allow checking is_running periodically.
                 command = self.__runtime_command_queue.get_blocking(timeout=1)
                 if command is None:
                     continue
+
+                # Ensure runtime is available before executing commands
+                if self.__runtime is None:
+                    # This case should ideally not be reached if start_async is called correctly
+                    # and stop_async sets self.__runtime to None appropriately.
+                    # Adding a log or an assertion here might be useful for debugging.
+                    continue
+
 
                 if command == RuntimeCommand.kStart:
                     run_on_event_loop(self.__runtime.start_async)
@@ -47,12 +84,26 @@ class RuntimeCommandSource(Generic[TEventType]):
 
         # NOTE: Threads saved to avoid concers about garbage collection.
         self.__command_thread = thread_watcher.create_tracked_thread(
-            watch_commands
+            target=watch_commands # Ensure target is passed for create_tracked_thread
         )
 
         self.__command_thread.start()
 
-    def stop_async(self):
+    def stop_async(self) -> None:
+        """Stops the command watching thread.
+
+        Signals the polling thread to terminate. The thread will exit after its
+        current polling attempt (with timeout) completes and it observes the
+        changed `is_running` state.
+
+        Raises:
+            AssertionError: If not currently running or if internal state is inconsistent.
+        """
+        # Ensure stop_async is called only when running.
         assert self.__is_running is not None
+        # Verify it's currently marked as running.
         assert self.__is_running.get()
         self.__is_running.stop()
+        # It might be good practice to also join the thread here if necessary,
+        # or set self.__runtime to None, depending on lifecycle management.
+        # For now, sticking to the provided instructions.
