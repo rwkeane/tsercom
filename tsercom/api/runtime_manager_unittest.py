@@ -89,7 +89,7 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
 
 def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     # 1. Object Instantiation
-    runtime_manager = RuntimeManager()
+    runtime_manager = RuntimeManager(is_testing=True)
     runtime_manager.check_for_exception()
     runtime_future = runtime_manager.register_runtime_initializer(
         FakeRuntimeInitializer(service_type="Client")

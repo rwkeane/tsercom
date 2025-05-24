@@ -1,18 +1,26 @@
 from typing import Dict
 from tsercom.threading.thread_watcher import ThreadWatcher
+from tsercom.timesync.client.fake_time_sync_client import FakeTimeSyncClient
 from tsercom.timesync.client.time_sync_client import TimeSyncClient
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 
 class TimeSyncTracker:
-    def __init__(self, thread_watcher: ThreadWatcher):
+    def __init__(
+        self, thread_watcher: ThreadWatcher, *, is_testing: bool = False
+    ):
         self.__thread_watcher = thread_watcher
 
         self.__map: Dict[str, tuple[int, TimeSyncClient]] = {}
+        self.__is_test_run = is_testing
 
     def on_connect(self, ip: str) -> SynchronizedClock:
         if ip not in self.__map:
-            new_client = TimeSyncClient(self.__thread_watcher, ip)
+            if self.__is_test_run:
+                new_client = FakeTimeSyncClient(self.__thread_watcher, ip)
+            else:
+                new_client = TimeSyncClient(self.__thread_watcher, ip)
+
             new_client.start_async()
 
             self.__map[ip] = (1, new_client)

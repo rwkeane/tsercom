@@ -26,6 +26,8 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 def initialize_runtimes(
     thread_watcher: ThreadWatcher,
     initializers: List[RuntimeFactory[Any, Any]],
+    *,
+    is_testing: bool = False,
 ):
     assert is_global_event_loop_set()
 
@@ -42,10 +44,13 @@ def initialize_runtimes(
                 thread_watcher,
                 initializer.remote_data_reader,
                 initializer.event_poller,
+                is_testing=is_testing,
             )
         elif initializer.is_server():
             data_handler = ServerRuntimeDataHandler(
-                initializer.remote_data_reader, initializer.event_poller
+                initializer.remote_data_reader,
+                initializer.event_poller,
+                is_testing=is_testing,
             )
         else:
             raise ValueError("Invalid endpoint type!")
@@ -65,6 +70,8 @@ def initialize_runtimes(
 def remote_process_main(
     initializers: List[RuntimeFactory[Any, Any]],
     error_queue: MultiprocessQueueSink[Exception],
+    *,
+    is_testing: bool = False,
 ):
     # Only needed on linux systems.
     clear_tsercom_event_loop()
@@ -75,7 +82,9 @@ def remote_process_main(
     sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
     # Create and start all runtimes.
-    runtimes: List[Runtime] = initialize_runtimes(thread_watcher, initializers)
+    runtimes: List[Runtime] = initialize_runtimes(
+        thread_watcher, initializers, is_testing=is_testing
+    )
 
     # Call into run_until_error and, on error, stop all runtimes.
     try:

@@ -46,9 +46,7 @@ class RuntimeManager(ErrorWatcher):
     local or a remote process, as well as all associated error handling.
     """
 
-    def __init__(
-        self,
-    ):
+    def __init__(self, *, is_testing: bool = False):
         super().__init__()
 
         self.__initializers: list[InitializationPair[Any, Any]] = []
@@ -57,6 +55,8 @@ class RuntimeManager(ErrorWatcher):
         self.__thread_watcher = ThreadWatcher()
         self.__error_watcher: ErrorWatcher | None = None
         self.__process: Process | None = None
+
+        self.__is_testing = is_testing
 
     @property
     def has_started(self) -> bool:
@@ -134,11 +134,11 @@ class RuntimeManager(ErrorWatcher):
             initialize_runtimes,
         )  # Moved import
 
-        initialize_runtimes(self.__thread_watcher, factories)
+        initialize_runtimes(
+            self.__thread_watcher, factories, is_testing=self.__is_testing
+        )
 
-    def start_out_of_process(
-        self,
-    ) -> None:
+    def start_out_of_process(self, start_as_daemon: bool = False) -> None:
         """
         Creates runtimes from all registered RuntimeInitializer instances, and
         then starts each creaed instance in a new process separate from the
@@ -177,7 +177,13 @@ class RuntimeManager(ErrorWatcher):
         )  # Moved import
 
         self.__process = Process(
-            target=partial(remote_process_main, factories, error_sink)
+            target=partial(
+                remote_process_main,
+                factories,
+                error_sink,
+                is_testing=self.__is_testing,
+            ),
+            daemon=start_as_daemon or self.__is_testing,
         )
         self.__process.start()
 

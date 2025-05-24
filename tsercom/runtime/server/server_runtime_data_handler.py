@@ -9,6 +9,9 @@ from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.threading.async_poller import AsyncPoller
+from tsercom.timesync.common.fake_synchronized_clock import (
+    FakeSynchronizedClock,
+)
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
@@ -24,15 +27,21 @@ class ServerRuntimeDataHandler(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
         event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
+        *,
+        is_testing: bool = False,
     ):
         super().__init__(data_reader, event_source)
+
+        self.__id_tracker = IdTracker()
+
+        if is_testing:
+            self.__clock = FakeSynchronizedClock()
+            return
 
         self.__server = TimeSyncServer()
         self.__server.start_async()
 
         self.__clock = self.__server.get_synchronized_clock()
-
-        self.__id_tracker = IdTracker()
 
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int

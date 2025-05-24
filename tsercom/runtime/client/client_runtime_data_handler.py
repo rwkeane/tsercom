@@ -26,10 +26,14 @@ class ClientRuntimeDataHandler(
         thread_watcher: ThreadWatcher,
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
         event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
+        *,
+        is_testing: bool = False,
     ):
         super().__init__(data_reader, event_source)
 
-        self.__clock_tracker = TimeSyncTracker(thread_watcher)
+        self.__clock_tracker = TimeSyncTracker(
+            thread_watcher, is_testing=is_testing
+        )
         self.__id_tracker = IdTracker()
 
     def _register_caller(
