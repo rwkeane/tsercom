@@ -13,6 +13,8 @@ from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
+# datetime was imported but not used after removing print statements
+# from datetime import datetime 
 
 
 TEventType = TypeVar("TEventType")
@@ -23,6 +25,14 @@ class ServerRuntimeDataHandler(
     Generic[TDataType, TEventType],
     RuntimeDataHandlerBase[TDataType, TEventType],
 ):
+    # The 'process_data' method was added for debugging and is not part of the original class structure.
+    # It is being removed as per the cleanup task.
+    # async def process_data(self, caller_id: CallerIdentifier, data: TDataType, timestamp: datetime):
+    #     data_value = getattr(data, 'value', str(data))
+    #     # print(f"DEBUG: [ServerRuntimeDataHandler.process_data] Caller ID: {caller_id}, Data: {data_value}")
+    #     # print(f"DEBUG: [ServerRuntimeDataHandler.process_data] Before calling self.__data_source.send_data for Caller ID: {caller_id}, Data: {data_value}")
+    #     pass
+
     def __init__(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],

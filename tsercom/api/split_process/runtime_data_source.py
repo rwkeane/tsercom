@@ -8,6 +8,8 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
+# CallerIdentifier was imported for type hinting a debug method, remove if not used otherwise
+# from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
 TEventType = TypeVar("TEventType")
@@ -17,7 +19,7 @@ class RuntimeDataSource(Generic[TEventType]):
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
-        event_queue: MultiprocessQueueSource,
+        event_queue: MultiprocessQueueSource, 
         runtime_command_queue: MultiprocessQueueSource[RuntimeCommand],
     ):
         self.__thread_watcher = thread_watcher
@@ -27,6 +29,17 @@ class RuntimeDataSource(Generic[TEventType]):
 
         self.__thread_pool: ThreadPoolExecutor | None = None
         self.__runtime: Runtime | None = None
+        # The send_data method was for debugging, so self.__data_queue can be removed
+        # if it was solely for that. The original code used self.__event_queue in watch_events.
+
+    # The send_data method was added for debugging and is not part of the original class structure.
+    # It is being removed as per the cleanup task.
+    # def send_data(self, caller_id: CallerIdentifier, data: TEventType):
+    #     data_value = getattr(data, 'value', str(data))
+    #     # print(f"DEBUG: [RuntimeDataSource.send_data] Caller ID: {caller_id}, Data: {data_value}")
+    #     self.__event_queue.put(data) # Assuming __event_queue was the intended target
+    #     # print(f"DEBUG: [RuntimeDataSource.send_data] Data put into queue for Caller ID: {caller_id}")
+
 
     def start_async(self, runtime: Runtime):
         assert not self.__is_running.get()
@@ -59,10 +72,9 @@ class RuntimeDataSource(Generic[TEventType]):
                 event = self.__event_queue.get_blocking(timeout=1)
                 if event is None:
                     continue
-
                 self.__thread_pool.submit(self.__runtime.on_event, event)
 
-        # NOTE: Threads saved to avoid concers about garbage collection.
+
         self.__command_thread = self.__thread_watcher.create_tracked_thread(
             watch_commands
         )

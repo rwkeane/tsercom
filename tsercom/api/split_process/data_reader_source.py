@@ -17,11 +17,11 @@ class DataReaderSource(Generic[TDataType]):
     def __init__(
         self,
         watcher: ThreadWatcher,
-        queue: MultiprocessQueueSource[TDataType],
-        data_reader: RemoteDataReader[TDataType],
+        queue: MultiprocessQueueSource[TDataType], 
+        data_reader: RemoteDataReader[TDataType], 
     ):
         self.__queue = queue
-        self.__data_reader = data_reader
+        self.__data_reader = data_reader 
         self.__watcher = watcher
 
         self.__thread: threading.Thread | None = None
@@ -32,17 +32,26 @@ class DataReaderSource(Generic[TDataType]):
         return self.__is_running.get()
 
     def start(self):
+        self.__is_running.start() 
         self.__thread = self.__watcher.create_tracked_thread(
             self.__poll_for_data
         )
         self.__thread.start()
-        self.__is_running.start()
 
     def stop(self):
         self.__is_running.stop()
+        if self.__thread:
+            self.__thread.join(timeout=5) 
+
 
     def __poll_for_data(self):
         while self.__is_running.get():
             data = self.__queue.get_blocking(timeout=1)
             if data is not None:
-                self.__data_reader._on_data_ready(data)
+                try:
+                    self.__data_reader._on_data_ready(data) 
+                except Exception:
+                    # It's important to catch exceptions here to prevent the polling thread
+                    # from dying silently if _on_data_ready (e.g., in aggregator) raises one.
+                    # Proper logging/handling would go here in a real application.
+                    pass

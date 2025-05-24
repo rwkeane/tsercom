@@ -31,7 +31,6 @@ class RuntimeDataHandlerBase(
         event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
     ):
         super().__init__()
-
         self.__data_reader = data_reader
         self.__event_source = event_source
 
@@ -47,8 +46,8 @@ class RuntimeDataHandlerBase(
 
         if context is not None:
             assert isinstance(context, grpc.aio.ServicerContext)
-            endpoint = get_client_ip(caller_id)
-            port = get_client_port(caller_id)
+            endpoint = get_client_ip(caller_id) 
+            port = get_client_port(caller_id) 
             if endpoint is None:
                 return None
             assert port is not None
@@ -67,7 +66,12 @@ class RuntimeDataHandlerBase(
     ) -> CallerIdentifier | None:
         return self._try_get_caller_id(endpoint, port)
 
-    def _on_data_ready(self, data: AnnotatedInstance[TDataType]):
+    async def _on_data_ready(self, data: AnnotatedInstance[TDataType]):
+        if self.__data_reader is None:
+            # This case should ideally not be hit if initialization is correct
+            # Consider logging an error or raising if it's an invalid state
+            return
+        # DataReaderSink._on_data_ready is synchronous
         self.__data_reader._on_data_ready(data)
 
     @abstractmethod
@@ -101,17 +105,17 @@ class RuntimeDataHandlerBase(
     def _create_data_processor(
         self, caller_id: CallerIdentifier, clock: SynchronizedClock
     ):
-        return RuntimeDataHandlerBase.__DataProcessorImpl(self, caller_id)
+        return RuntimeDataHandlerBase.__DataProcessorImpl(self, caller_id, clock)
+
 
     class __DataProcessorImpl(EndpointDataProcessor):
         def __init__(
             self,
-            data_handler: "RuntimeDataHandlerBase",
+            data_handler: "RuntimeDataHandlerBase", 
             caller_id: CallerIdentifier,
-            clock: SynchronizedClock,
+            clock: SynchronizedClock, 
         ):
             super().__init__(caller_id)
-
             self.__data_handler = data_handler
             self.__clock = clock
 
@@ -123,4 +127,4 @@ class RuntimeDataHandlerBase(
 
         async def _process_data(self, data: TDataType, timestamp: datetime):
             wrapped_data = AnnotatedInstance(data, self.caller_id, timestamp)
-            self.__data_handler._on_data_ready(wrapped_data)
+            await self.__data_handler._on_data_ready(wrapped_data)
