@@ -39,8 +39,11 @@ class SplitProcessErrorWatcherSource:
 
         A new thread is created that continuously monitors the exception queue.
         If an exception is retrieved, it's reported to the local `ThreadWatcher`.
+
+        Raises:
+            RuntimeError: If `start` is called when the source is already running.
         """
-        self.__is_running.start()
+        self.__is_running.start() # Will raise RuntimeError if already running.
 
         def loop_until_exception() -> None:
             """Polls the exception queue and reports exceptions until stopped."""
@@ -64,8 +67,11 @@ class SplitProcessErrorWatcherSource:
         Signals the polling thread to terminate. The thread will exit after its
         current polling attempt (with timeout) completes and it observes the
         changed `is_running` state.
+
+        Raises:
+            RuntimeError: If `stop` is called when the source is not currently running.
         """
-        self.__is_running.stop()
+        self.__is_running.stop() # Will raise RuntimeError if not running.
         # Note: Consider joining self.__thread here if immediate cleanup is critical,
         # though IsRunningTracker pattern usually means the thread exits cleanly.
 

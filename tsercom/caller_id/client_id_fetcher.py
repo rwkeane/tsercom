@@ -39,6 +39,12 @@ class ClientIdFetcher:
         Returns:
             The `CallerIdentifier` if successfully fetched and parsed,
             otherwise `None`.
+
+        Raises:
+            Exception: Any exception that might occur during the gRPC call
+                       or subsequent processing if not caught by the broad
+                       exception handler within the method. The method attempts
+                       to catch common issues and return None.
         """
         try:
             # Ensure only one coroutine attempts to fetch the ID at a time.

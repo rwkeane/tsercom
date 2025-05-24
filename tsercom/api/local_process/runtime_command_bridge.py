@@ -1,7 +1,7 @@
 """Defines the RuntimeCommandBridge for relaying commands to a Runtime instance."""
 
 from threading import Lock
-from typing import Any, Optional # Added Optional for type hinting
+from typing import Optional
 
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.runtime.runtime import Runtime
