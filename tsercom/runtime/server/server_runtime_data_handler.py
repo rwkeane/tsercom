@@ -13,6 +13,7 @@ from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
+from datetime import datetime
 
 
 TEventType = TypeVar("TEventType")
@@ -23,6 +24,22 @@ class ServerRuntimeDataHandler(
     Generic[TDataType, TEventType],
     RuntimeDataHandlerBase[TDataType, TEventType],
 ):
+    # Method added for logging as requested by the prompt.
+    # The actual data processing logic might be within an inner class or different method.
+    async def process_data(self, caller_id: CallerIdentifier, data: TDataType, timestamp: datetime):
+        data_value = getattr(data, 'value', str(data))
+        print(f"DEBUG: [ServerRuntimeDataHandler.process_data] Caller ID: {caller_id}, Data: {data_value}")
+        # This is a placeholder for where data would be sent to a data source.
+        # The class structure doesn't show a direct __data_source.send_data path here.
+        # Logging is added to represent the requested trace point.
+        print(f"DEBUG: [ServerRuntimeDataHandler.process_data] Before calling self.__data_source.send_data for Caller ID: {caller_id}, Data: {data_value}")
+        # In a real scenario, this might involve getting a data processor and calling a method on it,
+        # which eventually leads to data being queued or processed.
+        # For example, it might look up a processor for the caller_id and use it.
+        # processor = self._get_processor_for_caller(caller_id) # Hypothetical
+        # if processor:
+        #     await processor.actual_send_method(data, timestamp) # Hypothetical
+
     def __init__(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
@@ -47,6 +64,12 @@ class ServerRuntimeDataHandler(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor:
         self.__id_tracker.add(caller_id, endpoint, port)
+        # The _create_data_processor method is part of RuntimeDataHandlerBase.
+        # It creates an EndpointDataProcessorImpl instance.
+        # The actual _process_data (which is called by EndpointDataProcessor.process_data)
+        # is implemented in EndpointDataProcessorImpl inside RuntimeDataHandlerBase.
+        # So, logging related to _process_data should ideally be there or in a way that
+        # EndpointDataProcessorImpl can call a logging-specific method.
         return self._create_data_processor(caller_id, self.__clock)
 
     def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:

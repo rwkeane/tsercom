@@ -40,11 +40,13 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory):
         runtime_command_sink, runtime_command_source = (
             create_multiprocess_queues()
         )
+        print(f"DEBUG: [SplitRuntimeFactoryFactory._create_pair] Created queues. data_sink: {data_sink}, data_source: {data_source}")
 
         # Create the factory.
         factory = RemoteRuntimeFactory[TDataType, TEventType](
             initializer, event_source, data_sink, runtime_command_source
         )
+        print(f"DEBUG: [SplitRuntimeFactoryFactory._create_pair] RemoteRuntimeFactory created with data_sink: {data_sink}")
 
         # Create the runtime instance.
         aggregator = RemoteDataAggregatorImpl[TDataType](
@@ -52,13 +54,16 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory):
             client=initializer.data_aggregator_client,
             timeout=initializer.timeout_seconds,
         )
+        print(f"DEBUG: [SplitRuntimeFactoryFactory._create_pair] RemoteDataAggregatorImpl (aggregator) created: {aggregator}")
+
         runtime = ShimRuntimeHandle[TDataType, TEventType](
             self.__thread_watcher,
             event_sink,
-            data_source,
+            data_source, # This is the queue ShimRuntimeHandle will read from
             runtime_command_sink,
-            aggregator,
+            aggregator, # This is the aggregator ShimRuntimeHandle will feed data into
         )
+        print(f"DEBUG: [SplitRuntimeFactoryFactory._create_pair] ShimRuntimeHandle (runtime) created with data_source: {data_source} and aggregator: {aggregator}")
 
         # Return them
         return runtime, factory
