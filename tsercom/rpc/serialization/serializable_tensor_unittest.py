@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, MagicMock
+# from unittest.mock import patch, MagicMock # Removed
 import torch
 import datetime # For datetime.datetime, datetime.timezone
 from typing import List, Any # For type hinting
@@ -18,10 +18,24 @@ except ImportError: # pragma: no cover
     # This is a fallback for local dev if protos aren't built/found easily,
     # tests might be limited or need more mocking if this path is taken.
     # In CI, the correct protos should always be available.
-    print("Warning: Could not import GrpcTensor from v1_70, using MagicMock as placeholder.")
-    GrpcTensor = MagicMock(name="MockGrpcTensor")
-    # If GrpcTensor is a MagicMock, ensure it can be called like a constructor:
-    # GrpcTensor = lambda **kwargs: MagicMock(**kwargs) # More robust mock constructor
+    print("Warning: Could not import GrpcTensor from v1_70, using a basic placeholder.")
+    # GrpcTensor = MagicMock(name="MockGrpcTensor") # This would now require mocker if used.
+    # For tests to pass if this path is taken, GrpcTensor would need to be a mock
+    # created by mocker, but mocker is not available at global scope.
+    # This implies that for tests to run correctly, the real GrpcTensor must be importable.
+    # Using a simple placeholder that allows instantiation for type checking if necessary.
+    class MockGrpcTensorPlaceholder:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+            if 'array' not in kwargs: # Ensure array attribute exists for len() checks
+                self.array = []
+            if 'size' not in kwargs:
+                self.size = []
+            if 'timestamp' not in kwargs:
+                self.timestamp = None
+
+    GrpcTensor = MockGrpcTensorPlaceholder # type: ignore
 
 # Common datetime for tests, ensuring it's timezone-aware (UTC)
 # and has microseconds set to 0 for easier comparison with protobuf conversions
@@ -184,17 +198,15 @@ class TestSerializableTensor:
             f"Tensor data mismatch after parsing. Got {parsed_st.tensor}, expected {original_tensor.to(torch.float32)}"
         print(f"--- Test: test_try_parse_successful (shape={shape}, dtype={dtype}) finished ---")
 
-    def test_try_parse_failure_bad_timestamp(self):
+    def test_try_parse_failure_bad_timestamp(self, mocker): # Added mocker
         print("\n--- Test: test_try_parse_failure_bad_timestamp ---")
-        # Create a GrpcTensor with a timestamp that SynchronizedTimestamp.try_parse would reject
         # We need to mock SynchronizedTimestamp.try_parse for this.
-        with patch.object(SynchronizedTimestamp, 'try_parse', return_value=None) as mock_ts_try_parse:
-            # Create a dummy GrpcTensor message. Its timestamp field won't matter due to the mock.
-            # Ensure GrpcTensor can be called if it's a MagicMock fallback
+        # Changed to use mocker.patch.object
+        with mocker.patch.object(SynchronizedTimestamp, 'try_parse', return_value=None) as mock_ts_try_parse:
             if not callable(GrpcTensor): # pragma: no cover
                  pytest.skip("GrpcTensor mock is not callable, test needs construction.")
 
-            dummy_grpc_timestamp_proto = FIXED_SYNC_TIMESTAMP.to_grpc_type() # Just to have a valid proto object
+            dummy_grpc_timestamp_proto = FIXED_SYNC_TIMESTAMP.to_grpc_type() 
             grpc_tensor_msg_bad_ts = GrpcTensor(
                 timestamp=dummy_grpc_timestamp_proto, size=[1], array=[1.0]
             )
@@ -207,7 +219,7 @@ class TestSerializableTensor:
             assert parsed_st is None, "try_parse should return None for bad timestamp"
         print("--- Test: test_try_parse_failure_bad_timestamp finished ---")
 
-    def test_try_parse_failure_tensor_reshape_error(self):
+    def test_try_parse_failure_tensor_reshape_error(self): # No mocker needed if GrpcTensor is real
         print("\n--- Test: test_try_parse_failure_tensor_reshape_error ---")
         grpc_timestamp_proto = FIXED_SYNC_TIMESTAMP.to_grpc_type()
         

@@ -1,41 +1,36 @@
 import pytest
-from unittest.mock import MagicMock, patch
+# from unittest.mock import MagicMock, patch # Removed
 
-# This mock will be used as the spec for the context instance.
-MockServicerContextSpec = MagicMock(name="MockServicerContextSpec")
-MockServicerContextSpec.peer = MagicMock()
-
+# Define a simple class to be used as a spec for the context mock
+class ServicerContextSpec:
+    peer = None # This attribute will be mocked by MagicMock
 
 @pytest.fixture
-def mock_context(mocker) -> MagicMock:
+def mock_context(mocker): # Removed type hint MagicMock for fixture return, as it's a mock.
     """
     Provides a mock ServicerContext instance for tests.
     The `grpc.aio.ServicerContext` used by the SUT will be patched to this.
     The `peer` method of this instance is also a MagicMock and can be configured per test.
     """
-    # Patch 'grpc.aio.ServicerContext' specifically within the 'tsercom.rpc.grpc.addressing' module.
-    # This ensures that when 'addressing.py' does 'import grpc' and then uses 'grpc.aio.ServicerContext',
-    # it gets our mock.
+    mock_grpc_root = mocker.MagicMock(name="RootGrpcMockForAddressing")
+    mock_grpc_aio = mocker.MagicMock(name="AioMockForAddressing")
     
-    # We need to mock 'grpc' then 'grpc.aio' then 'grpc.aio.ServicerContext'
-    # However, the SUT directly uses 'import grpc' and then 'context: "grpc.aio.ServicerContext"'.
-    # So, we need to mock 'grpc' as seen by the SUT.
+    # MockServicerContextClass will be a mock class, its instances will conform to ServicerContextSpec
+    MockServicerContextClass = mocker.MagicMock(name="MockedServicerContextClass", spec=ServicerContextSpec)
     
-    mock_grpc_root = MagicMock(name="RootGrpcMockForAddressing")
-    mock_grpc_aio = MagicMock(name="AioMockForAddressing")
+    # When an instance of MockServicerContextClass is created, its 'peer' attribute will also be a MagicMock.
+    # Example: instance = MockServicerContextClass(); instance.peer will be a MagicMock.
     
-    # This is the class that will be used for type hinting and potentially by isinstance if not using spec
-    MockServicerContextClass = MagicMock(name="MockedServicerContextClass", spec=MockServicerContextSpec)
-    
-    mock_grpc_aio.ServicerContext = MockServicerContextClass
+    mock_grpc_aio.ServicerContext = MockServicerContextClass 
     mock_grpc_root.aio = mock_grpc_aio
     
-    mocker.patch('tsercom.rpc.grpc.addressing.grpc', mock_grpc_root)
+    # Patch 'grpc' in the 'tsercom.rpc.grpc.addressing' module to be our mock_grpc_root
+    mocker.patch('tsercom.rpc.grpc.addressing.grpc', new=mock_grpc_root)
     
-    # Return an instance of the mocked ServicerContext class
+    # Return an instance of the mocked ServicerContext class.
     # This instance will have a `peer` attribute that is a MagicMock due to the spec.
-    # Tests can then configure `mock_context_instance.peer.return_value`.
     mock_context_instance = MockServicerContextClass()
+    mock_context_instance.peer = mocker.MagicMock(name="mock_context_peer_method") # Explicitly make peer a mock
     return mock_context_instance
 
 
@@ -48,18 +43,18 @@ def mock_context(mocker) -> MagicMock:
         ("ipv6:[2001:db8::1]:12345", "2001:db8::1"),
         ("unix:/tmp/socket", "localhost"),
         ("unknown:address", None),
-        ("ipv4:192.168.1.10", "192.168.1.10"),
-        ("", None),
-        ("ipv4:", ""),
-        ("ipv6:", ""),
+        ("ipv4:192.168.1.10", "192.168.1.10"), # Test case from original: assumes port might be missing
+        ("", None), # Empty peer string
+        ("ipv4:", ""), # Malformed
+        ("ipv6:", ""), # Malformed
         ("ipv4:127.0.0.1:8080", "127.0.0.1"),
-        ("ipv6:[::ffff:192.0.2.128]:80", "::ffff:192.0.2.128"),
-        ("ipv4::12345", None),
-        ("ipv6:::12345", None),
+        ("ipv6:[::ffff:192.0.2.128]:80", "::ffff:192.0.2.128"), # IPv4-mapped IPv6
+        ("ipv4::12345", None), # Malformed
+        ("ipv6:::12345", None), # Malformed
     ],
 )
 def test_get_client_ip(
-    mock_context: MagicMock, peer_string: str, expected_ip: str | None
+    mock_context, peer_string: str, expected_ip: str | None # mock_context is now untyped from fixture perspective
 ):
     from tsercom.rpc.grpc.addressing import get_client_ip  # SUT import
 
@@ -73,18 +68,18 @@ def test_get_client_ip(
     [
         ("ipv4:192.168.1.10:12345", 12345),
         ("ipv6:[::1]:80", 80),
-        ("ipv4:192.168.1.10:abc", None),
-        ("ipv4:192.168.1.10", None),
-        ("ipv4:192.168.1.10:0", 0),
-        ("", None),
-        ("ipv6:[2001:db8::1]:65535", 65535),
-        ("ipv4:127.0.0.1:", None),
-        ("unix:/tmp/socket", None),
-        ("ipv4:1.2.3.4:12345extra", None),
+        ("ipv4:192.168.1.10:abc", None), # Non-integer port
+        ("ipv4:192.168.1.10", None),    # No port
+        ("ipv4:192.168.1.10:0", 0),     # Port zero
+        ("", None),                     # Empty peer string
+        ("ipv6:[2001:db8::1]:65535", 65535), # Max valid port
+        ("ipv4:127.0.0.1:", None),      # No port number after colon
+        ("unix:/tmp/socket", None),     # Unix socket, no port
+        ("ipv4:1.2.3.4:12345extra", None), # Extra chars after port
     ],
 )
 def test_get_client_port(
-    mock_context: MagicMock,
+    mock_context, # mock_context is now untyped from fixture perspective
     peer_string: str,
     expected_port: int | None,
 ):

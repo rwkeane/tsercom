@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, call
+# from unittest.mock import patch, AsyncMock, MagicMock, call # Removed
 import functools # For functools.partial
 
 # SUT
@@ -17,21 +17,15 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier # For creating 
 import tsercom.rpc.connection.discoverable_grpc_endpoint_connector as connector_module_to_patch
 
 @pytest.fixture
-async def mock_aio_utils_fixture(monkeypatch):
+async def mock_aio_utils_fixture(monkeypatch, mocker): # Added mocker
     """
     Mocks aio_utils functions used by DiscoverableGrpcEndpointConnector,
     patching them where they are imported by the SUT.
     """
-    # Mock for run_on_event_loop:
-    # The target methods (_DiscoverableGrpcEndpointConnector__mark_client_failed_impl) are synchronous.
-    # run_on_event_loop in SUT is called without await, returning a Future.
-    # Our mock will execute the partial immediately and return a completed Future.
-    mock_run_on_event_loop_sync_exec = MagicMock(name="mock_run_on_event_loop_sync_exec_in_connector")
+    mock_run_on_event_loop_sync_exec = mocker.MagicMock(name="mock_run_on_event_loop_sync_exec_in_connector") # mocker.MagicMock
 
     def simplified_run_on_loop_side_effect(partial_func, loop=None, *args, **kwargs):
         print(f"MOCKED run_on_event_loop CALLED with partial: {partial_func}")
-        # partial_func is functools.partial(self.__mark_client_failed_impl, caller_id)
-        # This is a synchronous method.
         partial_func() 
         print(f"  Partial function {getattr(partial_func, 'func', 'N/A').__name__} executed.")
         
@@ -47,13 +41,11 @@ async def mock_aio_utils_fixture(monkeypatch):
         
     mock_run_on_event_loop_sync_exec.side_effect = simplified_run_on_loop_side_effect
 
-    # Mock for get_running_loop_or_none:
-    mock_get_running_loop = MagicMock(name="mock_get_running_loop_or_none_in_connector")
+    mock_get_running_loop = mocker.MagicMock(name="mock_get_running_loop_or_none_in_connector") # mocker.MagicMock
     mock_get_running_loop.return_value = asyncio.get_running_loop() 
 
-    # Mock for is_running_on_event_loop:
-    mock_is_on_loop = MagicMock(name="mock_is_running_on_event_loop_in_connector")
-    mock_is_on_loop.return_value = True # Default: on the "correct" loop
+    mock_is_on_loop = mocker.MagicMock(name="mock_is_running_on_event_loop_in_connector") # mocker.MagicMock
+    mock_is_on_loop.return_value = True 
 
     monkeypatch.setattr(connector_module_to_patch, "run_on_event_loop", mock_run_on_event_loop_sync_exec)
     monkeypatch.setattr(connector_module_to_patch, "get_running_loop_or_none", mock_get_running_loop)
@@ -73,32 +65,29 @@ class TestDiscoverableGrpcEndpointConnector:
 
     @pytest.fixture(autouse=True)
     def _ensure_aio_utils_mocked(self, mock_aio_utils_fixture):
-        # This fixture ensures mock_aio_utils_fixture is activated for every test in this class
-        self.mocked_aio_utils = mock_aio_utils_fixture # Store for individual test use if needed
+        self.mocked_aio_utils = mock_aio_utils_fixture 
 
     @pytest.fixture
-    def mock_client(self):
-        client = AsyncMock(spec=DiscoverableGrpcEndpointConnector.Client)
-        client._on_channel_connected = AsyncMock(name="client_on_channel_connected")
+    def mock_client(self, mocker): # Added mocker
+        client = mocker.AsyncMock(spec=DiscoverableGrpcEndpointConnector.Client) # mocker.AsyncMock
+        client._on_channel_connected = mocker.AsyncMock(name="client_on_channel_connected") # mocker.AsyncMock
         return client
 
     @pytest.fixture
-    def mock_channel_factory(self):
-        factory = MagicMock(spec=GrpcChannelFactory)
-        # find_async_channel is async
-        factory.find_async_channel = AsyncMock(name="channel_factory_find_async_channel")
+    def mock_channel_factory(self, mocker): # Added mocker
+        factory = mocker.MagicMock(spec=GrpcChannelFactory) # mocker.MagicMock
+        factory.find_async_channel = mocker.AsyncMock(name="channel_factory_find_async_channel") # mocker.AsyncMock
         return factory
 
     @pytest.fixture
-    def mock_discovery_host(self):
-        host = MagicMock(spec=DiscoveryHost)
-        # start_discovery is async
-        host.start_discovery = AsyncMock(name="discovery_host_start_discovery")
+    def mock_discovery_host(self, mocker): # Added mocker
+        host = mocker.MagicMock(spec=DiscoveryHost) # mocker.MagicMock
+        host.start_discovery = mocker.AsyncMock(name="discovery_host_start_discovery") # mocker.AsyncMock
         return host
 
     @pytest.fixture
-    def mock_channel_info(self):
-        return MagicMock(spec=ChannelInfo, name="MockChannelInfo")
+    def mock_channel_info(self, mocker): # Added mocker
+        return mocker.MagicMock(spec=ChannelInfo, name="MockChannelInfo") # mocker.MagicMock
 
     @pytest.fixture
     def test_service_info(self):
@@ -225,9 +214,9 @@ class TestDiscoverableGrpcEndpointConnector:
         print("\n--- Test: test_mark_client_failed_uses_run_on_event_loop_if_different_loop ---")
         connector = DiscoverableGrpcEndpointConnector(mock_client, mock_channel_factory, mock_discovery_host)
         
-        mock_target_loop = MagicMock(spec=asyncio.AbstractEventLoop)
+        mock_target_loop = mocker.MagicMock(spec=asyncio.AbstractEventLoop) # mocker.MagicMock
         connector._DiscoverableGrpcEndpointConnector__event_loop = mock_target_loop
-        connector._DiscoverableGrpcEndpointConnector__callers.add(test_caller_id) # Add so remove can be tested
+        connector._DiscoverableGrpcEndpointConnector__callers.add(test_caller_id) 
 
         # Configure aio_utils mocks for this scenario
         self.mocked_aio_utils["get_running_loop_or_none"].return_value = asyncio.get_running_loop() # Current loop

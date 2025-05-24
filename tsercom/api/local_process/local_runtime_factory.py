@@ -61,7 +61,7 @@ class LocalRuntimeFactory(
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[TDataType, TEventType],
         grpc_channel_factory: GrpcChannelFactory,
-    ) -> Runtime[TDataType, TEventType]:
+    ) -> Runtime:
         """Creates a new Runtime instance.
 
         This method uses the stored `RuntimeInitializer` to construct the

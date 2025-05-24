@@ -2,7 +2,7 @@ import asyncio
 import pytest
 import threading
 import time
-from unittest.mock import MagicMock, patch, ANY
+# from unittest.mock import MagicMock, patch, ANY # Removed
 
 from tsercom.threading.aio.event_loop_factory import EventLoopFactory
 from tsercom.threading.thread_watcher import ThreadWatcher
@@ -107,20 +107,24 @@ def stop_loop_and_join_thread(
 
 class TestEventLoopFactory:
 
-    def test_constructor_watcher_validation(self) -> None:
+    def test_constructor_watcher_validation(self, mocker) -> None: 
         """Test watcher validation in EventLoopFactory constructor."""
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match="Watcher argument cannot be None"):
             EventLoopFactory(watcher=None)  # type: ignore
 
-        with pytest.raises(AssertionError):
-            EventLoopFactory(
-                watcher=MagicMock(spec=ThreadWatcher)
-            )  # Passes issubclass if spec is used
+        # mocker.MagicMock(spec=ThreadWatcher) will fail issubclass check because type is MagicMock
+        with pytest.raises(TypeError, match="Watcher must be a subclass of ThreadWatcher, got MagicMock"):
+            EventLoopFactory(watcher=mocker.MagicMock(spec=ThreadWatcher))
+
+        # A plain MagicMock also fails the issubclass check
+        with pytest.raises(TypeError, match="Watcher must be a subclass of ThreadWatcher, got MagicMock"):
+            EventLoopFactory(watcher=mocker.MagicMock())
 
         class NotAWatcher:
             pass
 
-        with pytest.raises(AssertionError):  # Checks for issubclass
+        # NotAWatcher will fail the issubclass check
+        with pytest.raises(TypeError, match="Watcher must be a subclass of ThreadWatcher, got NotAWatcher"):
             EventLoopFactory(watcher=NotAWatcher())  # type: ignore
 
         # Should not raise with a real or correctly mocked watcher
@@ -244,8 +248,8 @@ class TestEventLoopFactory:
         # Cleanup
         stop_loop_and_join_thread(loop, loop_thread)
 
-    def test_exception_in_start_event_loop_target_itself(
-        self, mock_watcher: MockThreadWatcher
+    def test_exception_in_start_event_loop_target_itself( 
+        self, mocker, mock_watcher: MockThreadWatcher # Ensure mocker is injected
     ) -> None:
         """
         Test scenario where start_event_loop (the target of ThrowingThread) raises an exception
@@ -253,126 +257,39 @@ class TestEventLoopFactory:
         and reported to watcher's on_exception_seen via ThrowingThread's mechanism.
         """
         error_in_start_target_msg = "Error within start_event_loop target"
-
-        original_asyncio_new_event_loop = asyncio.new_event_loop
-
-        def faulty_new_event_loop(*args, **kwargs):
-            # Let it succeed once for the main test thread if pytest-asyncio uses it.
-            # Then make it fail for the factory's thread.
-            # This is a bit fragile. A better way might be to mock something inside start_event_loop.
-            # Let's mock barrier.set() to raise an error *after* the loop is created.
-            # Or, more directly, mock a line in start_event_loop.
-            # The factory calls: self.__event_loop = asyncio.new_event_loop()
-            # then self.__event_loop.set_exception_handler(handle_exception)
-            # then asyncio.set_event_loop(self.__event_loop)
-            # then barrier.set()
-            # then self.__event_loop.run_forever()
-            # If asyncio.new_event_loop() itself fails, the barrier might not be waited on.
-
-            # Let's try to make asyncio.new_event_loop() fail when called by the factory's thread
-            if threading.current_thread() != threading.main_thread():
-                raise RuntimeError(error_in_start_target_msg)
-            return original_asyncio_new_event_loop(*args, **kwargs)
-
+    
         factory_under_test = EventLoopFactory(watcher=mock_watcher)
-
-        # Patch asyncio.new_event_loop for this test
-        # This is tricky because start_event_loop is a closure.
-        # It's better to patch something that start_event_loop calls.
-        # Let's patch 'asyncio.set_event_loop' to make it fail.
-
-        with patch(
-            "asyncio.set_event_loop",
+    
+        with mocker.patch( 
+            "asyncio.set_event_loop", 
             side_effect=RuntimeError(error_in_start_target_msg),
         ):
-            with pytest.raises(RuntimeError) as excinfo:
-                # The error might be raised from start_asyncio_loop if the barrier times out,
-                # or if the ThrowingThread re-raises the exception from its target.
-                # Given ThrowingThread's current design, it re-raises.
-                # However, barrier.wait() might timeout if barrier.set() is never reached.
-                # The barrier.wait() in start_asyncio_loop has no timeout.
-                # This means if start_event_loop fails before barrier.set(), start_asyncio_loop will hang.
-                # This test needs careful thought on ThrowingThread's behavior.
-                # If start_event_loop (the target of ThrowingThread) fails, ThrowingThread's
-                # on_error_cb (which is mock_watcher.on_exception_seen) should be called.
+            thread_for_factory = threading.Thread(
+                target=factory_under_test.start_asyncio_loop, daemon=True
+            )
+            thread_for_factory.start()
 
-                # For this test, we expect the factory.start_asyncio_loop() to propagate the error
-                # if the underlying thread creation/start fails in a way ThrowingThread handles.
-                # Or, the mock_watcher should see the error.
-
-                # If `asyncio.set_event_loop` (called within `start_event_loop`) raises an error,
-                # that exception occurs in the `ThrowingThread`.
-                # `ThrowingThread` should call `on_error_cb` (i.e., `mock_watcher.on_exception_seen`).
-                # `ThrowingThread` also re-raises the exception, which will terminate that thread.
-                # The `barrier.wait()` in `start_asyncio_loop` will then hang because `barrier.set()` is not called.
-                # This means `factory.start_asyncio_loop()` will hang.
-
-                # To test this properly, we need to run start_asyncio_loop in a thread,
-                # or mock the barrier to have a timeout.
-                # Or, more simply, check that the watcher saw the exception.
-
-                # Let's assume the primary check is whether the watcher sees the exception.
-                # The actual call to factory.start_asyncio_loop() might hang.
-                # To prevent test hangs, we can't directly call it if it's known to hang.
-
-                # We can check mock_watcher.on_exception_seen_event directly.
-                # The thread creation itself will happen.
-                thread_for_factory = threading.Thread(
-                    target=factory_under_test.start_asyncio_loop, daemon=True
-                )
-                thread_for_factory.start()
-
-                # Wait for the watcher to see the exception.
-                assert mock_watcher.on_exception_seen_event.wait(
-                    timeout=1.0
-                ), "Watcher did not see the exception from faulty start_event_loop."
+            assert mock_watcher.on_exception_seen_event.wait(
+                timeout=1.0
+            ), "Watcher did not see the exception from faulty start_event_loop."
 
         assert len(mock_watcher.exceptions_seen) == 1
         seen_exception = mock_watcher.exceptions_seen[0]
         assert isinstance(seen_exception, RuntimeError)
         assert str(seen_exception) == error_in_start_target_msg
-
-        # The thread in thread_for_factory might be alive if start_asyncio_loop hung on barrier.wait().
-        # Or it might have exited if start_asyncio_loop itself re-raised.
-        # Since start_event_loop died, the thread created by create_tracked_thread should be joined/dead.
-        # The factory's __event_loop_thread would be the one that died.
+        
         if mock_watcher.tracked_threads_created:
             loop_thread = mock_watcher.tracked_threads_created[0]
-            loop_thread.join(
-                timeout=0.5
-            )  # It should have exited due to the error
-            assert (
-                not loop_thread.is_alive()
-            ), "Loop thread should have died after target failed."
+            loop_thread.join(timeout=0.5)
+            assert not loop_thread.is_alive(), "Loop thread should have died."
 
-        # thread_for_factory should also be joined if start_asyncio_loop didn't hang.
-        # If start_asyncio_loop hangs on barrier.wait(), this test is problematic.
-        # The current ThrowingThread does not re-raise exceptions in a way that makes start() itself fail.
-        # It calls on_error_cb and the thread dies. So barrier.wait() in EventLoopFactory.start_asyncio_loop will hang.
-
-        # This test highlights a potential hang in EventLoopFactory if the target of ThrowingThread
-        # fails before barrier.set() and doesn't propagate the error in a way that stop barrier.wait().
-        # For now, we confirm the watcher saw the error. The hang itself is an issue with EventLoopFactory's robustness.
-        # To prevent the test suite from hanging, we've made thread_for_factory a daemon.
-        # A real fix would involve timeout on barrier.wait() in EventLoopFactory or different error propagation.
-
-        # We can stop the test here as the main point (watcher saw the error) is verified.
-        # Clean up any potentially started thread_for_factory if it didn't exit (daemon will handle it on test exit)
         if thread_for_factory.is_alive():
-            # This indicates a hang. For CI, this is bad.
-            # We should try to interrupt the barrier.wait() if possible, but it's hard from outside.
-            # For now, rely on daemon=True and the fact that the watcher saw the error.
-            print(
-                "Warning: factory.start_asyncio_loop() call may have hung. Test relies on daemon thread."
+            print("Warning: factory.start_asyncio_loop() call may have hung. Test relies on daemon thread.")
+            factory_under_test._EventLoopFactory__event_loop_thread = ( # type: ignore
+                None
             )
-            # To force it to attempt to exit if stuck on barrier, we can try to set the barrier.
-            # This is a hack for test cleanup.
-            factory_under_test._EventLoopFactory__event_loop_thread = (
-                None  # Avoid issues if it tries to join a non-existent thread
-            )
-            # The barrier is local to start_asyncio_loop, can't easily access.
 
-    def test_multiple_factories_do_not_interfere(self) -> None:
+    def test_multiple_factories_do_not_interfere(self) -> None: 
         """Test that two factories create independent loops and threads."""
         watcher1 = MockThreadWatcher()
         factory1 = EventLoopFactory(watcher=watcher1)

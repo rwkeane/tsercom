@@ -1,19 +1,15 @@
 import asyncio
 import sys # For sys.modules
 import pytest
-from unittest.mock import MagicMock, AsyncMock, call, ANY # Import ANY
+# from unittest.mock import MagicMock, AsyncMock, call, ANY # Removed
 import functools # For functools.partial
-# grpc and GrpcAioServer will be mocked or handled by mocks
-# import grpc # For grpc.StatusCode, if needed for error handling tests
-# from grpc.aio import Server as GrpcAioServer # For spec
 
 # SUT
 from tsercom.rpc.grpc.grpc_service_publisher import GrpcServicePublisher
 
-# Target modules for patching via string identifiers in mocker.patch.object
-# These are the lookup paths *within* the SUT's module or other modules.
+# Target modules for patching
 SUT_MODULE_PATH = "tsercom.rpc.grpc.grpc_service_publisher"
-IP_UTIL_MODULE_PATH = "tsercom.util.ip"
+IP_UTIL_MODULE_PATH = "tsercom.util.ip" # This should be 'tsercom.util.ip' not 'tsercom.util.ip_util'
 AIO_UTILS_MODULE_PATH = "tsercom.threading.aio.aio_utils"
 
 # Dependencies (real imports for type hinting if needed, but mocks will be used)
@@ -22,53 +18,62 @@ from tsercom.rpc.grpc.async_grpc_exception_interceptor import AsyncGrpcException
 from grpc.aio import Server as GrpcAioServer # For spec in mock_grpc_aio_server fixture
 
 
-# Define Mocks that will be used by the fixture and tests
-mock_grpc_module_for_sut = MagicMock(name="MockGrpcModuleForSutPublisher") # Renamed for clarity
-mock_grpc_module_for_sut.__path__ = [] # Indicate it's a package
-mock_grpc_aio_module_for_sut = MagicMock(name="MockGrpcAioModuleForSutPublisher") # Renamed for clarity
-# Mock for grpc.server factory function
-mock_grpc_server_factory = MagicMock(name="MockGrpcServerFactory")
-# Mock for grpc.aio.server factory function
-mock_grpc_aio_server_factory = MagicMock(name="MockGrpcAioServerFactory")
-mock_async_interceptor_class_for_sut = MagicMock(name="MockAsyncInterceptorClassForSut")
-mock_get_all_address_strings_for_ip_util = MagicMock(name="MockGetAllAddresses")
-mock_run_on_event_loop_for_aio_utils = AsyncMock(name="MockRunOnEventLoop")
-
-
 @pytest.fixture(autouse=True)
 def patch_modules_for_publisher(mocker):
-    # 1. Store original sys.modules state for 'grpc' and 'grpc.aio' if they exist
+    # Define mocks inside the fixture using mocker
+    mock_grpc_module_for_sut = mocker.MagicMock(name="MockGrpcModuleForSutPublisher")
+    mock_grpc_module_for_sut.__path__ = [] 
+    mock_grpc_aio_module_for_sut = mocker.MagicMock(name="MockGrpcAioModuleForSutPublisher")
+    
+    mock_grpc_server_factory = mocker.MagicMock(name="MockGrpcServerFactory")
+    mock_grpc_aio_server_factory = mocker.MagicMock(name="MockGrpcAioServerFactory")
+    mock_async_interceptor_class_for_sut = mocker.MagicMock(name="MockAsyncInterceptorClassForSut")
+    mock_get_all_address_strings_for_ip_util = mocker.MagicMock(name="MockGetAllAddresses")
+    mock_run_on_event_loop_for_aio_utils = mocker.AsyncMock(name="MockRunOnEventLoop")
+
+    # Store these mocks on the fixture instance or return them if needed by tests directly,
+    # though for patching, they are used directly here.
+    # For clarity, if tests need to assert against these factories/classes, they should be separate fixtures.
+    # This fixture is now focused on setting up the patches.
+    
     original_grpc = sys.modules.get("grpc")
     original_grpc_aio = sys.modules.get("grpc.aio")
 
-    # 2. Inject basic 'grpc' and 'grpc.aio' mocks into sys.modules
-    # These are minimal mocks, primarily for the SUT to be importable if it has
-    # top-level 'import grpc' or 'import grpc.aio'.
-    # The more specific mocks for server factories are done via patch.object below.
     sys.modules["grpc"] = mock_grpc_module_for_sut
     sys.modules["grpc.aio"] = mock_grpc_aio_module_for_sut
+    
+    # It's better to patch the specific attributes on the *actual* SUT module after it's imported,
+    # or ensure that the SUT module (grpc_service_publisher) imports these patched sys.modules.
+    # The current approach of patching sys.modules[SUT_MODULE_PATH].<name> can be fragile
+    # if SUT_MODULE_PATH itself isn't fully loaded or if it imports grpc differently.
+    # A safer way is to patch where the SUT uses these names.
+    # Example: SUT uses 'grpc_server' which is 'from grpc import server as grpc_server'
+    # So we need 'grpc.server' to be our factory.
+    
+    # Configure the 'server' attribute on the mocked 'grpc' module
+    mock_grpc_module_for_sut.server = mock_grpc_server_factory
+    # Configure the 'server' attribute on the mocked 'grpc.aio' module
+    mock_grpc_aio_module_for_sut.server = mock_grpc_aio_server_factory
 
-    # 3. Patch specific objects within modules using mocker.patch.object
-    # These patches target the names as they are looked up by the SUT.
-    
-    # Patch 'grpc.server' (factory for sync server) *within the SUT's module context*
-    mocker.patch.object(sys.modules[SUT_MODULE_PATH], 'grpc_server', mock_grpc_server_factory)
-    
-    # Patch 'grpc.aio.server' (factory for async server) *within the SUT's module context*
-    mocker.patch.object(sys.modules[SUT_MODULE_PATH], 'grpc_aio_server', mock_grpc_aio_server_factory)
-    
     # Patch 'AsyncGrpcExceptionInterceptor' class *within the SUT's module context*
-    mocker.patch.object(sys.modules[SUT_MODULE_PATH], 'AsyncGrpcExceptionInterceptor', mock_async_interceptor_class_for_sut)
+    mocker.patch(f"{SUT_MODULE_PATH}.AsyncGrpcExceptionInterceptor", new=mock_async_interceptor_class_for_sut)
 
     # Patch 'get_all_address_strings' *in the ip_util module*
-    mocker.patch.object(sys.modules[IP_UTIL_MODULE_PATH], 'get_all_address_strings', mock_get_all_address_strings_for_ip_util)
+    # Ensure IP_UTIL_MODULE_PATH is correct, typically 'tsercom.util.ip'
+    mocker.patch(f"{IP_UTIL_MODULE_PATH}.get_all_address_strings", new=mock_get_all_address_strings_for_ip_util)
     
     # Patch 'run_on_event_loop' *in the aio_utils module*
-    mocker.patch.object(sys.modules[AIO_UTILS_MODULE_PATH], 'run_on_event_loop', mock_run_on_event_loop_for_aio_utils)
+    mocker.patch(f"{AIO_UTILS_MODULE_PATH}.run_on_event_loop", new=mock_run_on_event_loop_for_aio_utils)
 
-    yield # Tests run here
+    yield { # Pass the created mocks to tests if they need to configure return_values or assert calls
+        "mock_grpc_server_factory": mock_grpc_server_factory,
+        "mock_grpc_aio_server_factory": mock_grpc_aio_server_factory,
+        "mock_async_interceptor_class_for_sut": mock_async_interceptor_class_for_sut,
+        "mock_get_all_address_strings_for_ip_util": mock_get_all_address_strings_for_ip_util,
+        "mock_run_on_event_loop_for_aio_utils": mock_run_on_event_loop_for_aio_utils
+    }
 
-    # 4. Restore original sys.modules state
+
     if original_grpc is not None:
         sys.modules["grpc"] = original_grpc
     elif "grpc" in sys.modules:
@@ -79,48 +84,49 @@ def patch_modules_for_publisher(mocker):
     elif "grpc.aio" in sys.modules:
         del sys.modules["grpc.aio"]
     
-    # mocker automatically undoes its patches, no need for manual unpatch for patch.object
-
 
 @pytest.mark.asyncio
 class TestGrpcServicePublisher:
 
+    # This fixture will hold the mocks created by patch_modules_for_publisher
     @pytest.fixture
-    def mock_thread_watcher(self):
-        watcher = MagicMock(spec=ThreadWatcher)
-        watcher.create_tracked_thread_pool_executor = MagicMock(return_value=MagicMock(name="mock_executor"))
-        watcher.on_exception_seen = MagicMock(name="thread_watcher_on_exception_seen")
+    def publisher_mocks(self, patch_modules_for_publisher):
+        return patch_modules_for_publisher
+
+    @pytest.fixture
+    def mock_thread_watcher(self, mocker): # Added mocker
+        watcher = mocker.MagicMock(spec=ThreadWatcher)
+        watcher.create_tracked_thread_pool_executor = mocker.MagicMock(return_value=mocker.MagicMock(name="mock_executor"))
+        watcher.on_exception_seen = mocker.MagicMock(name="thread_watcher_on_exception_seen")
         return watcher
 
     @pytest.fixture
-    def mock_grpc_server_instance(self): # Instance returned by the factory
-        mock_server = MagicMock(name="MockGrpcServerInstance")
-        mock_server.add_insecure_port = MagicMock(name="add_insecure_port_sync")
-        mock_server.start = MagicMock(name="start_sync")
-        mock_server.stop = MagicMock(name="stop_sync")
-        # Configure the factory to return this instance
-        mock_grpc_server_factory.return_value = mock_server
+    def mock_grpc_server_instance(self, mocker, publisher_mocks): # Added mocker, publisher_mocks
+        mock_server = mocker.MagicMock(name="MockGrpcServerInstance")
+        mock_server.add_insecure_port = mocker.MagicMock(name="add_insecure_port_sync")
+        mock_server.start = mocker.MagicMock(name="start_sync")
+        mock_server.stop = mocker.MagicMock(name="stop_sync")
+        publisher_mocks["mock_grpc_server_factory"].return_value = mock_server # Configure factory from patched mocks
         return mock_server
     
     @pytest.fixture
-    def mock_grpc_aio_server_instance(self): # Instance returned by the factory
-        mock_server = AsyncMock(spec=GrpcAioServer, name="MockGrpcAioServerInstance")
-        mock_server.add_insecure_port = MagicMock(name="add_insecure_port_aio")
-        mock_server.start = AsyncMock(name="start_aio")
-        mock_server.stop = AsyncMock(name="stop_aio")
-        # Configure the factory to return this instance
-        mock_grpc_aio_server_factory.return_value = mock_server
+    def mock_grpc_aio_server_instance(self, mocker, publisher_mocks): # Added mocker, publisher_mocks
+        mock_server = mocker.AsyncMock(spec=GrpcAioServer, name="MockGrpcAioServerInstance")
+        mock_server.add_insecure_port = mocker.MagicMock(name="add_insecure_port_aio")
+        mock_server.start = mocker.AsyncMock(name="start_aio")
+        mock_server.stop = mocker.AsyncMock(name="stop_aio")
+        publisher_mocks["mock_grpc_aio_server_factory"].return_value = mock_server # Configure factory
         return mock_server
 
     @pytest.fixture
-    def mock_async_interceptor_instance(self):
-        instance = MagicMock(spec=AsyncGrpcExceptionInterceptor, name="MockAsyncInterceptorInstance")
-        mock_async_interceptor_class_for_sut.return_value = instance # Configure class to return this instance
+    def mock_async_interceptor_instance(self, mocker, publisher_mocks): # Added mocker, publisher_mocks
+        instance = mocker.MagicMock(spec=AsyncGrpcExceptionInterceptor, name="MockAsyncInterceptorInstance")
+        publisher_mocks["mock_async_interceptor_class_for_sut"].return_value = instance # Configure class
         return instance
 
     @pytest.fixture
-    def mock_connect_call_cb(self):
-        return MagicMock(name="ConnectCallCb")
+    def mock_connect_call_cb(self, mocker): # Added mocker
+        return mocker.MagicMock(name="ConnectCallCb") # mocker.MagicMock
 
     # --- __init__ Tests ---
     def test_init_with_address_string(self, mock_thread_watcher):
@@ -136,23 +142,21 @@ class TestGrpcServicePublisher:
         assert publisher._GrpcServicePublisher__addresses == addresses
         print("--- Test: test_init_with_address_list finished ---")
 
-    # mock_get_all_address_strings_for_ip_util is already active due to autouse fixture
-    def test_init_no_addresses_uses_get_all(self, mock_thread_watcher):
+    def test_init_no_addresses_uses_get_all(self, mock_thread_watcher, publisher_mocks): # Added publisher_mocks
         print("\n--- Test: test_init_no_addresses_uses_get_all ---")
         expected_ips = ["1.1.1.1", "2.2.2.2"]
-        mock_get_all_address_strings_for_ip_util.return_value = expected_ips
+        publisher_mocks["mock_get_all_address_strings_for_ip_util"].return_value = expected_ips
         
         publisher = GrpcServicePublisher(mock_thread_watcher, 8080, addresses=None)
         
-        mock_get_all_address_strings_for_ip_util.assert_called_once_with()
+        publisher_mocks["mock_get_all_address_strings_for_ip_util"].assert_called_once_with()
         assert publisher._GrpcServicePublisher__addresses == expected_ips
-        mock_get_all_address_strings_for_ip_util.reset_mock() # Reset for other tests if needed
+        publisher_mocks["mock_get_all_address_strings_for_ip_util"].reset_mock() 
         print("--- Test: test_init_no_addresses_uses_get_all finished ---")
 
     # --- start() (sync server) Tests ---
-    # mock_grpc_server_factory is active from autouse fixture
     def test_start_sync_server(
-        self, mock_thread_watcher, mock_connect_call_cb, mock_grpc_server_instance
+        self, mock_thread_watcher, mock_connect_call_cb, mock_grpc_server_instance, publisher_mocks, mocker # Added publisher_mocks, mocker
     ):
         print("\n--- Test: test_start_sync_server ---")
         mock_executor = mock_thread_watcher.create_tracked_thread_pool_executor.return_value
@@ -162,8 +166,8 @@ class TestGrpcServicePublisher:
         result = publisher.start(mock_connect_call_cb)
         assert result is True
 
-        mock_thread_watcher.create_tracked_thread_pool_executor.assert_called_once_with(max_workers=ANY, thread_name_prefix=ANY)
-        mock_grpc_server_factory.assert_called_once_with(mock_executor, interceptors=None, maximum_concurrent_rpcs=None)
+        mock_thread_watcher.create_tracked_thread_pool_executor.assert_called_once_with(max_workers=mocker.ANY, thread_name_prefix=mocker.ANY)
+        publisher_mocks["mock_grpc_server_factory"].assert_called_once_with(mock_executor, interceptors=None, maximum_concurrent_rpcs=None)
         mock_connect_call_cb.assert_called_once_with(mock_grpc_server_instance)
         mock_grpc_server_instance.add_insecure_port.assert_called_with("localhost:8080")
         mock_grpc_server_instance.start.assert_called_once()
@@ -171,10 +175,9 @@ class TestGrpcServicePublisher:
         print("--- Test: test_start_sync_server finished ---")
 
     # --- start_async() and __start_async_impl Tests ---
-    # Mocks (mock_run_on_event_loop_for_aio_utils, mock_grpc_aio_server_factory, mock_async_interceptor_class_for_sut) active from fixture
     async def test_start_async_server_delegates_and_impl_works(
         self, mock_thread_watcher, mock_connect_call_cb, 
-        mock_grpc_aio_server_instance, mock_async_interceptor_instance # These ensure factories/classes return the instances
+        mock_grpc_aio_server_instance, mock_async_interceptor_instance, publisher_mocks, mocker # Added publisher_mocks, mocker
     ):
         print("\n--- Test: test_start_async_server_delegates_and_impl_works ---")
         mock_grpc_aio_server_instance.add_insecure_port.return_value = 8080
@@ -185,32 +188,32 @@ class TestGrpcServicePublisher:
             f = asyncio.Future()
             f.set_result(True) 
             return f
-        mock_run_on_event_loop_for_aio_utils.side_effect = run_impl_side_effect
+        publisher_mocks["mock_run_on_event_loop_for_aio_utils"].side_effect = run_impl_side_effect
         
         publisher = GrpcServicePublisher(mock_thread_watcher, 8080, addresses=["localhost"])
         result = await publisher.start_async(mock_connect_call_cb)
         assert result is True
 
-        mock_run_on_event_loop_for_aio_utils.assert_called_once()
-        partial_arg = mock_run_on_event_loop_for_aio_utils.call_args[0][0]
+        publisher_mocks["mock_run_on_event_loop_for_aio_utils"].assert_called_once()
+        partial_arg = publisher_mocks["mock_run_on_event_loop_for_aio_utils"].call_args[0][0]
         assert isinstance(partial_arg, functools.partial)
         assert partial_arg.func.__name__ == "_GrpcServicePublisher__start_async_impl"
         assert partial_arg.args == (mock_connect_call_cb,)
         print("  Assertion: start_async called run_on_event_loop correctly - PASSED")
 
-        mock_async_interceptor_class_for_sut.assert_called_once_with(mock_thread_watcher)
-        mock_grpc_aio_server_factory.assert_called_once_with(ANY, interceptors=[mock_async_interceptor_instance], maximum_concurrent_rpcs=None)
+        publisher_mocks["mock_async_interceptor_class_for_sut"].assert_called_once_with(mock_thread_watcher)
+        publisher_mocks["mock_grpc_aio_server_factory"].assert_called_once_with(mocker.ANY, interceptors=[mock_async_interceptor_instance], maximum_concurrent_rpcs=None)
         
         mock_connect_call_cb.assert_called_once_with(mock_grpc_aio_server_instance)
         mock_grpc_aio_server_instance.add_insecure_port.assert_called_with("localhost:8080")
         mock_grpc_aio_server_instance.start.assert_awaited_once()
         assert publisher._GrpcServicePublisher__server is mock_grpc_aio_server_instance
         print("  Assertions for __start_async_impl behavior - PASSED")
-        mock_run_on_event_loop_for_aio_utils.reset_mock(side_effect=True) # Reset for other tests
+        publisher_mocks["mock_run_on_event_loop_for_aio_utils"].reset_mock(side_effect=True) 
         print("--- Test: test_start_async_server_delegates_and_impl_works finished ---")
 
     # --- _connect Tests ---
-    def test_connect_successful_bind_sync(self, mock_thread_watcher, mock_grpc_server_instance):
+    def test_connect_successful_bind_sync(self, mock_thread_watcher, mock_grpc_server_instance, mocker): # Added mocker
         print("\n--- Test: test_connect_successful_bind_sync ---")
         publisher = GrpcServicePublisher(mock_thread_watcher, 8080, addresses=["127.0.0.1", "10.0.0.1"])
         publisher._GrpcServicePublisher__server = mock_grpc_server_instance
@@ -220,7 +223,7 @@ class TestGrpcServicePublisher:
         result = publisher._connect()
         assert result is True
         
-        expected_calls = [call("127.0.0.1:8080"), call("10.0.0.1:8080")]
+        expected_calls = [mocker.call("127.0.0.1:8080"), mocker.call("10.0.0.1:8080")] # mocker.call
         mock_grpc_server_instance.add_insecure_port.assert_has_calls(expected_calls, any_order=True)
         assert mock_grpc_server_instance.add_insecure_port.call_count == 2
         print("--- Test: test_connect_successful_bind_sync finished ---")
@@ -272,7 +275,7 @@ class TestGrpcServicePublisher:
 
     async def test_stop_async_server(
         self, mock_thread_watcher, mock_connect_call_cb, 
-        mock_grpc_aio_server_instance, mock_async_interceptor_instance # Ensure instances are configured
+        mock_grpc_aio_server_instance, mock_async_interceptor_instance, publisher_mocks # Added publisher_mocks
     ):
         print("\n--- Test: test_stop_async_server ---")
         mock_grpc_aio_server_instance.add_insecure_port.return_value = 8080
@@ -280,7 +283,7 @@ class TestGrpcServicePublisher:
         async def run_impl_side_effect(partial_func, loop=None):
             await partial_func()
             f = asyncio.Future(); f.set_result(True); return f
-        mock_run_on_event_loop_for_aio_utils.side_effect = run_impl_side_effect
+        publisher_mocks["mock_run_on_event_loop_for_aio_utils"].side_effect = run_impl_side_effect
         
         publisher = GrpcServicePublisher(mock_thread_watcher, 8080, addresses=["localhost"])
         await publisher.start_async(mock_connect_call_cb)
@@ -288,7 +291,7 @@ class TestGrpcServicePublisher:
         
         publisher.stop() 
         mock_grpc_aio_server_instance.stop.assert_called_once_with(grace=None)
-        mock_run_on_event_loop_for_aio_utils.reset_mock(side_effect=True)
+        publisher_mocks["mock_run_on_event_loop_for_aio_utils"].reset_mock(side_effect=True)
         print("--- Test: test_stop_async_server finished ---")
 
 ```

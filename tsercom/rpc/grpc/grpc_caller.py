@@ -1,15 +1,17 @@
+from __future__ import annotations # Added this line
 import asyncio
 from google.rpc.status_pb2 import Status
-from grpc_status import rpc_status
-import grpc
+import grpc # Keep grpc import at global scope
 import random
+# typing.Optional is removed as type hint will be grpc.StatusCode | None with annotations
 
 
-def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
+def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None: # Changed type hint
     """
     Returns the gRPC Status code associated with this |error| if one exists, and
     None in all other cases.
     """
+    from grpc_status import rpc_status # Moved import
     if issubclass(type(error), grpc.aio.AioRpcError):
         return error.code()  # type: ignore
 
@@ -33,9 +35,11 @@ def is_server_unavailable_error(error: Exception) -> bool:
 
     status_code = get_grpc_status_code(error)
     print("FOUND STATUS CODE", status_code)
+    unavailable_status = grpc.StatusCode.UNAVAILABLE
+    deadline_exceeded_status = grpc.StatusCode.DEADLINE_EXCEEDED
     return status_code in (
-        grpc.StatusCode.UNAVAILABLE,
-        grpc.StatusCode.DEADLINE_EXCEEDED,
+        unavailable_status,
+        deadline_exceeded_status,
     )
 
 
