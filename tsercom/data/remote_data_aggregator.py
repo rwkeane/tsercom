@@ -22,7 +22,7 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
     availability and new endpoint discovery.
     """
 
-    class Client(ABC):
+    class Client(ABC, Generic[TDataType]):
         """Interface for clients wishing to receive callbacks from a RemoteDataAggregator.
 
         Implementers of this interface can register with a `RemoteDataAggregator`

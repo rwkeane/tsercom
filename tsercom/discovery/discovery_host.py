@@ -24,7 +24,7 @@ class DiscoveryHost(
     `InstanceListener` to receive raw service discovery events.
     """
 
-    class Client(ABC):
+    class Client(ABC, Generic[TServiceInfo]):
         """Interface for clients wishing to receive discovery notifications from `DiscoveryHost`.
 
         Implementers of this interface are notified when new services, relevant

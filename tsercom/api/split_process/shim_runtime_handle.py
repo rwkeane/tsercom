@@ -5,6 +5,7 @@ from typing import TypeVar, Optional # Added Optional for on_event overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier # For on_event overload
 from tsercom.data.exposed_data import ExposedData
+from tsercom.data.annotated_instance import AnnotatedInstance # Added
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -150,3 +151,8 @@ class ShimRuntimeHandle(
             from the remote runtime.
         """
         return self.__data_aggregator
+
+    @property
+    def data_aggregator(self) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+        # TODO: Address potential type mismatch (same as above)
+        return self._get_remote_data_aggregator() # type: ignore

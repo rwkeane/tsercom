@@ -1,3 +1,8 @@
+import sys
+import types
+if "grpc.addressing_unittest" not in sys.modules:
+    dummy_module = types.ModuleType("grpc.addressing_unittest")
+    sys.modules["grpc.addressing_unittest"] = dummy_module
 import pytest
 # from unittest.mock import MagicMock, patch # Removed
 

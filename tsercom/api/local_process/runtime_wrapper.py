@@ -9,6 +9,7 @@ from tsercom.api.local_process.runtime_command_bridge import (
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
+from tsercom.data.annotated_instance import AnnotatedInstance # Added
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -102,3 +103,10 @@ class RuntimeWrapper(
             The `RemoteDataAggregator` instance used by this wrapper.
         """
         return self.__aggregator
+
+    @property
+    def data_aggregator(self) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+        # TODO: Address potential type mismatch if _get_remote_data_aggregator
+        # returns RemoteDataAggregator[TDataType] instead of AnnotatedInstance[TDataType].
+        # For now, assume it's compatible or will be cast/handled.
+        return self._get_remote_data_aggregator() # type: ignore

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import partial
 import socket
-from typing import Dict, Generic, List, TypeVar
+from typing import Dict, Generic, List, TypeVar, Optional
 import logging
 
 from tsercom.discovery.service_info import ServiceInfo

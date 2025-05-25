@@ -36,6 +36,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-asyncio",
+    "pytest-mock", # Added
     "pre-commit",
     "ruff",
     "black",
