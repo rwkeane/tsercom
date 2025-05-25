@@ -18,12 +18,8 @@ class RuntimeCommandBridge:
     """
     def __init__(self) -> None:
         """Initializes the RuntimeCommandBridge."""
-        # Stores the last command received if the runtime is not yet set.
         self.__state: Atomic[Optional[RuntimeCommand]] = Atomic[Optional[RuntimeCommand]](None)
-
-        # The Runtime instance, to be set later.
         self.__runtime: Optional[Runtime] = None
-        # Mutex to protect access to the __runtime attribute.
         self.__runtime_mutex: Lock = Lock()
 
     def set_runtime(self, runtime: Runtime) -> None:
@@ -39,24 +35,17 @@ class RuntimeCommandBridge:
             RuntimeError: If the runtime has already been set.
         """
         with self.__runtime_mutex:
-            # Ensure runtime is set only once.
             if self.__runtime is not None:
                 raise RuntimeError("Runtime has already been set and cannot be changed.")
             self.__runtime = runtime
 
-            # Check for and execute any pending command.
-            pending_command = self.__state.get()
+            pending_command = self.__state.get_and_set(None) # Atomically get and clear
             if pending_command is None:
                 return
             elif pending_command == RuntimeCommand.kStart:
-                # Asynchronously start the runtime.
                 run_on_event_loop(runtime.start_async)
             elif pending_command == RuntimeCommand.kStop:
-                # Asynchronously stop the runtime.
                 run_on_event_loop(runtime.stop)
-            
-            # Clear the pending command after execution.
-            self.__state.set(None)
 
 
     def start(self) -> None:
@@ -68,10 +57,8 @@ class RuntimeCommandBridge:
         """
         with self.__runtime_mutex:
             if self.__runtime is None:
-                # Runtime not yet available, store the command.
                 self.__state.set(RuntimeCommand.kStart)
             else:
-                # Runtime available, start it directly.
                 run_on_event_loop(self.__runtime.start_async)
 
     def stop(self) -> None:
@@ -83,8 +70,6 @@ class RuntimeCommandBridge:
         """
         with self.__runtime_mutex:
             if self.__runtime is None:
-                # Runtime not yet available, store the command.
                 self.__state.set(RuntimeCommand.kStop)
             else:
-                # Runtime available, stop it directly.
                 run_on_event_loop(self.__runtime.stop)

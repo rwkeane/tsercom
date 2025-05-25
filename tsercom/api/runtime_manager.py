@@ -4,7 +4,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
 from multiprocessing import Process
-from typing import Any, Generic, List, TypeVar, Optional # Added Optional
+from typing import Any, Generic, List, TypeVar, Optional
 
 from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
@@ -21,8 +21,6 @@ from tsercom.api.split_process.split_process_error_watcher_source import (
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
-# Imports for runtime_main are moved into methods (start_in_process, start_out_of_process)
-# to break potential circular dependencies between manager and main execution modules.
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
     create_tsercom_event_loop_from_watcher,
@@ -35,7 +33,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_factory import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
-# Type variables for generic RuntimeHandle and related classes.
 TDataType = TypeVar("TDataType")
 TEventType = TypeVar("TEventType")
 
@@ -58,18 +55,11 @@ class RuntimeManager(ErrorWatcher):
         """
         super().__init__(is_testing=False)
 
-        # Stores pairs of Futures and their corresponding RuntimeInitializers.
         self.__initializers: list[InitializationPair[Any, Any]] = []
-        # Tracks if the manager has started processing runtimes.
         self.__has_started: IsRunningTracker = IsRunningTracker()
-
-        # Manages threads created by this manager.
         self.__thread_watcher: ThreadWatcher = ThreadWatcher()
-        # Watches for errors, either from local threads or a remote process.
         self.__error_watcher: Optional[ErrorWatcher] = None
-        # Holds the remote process instance if started out-of-process.
         self.__process: Optional[Process] = None
-
         self.__is_testing: bool = is_testing
 
     @property
@@ -101,7 +91,6 @@ class RuntimeManager(ErrorWatcher):
         Raises:
             RuntimeError: If called after the manager has started.
         """
-        # Ensure initializers are registered only before starting.
         if self.has_started:
             raise RuntimeError("Cannot register runtime initializer after the manager has started.")
 
@@ -118,43 +107,26 @@ class RuntimeManager(ErrorWatcher):
     ) -> List[RuntimeHandle[Any, Any]]:
         """Creates and starts all registered runtimes in the current process.
 
-        This method calls the synchronous `start_in_process` method, providing
-        it with the currently running asyncio event loop. Tsercom operations
-        will run on this event loop.
+        This method starts registered runtimes in the current process, using the
+        running asyncio event loop for Tsercom operations.
 
-        The primary mechanism for retrieving `RuntimeHandle` instances is through
-        the `Future` objects returned by `register_runtime_initializer`.
+        RuntimeHandles are primarily obtained via the `Future` objects returned
+        by `register_runtime_initializer`.
 
         Returns:
-            A list containing `RuntimeHandle` instances for any runtimes whose
-            initialization `Future` had already completed (i.e., `future.done()` is true)
-            at the time of this call. This is checked by attempting to retrieve the
-            result with a zero timeout (`future.result(timeout=0)`).
-            This list may be empty or incomplete if runtime initializations are
-            still pending. The primary method for obtaining all `RuntimeHandle`
-            instances remains the `Future` objects returned by
-            `register_runtime_initializer`.
+            A list of `RuntimeHandle` instances for runtimes whose initialization
+            Future was complete at the time of this call (checked with a zero timeout).
+            This list may be incomplete; the Futures from `register_runtime_initializer`
+            are the definitive source for all handles.
 
         Raises:
-            RuntimeError: If no event loop is running when this method is called.
-            Exception: If `future.result(timeout=0)` raises an exception because
-                       the future completed with an exception (e.g., `CancelledError`
-                       or any exception set on the future by the task it was awaiting).
+            RuntimeError: If no event loop is running.
+            Exception: If a future completed with an exception.
         """
         running_loop = get_running_loop_or_none()
-        
         if running_loop is None:
             raise RuntimeError("Could not determine the current running event loop for start_in_process_async.")
-            
-        # The `start_in_process` method doesn't return handles directly.
-        # Handles are obtained via the Futures.
         self.start_in_process(running_loop)
-        
-        # Collect handles from futures for convenience, if desired by original intent.
-        # However, the current start_in_process doesn't facilitate this directly.
-        # For now, aligning with start_in_process's void return.
-        # If handles were to be returned, it would look like:
-        # return [pair.handle_future.result() for pair in self.__initializers]
         return [pair.handle_future.result(timeout=0) for pair in self.__initializers if pair.handle_future.done()]
 
     def start_in_process(
@@ -178,20 +150,17 @@ class RuntimeManager(ErrorWatcher):
             raise RuntimeError("RuntimeManager has already been started.")
         self.__has_started.start()
 
-        # Basic initialization for in-process execution.
         set_tsercom_event_loop(runtime_event_loop)
-        self.__error_watcher = self.__thread_watcher # Local errors managed by ThreadWatcher.
+        self.__error_watcher = self.__thread_watcher
 
-        # Create factories for local process runtimes.
         thread_pool = (
             self.__thread_watcher.create_tracked_thread_pool_executor(
-                max_workers=1 # Single worker for sequential factory creation.
+                max_workers=1 # Ensures sequential factory creation.
             )
         )
         factory_factory = LocalRuntimeFactoryFactory(thread_pool)
         factories = self.__create_factories(factory_factory)
 
-        # Import and run the main initialization sequence for runtimes.
         # Import is deferred to avoid circular dependencies.
         from tsercom.runtime.runtime_main import (
             initialize_runtimes,
@@ -223,20 +192,17 @@ class RuntimeManager(ErrorWatcher):
             
         self.__has_started.start()
 
-        # Set up a minimal local Tsercom event loop, primarily for utilities.
         create_tsercom_event_loop_from_watcher(self.__thread_watcher)
 
-        # Prepare for inter-process error communication.
         error_sink, error_source = create_multiprocess_queues()
         self.__error_watcher = SplitProcessErrorWatcherSource(
             self.__thread_watcher, error_source
         )
-        self.__error_watcher.start() # Start listening for errors from the remote process.
+        self.__error_watcher.start()
 
-        # Create factories for split-process runtimes.
         thread_pool = (
             self.__thread_watcher.create_tracked_thread_pool_executor(
-                max_workers=1 # Single worker for sequential factory creation.
+                max_workers=1 # Ensures sequential factory creation.
             )
         )
         factory_factory = SplitRuntimeFactoryFactory(
@@ -244,21 +210,18 @@ class RuntimeManager(ErrorWatcher):
         )
         factories = self.__create_factories(factory_factory)
 
-        # Import and prepare the main function for the remote process.
         # Import is deferred to avoid circular dependencies.
         from tsercom.runtime.runtime_main import (
             remote_process_main,
         )
 
-        # Configure and start the new process.
         self.__process = Process(
             target=partial(
                 remote_process_main,
                 factories,
-                error_sink, # Provide the error queue to the remote process.
+                error_sink,
                 is_testing=self.__is_testing,
             ),
-            # Test processes or explicit daemons are set as daemonic.
             daemon=start_as_daemon or self.__is_testing,
         )
         self.__process.start()
@@ -278,12 +241,10 @@ class RuntimeManager(ErrorWatcher):
             RuntimeError: If the manager hasn't started or the error watcher isn't set.
         """
         if not self.has_started:
-            # Added this check for consistency, as __error_watcher depends on has_started
             raise RuntimeError("RuntimeManager has not been started.")
         if self.__error_watcher is None:
             raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
 
-        # Delegate to ThreadWatcher to wait for and propagate exceptions.
         self.__thread_watcher.run_until_exception()
 
     def check_for_exception(self) -> None:
@@ -298,13 +259,11 @@ class RuntimeManager(ErrorWatcher):
             RuntimeError: If the manager has started but the error watcher isn't set.
         """
         if not self.has_started:
-            return # No exceptions to check if not started.
+            return
 
         if self.__error_watcher is None:
-            # This implies it wasn't started correctly or state is corrupted.
             raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
 
-        # Delegate to ThreadWatcher to check and propagate exceptions.
         self.__thread_watcher.check_for_exception()
 
     def __create_factories(
@@ -326,7 +285,6 @@ class RuntimeManager(ErrorWatcher):
         """
         results: List[RuntimeFactory[Any, Any]] = []
         for pair in self.__initializers:
-            # The RuntimeFuturePopulator acts as the client to receive the handle.
             client = RuntimeFuturePopulator[Any, Any](pair.handle_future)
             factory = factory_factory.create_factory(
                 client,
@@ -363,5 +321,4 @@ class RuntimeFuturePopulator(
         Args:
             handle: The `RuntimeHandle` that has been successfully created.
         """
-        # Set the RuntimeHandle on the future, notifying waiters.
         self.__future.set_result(handle)

@@ -16,7 +16,6 @@ from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
 
-# Type variables for generic typing
 TDataType = TypeVar("TDataType")
 TEventType = TypeVar("TEventType")
 
@@ -32,7 +31,6 @@ class LocalRuntimeFactoryFactory(RuntimeFactoryFactory):
             thread_pool: A ThreadPoolExecutor for managing asynchronous tasks.
         """
         super().__init__()
-        # Store the thread pool for use in creating data aggregators.
         self.__thread_pool: ThreadPoolExecutor = thread_pool
 
     def _create_pair(
@@ -52,22 +50,17 @@ class LocalRuntimeFactoryFactory(RuntimeFactoryFactory):
         Returns:
             A tuple containing the created RuntimeHandle and the LocalRuntimeFactory.
         """
-        # Initialize the data aggregator for handling remote data.
         data_aggregator = RemoteDataAggregatorImpl[TDataType](
             self.__thread_pool,
             client=initializer.data_aggregator_client,
             timeout=initializer.timeout_seconds,
         )
-        # Initialize the poller for asynchronous event handling.
         event_poller = AsyncPoller[EventInstance[TEventType]]()
-        # Initialize the bridge for commands between the handle and runtime.
         bridge = RuntimeCommandBridge()
 
-        # Create the factory for local runtime instances.
         factory = LocalRuntimeFactory[TDataType, TEventType](
             initializer, data_aggregator, event_poller, bridge
         )
-        # Create the runtime handle (wrapper) for interacting with the runtime.
         handle = RuntimeWrapper(event_poller, data_aggregator, bridge)
 
         return handle, factory

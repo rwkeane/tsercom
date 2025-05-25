@@ -5,7 +5,6 @@ from typing import Generic, TypeVar
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
-# Type variables for generic typing
 TDataType = TypeVar("TDataType")
 TEventType = TypeVar("TEventType")
 
@@ -28,8 +27,6 @@ class InitializationPair(Generic[TDataType, TEventType]):
             handle_future: A Future that will resolve to a RuntimeHandle.
             initializer: The RuntimeInitializer used to create the RuntimeHandle.
         """
-        # Store the future and initializer internally.
-        # These are made accessible via properties.
         self.__handle_future: Future[RuntimeHandle[TDataType, TEventType]] = handle_future
         self.__initializer: RuntimeInitializer[TDataType, TEventType] = initializer
 

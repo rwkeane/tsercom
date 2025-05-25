@@ -9,10 +9,8 @@ from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
-# Type variable for data, bound by ExposedData.
-TDataType = TypeVar("TDataType", bound=ExposedData)
-# Type variable for events.
-TEventType = TypeVar("TEventType")
+TDataType = TypeVar("TDataType", bound=ExposedData) # Data type, bound by ExposedData
+TEventType = TypeVar("TEventType") # Event type
 
 
 class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
@@ -33,12 +31,6 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
         Returns:
             A RemoteDataAggregator instance associated with this runtime handle.
         """
-        # This property relies on _get_remote_data_aggregator being implemented.
-        # For an ABC, it's better to make the property itself abstract
-        # or implement it using an abstract method if there's common logic.
-        # The original code returned self._get_remote_data_aggregator(),
-        # which is fine if _get_remote_data_aggregator is implemented by subclasses.
-        # To make it more explicit for an ABC, I'll make the property abstract too.
         raise NotImplementedError()
 
 
@@ -52,8 +44,6 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
         """Stops the associated runtime or service."""
         raise NotImplementedError()
 
-    # Overloads for the on_event method, defining different ways to call it.
-    # These guide type checkers and IDEs for better developer experience.
     @overload
     def on_event(self, event: TEventType) -> None: ...
 

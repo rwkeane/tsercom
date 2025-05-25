@@ -9,17 +9,15 @@ from tsercom.api.local_process.runtime_command_bridge import (
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
-from tsercom.data.annotated_instance import AnnotatedInstance # Added
+from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.threading.async_poller import AsyncPoller
 
-# Type variable for data, bound by ExposedData.
-TDataType = TypeVar("TDataType", bound=ExposedData)
-# Type variable for events.
-TEventType = TypeVar("TEventType")
+TDataType = TypeVar("TDataType", bound=ExposedData) # Data type, bound by ExposedData
+TEventType = TypeVar("TEventType") # Event type
 
 
 class RuntimeWrapper(
@@ -46,19 +44,16 @@ class RuntimeWrapper(
             data_aggregator: A RemoteDataAggregatorImpl to manage data.
             bridge: A RuntimeCommandBridge to send commands to the runtime.
         """
-        # Store the core components for event, data, and command management.
         self.__event_poller: AsyncPoller[EventInstance[TEventType]] = event_poller
         self.__aggregator: RemoteDataAggregatorImpl[TDataType] = data_aggregator
         self.__bridge: RuntimeCommandBridge = bridge
 
     def start(self) -> None:
         """Starts the underlying runtime via the command bridge."""
-        # Delegate the start command to the bridge.
         self.__bridge.start()
 
     def stop(self) -> None:
         """Stops the underlying runtime via the command bridge."""
-        # Delegate the stop command to the bridge.
         self.__bridge.stop()
 
     def on_event(
@@ -75,11 +70,8 @@ class RuntimeWrapper(
             caller_id: Optional identifier of the caller that generated the event.
             timestamp: Optional timestamp for the event. If None, defaults to now.
         """
-        # Ensure a timestamp for the event.
         if timestamp is None:
             timestamp = datetime.now()
-
-        # Wrap the event with metadata and submit it to the event poller.
         wrapped_event = EventInstance(event, caller_id, timestamp)
         self.__event_poller.on_available(wrapped_event)
 
@@ -91,7 +83,6 @@ class RuntimeWrapper(
         Args:
             new_data: The new data instance that has become available.
         """
-        # Pass the new data to the internal data aggregator.
         self.__aggregator._on_data_ready(new_data)
 
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
