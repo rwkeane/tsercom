@@ -1,17 +1,16 @@
-from __future__ import annotations # Added this line
+from __future__ import annotations
 import asyncio
 from google.rpc.status_pb2 import Status
 import grpc # Keep grpc import at global scope
 import random
-# typing.Optional is removed as type hint will be grpc.StatusCode | None with annotations
 
 
-def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None: # Changed type hint
+def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
     """
     Returns the gRPC Status code associated with this |error| if one exists, and
     None in all other cases.
     """
-    from grpc_status import rpc_status # Moved import
+    from grpc_status import rpc_status
     if issubclass(type(error), grpc.aio.AioRpcError):
         return error.code()  # type: ignore
 

@@ -16,7 +16,6 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-# Type variables for generic typing
 TEventType = TypeVar("TEventType")
 TDataType = TypeVar("TDataType")
 
@@ -46,14 +45,12 @@ class LocalRuntimeFactory(
             event_poller: The poller for incoming event instances.
             bridge: The bridge for command communication with the runtime.
         """
-        # Store essential components for runtime creation and operation.
+        # Essential components for runtime creation.
         self.__initializer: RuntimeInitializer[TDataType, TEventType] = initializer
         self.__data_reader: RemoteDataReader[AnnotatedInstance[TDataType]] = data_reader
         self.__event_poller: AsyncPoller[EventInstance[TEventType]] = event_poller
         self.__bridge: RuntimeCommandBridge = bridge
 
-        # Call the parent constructor, passing the initializer as 'other_config'.
-        # This is part of the RuntimeFactory's expected initialization pattern.
         super().__init__(other_config=self.__initializer)
 
     def create(
@@ -75,11 +72,11 @@ class LocalRuntimeFactory(
         Returns:
             The newly created and configured Runtime instance.
         """
-        # Core runtime creation using the initializer.
+        # Create runtime.
         runtime = self.__initializer.create(
             thread_watcher, data_handler, grpc_channel_factory
         )
-        # Link the created runtime with the command bridge.
+        # Link runtime to command bridge.
         self.__bridge.set_runtime(runtime)
         return runtime
 
@@ -94,6 +91,7 @@ class LocalRuntimeFactory(
         Returns:
             The `RemoteDataReader` instance configured for this factory.
         """
+        # Provides the RemoteDataReader (part of RuntimeFactory contract).
         return self.__data_reader
 
     def _event_poller(
@@ -107,4 +105,5 @@ class LocalRuntimeFactory(
         Returns:
             The `AsyncPoller` instance for events, configured for this factory.
         """
+        # Provides the AsyncPoller for events (part of RuntimeFactory contract).
         return self.__event_poller
