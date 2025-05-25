@@ -44,11 +44,7 @@ class SplitProcessErrorWatcherSink(ErrorWatcher):
             Exception: Re-raises any exception caught by the `ThreadWatcher`.
         """
         try:
-            # Monitor for exceptions using the provided ThreadWatcher.
             self.__thread_watcher.run_until_exception()
         except Exception as e:
-            # An exception was caught by the ThreadWatcher.
-            # Put the exception onto the multiprocess queue to notify the other process.
             self.__queue.put_nowait(e)
-            # Re-raise the exception to propagate it in the current process context.
             raise e

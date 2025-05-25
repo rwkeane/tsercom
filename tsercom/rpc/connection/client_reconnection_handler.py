@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod # Added ABC
+from abc import ABC, abstractmethod
 from typing import Optional
 
 
-class ClientReconnectionManager(ABC): # Added (ABC)
+class ClientReconnectionManager(ABC):
     """Abstract base class for managers that handle client reconnections.
 
     This class defines an interface for components that need to react to

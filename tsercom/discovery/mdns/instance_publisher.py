@@ -3,8 +3,6 @@ from uuid import getnode as get_mac
 
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
 
-# Note: Using Optional from typing for Python versions < 3.10 if `|` syntax is not used.
-# from typing import Optional (already implicitly available via other imports in this project)
 
 class InstancePublisher:
     """Publishes a service instance using mDNS (Multicast DNS).
@@ -39,7 +37,6 @@ class InstancePublisher:
             TypeError: If arguments are not of the expected types.
             RuntimeError: If `_make_txt_record` fails internally.
         """
-        # Runtime type and value checks for critical parameters.
         if port is None:
             raise ValueError("port argument cannot be None for InstancePublisher.")
         if not isinstance(port, int):
@@ -56,10 +53,8 @@ class InstancePublisher:
         if instance_name is not None and not isinstance(instance_name, str):
             raise TypeError(f"instance_name must be a string or None, got {type(instance_name).__name__}.")
 
-        # Store the readable name for use in the TXT record.
         self.__name: str | None = readable_name
         
-        # Generate an instance name if not provided.
         # The name is based on port and MAC address to provide some uniqueness,
         # and truncated to meet mDNS length recommendations/requirements if necessary.
         effective_instance_name: str
@@ -75,13 +70,11 @@ class InstancePublisher:
         else:
             effective_instance_name = instance_name
 
-        # Create the TXT record for the service.
         txt_record = self._make_txt_record()
         # This check is defensive; _make_txt_record should always return a dict.
         if txt_record is None: # Should ideally not be reachable
             raise RuntimeError("_make_txt_record failed to produce a TXT record.")
             
-        # Initialize the RecordPublisher to handle the actual mDNS announcement.
         self.__record_publisher: RecordPublisher = RecordPublisher(
             effective_instance_name, service_type, port, txt_record
         )

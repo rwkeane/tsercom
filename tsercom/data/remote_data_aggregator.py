@@ -125,7 +125,6 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         Returns:
             True if at least one caller has new data, False otherwise.
         """
-        # Retrieve new data status for all callers.
         all_data_status = self.has_new_data()
         # If the result is a dictionary (meaning no specific ID was passed to has_new_data),
         # check if any value in the dictionary is True.

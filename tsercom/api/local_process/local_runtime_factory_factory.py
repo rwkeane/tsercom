@@ -52,22 +52,17 @@ class LocalRuntimeFactoryFactory(RuntimeFactoryFactory):
         Returns:
             A tuple containing the created RuntimeHandle and the LocalRuntimeFactory.
         """
-        # Initialize the data aggregator for handling remote data.
         data_aggregator = RemoteDataAggregatorImpl[TDataType](
             self.__thread_pool,
             client=initializer.data_aggregator_client,
             timeout=initializer.timeout_seconds,
         )
-        # Initialize the poller for asynchronous event handling.
         event_poller = AsyncPoller[EventInstance[TEventType]]()
-        # Initialize the bridge for commands between the handle and runtime.
         bridge = RuntimeCommandBridge()
 
-        # Create the factory for local runtime instances.
         factory = LocalRuntimeFactory[TDataType, TEventType](
             initializer, data_aggregator, event_poller, bridge
         )
-        # Create the runtime handle (wrapper) for interacting with the runtime.
         handle = RuntimeWrapper(event_poller, data_aggregator, bridge)
 
         return handle, factory

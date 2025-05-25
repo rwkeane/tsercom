@@ -1,7 +1,7 @@
 """Provides a mechanism to asynchronously wait for a CallerIdentifier."""
 
 import asyncio
-from typing import Optional # Import Optional for type hinting
+from typing import Optional
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
@@ -31,8 +31,6 @@ class CallerIdentifierWaiter:
             RuntimeError: Internally, if `set_caller_id` is not called before waiting indefinitely,
                           or if the event is set without setting `__caller_id` (which shouldn't happen with correct usage).
         """
-        # Asynchronously wait until the internal event is set,
-        # which indicates the caller_id has been populated.
         await self.__barrier.wait()
         # At this point, __caller_id is guaranteed to be set by set_caller_id.
         if self.__caller_id is None:
@@ -65,5 +63,4 @@ class CallerIdentifierWaiter:
             raise RuntimeError("Caller ID has already been set and cannot be changed.")
         
         self.__caller_id = caller_id
-        # Signal all waiting coroutines that the caller_id is now available.
         self.__barrier.set()

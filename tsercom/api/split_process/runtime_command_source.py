@@ -4,7 +4,7 @@ import threading
 from typing import Any
 
 from tsercom.runtime.runtime import Runtime
-from tsercom.api.runtime_command import RuntimeCommand # Corrected from tsercom.api.runtime_command
+from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
@@ -32,10 +32,10 @@ class RuntimeCommandSource:
         """
         self.__runtime_command_queue = runtime_command_queue
         self.__is_running: IsRunningTracker | None = None
-        self.__runtime: Runtime | None = None # Changed type hint
+        self.__runtime: Runtime | None = None
         self.__command_thread: threading.Thread | None = None
 
-    def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime) -> None: # Changed type hint
+    def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime) -> None:
         """Starts the command watching thread and associates the runtime.
 
         This method initializes the running state and stores the runtime instance.

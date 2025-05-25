@@ -25,9 +25,7 @@ class ExposedData(ABC):
             timestamp: A `datetime` object indicating when the data was
                        created or recorded.
         """
-        # The identifier of the client or system component associated with this data.
         self.__caller_id: CallerIdentifier = caller_id
-        # The timestamp indicating when this data instance was created or recorded.
         self.__timestamp: datetime.datetime = timestamp
 
     @property

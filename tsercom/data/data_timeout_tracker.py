@@ -41,7 +41,6 @@ class DataTimeoutTracker:
                              `Tracked` objects will be notified.
         """
         self.__timeout_seconds: int = timeout_seconds
-        # List to store all objects that are being tracked for timeouts.
         self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
 
     def register(self, tracked: Tracked) -> None:
@@ -53,7 +52,6 @@ class DataTimeoutTracker:
             tracked: The object to register, which must implement the
                      `DataTimeoutTracker.Tracked` interface.
         """
-        # Schedule the actual registration on the event loop.
         run_on_event_loop(partial(self.__register_impl, tracked))
 
     async def __register_impl(self, tracked: Tracked) -> None:
@@ -73,7 +71,6 @@ class DataTimeoutTracker:
 
         This schedules the `__execute_periodically` coroutine on the event loop.
         """
-        # Schedule the main periodic execution loop.
         run_on_event_loop(self.__execute_periodically)
 
     async def __execute_periodically(self) -> None:
@@ -84,8 +81,6 @@ class DataTimeoutTracker:
         """
         # Loop indefinitely to provide continuous timeout monitoring.
         while True:
-            # Wait for the defined timeout period.
             await asyncio.sleep(self.__timeout_seconds)
-            # Notify each registered object that a timeout has occurred.
-            for tracked_item in self.__tracked_list: # Renamed for clarity
+            for tracked_item in self.__tracked_list:
                 tracked_item._on_triggered(self.__timeout_seconds)
