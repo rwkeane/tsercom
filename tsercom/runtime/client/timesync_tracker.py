@@ -53,7 +53,6 @@ class TimeSyncTracker:
             return new_client.get_synchronized_clock()
 
         else:
-            # Retrieve and update the count.
             # Note: Tuples are immutable, so we have to create a new one.
             current_count, client_instance = self.__map[ip]
             current_count += 1
@@ -76,8 +75,7 @@ class TimeSyncTracker:
             raise KeyError(
                 f"IP address '{ip}' not found in timesync tracker during disconnect. It may have already been disconnected or was never tracked."
             )
-
-        # Retrieve and update the count.
+            
         current_count, client_instance = self.__map[ip]
         current_count -= 1
 

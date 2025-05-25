@@ -1,7 +1,7 @@
 """Defines AnnotatedInstance, a wrapper for data with caller ID and timestamp."""
 
 from datetime import datetime
-from typing import Generic, TypeVar, Optional # Added Optional for consistency if needed, not strictly here
+from typing import Generic, TypeVar, Optional
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
@@ -27,9 +27,7 @@ class AnnotatedInstance(Generic[TDataType], ExposedData):
             timestamp: The `datetime` object representing when this data
                        was created or received.
         """
-        # Initialize the base class (ExposedData) with caller_id and timestamp.
         super().__init__(caller_id=caller_id, timestamp=timestamp)
-        # Store the actual data payload.
         self.__data: TDataType = data
 
     @property

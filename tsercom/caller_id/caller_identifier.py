@@ -1,7 +1,7 @@
 """Defines the CallerIdentifier class for uniquely identifying callers."""
 
 import typing # Retained for typing.Union, though | can be used in Python 3.10+
-from typing import Optional, Union # Explicitly import Union
+from typing import Optional, Union
 import uuid
 
 from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import CallerId
@@ -36,7 +36,6 @@ class CallerIdentifier:
         Returns:
             A new `CallerIdentifier` instance.
         """
-        # Generate a new version 4 UUID.
         random_id = uuid.uuid4()
         return CallerIdentifier(random_id)
 
@@ -57,6 +56,7 @@ class CallerIdentifier:
         parsed_id_str: Optional[str] = None
         if isinstance(value, CallerId): # Check against the specific imported type
             parsed_id_str = value.id
+
         elif isinstance(value, str):
             parsed_id_str = value
         # If it's not a string or the specific CallerId type, it's an invalid input for this parsing logic.
@@ -66,12 +66,10 @@ class CallerIdentifier:
         if not isinstance(parsed_id_str, str): # Ensure we have a string to parse for UUID
             return None
 
-        # Try to convert the string to a UUID.
         try:
             uuid_obj = uuid.UUID(parsed_id_str)
             return CallerIdentifier(uuid_obj)
         except ValueError:
-            # Parsing failed (e.g., string is not a valid UUID format).
             return None
 
     def to_grpc_type(self) -> CallerId:

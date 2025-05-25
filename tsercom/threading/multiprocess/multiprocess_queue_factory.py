@@ -39,10 +39,8 @@ def create_multiprocess_queues() -> (
             A tuple containing the sink (for putting items) and the source
             (for getting items) for the created multiprocess queue.
     """
-    # Create a standard multiprocessing queue.
     queue: multiprocessing.Queue[TQueueType] = multiprocessing.Queue()
 
-    # Wrap the queue with sink and source objects.
     sink = MultiprocessQueueSink[TQueueType](queue)
     source = MultiprocessQueueSource[TQueueType](queue)
 

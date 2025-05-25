@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Generic, TypeVar
-import asyncio # Added for type hinting AbstractEventLoop
+import asyncio
 import typing
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -14,7 +14,7 @@ from tsercom.threading.aio.aio_utils import (
     run_on_event_loop,
 )
 import logging
-import grpc # Added for type hinting grpc.Channel
+import grpc
 
 if typing.TYPE_CHECKING:
     from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
@@ -24,7 +24,7 @@ TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
 class DiscoverableGrpcEndpointConnector(
-    Generic[TServiceInfo], DiscoveryHost.Client[TServiceInfo] # Added generic type to DiscoveryHost.Client
+    Generic[TServiceInfo], DiscoveryHost.Client[TServiceInfo]
 ):
     """Connects to gRPC endpoints discovered via `DiscoveryHost`.
 
@@ -46,7 +46,7 @@ class DiscoverableGrpcEndpointConnector(
             self,
             connection_info: TServiceInfo, # Detailed service information.
             caller_id: CallerIdentifier,   # Unique ID for the service instance.
-            channel: grpc.Channel,         # The established gRPC channel. # Changed ChannelInfo to grpc.Channel
+            channel: grpc.Channel,         # The established gRPC channel.
         ) -> None:
             """Callback invoked when a gRPC channel to a discovered service is connected.
 
@@ -59,7 +59,7 @@ class DiscoverableGrpcEndpointConnector(
 
     def __init__(
         self,
-        client: "DiscoverableGrpcEndpointConnector.Client[TServiceInfo]", # Added generic type
+        client: "DiscoverableGrpcEndpointConnector.Client[TServiceInfo]",
         channel_factory: "GrpcChannelFactory",
         discovery_host: DiscoveryHost[TServiceInfo],
     ) -> None:
@@ -73,11 +73,10 @@ class DiscoverableGrpcEndpointConnector(
             discovery_host: The `DiscoveryHost` instance that will provide
                             discovered service information.
         """
-        self.__client: DiscoverableGrpcEndpointConnector.Client[TServiceInfo] = client # Added generic type
+        self.__client: DiscoverableGrpcEndpointConnector.Client[TServiceInfo] = client
         self.__discovery_host: DiscoveryHost[TServiceInfo] = discovery_host
         self.__channel_factory: "GrpcChannelFactory" = channel_factory
 
-        # Set to store CallerIdentifiers of currently connected or connecting services.
         self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
 
         # Event loop captured during the first relevant async operation (_on_service_added).
@@ -92,7 +91,6 @@ class DiscoverableGrpcEndpointConnector(
         `DiscoveryHost`. This instance (`self`) is passed as the client to
         receive `_on_service_added` callbacks from the `DiscoveryHost`.
         """
-        # Register self as the client for the DiscoveryHost.
         self.__discovery_host.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
@@ -121,7 +119,6 @@ class DiscoverableGrpcEndpointConnector(
 
 
         if not is_running_on_event_loop(self.__event_loop):
-            # Ensure this logic runs on the correct event loop.
             run_on_event_loop(
                 partial(self.mark_client_failed, caller_id), self.__event_loop
             )
@@ -166,7 +163,6 @@ class DiscoverableGrpcEndpointConnector(
 
         logging.info(f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel.")
 
-        # Attempt to create the gRPC channel.
         # ChannelInfo was a typo, should be grpc.Channel from find_async_channel
         channel: Optional[grpc.Channel] = await self.__channel_factory.find_async_channel(
             connection_info.addresses, connection_info.port
@@ -178,7 +174,6 @@ class DiscoverableGrpcEndpointConnector(
 
         logging.info(f"Successfully established gRPC channel for: {connection_info.name} (CallerID: {caller_id})")
 
-        # Add to tracked callers and notify the client.
         self.__callers.add(caller_id)
         # The client expects a grpc.Channel, not ChannelInfo wrapper here.
         await self.__client._on_channel_connected(

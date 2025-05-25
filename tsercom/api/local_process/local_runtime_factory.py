@@ -72,11 +72,9 @@ class LocalRuntimeFactory(
         Returns:
             The newly created and configured Runtime instance.
         """
-        # Create runtime.
         runtime = self.__initializer.create(
             thread_watcher, data_handler, grpc_channel_factory
         )
-        # Link runtime to command bridge.
         self.__bridge.set_runtime(runtime)
         return runtime
 
@@ -107,3 +105,17 @@ class LocalRuntimeFactory(
         """
         # Provides the AsyncPoller for events (part of RuntimeFactory contract).
         return self.__event_poller
+
+    @property
+    def remote_data_reader(
+        self,
+    ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
+        """Provides a `RemoteDataReader` for accessing annotated data instances."""
+        return self._remote_data_reader()
+
+    @property
+    def event_poller(
+        self,
+    ) -> AsyncPoller[EventInstance[TEventType]]:
+        """Provides an `AsyncPoller` for receiving event instances."""
+        return self._event_poller()

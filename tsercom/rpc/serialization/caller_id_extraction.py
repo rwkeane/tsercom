@@ -29,7 +29,6 @@ async def extract_id_from_first_call(
     provided, defaults to checking the id parameter.
     |validate_against| is the expected CallerId, if such a value exists.
     """
-    # Clean up input.
     if is_running is not None:
         iterator = await is_running.create_stoppable_iterator(iterator)
 
@@ -38,8 +37,6 @@ async def extract_id_from_first_call(
         def extractor(x: TCallType) -> GrpcCallerId:
             return x.id  # type: ignore
 
-    # Extract the first call, without throwing if a StopAsyncIteration is
-    # thrown.
     first_response: TCallType = None  # type: ignore
     try:
         async for result in iterator:

@@ -46,7 +46,7 @@ class RemoteDataOrganizer(
         self,
         thread_pool: ThreadPoolExecutor,
         caller_id: CallerIdentifier,
-        client: Optional["RemoteDataOrganizer.Client[TDataType]"] = None, # Added generic type to Client
+        client: Optional["RemoteDataOrganizer.Client[TDataType]"] = None,
     ) -> None:
         """Initializes a RemoteDataOrganizer.
 
@@ -60,7 +60,7 @@ class RemoteDataOrganizer(
         """
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__caller_id: CallerIdentifier = caller_id
-        self.__client: Optional[RemoteDataOrganizer.Client[TDataType]] = client # Added generic type
+        self.__client: Optional[RemoteDataOrganizer.Client[TDataType]] = client
 
         # Thread lock to protect access to __data and __last_access.
         self.__data_lock: threading.Lock = threading.Lock()
@@ -69,7 +69,6 @@ class RemoteDataOrganizer(
         # Timestamp of the most recent data item retrieved via get_new_data().
         self.__last_access: datetime.datetime = datetime.datetime.min
 
-        # Tracks if the organizer is currently running (processing data).
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
         super().__init__() # Calls __init__ of DataTimeoutTracker.Tracked if it has one (ABC usually doesn't)
@@ -91,8 +90,7 @@ class RemoteDataOrganizer(
         """
         if self.__is_running.get():
             raise RuntimeError(f"RemoteDataOrganizer for caller ID '{self.caller_id}' is already running.")
-        # Set the running state to True.
-        self.__is_running.set(True) # was start() before, now direct set for clarity
+        self.__is_running.set(True)
 
     def stop(self) -> None:
         """Stops this data organizer from processing new data.
@@ -106,8 +104,7 @@ class RemoteDataOrganizer(
         """
         if not self.__is_running.get(): # Check current state before trying to stop
             raise RuntimeError(f"RemoteDataOrganizer for caller ID '{self.caller_id}' is not running or has already been stopped.")
-        # Set the running state to False.
-        self.__is_running.set(False) # was stop() before
+        self.__is_running.set(False)
 
     def has_new_data(self) -> bool:
         """Checks if new data has been received since the last call to `get_new_data`.
@@ -139,7 +136,6 @@ class RemoteDataOrganizer(
             if not self.__data:
                 return results
 
-            # Collect data items newer than the last access time.
             for item in self.__data: # Iterate directly since deque is ordered
                 if item.timestamp > self.__last_access:
                     results.append(item)
@@ -147,13 +143,12 @@ class RemoteDataOrganizer(
                     # Stop once we encounter data older than or same as last access.
                     break
             
-            # If new data was found, update the last access time to the newest item's timestamp.
             if results:
                 self.__last_access = results[0].timestamp
             
             return results
 
-    def get_most_recent_data(self) -> Optional[TDataType]: # Explicit Optional
+    def get_most_recent_data(self) -> Optional[TDataType]:
         """Returns the most recently received data item, regardless of last access time.
 
         Returns:
@@ -167,7 +162,7 @@ class RemoteDataOrganizer(
 
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Optional[TDataType]: # Explicit Optional
+    ) -> Optional[TDataType]:
         """Returns the most recent data item received at or before the given timestamp.
 
         Args:
@@ -187,7 +182,6 @@ class RemoteDataOrganizer(
             if timestamp < self.__data[-1].timestamp:
                 return None
 
-            # Iterate from most recent to find the first item at or before the timestamp.
             for item in self.__data:
                 if item.timestamp <= timestamp: # Found the most recent item at or before the timestamp
                     return item
@@ -210,15 +204,13 @@ class RemoteDataOrganizer(
             AssertionError: If `new_data.caller_id` does not match this
                             organizer's `caller_id`.
         """
-        # Validate the data type.
-        if not isinstance(new_data, ExposedData): # Changed from issubclass
+        if not isinstance(new_data, ExposedData):
             raise TypeError(f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}.")
 
         # Ensure the data belongs to this organizer.
         assert new_data.caller_id == self.caller_id, (
             f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
         )
-        # Submit the data processing to the thread pool.
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: TDataType) -> None:
@@ -241,7 +233,6 @@ class RemoteDataOrganizer(
                 self.__data.append(new_data)
                 data_inserted_or_updated = True
             else:
-                # Current most recent item's timestamp.
                 current_most_recent_time = self.__data[0].timestamp
                 new_data_time = new_data.timestamp
 
@@ -270,7 +261,6 @@ class RemoteDataOrganizer(
                     self.__data.appendleft(new_data)
                     data_inserted_or_updated = True
         
-        # If data was added/updated and a client is registered, notify the client.
         if data_inserted_or_updated and self.__client is not None:
             self.__client._on_data_available(self)
 
@@ -283,7 +273,6 @@ class RemoteDataOrganizer(
         Args:
             timeout_seconds: The duration of the timeout that triggered this callback.
         """
-        # Schedule the data cleanup task on the thread pool.
         self.__thread_pool.submit(
             partial(self.__timeout_old_data, timeout_seconds)
         )
@@ -304,12 +293,10 @@ class RemoteDataOrganizer(
             return
 
         current_time = datetime.datetime.now()
-        timeout_delta = datetime.timedelta(seconds=timeout_seconds) # Renamed for clarity
-        oldest_allowed_timestamp = current_time - timeout_delta # Renamed
+        timeout_delta = datetime.timedelta(seconds=timeout_seconds)
+        oldest_allowed_timestamp = current_time - timeout_delta
 
         with self.__data_lock:
-            # Remove items from the right (oldest) end of the deque
-            # as long as there are items and they are older than the allowed threshold.
             while (
                 self.__data
                 and self.__data[-1].timestamp < oldest_allowed_timestamp

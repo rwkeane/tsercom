@@ -101,13 +101,12 @@ class DiscoveryHost(
 
         # The actual mDNS instance listener; initialized in start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
-        # The client to be notified of discovered services.
-        self.__client: Optional[DiscoveryHost.Client[TServiceInfo]] = None # Added generic type
+        self.__client: Optional[DiscoveryHost.Client[TServiceInfo]] = None
 
         # Maps mDNS instance names to their assigned CallerIdentifiers.
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
-    def start_discovery(self, client: "DiscoveryHost.Client[TServiceInfo]") -> None: # Added generic type
+    def start_discovery(self, client: "DiscoveryHost.Client[TServiceInfo]") -> None:
         """Starts the service discovery process.
 
         This method schedules the actual discovery startup (`__start_discovery_impl`)
@@ -138,23 +137,18 @@ class DiscoveryHost(
         """
         if client is None:
             raise ValueError("Client argument cannot be None for start_discovery.")
-        # Consider adding:
-        # if not isinstance(client, DiscoveryHost.Client):
-        #     raise TypeError("Client must be an instance of DiscoveryHost.Client")
 
         if self.__discoverer is not None:
             raise RuntimeError("Discovery has already been started.")
 
         self.__client = client
-        # Create the InstanceListener using either the factory or the service type.
         if self.__instance_listener_factory is not None:
-            # Pass self as the client to the InstanceListener.
             self.__discoverer = self.__instance_listener_factory(self)
         else:
             # This assertion is safe due to the __init__ constructor logic.
             assert self.__service_type is not None, "Service type must be set if no factory is provided."
             self.__discoverer = InstanceListener[TServiceInfo](
-                self, self.__service_type # Pass self as client
+                self, self.__service_type
             )
         # Note: InstanceListener's own start method (if any) would need to be called
         # if it doesn't start automatically upon instantiation. Assuming it does for now.
@@ -182,7 +176,6 @@ class DiscoveryHost(
         # Use the mDNS name as a key to uniquely identify service instances for CallerId mapping.
         service_mdns_name = connection_info.mdns_name
         
-        # Obtain or create a CallerIdentifier for the discovered service.
         caller_id: CallerIdentifier
         if service_mdns_name in self.__caller_id_map:
             caller_id = self.__caller_id_map[service_mdns_name]
@@ -190,5 +183,4 @@ class DiscoveryHost(
             caller_id = CallerIdentifier.random() # Use random() for new IDs
             self.__caller_id_map[service_mdns_name] = caller_id
 
-        # Notify the registered client of this DiscoveryHost about the new service.
         await self.__client._on_service_added(connection_info, caller_id)

@@ -49,7 +49,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
         self, initializer: RuntimeInitializer[TDataType, TEventType]
     ) -> Tuple[ # Using typing.Tuple for explicit return type
         RuntimeHandle[TDataType, TEventType],
-        RuntimeFactory[TDataType, TEventType], # Corrected: RuntimeFactory should also be generic here
+        RuntimeFactory[TDataType, TEventType],
     ]:
         """Creates a handle and factory for a split-process runtime.
 
@@ -68,7 +68,6 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
                 - RemoteRuntimeFactory: The factory to create the runtime in the
                                         remote process.
         """
-        # Create multiprocess queues for event, data, and command communication.
         # Each returns a (sink, source) pair.
         event_sink, event_source = create_multiprocess_queues()
         data_sink, data_source = create_multiprocess_queues()
@@ -76,23 +75,17 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
             create_multiprocess_queues()
         )
 
-        # Create the factory for the remote runtime. This factory will be used
-        # in the child process to instantiate the actual runtime.
         # It gets the source end of event/command queues and sink end of data queue.
         factory = RemoteRuntimeFactory[TDataType, TEventType](
             initializer, event_source, data_sink, runtime_command_source
         )
 
-        # Create the data aggregator for the local (shim) handle.
-        # This aggregator receives data from the remote runtime.
         aggregator = RemoteDataAggregatorImpl[TDataType](
             self.__thread_pool,
             client=initializer.data_aggregator_client, # Client to consume aggregated data.
             timeout=initializer.timeout_seconds,
         )
 
-        # Create the shim handle for the local process. This handle communicates
-        # with the remote runtime via the queues.
         # It gets the sink end of event/command queues and source end of data queue.
         runtime_handle = ShimRuntimeHandle[TDataType, TEventType](
             self.__thread_watcher,

@@ -80,13 +80,13 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         Returns:
             The averaged time offset in seconds.
 
+
         Raises:
             AssertionError: If called after the barrier is set but the offsets deque
                             is unexpectedly empty.
         """
-        self.__start_barrier.wait()  # Wait until at least one offset is available.
+        self.__start_barrier.wait()
 
-        # Average the currently stored values.
         with self.__time_offset_lock:
             count = len(self.__time_offsets)
             assert count > 0, "Time offsets deque should not be empty after start barrier."
@@ -119,11 +119,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         periodically synchronizing time with the NTP server via `__run_sync_loop`.
         Does nothing if the client is already running.
         """
-        # Set the service to started.
         assert not self.__is_running.get(), "TimeSyncClient is already running."
         self.__is_running.set(True)
 
-        # Run the request loop.
         self.__sync_loop_thread = self.__watcher.create_tracked_thread(
             self.__run_sync_loop
         )
@@ -144,7 +142,6 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         kMaxOffsetCount = 10
         kOffsetFrequencySeconds = 3
 
-        # Run the loop.
         ntp_client = ntplib.NTPClient()
         while self.__is_running.get():
             try:
@@ -156,7 +153,6 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                     self.__time_offsets.append(response.offset)
                     if len(self.__time_offsets) > kMaxOffsetCount:
                         self.__time_offsets.popleft()
-                # Successfully received and processed an offset
                 logging.info(f"New NTP Offset: {response.offset:.6f} seconds")
             except ntplib.NTPException as e:
                 logging.error(f"NTP error: {e}")

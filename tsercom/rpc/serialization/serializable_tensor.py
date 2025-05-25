@@ -79,7 +79,6 @@ class SerializableTensor:
             return None
 
         try:
-            # Reconstruct tensor from flattened array and original size.
             tensor_data = torch.Tensor(grpc_type.array)
             original_size = list(grpc_type.size)
             # It's crucial to reshape the tensor back to its original dimensions.

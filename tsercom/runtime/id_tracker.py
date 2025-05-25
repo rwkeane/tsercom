@@ -18,7 +18,7 @@ class IdTracker:
         self.__id_to_address: Dict[CallerIdentifier, tuple[str, int]] = {}
 
     @overload
-    def try_get(self, id: CallerIdentifier) -> Optional[tuple[str, int]]: # Corrected return type
+    def try_get(self, id: CallerIdentifier) -> Optional[tuple[str, int]]:
         pass
 
     @overload
@@ -59,7 +59,7 @@ class IdTracker:
                 f"If 'address' is provided, 'port' must also be provided, and vice-versa. Got address={address}, port={port}."
             )
 
-        with self.__lock: # Acquire lock once
+        with self.__lock:
             if id is not None:
                 return self.__id_to_address.get(id)
             elif address is not None and port is not None: # Ensure port is not None for type safety
@@ -67,7 +67,7 @@ class IdTracker:
         return None # Should not be reached given the initial checks, but as a fallback
 
     @overload
-    def get(self, id: CallerIdentifier) -> tuple[str, int]: # Corrected return type
+    def get(self, id: CallerIdentifier) -> tuple[str, int]:
         pass
 
     @overload
@@ -168,8 +168,6 @@ class IdTracker:
         However, for simple iteration loops, the lock protects the whole loop.
         """
         with self.__lock:
-            # To be perfectly safe for all iteration patterns, one might iterate over a copy:
-            # return iter(list(self.__id_to_address.keys()))
             # But for most common loops, this direct iteration is fine under the lock.
             return iter(self.__id_to_address)
 
@@ -187,7 +185,6 @@ class IdTracker:
             del self.__id_to_address[id]
             if address_port_tuple in self.__address_to_id:
                 del self.__address_to_id[address_port_tuple]
-            # else:
             # It's possible that the address_port_tuple is not in __address_to_id
             # if there was some inconsistency, but we prioritize removing the id.
             # Consider logging a warning here if such a state is unexpected.

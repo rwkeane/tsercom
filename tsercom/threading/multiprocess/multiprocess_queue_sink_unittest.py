@@ -1,5 +1,4 @@
 import pytest
-# from mock import MagicMock # Removed
 import multiprocessing # For multiprocessing.Queue spec
 from multiprocessing import queues # For spec in MagicMock
 from queue import Full # For the Full exception

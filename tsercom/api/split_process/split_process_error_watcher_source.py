@@ -1,6 +1,6 @@
 """Defines an error watcher source that reads exceptions from a multiprocess queue."""
 
-import threading # For type hinting
+import threading
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -51,11 +51,8 @@ class SplitProcessErrorWatcherSource:
                 # Poll the queue with a timeout to allow checking is_running periodically.
                 remote_exception = self.__queue.get_blocking(timeout=1)
                 if remote_exception is not None:
-                    # An exception was received from the other process.
-                    # Report it to the local ThreadWatcher.
                     self.__thread_watcher.on_exception_seen(remote_exception)
 
-        # Create and start the polling thread.
         self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception # Pass target for clarity
         )
@@ -81,4 +78,4 @@ class SplitProcessErrorWatcherSource:
         Returns:
             True if the polling thread is active, False otherwise.
         """
-        return self.__is_running.get() # Changed from is_running() to get() for consistency
+        return self.__is_running.get()

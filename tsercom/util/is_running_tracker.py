@@ -33,7 +33,6 @@ class IsRunningTracker(Atomic[bool]):
         managing running and stopped states, along with a lock for event loop
         synchronization.
         """
-        # For tracking the current state.
         self.__running_barrier = asyncio.Event()
         self.__stopped_barrier = asyncio.Event()
 
@@ -171,7 +170,6 @@ class IsRunningTracker(Atomic[bool]):
         # `stop_check_task` waits for the `__stopped_barrier` event, which is
         # set when the tracker's state changes to `False` (stopped).
 
-        # Wait for either |call| to finish or for this instance to stop running.
         stop_check_task = asyncio.create_task(self.__stopped_barrier.wait())
         # The type checker has difficulty with asyncio.wait()'s dynamic return type.
         # We know `done` will contain tasks of type asyncio.Task[TReturnType] or asyncio.Task[None]
@@ -192,11 +190,6 @@ class IsRunningTracker(Atomic[bool]):
         for task in pending:
             task.cancel()
 
-        # Return the result if |call| completed, and None otherwise.
-        for task in pending:
-            task.cancel()
-
-        # Return the result if |call| completed, and None otherwise.
         if call_task in done:
             return call_task.result()
 
@@ -261,7 +254,6 @@ class IsRunningTracker(Atomic[bool]):
 
             self.__event_loop = get_running_loop_or_none()
             assert self.__event_loop is not None, "Must be called from within a running event loop or have an event loop set."
-            # Get the current state to initialize the events correctly.
             value = self.get()
         # Initialize the asyncio event states based on the current value.
         await self.__set_impl(value)

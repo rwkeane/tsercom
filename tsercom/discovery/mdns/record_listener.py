@@ -72,10 +72,8 @@ class RecordListener(ServiceListener):
             )
 
         self.__client: RecordListener.Client = client
-        # Construct the fully qualified service type string for mDNS.
         self.__expected_type: str = f"{service_type}._tcp.local."
 
-        # Initialize Zeroconf and start browsing for the specified service type.
         self.__mdns: Zeroconf = Zeroconf()
         logging.info(f"Starting mDNS scan for services of type: {self.__expected_type}")
         self.__browser: ServiceBrowser = ServiceBrowser(self.__mdns, self.__expected_type, self)
@@ -96,7 +94,6 @@ class RecordListener(ServiceListener):
             logging.debug(f"Ignoring service update for '{name}' of unexpected type '{type_}'. Expected '{self.__expected_type}'.")
             return
 
-        # Retrieve full service information.
         info = zc.get_service_info(type_, name)
         if info is None:
             logging.error(f"Failed to get service info for updated service '{name}' of type '{type_}'.")
@@ -111,7 +108,6 @@ class RecordListener(ServiceListener):
              # Depending on requirements, might return here or proceed without addresses.
              # For now, we proceed as `_on_service_added` handles address list.
 
-        # Notify the registered client with the full service details.
         # info.name is the instance name, info.properties is the TXT record.
         self.__client._on_service_added(
             name, info.port, info.addresses, info.properties # Pass `name` from args, not info.name
@@ -151,7 +147,6 @@ class RecordListener(ServiceListener):
             logging.debug(f"Ignoring added service '{name}' of unexpected type '{type_}'. Expected '{self.__expected_type}'.")
             return
 
-        # Retrieve full service information.
         info = zc.get_service_info(type_, name)
         if info is None:
             logging.error(f"Failed to get service info for added service '{name}' of type '{type_}'.")
@@ -165,7 +160,6 @@ class RecordListener(ServiceListener):
              logging.warning(f"No addresses found for added service '{name}' of type '{type_}'.")
              # As with update_service, deciding whether to proceed or return.
 
-        # Notify the registered client with the full service details.
         self.__client._on_service_added(
             name, info.port, info.addresses, info.properties # Pass `name` from args
         )
