@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import threading
-from typing import List
+from typing import List, Any # Added Any for create_tracked_thread_pool_executor args/kwargs
 from collections.abc import Callable
 
 from tsercom.threading.error_watcher import ErrorWatcher
@@ -10,51 +10,87 @@ from tsercom.threading.throwing_thread_pool_executor import (
 )
 
 
+# Manages threads and surfaces exceptions from them.
 class ThreadWatcher(ErrorWatcher):
     """
     This class provides a simple interface for managing a threaded environment,
     as well as tracking and surfacing exceptions that appear from any such
-    thread.
+    thread. It extends ErrorWatcher to provide a mechanism for blocking
+    until an error occurs.
     """
 
     def __init__(self) -> None:
-        # Waits for an exception, and passes it to waiting thread when an
-        # exception is thrown.
+        """
+        Initializes the ThreadWatcher.
+
+        Sets up synchronization primitives for tracking exceptions from threads.
+        """
+        # Event to signal when an exception has been caught.
         self.__barrier = threading.Event()
+        # Lock to protect access to the list of exceptions.
         self.__exceptions_lock = threading.Lock()
+        # List to store caught exceptions.
         self.__exceptions: List[Exception] = []
 
     def create_tracked_thread(
         self, target: Callable[[], None]
     ) -> threading.Thread:
         """
-        Creates a threading.Thread instance such that exceptions on that thread
-        are exposed as they would be for exceptions occuring on the TaskRunner.
+        Creates a `threading.Thread` instance that is tracked by this watcher.
+
+        Exceptions occurring on this thread will be caught and reported via
+        `on_exception_seen`.
+
+        Args:
+            target (Callable[[], None]): The callable object to be invoked when
+                                         the thread starts.
+
+        Returns:
+            threading.Thread: The created thread object.
         """
         return ThrowingThread(
             target=target, on_error_cb=self.on_exception_seen
         )
 
-    def create_tracked_thread_pool_executor(  # type: ignore
-        self, *args, **kwargs
+    def create_tracked_thread_pool_executor(
+        self, *args: Any, **kwargs: Any
     ) -> ThreadPoolExecutor:
         """
-        Creates a ThreadPool such that each thread of the ThreadPool has error
-        handling as would be done for an exception on this TaskRunner instance.
+        Creates a `ThrowingThreadPoolExecutor` instance.
+
+        Threads within this pool will have their exceptions caught and reported
+        via `on_exception_seen`. Accepts the same arguments as
+        `concurrent.futures.ThreadPoolExecutor`.
+
+        Args:
+            *args (Any): Positional arguments to pass to the ThreadPoolExecutor constructor.
+            **kwargs (Any): Keyword arguments to pass to the ThreadPoolExecutor constructor.
+
+        Returns:
+            ThreadPoolExecutor: The created thread pool executor.
         """
-        return ThrowingThreadPoolExecutor(  # type: ignore
+        # Note: Type ignore was removed as Any is now used for args/kwargs
+        return ThrowingThreadPoolExecutor(
             error_cb=self.on_exception_seen, *args, **kwargs
         )
 
     def run_until_exception(self) -> None:
         """
-        Runs until an exception is seen, at which point it will be thrown. This
-        method is thread safe and can be called from any thread.
+        Blocks execution until an exception is caught from one of the tracked threads.
+
+        This method is thread-safe. Once an exception is caught and stored,
+        this method will raise the first caught exception.
+
+        Raises:
+            Exception: The first exception caught by the watcher.
+                       (Future versions might use ExceptionGroup for Python 3.11+).
         """
         while True:
-            self.__barrier.wait()
+            self.__barrier.wait() # Wait until an exception is signaled
             with self.__exceptions_lock:
-                if len(self.__exceptions) == 0:
+                if not self.__exceptions: # Check if list is empty
+                    # Spurious wakeup or exception handled and cleared, reset barrier
+                    self.__barrier.clear()
                     continue
 
                 # TODO: Change to ExceptionGroup.
@@ -63,18 +99,26 @@ class ThreadWatcher(ErrorWatcher):
                 #     "Errors hit in async thread(s)!", self.__exceptions
                 # )
 
+                # Raise the first exception encountered.
                 raise self.__exceptions[0]
 
     def check_for_exception(self) -> None:
         """
-        If an exception has been seen, throw it. Else, do nothing. This method
-        is thread safe and can be called from any thread.
+        Checks if any exceptions have been caught and raises the first one if so.
+
+        This method is thread-safe and non-blocking. If no exceptions have
+        been caught, it does nothing.
+
+        Raises:
+            Exception: The first exception caught by the watcher if any exist.
+                       (Future versions might use ExceptionGroup for Python 3.11+).
         """
+        # Quick check without lock if barrier is not set
         if not self.__barrier.is_set():
             return
 
         with self.__exceptions_lock:
-            if len(self.__exceptions) == 0:
+            if not self.__exceptions: # Check if list is empty
                 return
 
             # TODO: Change to ExceptionGroup.
@@ -83,13 +127,19 @@ class ThreadWatcher(ErrorWatcher):
             #     "Errors hit in async thread(s)!", self.__exceptions
             # )
 
+            # Raise the first exception if any are present.
             raise self.__exceptions[0]
 
     def on_exception_seen(self, e: Exception) -> None:
         """
-        To be called when an exception that the watcher should surface is
-        called.
+        Callback method for when an exception is caught by a tracked thread or pool.
+
+        Stores the exception and signals any waiting threads (e.g., in
+        `run_until_exception`) that an exception has occurred.
+
+        Args:
+            e (Exception): The exception that was caught.
         """
         with self.__exceptions_lock:
             self.__exceptions.append(e)
-            self.__barrier.set()
+            self.__barrier.set() # Signal that an exception is available
