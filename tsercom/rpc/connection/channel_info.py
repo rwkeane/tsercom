@@ -17,11 +17,8 @@ class ChannelInfo:
             address: The IP address or hostname of the connected endpoint.
             port: The network port of the connected endpoint.
         """
-        # The gRPC channel object.
         self.__channel: grpc.Channel = channel
-        # The network address (IP or hostname) of the endpoint.
         self.__address: str = address
-        # The network port number of the endpoint.
         self.__port: int = port
 
     @property

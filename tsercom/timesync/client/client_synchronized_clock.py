@@ -47,7 +47,6 @@ class ClientSynchronizedClock(SynchronizedClock):
         super().__init__()
 
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
-        # Retrieves the current offset from the server.
         # A positive offset means the client is ahead of the server.
         # A negative offset means the client is behind the server.
         offset_seconds = self.__client.get_offset_seconds()
@@ -66,7 +65,6 @@ class ClientSynchronizedClock(SynchronizedClock):
         return timestamp_dt - offset_timedelta
 
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
-        # Retrieves the current offset from the server.
         # A positive offset means the client is ahead of the server.
         # A negative offset means the client is behind the server.
         offset_seconds = self.__client.get_offset_seconds()

@@ -11,7 +11,7 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 
-from typing import Any # Added Any for *args, **kwargs
+from typing import Any
 
 class DataHostBase(
     Generic[TDataType], DataHost[TDataType], RemoteDataReader[TDataType]
@@ -45,26 +45,20 @@ class DataHostBase(
             *args: Variable length argument list passed to the superclass constructor.
             **kwargs: Arbitrary keyword arguments passed to the superclass constructor.
         """
-        # Create a single-threaded executor for the aggregator.
         # This ensures sequential processing of data aggregation tasks.
         thread_pool = watcher.create_tracked_thread_pool_executor(
             max_workers=1
         )
 
-        # Initialize and start a DataTimeoutTracker if a positive timeout is specified.
-        # This tracker monitors data for staleness.
         tracker: Optional[DataTimeoutTracker] = None
         if timeout_seconds > 0:
             tracker = DataTimeoutTracker(timeout_seconds)
             tracker.start()
 
-        # Instantiate the core data aggregator.
         self.__aggregator: RemoteDataAggregatorImpl[TDataType] = RemoteDataAggregatorImpl[TDataType](
             thread_pool, aggregation_client, tracker
         )
 
-        # Call the constructor of the superclass (likely DataHost or RemoteDataReader,
-        # or ultimately object if they don't have __init__ taking *args, **kwargs).
         super().__init__(*args, **kwargs)
 
     def _on_data_ready(self, new_data: TDataType) -> None:

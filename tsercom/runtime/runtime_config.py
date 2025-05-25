@@ -66,7 +66,6 @@ class RuntimeConfig:
                 f"Got service_type={service_type}, other_config={'<Provided>' if other_config is not None else None}."
             )
 
-        # Handle the delegating option (copy constructor).
         if other_config is not None:
             # Call __init__ directly to bypass overload resolution issues with self-recursion
             # and to correctly set private attributes of the new instance.
@@ -79,7 +78,6 @@ class RuntimeConfig:
             )
             return
 
-        # Handle the default case.
         if isinstance(service_type, str):
             if service_type == "Client":
                 self.__service_type = ServiceType.kClient

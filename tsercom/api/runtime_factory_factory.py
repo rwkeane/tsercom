@@ -1,7 +1,7 @@
 """Defines the abstract base class for runtime factory creators."""
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Tuple, Generic # Added Tuple and Generic
+from typing import TypeVar, Tuple, Generic
 
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.runtime.runtime_factory import RuntimeFactory
@@ -91,10 +91,8 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
         if not isinstance(client, RuntimeFactoryFactory.Client):
             raise TypeError(f"Client must be an instance of RuntimeFactoryFactory.Client, got {type(client).__name__}.")
 
-        # Delegate to the subclass's implementation to create the handle and factory.
         handle, factory = self._create_pair(initializer)
         
-        # Notify the client that the handle is ready.
         client._on_handle_ready(handle)
         
         return factory

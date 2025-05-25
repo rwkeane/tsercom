@@ -1,7 +1,7 @@
 """Defines the CallerIdentifier class for uniquely identifying callers."""
 
 import typing # Retained for typing.Union, though | can be used in Python 3.10+
-from typing import Optional, Union # Explicitly import Union
+from typing import Optional, Union
 import uuid
 
 # Attempt to import the gRPC CallerId type for type checking and conversion.
@@ -45,7 +45,6 @@ class CallerIdentifier:
         Returns:
             A new `CallerIdentifier` instance.
         """
-        # Generate a new version 4 UUID.
         random_id = uuid.uuid4()
         return CallerIdentifier(random_id)
 
@@ -65,11 +64,9 @@ class CallerIdentifier:
         """
         parsed_id_str: Optional[str] = None
 
-        # Attempt to extract ID string if input is a gRPC CallerId object or mock.
         # This check uses hasattr for compatibility with mocks and duck typing,
         # falling back to isinstance for the actual imported CallerId type if available.
         if hasattr(value, "id") and not isinstance(value, str):
-            # Check if it's the actual imported protobuf type first.
             # This relies on the try-except import of CallerId at the module level.
             if 'tsercom.caller_id.proto.CallerId' in str(type(value)): # Check type by string name to avoid direct dependency if mock
                  parsed_id_str = getattr(value, "id")
@@ -84,12 +81,10 @@ class CallerIdentifier:
         if not isinstance(parsed_id_str, str):
             return None
 
-        # Try to convert the string to a UUID.
         try:
             uuid_obj = uuid.UUID(parsed_id_str)
             return CallerIdentifier(uuid_obj)
         except ValueError:
-            # Parsing failed (e.g., string is not a valid UUID format).
             return None
 
     def to_grpc_type(self) -> CallerId:

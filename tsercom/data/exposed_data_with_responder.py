@@ -48,7 +48,6 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
                 f"Responder must be a subclass of RemoteDataResponder, got {type(responder).__name__}."
             )
 
-        # The responder instance used to send a reply.
         self.__responder: RemoteDataResponder[TResponseType] = responder
 
         super().__init__(caller_id, timestamp)
@@ -59,5 +58,4 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
         Args:
             response: The response data of type `TResponseType` to send.
         """
-        # Delegate the sending of the response to the responder's method.
         self.__responder._on_response_ready(response)

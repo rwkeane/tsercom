@@ -1,6 +1,6 @@
 """Provides EventLoopFactory for creating and managing asyncio event loops that run in separate threads, monitored by a ThreadWatcher."""
 import asyncio
-from typing import Any, Optional # Added Optional
+from typing import Any, Optional
 import threading
 import logging
 
@@ -48,8 +48,7 @@ class EventLoopFactory:
         """
         barrier = threading.Event()
 
-        # Define a custom exception handler for the event loop.
-        def handle_exception( # Added return type hint -> None
+        def handle_exception(
             loop: asyncio.AbstractEventLoop, context: dict[str, Any]
         ) -> None:
             """
@@ -69,7 +68,6 @@ class EventLoopFactory:
             else:
                 logging.critical(f"Event loop exception handler called without an exception. Context message: {message}")
 
-        # Function to be executed in the new thread to start the event loop.
         def start_event_loop() -> None:
             """
             Initializes and runs the asyncio event loop.
@@ -79,19 +77,16 @@ class EventLoopFactory:
             sets it as the current event loop for the thread, signals that
             the loop is ready, and then runs the loop forever.
             """
-            # Create a new event loop for the new thread.
             local_event_loop = asyncio.new_event_loop()
             local_event_loop.set_exception_handler(handle_exception)
             asyncio.set_event_loop(local_event_loop)
 
-            # Store the created loop in the instance variable.
             self.__event_loop = local_event_loop
 
             # The loop is in a good state. Continue execution of the ctor.
             barrier.set() # Signal that the event loop is set up and running.
-            local_event_loop.run_forever() # Added "local_event_loop"
+            local_event_loop.run_forever()
 
-        # Create and start the thread for the event loop.
         self.__event_loop_thread = self.__watcher.create_tracked_thread(
             target=start_event_loop  # Pass the function to be executed
         )
