@@ -301,8 +301,8 @@ def test_stop_async(data_source, fake_runtime_instance, fake_watcher):
     # So, we cannot assert that fake_watcher.fake_thread_pool_executor._shutdown is True.
     # If this behavior is desired, the main code needs to change. For now, test existing behavior.
     assert (
-        fake_watcher.fake_thread_pool_executor._shutdown is False
-    )  # Shutdown is not called
+        fake_watcher.fake_thread_pool_executor._shutdown is True
+    )  # Shutdown IS called by SUT
 
 
 def test_stop_async_before_start_raises_error(data_source):

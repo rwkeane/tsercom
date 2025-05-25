@@ -8,7 +8,7 @@ from tsercom.rpc.connection.discoverable_grpc_endpoint_connector import Discover
 
 # Dependencies for mocking/typing
 from tsercom.discovery.discovery_host import DiscoveryHost
-from tsercom.rpc.connection.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory # Corrected import path
 from tsercom.rpc.connection.channel_info import ChannelInfo
 from tsercom.discovery.service_info import ServiceInfo # For creating instances
 from tsercom.caller_id.caller_identifier import CallerIdentifier # For creating instances
