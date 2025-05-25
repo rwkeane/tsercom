@@ -1,3 +1,12 @@
+"""
+Defines the `ThreadWatcher` class.
+
+This module provides the `ThreadWatcher` class, which is an implementation of
+the `ErrorWatcher` interface. It is used for creating and managing threads
+(via `ThrowingThread`) and thread pools (via `ThrowingThreadPoolExecutor`),
+and for catching and surfacing exceptions that occur within them. This allows
+for a centralized way to monitor errors from various background tasks.
+"""
 from concurrent.futures import ThreadPoolExecutor
 import threading
 from typing import List, Any # Added Any for create_tracked_thread_pool_executor args/kwargs
@@ -34,9 +43,9 @@ class ThreadWatcher(ErrorWatcher):
 
     def create_tracked_thread(
         self, target: Callable[[], None]
-    ) -> threading.Thread:
+    ) -> ThrowingThread: # Changed return type hint
         """
-        Creates a `threading.Thread` instance that is tracked by this watcher.
+        Creates a `ThrowingThread` instance that is tracked by this watcher. # Changed in docstring
 
         Exceptions occurring on this thread will be caught and reported via
         `on_exception_seen`.
@@ -46,7 +55,7 @@ class ThreadWatcher(ErrorWatcher):
                                          the thread starts.
 
         Returns:
-            threading.Thread: The created thread object.
+            ThrowingThread: The created thread object. # Changed in docstring
         """
         return ThrowingThread(
             target=target, on_error_cb=self.on_exception_seen
@@ -54,7 +63,7 @@ class ThreadWatcher(ErrorWatcher):
 
     def create_tracked_thread_pool_executor(
         self, *args: Any, **kwargs: Any
-    ) -> ThreadPoolExecutor:
+    ) -> ThrowingThreadPoolExecutor: # Changed return type hint
         """
         Creates a `ThrowingThreadPoolExecutor` instance.
 
@@ -67,7 +76,7 @@ class ThreadWatcher(ErrorWatcher):
             **kwargs (Any): Keyword arguments to pass to the ThreadPoolExecutor constructor.
 
         Returns:
-            ThreadPoolExecutor: The created thread pool executor.
+            ThrowingThreadPoolExecutor: The created thread pool executor.
         """
         # Note: Type ignore was removed as Any is now used for args/kwargs
         return ThrowingThreadPoolExecutor(

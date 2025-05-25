@@ -1,3 +1,22 @@
+"""
+Manages a global asyncio event loop for the `tsercom` library.
+
+This module provides a centralized mechanism for setting, accessing, creating,
+and clearing a global asyncio event loop that can be used throughout the
+`tsercom` library for its asynchronous operations.
+
+The primary functionalities include:
+- Setting an externally created event loop as the global loop.
+- Creating a new event loop running in a dedicated thread, managed by
+  `EventLoopFactory` and `ThreadWatcher`.
+- Retrieving the currently set global event loop.
+- Clearing the global event loop, which also handles stopping the loop if it
+  was created by this module's factory.
+
+Thread safety for accessing and modifying the global event loop instance is
+handled internally using a `threading.Lock`. This ensures that operations like
+setting or clearing the loop are atomic and prevent race conditions.
+"""
 from asyncio import AbstractEventLoop
 import asyncio
 import threading

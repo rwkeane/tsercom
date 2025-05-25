@@ -1,3 +1,12 @@
+"""
+Provides a generic `Atomic[TType]` class for thread-safe access to a value.
+
+This module defines the `Atomic` class, which wraps a value of a generic type
+`TType` and ensures that read (`get`) and write (`set`) operations on this
+value are performed atomically using a `threading.Lock`. This makes it suitable
+for sharing simple values between multiple threads without explicit locking
+at the call site.
+"""
 import threading
 from typing import Generic, TypeVar
 
