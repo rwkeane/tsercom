@@ -46,11 +46,16 @@ class RuntimeConfig:
 
         # Handle the delegating option.
         if other_config is not None:
+            # Determine service_type from other_config.
+            # It's safer to reconstruct from its public interface or well-defined attributes.
+            # The attribute other_config._RuntimeConfig__service_type is what it would be named.
+            current_service_type_enum = other_config._RuntimeConfig__service_type
+
             RuntimeConfig.__init__(
-                self,
-                service_type=other_config.__service_type,
-                data_aggregator_client=other_config.data_aggregator_client,
-                timeout_seconds=other_config.timeout_seconds,
+                self, # Call __init__ on the current instance
+                service_type=current_service_type_enum, # Pass the enum member
+                data_aggregator_client=other_config.data_aggregator_client, # Use property
+                timeout_seconds=other_config.timeout_seconds # Use property
             )
             return
 

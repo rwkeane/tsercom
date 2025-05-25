@@ -1,4 +1,6 @@
-import multiprocessing
+from __future__ import annotations
+
+from multiprocessing import Queue
 from typing import TypeVar
 
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
@@ -30,9 +32,11 @@ def create_multiprocess_queues() -> (
             (for getting items) for the created multiprocess queue.
     """
     # Create a standard multiprocessing queue.
-    queue: multiprocessing.Queue[TQueueType] = multiprocessing.Queue()
+    queue: Queue = Queue() # Item type: TQueueType
 
     # Wrap the queue with sink and source objects.
+    # Note: The generic type arguments for MultiprocessQueueSink and MultiprocessQueueSource
+    # will still be used by type checkers due to their own Generic[TQueueType] definition.
     sink = MultiprocessQueueSink[TQueueType](queue)
     source = MultiprocessQueueSource[TQueueType](queue)
 

@@ -1,4 +1,6 @@
-import multiprocessing
+from __future__ import annotations
+
+from multiprocessing import Queue
 from queue import Full # Exception raised when a non-blocking put is called on a full queue.
 from typing import Generic, TypeVar
 
@@ -15,15 +17,15 @@ class MultiprocessQueueSink(Generic[TQueueType]):
     and can handle queues of any specific type.
     """
 
-    def __init__(self, queue: multiprocessing.Queue[TQueueType]):
+    def __init__(self, queue: Queue): # Item type: TQueueType
         """
         Initializes the MultiprocessQueueSink with a given multiprocessing queue.
 
         Args:
-            queue (multiprocessing.Queue[TQueueType]): The multiprocessing queue
+            queue (Queue): The multiprocessing queue # Item type: TQueueType
                 to be used as the sink.
         """
-        self.__queue = queue
+        self.__queue: Queue = queue # Item type: TQueueType
 
     def put_blocking(
         self, obj: TQueueType, timeout: float | None = None

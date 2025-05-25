@@ -1,4 +1,6 @@
-import multiprocessing
+from __future__ import annotations
+
+from multiprocessing import Queue
 from queue import Empty # Exception raised when a non-blocking get is called on an empty queue.
 from typing import Generic, TypeVar
 
@@ -15,15 +17,15 @@ class MultiprocessQueueSource(Generic[TQueueType]):
     and can handle queues of any specific type.
     """
 
-    def __init__(self, queue: multiprocessing.Queue[TQueueType]):
+    def __init__(self, queue: Queue): # Item type: TQueueType
         """
         Initializes the MultiprocessQueueSource with a given multiprocessing queue.
 
         Args:
-            queue (multiprocessing.Queue[TQueueType]): The multiprocessing queue
+            queue (Queue): The multiprocessing queue # Item type: TQueueType
                 to be used as the source.
         """
-        self.__queue = queue
+        self.__queue: Queue = queue # Item type: TQueueType
 
     def get_blocking(self, timeout: float | None = None) -> TQueueType | None:
         """

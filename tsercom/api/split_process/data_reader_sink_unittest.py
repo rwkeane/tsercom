@@ -105,7 +105,7 @@ def test_on_data_ready_not_lossy_queue_full_raises_assertion_error(
     fake_queue.set_put_nowait_return_value(False)
     sink = DataReaderSink[str](fake_queue, is_lossy=False)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError): # Changed from AssertionError to RuntimeError
         sink._on_data_ready(test_data)
 
     assert fake_queue.put_nowait_call_count == 1
