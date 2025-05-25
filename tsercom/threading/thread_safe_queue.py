@@ -1,3 +1,10 @@
+"""
+Defines `ThreadSafeQueue[T]`, a generic wrapper around the standard `queue.Queue`.
+
+This module provides the `ThreadSafeQueue` class, which is a generic wrapper
+that encapsulates Python's standard `queue.Queue`. It aims to offer a clear,
+type-hinted interface for queue operations.
+"""
 import queue # Standard library queue module
 import threading # Standard library threading module
 from typing import Any, TypeVar, Generic
@@ -11,9 +18,14 @@ class ThreadSafeQueue(Generic[T]):
     """
     A generic thread-safe queue implementation.
 
-    This class wraps the standard `queue.Queue` to provide a simplified
-    interface with explicit type hinting for the items stored in the queue.
-    All operations are made thread-safe by an internal lock.
+    This class wraps the standard `queue.Queue`. While Python's `queue.Queue`
+    is already documented as thread-safe for its basic operations (put, get),
+    this wrapper provides an explicit additional layer of locking (`threading.Lock`)
+    around these operations. This can be preferred by users who desire an explicit
+    locking pattern or for potential future extensions that might require compound
+    atomic operations involving multiple queue interactions under a single lock.
+    It also offers a simplified interface with explicit type hinting for the
+    items stored in the queue.
     """
 
     def __init__(self) -> None:

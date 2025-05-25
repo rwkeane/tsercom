@@ -1,3 +1,13 @@
+"""
+Provides a factory function for creating multiprocess queue pairs.
+
+This module contains the `create_multiprocess_queues` factory function,
+which is responsible for instantiating and returning a connected pair of
+`MultiprocessQueueSink` and `MultiprocessQueueSource` objects. These objects
+serve as wrappers around a shared `multiprocessing.Queue`, facilitating
+inter-process communication by providing distinct interfaces for sending (sink)
+and receiving (source) data.
+"""
 import multiprocessing
 from typing import TypeVar
 

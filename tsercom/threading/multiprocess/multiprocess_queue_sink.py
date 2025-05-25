@@ -1,3 +1,12 @@
+"""
+Defines the `MultiprocessQueueSink[TQueueType]` class.
+
+This module provides the `MultiprocessQueueSink` class, which serves as a
+generic, write-only (sink) wrapper around a standard `multiprocessing.Queue`.
+It is designed to provide a clear and type-safe interface for sending items
+to a queue that is shared between processes, abstracting the underlying queue
+and focusing solely on the "put" operations.
+"""
 import multiprocessing
 from queue import Full # Exception raised when a non-blocking put is called on a full queue.
 from typing import Generic, TypeVar
@@ -15,7 +24,7 @@ class MultiprocessQueueSink(Generic[TQueueType]):
     and can handle queues of any specific type.
     """
 
-    def __init__(self, queue: multiprocessing.Queue[TQueueType]):
+    def __init__(self, queue: multiprocessing.Queue[TQueueType]) -> None:
         """
         Initializes the MultiprocessQueueSink with a given multiprocessing queue.
 

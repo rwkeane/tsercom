@@ -1,3 +1,11 @@
+"""
+Defines the `ErrorWatcher` abstract base class.
+
+This module provides the `ErrorWatcher` ABC, which serves as an interface
+for objects designed to monitor for and report exceptions. It is particularly
+useful for components that manage background threads or tasks and need a
+standardized way to surface exceptions that occur in those background contexts.
+"""
 from abc import ABC, abstractmethod
 
 
