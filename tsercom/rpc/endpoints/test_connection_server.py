@@ -1,15 +1,21 @@
+"""Provides simple gRPC server components for testing connections."""
+import grpc # Added for type hinting
 from tsercom.rpc.proto import TestConnectionCall, TestConnectionResponse
 
 
 class AsyncTestConnectionServer:
-    async def TestConnection(  # type: ignore
-        self, request: TestConnectionCall, context
+    """An asynchronous server for the TestConnection RPC method."""
+    async def TestConnection(
+        self, request: TestConnectionCall, context: grpc.aio.ServicerContext
     ) -> TestConnectionResponse:
+        """Handles an asynchronous TestConnection request. Simply returns an empty response."""
         return TestConnectionResponse()
 
 
 class TestConnectionServer:
-    def TestConnection(  # type: ignore
-        self, request: TestConnectionCall, context
+    """A synchronous server for the TestConnection RPC method."""
+    def TestConnection(
+        self, request: TestConnectionCall, context: grpc.ServicerContext
     ) -> TestConnectionResponse:
+        """Handles a synchronous TestConnection request. Simply returns an empty response."""
         return TestConnectionResponse()

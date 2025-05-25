@@ -23,7 +23,6 @@ authors = [
   { name = "Ryan Keane" },
 ]
 dependencies = [
-  "torch>=2.0.0",
   "grpcio~=1.70.0",
   "grpcio-status~=1.70.0",
   "grpcio-tools~=1.70.0",
