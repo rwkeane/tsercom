@@ -1,3 +1,4 @@
+"""Defines ServiceInfo, a data class holding information about a discovered network service instance, typically obtained via mDNS."""
 from typing import List
 
 
