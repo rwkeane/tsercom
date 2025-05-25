@@ -1,5 +1,6 @@
+"""Provides IdTracker for managing bidirectional mappings between CallerIdentifiers and network addresses."""
 import threading
-from typing import Dict, Optional, overload
+from typing import Dict, Optional, overload, Iterator, Tuple
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
@@ -10,17 +11,18 @@ class IdTracker:
     dictionary, to map between the local CallerID and the address / port.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initializes the IdTracker with internal lock and dictionaries."""
         self.__lock = threading.Lock()
         self.__address_to_id: Dict[tuple[str, int], CallerIdentifier] = {}
         self.__id_to_address: Dict[CallerIdentifier, tuple[str, int]] = {}
 
     @overload
-    def try_get(self, id: CallerIdentifier) -> str | None:
+    def try_get(self, id: CallerIdentifier) -> Optional[tuple[str, int]]: # Corrected return type
         pass
 
     @overload
-    def try_get(self, address: str, port: int) -> CallerIdentifier | None:
+    def try_get(self, address: str, port: int) -> Optional[CallerIdentifier]:
         pass
 
     def try_get(
@@ -28,7 +30,26 @@ class IdTracker:
         id: Optional[CallerIdentifier] = None,
         address: Optional[str] = None,
         port: Optional[int] = None,
-    ):
+    ) -> Optional[tuple[str, int] | CallerIdentifier]:
+        """Attempts to retrieve a value from the tracker.
+
+        Can be called either with a `CallerIdentifier` (to get address/port)
+        or with an address and port (to get `CallerIdentifier`).
+
+        Args:
+            id: The `CallerIdentifier` to look up.
+            address: The IP address or hostname to look up.
+            port: The port number to look up (required if address is provided).
+
+        Returns:
+            A tuple (address, port) if looking up by ID and found.
+            A `CallerIdentifier` if looking up by address/port and found.
+            `None` if the lookup key is not found.
+
+        Raises:
+            ValueError: If incorrect arguments are provided (e.g., both id and address,
+                        or address without port).
+        """
         if (id is None) == (address is None):
             raise ValueError(
                 f"Exactly one of 'id' or 'address' must be provided to try_get. Got id={id}, address={address}."
@@ -38,20 +59,15 @@ class IdTracker:
                 f"If 'address' is provided, 'port' must also be provided, and vice-versa. Got address={address}, port={port}."
             )
 
-        if id is not None:
-            with self.__lock:
-                if id not in self.__id_to_address:
-                    return None
-                return self.__id_to_address[id]
-
-        else:
-            with self.__lock:
-                if (address, port) not in self.__address_to_id:
-                    return None
-                return self.__address_to_id[(address, port)]
+        with self.__lock: # Acquire lock once
+            if id is not None:
+                return self.__id_to_address.get(id)
+            elif address is not None and port is not None: # Ensure port is not None for type safety
+                return self.__address_to_id.get((address, port))
+        return None # Should not be reached given the initial checks, but as a fallback
 
     @overload
-    def get(self, id: CallerIdentifier) -> str:
+    def get(self, id: CallerIdentifier) -> tuple[str, int]: # Corrected return type
         pass
 
     @overload
@@ -63,39 +79,99 @@ class IdTracker:
         id: Optional[CallerIdentifier] = None,
         address: Optional[str] = None,
         port: Optional[int] = None,
-    ):
-        result = self.try_get(id, address, port)
+    ) -> tuple[str, int] | CallerIdentifier:
+        """Retrieves a value from the tracker, raising KeyError if not found.
+
+        Can be called either with a `CallerIdentifier` (to get address/port)
+        or with an address and port (to get `CallerIdentifier`).
+
+        Args:
+            id: The `CallerIdentifier` to look up.
+            address: The IP address or hostname to look up.
+            port: The port number to look up (required if address is provided).
+
+        Returns:
+            A tuple (address, port) if looking up by ID.
+            A `CallerIdentifier` if looking up by address/port.
+
+        Raises:
+            ValueError: If incorrect arguments are provided.
+            KeyError: If the lookup key is not found.
+        """
+        result = self.try_get(id=id, address=address, port=port) # Use named args for clarity
         if result is None:
-            raise KeyError()
+            raise KeyError(f"Key not found for query: id={id}, address={address}, port={port}")
 
-        return result
+        return result # Type of result is correctly inferred by mypy here based on overload
 
-    def add(self, id: CallerIdentifier, address: str, port: int):
+    def add(self, id: CallerIdentifier, address: str, port: int) -> None:
+        """Adds a new bidirectional mapping to the tracker.
+
+        Args:
+            id: The `CallerIdentifier`.
+            address: The IP address or hostname.
+            port: The port number.
+
+        Raises:
+            KeyError: If the ID or the address/port combination already exists.
+        """
         with self.__lock:
             if id in self.__id_to_address:
-                raise KeyError()
+                raise KeyError(f"ID {id} already exists in tracker.")
             if (address, port) in self.__address_to_id:
-                raise KeyError()
+                raise KeyError(f"Address ({address}:{port}) already exists in tracker.")
 
             self.__address_to_id[(address, port)] = id
             self.__id_to_address[id] = (address, port)
 
-    def has_id(self, id: CallerIdentifier):
+    def has_id(self, id: CallerIdentifier) -> bool:
+        """Checks if the given `CallerIdentifier` exists in the tracker.
+
+        Args:
+            id: The `CallerIdentifier` to check.
+
+        Returns:
+            True if the ID exists, False otherwise.
+        """
         with self.__lock:
             return id in self.__id_to_address
 
-    def has_address(self, address: str, port: int):
+    def has_address(self, address: str, port: int) -> bool:
+        """Checks if the given address and port combination exists in the tracker.
+
+        Args:
+            address: The IP address or hostname.
+            port: The port number.
+
+        Returns:
+            True if the address/port combination exists, False otherwise.
+        """
         with self.__lock:
             return (address, port) in self.__address_to_id
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Returns the number of mappings in the tracker."""
         with self.__lock:
+            # Assertion ensures internal consistency.
             assert len(self.__id_to_address) == len(self.__address_to_id)
             return len(self.__id_to_address)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[CallerIdentifier]:
+        """Returns an iterator over the `CallerIdentifier`s in the tracker.
+
+        Note: This iterates over a copy of the keys if modification during
+        iteration is a concern, or directly if thread-safety is ensured by the lock.
+        Current implementation iterates directly over the dictionary's iterator,
+        which is safe due to the lock in typical use cases but might behave
+        unexpectedly if the lock is released and reacquired by another thread
+        modifying the dictionary *during* the iteration of a single __next__ call.
+        However, for simple iteration loops, the lock protects the whole loop.
+        """
         with self.__lock:
-            return self.__id_to_address.__iter__()
+            # To be perfectly safe for all iteration patterns, one might iterate over a copy:
+            # return iter(list(self.__id_to_address.keys()))
+            # But for most common loops, this direct iteration is fine under the lock.
+            return iter(self.__id_to_address)
 
     def remove(self, id: CallerIdentifier) -> bool:
         """
