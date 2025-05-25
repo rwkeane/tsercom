@@ -1,13 +1,13 @@
 """Provides utility functions for handling gRPC errors, status codes, and retry logic."""
-from __future__ import annotations # Added this line
+
+from __future__ import annotations
 import asyncio
 from google.rpc.status_pb2 import Status
 import grpc # Keep grpc import at global scope
 import random
-# typing.Optional is removed as type hint will be grpc.StatusCode | None with annotations
 
 
-def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None: # Changed type hint
+def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
     """Extracts the gRPC status code from a gRPC exception.
 
     Args:
@@ -17,7 +17,7 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None: # Changed 
         The `grpc.StatusCode` if the error is a gRPC error and a status code
         can be extracted, otherwise `None`.
     """
-    from grpc_status import rpc_status # Moved import
+    from grpc_status import rpc_status
     if issubclass(type(error), grpc.aio.AioRpcError):
         return error.code()  # type: ignore # AioRpcError provides .code() directly.
 
