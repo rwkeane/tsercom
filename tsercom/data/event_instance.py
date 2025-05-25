@@ -1,3 +1,4 @@
+"""Defines EventInstance, a wrapper for discrete event data with associated metadata like caller ID and timestamp."""
 from datetime import datetime
 from typing import Generic, Optional, TypeVar
 from tsercom.caller_id.caller_identifier import CallerIdentifier

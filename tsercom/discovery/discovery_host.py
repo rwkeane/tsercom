@@ -1,3 +1,4 @@
+"""Manages discovery of network services using mDNS. It utilizes an InstanceListener and notifies a client upon discovering services, associating them with CallerIdentifiers."""
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Callable, Dict, Generic, Optional, TypeVar, overload

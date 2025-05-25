@@ -1,3 +1,4 @@
+"""Provides GrpcServicePublisher for hosting gRPC services."""
 from functools import partial
 from typing import Callable, Iterable
 import grpc
@@ -56,6 +57,13 @@ class GrpcServicePublisher:
         run_on_event_loop(partial(self.__start_async_impl, connect_call))
 
     async def __start_async_impl(self, connect_call: AddServicerCB) -> None:
+        """Internal implementation to start the asynchronous gRPC server.
+
+        Configures the server with an exception interceptor and starts it.
+
+        Args:
+            connect_call: Callback to add servicer implementations to the server.
+        """
         interceptor = AsyncGrpcExceptionInterceptor(self.__watcher)
         self.__server: grpc.Server = grpc.aio.server(  # type: ignore
             self.__watcher.create_tracked_thread_pool_executor(max_workers=1),
@@ -68,6 +76,14 @@ class GrpcServicePublisher:
         await self.__server.start()
 
     def _connect(self) -> bool:
+        """Binds the gRPC server to the configured addresses and port.
+
+        Iterates through specified addresses, attempting to bind the server.
+        Logs successes and failures.
+
+        Returns:
+            True if the server successfully bound to at least one address, False otherwise.
+        """
         # Connect to a port.
         worked = 0
         for address in self.__addresses:

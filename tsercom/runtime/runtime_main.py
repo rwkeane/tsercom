@@ -1,3 +1,4 @@
+"""Main entry points and initialization logic for Tsercom runtimes."""
 from typing import Any, List
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_factory import RuntimeFactory
@@ -28,7 +29,17 @@ def initialize_runtimes(
     initializers: List[RuntimeFactory[Any, Any]],
     *,
     is_testing: bool = False,
-):
+) -> List[Runtime]:
+    """Initializes and starts a list of Tsercom runtimes.
+
+    Args:
+        thread_watcher: Monitors threads for the runtimes.
+        initializers: A list of `RuntimeFactory` instances to create and start runtimes from.
+        is_testing: Boolean flag for testing mode.
+
+    Returns:
+        A list of the started `Runtime` instances.
+    """
     assert is_global_event_loop_set()
 
     # Get the gRPC Channel Factory.
@@ -74,7 +85,17 @@ def remote_process_main(
     error_queue: MultiprocessQueueSink[Exception],
     *,
     is_testing: bool = False,
-):
+) -> None:
+    """Main function for a Tsercom runtime operating in a remote process.
+
+    Sets up event loop, error handling via a queue, initializes runtimes,
+    and runs until an exception occurs.
+
+    Args:
+        initializers: List of `RuntimeFactory` instances.
+        error_queue: A `MultiprocessQueueSink` to send exceptions back to the parent.
+        is_testing: Boolean flag for testing mode.
+    """
     # Only needed on linux systems.
     clear_tsercom_event_loop()
 

@@ -1,18 +1,20 @@
+"""Defines the Stopable abstract base class, an interface for objects that can be stopped."""
 from abc import ABC, abstractmethod
 
 
 class Stopable(ABC):
-    """
-    An abstract base class for objects that can be started and stopped.
+    """Represents an object that has a defined stopping mechanism.
 
-    This class defines a common interface for managing the lifecycle of
-    services or components that have a distinct running state and need a
-    mechanism to be cleanly shut down.
+    This abstract base class provides a common interface for components
+    or services that need to be explicitly stopped to release resources
+    or terminate operations.
     """
 
     @abstractmethod
     async def stop(self) -> None:
-        """
-        Stops this instance from running.
+        """Asynchronously stops the object.
+
+        Subclasses must implement this method to define the specific actions
+        required to stop the object's operation and clean up resources.
         """
         pass
