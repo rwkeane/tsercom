@@ -39,9 +39,8 @@ class TimeSyncServer:
         """
         self.__address = address
         self.__port = ntp_port
-        self.__is_running = IsRunningTracker() # Manages the running state of the server.
+        self.__is_running = IsRunningTracker()
 
-        # UDP socket for NTP communication.
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # Lock to protect access to the socket, especially during close() and send/receive.
         self.__socket_lock = threading.Lock()
@@ -123,11 +122,10 @@ class TimeSyncServer:
         If the port is already in use (EADDRINUSE), it logs an error and
         sets the running state to False. Other OSErrors are re-raised.
         """
-        # Check if the NTP port is already in use, and bind if not.
         try:
             with self.__socket_lock:
                 self.__socket.bind((self.__address, self.__port))
-            self.__is_running.set(True) # Signal that binding was successful
+            self.__is_running.set(True)
         except OSError as e:
             self.__is_running.set(False)
 
@@ -182,10 +180,8 @@ class TimeSyncServer:
 
                 data, addr = pair
                 if data:
-                    # Get the current time in nanoseconds.
                     current_time_ns = time.time_ns()
 
-                    # Convert to NTP timestamp format.
                     server_timestamp_sec = (
                         current_time_ns // 1_000_000_000 + NTP_DELTA
                     )
@@ -195,12 +191,10 @@ class TimeSyncServer:
                         // 1_000_000_000
                     )
 
-                    # Unpack client's request (we only need the timestamp).
                     unpacked_data = struct.unpack(NTP_PACKET_FORMAT, data)
                     client_timestamp_sec = unpacked_data[10]
                     client_timestamp_frac = unpacked_data[11]
 
-                    # Prepare the response packet.
                     response_packet = struct.pack(
                         NTP_PACKET_FORMAT,
                         (kNtpVersion << 3) | NTP_MODE,  # Version, Mode
@@ -222,7 +216,6 @@ class TimeSyncServer:
                         client_timestamp_frac,
                     )
 
-                    # Send the response.
                     with self.__socket_lock:
                         # Use task_or_stopped for sending as well, to handle shutdown
                         # requests that might occur during the send operation.
@@ -233,7 +226,6 @@ class TimeSyncServer:
                         if not self.__is_running.get(): # Check again after await
                             break
 
-                    # print(f"Responded to NTP request from {addr}")
             except OSError as e:
                 # Check if error is due to closed socket
                 if e.errno == errno.EBADF:

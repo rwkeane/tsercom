@@ -24,9 +24,7 @@ import threading
 from tsercom.threading.aio.event_loop_factory import EventLoopFactory
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-# Global variable to hold the asyncio event loop used by tsercom.
 __g_global_event_loop: AbstractEventLoop | None = None
-# Global variable to hold the factory that created the event loop, if applicable.
 __g_event_loop_factory: EventLoopFactory | None = None
 
 # Lock to ensure thread-safe access and modification of the global event loop variables.
@@ -105,7 +103,6 @@ def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
         # if called concurrently within the same process.
         factory = EventLoopFactory(watcher)
         __g_global_event_loop = factory.start_asyncio_loop()
-        # Store factory after loop is successfully started
         __g_event_loop_factory = factory
 
 
@@ -131,7 +128,6 @@ def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
         if __g_global_event_loop is not None:
             raise RuntimeError("Only one Global Event Loop may be set")
 
-        # Assign under lock
         __g_global_event_loop = event_loop
 
 
@@ -152,6 +148,5 @@ def set_tsercom_event_loop_to_current_thread() -> None:
         if __g_global_event_loop is not None:
             raise RuntimeError("Only one Global Event Loop may be set")
 
-        # Assign under lock
         # This will raise a RuntimeError if no loop is running on the current thread.
         __g_global_event_loop = asyncio.get_event_loop()

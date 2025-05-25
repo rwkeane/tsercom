@@ -17,7 +17,6 @@ from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
 
 # TODO: Pull this into cpython repo.
-# Helper function to safely get the current running event loop.
 def get_running_loop_or_none() -> AbstractEventLoop | None:
     """
     Returns the EventLoop from which this function was called, or None if it was
@@ -34,7 +33,6 @@ def get_running_loop_or_none() -> AbstractEventLoop | None:
 
 
 # TODO: Pull this into cpython repo.
-# Helper function to check if currently running on a specific event loop.
 def is_running_on_event_loop(
     event_loop: Optional[AbstractEventLoop] = None,
 ) -> bool:
@@ -60,7 +58,6 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-# Function to execute a coroutine on a specified event loop or the global event loop.
 def run_on_event_loop(
     call: Callable[P, Coroutine[Any, Any, T]],
     event_loop: Optional[AbstractEventLoop] = None,
@@ -91,7 +88,6 @@ def run_on_event_loop(
         if event_loop is None:
             # Raise an error if no event loop is available.
             raise RuntimeError("ERROR: tsercom global event loop not set!")
-    # Schedule the coroutine to run on the event loop and return the future.
     # The `asyncio.run_coroutine_threadsafe` function can sometimes be tricky for
     # type checkers to fully understand, especially with generic parameters (P, T)
     # and complex callables. The `type: ignore` is used here to acknowledge that

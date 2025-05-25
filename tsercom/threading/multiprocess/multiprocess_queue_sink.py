@@ -51,7 +51,6 @@ class MultiprocessQueueSink(Generic[TQueueType]):
                   False if a timeout occurred (and the queue remained full).
         """
         try:
-            # Attempt to put the item with blocking and optional timeout.
             self.__queue.put(obj, block=True, timeout=timeout)
             return True
         except Full:
@@ -72,7 +71,6 @@ class MultiprocessQueueSink(Generic[TQueueType]):
                   False if the queue is currently full.
         """
         try:
-            # Attempt to put the item without blocking.
             self.__queue.put_nowait(obj)
             return True
         except Full:

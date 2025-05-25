@@ -51,7 +51,6 @@ class MultiprocessQueueSource(Generic[TQueueType]):
                                   It can also raise `EOFError` or `OSError` if the queue is broken.
         """
         try:
-            # Attempt to get an item with blocking and optional timeout.
             return self.__queue.get(block=True, timeout=timeout)
         except Empty: # multiprocessing.Queue.get() raises queue.Empty on timeout.
             return None
@@ -71,7 +70,6 @@ class MultiprocessQueueSource(Generic[TQueueType]):
                                   It can also raise `EOFError` or `OSError` if the queue is broken.
         """
         try:
-            # Attempt to get an item without blocking.
             return self.__queue.get_nowait()
         except Empty:
             # This exception is raised if the queue is empty.

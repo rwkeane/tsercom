@@ -1,5 +1,5 @@
 """Provides simple gRPC server components for testing connections."""
-import grpc # Added for type hinting
+import grpc
 from tsercom.rpc.proto import TestConnectionCall, TestConnectionResponse
 
 

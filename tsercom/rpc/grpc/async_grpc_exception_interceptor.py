@@ -39,7 +39,6 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         Intercepts the RPC call, catching exceptions and invoking the callback.
         """
 
-        # Call the continuation to get the RPC method handler.
         handler: grpc.RpcMethodHandler = await continuation(
             handler_call_details
         )
@@ -49,8 +48,6 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         if handler is None:
             return None
 
-        # Wrap each of the handler's methods (unary_unary, unary_stream, etc.)
-        # to catch exceptions that occur within them.
         if handler.unary_unary is not None:
             handler = handler._replace(
                 unary_unary=self._wrap_unary_unary(

@@ -33,11 +33,9 @@ class ThrowingThread(threading.Thread):
         """
         assert on_error_cb is not None, "on_error_cb cannot be None"
         self.__on_error_cb = on_error_cb
-        # Store target and args for the run method
         self._target = target
         self._args = args
         self._kwargs = kwargs
-        # Initialize the superclass (threading.Thread)
         # Pass None for target to super, as we are overriding run()
         super().__init__(group=None, target=None, daemon=True)
 
@@ -50,11 +48,9 @@ class ThrowingThread(threading.Thread):
         and reported via the `on_error_cb`.
         """
         try:
-            # Execute the target function with its arguments
             if self._target:
                 self._target(*self._args, **self._kwargs)
         except Exception as e:
-            # Log the exception and report it using the callback
             logging.error(f"Exception caught in ThrowingThread: {e}", exc_info=True)
             if self.__on_error_cb is not None:
                 self.__on_error_cb(e)
@@ -76,7 +72,6 @@ class ThrowingThread(threading.Thread):
             Exception: Any exception raised by `threading.Thread.start()`.
         """
         try:
-            # Attempt to start the thread using the superclass's start method.
             super().start()
         except Exception as e:
             # This log captures exceptions from the thread starting mechanism itself.
