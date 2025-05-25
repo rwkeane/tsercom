@@ -7,10 +7,14 @@ from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
 
 # TODO: Pull this into cpython repo.
+# Helper function to safely get the current running event loop.
 def get_running_loop_or_none() -> AbstractEventLoop | None:
     """
     Returns the EventLoop from which this function was called, or None if it was
     not called from an EventLoop.
+
+    Returns:
+        Optional[AbstractEventLoop]: The current event loop or None.
     """
     try:
         current_loop = asyncio.get_running_loop()
@@ -20,12 +24,20 @@ def get_running_loop_or_none() -> AbstractEventLoop | None:
 
 
 # TODO: Pull this into cpython repo.
+# Helper function to check if currently running on a specific event loop.
 def is_running_on_event_loop(
     event_loop: Optional[AbstractEventLoop] = None,
 ) -> bool:
     """
     Returns true if the current function is being executed from SPECIFICALLY
     the EventLoop |event_loop|, or from ANY event loop if |event_loop| is None.
+
+    Args:
+        event_loop (Optional[AbstractEventLoop]): The specific event loop to check against.
+                                                  If None, checks if running on any event loop.
+
+    Returns:
+        bool: True if running on the specified event loop (or any if None), False otherwise.
     """
     try:
         current_loop = asyncio.get_running_loop()
@@ -38,15 +50,36 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
+# Function to execute a coroutine on a specified event loop or the global event loop.
 def run_on_event_loop(
     call: Callable[P, Coroutine[Any, Any, T]],
     event_loop: Optional[AbstractEventLoop] = None,
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> Future[T]:
-    """ """
+    """
+    Runs a coroutine on the specified event loop.
+
+    If no event_loop is provided, it uses the global event loop.
+    If the global event loop is not set, it raises a RuntimeError.
+
+    Args:
+        call (Callable[P, Coroutine[Any, Any, T]]): The coroutine function to execute.
+        event_loop (Optional[AbstractEventLoop]): The event loop to run the coroutine on.
+                                                  Defaults to the global event loop.
+        *args (P.args): Positional arguments for the coroutine.
+        **kwargs (P.kwargs): Keyword arguments for the coroutine.
+
+    Returns:
+        Future[T]: A future representing the result of the coroutine.
+
+    Raises:
+        RuntimeError: If no event_loop is provided and the global event loop is not set.
+    """
     if event_loop is None:
         event_loop = get_global_event_loop()
         if event_loop is None:
+            # Raise an error if no event loop is available.
             raise RuntimeError("ERROR: tsercom global event loop not set!")
+    # Schedule the coroutine to run on the event loop and return the future.
     return asyncio.run_coroutine_threadsafe(call(*args, **kwargs), event_loop)  # type: ignore
