@@ -7,8 +7,11 @@ It is designed to provide a clear and type-safe interface for receiving items
 from a queue that is shared between processes, abstracting the underlying queue
 and focusing solely on the "get" operations.
 """
+
 import multiprocessing
-from queue import Empty # Exception raised when a non-blocking get is called on an empty queue.
+from queue import (
+    Empty,
+)  # Exception raised when a non-blocking get is called on an empty queue.
 from typing import Generic, TypeVar
 
 
@@ -52,11 +55,12 @@ class MultiprocessQueueSource(Generic[TQueueType]):
         """
         try:
             return self.__queue.get(block=True, timeout=timeout)
-        except Empty: # multiprocessing.Queue.get() raises queue.Empty on timeout.
+        except (
+            Empty
+        ):  # multiprocessing.Queue.get() raises queue.Empty on timeout.
             return None
         # Other exceptions like EOFError or OSError are not caught here,
         # as they indicate a more severe problem with the queue itself.
-
 
     def get_or_none(self) -> TQueueType | None:
         """

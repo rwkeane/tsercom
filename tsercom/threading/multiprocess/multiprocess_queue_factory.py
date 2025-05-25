@@ -8,6 +8,7 @@ serve as wrappers around a shared `multiprocessing.Queue`, facilitating
 inter-process communication by providing distinct interfaces for sending (sink)
 and receiving (source) data.
 """
+
 import multiprocessing
 from typing import TypeVar
 

@@ -4,6 +4,7 @@ This class manages RemoteDataOrganizer instances for each data source (identifie
 CallerIdentifier) and handles data timeout tracking. It acts as a central point
 for collecting and accessing data from multiple remote endpoints.
 """
+
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
@@ -89,23 +90,25 @@ class RemoteDataAggregatorImpl(
         Raises:
             AssertionError: If both `tracker` and `timeout` are provided.
         """
-        assert not (timeout is not None and tracker is not None), \
-            "Cannot specify both 'timeout' and 'tracker' simultaneously."
+        assert not (
+            timeout is not None and tracker is not None
+        ), "Cannot specify both 'timeout' and 'tracker' simultaneously."
 
         if tracker is None and timeout is not None and timeout > 0:
             tracker = DataTimeoutTracker(timeout)
             tracker.start()
 
         self.__thread_pool: ThreadPoolExecutor = thread_pool
-        self.__client: Optional[RemoteDataAggregator.Client[TDataType]] = client
+        self.__client: Optional[RemoteDataAggregator.Client[TDataType]] = (
+            client
+        )
         self.__tracker: Optional[DataTimeoutTracker] = tracker
-        
+
         # Organizers keyed by CallerIdentifier, lock-protected.
         self.__organizers: Dict[
             CallerIdentifier, RemoteDataOrganizer[TDataType]
         ] = {}
         self.__lock: threading.Lock = threading.Lock()
-
 
     def stop(self, id: Optional[CallerIdentifier] = None) -> None:
         """Stops data processing for one or all callers.
@@ -123,7 +126,9 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    raise KeyError(f"Caller ID '{id}' not found in active organizers during stop.")
+                    raise KeyError(
+                        f"Caller ID '{id}' not found in active organizers during stop."
+                    )
                 organizer.stop()
                 return
 
@@ -152,7 +157,9 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    raise KeyError(f"Caller ID '{id}' not found for has_new_data.")
+                    raise KeyError(
+                        f"Caller ID '{id}' not found for has_new_data."
+                    )
                 return organizer.has_new_data()
 
             results = {}
@@ -181,7 +188,9 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    raise KeyError(f"Caller ID '{id}' not found for get_new_data.")
+                    raise KeyError(
+                        f"Caller ID '{id}' not found for get_new_data."
+                    )
                 return organizer.get_new_data()
 
             results = {}
@@ -211,7 +220,9 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    raise KeyError(f"Caller ID '{id}' not found for get_most_recent_data.")
+                    raise KeyError(
+                        f"Caller ID '{id}' not found for get_most_recent_data."
+                    )
                 return organizer.get_most_recent_data()
 
             results = {}
@@ -244,14 +255,19 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    raise KeyError(f"Caller ID '{id}' not found for get_data_for_timestamp.")
+                    raise KeyError(
+                        f"Caller ID '{id}' not found for get_data_for_timestamp."
+                    )
                 # The organizer's method should also take timestamp then id
-                return organizer.get_data_for_timestamp(timestamp=timestamp, id=id)
-
+                return organizer.get_data_for_timestamp(
+                    timestamp=timestamp, id=id
+                )
 
             results = {}
             for key, organizer_item in self.__organizers.items():
-                results[key] = organizer_item.get_data_for_timestamp(timestamp=timestamp)
+                results[key] = organizer_item.get_data_for_timestamp(
+                    timestamp=timestamp
+                )
             return results
 
     def _on_data_available(
@@ -283,7 +299,9 @@ class RemoteDataAggregatorImpl(
             TypeError: If `new_data` is not a subclass of `ExposedData`.
         """
         if not isinstance(new_data, ExposedData):
-            raise TypeError(f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}.")
+            raise TypeError(
+                f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+            )
 
         data_organizer: RemoteDataOrganizer[TDataType]
         is_new_organizer = False
@@ -300,7 +318,7 @@ class RemoteDataAggregatorImpl(
                 is_new_organizer = True
             else:
                 data_organizer = self.__organizers[new_data.caller_id]
-        
+
         data_organizer._on_data_ready(new_data)
 
         if is_new_organizer and self.__client is not None:

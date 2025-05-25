@@ -28,7 +28,9 @@ class TimeSyncServer:
     in order to open a socket.
     """
 
-    def __init__(self, address: str = "0.0.0.0", ntp_port: int = kNtpPort) -> None:
+    def __init__(
+        self, address: str = "0.0.0.0", ntp_port: int = kNtpPort
+    ) -> None:
         """
         Initializes the TimeSyncServer.
 
@@ -39,7 +41,9 @@ class TimeSyncServer:
         """
         self.__address = address
         self.__port = ntp_port
-        self.__is_running = IsRunningTracker() # Manages the running state of the server.
+        self.__is_running = (
+            IsRunningTracker()
+        )  # Manages the running state of the server.
 
         # UDP socket for NTP communication.
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -94,13 +98,17 @@ class TimeSyncServer:
         # This is a common technique to gracefully shut down a server thread
         # that's blocked on a socket operation.
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as temp_socket:
+            with socket.socket(
+                socket.AF_INET, socket.SOCK_DGRAM
+            ) as temp_socket:
                 # The content of the packet doesn't matter.
                 temp_socket.sendto(b"shutdown", (self.__address, self.__port))
         except OSError as e:
             # This can happen if the network interface is down or other issues.
             # At this point, the main socket is closed, so we log and proceed.
-            logging.warning(f"Error sending shutdown packet to unblock server socket: {e}")
+            logging.warning(
+                f"Error sending shutdown packet to unblock server socket: {e}"
+            )
 
     def get_synchronized_clock(self) -> SynchronizedClock:
         """
@@ -126,7 +134,7 @@ class TimeSyncServer:
         try:
             with self.__socket_lock:
                 self.__socket.bind((self.__address, self.__port))
-            self.__is_running.set(True) # Signal that binding was successful
+            self.__is_running.set(True)  # Signal that binding was successful
         except OSError as e:
             self.__is_running.set(False)
 
@@ -134,7 +142,7 @@ class TimeSyncServer:
                 logging.error(
                     f"Port {self.__port} on address {self.__address} is already in use. Another NTP server might be running."
                 )
-                return # Do not proceed if port is in use
+                return  # Do not proceed if port is in use
             else:
                 raise  # Re-raise other socket errors
 
@@ -171,7 +179,9 @@ class TimeSyncServer:
                         logging.info("Socket closed, exiting server loop.")
                         break
                     receive_call = self.__receive(self.__socket)
-                    pair = await self.__is_running.task_or_stopped(receive_call)
+                    pair = await self.__is_running.task_or_stopped(
+                        receive_call
+                    )
 
                 # If task_or_stopped returned None (server was stopped) or if the socket was closed,
                 # or if is_running became false for any other reason.
@@ -224,7 +234,9 @@ class TimeSyncServer:
                             self.__socket, response_packet, addr
                         )
                         await self.__is_running.task_or_stopped(send_task)
-                        if not self.__is_running.get(): # Check again after await
+                        if (
+                            not self.__is_running.get()
+                        ):  # Check again after await
                             break
 
             except OSError as e:
@@ -252,7 +264,9 @@ class TimeSyncServer:
             of the sender.
         """
         loop = get_running_loop_or_none()
-        assert loop is not None, "Cannot run __receive without a running event loop."
+        assert (
+            loop is not None
+        ), "Cannot run __receive without a running event loop."
         # The `s.recvfrom(1024)` call is blocking. It's run in a thread
         # pool executor to avoid blocking the main asyncio event loop.
         data, addr = await loop.run_in_executor(
@@ -276,7 +290,9 @@ class TimeSyncServer:
             addr: The target address (host, port) to send the data to.
         """
         loop = get_running_loop_or_none()
-        assert loop is not None, "Cannot run __send without a running event loop."
+        assert (
+            loop is not None
+        ), "Cannot run __send without a running event loop."
         # The `s.sendto(...)` call is blocking. It's run in a thread
         # pool executor to avoid blocking the main asyncio event loop.
         await loop.run_in_executor(

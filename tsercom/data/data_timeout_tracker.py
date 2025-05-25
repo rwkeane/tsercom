@@ -23,6 +23,7 @@ class DataTimeoutTracker:
         Objects that wish to be notified by `DataTimeoutTracker` must
         implement this abstract base class.
         """
+
         @abstractmethod
         def _on_triggered(self, timeout_seconds: int) -> None:
             """Callback method invoked when a timeout period elapses.
@@ -63,7 +64,9 @@ class DataTimeoutTracker:
             tracked: The `Tracked` object to add to the list.
         """
         # Ensure this part of the registration runs on the designated event loop.
-        assert is_running_on_event_loop(), "Registration implementation must run on the event loop."
+        assert (
+            is_running_on_event_loop()
+        ), "Registration implementation must run on the event loop."
         self.__tracked_list.append(tracked)
 
     def start(self) -> None:

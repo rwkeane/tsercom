@@ -1,7 +1,7 @@
 from collections.abc import Callable
 import threading
 import logging
-from typing import Any # For *args, **kwargs
+from typing import Any  # For *args, **kwargs
 
 
 # A custom thread class that catches exceptions in the target function and reports them.
@@ -15,10 +15,10 @@ class ThrowingThread(threading.Thread):
 
     def __init__(
         self,
-        target: Callable[..., Any], # Target function for the thread
-        on_error_cb: Callable[[Exception], None], # Callback for exceptions
-        *args: Any, # Positional arguments for the target function
-        **kwargs: Any # Keyword arguments for the target function
+        target: Callable[..., Any],  # Target function for the thread
+        on_error_cb: Callable[[Exception], None],  # Callback for exceptions
+        *args: Any,  # Positional arguments for the target function
+        **kwargs: Any,  # Keyword arguments for the target function
     ) -> None:
         """
         Initializes a ThrowingThread.
@@ -51,7 +51,9 @@ class ThrowingThread(threading.Thread):
             if self._target:
                 self._target(*self._args, **self._kwargs)
         except Exception as e:
-            logging.error(f"Exception caught in ThrowingThread: {e}", exc_info=True)
+            logging.error(
+                f"Exception caught in ThrowingThread: {e}", exc_info=True
+            )
             if self.__on_error_cb is not None:
                 self.__on_error_cb(e)
             # Optionally re-raise or handle as per application needs,
@@ -75,7 +77,10 @@ class ThrowingThread(threading.Thread):
             super().start()
         except Exception as e:
             # This log captures exceptions from the thread starting mechanism itself.
-            logging.error(f"Exception caught in ThrowingThread during start(): {e}", exc_info=True)
+            logging.error(
+                f"Exception caught in ThrowingThread during start(): {e}",
+                exc_info=True,
+            )
             if self.__on_error_cb is not None:
                 self.__on_error_cb(e)
             # Re-raise the exception that occurred during thread start-up.

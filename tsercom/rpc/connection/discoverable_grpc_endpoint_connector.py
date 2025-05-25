@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Optional
 import asyncio
 import typing
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.discovery_host import DiscoveryHost
 from tsercom.discovery.service_info import ServiceInfo
-from tsercom.rpc.connection.channel_info import ChannelInfo # Already grpc.Channel, not just ChannelInfo
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
     is_running_on_event_loop,
@@ -41,12 +40,13 @@ class DiscoverableGrpcEndpointConnector(
         Implementers are notified when a gRPC channel to a discovered service
         has been successfully established.
         """
+
         @abstractmethod
         async def _on_channel_connected(
             self,
-            connection_info: TServiceInfo, # Detailed service information.
-            caller_id: CallerIdentifier,   # Unique ID for the service instance.
-            channel: grpc.Channel,         # The established gRPC channel.
+            connection_info: TServiceInfo,  # Detailed service information.
+            caller_id: CallerIdentifier,  # Unique ID for the service instance.
+            channel: grpc.Channel,  # The established gRPC channel.
         ) -> None:
             """Callback invoked when a gRPC channel to a discovered service is connected.
 
@@ -73,7 +73,9 @@ class DiscoverableGrpcEndpointConnector(
             discovery_host: The `DiscoveryHost` instance that will provide
                             discovered service information.
         """
-        self.__client: DiscoverableGrpcEndpointConnector.Client[TServiceInfo] = client
+        self.__client: DiscoverableGrpcEndpointConnector.Client[
+            TServiceInfo
+        ] = client
         self.__discovery_host: DiscoveryHost[TServiceInfo] = discovery_host
         self.__channel_factory: "GrpcChannelFactory" = channel_factory
 
@@ -82,7 +84,7 @@ class DiscoverableGrpcEndpointConnector(
         # Event loop captured during the first relevant async operation (_on_service_added).
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
-        super().__init__() # Calls __init__ of DiscoveryHost.Client
+        super().__init__()  # Calls __init__ of DiscoveryHost.Client
 
     def start(self) -> None:
         """Starts the service discovery process.
@@ -102,21 +104,24 @@ class DiscoverableGrpcEndpointConnector(
 
         Args:
             caller_id: The `CallerIdentifier` of the client/service to mark as failed.
-        
+
         Raises:
             AssertionError: If `caller_id` was not previously tracked.
         """
         if self.__event_loop is None:
-            logging.warning("mark_client_failed called before event loop was captured. This may indicate an issue if called before any service discovery.")
+            logging.warning(
+                "mark_client_failed called before event loop was captured. This may indicate an issue if called before any service discovery."
+            )
             # Attempt to get the loop now, though ideally it's set by _on_service_added first.
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
-                logging.error("Failed to get event loop in mark_client_failed.")
+                logging.error(
+                    "Failed to get event loop in mark_client_failed."
+                )
                 # Cannot proceed without an event loop if not already on one.
                 # Or, if this function *must* run on a loop, it should be scheduled.
                 # For now, log and return if loop is critical and missing.
                 return
-
 
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(
@@ -125,10 +130,14 @@ class DiscoverableGrpcEndpointConnector(
             return
 
         # Assert that the caller_id was indeed being tracked.
-        assert caller_id in self.__callers, f"Attempted to mark unknown caller_id {caller_id} as failed."
+        assert (
+            caller_id in self.__callers
+        ), f"Attempted to mark unknown caller_id {caller_id} as failed."
         # Remove the caller_id, allowing new connections if the service is re-discovered.
         self.__callers.remove(caller_id)
-        logging.info(f"Marked client with caller_id {caller_id} as failed. It can now be re-discovered.")
+        logging.info(
+            f"Marked client with caller_id {caller_id} as failed. It can now be re-discovered."
+        )
 
     async def _on_service_added(
         self,
@@ -149,30 +158,43 @@ class DiscoverableGrpcEndpointConnector(
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
-                logging.error("Failed to get event loop in _on_service_added. Cannot proceed with channel connection.")
+                logging.error(
+                    "Failed to get event loop in _on_service_added. Cannot proceed with channel connection."
+                )
                 return
         else:
             # Ensure subsequent calls are on the same captured event loop.
-            assert is_running_on_event_loop(self.__event_loop), \
-                "Operations must run on the captured event loop."
+            assert is_running_on_event_loop(
+                self.__event_loop
+            ), "Operations must run on the captured event loop."
 
         # Prevent duplicate connection attempts to the same service instance.
         if caller_id in self.__callers:
-            logging.info(f"Service with Caller ID {caller_id} (Name: {connection_info.name}) already connected or connecting. Skipping.")
+            logging.info(
+                f"Service with Caller ID {caller_id} (Name: {connection_info.name}) already connected or connecting. Skipping."
+            )
             return
 
-        logging.info(f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel.")
+        logging.info(
+            f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
+        )
 
         # ChannelInfo was a typo, should be grpc.Channel from find_async_channel
-        channel: Optional[grpc.Channel] = await self.__channel_factory.find_async_channel(
-            connection_info.addresses, connection_info.port
+        channel: Optional[grpc.Channel] = (
+            await self.__channel_factory.find_async_channel(
+                connection_info.addresses, connection_info.port
+            )
         )
 
         if channel is None:
-            logging.warning(f"Could not establish gRPC channel for endpoint: {connection_info.name} at {connection_info.addresses}:{connection_info.port}.")
+            logging.warning(
+                f"Could not establish gRPC channel for endpoint: {connection_info.name} at {connection_info.addresses}:{connection_info.port}."
+            )
             return
 
-        logging.info(f"Successfully established gRPC channel for: {connection_info.name} (CallerID: {caller_id})")
+        logging.info(
+            f"Successfully established gRPC channel for: {connection_info.name} (CallerID: {caller_id})"
+        )
 
         self.__callers.add(caller_id)
         # The client expects a grpc.Channel, not ChannelInfo wrapper here.

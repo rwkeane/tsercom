@@ -13,6 +13,7 @@ class CallerIdentifierWaiter:
     using an `asyncio.Event` to signal availability. It ensures that the
     caller ID can only be set once.
     """
+
     def __init__(self) -> None:
         """Initializes a new CallerIdentifierWaiter instance."""
         self.__caller_id: Optional[CallerIdentifier] = None
@@ -26,7 +27,7 @@ class CallerIdentifierWaiter:
 
         Returns:
             The `CallerIdentifier` instance.
-        
+
         Raises:
             RuntimeError: Internally, if `set_caller_id` is not called before waiting indefinitely,
                           or if the event is set without setting `__caller_id` (which shouldn't happen with correct usage).
@@ -35,7 +36,9 @@ class CallerIdentifierWaiter:
         # At this point, __caller_id is guaranteed to be set by set_caller_id.
         if self.__caller_id is None:
             # This state should ideally not be reached if used correctly.
-            raise RuntimeError("CallerIdentifier was not set after barrier was signaled.")
+            raise RuntimeError(
+                "CallerIdentifier was not set after barrier was signaled."
+            )
         return self.__caller_id
 
     async def has_id(self) -> bool:
@@ -60,7 +63,9 @@ class CallerIdentifierWaiter:
         """
         # Ensure the caller ID can only be set once.
         if self.__caller_id is not None:
-            raise RuntimeError("Caller ID has already been set and cannot be changed.")
-        
+            raise RuntimeError(
+                "Caller ID has already been set and cannot be changed."
+            )
+
         self.__caller_id = caller_id
         self.__barrier.set()

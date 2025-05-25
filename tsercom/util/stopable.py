@@ -1,4 +1,5 @@
 """Defines the Stopable abstract base class, an interface for objects that can be stopped."""
+
 from abc import ABC, abstractmethod
 
 

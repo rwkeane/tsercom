@@ -9,6 +9,7 @@ class ClientReconnectionManager(ABC):
     disconnection events, potentially with custom logic for attempting
     to reconnect or clean up resources.
     """
+
     @abstractmethod
     async def _on_disconnect(self, error: Optional[Exception] = None) -> None:
         """Callback method invoked when a client disconnection occurs.

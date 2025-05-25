@@ -5,6 +5,7 @@ managing data flow, caller registration, and time synchronization aspects
 for Tsercom runtimes operating in a server role. It assigns CallerIdentifiers
 and uses its local clock as the source of truth for time synchronization.
 """
+
 from typing import Generic, TypeVar
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -37,6 +38,7 @@ class ServerRuntimeDataHandler(
     `FakeSynchronizedClock` (in testing mode) to provide a consistent time
     source for connected clients.
     """
+
     def __init__(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],

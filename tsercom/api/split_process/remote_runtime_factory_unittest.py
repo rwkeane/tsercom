@@ -40,16 +40,25 @@ class FakeRuntimeInitializer:
         self.create_called_with = None
         self.create_call_count = 0
         self.runtime_to_return = FakeRuntime()
-        self.event_poller_received = None # To store received event_poller
-        self.remote_data_reader_received = None # To store received remote_data_reader
+        self.event_poller_received = None  # To store received event_poller
+        self.remote_data_reader_received = (
+            None  # To store received remote_data_reader
+        )
 
-    def create(self, thread_watcher, data_handler, grpc_channel_factory, event_poller=None, remote_data_reader=None): # Added new args
+    def create(
+        self,
+        thread_watcher,
+        data_handler,
+        grpc_channel_factory,
+        event_poller=None,
+        remote_data_reader=None,
+    ):  # Added new args
         self.create_called_with = (
             thread_watcher,
             data_handler,
             grpc_channel_factory,
-            event_poller, # Store new arg
-            remote_data_reader, # Store new arg
+            event_poller,  # Store new arg
+            remote_data_reader,  # Store new arg
         )
         self.event_poller_received = event_poller
         self.remote_data_reader_received = remote_data_reader
@@ -126,33 +135,35 @@ class FakeDataReaderSink:
 class FakeRuntimeCommandSource:
     _instances = []
 
-    def __init__(self, thread_watcher, command_queue_source, runtime): # Modified signature
-        self.thread_watcher = thread_watcher # Store new arg
+    def __init__(
+        self, thread_watcher, command_queue_source, runtime
+    ):  # Modified signature
+        self.thread_watcher = thread_watcher  # Store new arg
         self.command_queue_source = command_queue_source
-        self.runtime = runtime # Store new arg
+        self.runtime = runtime  # Store new arg
         self.start_async_called_with = None
         self.start_async_call_count = 0
-        self.start_called_count = 0 # For the new start method
+        self.start_called_count = 0  # For the new start method
         FakeRuntimeCommandSource._instances.append(self)
 
     def start(self):
         # This mock implementation can be simple, e.g., just pass
         # or call self.start_async() if that makes sense for the fake.
         # For now, let's make it call start_async if it exists.
-        self.start_called_count += 1 # Record that start() was called.
-        if hasattr(self, 'start_async') and callable(self.start_async):
+        self.start_called_count += 1  # Record that start() was called.
+        if hasattr(self, "start_async") and callable(self.start_async):
             # The actual start_async in the fake takes watcher and runtime,
             # which are not available here. The SUT directly calls start().
             # The real RuntimeCommandSource.start() method is synchronous and starts a thread.
             # So, the fake start() should just note it was called.
             # If a test needs to verify what the thread would do, that's covered by start_async.
-            pass # Do not call self.start_async() as it requires arguments not available here.
+            pass  # Do not call self.start_async() as it requires arguments not available here.
         pass
 
-    def start_async(self, watcher, runtime): 
+    def start_async(self, watcher, runtime):
         self.start_async_called_with = (watcher, runtime)
         self.start_async_call_count += 1
-        
+
     @classmethod
     def get_last_instance(cls):
         return cls._instances[-1] if cls._instances else None
@@ -284,15 +295,18 @@ def test_init(
     fake_command_queue,
 ):
     """Test RemoteRuntimeFactory.__init__."""
-    assert factory._initializer_instance is fake_initializer 
+    assert factory._initializer_instance is fake_initializer
     assert (
-        factory._RemoteRuntimeFactory__event_source_queue is fake_event_queue # Corrected attribute name
+        factory._RemoteRuntimeFactory__event_source_queue
+        is fake_event_queue  # Corrected attribute name
     )
     assert (
-        factory._RemoteRuntimeFactory__data_reader_queue is fake_data_sink_queue # Corrected attribute name
+        factory._RemoteRuntimeFactory__data_reader_queue
+        is fake_data_sink_queue  # Corrected attribute name
     )
     assert (
-        factory._RemoteRuntimeFactory__command_source_queue is fake_command_queue # Corrected attribute name
+        factory._RemoteRuntimeFactory__command_source_queue
+        is fake_command_queue  # Corrected attribute name
     )
 
     # Check parent RuntimeFactory's other_config (which is RuntimeConfig's _other_config)
@@ -341,8 +355,8 @@ def test_create_method(
         fake_thread_watcher,
         fake_data_handler,
         fake_grpc_channel_factory,
-        FakeEventSource.get_last_instance(), # Assuming it's the event_poller
-        FakeDataReaderSink.get_last_instance(), # Assuming it's the remote_data_reader
+        FakeEventSource.get_last_instance(),  # Assuming it's the event_poller
+        FakeDataReaderSink.get_last_instance(),  # Assuming it's the remote_data_reader
     )
 
     # Assert FakeEventSource interactions
@@ -350,7 +364,7 @@ def test_create_method(
     assert event_source_instance is not None
     assert (
         event_source_instance.event_source_queue
-        is factory._RemoteRuntimeFactory__event_source_queue # Corrected attribute name
+        is factory._RemoteRuntimeFactory__event_source_queue  # Corrected attribute name
     )
     assert event_source_instance.start_call_count == 1
     assert event_source_instance.start_called_with is fake_thread_watcher
@@ -361,10 +375,11 @@ def test_create_method(
     assert data_reader_sink_instance is not None
     assert (
         data_reader_sink_instance.data_reader_queue_sink
-        is factory._RemoteRuntimeFactory__data_reader_queue # Corrected attribute name
+        is factory._RemoteRuntimeFactory__data_reader_queue  # Corrected attribute name
     )
     assert (
-        factory._RemoteRuntimeFactory__data_reader_sink is data_reader_sink_instance # Corrected attribute name
+        factory._RemoteRuntimeFactory__data_reader_sink
+        is data_reader_sink_instance  # Corrected attribute name
     )
 
     # Assert FakeRuntimeCommandSource interactions
@@ -372,9 +387,11 @@ def test_create_method(
     assert command_source_instance is not None
     assert (
         command_source_instance.command_queue_source
-        is factory._RemoteRuntimeFactory__command_source_queue # Corrected attribute name
+        is factory._RemoteRuntimeFactory__command_source_queue  # Corrected attribute name
     )
-    assert command_source_instance.start_called_count == 1 # Changed from start_async_call_count
+    assert (
+        command_source_instance.start_called_count == 1
+    )  # Changed from start_async_call_count
     # Removed assertion for start_async_called_with
     assert (
         factory._RemoteRuntimeFactory__command_source
@@ -398,7 +415,7 @@ def test_remote_data_reader_method(
     assert factory._remote_data_reader() is data_reader_sink_instance
     assert (
         factory._remote_data_reader()
-        is factory._RemoteRuntimeFactory__data_reader_sink # Corrected attribute name
+        is factory._RemoteRuntimeFactory__data_reader_sink  # Corrected attribute name
     )
 
 

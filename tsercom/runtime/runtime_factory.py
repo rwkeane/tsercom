@@ -1,4 +1,5 @@
 """Abstract base class for Tsercom runtime factories."""
+
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
@@ -23,8 +24,9 @@ class RuntimeFactory(
     Extends `RuntimeInitializer` and requires implementations to provide
     a `RemoteDataReader` and an `AsyncPoller` for event handling.
     """
+
     @property
-    @abstractmethod # Properties that must be implemented by subclasses
+    @abstractmethod  # Properties that must be implemented by subclasses
     def remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
@@ -35,7 +37,7 @@ class RuntimeFactory(
         pass
 
     @property
-    @abstractmethod # Properties that must be implemented by subclasses
+    @abstractmethod  # Properties that must be implemented by subclasses
     def event_poller(
         self,
     ) -> AsyncPoller[EventInstance[TEventType]]:

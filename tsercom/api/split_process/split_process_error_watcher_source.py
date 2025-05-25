@@ -16,6 +16,7 @@ class SplitProcessErrorWatcherSource:
     different process that put it onto the queue via a corresponding sink),
     it's passed to a local `ThreadWatcher` instance.
     """
+
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -43,7 +44,7 @@ class SplitProcessErrorWatcherSource:
         Raises:
             RuntimeError: If `start` is called when the source is already running.
         """
-        self.__is_running.start() # Will raise RuntimeError if already running.
+        self.__is_running.start()  # Will raise RuntimeError if already running.
 
         def loop_until_exception() -> None:
             """Polls the exception queue and reports exceptions until stopped."""
@@ -54,7 +55,7 @@ class SplitProcessErrorWatcherSource:
                     self.__thread_watcher.on_exception_seen(remote_exception)
 
         self.__thread = self.__thread_watcher.create_tracked_thread(
-            target=loop_until_exception # Pass target for clarity
+            target=loop_until_exception  # Pass target for clarity
         )
         self.__thread.start()
 
@@ -68,7 +69,7 @@ class SplitProcessErrorWatcherSource:
         Raises:
             RuntimeError: If `stop` is called when the source is not currently running.
         """
-        self.__is_running.stop() # Will raise RuntimeError if not running.
+        self.__is_running.stop()  # Will raise RuntimeError if not running.
         # Note: Consider joining self.__thread here if immediate cleanup is critical,
         # though IsRunningTracker pattern usually means the thread exits cleanly.
 

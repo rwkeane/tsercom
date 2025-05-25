@@ -1,4 +1,5 @@
 """Provides EventLoopFactory for creating and managing asyncio event loops that run in separate threads, monitored by a ThreadWatcher."""
+
 import asyncio
 from typing import Any, Optional
 import threading
@@ -14,6 +15,7 @@ class EventLoopFactory:
 
     The event loop runs in a separate thread and is monitored by a ThreadWatcher.
     """
+
     def __init__(self, watcher: "ThreadWatcher") -> None:
         """
         Initializes the EventLoopFactory.
@@ -26,9 +28,13 @@ class EventLoopFactory:
             TypeError: If the watcher is not a subclass of ThreadWatcher.
         """
         if watcher is None:
-            raise ValueError("Watcher argument cannot be None for EventLoopFactory.")
+            raise ValueError(
+                "Watcher argument cannot be None for EventLoopFactory."
+            )
         if not issubclass(type(watcher), ThreadWatcher):
-            raise TypeError(f"Watcher must be a subclass of ThreadWatcher, got {type(watcher).__name__}.")
+            raise TypeError(
+                f"Watcher must be a subclass of ThreadWatcher, got {type(watcher).__name__}."
+            )
         self.__watcher = watcher
 
         # These attributes are initialized in the start_asyncio_loop method.
@@ -63,10 +69,15 @@ class EventLoopFactory:
             exception = context.get("exception")
             message = context.get("message")
             if exception:
-                logging.error(f"Unhandled exception in event loop: {message}", exc_info=exception)
+                logging.error(
+                    f"Unhandled exception in event loop: {message}",
+                    exc_info=exception,
+                )
                 self.__watcher.on_exception_seen(exception)
             else:
-                logging.critical(f"Event loop exception handler called without an exception. Context message: {message}")
+                logging.critical(
+                    f"Event loop exception handler called without an exception. Context message: {message}"
+                )
 
         def start_event_loop() -> None:
             """
@@ -84,7 +95,7 @@ class EventLoopFactory:
             self.__event_loop = local_event_loop
 
             # The loop is in a good state. Continue execution of the ctor.
-            barrier.set() # Signal that the event loop is set up and running.
+            barrier.set()  # Signal that the event loop is set up and running.
             local_event_loop.run_forever()
 
         self.__event_loop_thread = self.__watcher.create_tracked_thread(
@@ -96,5 +107,7 @@ class EventLoopFactory:
 
         # At this point, self.__event_loop should have been set by start_event_loop.
         # If it's not, something went wrong in thread initialization.
-        assert self.__event_loop is not None, "Event loop was not initialized in the thread."
+        assert (
+            self.__event_loop is not None
+        ), "Event loop was not initialized in the thread."
         return self.__event_loop

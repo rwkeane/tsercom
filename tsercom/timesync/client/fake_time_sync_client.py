@@ -37,8 +37,10 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
                       (Note: Not used in the current fake implementation).
         """
         self.__watcher = watcher
-        self.__server_ip = server_ip  # IP of the server to sync with (unused in fake).
-        self.__ntp_port = ntp_port    # Port for NTP (unused in fake).
+        self.__server_ip = (
+            server_ip  # IP of the server to sync with (unused in fake).
+        )
+        self.__ntp_port = ntp_port  # Port for NTP (unused in fake).
 
         # __sync_loop_thread: Intended to be the thread that would run an actual
         # NTP synchronization loop. In this fake implementation, it remains None
@@ -92,7 +94,9 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
 
         with self.__time_offset_lock:
             count = len(self.__time_offsets)
-            assert count > 0, "Time offsets deque should not be empty after start."
+            assert (
+                count > 0
+            ), "Time offsets deque should not be empty after start."
             return sum(self.__time_offsets) / count
 
     def is_running(self) -> bool:
@@ -112,7 +116,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         clears the start barrier, effectively resetting the client.
         """
         self.__is_running.set(False)
-        self.__start_barrier.clear() # Ensure get_offset_seconds blocks until next start.
+        self.__start_barrier.clear()  # Ensure get_offset_seconds blocks until next start.
 
     def start_async(self) -> None:
         """

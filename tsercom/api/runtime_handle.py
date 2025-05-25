@@ -1,7 +1,7 @@
 """Defines the abstract base class for a runtime handle."""
 
 from abc import ABC, abstractmethod
-import datetime # Keep 'import datetime' as 'datetime.datetime' is used
+import datetime  # Keep 'import datetime' as 'datetime.datetime' is used
 from typing import Generic, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -37,7 +37,6 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
         # For an ABC, it's better to make the property itself abstract
         # or implement it using an abstract method if there's common logic.
         raise NotImplementedError()
-
 
     @abstractmethod
     def start(self) -> None:

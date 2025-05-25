@@ -1,4 +1,5 @@
 """Configuration for Tsercom runtimes, specifying service type and data handling."""
+
 from enum import Enum
 from typing import Literal, Optional, TypeVar, overload
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
@@ -14,6 +15,7 @@ class RuntimeConfig:
     and data timeout settings. It supports initialization by direct parameters
     or by copying from another `RuntimeConfig` instance.
     """
+
     @overload
     def __init__(
         self,
@@ -38,7 +40,8 @@ class RuntimeConfig:
     def __init__(
         self,
         service_type: Optional[
-            Literal["Client", "Server"] | "ServiceType" # Actually ServiceType enum
+            Literal["Client", "Server"]
+            | "ServiceType"  # Actually ServiceType enum
         ] = None,
         *,
         other_config: Optional["RuntimeConfig"] = None,
@@ -70,9 +73,9 @@ class RuntimeConfig:
             # Call __init__ directly to bypass overload resolution issues with self-recursion
             # and to correctly set private attributes of the new instance.
             # This is a common pattern for implementing copy constructors in Python.
-            RuntimeConfig.__init__( # type: ignore
-                self, # type: ignore
-                service_type=other_config.__service_type, # type: ignore
+            RuntimeConfig.__init__(  # type: ignore
+                self,  # type: ignore
+                service_type=other_config.__service_type,  # type: ignore
                 data_aggregator_client=other_config.data_aggregator_client,
                 timeout_seconds=other_config.timeout_seconds,
             )
@@ -86,9 +89,11 @@ class RuntimeConfig:
             else:
                 raise ValueError(f"Invalid service type: {service_type}")
         else:
-                self.__service_type = service_type # type: ignore
+            self.__service_type = service_type  # type: ignore
 
-        self.__data_aggregator_client: Optional[RemoteDataAggregator] = data_aggregator_client
+        self.__data_aggregator_client: Optional[RemoteDataAggregator] = (
+            data_aggregator_client
+        )
         self.__timeout_seconds: Optional[int] = timeout_seconds
 
     def is_client(self) -> bool:
@@ -137,5 +142,6 @@ class RuntimeConfig:
 
 class ServiceType(Enum):
     """Enumerates the operational roles for a Tsercom runtime."""
+
     kClient = 1
     kServer = 2

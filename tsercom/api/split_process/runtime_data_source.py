@@ -7,7 +7,7 @@ child process, using multiprocess queues.
 
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.runtime.runtime import Runtime
 from tsercom.api.runtime_command import RuntimeCommand
@@ -29,6 +29,7 @@ class RuntimeDataSource(Generic[TEventType]):
     method, and commands (like start/stop) are executed on the runtime.
     Communication is primarily designed for runtimes in separate processes.
     """
+
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -44,16 +45,15 @@ class RuntimeDataSource(Generic[TEventType]):
         """
         self.__thread_watcher: ThreadWatcher = thread_watcher
         self.__event_queue: MultiprocessQueueSource[TEventType] = event_queue
-        self.__runtime_command_queue: MultiprocessQueueSource[RuntimeCommand] = (
-            runtime_command_queue
-        )
+        self.__runtime_command_queue: MultiprocessQueueSource[
+            RuntimeCommand
+        ] = runtime_command_queue
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
         self.__thread_pool: ThreadPoolExecutor | None = None
         self.__runtime: Runtime | None = None
         self.__command_thread: threading.Thread | None = None
         self.__event_thread: threading.Thread | None = None
-
 
     def start_async(self, runtime: Runtime) -> None:
         """Starts the threads for watching command and event queues.
@@ -64,12 +64,14 @@ class RuntimeDataSource(Generic[TEventType]):
 
         Args:
             runtime: The Runtime instance to which commands and events will be directed.
-        
+
         Raises:
             AssertionError: If called when already running or if runtime is already set.
         """
         # Ensure start_async is called in a valid state (not already running).
-        assert not self.__is_running.get(), "RuntimeDataSource is already running."
+        assert (
+            not self.__is_running.get()
+        ), "RuntimeDataSource is already running."
         assert self.__runtime is None, "Runtime instance is already set."
 
         self.__is_running.start()
@@ -87,12 +89,12 @@ class RuntimeDataSource(Generic[TEventType]):
             while self.__is_running.get():
                 command = self.__runtime_command_queue.get_blocking(timeout=1)
                 if command is None:
-                    continue # Timeout, check is_running again.
+                    continue  # Timeout, check is_running again.
 
                 # Ensure runtime and thread_pool are available.
                 if self.__runtime is None or self.__thread_pool is None:
                     # Should not happen if start_async initializes correctly.
-                    break 
+                    break
 
                 if command == RuntimeCommand.kStart:
                     self.__thread_pool.submit(self.__runtime.start_async)
@@ -108,11 +110,11 @@ class RuntimeDataSource(Generic[TEventType]):
             while self.__is_running.get():
                 event = self.__event_queue.get_blocking(timeout=1)
                 if event is None:
-                    continue # Timeout, check is_running again.
-                
+                    continue  # Timeout, check is_running again.
+
                 # Ensure runtime and thread_pool are available.
                 if self.__runtime is None or self.__thread_pool is None:
-                     # Should not happen if start_async initializes correctly.
+                    # Should not happen if start_async initializes correctly.
                     break
 
                 self.__thread_pool.submit(self.__runtime.on_event, event)
@@ -134,7 +136,7 @@ class RuntimeDataSource(Generic[TEventType]):
         current polling attempt (with timeout) completes and they observe
         the changed `is_running` state. This also shuts down the internal
         thread pool.
-        
+
         Raises:
             AssertionError: If not currently running.
         """
@@ -144,6 +146,8 @@ class RuntimeDataSource(Generic[TEventType]):
         # Note: Consider waiting for threads to join if necessary,
         # and for the thread pool to shut down completely.
         if self.__thread_pool:
-            self.__thread_pool.shutdown(wait=False) # `wait=False` for quicker stop
-        
+            self.__thread_pool.shutdown(
+                wait=False
+            )  # `wait=False` for quicker stop
+
         # Explicitly clear runtime and thread pool if desired for faster GC or state reset.

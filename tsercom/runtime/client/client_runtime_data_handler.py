@@ -4,6 +4,7 @@ This module defines `ClientRuntimeDataHandler` which is responsible for
 managing data flow, caller registration, and time synchronization aspects
 for Tsercom runtimes operating in a client role.
 """
+
 from typing import Generic, TypeVar
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -35,6 +36,7 @@ class ClientRuntimeDataHandler(
     network endpoints. It processes incoming events and makes data
     available via a `RemoteDataReader`.
     """
+
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -91,7 +93,9 @@ class ClientRuntimeDataHandler(
         address_port_tuple = self.__id_tracker.try_get(caller_id)
 
         if address_port_tuple is not None:
-            address, _ = address_port_tuple  # port is not needed for on_disconnect
+            address, _ = (
+                address_port_tuple  # port is not needed for on_disconnect
+            )
             self.__id_tracker.remove(caller_id)
             self.__clock_tracker.on_disconnect(address)
             return True

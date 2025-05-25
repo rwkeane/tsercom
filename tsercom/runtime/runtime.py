@@ -1,4 +1,5 @@
 """Defines the Runtime abstract base class, representing a service that can be started and stopped."""
+
 from abc import ABC, abstractmethod
 
 from tsercom.util.stopable import Stopable

@@ -4,6 +4,7 @@ It listens for mDNS records (SRV, A/AAAA, TXT) via a RecordListener,
 constructs ServiceInfo objects from these records, and notifies a client
 upon the discovery of a complete service instance.
 """
+
 from abc import ABC, abstractmethod
 from functools import partial
 import socket
@@ -35,6 +36,7 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         instance, matching the type monitored by the `InstanceListener`,
         is discovered.
         """
+
         @abstractmethod
         async def _on_service_added(
             self, connection_info: TServiceInfo
@@ -46,9 +48,15 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
                                  service, of type `TServiceInfo`.
             """
             # This method must be implemented by concrete client classes.
-            raise NotImplementedError("InstanceListener.Client._on_service_added must be implemented by subclasses.")
+            raise NotImplementedError(
+                "InstanceListener.Client._on_service_added must be implemented by subclasses."
+            )
 
-    def __init__(self, client: "InstanceListener.Client[TServiceInfo]", service_type: str) -> None:
+    def __init__(
+        self,
+        client: "InstanceListener.Client[TServiceInfo]",
+        service_type: str,
+    ) -> None:
         """Initializes the InstanceListener.
 
         Args:
@@ -63,10 +71,14 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
                        or if `service_type` is not a string.
         """
         if client is None:
-            raise ValueError("Client argument cannot be None for InstanceListener.")
+            raise ValueError(
+                "Client argument cannot be None for InstanceListener."
+            )
         # Note: issubclass check might be too restrictive if duck typing is intended,
         # but for typed code, it's a reasonable assertion.
-        if not isinstance(client, InstanceListener.Client): # isinstance is usually preferred for ABCs
+        if not isinstance(
+            client, InstanceListener.Client
+        ):  # isinstance is usually preferred for ABCs
             raise TypeError(
                 f"Client must be an instance of InstanceListener.Client, got {type(client).__name__}."
             )
@@ -83,10 +95,10 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
         # to build a cohesive ServiceInfo object representing a discovered service.
         self,
-        record_name: str, # Typically the mDNS instance name
+        record_name: str,  # Typically the mDNS instance name
         port: int,
-        addresses: List[bytes], # List of raw IP addresses (binary format)
-        txt_record: Dict[bytes, bytes | None], # Raw TXT record data
+        addresses: List[bytes],  # List of raw IP addresses (binary format)
+        txt_record: Dict[bytes, bytes | None],  # Raw TXT record data
     ) -> Optional[ServiceInfo]:
         """Constructs a `ServiceInfo` object from raw mDNS record data.
 
@@ -101,7 +113,9 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
             (like convertible IP addresses) is missing.
         """
         if not addresses:
-            logging.warning(f"No IP addresses available for service '{record_name}' at port {port}. Cannot populate ServiceInfo.")
+            logging.warning(
+                f"No IP addresses available for service '{record_name}' at port {port}. Cannot populate ServiceInfo."
+            )
             return None
 
         addresses_out: List[str] = []
@@ -113,8 +127,10 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
                 address_str = socket.inet_ntoa(addr_bytes)
                 addresses_out.append(address_str)
             except (socket.error, TypeError, ValueError) as e:
-                logging.warning(f"Failed to convert address bytes to string for service '{record_name}': {e}")
-                continue # Skip this address and try the next one.
+                logging.warning(
+                    f"Failed to convert address bytes to string for service '{record_name}': {e}"
+                )
+                continue  # Skip this address and try the next one.
 
         if not addresses_out:
             logging.warning(
@@ -124,7 +140,7 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
 
         # The key 'name' is a common convention but not a strict standard.
         readable_name_str: str
-        name_key_bytes = b"name" # Use bytes literal for dict key
+        name_key_bytes = b"name"  # Use bytes literal for dict key
         txt_value_bytes = txt_record.get(name_key_bytes)
 
         if txt_value_bytes is not None:
@@ -132,12 +148,14 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
                 readable_name_str = txt_value_bytes.decode("utf-8")
             except UnicodeDecodeError:
                 # If decoding fails, fall back to the record_name.
-                logging.warning(f"Failed to decode TXT record 'name' for '{record_name}'. Using record name as fallback.")
+                logging.warning(
+                    f"Failed to decode TXT record 'name' for '{record_name}'. Using record name as fallback."
+                )
                 readable_name_str = record_name
         else:
             # If 'name' key is not in TXT record, use the mDNS instance name.
             readable_name_str = record_name
-        
+
         # Subclasses might override _convert_service_info to create a TServiceInfo instance.
         return ServiceInfo(readable_name_str, port, addresses_out, record_name)
 
@@ -170,10 +188,10 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
 
     def _on_service_added(
         self,
-        record_name: str, # mDNS instance name
-        port: int,        # Service port from SRV record
-        addresses: List[bytes], # IP addresses from A/AAAA records (binary)
-        txt_record: Dict[bytes, bytes | None], # Parsed TXT record
+        record_name: str,  # mDNS instance name
+        port: int,  # Service port from SRV record
+        addresses: List[bytes],  # IP addresses from A/AAAA records (binary)
+        txt_record: Dict[bytes, bytes | None],  # Parsed TXT record
     ) -> None:
         """Callback from `RecordListener` when all necessary mDNS records for a service are available.
 
@@ -194,10 +212,12 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         if base_service_info is None:
             # If essential info couldn't be populated, do not proceed.
             return
-        
+
         # This step allows subclasses to create more specialized info objects.
-        typed_service_info = self._convert_service_info(base_service_info, txt_record)
-        
+        typed_service_info = self._convert_service_info(
+            base_service_info, txt_record
+        )
+
         # The client's _on_service_added method is expected to be a coroutine.
         run_on_event_loop(
             partial(self.__client._on_service_added, typed_service_info)

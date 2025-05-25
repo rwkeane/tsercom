@@ -1,5 +1,6 @@
 """Provides an asynchronous gRPC server component for the GetId method."""
-from typing import Callable, Optional, Any
+
+from typing import Callable, Optional
 import logging
 import grpc
 
@@ -53,7 +54,9 @@ class AsyncGetIdServer:
         Returns:
             A GetIdResponse containing the new CallerIdentifier.
         """
-        new_id = CallerIdentifier() # Renamed from 'id' to avoid shadowing built-in
+        new_id = (
+            CallerIdentifier()
+        )  # Renamed from 'id' to avoid shadowing built-in
         if self.__callback is not None:
             self.__callback(new_id)
         try:
@@ -63,6 +66,9 @@ class AsyncGetIdServer:
                 await self.__on_disconnect_handler._on_disconnect(e)
             if isinstance(e, AssertionError):
                 raise
-            logging.error(f"Error during GetId processing for context {context.peer() if context else 'Unknown'}: {e}", exc_info=True)
+            logging.error(
+                f"Error during GetId processing for context {context.peer() if context else 'Unknown'}: {e}",
+                exc_info=True,
+            )
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION)
             return GetIdResponse()

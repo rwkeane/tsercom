@@ -1,6 +1,7 @@
 """Provides IdTracker for managing bidirectional mappings between CallerIdentifiers and network addresses."""
+
 import threading
-from typing import Dict, Optional, overload, Iterator, Tuple
+from typing import Dict, Optional, overload, Iterator
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
@@ -62,9 +63,11 @@ class IdTracker:
         with self.__lock:
             if id is not None:
                 return self.__id_to_address.get(id)
-            elif address is not None and port is not None: # Ensure port is not None for type safety
+            elif (
+                address is not None and port is not None
+            ):  # Ensure port is not None for type safety
                 return self.__address_to_id.get((address, port))
-        return None # Should not be reached given the initial checks, but as a fallback
+        return None  # Should not be reached given the initial checks, but as a fallback
 
     @overload
     def get(self, id: CallerIdentifier) -> tuple[str, int]:
@@ -98,11 +101,15 @@ class IdTracker:
             ValueError: If incorrect arguments are provided.
             KeyError: If the lookup key is not found.
         """
-        result = self.try_get(id=id, address=address, port=port) # Use named args for clarity
+        result = self.try_get(
+            id=id, address=address, port=port
+        )  # Use named args for clarity
         if result is None:
-            raise KeyError(f"Key not found for query: id={id}, address={address}, port={port}")
+            raise KeyError(
+                f"Key not found for query: id={id}, address={address}, port={port}"
+            )
 
-        return result # Type of result is correctly inferred by mypy here based on overload
+        return result  # Type of result is correctly inferred by mypy here based on overload
 
     def add(self, id: CallerIdentifier, address: str, port: int) -> None:
         """Adds a new bidirectional mapping to the tracker.
@@ -119,7 +126,9 @@ class IdTracker:
             if id in self.__id_to_address:
                 raise KeyError(f"ID {id} already exists in tracker.")
             if (address, port) in self.__address_to_id:
-                raise KeyError(f"Address ({address}:{port}) already exists in tracker.")
+                raise KeyError(
+                    f"Address ({address}:{port}) already exists in tracker."
+                )
 
             self.__address_to_id[(address, port)] = id
             self.__id_to_address[id] = (address, port)

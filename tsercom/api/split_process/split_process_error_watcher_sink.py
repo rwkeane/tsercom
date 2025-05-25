@@ -16,6 +16,7 @@ class SplitProcessErrorWatcherSink(ErrorWatcher):
     `MultiprocessQueueSink` before re-raising it. This allows a parent process
     to observe exceptions occurring in the child process.
     """
+
     def __init__(
         self,
         thread_watcher: ThreadWatcher,

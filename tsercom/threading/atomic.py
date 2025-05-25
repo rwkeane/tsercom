@@ -7,6 +7,7 @@ value are performed atomically using a `threading.Lock`. This makes it suitable
 for sharing simple values between multiple threads without explicit locking
 at the call site.
 """
+
 import threading
 from typing import Generic, TypeVar
 
@@ -30,7 +31,7 @@ class Atomic(Generic[TType]):
             value (TType): The initial value to be stored atomically.
         """
         self.__value: TType = value
-        self.__lock = threading.Lock() # Lock to ensure atomic operations
+        self.__lock = threading.Lock()  # Lock to ensure atomic operations
 
     def set(self, value: TType) -> None:
         """

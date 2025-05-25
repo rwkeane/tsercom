@@ -16,10 +16,13 @@ class RuntimeCommandBridge:
     be issued before the actual Runtime instance is available. It stores the
     last command and executes it once the Runtime is set.
     """
+
     def __init__(self) -> None:
         """Initializes the RuntimeCommandBridge."""
         # Stores the last command received if the runtime is not yet set.
-        self.__state: Atomic[Optional[RuntimeCommand]] = Atomic[Optional[RuntimeCommand]](None)
+        self.__state: Atomic[Optional[RuntimeCommand]] = Atomic[
+            Optional[RuntimeCommand]
+        ](None)
 
         self.__runtime: Optional[Runtime] = None
         self.__runtime_mutex: Lock = Lock()
@@ -39,7 +42,9 @@ class RuntimeCommandBridge:
         with self.__runtime_mutex:
             # Ensure runtime is set only once.
             if self.__runtime is not None:
-                raise RuntimeError("Runtime has already been set and cannot be changed.")
+                raise RuntimeError(
+                    "Runtime has already been set and cannot be changed."
+                )
             self.__runtime = runtime
 
             pending_command = self.__state.get()
@@ -49,9 +54,8 @@ class RuntimeCommandBridge:
                 run_on_event_loop(runtime.start_async)
             elif pending_command == RuntimeCommand.kStop:
                 run_on_event_loop(runtime.stop)
-            
-            self.__state.set(None)
 
+            self.__state.set(None)
 
     def start(self) -> None:
         """Requests the Runtime to start.

@@ -139,7 +139,6 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
         # For robustness, we handle it, but typical usage implies all_data_status will be a dict.
         return bool(all_data_status)
 
-
     @overload
     def get_new_data(self) -> Dict[CallerIdentifier, List[TDataType]]:
         """Retrieves all new data items for all callers.

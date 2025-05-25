@@ -27,6 +27,7 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
         Clients implement this interface to receive notifications when a
         RuntimeHandle is ready after a factory creation.
         """
+
         @abstractmethod
         def _on_handle_ready(
             self, handle: RuntimeHandle[TDataType, TEventType]
@@ -87,12 +88,16 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
         """
         # Ensure the client is valid before proceeding.
         if client is None:
-            raise ValueError("Client argument cannot be None for create_factory.")
+            raise ValueError(
+                "Client argument cannot be None for create_factory."
+            )
         if not isinstance(client, RuntimeFactoryFactory.Client):
-            raise TypeError(f"Client must be an instance of RuntimeFactoryFactory.Client, got {type(client).__name__}.")
+            raise TypeError(
+                f"Client must be an instance of RuntimeFactoryFactory.Client, got {type(client).__name__}."
+            )
 
         handle, factory = self._create_pair(initializer)
-        
+
         client._on_handle_ready(handle)
-        
+
         return factory

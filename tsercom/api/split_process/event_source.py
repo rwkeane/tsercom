@@ -58,7 +58,9 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
                 if remote_instance is not None:
                     self.on_available(remote_instance)
 
-        thread = thread_watcher.create_tracked_thread(target=loop_until_exception)
+        thread = thread_watcher.create_tracked_thread(
+            target=loop_until_exception
+        )
         thread.start()
 
     def stop(self) -> None:

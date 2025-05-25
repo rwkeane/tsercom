@@ -11,6 +11,7 @@ from tsercom.data.exposed_data import ExposedData
 # --- Concrete implementation of RemoteDataResponder for testing ---
 class ConcreteImplRemoteDataResponder(RemoteDataResponder):
     """A concrete implementation of RemoteDataResponder for testing purposes."""
+
     def __init__(self):
         # Mock the method that will be called, so we can make assertions on it.
         self._on_response_ready_mock = MagicMock()
@@ -18,16 +19,19 @@ class ConcreteImplRemoteDataResponder(RemoteDataResponder):
     def _on_response_ready(self, response: any) -> None:
         self._on_response_ready_mock(response)
 
+
 # --- Fixtures ---
 @pytest.fixture
 def mock_caller_id(mocker):
     """Provides a mock CallerIdentifier."""
     return MagicMock(spec=CallerIdentifier)
 
+
 @pytest.fixture
 def mock_timestamp(mocker):
     """Provides a mock datetime.datetime object."""
     return MagicMock(spec=datetime.datetime)
+
 
 @pytest.fixture
 def valid_responder_mock_method():
@@ -43,16 +47,18 @@ def test_exposed_data_with_responder_initialization_success(
 ):
     """Tests successful initialization of ExposedDataWithResponder."""
     responder_instance = valid_responder_mock_method
-    
+
     exposed_data = ExposedDataWithResponder(
         caller_id=mock_caller_id,
         timestamp=mock_timestamp,
-        responder=responder_instance
+        responder=responder_instance,
     )
     assert exposed_data.caller_id is mock_caller_id
     assert exposed_data.timestamp is mock_timestamp
     # Accessing private __responder attribute for verification is common in testing
-    assert exposed_data._ExposedDataWithResponder__responder is responder_instance
+    assert (
+        exposed_data._ExposedDataWithResponder__responder is responder_instance
+    )
 
 
 def test_exposed_data_with_responder_init_raises_assertion_error_if_responder_is_none(
@@ -60,46 +66,52 @@ def test_exposed_data_with_responder_init_raises_assertion_error_if_responder_is
 ):
     """Tests that AssertionError is raised if the responder is None."""
     # The original assert is `assert responder is not None` (no custom message)
-    with pytest.raises(AssertionError): # Removed 'match' as assert has no message
+    with pytest.raises(
+        AssertionError
+    ):  # Removed 'match' as assert has no message
         ExposedDataWithResponder(
-            caller_id=mock_caller_id,
-            timestamp=mock_timestamp,
-            responder=None
+            caller_id=mock_caller_id, timestamp=mock_timestamp, responder=None
         )
+
 
 def test_exposed_data_with_responder_init_raises_assertion_error_if_responder_is_invalid_type(
     mock_caller_id, mock_timestamp
 ):
     """Tests that AssertionError is raised if the responder is not a RemoteDataResponder subclass."""
-    class NotAResponder: # Does not inherit from RemoteDataResponder
+
+    class NotAResponder:  # Does not inherit from RemoteDataResponder
         pass
 
     invalid_responder = NotAResponder()
     # The original assert is `assert issubclass(type(responder), RemoteDataResponder)` (no custom message)
-    with pytest.raises(AssertionError): # Removed 'match'
+    with pytest.raises(AssertionError):  # Removed 'match'
         ExposedDataWithResponder(
             caller_id=mock_caller_id,
             timestamp=mock_timestamp,
-            responder=invalid_responder
+            responder=invalid_responder,
         )
+
 
 def test_exposed_data_with_responder_respond_method_calls_responder_on_response_ready(
     mock_caller_id, mock_timestamp, valid_responder_mock_method
 ):
     """Tests that _respond() calls _on_response_ready() on the responder."""
     responder_instance = valid_responder_mock_method
-    
+
     exposed_data = ExposedDataWithResponder(
         caller_id=mock_caller_id,
         timestamp=mock_timestamp,
-        responder=responder_instance
+        responder=responder_instance,
     )
-    
+
     response_payload = {"data": "test_response"}
     exposed_data._respond(response_payload)
-    
+
     # Assert that the mock method on our concrete responder instance was called
-    responder_instance._on_response_ready_mock.assert_called_once_with(response_payload)
+    responder_instance._on_response_ready_mock.assert_called_once_with(
+        response_payload
+    )
+
 
 # Test with a direct mock that uses create_autospec for more robust type checking if needed
 # This is an alternative to the ConcreteImplRemoteDataResponder approach
@@ -113,6 +125,7 @@ def autospec_mock_responder(mocker):
     mock = mocker.create_autospec(RemoteDataResponder, instance=True)
     return mock
 
+
 def test_exposed_data_with_responder_init_with_autospec_mock_responder_fails_issubclass(
     mock_caller_id, mock_timestamp, autospec_mock_responder
 ):
@@ -125,8 +138,9 @@ def test_exposed_data_with_responder_init_with_autospec_mock_responder_fails_iss
         ExposedDataWithResponder(
             caller_id=mock_caller_id,
             timestamp=mock_timestamp,
-            responder=autospec_mock_responder # type(autospec_mock_responder) is MagicMock
+            responder=autospec_mock_responder,  # type(autospec_mock_responder) is MagicMock
         )
+
 
 # The test 'test_exposed_data_with_responder_init_with_mocked_subclass_of_responder'
 # from the previous attempt is now effectively covered by using ConcreteImplRemoteDataResponder

@@ -22,9 +22,9 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
 
     def __init__(
         self,
-        error_cb: Callable[[Exception], None], # Callback for exceptions
-        *args: Any, # Positional arguments for ThreadPoolExecutor
-        **kwargs: Any, # Keyword arguments for ThreadPoolExecutor
+        error_cb: Callable[[Exception], None],  # Callback for exceptions
+        *args: Any,  # Positional arguments for ThreadPoolExecutor
+        **kwargs: Any,  # Keyword arguments for ThreadPoolExecutor
     ) -> None:
         """
         Initializes a ThrowingThreadPoolExecutor.
@@ -62,6 +62,7 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
                        The future will raise the original exception upon `result()`
                        if one occurred in `fn`.
         """
+
         def wrapper(*args2: P.args, **kwargs2: P.kwargs) -> T:
             """
             Internal wrapper to execute the submitted function and handle exceptions.
@@ -79,13 +80,13 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
             """
             try:
                 return fn(*args2, **kwargs2)
-            except Warning as w: # Catch warnings specifically
+            except Warning as w:  # Catch warnings specifically
                 if self.__error_cb is not None:
                     self.__error_cb(w)
-                raise w # Re-raise the warning
-            except Exception as e: # Catch all other exceptions
+                raise w  # Re-raise the warning
+            except Exception as e:  # Catch all other exceptions
                 if self.__error_cb is not None:
                     self.__error_cb(e)
-                raise e # Re-raise the exception
+                raise e  # Re-raise the exception
 
         return super().submit(wrapper, *args, **kwargs)

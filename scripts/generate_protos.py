@@ -29,7 +29,9 @@ def generate_proto_file(
         sys.executable,  # Path to the Python interpreter.
         "-m",  # Run library module as a script.
         "grpc_tools.protoc",  # The gRPC tools protoc module.
-        *[f"-I{package_dir / path}" for path in import_paths],  # Include paths for proto imports.
+        *[
+            f"-I{package_dir / path}" for path in import_paths
+        ],  # Include paths for proto imports.
         f"--python_out={output_dir}",  # Output directory for generated Python code.
         f"--mypy_out={output_dir}",  # Output directory for generated mypy stubs.
         str(absolute_proto_path),  # The .proto file to compile.
@@ -142,7 +144,9 @@ def modify_generated_file(file_path: Path) -> None:
         raise
 
 
-def generate_init(package_dir: Path, proto_path: str, generated_path: Path) -> None:
+def generate_init(
+    package_dir: Path, proto_path: str, generated_path: Path
+) -> None:
     """Generates an __init__.py file for the generated protobuf package.
 
     This __init__.py file dynamically imports the correct version of the
@@ -193,7 +197,7 @@ if not TYPE_CHECKING:
 
     # Add runtime import statements for each version found.
     for versioned_dir_name, classes in versioned_dirs:
-        current_version = versioned_dir_name[1:] # Remove the 'v' prefix
+        current_version = versioned_dir_name[1:]  # Remove the 'v' prefix
         init_file_content += f"""
     elif version_string == "v{current_version}":
         from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}
@@ -237,7 +241,7 @@ def get_classes_from_file(filepath: Path) -> list[str]:
     Returns:
         A list of strings (class names). Returns an empty list if the
         file exists but has syntax errors or contains no class definitions.
-    
+
     Raises:
         FileNotFoundError: If the specified filepath does not exist.
     """

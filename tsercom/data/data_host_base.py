@@ -1,4 +1,4 @@
-from typing import Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from tsercom.data.data_host import DataHost
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -10,8 +10,6 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
-
-from typing import Any
 
 class DataHostBase(
     Generic[TDataType], DataHost[TDataType], RemoteDataReader[TDataType]
@@ -27,10 +25,12 @@ class DataHostBase(
     def __init__(
         self,
         watcher: ThreadWatcher,
-        aggregation_client: Optional[RemoteDataAggregator[TDataType].Client] = None,
+        aggregation_client: Optional[
+            RemoteDataAggregator[TDataType].Client
+        ] = None,
         timeout_seconds: int = 60,
         *args: Any,  # Pass through additional arguments to superclass
-        **kwargs: Any, # Pass through additional keyword arguments to superclass
+        **kwargs: Any,  # Pass through additional keyword arguments to superclass
     ) -> None:
         """Initializes the DataHostBase.
 
@@ -55,8 +55,10 @@ class DataHostBase(
             tracker = DataTimeoutTracker(timeout_seconds)
             tracker.start()
 
-        self.__aggregator: RemoteDataAggregatorImpl[TDataType] = RemoteDataAggregatorImpl[TDataType](
-            thread_pool, aggregation_client, tracker
+        self.__aggregator: RemoteDataAggregatorImpl[TDataType] = (
+            RemoteDataAggregatorImpl[TDataType](
+                thread_pool, aggregation_client, tracker
+            )
         )
 
         super().__init__(*args, **kwargs)

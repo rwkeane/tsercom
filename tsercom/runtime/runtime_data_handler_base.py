@@ -1,4 +1,5 @@
 """Base implementation for `RuntimeDataHandler`."""
+
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
@@ -32,6 +33,7 @@ class RuntimeDataHandlerBase(
     Handles caller registration by parsing context or direct endpoint info.
     Implements the async iterator protocol for event data.
     """
+
     def __init__(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
@@ -99,22 +101,25 @@ class RuntimeDataHandlerBase(
             extracted_port = get_client_port(context)
 
             if extracted_endpoint is None:
-                return None # Cannot register if IP cannot be determined from context
+                return None  # Cannot register if IP cannot be determined from context
             if extracted_port is None:
                 raise ValueError(
                     f"Could not determine client port from context for endpoint {extracted_endpoint}."
                 )
             actual_endpoint = extracted_endpoint
             actual_port = extracted_port
-        elif endpoint is not None and port is not None: # Explicitly check for type safety
+        elif (
+            endpoint is not None and port is not None
+        ):  # Explicitly check for type safety
             actual_endpoint = endpoint
             actual_port = port
         else:
             # This case should be theoretically unreachable due to the initial XOR check on endpoint and context,
             # and the subsequent check on endpoint/port pairing.
             # However, as a safeguard:
-            raise ValueError("Internal error: Inconsistent endpoint/port/context state.")
-
+            raise ValueError(
+                "Internal error: Inconsistent endpoint/port/context state."
+            )
 
         return self._register_caller(caller_id, actual_endpoint, actual_port)
 
@@ -201,7 +206,9 @@ class RuntimeDataHandlerBase(
 
     async def __anext__(
         self,
-    ) -> Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]:
+    ) -> Dict[
+        CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]
+    ]:
         """Retrieves the next batch of events from the event source.
 
         Implements the async iterator protocol.
@@ -221,7 +228,7 @@ class RuntimeDataHandlerBase(
 
     def _create_data_processor(
         self, caller_id: CallerIdentifier, clock: SynchronizedClock
-    ) -> EndpointDataProcessor[TDataType]: # Corrected return type
+    ) -> EndpointDataProcessor[TDataType]:  # Corrected return type
         """Factory method to create a concrete `EndpointDataProcessor`.
 
         Args:
@@ -231,8 +238,9 @@ class RuntimeDataHandlerBase(
         Returns:
             An instance of `__DataProcessorImpl`.
         """
-        return RuntimeDataHandlerBase.__DataProcessorImpl(self, caller_id, clock)
-
+        return RuntimeDataHandlerBase.__DataProcessorImpl(
+            self, caller_id, clock
+        )
 
     class __DataProcessorImpl(EndpointDataProcessor[TDataType]):
         """Concrete implementation of `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
@@ -240,6 +248,7 @@ class RuntimeDataHandlerBase(
         This nested class handles data desynchronization, caller deregistration,
         and data processing by delegating to the outer `RuntimeDataHandlerBase` instance.
         """
+
         def __init__(
             self,
             data_handler: "RuntimeDataHandlerBase[TDataType, TEventType]",
@@ -265,7 +274,9 @@ class RuntimeDataHandlerBase(
             """Deregisters the caller via the parent data handler."""
             self.__data_handler._unregister_caller(self.caller_id)
 
-        async def _process_data(self, data: TDataType, timestamp: datetime) -> None:
+        async def _process_data(
+            self, data: TDataType, timestamp: datetime
+        ) -> None:
             """Processes data by wrapping it in an `AnnotatedInstance` and passing to the parent."""
             wrapped_data = AnnotatedInstance(data, self.caller_id, timestamp)
             await self.__data_handler._on_data_ready(wrapped_data)

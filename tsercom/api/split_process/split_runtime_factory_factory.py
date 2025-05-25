@@ -1,7 +1,7 @@
 """Defines a factory for creating runtime factories and handles for split-process runtimes."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypeVar, Tuple # Retaining Tuple for explicit type hinting
+from typing import TypeVar, Tuple  # Retaining Tuple for explicit type hinting
 
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.runtime_handle import RuntimeHandle
@@ -18,8 +18,8 @@ from tsercom.threading.multiprocess.multiprocess_queue_factory import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-TDataType = TypeVar("TDataType") # Generic type for data.
-TEventType = TypeVar("TEventType") # Generic type for events.
+TDataType = TypeVar("TDataType")  # Generic type for data.
+TEventType = TypeVar("TEventType")  # Generic type for events.
 
 
 class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
@@ -29,6 +29,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
     mechanisms (queues) and instantiating `RemoteRuntimeFactory` and
     `ShimRuntimeHandle` to manage a runtime in a child process.
     """
+
     def __init__(
         self, thread_pool: ThreadPoolExecutor, thread_watcher: ThreadWatcher
     ) -> None:
@@ -47,7 +48,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
 
     def _create_pair(
         self, initializer: RuntimeInitializer[TDataType, TEventType]
-    ) -> Tuple[ # Using typing.Tuple for explicit return type
+    ) -> Tuple[  # Using typing.Tuple for explicit return type
         RuntimeHandle[TDataType, TEventType],
         RuntimeFactory[TDataType, TEventType],
     ]:
@@ -82,17 +83,17 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
 
         aggregator = RemoteDataAggregatorImpl[TDataType](
             self.__thread_pool,
-            client=initializer.data_aggregator_client, # Client to consume aggregated data.
+            client=initializer.data_aggregator_client,  # Client to consume aggregated data.
             timeout=initializer.timeout_seconds,
         )
 
         # It gets the sink end of event/command queues and source end of data queue.
         runtime_handle = ShimRuntimeHandle[TDataType, TEventType](
             self.__thread_watcher,
-            event_sink, # Sink for events to the remote runtime.
-            data_source, # Source for data from the remote runtime.
-            runtime_command_sink, # Sink for commands to the remote runtime.
-            aggregator, # The local aggregator for data.
+            event_sink,  # Sink for events to the remote runtime.
+            data_source,  # Source for data from the remote runtime.
+            runtime_command_sink,  # Sink for commands to the remote runtime.
+            aggregator,  # The local aggregator for data.
         )
 
         return runtime_handle, factory

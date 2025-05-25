@@ -5,9 +5,10 @@ This module provides the `ThreadSafeQueue` class, which is a generic wrapper
 that encapsulates Python's standard `queue.Queue`. It aims to offer a clear,
 type-hinted interface for queue operations.
 """
-import queue # Standard library queue module
-import threading # Standard library threading module
-from typing import Any, TypeVar, Generic
+
+import queue  # Standard library queue module
+import threading  # Standard library threading module
+from typing import TypeVar, Generic
 
 # Type variable for the generic type of items in the queue.
 T = TypeVar("T")
@@ -33,7 +34,9 @@ class ThreadSafeQueue(Generic[T]):
         Initializes a new thread-safe queue.
         """
         self._queue: queue.Queue[T] = queue.Queue()
-        self._lock = threading.Lock() # Lock to ensure thread safety for queue operations
+        self._lock = (
+            threading.Lock()
+        )  # Lock to ensure thread safety for queue operations
 
     def push(
         self, item: T, block: bool = True, timeout: float | None = None

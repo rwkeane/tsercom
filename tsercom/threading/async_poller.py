@@ -6,6 +6,7 @@ from a queue and asynchronously await new instances if the queue is empty.
 It manages an internal queue, synchronization primitives, and association with
 an asyncio event loop.
 """
+
 from abc import ABC
 import asyncio
 import threading
@@ -42,9 +43,13 @@ class AsyncPoller(Generic[TResultType], ABC):
         """
         self.__responses: Deque[TResultType] = Deque[TResultType]()
         self.__barrier = asyncio.Event()
-        self.__lock = threading.Lock() # Lock for thread-safe access to __responses
+        self.__lock = (
+            threading.Lock()
+        )  # Lock for thread-safe access to __responses
 
-        self.__is_loop_running = Atomic[bool](False) # Atomic flag for loop state
+        self.__is_loop_running = Atomic[bool](
+            False
+        )  # Atomic flag for loop state
 
         self.__event_loop: asyncio.AbstractEventLoop | None = None
 
@@ -69,7 +74,7 @@ class AsyncPoller(Generic[TResultType], ABC):
         """
         with self.__lock:
             # Limit queue size
-            if len(self.__responses) >= kMaxResponses: # Changed > to >=
+            if len(self.__responses) >= kMaxResponses:  # Changed > to >=
                 self.__responses.popleft()
             self.__responses.append(new_instance)
 
@@ -118,33 +123,40 @@ class AsyncPoller(Generic[TResultType], ABC):
             # First call or called after a loop shutdown.
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
-                raise RuntimeError("AsyncPoller.wait_instance called without a running event loop.")
-            self.__is_loop_running.set(True) # Mark as running ONLY when we have a loop
+                raise RuntimeError(
+                    "AsyncPoller.wait_instance called without a running event loop."
+                )
+            self.__is_loop_running.set(
+                True
+            )  # Mark as running ONLY when we have a loop
         elif not self.__is_loop_running.get():
-             # Poller was explicitly stopped.
+            # Poller was explicitly stopped.
             raise RuntimeError("AsyncPoller is stopped")
 
         # Ensure we are running on the poller's designated event loop.
-        assert self.__event_loop is not None # Should be set by now
+        assert self.__event_loop is not None  # Should be set by now
         if not is_running_on_event_loop(self.__event_loop):
             raise RuntimeError(
                 "AsyncPoller.wait_instance called from a different event loop "
                 "than it was initialized with."
             )
 
-
         while self.__is_loop_running.get():
             queue_snapshot: Deque[TResultType] | None = None
             with self.__lock:
                 if len(self.__responses) > 0:
                     queue_snapshot = self.__responses
-                    self.__responses = Deque[TResultType]() # Reset queue after taking snapshot
+                    self.__responses = Deque[
+                        TResultType
+                    ]()  # Reset queue after taking snapshot
 
             if queue_snapshot is not None:
                 responses: List[TResultType] = []
                 while len(queue_snapshot) > 0:
                     responses.append(queue_snapshot.popleft())
-                return responses # Returns non-empty list due to len check above
+                return (
+                    responses  # Returns non-empty list due to len check above
+                )
 
             self.__barrier.clear()
             try:
@@ -153,11 +165,13 @@ class AsyncPoller(Generic[TResultType], ABC):
             except asyncio.TimeoutError:
                 # Timeout is expected, continue to check __is_loop_running.
                 pass
-            
+
             # If poller was stopped while waiting, raise error.
             if not self.__is_loop_running.get():
-                raise RuntimeError("AsyncPoller is stopped while waiting for instance.")
-            
+                raise RuntimeError(
+                    "AsyncPoller is stopped while waiting for instance."
+                )
+
             # If barrier was set (new items arrived), loop again to retrieve them.
 
         # If loop terminates, it means the poller was stopped.

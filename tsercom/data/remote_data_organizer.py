@@ -29,8 +29,8 @@ class RemoteDataOrganizer(
     """
 
     class Client(ABC):
-        """Interface for clients that need to be notified by `RemoteDataOrganizer`.
-        """
+        """Interface for clients that need to be notified by `RemoteDataOrganizer`."""
+
         @abstractmethod
         def _on_data_available(
             self, data_organizer: "RemoteDataOrganizer[TDataType]"
@@ -71,7 +71,7 @@ class RemoteDataOrganizer(
 
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
-        super().__init__() # Calls __init__ of DataTimeoutTracker.Tracked if it has one (ABC usually doesn't)
+        super().__init__()  # Calls __init__ of DataTimeoutTracker.Tracked if it has one (ABC usually doesn't)
 
     @property
     def caller_id(self) -> CallerIdentifier:
@@ -89,7 +89,9 @@ class RemoteDataOrganizer(
             RuntimeError: If the organizer is already running.
         """
         if self.__is_running.get():
-            raise RuntimeError(f"RemoteDataOrganizer for caller ID '{self.caller_id}' is already running.")
+            raise RuntimeError(
+                f"RemoteDataOrganizer for caller ID '{self.caller_id}' is already running."
+            )
         self.__is_running.set(True)
 
     def stop(self) -> None:
@@ -102,8 +104,12 @@ class RemoteDataOrganizer(
         Raises:
             RuntimeError: If the organizer is not running or has already been stopped.
         """
-        if not self.__is_running.get(): # Check current state before trying to stop
-            raise RuntimeError(f"RemoteDataOrganizer for caller ID '{self.caller_id}' is not running or has already been stopped.")
+        if (
+            not self.__is_running.get()
+        ):  # Check current state before trying to stop
+            raise RuntimeError(
+                f"RemoteDataOrganizer for caller ID '{self.caller_id}' is not running or has already been stopped."
+            )
         self.__is_running.set(False)
 
     def has_new_data(self) -> bool:
@@ -116,7 +122,7 @@ class RemoteDataOrganizer(
             True if new data is available, False otherwise.
         """
         with self.__data_lock:
-            if not self.__data: # More pythonic check for empty deque
+            if not self.__data:  # More pythonic check for empty deque
                 return False
             # Data is new if the most recent item's timestamp is after the last access time.
             return self.__data[0].timestamp > self.__last_access
@@ -136,16 +142,16 @@ class RemoteDataOrganizer(
             if not self.__data:
                 return results
 
-            for item in self.__data: # Iterate directly since deque is ordered
+            for item in self.__data:  # Iterate directly since deque is ordered
                 if item.timestamp > self.__last_access:
                     results.append(item)
                 else:
                     # Stop once we encounter data older than or same as last access.
                     break
-            
+
             if results:
                 self.__last_access = results[0].timestamp
-            
+
             return results
 
     def get_most_recent_data(self) -> Optional[TDataType]:
@@ -183,12 +189,13 @@ class RemoteDataOrganizer(
                 return None
 
             for item in self.__data:
-                if item.timestamp <= timestamp: # Found the most recent item at or before the timestamp
+                if (
+                    item.timestamp <= timestamp
+                ):  # Found the most recent item at or before the timestamp
                     return item
         # Should not be reached if timestamp >= __data[-1].timestamp and __data is not empty,
         # but as a fallback or if logic changes, return None.
         return None
-
 
     def _on_data_ready(self, new_data: TDataType) -> None:
         """Handles an incoming data item.
@@ -205,12 +212,14 @@ class RemoteDataOrganizer(
                             organizer's `caller_id`.
         """
         if not isinstance(new_data, ExposedData):
-            raise TypeError(f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}.")
+            raise TypeError(
+                f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+            )
 
         # Ensure the data belongs to this organizer.
-        assert new_data.caller_id == self.caller_id, (
-            f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
-        )
+        assert (
+            new_data.caller_id == self.caller_id
+        ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: TDataType) -> None:
@@ -229,7 +238,7 @@ class RemoteDataOrganizer(
 
         data_inserted_or_updated = False
         with self.__data_lock:
-            if not self.__data: # No data yet, just append.
+            if not self.__data:  # No data yet, just append.
                 self.__data.append(new_data)
                 data_inserted_or_updated = True
             else:
@@ -251,16 +260,16 @@ class RemoteDataOrganizer(
                     #   data_inserted_or_updated = True
                     # This example does not implement full sorted insertion for simplicity,
                     # adhering to apparent original intent of primarily newest-first logic.
-                    pass # Or log if discarding out-of-order older data.
+                    pass  # Or log if discarding out-of-order older data.
                 elif new_data_time == current_most_recent_time:
                     # Data with the same timestamp as the newest; update the newest.
                     self.__data[0] = new_data
                     data_inserted_or_updated = True
-                else: # new_data_time > current_most_recent_time
+                else:  # new_data_time > current_most_recent_time
                     # New data is the absolute newest; add to the front.
                     self.__data.appendleft(new_data)
                     data_inserted_or_updated = True
-        
+
         if data_inserted_or_updated and self.__client is not None:
             self.__client._on_data_available(self)
 

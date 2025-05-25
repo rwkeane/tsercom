@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import asyncio
 from functools import partial
 from typing import Callable, Generic, Optional, TypeVar
@@ -34,6 +34,7 @@ class ClientDisconnectionRetrier(
     to reconnect with delays. Subclasses must implement the `_connect` method
     to define the specific connection logic.
     """
+
     def __init__(
         self,
         watcher: ThreadWatcher,
@@ -50,11 +51,15 @@ class ClientDisconnectionRetrier(
             TypeError: If `watcher` is not an instance of `ThreadWatcher`.
         """
         if not isinstance(watcher, ThreadWatcher):
-            raise TypeError(f"Watcher must be an instance of ThreadWatcher, got {type(watcher).__name__}.")
+            raise TypeError(
+                f"Watcher must be an instance of ThreadWatcher, got {type(watcher).__name__}."
+            )
 
         self.__instance: Optional[TInstanceType] = None
         self.__watcher: ThreadWatcher = watcher
-        self.__safe_disconnection_handler: Optional[Callable[[], None]] = safe_disconnection_handler
+        self.__safe_disconnection_handler: Optional[Callable[[], None]] = (
+            safe_disconnection_handler
+        )
 
         # Event loop on which this instance's async methods should primarily run.
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
@@ -96,24 +101,36 @@ class ClientDisconnectionRetrier(
         try:
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
-                raise RuntimeError("Event loop not initialized before starting ClientDisconnectionRetrier.")
+                raise RuntimeError(
+                    "Event loop not initialized before starting ClientDisconnectionRetrier."
+                )
 
             self.__instance = self._connect()
-            
+
             if self.__instance is None:
-                raise RuntimeError("_connect() did not return a valid instance (got None).")
+                raise RuntimeError(
+                    "_connect() did not return a valid instance (got None)."
+                )
             if not isinstance(self.__instance, Stopable):
-                raise TypeError(f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}.")
-            
-            logging.info("ClientDisconnectionRetrier started successfully and connected.")
+                raise TypeError(
+                    f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
+                )
+
+            logging.info(
+                "ClientDisconnectionRetrier started successfully and connected."
+            )
             return True
         except Exception as error:
             # If it's a server unavailable error, don't raise, just log and return False.
             if is_server_unavailable_error(error):
-                logging.warning(f"Initial connection to server FAILED with server unavailable error: {error}")
+                logging.warning(
+                    f"Initial connection to server FAILED with server unavailable error: {error}"
+                )
                 return False
             # For other errors, re-raise them.
-            logging.error(f"Initial connection failed with an unexpected error: {error}")
+            logging.error(
+                f"Initial connection failed with an unexpected error: {error}"
+            )
             raise
 
     async def stop(self) -> None:
@@ -124,7 +141,9 @@ class ClientDisconnectionRetrier(
         instance if it exists.
         """
         if self.__event_loop is None:
-            logging.warning("ClientDisconnectionRetrier.stop called before start or without a valid event loop.")
+            logging.warning(
+                "ClientDisconnectionRetrier.stop called before start or without a valid event loop."
+            )
             return
 
         if not is_running_on_event_loop(self.__event_loop):
@@ -132,11 +151,12 @@ class ClientDisconnectionRetrier(
             return
 
         if self.__instance is not None:
-            logging.info("Stopping managed instance in ClientDisconnectionRetrier.")
+            logging.info(
+                "Stopping managed instance in ClientDisconnectionRetrier."
+            )
             await self.__instance.stop()
             self.__instance = None
         logging.info("ClientDisconnectionRetrier stopped.")
-
 
     async def _on_disconnect(self, error: Exception) -> None:
         """Handles disconnection events and attempts reconnection if appropriate.
@@ -154,11 +174,17 @@ class ClientDisconnectionRetrier(
                        non-server-unavailable errors after reporting them.
         """
         # This method must run on the captured event loop.
-        if self.__event_loop is None: # Should not happen if start() was called.
-             logging.error("_on_disconnect called without a valid event loop. Ensure start() was successful.")
-             if isinstance(error, Exception): # Ensure error is an exception before reporting
-                 self.__watcher.on_exception_seen(error)
-             return
+        if (
+            self.__event_loop is None
+        ):  # Should not happen if start() was called.
+            logging.error(
+                "_on_disconnect called without a valid event loop. Ensure start() was successful."
+            )
+            if isinstance(
+                error, Exception
+            ):  # Ensure error is an exception before reporting
+                self.__watcher.on_exception_seen(error)
+            return
 
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(
@@ -179,45 +205,63 @@ class ClientDisconnectionRetrier(
         if self.__instance is None:
             logging.info("_on_disconnect called but instance is already None.")
             return
-            
-        logging.warning(f"Disconnect detected for instance. Error: {error}. Attempting to stop current instance.")
+
+        logging.warning(
+            f"Disconnect detected for instance. Error: {error}. Attempting to stop current instance."
+        )
         await self.__instance.stop()
         self.__instance = None
 
         if is_grpc_error(error) and not is_server_unavailable_error(error):
-            logging.warning(f"Non-retriable gRPC session error: {error}. Notifying disconnection handler if available.")
+            logging.warning(
+                f"Non-retriable gRPC session error: {error}. Notifying disconnection handler if available."
+            )
             if self.__safe_disconnection_handler is not None:
                 # Await if the handler is a coroutine.
-                if asyncio.iscoroutinefunction(self.__safe_disconnection_handler):
+                if asyncio.iscoroutinefunction(
+                    self.__safe_disconnection_handler
+                ):
                     await self.__safe_disconnection_handler()
                 else:
-                    self.__safe_disconnection_handler() # type: ignore[misc] # mypy issue with callable check
+                    self.__safe_disconnection_handler()  # type: ignore[misc] # mypy issue with callable check
             return
 
         if not is_server_unavailable_error(error):
-            logging.error(f"Local error or non-server-unavailable gRPC error: {error}. Reporting to ThreadWatcher.")
+            logging.error(
+                f"Local error or non-server-unavailable gRPC error: {error}. Reporting to ThreadWatcher."
+            )
             self.__watcher.on_exception_seen(error)
             # Do not attempt to retry for these errors.
             return
 
         # If it IS a server unavailable error, attempt to reconnect.
-        logging.info(f"Server unavailable error: {error}. Initiating reconnection attempts.")
+        logging.info(
+            f"Server unavailable error: {error}. Initiating reconnection attempts."
+        )
 
-        while True: # Loop indefinitely until reconnected or a non-retriable error occurs.
+        while (
+            True
+        ):  # Loop indefinitely until reconnected or a non-retriable error occurs.
             try:
                 await delay_before_retry()
                 logging.info("Retrying connection...")
                 self.__instance = self._connect()
-                
+
                 if self.__instance is None:
-                    logging.error("_connect() returned None during retry. Will retry.")
+                    logging.error(
+                        "_connect() returned None during retry. Will retry."
+                    )
                     # This state indicates an issue with _connect not raising an error on failure.
                     # Continue loop to retry after delay.
                     continue
                 if not isinstance(self.__instance, Stopable):
-                    logging.error(f"Reconnected instance is not Stopable ({type(self.__instance).__name__}). Stopping retries.")
+                    logging.error(
+                        f"Reconnected instance is not Stopable ({type(self.__instance).__name__}). Stopping retries."
+                    )
                     # This is a critical type error, stop retrying.
-                    raise TypeError(f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}.")
+                    raise TypeError(
+                        f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
+                    )
 
                 logging.info("Successfully reconnected.")
                 break
@@ -225,11 +269,15 @@ class ClientDisconnectionRetrier(
                 if not is_server_unavailable_error(retry_error):
                     # If the error during retry is not a server unavailable error,
                     # it's a more serious issue. Report it and stop retrying.
-                    logging.error(f"Non-server-unavailable error during reconnection attempt: {retry_error}. Stopping retries.")
+                    logging.error(
+                        f"Non-server-unavailable error during reconnection attempt: {retry_error}. Stopping retries."
+                    )
                     self.__watcher.on_exception_seen(retry_error)
-                    raise # Re-raise the error to stop the retry loop.
+                    raise  # Re-raise the error to stop the retry loop.
                 else:
                     # If it's still a server unavailable error, log it and continue the loop.
-                    logging.warning(f"Still server unavailable during retry: {retry_error}")
+                    logging.warning(
+                        f"Still server unavailable during retry: {retry_error}"
+                    )
             # Ensure the loop continues if a server unavailable error occurred inside the try block.
             # No explicit 'continue' needed here as the loop naturally continues if no 'break' or 'raise'.

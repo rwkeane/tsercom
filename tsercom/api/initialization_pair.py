@@ -17,6 +17,7 @@ class InitializationPair(Generic[TDataType, TEventType]):
     hold the `RuntimeHandle` created by that initializer. This is useful for
     managing asynchronous initialization of runtimes.
     """
+
     def __init__(
         self,
         handle_future: Future[RuntimeHandle[TDataType, TEventType]],
@@ -28,8 +29,12 @@ class InitializationPair(Generic[TDataType, TEventType]):
             handle_future: A Future that will resolve to a RuntimeHandle.
             initializer: The RuntimeInitializer used to create the RuntimeHandle.
         """
-        self.__handle_future: Future[RuntimeHandle[TDataType, TEventType]] = handle_future
-        self.__initializer: RuntimeInitializer[TDataType, TEventType] = initializer
+        self.__handle_future: Future[RuntimeHandle[TDataType, TEventType]] = (
+            handle_future
+        )
+        self.__initializer: RuntimeInitializer[TDataType, TEventType] = (
+            initializer
+        )
 
     @property
     def handle_future(self) -> Future[RuntimeHandle[TDataType, TEventType]]:

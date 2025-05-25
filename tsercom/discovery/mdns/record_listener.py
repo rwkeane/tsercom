@@ -18,13 +18,16 @@ class RecordListener(ServiceListener):
         Implementers are notified when full service details (name, port, addresses,
         TXT record) for a service of the monitored type are discovered or updated.
         """
+
         @abstractmethod
         def _on_service_added(
             self,
-            name: str, # The mDNS instance name of the service.
-            port: int, # The service port number.
-            addresses: List[bytes], # List of raw binary IP addresses.
-            txt_record: Dict[bytes, bytes | None], # Parsed TXT record as a dictionary.
+            name: str,  # The mDNS instance name of the service.
+            port: int,  # The service port number.
+            addresses: List[bytes],  # List of raw binary IP addresses.
+            txt_record: Dict[
+                bytes, bytes | None
+            ],  # Parsed TXT record as a dictionary.
         ) -> None:
             """Callback invoked when a new service is discovered or an existing one is updated.
 
@@ -37,9 +40,13 @@ class RecordListener(ServiceListener):
                             containing key-value metadata. Keys are bytes, values are bytes or None.
             """
             # This method must be implemented by concrete client classes.
-            raise NotImplementedError("RecordListener.Client._on_service_added must be implemented by subclasses.")
+            raise NotImplementedError(
+                "RecordListener.Client._on_service_added must be implemented by subclasses."
+            )
 
-    def __init__(self, client: "RecordListener.Client", service_type: str) -> None:
+    def __init__(
+        self, client: "RecordListener.Client", service_type: str
+    ) -> None:
         """Initializes the RecordListener.
 
         Args:
@@ -53,14 +60,20 @@ class RecordListener(ServiceListener):
             TypeError: If arguments are not of the expected types.
         """
         if client is None:
-            raise ValueError("Client argument cannot be None for RecordListener.")
-        if not isinstance(client, RecordListener.Client): # isinstance is preferred for ABCs
+            raise ValueError(
+                "Client argument cannot be None for RecordListener."
+            )
+        if not isinstance(
+            client, RecordListener.Client
+        ):  # isinstance is preferred for ABCs
             raise TypeError(
                 f"Client must be an instance of RecordListener.Client, got {type(client).__name__}."
             )
 
         if service_type is None:
-            raise ValueError("service_type argument cannot be None for RecordListener.")
+            raise ValueError(
+                "service_type argument cannot be None for RecordListener."
+            )
         if not isinstance(service_type, str):
             raise TypeError(
                 f"service_type must be a string, got {type(service_type).__name__}."
@@ -75,8 +88,12 @@ class RecordListener(ServiceListener):
         self.__expected_type: str = f"{service_type}._tcp.local."
 
         self.__mdns: Zeroconf = Zeroconf()
-        logging.info(f"Starting mDNS scan for services of type: {self.__expected_type}")
-        self.__browser: ServiceBrowser = ServiceBrowser(self.__mdns, self.__expected_type, self)
+        logging.info(
+            f"Starting mDNS scan for services of type: {self.__expected_type}"
+        )
+        self.__browser: ServiceBrowser = ServiceBrowser(
+            self.__mdns, self.__expected_type, self
+        )
 
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a service's information (e.g., TXT record) is updated.
@@ -89,28 +106,41 @@ class RecordListener(ServiceListener):
             type_: The type of the service that was updated.
             name: The mDNS instance name of the service that was updated.
         """
-        logging.info(f"Service updated or added (via update_service): type='{type_}', name='{name}'")
+        logging.info(
+            f"Service updated or added (via update_service): type='{type_}', name='{name}'"
+        )
         if type_ != self.__expected_type:
-            logging.debug(f"Ignoring service update for '{name}' of unexpected type '{type_}'. Expected '{self.__expected_type}'.")
+            logging.debug(
+                f"Ignoring service update for '{name}' of unexpected type '{type_}'. Expected '{self.__expected_type}'."
+            )
             return
 
         info = zc.get_service_info(type_, name)
         if info is None:
-            logging.error(f"Failed to get service info for updated service '{name}' of type '{type_}'.")
+            logging.error(
+                f"Failed to get service info for updated service '{name}' of type '{type_}'."
+            )
             return
 
-        if info.port is None: # Port is essential for service communication.
-            logging.error(f"No port found for updated service '{name}' of type '{type_}'.")
+        if info.port is None:  # Port is essential for service communication.
+            logging.error(
+                f"No port found for updated service '{name}' of type '{type_}'."
+            )
             return
-        
-        if not info.addresses: # Addresses are essential.
-             logging.warning(f"No addresses found for updated service '{name}' of type '{type_}'.")
-             # Depending on requirements, might return here or proceed without addresses.
-             # For now, we proceed as `_on_service_added` handles address list.
+
+        if not info.addresses:  # Addresses are essential.
+            logging.warning(
+                f"No addresses found for updated service '{name}' of type '{type_}'."
+            )
+            # Depending on requirements, might return here or proceed without addresses.
+            # For now, we proceed as `_on_service_added` handles address list.
 
         # info.name is the instance name, info.properties is the TXT record.
         self.__client._on_service_added(
-            name, info.port, info.addresses, info.properties # Pass `name` from args, not info.name
+            name,
+            info.port,
+            info.addresses,
+            info.properties,  # Pass `name` from args, not info.name
         )
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
@@ -142,24 +172,37 @@ class RecordListener(ServiceListener):
             type_: The type of the service that was discovered.
             name: The mDNS instance name of the service that was discovered.
         """
-        logging.info(f"Service added (via add_service): type='{type_}', name='{name}'")
+        logging.info(
+            f"Service added (via add_service): type='{type_}', name='{name}'"
+        )
         if type_ != self.__expected_type:
-            logging.debug(f"Ignoring added service '{name}' of unexpected type '{type_}'. Expected '{self.__expected_type}'.")
+            logging.debug(
+                f"Ignoring added service '{name}' of unexpected type '{type_}'. Expected '{self.__expected_type}'."
+            )
             return
 
         info = zc.get_service_info(type_, name)
         if info is None:
-            logging.error(f"Failed to get service info for added service '{name}' of type '{type_}'.")
+            logging.error(
+                f"Failed to get service info for added service '{name}' of type '{type_}'."
+            )
             return
 
-        if info.port is None: # Port is essential.
-            logging.error(f"No port found for added service '{name}' of type '{type_}'.")
+        if info.port is None:  # Port is essential.
+            logging.error(
+                f"No port found for added service '{name}' of type '{type_}'."
+            )
             return
 
-        if not info.addresses: # Addresses are essential.
-             logging.warning(f"No addresses found for added service '{name}' of type '{type_}'.")
-             # As with update_service, deciding whether to proceed or return.
+        if not info.addresses:  # Addresses are essential.
+            logging.warning(
+                f"No addresses found for added service '{name}' of type '{type_}'."
+            )
+            # As with update_service, deciding whether to proceed or return.
 
         self.__client._on_service_added(
-            name, info.port, info.addresses, info.properties # Pass `name` from args
+            name,
+            info.port,
+            info.addresses,
+            info.properties,  # Pass `name` from args
         )

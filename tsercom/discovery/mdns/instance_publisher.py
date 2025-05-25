@@ -38,23 +38,35 @@ class InstancePublisher:
             RuntimeError: If `_make_txt_record` fails internally.
         """
         if port is None:
-            raise ValueError("port argument cannot be None for InstancePublisher.")
+            raise ValueError(
+                "port argument cannot be None for InstancePublisher."
+            )
         if not isinstance(port, int):
-            raise TypeError(f"port must be an integer, got {type(port).__name__}.")
+            raise TypeError(
+                f"port must be an integer, got {type(port).__name__}."
+            )
 
         if service_type is None:
-            raise ValueError("service_type argument cannot be None for InstancePublisher.")
+            raise ValueError(
+                "service_type argument cannot be None for InstancePublisher."
+            )
         if not isinstance(service_type, str):
-            raise TypeError(f"service_type must be a string, got {type(service_type).__name__}.")
+            raise TypeError(
+                f"service_type must be a string, got {type(service_type).__name__}."
+            )
 
         if readable_name is not None and not isinstance(readable_name, str):
-            raise TypeError(f"readable_name must be a string or None, got {type(readable_name).__name__}.")
+            raise TypeError(
+                f"readable_name must be a string or None, got {type(readable_name).__name__}."
+            )
 
         if instance_name is not None and not isinstance(instance_name, str):
-            raise TypeError(f"instance_name must be a string or None, got {type(instance_name).__name__}.")
+            raise TypeError(
+                f"instance_name must be a string or None, got {type(instance_name).__name__}."
+            )
 
         self.__name: str | None = readable_name
-        
+
         # The name is based on port and MAC address to provide some uniqueness,
         # and truncated to meet mDNS length recommendations/requirements if necessary.
         effective_instance_name: str
@@ -72,9 +84,11 @@ class InstancePublisher:
 
         txt_record = self._make_txt_record()
         # This check is defensive; _make_txt_record should always return a dict.
-        if txt_record is None: # Should ideally not be reachable
-            raise RuntimeError("_make_txt_record failed to produce a TXT record.")
-            
+        if txt_record is None:  # Should ideally not be reachable
+            raise RuntimeError(
+                "_make_txt_record failed to produce a TXT record."
+            )
+
         self.__record_publisher: RecordPublisher = RecordPublisher(
             effective_instance_name, service_type, port, txt_record
         )

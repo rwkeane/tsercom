@@ -2,6 +2,7 @@ import asyncio
 import pytest
 import threading
 import time
+
 # from unittest.mock import MagicMock, patch, ANY # Removed
 
 from tsercom.threading.aio.event_loop_factory import EventLoopFactory
@@ -107,24 +108,35 @@ def stop_loop_and_join_thread(
 
 class TestEventLoopFactory:
 
-    def test_constructor_watcher_validation(self, mocker) -> None: 
+    def test_constructor_watcher_validation(self, mocker) -> None:
         """Test watcher validation in EventLoopFactory constructor."""
-        with pytest.raises(ValueError, match="Watcher argument cannot be None"):
+        with pytest.raises(
+            ValueError, match="Watcher argument cannot be None"
+        ):
             EventLoopFactory(watcher=None)  # type: ignore
 
         # mocker.MagicMock(spec=ThreadWatcher) will fail issubclass check because type is MagicMock
-        with pytest.raises(TypeError, match="Watcher must be a subclass of ThreadWatcher, got MagicMock"):
+        with pytest.raises(
+            TypeError,
+            match="Watcher must be a subclass of ThreadWatcher, got MagicMock",
+        ):
             EventLoopFactory(watcher=mocker.MagicMock(spec=ThreadWatcher))
 
         # A plain MagicMock also fails the issubclass check
-        with pytest.raises(TypeError, match="Watcher must be a subclass of ThreadWatcher, got MagicMock"):
+        with pytest.raises(
+            TypeError,
+            match="Watcher must be a subclass of ThreadWatcher, got MagicMock",
+        ):
             EventLoopFactory(watcher=mocker.MagicMock())
 
         class NotAWatcher:
             pass
 
         # NotAWatcher will fail the issubclass check
-        with pytest.raises(TypeError, match="Watcher must be a subclass of ThreadWatcher, got NotAWatcher"):
+        with pytest.raises(
+            TypeError,
+            match="Watcher must be a subclass of ThreadWatcher, got NotAWatcher",
+        ):
             EventLoopFactory(watcher=NotAWatcher())  # type: ignore
 
         # Should not raise with a real or correctly mocked watcher
@@ -248,7 +260,7 @@ class TestEventLoopFactory:
     #     # Cleanup
     #     stop_loop_and_join_thread(loop, loop_thread)
 
-    # def test_exception_in_start_event_loop_target_itself( 
+    # def test_exception_in_start_event_loop_target_itself(
     #     self, mocker, mock_watcher: MockThreadWatcher # Ensure mocker is injected
     # ) -> None:
     #     """
@@ -257,11 +269,11 @@ class TestEventLoopFactory:
     #     and reported to watcher's on_exception_seen via ThrowingThread's mechanism.
     #     """
     #     error_in_start_target_msg = "Error within start_event_loop target"
-    
+
     #     factory_under_test = EventLoopFactory(watcher=mock_watcher)
-    
-    #     with mocker.patch( 
-    #         "asyncio.set_event_loop", 
+
+    #     with mocker.patch(
+    #         "asyncio.set_event_loop",
     #         side_effect=RuntimeError(error_in_start_target_msg),
     #     ):
     #         thread_for_factory = threading.Thread(
@@ -277,7 +289,7 @@ class TestEventLoopFactory:
     #     seen_exception = mock_watcher.exceptions_seen[0]
     #     assert isinstance(seen_exception, RuntimeError)
     #     assert str(seen_exception) == error_in_start_target_msg
-        
+
     #     if mock_watcher.tracked_threads_created:
     #         loop_thread = mock_watcher.tracked_threads_created[0]
     #         loop_thread.join(timeout=0.5)
@@ -289,7 +301,7 @@ class TestEventLoopFactory:
     #             None
     #         )
 
-    # def test_multiple_factories_do_not_interfere(self) -> None: 
+    # def test_multiple_factories_do_not_interfere(self) -> None:
     #     """Test that two factories create independent loops and threads."""
     #     watcher1 = MockThreadWatcher()
     #     factory1 = EventLoopFactory(watcher=watcher1)

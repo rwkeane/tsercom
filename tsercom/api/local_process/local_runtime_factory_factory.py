@@ -25,6 +25,7 @@ class LocalRuntimeFactoryFactory(RuntimeFactoryFactory):
     """Factory class responsible for creating LocalRuntimeFactory instances
     and their associated RuntimeHandles for local process runtimes.
     """
+
     def __init__(self, thread_pool: ThreadPoolExecutor) -> None:
         """Initializes the LocalRuntimeFactoryFactory.
 

@@ -4,6 +4,7 @@ This module facilitates the serialization and deserialization of PyTorch tensors
 including their data and synchronized timestamps, for transmission over gRPC.
 It depends on PyTorch (`torch`) for tensor operations.
 """
+
 from typing import Optional
 import torch
 import logging
@@ -21,6 +22,7 @@ class SerializableTensor:
         tensor: The `torch.Tensor` data.
         timestamp: The `SynchronizedTimestamp` associated with the tensor.
     """
+
     def __init__(self, tensor: torch.Tensor, timestamp: SynchronizedTimestamp):
         """Initializes a SerializableTensor instance.
 
@@ -75,7 +77,9 @@ class SerializableTensor:
         """
         timestamp = SynchronizedTimestamp.try_parse(grpc_type.timestamp)
         if timestamp is None:
-            logging.warning("Failed to parse timestamp from GrpcTensor, cannot create SerializableTensor.")
+            logging.warning(
+                "Failed to parse timestamp from GrpcTensor, cannot create SerializableTensor."
+            )
             return None
 
         try:
@@ -86,5 +90,8 @@ class SerializableTensor:
 
             return SerializableTensor(tensor, timestamp)
         except Exception as e:
-            logging.error(f"Error deserializing Tensor from grpc_type {grpc_type}: {e}", exc_info=True)
+            logging.error(
+                f"Error deserializing Tensor from grpc_type {grpc_type}: {e}",
+                exc_info=True,
+            )
             return None

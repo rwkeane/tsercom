@@ -1,6 +1,5 @@
 """Defines the CallerIdentifier class for uniquely identifying callers."""
 
-import typing # Retained for typing.Union, though | can be used in Python 3.10+
 from typing import Optional, Union
 import uuid
 
@@ -26,7 +25,9 @@ class CallerIdentifier:
             TypeError: If `id_value` is not an instance of `uuid.UUID`.
         """
         if not isinstance(id_value, uuid.UUID):
-            raise TypeError(f"id_value must be a UUID instance, got {type(id_value)}")
+            raise TypeError(
+                f"id_value must be a UUID instance, got {type(id_value)}"
+            )
         self.__id: uuid.UUID = id_value
 
     @staticmethod
@@ -41,7 +42,10 @@ class CallerIdentifier:
 
     @classmethod
     def try_parse(
-        cls, value: Union[str, CallerId] # Using typing.Union for broader compatibility
+        cls,
+        value: Union[
+            str, CallerId
+        ],  # Using typing.Union for broader compatibility
     ) -> Optional["CallerIdentifier"]:
         """Tries to parse a string or gRPC CallerId object into a CallerIdentifier.
 
@@ -54,7 +58,9 @@ class CallerIdentifier:
             otherwise `None`.
         """
         parsed_id_str: Optional[str] = None
-        if isinstance(value, CallerId): # Check against the specific imported type
+        if isinstance(
+            value, CallerId
+        ):  # Check against the specific imported type
             parsed_id_str = value.id
 
         elif isinstance(value, str):
@@ -63,7 +69,9 @@ class CallerIdentifier:
         # If it's some other object that happens to have an 'id' attribute, this function
         # as designed should not parse it based on the original logic's intent.
 
-        if not isinstance(parsed_id_str, str): # Ensure we have a string to parse for UUID
+        if not isinstance(
+            parsed_id_str, str
+        ):  # Ensure we have a string to parse for UUID
             return None
 
         try:
@@ -101,7 +109,7 @@ class CallerIdentifier:
             are equal, False otherwise.
         """
         if not isinstance(other, CallerIdentifier):
-            return NotImplemented # Use NotImplemented for type mismatches in comparison
+            return NotImplemented  # Use NotImplemented for type mismatches in comparison
         return self.__id == other.__id
 
     def __ne__(self, other: object) -> bool:

@@ -33,6 +33,7 @@ class RuntimeWrapper(
     events and data to and from the runtime. It uses an `AsyncPoller` for
     events and a `RemoteDataAggregator` for data.
     """
+
     def __init__(
         self,
         event_poller: AsyncPoller[EventInstance[TEventType]],
@@ -46,8 +47,12 @@ class RuntimeWrapper(
             data_aggregator: A RemoteDataAggregatorImpl to manage data.
             bridge: A RuntimeCommandBridge to send commands to the runtime.
         """
-        self.__event_poller: AsyncPoller[EventInstance[TEventType]] = event_poller
-        self.__aggregator: RemoteDataAggregatorImpl[TDataType] = data_aggregator
+        self.__event_poller: AsyncPoller[EventInstance[TEventType]] = (
+            event_poller
+        )
+        self.__aggregator: RemoteDataAggregatorImpl[TDataType] = (
+            data_aggregator
+        )
         self.__bridge: RuntimeCommandBridge = bridge
 
     def start(self) -> None:
@@ -100,8 +105,10 @@ class RuntimeWrapper(
         return self.__aggregator
 
     @property
-    def data_aggregator(self) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+    def data_aggregator(
+        self,
+    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         # TODO: Address potential type mismatch if _get_remote_data_aggregator
         # returns RemoteDataAggregator[TDataType] instead of AnnotatedInstance[TDataType].
         # For now, assume it's compatible or will be cast/handled.
-        return self._get_remote_data_aggregator() # type: ignore
+        return self._get_remote_data_aggregator()  # type: ignore

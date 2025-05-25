@@ -8,7 +8,9 @@ from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
 from tsercom.api.split_process.event_source import EventSource
-from tsercom.api.split_process.runtime_command_source import RuntimeCommandSource
+from tsercom.api.split_process.runtime_command_source import (
+    RuntimeCommandSource,
+)
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
@@ -65,9 +67,9 @@ class RemoteRuntimeFactory(
         self.__data_reader_queue = data_reader_queue
         self.__command_source_queue = command_source_queue
 
-        self.__data_reader_sink: DataReaderSink[AnnotatedInstance[TDataType]] | None = (
-            None
-        )
+        self.__data_reader_sink: (
+            DataReaderSink[AnnotatedInstance[TDataType]] | None
+        ) = None
         self.__event_source: EventSource[TEventType] | None = None
         self.__command_source: RuntimeCommandSource | None = None
 

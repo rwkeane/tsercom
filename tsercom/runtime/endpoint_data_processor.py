@@ -1,4 +1,5 @@
 """Defines the abstract base class for endpoint data processors."""
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Generic, TypeVar, overload
@@ -16,6 +17,7 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
     Attributes:
         caller_id: The `CallerIdentifier` of the endpoint this processor handles.
     """
+
     def __init__(self, caller_id: CallerIdentifier):
         """Initializes the EndpointDataProcessor.
 
@@ -53,7 +55,9 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         pass
 
     @overload
-    async def process_data(self, data: TDataType, timestamp: ServerTimestamp) -> None:
+    async def process_data(
+        self, data: TDataType, timestamp: ServerTimestamp
+    ) -> None:
         pass
 
     async def process_data(
@@ -77,7 +81,9 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         await self._process_data(data, timestamp)
 
     @abstractmethod
-    async def _process_data(self, data: TDataType, timestamp: datetime) -> None:
+    async def _process_data(
+        self, data: TDataType, timestamp: datetime
+    ) -> None:
         """Processes the data item with its synchronized datetime.
 
         Subclasses must implement this method to define the actual data

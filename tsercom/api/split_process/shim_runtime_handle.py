@@ -1,9 +1,11 @@
 """Defines ShimRuntimeHandle for interacting with a runtime in a separate process."""
 
-import datetime # Required for on_event overload, though not used in current simple form
+import datetime  # Required for on_event overload, though not used in current simple form
 from typing import TypeVar, Optional
 
-from tsercom.caller_id.caller_identifier import CallerIdentifier # For on_event overload
+from tsercom.caller_id.caller_identifier import (
+    CallerIdentifier,
+)  # For on_event overload
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
@@ -21,13 +23,17 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData) # Type for data handled by the runtime.
-TEventType = TypeVar("TEventType") # Type for events handled by the runtime.
+TDataType = TypeVar(
+    "TDataType", bound=ExposedData
+)  # Type for data handled by the runtime.
+TEventType = TypeVar("TEventType")  # Type for events handled by the runtime.
 
 
 class ShimRuntimeHandle(
-    RuntimeHandle[TDataType, TEventType], # Implements the abstract RuntimeHandle
-    RemoteDataReader[TDataType], # Also acts as a RemoteDataReader
+    RuntimeHandle[
+        TDataType, TEventType
+    ],  # Implements the abstract RuntimeHandle
+    RemoteDataReader[TDataType],  # Also acts as a RemoteDataReader
 ):
     """A handle for a runtime operating in a separate process.
 
@@ -35,6 +41,7 @@ class ShimRuntimeHandle(
     runtime that is managed in a different process. It uses multiprocess queues
     for communication (events, commands, data).
     """
+
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -63,11 +70,15 @@ class ShimRuntimeHandle(
         self.__runtime_command_queue: MultiprocessQueueSink[RuntimeCommand] = (
             runtime_command_queue
         )
-        self.__data_aggregator: RemoteDataAggregatorImpl[TDataType] = data_aggregator
+        self.__data_aggregator: RemoteDataAggregatorImpl[TDataType] = (
+            data_aggregator
+        )
         self.__block: bool = block
 
-        self.__data_reader_source: DataReaderSource[TDataType] = DataReaderSource(
-            thread_watcher, data_queue, self.__data_aggregator
+        self.__data_reader_source: DataReaderSource[TDataType] = (
+            DataReaderSource(
+                thread_watcher, data_queue, self.__data_aggregator
+            )
         )
 
     def start(self) -> None:
@@ -83,9 +94,13 @@ class ShimRuntimeHandle(
     def on_event(
         self,
         event: TEventType,
-        caller_id: Optional[CallerIdentifier] = None, # Added for RuntimeHandle compatibility
+        caller_id: Optional[
+            CallerIdentifier
+        ] = None,  # Added for RuntimeHandle compatibility
         *,
-        timestamp: Optional[datetime.datetime] = None, # Added for RuntimeHandle compatibility
+        timestamp: Optional[
+            datetime.datetime
+        ] = None,  # Added for RuntimeHandle compatibility
     ) -> None:
         """Sends an event to the remote runtime.
 
@@ -133,7 +148,6 @@ class ShimRuntimeHandle(
         # and then forwards it to the __data_aggregator that was provided during init.
         self.__data_aggregator._on_data_ready(new_data)
 
-
     def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
         """Provides the remote data aggregator associated with this handle.
 
@@ -144,6 +158,8 @@ class ShimRuntimeHandle(
         return self.__data_aggregator
 
     @property
-    def data_aggregator(self) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+    def data_aggregator(
+        self,
+    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         # TODO: Address potential type mismatch (same as above)
-        return self._get_remote_data_aggregator() # type: ignore
+        return self._get_remote_data_aggregator()  # type: ignore

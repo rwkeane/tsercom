@@ -2,6 +2,7 @@ import asyncio
 import pytest
 import threading
 import time
+
 # from unittest.mock import MagicMock # Removed
 
 from tsercom.threading.aio import global_event_loop

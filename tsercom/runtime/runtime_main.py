@@ -1,4 +1,5 @@
 """Main entry points and initialization logic for Tsercom runtimes."""
+
 from typing import Any, List
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_factory import RuntimeFactory
@@ -66,12 +67,14 @@ def initialize_runtimes(
         else:
             raise ValueError("Invalid endpoint type!")
 
-        runtime_instance = initializer_factory.create(thread_watcher, data_handler, channel_factory)
+        runtime_instance = initializer_factory.create(
+            thread_watcher, data_handler, channel_factory
+        )
         runtimes.append(runtime_instance)
 
     for runtime in runtimes:
         run_on_event_loop(runtime.start_async)
-    
+
     return runtimes
 
 

@@ -123,7 +123,7 @@ class TestIdTracker:
         ip_address = "127.0.0.1"
         port = 8080
         tracker.add(caller_id, ip_address, port)
-        
+
         assert len(tracker) == 1
         remove_result = tracker.remove(caller_id)
         assert remove_result is True
@@ -145,7 +145,7 @@ class TestIdTracker:
         remove_result = tracker.remove(non_existing_caller_id)
         assert remove_result is False
         assert len(tracker) == 1
-        assert tracker.has_id(caller_id1) # Ensure original ID is still there
+        assert tracker.has_id(caller_id1)  # Ensure original ID is still there
 
     def test_remove_from_empty_tracker(self):
         """Test removing an ID from an empty tracker."""
@@ -154,7 +154,7 @@ class TestIdTracker:
         remove_result = tracker.remove(non_existing_caller_id)
         assert remove_result is False
         assert len(tracker) == 0
-        
+
     def test_get_id_after_remove(self):
         """Test that get raises KeyError after an ID is removed."""
         tracker = IdTracker()
@@ -162,9 +162,9 @@ class TestIdTracker:
         ip_address = "127.0.0.1"
         port = 8080
         tracker.add(caller_id, ip_address, port)
-        
+
         tracker.remove(caller_id)
-        
+
         with pytest.raises(KeyError):
             tracker.get(id=caller_id)
         with pytest.raises(KeyError):
@@ -176,11 +176,11 @@ class TestIdTracker:
         caller_id = CallerIdentifier.random()
         ip_address = "127.0.0.1"
         port = 8080
-        
+
         # Add, remove, then add same ID with same address
         tracker.add(caller_id, ip_address, port)
         tracker.remove(caller_id)
-        tracker.add(caller_id, ip_address, port) # Should be fine
+        tracker.add(caller_id, ip_address, port)  # Should be fine
         assert len(tracker) == 1
         assert tracker.get(id=caller_id) == (ip_address, port)
 
@@ -190,7 +190,9 @@ class TestIdTracker:
         tracker.add(caller_id, ip_address2, port)
         assert len(tracker) == 1
         assert tracker.get(id=caller_id) == (ip_address2, port)
-        assert not tracker.has_address(ip_address, port) # Old address should be gone
+        assert not tracker.has_address(
+            ip_address, port
+        )  # Old address should be gone
 
         # Remove again, then add different ID with original address
         tracker.remove(caller_id)
@@ -213,14 +215,14 @@ class TestIdTracker:
         tracker.add(caller_id1, ip1, port1)
         tracker.add(caller_id2, ip2, port2)
         tracker.add(caller_id3, ip3, port3)
-        
+
         assert len(tracker) == 3
-        
+
         # Remove the middle one
         remove_result = tracker.remove(caller_id2)
         assert remove_result is True
         assert len(tracker) == 2
-        
+
         # Check that caller_id2 is gone
         assert not tracker.has_id(caller_id2)
         assert not tracker.has_address(ip2, port2)
@@ -231,7 +233,7 @@ class TestIdTracker:
         assert tracker.has_id(caller_id1)
         assert tracker.get(id=caller_id1) == (ip1, port1)
         assert tracker.has_address(ip1, port1)
-        
+
         assert tracker.has_id(caller_id3)
         assert tracker.get(id=caller_id3) == (ip3, port3)
         assert tracker.has_address(ip3, port3)

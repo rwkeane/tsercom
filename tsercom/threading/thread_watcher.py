@@ -7,7 +7,7 @@ the `ErrorWatcher` interface. It is used for creating and managing threads
 and for catching and surfacing exceptions that occur within them. This allows
 for a centralized way to monitor errors from various background tasks.
 """
-from concurrent.futures import ThreadPoolExecutor
+
 import threading
 from typing import List, Any
 from collections.abc import Callable
@@ -140,4 +140,4 @@ class ThreadWatcher(ErrorWatcher):
         """
         with self.__exceptions_lock:
             self.__exceptions.append(e)
-            self.__barrier.set() # Signal that an exception is available
+            self.__barrier.set()  # Signal that an exception is available

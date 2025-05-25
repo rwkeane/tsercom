@@ -1,4 +1,5 @@
 """Provides TimeSyncTracker for managing time synchronization with multiple endpoints."""
+
 from typing import Dict
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.fake_time_sync_client import FakeTimeSyncClient
@@ -14,6 +15,7 @@ class TimeSyncTracker:
     the `TimeSyncClient` accordingly. In testing mode, it can use
     `FakeTimeSyncClient`.
     """
+
     def __init__(
         self, thread_watcher: ThreadWatcher, *, is_testing: bool = False
     ):
@@ -75,7 +77,7 @@ class TimeSyncTracker:
             raise KeyError(
                 f"IP address '{ip}' not found in timesync tracker during disconnect. It may have already been disconnected or was never tracked."
             )
-            
+
         current_count, client_instance = self.__map[ip]
         current_count -= 1
 

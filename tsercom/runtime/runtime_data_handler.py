@@ -1,4 +1,5 @@
 """Abstract interface for runtime data handlers in Tsercom."""
+
 from abc import ABC, abstractmethod
 from typing import AsyncIterator, Generic, List, Optional, TypeVar, overload
 
@@ -22,6 +23,7 @@ class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
     This includes providing an iterator for event data, checking for caller IDs,
     and registering new callers.
     """
+
     @abstractmethod
     def get_data_iterator(
         self,

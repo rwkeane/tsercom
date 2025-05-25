@@ -45,7 +45,9 @@ async def extract_id_from_first_call(
                 return None, None
 
             if first_response is None:
-                logging.error("None received from remote while expecting first call in iterator.")
+                logging.error(
+                    "None received from remote while expecting first call in iterator."
+                )
             break
     except Exception as e:
         # TODO: Maybe this should check the exception code and split behavior?
@@ -59,7 +61,7 @@ async def extract_id_from_first_call(
                 f"Non-RpcError exception while iterating for first call: {e}",
                 exc_info=True,
             )
-        
+
         if context is not None:
             await context.abort(
                 grpc.StatusCode.CANCELLED, "Error processing first call!"
@@ -124,7 +126,9 @@ async def extract_id_from_call(
 
     # Validate it if needed.
     if validate_against is not None and caller_id != validate_against:
-        logging.error(f"Invalid CallerID received. Expected {validate_against}, got {caller_id}.")
+        logging.error(
+            f"Invalid CallerID received. Expected {validate_against}, got {caller_id}."
+        )
         if context is not None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT, "Invalid CallerID received"

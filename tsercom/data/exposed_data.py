@@ -1,4 +1,5 @@
 """Defines ExposedData, an abstract base class for data structures that include caller ID and timestamp information."""
+
 from abc import ABC
 import datetime
 

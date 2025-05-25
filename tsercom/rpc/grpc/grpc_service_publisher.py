@@ -1,4 +1,5 @@
 """Provides GrpcServicePublisher for hosting gRPC services."""
+
 from functools import partial
 from typing import Callable, Iterable
 import grpc
@@ -100,7 +101,9 @@ class GrpcServicePublisher:
                     self.__watcher.on_exception_seen(e)
                     raise e
                 # Log other exceptions that prevent binding to a specific address
-                logging.warning(f"Failed to bind gRPC server to {address}:{self.__port}. Error: {e}")
+                logging.warning(
+                    f"Failed to bind gRPC server to {address}:{self.__port}. Error: {e}"
+                )
                 continue
 
         if worked == 0:
@@ -114,5 +117,5 @@ class GrpcServicePublisher:
         """
         if self.__server is None:
             raise RuntimeError("Server not started")
-        self.__server.stop() # This is a blocking call for non-async server
+        self.__server.stop()  # This is a blocking call for non-async server
         logging.info("gRPC Server stopped.")

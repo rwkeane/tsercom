@@ -17,6 +17,7 @@ class SerializableAnnotatedInstance(Generic[TDataType]):
     consistency across different systems or processes is critical, especially
     for serialization and deserialization.
     """
+
     def __init__(
         self,
         data: TDataType,

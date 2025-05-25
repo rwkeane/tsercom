@@ -15,8 +15,8 @@ class RecordPublisher:
 
     def __init__(
         self,
-        name: str, # The mDNS instance name (e.g., "MyDevice")
-        type_: str, # The base service type (e.g., "_myservice")
+        name: str,  # The mDNS instance name (e.g., "MyDevice")
+        type_: str,  # The base service type (e.g., "_myservice")
         port: int,
         properties: Optional[Dict[bytes, bytes | None]] = None,
     ) -> None:
@@ -39,7 +39,9 @@ class RecordPublisher:
                        by zeroconf or Python, but good to be aware).
         """
         if type_ is None or not type_.startswith("_"):
-            raise ValueError(f"Service type_ must start with an underscore (e.g., '_myservice'), got '{type_}'.")
+            raise ValueError(
+                f"Service type_ must start with an underscore (e.g., '_myservice'), got '{type_}'."
+            )
 
         if properties is None:
             properties = {}
@@ -48,7 +50,7 @@ class RecordPublisher:
         self.__srv: str = f"{name}.{self.__ptr}"
         self.__port: int = port
         self.__txt: Dict[bytes, bytes | None] = properties
-        
+
         # Logging the service being published for traceability.
         # Replacing print with logging for better practice, assuming logger is configured elsewhere.
 
@@ -61,9 +63,11 @@ class RecordPublisher:
         """
         # `addresses` are fetched dynamically to get all current IPv4 addresses of the host.
         service_info = ServiceInfo(
-            type_=self.__ptr, # The service type (e.g., "_myservice._tcp.local.")
+            type_=self.__ptr,  # The service type (e.g., "_myservice._tcp.local.")
             name=self.__srv,  # The full service name (e.g., "MyDevice._myservice._tcp.local.")
-            addresses=get_all_addresses(ip_version=IPVersion.V4Only), # Get IPv4 addresses
+            addresses=get_all_addresses(
+                ip_version=IPVersion.V4Only
+            ),  # Get IPv4 addresses
             port=self.__port,
             properties=self.__txt,
             # Optional: server name can be set here if needed, e.g., f"{socket.gethostname()}.local."
@@ -71,5 +75,5 @@ class RecordPublisher:
 
         zeroconf = Zeroconf(ip_version=IPVersion.V4Only)
         zeroconf.register_service(service_info)
-        
+
         # Logging successful publication.

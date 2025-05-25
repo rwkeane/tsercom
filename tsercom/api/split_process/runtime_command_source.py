@@ -1,7 +1,6 @@
 """Defines RuntimeCommandSource for receiving and processing runtime commands from a queue."""
 
 import threading
-from typing import Any
 
 from tsercom.runtime.runtime import Runtime
 from tsercom.api.runtime_command import RuntimeCommand
@@ -35,7 +34,9 @@ class RuntimeCommandSource:
         self.__runtime: Runtime | None = None
         self.__command_thread: threading.Thread | None = None
 
-    def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime) -> None:
+    def start_async(
+        self, thread_watcher: ThreadWatcher, runtime: Runtime
+    ) -> None:
         """Starts the command watching thread and associates the runtime.
 
         This method initializes the running state and stores the runtime instance.
@@ -50,17 +51,25 @@ class RuntimeCommandSource:
             AssertionError: If called multiple times or if internal state is inconsistent.
         """
         # Ensure that start_async is called only once and in a valid state.
-        assert self.__is_running is None, "RuntimeCommandSource already started or in an inconsistent state."
+        assert (
+            self.__is_running is None
+        ), "RuntimeCommandSource already started or in an inconsistent state."
         self.__is_running = IsRunningTracker()
-        assert not self.__is_running.get(), "IsRunningTracker started prematurely."
-        assert self.__runtime is None, "Runtime instance already set before start_async."
+        assert (
+            not self.__is_running.get()
+        ), "IsRunningTracker started prematurely."
+        assert (
+            self.__runtime is None
+        ), "Runtime instance already set before start_async."
 
         self.__is_running.start()
         self.__runtime = runtime
 
         def watch_commands() -> None:
             """Polls for commands and executes them on the runtime."""
-            while self.__is_running and self.__is_running.get(): # Check both instance and its value
+            while (
+                self.__is_running and self.__is_running.get()
+            ):  # Check both instance and its value
                 # Poll the queue with a timeout to allow checking is_running periodically.
                 command = self.__runtime_command_queue.get_blocking(timeout=1)
                 if command is None:
@@ -73,7 +82,6 @@ class RuntimeCommandSource:
                     # Adding a log or an assertion here might be useful for debugging.
                     continue
 
-
                 if command == RuntimeCommand.kStart:
                     run_on_event_loop(self.__runtime.start_async)
                 elif command == RuntimeCommand.kStop:
@@ -83,7 +91,7 @@ class RuntimeCommandSource:
 
         # NOTE: Threads saved to avoid concers about garbage collection.
         self.__command_thread = thread_watcher.create_tracked_thread(
-            target=watch_commands # Ensure target is passed for create_tracked_thread
+            target=watch_commands  # Ensure target is passed for create_tracked_thread
         )
 
         self.__command_thread.start()
@@ -99,8 +107,12 @@ class RuntimeCommandSource:
             AssertionError: If not currently running or if internal state is inconsistent.
         """
         # Ensure that stop_async is called only when running and in a valid state.
-        assert self.__is_running is not None, "RuntimeCommandSource not started or in an inconsistent state."
-        assert self.__is_running.get(), "RuntimeCommandSource is not marked as running."
+        assert (
+            self.__is_running is not None
+        ), "RuntimeCommandSource not started or in an inconsistent state."
+        assert (
+            self.__is_running.get()
+        ), "RuntimeCommandSource is not marked as running."
 
         self.__is_running.stop()
         # Note: Thread joining and resource cleanup (like setting self.__runtime to None)

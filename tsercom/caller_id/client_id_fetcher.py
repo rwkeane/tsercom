@@ -51,24 +51,29 @@ class ClientIdFetcher:
             async with self.__lock:
                 # If the ID hasn't been fetched yet (lazy loading).
                 if self.__id is None:
-                    id_response: GetIdResponse = await self.__stub.GetId(GetIdRequest())
-                    
+                    id_response: GetIdResponse = await self.__stub.GetId(
+                        GetIdRequest()
+                    )
+
                     # Ensure the response is of the expected type.
-                    assert isinstance(id_response, GetIdResponse), \
-                        f"Expected GetIdResponse, got {type(id_response)}"
-                    
+                    assert isinstance(
+                        id_response, GetIdResponse
+                    ), f"Expected GetIdResponse, got {type(id_response)}"
+
                     # CallerIdentifier.try_parse can return None if the string is invalid.
                     if id_response.id and id_response.id.id:
-                        self.__id = CallerIdentifier.try_parse(id_response.id.id)
+                        self.__id = CallerIdentifier.try_parse(
+                            id_response.id.id
+                        )
                     else:
                         # Handle cases where response or its nested id is missing.
-                        self.__id = None 
+                        self.__id = None
                         # Optionally log a warning here if this case is unexpected.
-                
+
                 # This could be None if fetching or parsing failed.
                 return self.__id
-        except Exception as e: # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             # Broad exception catch for any issues during RPC call or processing.
             # In a production system, more specific error handling and logging would be preferred.
-            print(f"Error fetching client ID: {e}") # Basic error logging.
+            print(f"Error fetching client ID: {e}")  # Basic error logging.
             return None

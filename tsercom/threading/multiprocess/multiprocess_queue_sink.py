@@ -7,8 +7,11 @@ It is designed to provide a clear and type-safe interface for sending items
 to a queue that is shared between processes, abstracting the underlying queue
 and focusing solely on the "put" operations.
 """
+
 import multiprocessing
-from queue import Full # Exception raised when a non-blocking put is called on a full queue.
+from queue import (
+    Full,
+)  # Exception raised when a non-blocking put is called on a full queue.
 from typing import Generic, TypeVar
 
 

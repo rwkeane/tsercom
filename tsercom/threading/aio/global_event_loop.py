@@ -17,6 +17,7 @@ Thread safety for accessing and modifying the global event loop instance is
 handled internally using a `threading.Lock`. This ensures that operations like
 setting or clearing the loop are atomic and prevent race conditions.
 """
+
 from asyncio import AbstractEventLoop
 import asyncio
 import threading
@@ -55,7 +56,9 @@ def get_global_event_loop() -> AbstractEventLoop:
         AssertionError: If the global event loop has not been set.
     """
     global __g_global_event_loop
-    assert __g_global_event_loop is not None, "Global event loop accessed before being set."
+    assert (
+        __g_global_event_loop is not None
+    ), "Global event loop accessed before being set."
     return __g_global_event_loop
 
 

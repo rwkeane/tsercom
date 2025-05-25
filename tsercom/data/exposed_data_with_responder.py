@@ -39,7 +39,9 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
             TypeError: If `responder` is not a subclass of `RemoteDataResponder`.
         """
         if responder is None:
-            raise ValueError("Responder argument cannot be None for ExposedDataWithResponder.")
+            raise ValueError(
+                "Responder argument cannot be None for ExposedDataWithResponder."
+            )
         # Ensure the provided responder is of the correct type.
         # This check is important for type safety and ensuring the responder
         # will have the expected `_on_response_ready` method.

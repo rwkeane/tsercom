@@ -92,13 +92,15 @@ class RuntimeManager(ErrorWatcher):
         Returns:
             A Future that will be populated with the RuntimeHandle once the
             runtime is initialized.
-        
+
         Raises:
             RuntimeError: If called after the manager has started.
         """
         # Ensure initializers are registered only before starting.
         if self.has_started:
-            raise RuntimeError("Cannot register runtime initializer after the manager has started.")
+            raise RuntimeError(
+                "Cannot register runtime initializer after the manager has started."
+            )
 
         handle_future = Future[RuntimeHandle[TDataType, TEventType]]()
         pair = InitializationPair[TDataType, TEventType](
@@ -137,20 +139,26 @@ class RuntimeManager(ErrorWatcher):
                        or any exception set on the future by the task it was awaiting).
         """
         running_loop = get_running_loop_or_none()
-        
+
         if running_loop is None:
-            raise RuntimeError("Could not determine the current running event loop for start_in_process_async.")
-            
+            raise RuntimeError(
+                "Could not determine the current running event loop for start_in_process_async."
+            )
+
         # The `start_in_process` method doesn't return handles directly.
         # Handles are obtained via the Futures.
         self.start_in_process(running_loop)
-        
+
         # Collect handles from futures for convenience, if desired by original intent.
         # However, the current start_in_process doesn't facilitate this directly.
         # For now, aligning with start_in_process's void return.
         # If handles were to be returned, it would look like:
         # return [pair.handle_future.result() for pair in self.__initializers]
-        return [pair.handle_future.result(timeout=0) for pair in self.__initializers if pair.handle_future.done()]
+        return [
+            pair.handle_future.result(timeout=0)
+            for pair in self.__initializers
+            if pair.handle_future.done()
+        ]
 
     def start_in_process(
         self,
@@ -165,7 +173,7 @@ class RuntimeManager(ErrorWatcher):
         Args:
             runtime_event_loop: The asyncio event loop on which Tsercom
                                 operations will run.
-        
+
         Raises:
             RuntimeError: If called after the manager has started.
         """
@@ -174,12 +182,14 @@ class RuntimeManager(ErrorWatcher):
         self.__has_started.start()
 
         set_tsercom_event_loop(runtime_event_loop)
-        self.__error_watcher = self.__thread_watcher # Local errors managed by ThreadWatcher.
+        self.__error_watcher = (
+            self.__thread_watcher
+        )  # Local errors managed by ThreadWatcher.
 
         # Create factories for local process runtimes.
         thread_pool = (
             self.__thread_watcher.create_tracked_thread_pool_executor(
-                max_workers=1 # Single worker for sequential factory creation.
+                max_workers=1  # Single worker for sequential factory creation.
             )
         )
         factory_factory = LocalRuntimeFactoryFactory(thread_pool)
@@ -207,13 +217,13 @@ class RuntimeManager(ErrorWatcher):
             start_as_daemon: If True, the new process will be a daemon process.
                              Daemonic processes are typically used for background
                              tasks and are terminated when the main program exits.
-        
+
         Raises:
             RuntimeError: If called after the manager has started.
         """
         if self.has_started:
             raise RuntimeError("RuntimeManager has already been started.")
-            
+
         self.__has_started.start()
 
         # Set up a minimal local Tsercom event loop, primarily for utilities.
@@ -228,7 +238,7 @@ class RuntimeManager(ErrorWatcher):
         # Create factories for split-process runtimes.
         thread_pool = (
             self.__thread_watcher.create_tracked_thread_pool_executor(
-                max_workers=1 # Single worker for sequential factory creation.
+                max_workers=1  # Single worker for sequential factory creation.
             )
         )
         factory_factory = SplitRuntimeFactoryFactory(
@@ -247,7 +257,7 @@ class RuntimeManager(ErrorWatcher):
             target=partial(
                 remote_process_main,
                 factories,
-                error_sink, # Provide the error queue to the remote process.
+                error_sink,  # Provide the error queue to the remote process.
                 is_testing=self.__is_testing,
             ),
             # Test processes or explicit daemons are set as daemonic.
@@ -257,7 +267,7 @@ class RuntimeManager(ErrorWatcher):
 
     def run_until_exception(self) -> None:
         """Blocks execution until an exception is raised by any managed runtime.
-        
+
         Runs the current thread until an exception as been raised, throwing the
         exception upon receipt. This method is thread-safe and can be called
         from any thread.
@@ -273,7 +283,9 @@ class RuntimeManager(ErrorWatcher):
             # Added this check for consistency, as __error_watcher depends on has_started
             raise RuntimeError("RuntimeManager has not been started.")
         if self.__error_watcher is None:
-            raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
+            raise RuntimeError(
+                "Error watcher is not available. Ensure the RuntimeManager has been properly started."
+            )
 
         self.__thread_watcher.run_until_exception()
 
@@ -289,11 +301,13 @@ class RuntimeManager(ErrorWatcher):
             RuntimeError: If the manager has started but the error watcher isn't set.
         """
         if not self.has_started:
-            return # No exceptions to check if not started.
+            return  # No exceptions to check if not started.
 
         if self.__error_watcher is None:
             # This implies it wasn't started correctly or state is corrupted.
-            raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
+            raise RuntimeError(
+                "Error watcher is not available. Ensure the RuntimeManager has been properly started."
+            )
 
         self.__thread_watcher.check_for_exception()
 
@@ -327,7 +341,8 @@ class RuntimeManager(ErrorWatcher):
 
 
 class RuntimeFuturePopulator(
-    RuntimeFactoryFactory.Client[TDataType, TEventType], Generic[TDataType, TEventType]
+    RuntimeFactoryFactory.Client[TDataType, TEventType],
+    Generic[TDataType, TEventType],
 ):
     """A client that populates a Future with a RuntimeHandle when ready.
 
@@ -335,7 +350,10 @@ class RuntimeFuturePopulator(
     purpose is to set the result of a provided `Future` when the
     `_on_handle_ready` callback is invoked with the `RuntimeHandle`.
     """
-    def __init__(self, future: Future[RuntimeHandle[TDataType, TEventType]]) -> None:
+
+    def __init__(
+        self, future: Future[RuntimeHandle[TDataType, TEventType]]
+    ) -> None:
         """Initializes the RuntimeFuturePopulator.
 
         Args:
@@ -344,7 +362,9 @@ class RuntimeFuturePopulator(
         """
         self.__future: Future[RuntimeHandle[TDataType, TEventType]] = future
 
-    def _on_handle_ready(self, handle: RuntimeHandle[TDataType, TEventType]) -> None:
+    def _on_handle_ready(
+        self, handle: RuntimeHandle[TDataType, TEventType]
+    ) -> None:
         """Callback invoked when the RuntimeHandle is ready.
 
         This method sets the provided `handle` as the result of the `Future`

@@ -32,7 +32,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
             ntp_port: The port of the NTP server.
         """
         self.__watcher = watcher  # ThreadWatcher to manage the lifecycle of the sync thread.
-        self.__server_ip = server_ip  # IP address of the NTP server to synchronize with.
+        self.__server_ip = (
+            server_ip  # IP address of the NTP server to synchronize with.
+        )
         self.__ntp_port = ntp_port  # Port number for the NTP server.
 
         # __sync_loop_thread: Holds the reference to the thread that runs the
@@ -89,7 +91,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
 
         with self.__time_offset_lock:
             count = len(self.__time_offsets)
-            assert count > 0, "Time offsets deque should not be empty after start barrier."
+            assert (
+                count > 0
+            ), "Time offsets deque should not be empty after start barrier."
             return sum(self.__time_offsets) / count
 
     def is_running(self) -> bool:
@@ -119,7 +123,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         periodically synchronizing time with the NTP server via `__run_sync_loop`.
         Does nothing if the client is already running.
         """
-        assert not self.__is_running.get(), "TimeSyncClient is already running."
+        assert (
+            not self.__is_running.get()
+        ), "TimeSyncClient is already running."
         self.__is_running.set(True)
 
         self.__sync_loop_thread = self.__watcher.create_tracked_thread(
@@ -166,7 +172,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                 if isinstance(e, AssertionError):
                     logging.error(f"AssertionError during NTP sync: {e}")
                     self.__watcher.on_exception_seen(e)
-                    raise # Re-raise AssertionError to halt the sync loop.
+                    raise  # Re-raise AssertionError to halt the sync loop.
                 logging.error(f"Error during NTP sync: {e}")
 
             # The __start_barrier is used to signal that the TimeSyncClient has

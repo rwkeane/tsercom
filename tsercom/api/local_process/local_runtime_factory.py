@@ -30,6 +30,7 @@ class LocalRuntimeFactory(
     It also manages data reading and event polling mechanisms specific to
     local process operations.
     """
+
     def __init__(
         self,
         initializer: RuntimeInitializer[TDataType, TEventType],
@@ -46,9 +47,15 @@ class LocalRuntimeFactory(
             bridge: The bridge for command communication with the runtime.
         """
         # Essential components for runtime creation.
-        self.__initializer: RuntimeInitializer[TDataType, TEventType] = initializer
-        self.__data_reader: RemoteDataReader[AnnotatedInstance[TDataType]] = data_reader
-        self.__event_poller: AsyncPoller[EventInstance[TEventType]] = event_poller
+        self.__initializer: RuntimeInitializer[TDataType, TEventType] = (
+            initializer
+        )
+        self.__data_reader: RemoteDataReader[AnnotatedInstance[TDataType]] = (
+            data_reader
+        )
+        self.__event_poller: AsyncPoller[EventInstance[TEventType]] = (
+            event_poller
+        )
         self.__bridge: RuntimeCommandBridge = bridge
 
         super().__init__(other_config=self.__initializer)
