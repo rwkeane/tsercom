@@ -219,7 +219,7 @@ def test_init(
         handle._ShimRuntimeHandle__runtime_command_queue is fake_command_q_sink
     )
     assert (
-        handle._ShimRuntimeHandle__data_aggregtor is fake_aggregator
+        handle._ShimRuntimeHandle__data_aggregator is fake_aggregator
     )  # Corrected attribute name (with typo)
     assert handle._ShimRuntimeHandle__block is True  # Corrected attribute name
 
