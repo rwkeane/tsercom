@@ -1,5 +1,4 @@
 import pytest
-from mock import MagicMock
 import multiprocessing # For multiprocessing.Queue spec
 from multiprocessing import queues # For spec in MagicMock
 from queue import Full # For the Full exception
@@ -10,11 +9,11 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import MultiprocessQ
 class TestMultiprocessQueueSink:
 
     @pytest.fixture
-    def mock_mp_queue(self):
+    def mock_mp_queue(self, mocker): # Added mocker
         """Provides a MagicMock for multiprocessing.Queue."""
         # Use spec=multiprocessing.Queue to ensure the mock behaves like the actual Queue
         # regarding available methods and their expected signatures (to some extent).
-        return MagicMock(spec=queues.Queue, name="MockMultiprocessingQueue")
+        return mocker.MagicMock(spec=queues.Queue, name="MockMultiprocessingQueue") # Changed to mocker.MagicMock
 
     def test_put_blocking_successful(self, mock_mp_queue):
         print("\n--- Test: test_put_blocking_successful ---")

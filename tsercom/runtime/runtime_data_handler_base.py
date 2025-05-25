@@ -221,7 +221,7 @@ class RuntimeDataHandlerBase(
 
     def _create_data_processor(
         self, caller_id: CallerIdentifier, clock: SynchronizedClock
-    ) -> EndpointDataProcessor[TDataType]:
+    ) -> EndpointDataProcessor[TDataType]: # Corrected return type
         """Factory method to create a concrete `EndpointDataProcessor`.
 
         Args:

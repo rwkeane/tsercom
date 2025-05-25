@@ -41,6 +41,7 @@ class TimeSyncTracker:
             A `SynchronizedClock` instance associated with the endpoint.
         """
         if ip not in self.__map:
+            # If this is the first connection to this IP, create a new TimeSyncClient.
             if self.__is_test_run:
                 new_client = FakeTimeSyncClient(self.__thread_watcher, ip)
             else:
@@ -74,12 +75,14 @@ class TimeSyncTracker:
             raise KeyError(
                 f"IP address '{ip}' not found in timesync tracker during disconnect. It may have already been disconnected or was never tracked."
             )
-
+            
         current_count, client_instance = self.__map[ip]
         current_count -= 1
 
         if current_count == 0:
+            # If this was the last connection, stop and remove the client.
             del self.__map[ip]
             client_instance.stop()
         else:
+            # Otherwise, just decrement the reference count.
             self.__map[ip] = (current_count, client_instance)

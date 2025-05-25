@@ -102,7 +102,7 @@ class IdTracker:
         if result is None:
             raise KeyError(f"Key not found for query: id={id}, address={address}, port={port}")
 
-        return result
+        return result # Type of result is correctly inferred by mypy here based on overload
 
     def add(self, id: CallerIdentifier, address: str, port: int) -> None:
         """Adds a new bidirectional mapping to the tracker.

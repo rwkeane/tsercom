@@ -255,6 +255,7 @@ class IsRunningTracker(Atomic[bool]):
             self.__event_loop = get_running_loop_or_none()
             assert self.__event_loop is not None, "Must be called from within a running event loop or have an event loop set."
             value = self.get()
+        # Initialize the asyncio event states based on the current value.
         await self.__set_impl(value)
 
     class __IteratorWrapper(AsyncIterator[TReturnType]):

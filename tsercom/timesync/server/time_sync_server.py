@@ -39,8 +39,9 @@ class TimeSyncServer:
         """
         self.__address = address
         self.__port = ntp_port
-        self.__is_running = IsRunningTracker()
+        self.__is_running = IsRunningTracker() # Manages the running state of the server.
 
+        # UDP socket for NTP communication.
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # Lock to protect access to the socket, especially during close() and send/receive.
         self.__socket_lock = threading.Lock()
@@ -125,7 +126,7 @@ class TimeSyncServer:
         try:
             with self.__socket_lock:
                 self.__socket.bind((self.__address, self.__port))
-            self.__is_running.set(True)
+            self.__is_running.set(True) # Signal that binding was successful
         except OSError as e:
             self.__is_running.set(False)
 

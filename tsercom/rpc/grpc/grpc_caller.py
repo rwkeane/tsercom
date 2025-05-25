@@ -24,6 +24,7 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
     if not issubclass(type(error), grpc.RpcError):
         return None
 
+    # Retrieve status for general RpcError
     status: Status = rpc_status.from_call(error)
     if status is None:
         return None

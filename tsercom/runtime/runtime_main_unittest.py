@@ -1,7 +1,6 @@
 """Tests for tsercom.runtime.runtime_main."""
 
 import pytest
-from mock import patch, Mock
 
 from tsercom.runtime.runtime_main import (
     initialize_runtimes,
@@ -16,50 +15,41 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
 
 
-@patch(
-    "tsercom.runtime.runtime_main.is_global_event_loop_set", return_value=True
-)
-@patch(
-    "tsercom.runtime.runtime_main.run_on_event_loop",
-    side_effect=lambda coro, loop=None: None,
-)
-@patch(
-    "tsercom.runtime.runtime_main.ChannelFactorySelector"
-)  # Patches the class
-@patch("tsercom.runtime.runtime_main.ClientRuntimeDataHandler")
-@patch("tsercom.runtime.runtime_main.ServerRuntimeDataHandler")
 class TestInitializeRuntimes:
     """Tests for the initialize_runtimes function."""
 
     def test_initialize_runtimes_client(
         self,
-        MockServerRuntimeDataHandler,
-        MockClientRuntimeDataHandler,
-        MockChannelFactorySelector,
-        mock_run_on_event_loop,
-        mock_is_global_event_loop_set,
+        mocker, # Added mocker
     ):
-        mock_thread_watcher = Mock(spec=ThreadWatcher)
+        # Class-level patches converted to method-level mocker.patch
+        mock_is_global_event_loop_set = mocker.patch("tsercom.runtime.runtime_main.is_global_event_loop_set", return_value=True)
+        mock_run_on_event_loop = mocker.patch("tsercom.runtime.runtime_main.run_on_event_loop", side_effect=lambda coro, loop=None: None)
+        MockChannelFactorySelector = mocker.patch("tsercom.runtime.runtime_main.ChannelFactorySelector")
+        MockClientRuntimeDataHandler = mocker.patch("tsercom.runtime.runtime_main.ClientRuntimeDataHandler")
+        MockServerRuntimeDataHandler = mocker.patch("tsercom.runtime.runtime_main.ServerRuntimeDataHandler")
+
+        mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
 
         mock_channel_factory_selector_instance = (
             MockChannelFactorySelector.return_value
         )
-        mock_grpc_channel_factory = Mock(spec=GrpcChannelFactory)
+        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
         mock_channel_factory_selector_instance.get_instance.return_value = (
             mock_grpc_channel_factory
         )
 
-        mock_client_factory = Mock(spec=RuntimeFactory)
+        mock_client_factory = mocker.Mock(spec=RuntimeFactory)
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         # Configure the return values for the internal calls that initialize_runtimes will make
-        mock_client_data_reader_actual_instance = Mock(spec=RemoteDataReader, name="client_data_reader_instance")
-        mock_client_event_poller_actual_instance = Mock(spec=AsyncPoller, name="client_event_poller_instance")
+        mock_client_data_reader_actual_instance = mocker.Mock(spec=RemoteDataReader, name="client_data_reader_instance")
+        mock_client_event_poller_actual_instance = mocker.Mock(spec=AsyncPoller, name="client_event_poller_instance")
         mock_client_factory._remote_data_reader.return_value = mock_client_data_reader_actual_instance
         mock_client_factory._event_poller.return_value = mock_client_event_poller_actual_instance
 
-        mock_runtime_instance = Mock(spec=Runtime)
-        mock_runtime_instance.start_async = Mock(
+        mock_runtime_instance = mocker.Mock(spec=Runtime)
+        mock_runtime_instance.start_async = mocker.Mock(
             name="start_async_method"
         )
         mock_client_factory.create.return_value = mock_runtime_instance
@@ -92,32 +82,35 @@ class TestInitializeRuntimes:
 
     def test_initialize_runtimes_server(
         self,
-        MockServerRuntimeDataHandler,
-        MockClientRuntimeDataHandler,
-        MockChannelFactorySelector,
-        mock_run_on_event_loop,
-        mock_is_global_event_loop_set,
+        mocker, # Added mocker
     ):
-        mock_thread_watcher = Mock(spec=ThreadWatcher)
+        # Class-level patches converted to method-level mocker.patch
+        mock_is_global_event_loop_set = mocker.patch("tsercom.runtime.runtime_main.is_global_event_loop_set", return_value=True)
+        mock_run_on_event_loop = mocker.patch("tsercom.runtime.runtime_main.run_on_event_loop", side_effect=lambda coro, loop=None: None)
+        MockChannelFactorySelector = mocker.patch("tsercom.runtime.runtime_main.ChannelFactorySelector")
+        MockClientRuntimeDataHandler = mocker.patch("tsercom.runtime.runtime_main.ClientRuntimeDataHandler")
+        MockServerRuntimeDataHandler = mocker.patch("tsercom.runtime.runtime_main.ServerRuntimeDataHandler")
+
+        mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
         mock_channel_factory_selector_instance = (
             MockChannelFactorySelector.return_value
         )
-        mock_grpc_channel_factory = Mock(spec=GrpcChannelFactory)
+        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
         mock_channel_factory_selector_instance.get_instance.return_value = (
             mock_grpc_channel_factory
         )
 
-        mock_server_factory = Mock(spec=RuntimeFactory)
+        mock_server_factory = mocker.Mock(spec=RuntimeFactory)
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
         # Configure the return values for the internal calls that initialize_runtimes will make
-        mock_server_data_reader_actual_instance = Mock(spec=RemoteDataReader, name="server_data_reader_instance")
-        mock_server_event_poller_actual_instance = Mock(spec=AsyncPoller, name="server_event_poller_instance")
+        mock_server_data_reader_actual_instance = mocker.Mock(spec=RemoteDataReader, name="server_data_reader_instance")
+        mock_server_event_poller_actual_instance = mocker.Mock(spec=AsyncPoller, name="server_event_poller_instance")
         mock_server_factory._remote_data_reader.return_value = mock_server_data_reader_actual_instance
         mock_server_factory._event_poller.return_value = mock_server_event_poller_actual_instance
 
-        mock_runtime_instance = Mock(spec=Runtime)
-        mock_runtime_instance.start_async = Mock(
+        mock_runtime_instance = mocker.Mock(spec=Runtime)
+        mock_runtime_instance.start_async = mocker.Mock(
             name="start_async_method"
         )
         mock_server_factory.create.return_value = mock_runtime_instance
@@ -149,43 +142,46 @@ class TestInitializeRuntimes:
 
     def test_initialize_runtimes_multiple(
         self,
-        MockServerRuntimeDataHandler,
-        MockClientRuntimeDataHandler,
-        MockChannelFactorySelector,
-        mock_run_on_event_loop,
-        mock_is_global_event_loop_set,
+        mocker, # Added mocker
     ):
-        mock_thread_watcher = Mock(spec=ThreadWatcher)
+        # Class-level patches converted to method-level mocker.patch
+        mock_is_global_event_loop_set = mocker.patch("tsercom.runtime.runtime_main.is_global_event_loop_set", return_value=True)
+        mock_run_on_event_loop = mocker.patch("tsercom.runtime.runtime_main.run_on_event_loop", side_effect=lambda coro, loop=None: None)
+        MockChannelFactorySelector = mocker.patch("tsercom.runtime.runtime_main.ChannelFactorySelector")
+        MockClientRuntimeDataHandler = mocker.patch("tsercom.runtime.runtime_main.ClientRuntimeDataHandler")
+        MockServerRuntimeDataHandler = mocker.patch("tsercom.runtime.runtime_main.ServerRuntimeDataHandler")
+
+        mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
         mock_channel_factory_selector_instance = (
             MockChannelFactorySelector.return_value
         )
-        mock_grpc_channel_factory = Mock(spec=GrpcChannelFactory)
+        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
         mock_channel_factory_selector_instance.get_instance.return_value = (
             mock_grpc_channel_factory
         )
 
-        mock_client_factory = Mock(spec=RuntimeFactory)
+        mock_client_factory = mocker.Mock(spec=RuntimeFactory)
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         # Configure the return values for the client factory's internal calls
-        mock_client_data_reader_actual_instance_multi = Mock(spec=RemoteDataReader, name="client_data_reader_instance_multi")
-        mock_client_event_poller_actual_instance_multi = Mock(spec=AsyncPoller, name="client_event_poller_instance_multi")
+        mock_client_data_reader_actual_instance_multi = mocker.Mock(spec=RemoteDataReader, name="client_data_reader_instance_multi")
+        mock_client_event_poller_actual_instance_multi = mocker.Mock(spec=AsyncPoller, name="client_event_poller_instance_multi")
         mock_client_factory._remote_data_reader.return_value = mock_client_data_reader_actual_instance_multi
         mock_client_factory._event_poller.return_value = mock_client_event_poller_actual_instance_multi
-        mock_client_runtime = Mock(spec=Runtime, name="client_runtime")
-        mock_client_runtime.start_async = Mock(name="client_start_async")
+        mock_client_runtime = mocker.Mock(spec=Runtime, name="client_runtime")
+        mock_client_runtime.start_async = mocker.Mock(name="client_start_async")
         mock_client_factory.create.return_value = mock_client_runtime
 
-        mock_server_factory = Mock(spec=RuntimeFactory)
+        mock_server_factory = mocker.Mock(spec=RuntimeFactory)
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
         # Configure the return values for the server factory's internal calls
-        mock_server_data_reader_actual_instance_multi = Mock(spec=RemoteDataReader, name="server_data_reader_instance_multi")
-        mock_server_event_poller_actual_instance_multi = Mock(spec=AsyncPoller, name="server_event_poller_instance_multi")
+        mock_server_data_reader_actual_instance_multi = mocker.Mock(spec=RemoteDataReader, name="server_data_reader_instance_multi")
+        mock_server_event_poller_actual_instance_multi = mocker.Mock(spec=AsyncPoller, name="server_event_poller_instance_multi")
         mock_server_factory._remote_data_reader.return_value = mock_server_data_reader_actual_instance_multi
         mock_server_factory._event_poller.return_value = mock_server_event_poller_actual_instance_multi
-        mock_server_runtime = Mock(spec=Runtime, name="server_runtime")
-        mock_server_runtime.start_async = Mock(name="server_start_async")
+        mock_server_runtime = mocker.Mock(spec=Runtime, name="server_runtime")
+        mock_server_runtime.start_async = mocker.Mock(name="server_start_async")
         mock_server_factory.create.return_value = mock_server_runtime
 
         initializers = [mock_client_factory, mock_server_factory]
@@ -220,39 +216,28 @@ class TestInitializeRuntimes:
         assert created_runtimes == [mock_client_runtime, mock_server_runtime]
 
 
-@patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
-@patch(
-    "tsercom.runtime.runtime_main.ThreadWatcher",
-    return_value=Mock(spec=ThreadWatcher),
-)
-@patch(
-    "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
-)
-@patch("tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink")
-@patch("tsercom.runtime.runtime_main.initialize_runtimes")
-@patch(
-    "tsercom.runtime.runtime_main.run_on_event_loop",
-    side_effect=lambda coro, loop=None: None,
-)
 class TestRemoteProcessMain:
     """Tests for the remote_process_main function."""
 
     def test_normal_execution(
         self,
-        mock_run_on_event_loop,
-        mock_initialize_runtimes,
-        MockSplitProcessErrorWatcherSink,
-        mock_create_event_loop,
-        MockThreadWatcher,
-        mock_clear_event_loop,
+        mocker, # Added mocker
     ):
-        mock_factories = [Mock(spec=RuntimeFactory)]
-        mock_error_queue = Mock(spec=DataReaderSink)
+        # Class-level patches converted to method-level mocker.patch
+        mock_clear_event_loop = mocker.patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
+        MockThreadWatcher = mocker.patch("tsercom.runtime.runtime_main.ThreadWatcher", return_value=mocker.Mock(spec=ThreadWatcher))
+        mock_create_event_loop = mocker.patch("tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher")
+        MockSplitProcessErrorWatcherSink = mocker.patch("tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink")
+        mock_initialize_runtimes = mocker.patch("tsercom.runtime.runtime_main.initialize_runtimes")
+        mock_run_on_event_loop = mocker.patch("tsercom.runtime.runtime_main.run_on_event_loop", side_effect=lambda coro, loop=None: None)
 
-        mock_runtime1 = Mock(spec=Runtime)
-        mock_runtime1.stop = Mock(name="runtime1_stop")
-        mock_runtime2 = Mock(spec=Runtime)
-        mock_runtime2.stop = Mock(name="runtime2_stop")
+        mock_factories = [mocker.Mock(spec=RuntimeFactory)]
+        mock_error_queue = mocker.Mock(spec=DataReaderSink)
+
+        mock_runtime1 = mocker.Mock(spec=Runtime)
+        mock_runtime1.stop = mocker.Mock(name="runtime1_stop")
+        mock_runtime2 = mocker.Mock(spec=Runtime)
+        mock_runtime2.stop = mocker.Mock(name="runtime2_stop")
         mock_initialize_runtimes.return_value = [mock_runtime1, mock_runtime2]
 
         mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
@@ -278,20 +263,23 @@ class TestRemoteProcessMain:
 
     def test_exception_in_run_until_exception(
         self,
-        mock_run_on_event_loop,
-        mock_initialize_runtimes,
-        MockSplitProcessErrorWatcherSink,
-        mock_create_event_loop,
-        MockThreadWatcher,
-        mock_clear_event_loop,
+        mocker, # Added mocker
     ):
-        mock_factories = [Mock(spec=RuntimeFactory)]
-        mock_error_queue = Mock(spec=DataReaderSink)
+        # Class-level patches converted to method-level mocker.patch
+        mock_clear_event_loop = mocker.patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
+        MockThreadWatcher = mocker.patch("tsercom.runtime.runtime_main.ThreadWatcher", return_value=mocker.Mock(spec=ThreadWatcher))
+        mock_create_event_loop = mocker.patch("tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher")
+        MockSplitProcessErrorWatcherSink = mocker.patch("tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink")
+        mock_initialize_runtimes = mocker.patch("tsercom.runtime.runtime_main.initialize_runtimes")
+        mock_run_on_event_loop = mocker.patch("tsercom.runtime.runtime_main.run_on_event_loop", side_effect=lambda coro, loop=None: None)
 
-        mock_runtime1 = Mock(spec=Runtime)
-        mock_runtime1.stop = Mock(name="runtime1_stop")
-        mock_runtime2 = Mock(spec=Runtime)
-        mock_runtime2.stop = Mock(name="runtime2_stop")
+        mock_factories = [mocker.Mock(spec=RuntimeFactory)]
+        mock_error_queue = mocker.Mock(spec=DataReaderSink)
+
+        mock_runtime1 = mocker.Mock(spec=Runtime)
+        mock_runtime1.stop = mocker.Mock(name="runtime1_stop")
+        mock_runtime2 = mocker.Mock(spec=Runtime)
+        mock_runtime2.stop = mocker.Mock(name="runtime2_stop")
         mock_initialize_runtimes.return_value = [mock_runtime1, mock_runtime2]
 
         mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value

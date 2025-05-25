@@ -69,7 +69,7 @@ class AsyncPoller(Generic[TResultType], ABC):
         """
         with self.__lock:
             # Limit queue size
-            if len(self.__responses) > kMaxResponses:
+            if len(self.__responses) >= kMaxResponses: # Changed > to >=
                 self.__responses.popleft()
             self.__responses.append(new_instance)
 

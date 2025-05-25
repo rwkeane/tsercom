@@ -51,6 +51,7 @@ class SerializableTensor:
             A `GrpcTensor` protobuf message.
         """
         size = list(self.__tensor.size())
+        # Flatten the tensor for serialization.
         entries = self.__tensor.reshape(-1).tolist()
         return GrpcTensor(
             timestamp=self.__timestamp.to_grpc_type(), size=size, array=entries

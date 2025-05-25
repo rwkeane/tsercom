@@ -80,6 +80,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         Returns:
             The averaged time offset in seconds.
 
+
         Raises:
             AssertionError: If called after the barrier is set but the offsets deque
                             is unexpectedly empty.
@@ -174,6 +175,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
             # It should only be set once. Once set, get_offset_seconds() can proceed.
             if not self.__start_barrier.is_set():
                 with self.__time_offset_lock:
+                    # Check if we have successfully populated __time_offsets.
                     if len(self.__time_offsets) > 0:
                         self.__start_barrier.set()
                         logging.info(

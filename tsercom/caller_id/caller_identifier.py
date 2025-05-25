@@ -4,16 +4,7 @@ import typing # Retained for typing.Union, though | can be used in Python 3.10+
 from typing import Optional, Union
 import uuid
 
-# Attempt to import the gRPC CallerId type for type checking and conversion.
-# This import might not be available in all environments (e.g., if protos not generated),
-# so its absence is handled gracefully in methods like try_parse and to_grpc_type.
-try:
-    from tsercom.caller_id.proto import CallerId
-except ImportError:
-    # Define a placeholder type if CallerId proto is not available.
-    # This helps type hints to not raise NameError immediately.
-    # Actual runtime isinstance checks will handle this.
-    CallerId = typing.NewType("CallerId", object) # type: ignore
+from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import CallerId
 
 
 class CallerIdentifier:
@@ -63,22 +54,16 @@ class CallerIdentifier:
             otherwise `None`.
         """
         parsed_id_str: Optional[str] = None
-
-        # This check uses hasattr for compatibility with mocks and duck typing,
-        # falling back to isinstance for the actual imported CallerId type if available.
-        if hasattr(value, "id") and not isinstance(value, str):
-            # This relies on the try-except import of CallerId at the module level.
-            if 'tsercom.caller_id.proto.CallerId' in str(type(value)): # Check type by string name to avoid direct dependency if mock
-                 parsed_id_str = getattr(value, "id")
-            elif isinstance(value, CallerId) and hasattr(value, "id"): # Fallback for other cases or mocks
-                 parsed_id_str = getattr(value, "id")
-
+        if isinstance(value, CallerId): # Check against the specific imported type
+            parsed_id_str = value.id
 
         elif isinstance(value, str):
             parsed_id_str = value
+        # If it's not a string or the specific CallerId type, it's an invalid input for this parsing logic.
+        # If it's some other object that happens to have an 'id' attribute, this function
+        # as designed should not parse it based on the original logic's intent.
 
-        # If we couldn't get a string ID (e.g., input was neither string nor valid CallerId-like), return None.
-        if not isinstance(parsed_id_str, str):
+        if not isinstance(parsed_id_str, str): # Ensure we have a string to parse for UUID
             return None
 
         try:
@@ -92,23 +77,8 @@ class CallerIdentifier:
 
         Returns:
             A gRPC `CallerId` protobuf message instance.
-        
-        Raises:
-            ImportError: If the `CallerId` protobuf type cannot be imported.
-                         (This is implicitly handled by the module-level try-except import)
         """
-        # Dynamically import CallerId here to ensure the most up-to-date version is used,
-        # especially if it was initially a placeholder.
-        try:
-            from tsercom.caller_id.proto import CallerId as ActualProtoCallerId
-        except ImportError:
-            # This should ideally not happen if the placeholder logic is robust,
-            # or it indicates a setup issue where protos are expected but not found.
-            raise ImportError(
-                "CallerId protobuf type not found. Please ensure protobufs are generated."
-            ) from None # Raise from None to break chain
-        
-        return ActualProtoCallerId(id=str(self.__id))
+        return CallerId(id=str(self.__id))
 
     def __hash__(self) -> int:
         """Returns the hash of the underlying UUID.

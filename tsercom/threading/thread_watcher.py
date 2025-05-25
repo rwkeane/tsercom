@@ -43,7 +43,7 @@ class ThreadWatcher(ErrorWatcher):
         self, target: Callable[[], None]
     ) -> ThrowingThread:
         """
-        Creates a `ThrowingThread` instance that is tracked by this watcher.
+        Creates a `ThrowingThread` instance that is tracked by this watcher. # Changed in docstring
 
         Exceptions occurring on this thread will be caught and reported via
         `on_exception_seen`.
