@@ -1,6 +1,7 @@
 import pytest
-from unittest.mock import MagicMock
+from mock import MagicMock
 import multiprocessing # For multiprocessing.Queue spec
+from multiprocessing import queues # For spec in MagicMock
 from queue import Full # For the Full exception
 
 # SUT
@@ -13,7 +14,7 @@ class TestMultiprocessQueueSink:
         """Provides a MagicMock for multiprocessing.Queue."""
         # Use spec=multiprocessing.Queue to ensure the mock behaves like the actual Queue
         # regarding available methods and their expected signatures (to some extent).
-        return MagicMock(spec=multiprocessing.Queue, name="MockMultiprocessingQueue")
+        return MagicMock(spec=queues.Queue, name="MockMultiprocessingQueue")
 
     def test_put_blocking_successful(self, mock_mp_queue):
         print("\n--- Test: test_put_blocking_successful ---")
