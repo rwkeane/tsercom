@@ -24,7 +24,7 @@ class MultiprocessQueueSink(Generic[TQueueType]):
     and can handle queues of any specific type.
     """
 
-    def __init__(self, queue: multiprocessing.Queue[TQueueType]) -> None:
+    def __init__(self, queue: multiprocessing.Queue) -> None:
         """
         Initializes the MultiprocessQueueSink with a given multiprocessing queue.
 

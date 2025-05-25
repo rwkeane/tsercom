@@ -25,7 +25,7 @@ TInstanceType = TypeVar("TInstanceType", bound=Stopable)
 
 
 class ClientDisconnectionRetrier(
-    ABC, Generic[TInstanceType], ClientReconnectionManager
+    Generic[TInstanceType], ClientReconnectionManager
 ):
     """Abstract base class for managing client connections with automatic retry logic.
 
