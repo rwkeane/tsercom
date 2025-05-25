@@ -1,3 +1,5 @@
+"""Utilities for network IP addresses."""
+
 import socket
 import psutil
 
