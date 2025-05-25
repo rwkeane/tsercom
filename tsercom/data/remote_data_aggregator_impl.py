@@ -10,15 +10,14 @@ from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_organizer import RemoteDataOrganizer
 from tsercom.data.remote_data_reader import RemoteDataReader
 
-# Generic type for the data being aggregated, bound by ExposedData.
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 
 class RemoteDataAggregatorImpl(
     Generic[TDataType],
     RemoteDataAggregator[TDataType],
-    RemoteDataOrganizer.Client, # Implements callback client for organizers
-    RemoteDataReader[TDataType],  # Can receive data directly
+    RemoteDataOrganizer.Client,
+    RemoteDataReader[TDataType],
 ):
     """Concrete implementation of `RemoteDataAggregator`.
 
@@ -84,11 +83,9 @@ class RemoteDataAggregatorImpl(
         Raises:
             AssertionError: If both `tracker` and `timeout` are provided.
         """
-        # Ensure that tracker and timeout are not simultaneously specified.
         assert not (timeout is not None and tracker is not None), \
             "Cannot specify both 'timeout' and 'tracker' simultaneously."
 
-        # If a timeout duration is given but no tracker, create and start a default tracker.
         if tracker is None and timeout is not None and timeout > 0:
             tracker = DataTimeoutTracker(timeout)
             tracker.start()
@@ -97,8 +94,7 @@ class RemoteDataAggregatorImpl(
         self.__client: Optional[RemoteDataAggregator.Client[TDataType]] = client
         self.__tracker: Optional[DataTimeoutTracker] = tracker
         
-        # Dictionary to hold RemoteDataOrganizer instances, keyed by CallerIdentifier.
-        # Access to this dictionary is protected by a lock.
+        # Organizers keyed by CallerIdentifier, lock-protected.
         self.__organizers: Dict[
             CallerIdentifier, RemoteDataOrganizer[TDataType]
         ] = {}
@@ -123,15 +119,10 @@ class RemoteDataAggregatorImpl(
                 if organizer is None:
                     raise KeyError(f"Caller ID '{id}' not found in active organizers during stop.")
                 organizer.stop()
-                # Optionally remove from __organizers dict if it won't be restarted.
-                # self.__organizers.pop(id, None)
                 return
 
-            # Stop all organizers if no specific ID is given.
             for organizer in self.__organizers.values():
                 organizer.stop()
-            # Optionally clear the dictionary if all are stopped and won't be restarted.
-            # self.__organizers.clear()
 
     def has_new_data(
         self, id: Optional[CallerIdentifier] = None
@@ -224,8 +215,8 @@ class RemoteDataAggregatorImpl(
 
     def get_data_for_timestamp(
         self,
-        timestamp: datetime.datetime, # Corrected order: timestamp first
-        id: Optional[CallerIdentifier] = None, # Corrected order: id second and optional
+        timestamp: datetime.datetime,
+        id: Optional[CallerIdentifier] = None,
     ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
         """Retrieves data for a specific timestamp for one or all callers.
         
@@ -252,12 +243,11 @@ class RemoteDataAggregatorImpl(
 
             results = {}
             for key, organizer in self.__organizers.items():
-                # Pass only timestamp to organizer's get_data_for_timestamp
                 results[key] = organizer.get_data_for_timestamp(timestamp)
             return results
 
     def _on_data_available(
-        self, data_organizer: RemoteDataOrganizer[TDataType] # Removed quotes
+        self, data_organizer: RemoteDataOrganizer[TDataType]
     ) -> None:
         """Callback from a `RemoteDataOrganizer` when it has new data.
 
@@ -268,7 +258,6 @@ class RemoteDataAggregatorImpl(
             data_organizer: The `RemoteDataOrganizer` instance that has new data.
         """
         if self.__client is not None:
-            # Notify the aggregator's client that data is available for the specific caller_id.
             self.__client._on_data_available(self, data_organizer.caller_id)
 
     def _on_data_ready(self, new_data: TDataType) -> None:
@@ -285,33 +274,27 @@ class RemoteDataAggregatorImpl(
         Raises:
             TypeError: If `new_data` is not a subclass of `ExposedData`.
         """
-        if not isinstance(new_data, ExposedData): # Changed from issubclass to isinstance for instance check
+        if not isinstance(new_data, ExposedData):
             raise TypeError(f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}.")
 
         data_organizer: RemoteDataOrganizer[TDataType]
-        is_new_organizer = False # Flag to track if a new organizer was created
+        is_new_organizer = False
 
         with self.__lock:
-            # Check if an organizer already exists for this caller_id.
             if new_data.caller_id not in self.__organizers:
-                # Create a new RemoteDataOrganizer for this caller_id.
                 data_organizer = RemoteDataOrganizer(
-                    self.__thread_pool, new_data.caller_id, self # Pass self as client to organizer
+                    self.__thread_pool, new_data.caller_id, self
                 )
-                # If a timeout tracker is configured, register the new organizer.
                 if self.__tracker is not None:
                     self.__tracker.register(data_organizer)
-                data_organizer.start() # Start the new organizer.
+                data_organizer.start()
                 self.__organizers[new_data.caller_id] = data_organizer
-                is_new_organizer = True # Mark that a new organizer was created.
+                is_new_organizer = True
             else:
-                # Use the existing organizer.
                 data_organizer = self.__organizers[new_data.caller_id]
         
-        # Pass the new data to the responsible organizer.
         data_organizer._on_data_ready(new_data)
 
-        # If a new organizer was created and a client is registered, notify the client.
         if is_new_organizer and self.__client is not None:
             self.__client._on_new_endpoint_began_transmitting(
                 self, data_organizer.caller_id

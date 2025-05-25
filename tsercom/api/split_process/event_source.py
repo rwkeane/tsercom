@@ -59,7 +59,6 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
                     self.on_available(remote_instance)
 
         thread = thread_watcher.create_tracked_thread(target=loop_until_exception)
-        # Start the polling thread.
         thread.start()
 
     def stop(self) -> None:

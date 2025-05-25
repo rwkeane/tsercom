@@ -74,7 +74,6 @@ class DataReaderSource(Generic[TDataType]):
         """
         self.__is_running.stop()
         if self.__thread:
-            # Wait for the polling thread to finish, with a timeout.
             self.__thread.join(timeout=5)
 
     def __poll_for_data(self) -> None:
