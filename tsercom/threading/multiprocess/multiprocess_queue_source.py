@@ -1,6 +1,13 @@
-from __future__ import annotations
+"""
+Defines the `MultiprocessQueueSource[TQueueType]` class.
 
-from multiprocessing import Queue
+This module provides the `MultiprocessQueueSource` class, which serves as a
+generic, read-only (source) wrapper around a standard `multiprocessing.Queue`.
+It is designed to provide a clear and type-safe interface for receiving items
+from a queue that is shared between processes, abstracting the underlying queue
+and focusing solely on the "get" operations.
+"""
+import multiprocessing
 from queue import Empty # Exception raised when a non-blocking get is called on an empty queue.
 from typing import Generic, TypeVar
 
@@ -17,15 +24,15 @@ class MultiprocessQueueSource(Generic[TQueueType]):
     and can handle queues of any specific type.
     """
 
-    def __init__(self, queue: Queue): # Item type: TQueueType
+    def __init__(self, queue: multiprocessing.Queue) -> None:
         """
         Initializes the MultiprocessQueueSource with a given multiprocessing queue.
 
         Args:
-            queue (Queue): The multiprocessing queue # Item type: TQueueType
+            queue (multiprocessing.Queue[TQueueType]): The multiprocessing queue
                 to be used as the source.
         """
-        self.__queue: Queue = queue # Item type: TQueueType
+        self.__queue = queue
 
     def get_blocking(self, timeout: float | None = None) -> TQueueType | None:
         """

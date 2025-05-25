@@ -14,24 +14,76 @@ class ClientSynchronizedClock(SynchronizedClock):
     """
 
     class Client(ABC):
+        """
+        An abstract interface for a client that can provide the time offset
+        between this client and a server. This offset is used by the
+        ClientSynchronizedClock to adjust timestamps.
+        """
+
         @abstractmethod
         def get_offset_seconds(self) -> float:
+            """
+            Retrieves the time offset in seconds between this client and the
+            server.
+
+            A positive value indicates that the client's clock is ahead of the
+            server's clock. A negative value indicates that the client's clock
+            is behind the server's clock.
+
+            Returns:
+                The time offset in seconds as a float.
+            """
             pass
 
-    def __init__(self, client: "ClientSynchronizedClock.Client"):
+    def __init__(self, client: "ClientSynchronizedClock.Client") -> None:
+        """
+        Initializes the ClientSynchronizedClock.
+
+        Args:
+            client: An instance of ClientSynchronizedClock.Client, which will be
+                    used to obtain the time offset from the server.
+        """
         self.__client = client
         super().__init__()
 
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
-        offset = self.__client.get_offset_seconds()
-        timestamp = time.as_datetime()
-        offset_ts = datetime.timedelta(seconds=offset)
+        # Retrieves the current offset from the server.
+        # A positive offset means the client is ahead of the server.
+        # A negative offset means the client is behind the server.
+        offset_seconds = self.__client.get_offset_seconds()
+        timestamp_dt = time.as_datetime()
+        offset_timedelta = datetime.timedelta(seconds=offset_seconds)
 
-        return timestamp - offset_ts
+        # To desynchronize a timestamp (i.e., convert it from server time
+        # back to client's local time), we need to subtract the offset.
+        # For example:
+        # If client is 5s ahead (offset_seconds = 5):
+        #   Server time (timestamp_dt) = 12:00:05
+        #   Client local time = 12:00:05 - 5s = 12:00:00
+        # If client is 5s behind (offset_seconds = -5):
+        #   Server time (timestamp_dt) = 11:59:55
+        #   Client local time = 11:59:55 - (-5s) = 12:00:00
+        return timestamp_dt - offset_timedelta
 
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
-        delta_future = self.__client.get_offset_seconds()
-        delta = datetime.timedelta(seconds=delta_future)
+        # Retrieves the current offset from the server.
+        # A positive offset means the client is ahead of the server.
+        # A negative offset means the client is behind the server.
+        offset_seconds = self.__client.get_offset_seconds()
+        offset_timedelta = datetime.timedelta(seconds=offset_seconds)
 
-        timestamp = timestamp + delta
-        return SynchronizedTimestamp(timestamp)
+        # To synchronize a timestamp (i.e., convert it from client's local
+        # time to server time), we need to add the offset.
+        # For example:
+        # If client is 5s ahead (offset_seconds = 5):
+        #   Client local time (timestamp) = 12:00:00
+        #   Server time = 12:00:00 + 5s = 12:00:05
+        # If client is 5s behind (offset_seconds = -5):
+        #   Client local time (timestamp) = 12:00:00
+        #   Server time = 12:00:00 + (-5s) = 11:59:55
+        #
+        # Note: The variable name `delta_future` in the original code was
+        # a bit misleading. It's simply the offset. The operation here
+        # adjusts the local timestamp to the server's perspective.
+        synchronized_dt = timestamp + offset_timedelta
+        return SynchronizedTimestamp(synchronized_dt)

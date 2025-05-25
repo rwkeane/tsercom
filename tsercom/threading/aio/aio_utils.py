@@ -1,3 +1,13 @@
+"""
+Utilities for working with asyncio event loops.
+
+This module provides helper functions to:
+- Safely get the current running event loop.
+- Check if the current context is running on a specific event loop or any event loop.
+- Schedule coroutines to run on a specified event loop (or a global default)
+  from a synchronous context, returning a future for the result.
+"""
+
 from asyncio import AbstractEventLoop, Future
 import asyncio
 from collections.abc import Callable
@@ -82,4 +92,9 @@ def run_on_event_loop(
             # Raise an error if no event loop is available.
             raise RuntimeError("ERROR: tsercom global event loop not set!")
     # Schedule the coroutine to run on the event loop and return the future.
-    return asyncio.run_coroutine_threadsafe(call(*args, **kwargs), event_loop)  # type: ignore
+    # The `asyncio.run_coroutine_threadsafe` function can sometimes be tricky for
+    # type checkers to fully understand, especially with generic parameters (P, T)
+    # and complex callables. The `type: ignore` is used here to acknowledge that
+    # the type hinting is sound, but mypy or other checkers might struggle with
+    # this specific combination of generics and `run_coroutine_threadsafe`.
+    return asyncio.run_coroutine_threadsafe(call(*args, **kwargs), event_loop)  # type: ignore[arg-type]

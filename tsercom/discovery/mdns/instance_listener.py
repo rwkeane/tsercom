@@ -1,3 +1,9 @@
+"""Defines InstanceListener, responsible for discovering mDNS service instances.
+
+It listens for mDNS records (SRV, A/AAAA, TXT) via a RecordListener,
+constructs ServiceInfo objects from these records, and notifies a client
+upon the discovery of a complete service instance.
+"""
 from abc import ABC, abstractmethod
 from functools import partial
 import socket
@@ -75,6 +81,8 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         self.__listener: RecordListener = RecordListener(self, service_type)
 
     def __populate_service_info(
+        # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
+        # to build a cohesive ServiceInfo object representing a discovered service.
         self,
         record_name: str, # Typically the mDNS instance name
         port: int,

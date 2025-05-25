@@ -1,4 +1,3 @@
-
 import grpc
 import subprocess
 from typing import TYPE_CHECKING
@@ -6,8 +5,12 @@ from typing import TYPE_CHECKING
 if not TYPE_CHECKING:
     try:
         version = grpc.__version__
-        major_minor_version = ".".join(version.split(".")[:2])  # Extract major.minor
-        version_string = f"v{major_minor_version.replace('.', '_')}" # e.g., v1_62
+        major_minor_version = ".".join(
+            version.split(".")[:2]
+        )  # Extract major.minor
+        version_string = (
+            f"v{major_minor_version.replace('.', '_')}"  # e.g., v1_62
+        )
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         raise RuntimeError(
             f"Could not determine grpcio-tools version. Is it installed? Error: {e}"
@@ -17,13 +20,19 @@ if not TYPE_CHECKING:
         pass
 
     elif version_string == "v1_71":
-        from tsercom.timesync.common.proto.generated.v1_71.time_pb2 import ServerTimestamp
-
-    elif version_string == "v1_62":
-        from tsercom.timesync.common.proto.generated.v1_62.time_pb2 import ServerTimestamp
+        from tsercom.timesync.common.proto.generated.v1_71.time_pb2 import (
+            ServerTimestamp,
+        )
 
     elif version_string == "v1_70":
-        from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import ServerTimestamp
+        from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_62":
+        from tsercom.timesync.common.proto.generated.v1_62.time_pb2 import (
+            ServerTimestamp,
+        )
 
     else:
         raise ImportError(
@@ -31,8 +40,8 @@ if not TYPE_CHECKING:
             f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
         )
 
-# This part handles type hinting for static analysis (e.g., mypy).
-# It imports symbols from the latest available version.
-else: # When TYPE_CHECKING
+else:  # When TYPE_CHECKING
 
-    from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import ServerTimestamp as ServerTimestamp
+    from tsercom.timesync.common.proto.generated.v1_62.time_pb2 import (
+        ServerTimestamp as ServerTimestamp,
+    )

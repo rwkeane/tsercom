@@ -22,11 +22,11 @@ class FakeRuntime:
         self.stop_called = False
         self.stop_call_count = 0
 
-    async def start_async(self): # Add async
+    def start_async(self):
         self.start_async_called = True
         self.start_async_call_count += 1
 
-    async def stop(self): # Add async
+    def stop(self):
         self.stop_called = True
         self.stop_call_count += 1
 
@@ -130,36 +130,11 @@ def patch_run_on_event_loop_in_rcs_module(request):
     """Monkeypatches run_on_event_loop in the runtime_command_source module."""
     original_func = getattr(rcs_module, "run_on_event_loop", None)
     captured_callables = []
-    import inspect
-    import asyncio # Import asyncio
 
-    # fake_run_on_event_loop should be synchronous, as the calling code in _watch_commands is synchronous.
-    # However, it needs to correctly execute the async methods of FakeRuntime.
     def fake_run_on_event_loop(callable_to_run, *args, **kwargs):
-        captured_callables.append(callable_to_run) # Capture the original async method
-        # If callable_to_run is an async method (like FakeRuntime.start_async),
-        # it needs to be called to get a coroutine, then the coroutine needs to be run.
-        if inspect.iscoroutinefunction(callable_to_run):
-            coro = callable_to_run(*args, **kwargs)
-            # Run the coroutine. Using asyncio.run() might be problematic if pytest-asyncio
-            # already has a loop. A new loop might be safer for a synchronous context.
-            # For simplicity in a test patch, let's try asyncio.run() first.
-            # If this causes issues, a dedicated loop runner would be needed.
-            try:
-                asyncio.run(coro)
-            except RuntimeError as e:
-                # This can happen if asyncio.run is called when a loop is already running.
-                # Fallback to creating a new loop for this specific call.
-                if "cannot be called when another asyncio event loop is running" in str(e):
-                    loop = asyncio.new_event_loop()
-                    try:
-                        loop.run_until_complete(coro)
-                    finally:
-                        loop.close()
-                else:
-                    raise # Re-raise other RuntimeErrors
-        elif callable(callable_to_run):
-            callable_to_run(*args, **kwargs) # For regular functions
+        captured_callables.append(callable_to_run)
+        if callable(callable_to_run):
+            callable_to_run()
 
     setattr(rcs_module, "run_on_event_loop", fake_run_on_event_loop)
 

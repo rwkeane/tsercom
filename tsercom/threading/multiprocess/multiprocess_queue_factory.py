@@ -1,6 +1,14 @@
-from __future__ import annotations
+"""
+Provides a factory function for creating multiprocess queue pairs.
 
-from multiprocessing import Queue
+This module contains the `create_multiprocess_queues` factory function,
+which is responsible for instantiating and returning a connected pair of
+`MultiprocessQueueSink` and `MultiprocessQueueSource` objects. These objects
+serve as wrappers around a shared `multiprocessing.Queue`, facilitating
+inter-process communication by providing distinct interfaces for sending (sink)
+and receiving (source) data.
+"""
+import multiprocessing
 from typing import TypeVar
 
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
@@ -32,11 +40,9 @@ def create_multiprocess_queues() -> (
             (for getting items) for the created multiprocess queue.
     """
     # Create a standard multiprocessing queue.
-    queue: Queue = Queue() # Item type: TQueueType
+    queue: multiprocessing.Queue[TQueueType] = multiprocessing.Queue()
 
     # Wrap the queue with sink and source objects.
-    # Note: The generic type arguments for MultiprocessQueueSink and MultiprocessQueueSource
-    # will still be used by type checkers due to their own Generic[TQueueType] definition.
     sink = MultiprocessQueueSink[TQueueType](queue)
     source = MultiprocessQueueSource[TQueueType](queue)
 

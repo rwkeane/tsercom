@@ -1,3 +1,11 @@
+"""
+Defines the AsyncPoller class, an asynchronous queueing mechanism.
+
+The AsyncPoller allows subscribers to request the next available instance(s)
+from a queue and asynchronously await new instances if the queue is empty.
+It manages an internal queue, synchronization primitives, and association with
+an asyncio event loop.
+"""
 from abc import ABC
 import asyncio
 import threading
@@ -61,7 +69,7 @@ class AsyncPoller(Generic[TResultType], ABC):
         """
         with self.__lock:
             # Limit queue size
-            if len(self.__responses) > kMaxResponses:
+            if len(self.__responses) >= kMaxResponses: # Changed > to >=
                 self.__responses.popleft()
             self.__responses.append(new_instance)
 
@@ -96,9 +104,17 @@ class AsyncPoller(Generic[TResultType], ABC):
             List[TResultType]: A list of available instances from the queue.
 
         Raises:
-            RuntimeError: If the poller is stopped or not running on the correct event loop.
+            RuntimeError: If the poller is stopped, not running on the correct event loop,
+                          or if it's stopped while waiting for an instance (e.g., during timeout).
         """
         # Initialize or validate the event loop for this poller instance.
+        # This block is crucial: on the first call to wait_instance, or if the
+        # poller was previously stopped and is now being awaited again, this
+        # code captures the currently running asyncio event loop.
+        # It effectively associates the poller instance with the event loop
+        # of its first active caller (or the first caller after a stop/restart).
+        # `self.__is_loop_running` is set to True here, indicating the poller
+        # is now active and tied to this specific event loop.
         if self.__event_loop is None:
             # First call or called after a loop shutdown.
             self.__event_loop = get_running_loop_or_none()

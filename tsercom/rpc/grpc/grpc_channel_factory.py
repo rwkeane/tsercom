@@ -1,5 +1,7 @@
+"""Abstract base class defining the interface for gRPC channel factories."""
 from __future__ import annotations # Added this line
 from abc import ABC, abstractmethod
+from tsercom.rpc.connection.channel_info import ChannelInfo # Import for type hint
 # typing.Optional is removed as per task to use 'ChannelInfo' | None
 
 
@@ -12,9 +14,18 @@ class GrpcChannelFactory(ABC):
     @abstractmethod
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
-    ) -> 'ChannelInfo' | None: # Changed to 'ChannelInfo' | None
-        """
-        Finds an asyncronous channel, for asynchronous stub use. Returns the
-        channel on success and None on failure.
+    ) -> ChannelInfo | None: # Changed to 'ChannelInfo' | None
+        """Finds an asynchronous gRPC channel to the specified address(es) and port.
+
+        Implementations should attempt to establish a connection and return
+        information about the channel if successful.
+
+        Args:
+            addresses: A single address string or a list of address strings to try.
+            port: The port number to connect to.
+
+        Returns:
+            A `ChannelInfo` object if a channel is successfully established,
+            otherwise `None`.
         """
         pass
