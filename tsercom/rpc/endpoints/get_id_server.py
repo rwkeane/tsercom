@@ -1,4 +1,5 @@
-from typing import Callable, Optional
+"""Provides an asynchronous gRPC server component for the GetId method."""
+from typing import Callable, Optional, Any
 import logging
 import grpc
 
@@ -10,31 +11,53 @@ from tsercom.rpc.connection.client_reconnection_handler import (
 
 
 class AsyncGetIdServer:
-    """
-    This class defines the GetId() gRPC Method, as required by a number of
-    different gRPC Services.
+    """Implements the GetId() gRPC method asynchronously.
+
+    This server component can be part of various gRPC services that need to
+    provide a unique CallerIdentifier to clients. It allows optional callbacks
+    for when an ID is created and when a disconnection occurs.
     """
 
-    def __init__(  # type: ignore
+    def __init__(
         self,
         on_id_created: Optional[Callable[[CallerIdentifier], None]] = None,
         on_disconnect_handler: Optional[ClientReconnectionManager] = None,
-        *args,
-        **kwargs,
     ) -> None:
+        """Initializes the AsyncGetIdServer.
+
+        Args:
+            on_id_created: Optional callback invoked with the new CallerIdentifier
+                           when it's generated.
+            on_disconnect_handler: Optional ClientReconnectionManager to be
+                                   notified on disconnection errors.
+        """
         self.__callback = on_id_created
         self.__on_disconnect_handler = on_disconnect_handler
-
-        super().__init__(*args, **kwargs)
+        # Since this class doesn't explicitly inherit from another,
+        # super() refers to object. object.__init__ takes no arguments.
+        super().__init__()
 
     async def GetId(
         self, request: GetIdRequest, context: grpc.aio.ServicerContext
     ) -> GetIdResponse:
-        id = CallerIdentifier()
+        """Handles the GetId gRPC request.
+
+        Generates a new CallerIdentifier, optionally invokes a callback with it,
+        and returns it in a GetIdResponse. Handles exceptions and potential
+        disconnection notifications.
+
+        Args:
+            request: The GetIdRequest message.
+            context: The gRPC servicer context.
+
+        Returns:
+            A GetIdResponse containing the new CallerIdentifier.
+        """
+        new_id = CallerIdentifier() # Renamed from 'id' to avoid shadowing built-in
         if self.__callback is not None:
-            self.__callback(id)
+            self.__callback(new_id)
         try:
-            return GetIdResponse(id=id.to_grpc_type())
+            return GetIdResponse(id=new_id.to_grpc_type())
         except Exception as e:
             if self.__on_disconnect_handler is not None:
                 await self.__on_disconnect_handler._on_disconnect(e)
