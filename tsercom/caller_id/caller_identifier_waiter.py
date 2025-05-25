@@ -41,17 +41,13 @@ class CallerIdentifierWaiter:
         return self.__caller_id
 
     async def has_id(self) -> bool:
-        """Checks if the `CallerIdentifier` has been set yet.
-
-        Note: This method returns `True` if the ID is *not* yet set (i.e., is None),
-        and `False` if it *has* been set. This might be counter-intuitive.
-        Consider renaming or clarifying usage if this behavior is confusing.
+        """Checks if the `CallerIdentifier` has been set.
 
         Returns:
-            True if `__caller_id` is still `None` (ID not set),
-            False otherwise (ID has been set).
+            True if `__caller_id` has been set (is not `None`),
+            False otherwise (ID has not been set yet).
         """
-        return self.__caller_id is None
+        return self.__caller_id is not None
 
     async def set_caller_id(self, caller_id: CallerIdentifier) -> None:
         """Sets the `CallerIdentifier` and notifies any waiters.

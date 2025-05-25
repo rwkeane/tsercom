@@ -80,10 +80,10 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
 
         Returns:
             The created RuntimeFactory instance.
-        
+
         Raises:
-            AssertionError: If the client is None or not an instance of
-                            RuntimeFactoryFactory.Client.
+            ValueError: If the client argument is None.
+            TypeError: If the client is not an instance of RuntimeFactoryFactory.Client.
         """
         # Ensure the client is valid before proceeding.
         if client is None:
