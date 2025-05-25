@@ -55,9 +55,14 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
     def stop(self) -> None:
         """Stops the NTP synchronization thread."""
         self.__is_running.set(False)
+        self.__start_barrier.clear()
 
     def start_async(self) -> None:
         """Starts the NTP synchronization thread."""
         # Set the service to started.
         assert not self.__is_running.get()
         self.__is_running.set(True)
+        self.__start_barrier.set()
+        with self.__time_offset_lock:
+            if not self.__time_offsets:
+                self.__time_offsets.append(0.0)
