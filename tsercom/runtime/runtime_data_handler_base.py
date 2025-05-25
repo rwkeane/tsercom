@@ -121,7 +121,7 @@ class RuntimeDataHandlerBase(
     def get_data_iterator(
         self,
     ) -> AsyncIterator[
-        Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]] # Corrected type hint
+        Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]
     ]:
         """Returns an async iterator for event data, grouped by CallerIdentifier.
 
@@ -159,7 +159,7 @@ class RuntimeDataHandlerBase(
     @abstractmethod
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType]: # Corrected return type
+    ) -> EndpointDataProcessor[TDataType]:
         """Template method for subclass-specific caller registration logic.
 
         Args:
@@ -201,7 +201,7 @@ class RuntimeDataHandlerBase(
 
     async def __anext__(
         self,
-    ) -> Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]: # Corrected type hint
+    ) -> Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]:
         """Retrieves the next batch of events from the event source.
 
         Implements the async iterator protocol.
@@ -211,7 +211,7 @@ class RuntimeDataHandlerBase(
     async def __aiter__(
         self,
     ) -> AsyncIterator[
-        Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]] # Corrected type hint
+        Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]
     ]:
         """Returns self as the async iterator for events.
 
@@ -221,7 +221,7 @@ class RuntimeDataHandlerBase(
 
     def _create_data_processor(
         self, caller_id: CallerIdentifier, clock: SynchronizedClock
-    ) -> EndpointDataProcessor[TDataType]: # Corrected return type
+    ) -> EndpointDataProcessor[TDataType]:
         """Factory method to create a concrete `EndpointDataProcessor`.
 
         Args:
@@ -234,7 +234,7 @@ class RuntimeDataHandlerBase(
         return RuntimeDataHandlerBase.__DataProcessorImpl(self, caller_id, clock)
 
 
-    class __DataProcessorImpl(EndpointDataProcessor[TDataType]): # Added generic type
+    class __DataProcessorImpl(EndpointDataProcessor[TDataType]):
         """Concrete implementation of `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
 
         This nested class handles data desynchronization, caller deregistration,
@@ -242,7 +242,7 @@ class RuntimeDataHandlerBase(
         """
         def __init__(
             self,
-            data_handler: "RuntimeDataHandlerBase[TDataType, TEventType]", # Added generic types
+            data_handler: "RuntimeDataHandlerBase[TDataType, TEventType]",
             caller_id: CallerIdentifier,
             clock: SynchronizedClock,
         ):

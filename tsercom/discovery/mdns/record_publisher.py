@@ -38,25 +38,19 @@ class RecordPublisher:
             TypeError: If arguments are not of the expected types (implicitly checked
                        by zeroconf or Python, but good to be aware).
         """
-        # Validate service type.
         if type_ is None or not type_.startswith("_"):
             raise ValueError(f"Service type_ must start with an underscore (e.g., '_myservice'), got '{type_}'.")
 
         if properties is None:
             properties = {}
 
-        # Construct the fully qualified pointer (PTR) record name.
         self.__ptr: str = f"{type_}._tcp.local."
-        # Construct the full service (SRV) and instance name.
         self.__srv: str = f"{name}.{self.__ptr}"
         self.__port: int = port
-        # Store the TXT record properties.
         self.__txt: Dict[bytes, bytes | None] = properties
         
         # Logging the service being published for traceability.
         # Replacing print with logging for better practice, assuming logger is configured elsewhere.
-        # import logging # Would be at top of file
-        # logging.info(f"Preparing to publish service: {self.__srv} on port {self.__port}")
 
     def publish(self) -> None:
         """Publishes the service to mDNS.
@@ -65,7 +59,6 @@ class RecordPublisher:
         and registers it with a `Zeroconf` instance. The service is published
         using IPVersion.V4Only.
         """
-        # Create the ServiceInfo object for zeroconf.
         # `addresses` are fetched dynamically to get all current IPv4 addresses of the host.
         service_info = ServiceInfo(
             type_=self.__ptr, # The service type (e.g., "_myservice._tcp.local.")
@@ -73,13 +66,10 @@ class RecordPublisher:
             addresses=get_all_addresses(ip_version=IPVersion.V4Only), # Get IPv4 addresses
             port=self.__port,
             properties=self.__txt,
-            # server=f"{socket.gethostname()}.local.", # Optional: set a server name if needed
+            # Optional: server name can be set here if needed, e.g., f"{socket.gethostname()}.local."
         )
 
-        # Initialize Zeroconf for IPv4 only and register the service.
         zeroconf = Zeroconf(ip_version=IPVersion.V4Only)
         zeroconf.register_service(service_info)
         
         # Logging successful publication.
-        # import logging # Would be at top of file
-        # logging.info(f"Successfully published mDNS Record for {self.__srv}")

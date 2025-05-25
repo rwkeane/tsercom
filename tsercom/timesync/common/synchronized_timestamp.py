@@ -58,8 +58,6 @@ class SynchronizedTimestamp:
             AssertionError: If `other` is not of the expected protobuf types
                             after potential unwrapping.
         """
-        # If the input is our custom ServerTimestamp wrapper, extract the
-        # underlying google.protobuf.timestamp_pb2.Timestamp.
         if isinstance(other, ServerTimestamp):
             other = other.timestamp
 
@@ -69,7 +67,6 @@ class SynchronizedTimestamp:
             other, Timestamp
         ), "Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one."
 
-        # Convert the protobuf Timestamp to a naive datetime.datetime object.
         # The ToDatetime() method handles the conversion from seconds/nanos.
         dt_object = other.ToDatetime()
         return cls(dt_object)

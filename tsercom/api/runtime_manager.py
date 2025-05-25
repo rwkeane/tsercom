@@ -4,7 +4,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
 from multiprocessing import Process
-from typing import Any, Generic, List, TypeVar, Optional # Added Optional
+from typing import Any, Generic, List, TypeVar, Optional
 
 from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
@@ -58,16 +58,11 @@ class RuntimeManager(ErrorWatcher):
         """
         super().__init__()
 
-        # Stores pairs of Futures and their corresponding RuntimeInitializers.
         self.__initializers: list[InitializationPair[Any, Any]] = []
-        # Tracks if the manager has started processing runtimes.
         self.__has_started: IsRunningTracker = IsRunningTracker()
 
-        # Manages threads created by this manager.
         self.__thread_watcher: ThreadWatcher = ThreadWatcher()
-        # Watches for errors, either from local threads or a remote process.
         self.__error_watcher: Optional[ErrorWatcher] = None
-        # Holds the remote process instance if started out-of-process.
         self.__process: Optional[Process] = None
 
         self.__is_testing: bool = is_testing
@@ -178,7 +173,6 @@ class RuntimeManager(ErrorWatcher):
             raise RuntimeError("RuntimeManager has already been started.")
         self.__has_started.start()
 
-        # Basic initialization for in-process execution.
         set_tsercom_event_loop(runtime_event_loop)
         self.__error_watcher = self.__thread_watcher # Local errors managed by ThreadWatcher.
 
@@ -191,7 +185,6 @@ class RuntimeManager(ErrorWatcher):
         factory_factory = LocalRuntimeFactoryFactory(thread_pool)
         factories = self.__create_factories(factory_factory)
 
-        # Import and run the main initialization sequence for runtimes.
         # Import is deferred to avoid circular dependencies.
         from tsercom.runtime.runtime_main import (
             initialize_runtimes,
@@ -226,12 +219,11 @@ class RuntimeManager(ErrorWatcher):
         # Set up a minimal local Tsercom event loop, primarily for utilities.
         create_tsercom_event_loop_from_watcher(self.__thread_watcher)
 
-        # Prepare for inter-process error communication.
         error_sink, error_source = create_multiprocess_queues()
         self.__error_watcher = SplitProcessErrorWatcherSource(
             self.__thread_watcher, error_source
         )
-        self.__error_watcher.start() # Start listening for errors from the remote process.
+        self.__error_watcher.start()
 
         # Create factories for split-process runtimes.
         thread_pool = (
@@ -283,7 +275,6 @@ class RuntimeManager(ErrorWatcher):
         if self.__error_watcher is None:
             raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
 
-        # Delegate to ThreadWatcher to wait for and propagate exceptions.
         self.__thread_watcher.run_until_exception()
 
     def check_for_exception(self) -> None:
@@ -304,7 +295,6 @@ class RuntimeManager(ErrorWatcher):
             # This implies it wasn't started correctly or state is corrupted.
             raise RuntimeError("Error watcher is not available. Ensure the RuntimeManager has been properly started.")
 
-        # Delegate to ThreadWatcher to check and propagate exceptions.
         self.__thread_watcher.check_for_exception()
 
     def __create_factories(
@@ -363,5 +353,4 @@ class RuntimeFuturePopulator(
         Args:
             handle: The `RuntimeHandle` that has been successfully created.
         """
-        # Set the RuntimeHandle on the future, notifying waiters.
         self.__future.set_result(handle)

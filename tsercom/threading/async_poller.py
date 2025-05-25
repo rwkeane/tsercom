@@ -78,7 +78,6 @@ class AsyncPoller(Generic[TResultType], ABC):
             return
 
         assert self.__event_loop is not None
-        # Schedule __set_results_available to run on the poller's event loop.
         run_on_event_loop(self.__set_results_available, self.__event_loop)
 
     async def __set_results_available(self) -> None:
@@ -134,23 +133,19 @@ class AsyncPoller(Generic[TResultType], ABC):
             )
 
 
-        # Main loop to wait for and retrieve results.
         while self.__is_loop_running.get():
-            # Attempt to retrieve items from the queue.
             queue_snapshot: Deque[TResultType] | None = None
             with self.__lock:
                 if len(self.__responses) > 0:
                     queue_snapshot = self.__responses
                     self.__responses = Deque[TResultType]() # Reset queue after taking snapshot
 
-            # If items were retrieved, return them.
             if queue_snapshot is not None:
                 responses: List[TResultType] = []
                 while len(queue_snapshot) > 0:
                     responses.append(queue_snapshot.popleft())
                 return responses # Returns non-empty list due to len check above
 
-            # If no items, wait for the barrier or a timeout.
             self.__barrier.clear()
             try:
                 # Wait for new items or a timeout to re-check running state.

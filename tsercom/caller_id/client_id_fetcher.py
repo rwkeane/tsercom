@@ -1,7 +1,7 @@
 """Defines ClientIdFetcher for lazily fetching a CallerIdentifier via gRPC."""
 
 import asyncio
-from typing import Any, Optional # Added Any and Optional
+from typing import Any, Optional
 
 from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -23,8 +23,8 @@ class ClientIdFetcher:
             stub: The gRPC stub that provides the `GetId` method.
                   Expected to have a method like `async def GetId(GetIdRequest) -> GetIdResponse`.
         """
-        self.__stub: Any = stub # Store the gRPC stub.
-        self.__id: Optional[CallerIdentifier] = None # Cached CallerIdentifier.
+        self.__stub: Any = stub
+        self.__id: Optional[CallerIdentifier] = None
         # Lock to ensure thread-safe lazy initialization of the ID.
         self.__lock = asyncio.Lock()
 
@@ -51,14 +51,12 @@ class ClientIdFetcher:
             async with self.__lock:
                 # If the ID hasn't been fetched yet (lazy loading).
                 if self.__id is None:
-                    # Make the asynchronous gRPC call.
                     id_response: GetIdResponse = await self.__stub.GetId(GetIdRequest())
                     
                     # Ensure the response is of the expected type.
                     assert isinstance(id_response, GetIdResponse), \
                         f"Expected GetIdResponse, got {type(id_response)}"
                     
-                    # Attempt to parse the ID from the response.
                     # CallerIdentifier.try_parse can return None if the string is invalid.
                     if id_response.id and id_response.id.id:
                         self.__id = CallerIdentifier.try_parse(id_response.id.id)
@@ -66,9 +64,7 @@ class ClientIdFetcher:
                         # Handle cases where response or its nested id is missing.
                         self.__id = None 
                         # Optionally log a warning here if this case is unexpected.
-                        # print("Warning: GetIdResponse or its ID field was empty.")
                 
-                # Return the (potentially newly fetched or previously cached) ID.
                 # This could be None if fetching or parsing failed.
                 return self.__id
         except Exception as e: # pylint: disable=broad-except

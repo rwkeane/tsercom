@@ -15,7 +15,6 @@ def get_all_address_strings() -> list[str]:
         Returns an empty list if no IPv4 addresses are found.
     """
     addresses: list[str] = []
-    # Iterate over all network interface card (NIC) names and their assigned addresses.
     for _, interface_addresses in psutil.net_if_addrs().items():
         for address in interface_addresses:
             if address.family == socket.AF_INET:

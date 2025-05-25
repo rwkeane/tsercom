@@ -21,13 +21,9 @@ class ServiceInfo:
             addresses: A list of IP addresses (as strings) for the service.
             mdns_name: The unique mDNS instance name (e.g., "MyService._http._tcp.local.").
         """
-        # The unique mDNS instance name (e.g., "MyInstanceName._my_service._tcp.local.").
         self.__mdns_name: str = mdns_name
-        # The human-readable or service-specific name.
         self.__name: str = name
-        # The network port number for the service.
         self.__port: int = port
-        # A list of IP addresses where the service can be reached.
         self.__addresses: List[str] = addresses
 
     @property

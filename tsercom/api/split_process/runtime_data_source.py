@@ -5,7 +5,7 @@ and events between the main process and a Tsercom runtime instance running in a
 child process, using multiprocess queues.
 """
 
-import threading # Added for type hinting
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Generic, TypeVar
 
@@ -50,12 +50,12 @@ class RuntimeDataSource(Generic[TEventType]):
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
         self.__thread_pool: ThreadPoolExecutor | None = None
-        self.__runtime: Runtime | None = None # Changed type hint
+        self.__runtime: Runtime | None = None
         self.__command_thread: threading.Thread | None = None
         self.__event_thread: threading.Thread | None = None
 
 
-    def start_async(self, runtime: Runtime) -> None: # Changed type hint
+    def start_async(self, runtime: Runtime) -> None:
         """Starts the threads for watching command and event queues.
 
         Associates the provided runtime instance and starts two dedicated threads:
@@ -117,11 +117,9 @@ class RuntimeDataSource(Generic[TEventType]):
 
                 self.__thread_pool.submit(self.__runtime.on_event, event)
 
-        # Create and start the command watching thread.
         self.__command_thread = self.__thread_watcher.create_tracked_thread(
             target=watch_commands
         )
-        # Create and start the event watching thread.
         self.__event_thread = self.__thread_watcher.create_tracked_thread(
             target=watch_events
         )
@@ -143,12 +141,9 @@ class RuntimeDataSource(Generic[TEventType]):
         assert self.__is_running.get(), "RuntimeDataSource is not running."
         self.__is_running.stop()
 
-        # Shutdown the thread pool.
         # Note: Consider waiting for threads to join if necessary,
         # and for the thread pool to shut down completely.
         if self.__thread_pool:
             self.__thread_pool.shutdown(wait=False) # `wait=False` for quicker stop
         
         # Explicitly clear runtime and thread pool if desired for faster GC or state reset.
-        # self.__runtime = None
-        # self.__thread_pool = None

@@ -72,11 +72,9 @@ class LocalRuntimeFactory(
         Returns:
             The newly created and configured Runtime instance.
         """
-        # Create runtime.
         runtime = self.__initializer.create(
             thread_watcher, data_handler, grpc_channel_factory
         )
-        # Link runtime to command bridge.
         self.__bridge.set_runtime(runtime)
         return runtime
 

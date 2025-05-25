@@ -90,7 +90,6 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         """
         self.__start_barrier.wait()
 
-        # Average the currently stored values.
         with self.__time_offset_lock:
             count = len(self.__time_offsets)
             assert count > 0, "Time offsets deque should not be empty after start."
@@ -123,7 +122,6 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         In this fake implementation, no actual network synchronization is performed.
         Instead, it sets a default time offset of 0.0.
         """
-        # Set the service to started.
         assert not self.__is_running.get(), "Client is already running."
         self.__is_running.set(True)
         self.__start_barrier.set()

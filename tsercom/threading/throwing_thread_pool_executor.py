@@ -62,8 +62,6 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
                        The future will raise the original exception upon `result()`
                        if one occurred in `fn`.
         """
-        # Define a wrapper function that executes the original callable `fn`
-        # and handles any exceptions.
         def wrapper(*args2: P.args, **kwargs2: P.kwargs) -> T:
             """
             Internal wrapper to execute the submitted function and handle exceptions.
@@ -80,7 +78,6 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
                 Warning: Re-raises any warning caught from the original function.
             """
             try:
-                # Execute the original function
                 return fn(*args2, **kwargs2)
             except Warning as w: # Catch warnings specifically
                 if self.__error_cb is not None:
@@ -91,5 +88,4 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
                     self.__error_cb(e)
                 raise e # Re-raise the exception
 
-        # Submit the wrapper function to the underlying ThreadPoolExecutor.
         return super().submit(wrapper, *args, **kwargs)

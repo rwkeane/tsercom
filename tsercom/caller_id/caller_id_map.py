@@ -31,14 +31,9 @@ class CallerIdMap(Generic[TType]):
         new instance, which is then stored in the map and returned. This operation
         is thread-safe.
         """
-        # Acquire the lock to ensure thread-safe access to the map.
         with self.__lock:
-            # Check if the caller_id is already in the map.
             if caller_id not in self.__map:
-                # If not, create a new instance using the factory and store it.
                 self.__map[caller_id] = factory()
-
-            # Return the instance from the map.
             return self.__map[caller_id]
 
     def for_all_items(self, function: Callable[[TType], None]) -> None:

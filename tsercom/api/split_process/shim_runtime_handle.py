@@ -1,11 +1,11 @@
 """Defines ShimRuntimeHandle for interacting with a runtime in a separate process."""
 
 import datetime # Required for on_event overload, though not used in current simple form
-from typing import TypeVar, Optional # Added Optional for on_event overload
+from typing import TypeVar, Optional
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier # For on_event overload
 from tsercom.data.exposed_data import ExposedData
-from tsercom.data.annotated_instance import AnnotatedInstance # Added
+from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -59,17 +59,13 @@ class ShimRuntimeHandle(
         """
         super().__init__()
 
-        # Store queue interfaces for communication.
         self.__event_queue: MultiprocessQueueSink[TEventType] = event_queue
         self.__runtime_command_queue: MultiprocessQueueSink[RuntimeCommand] = (
             runtime_command_queue
         )
-        # Store the data aggregator that processes incoming data.
         self.__data_aggregator: RemoteDataAggregatorImpl[TDataType] = data_aggregator
-        self.__block: bool = block # Determines if event sending is blocking.
+        self.__block: bool = block
 
-        # Initialize the data reader source that polls the data_queue and
-        # forwards data to the data_aggregator.
         self.__data_reader_source: DataReaderSource[TDataType] = DataReaderSource(
             thread_watcher, data_queue, self.__data_aggregator
         )
@@ -81,9 +77,7 @@ class ShimRuntimeHandle(
         the remote runtime, and then sends a 'start' command to the remote
         runtime via the command queue.
         """
-        # Start polling for data from the remote process.
         self.__data_reader_source.start()
-        # Send the start command to the remote runtime.
         self.__runtime_command_queue.put_blocking(RuntimeCommand.kStart)
 
     def on_event(
@@ -109,7 +103,6 @@ class ShimRuntimeHandle(
         # but this shim implementation does not use them when sending to the queue.
         _ = caller_id
         _ = timestamp
-        # Send event to the remote runtime, blocking or non-blocking.
         if self.__block:
             self.__event_queue.put_blocking(event)
         else:
@@ -121,9 +114,7 @@ class ShimRuntimeHandle(
         Sends a 'stop' command to the remote runtime via the command queue,
         and then stops the local data reader source.
         """
-        # Send the stop command to the remote runtime.
         self.__runtime_command_queue.put_blocking(RuntimeCommand.kStop)
-        # Stop polling for data.
         self.__data_reader_source.stop()
 
     def _on_data_ready(self, new_data: TDataType) -> None:

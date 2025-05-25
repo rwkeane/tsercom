@@ -42,14 +42,11 @@ def initialize_runtimes(
     """
     assert is_global_event_loop_set()
 
-    # Get the gRPC Channel Factory.
     channel_factory_selector = ChannelFactorySelector()
     channel_factory = channel_factory_selector.get_instance()
 
-    # Create all runtimes.
     runtimes: List[Runtime] = []
     for initializer_factory in initializers:
-        # Create the data handler.
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
 
@@ -69,11 +66,9 @@ def initialize_runtimes(
         else:
             raise ValueError("Invalid endpoint type!")
 
-        # Create the runtime with this data handler.
         runtime_instance = initializer_factory.create(thread_watcher, data_handler, channel_factory)
         runtimes.append(runtime_instance)
 
-    # Start them all.
     for runtime in runtimes:
         run_on_event_loop(runtime.start_async)
     
@@ -99,17 +94,14 @@ def remote_process_main(
     # Only needed on linux systems.
     clear_tsercom_event_loop()
 
-    # Initialize the global types.
     thread_watcher = ThreadWatcher()
     create_tsercom_event_loop_from_watcher(thread_watcher)
     sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
-    # Create and start all runtimes.
     runtimes: List[Runtime] = initialize_runtimes(
         thread_watcher, initializers, is_testing=is_testing
     )
 
-    # Call into run_until_error and, on error, stop all runtimes.
     try:
         sink.run_until_exception()
     except Exception as e:

@@ -9,7 +9,7 @@ for a centralized way to monitor errors from various background tasks.
 """
 from concurrent.futures import ThreadPoolExecutor
 import threading
-from typing import List, Any # Added Any for create_tracked_thread_pool_executor args/kwargs
+from typing import List, Any
 from collections.abc import Callable
 
 from tsercom.threading.error_watcher import ErrorWatcher
@@ -34,18 +34,16 @@ class ThreadWatcher(ErrorWatcher):
 
         Sets up synchronization primitives for tracking exceptions from threads.
         """
-        # Event to signal when an exception has been caught.
         self.__barrier = threading.Event()
         # Lock to protect access to the list of exceptions.
         self.__exceptions_lock = threading.Lock()
-        # List to store caught exceptions.
         self.__exceptions: List[Exception] = []
 
     def create_tracked_thread(
         self, target: Callable[[], None]
-    ) -> ThrowingThread: # Changed return type hint
+    ) -> ThrowingThread:
         """
-        Creates a `ThrowingThread` instance that is tracked by this watcher. # Changed in docstring
+        Creates a `ThrowingThread` instance that is tracked by this watcher.
 
         Exceptions occurring on this thread will be caught and reported via
         `on_exception_seen`.
@@ -55,7 +53,7 @@ class ThreadWatcher(ErrorWatcher):
                                          the thread starts.
 
         Returns:
-            ThrowingThread: The created thread object. # Changed in docstring
+            ThrowingThread: The created thread object.
         """
         return ThrowingThread(
             target=target, on_error_cb=self.on_exception_seen
@@ -63,7 +61,7 @@ class ThreadWatcher(ErrorWatcher):
 
     def create_tracked_thread_pool_executor(
         self, *args: Any, **kwargs: Any
-    ) -> ThrowingThreadPoolExecutor: # Changed return type hint
+    ) -> ThrowingThreadPoolExecutor:
         """
         Creates a `ThrowingThreadPoolExecutor` instance.
 
@@ -78,7 +76,6 @@ class ThreadWatcher(ErrorWatcher):
         Returns:
             ThrowingThreadPoolExecutor: The created thread pool executor.
         """
-        # Note: Type ignore was removed as Any is now used for args/kwargs
         return ThrowingThreadPoolExecutor(
             error_cb=self.on_exception_seen, *args, **kwargs
         )
@@ -95,20 +92,16 @@ class ThreadWatcher(ErrorWatcher):
                        (Future versions might use ExceptionGroup for Python 3.11+).
         """
         while True:
-            self.__barrier.wait() # Wait until an exception is signaled
+            self.__barrier.wait()
             with self.__exceptions_lock:
-                if not self.__exceptions: # Check if list is empty
+                if not self.__exceptions:
                     # Spurious wakeup or exception handled and cleared, reset barrier
                     self.__barrier.clear()
                     continue
 
                 # TODO: Change to ExceptionGroup.
                 # Requires Python 3.11+. For now, raising the first exception.
-                # raise ExceptionGroup(
-                #     "Errors hit in async thread(s)!", self.__exceptions
-                # )
 
-                # Raise the first exception encountered.
                 raise self.__exceptions[0]
 
     def check_for_exception(self) -> None:
@@ -127,16 +120,12 @@ class ThreadWatcher(ErrorWatcher):
             return
 
         with self.__exceptions_lock:
-            if not self.__exceptions: # Check if list is empty
+            if not self.__exceptions:
                 return
 
             # TODO: Change to ExceptionGroup.
             # Requires Python 3.11+. For now, raising the first exception.
-            # raise ExceptionGroup(
-            #     "Errors hit in async thread(s)!", self.__exceptions
-            # )
 
-            # Raise the first exception if any are present.
             raise self.__exceptions[0]
 
     def on_exception_seen(self, e: Exception) -> None:

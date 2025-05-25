@@ -20,8 +20,6 @@ from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
-# datetime was imported but not used after removing print statements
-# from datetime import datetime 
 
 
 TEventType = TypeVar("TEventType")
@@ -69,7 +67,7 @@ class ServerRuntimeDataHandler(
 
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType]: # Corrected return type
+    ) -> EndpointDataProcessor[TDataType]:
         """Registers a new caller and its endpoint, returning a data processor.
 
         Adds the caller to the ID tracker. The server's synchronized clock
