@@ -1,10 +1,14 @@
 """Defines the Runtime abstract base class, representing a service that can be started and stopped."""
 from abc import ABC, abstractmethod
+from typing import Generic, TypeVar
 
 from tsercom.util.stopable import Stopable
 
+TDataType = TypeVar("TDataType")
+TEventType = TypeVar("TEventType")
 
-class Runtime(Stopable, ABC):
+
+class Runtime(Stopable, ABC, Generic[TDataType, TEventType]):
     """Abstract base class for a runtime service.
 
     A Runtime represents a service that has a lifecycle involving starting
