@@ -1,3 +1,5 @@
+"""Provides utility functions for handling gRPC errors, status codes, and retry logic."""
+
 from __future__ import annotations
 import asyncio
 from google.rpc.status_pb2 import Status
@@ -6,17 +8,23 @@ import random
 
 
 def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
-    """
-    Returns the gRPC Status code associated with this |error| if one exists, and
-    None in all other cases.
+    """Extracts the gRPC status code from a gRPC exception.
+
+    Args:
+        error: The exception, potentially a gRPC error.
+
+    Returns:
+        The `grpc.StatusCode` if the error is a gRPC error and a status code
+        can be extracted, otherwise `None`.
     """
     from grpc_status import rpc_status
     if issubclass(type(error), grpc.aio.AioRpcError):
-        return error.code()  # type: ignore
+        return error.code()  # type: ignore # AioRpcError provides .code() directly.
 
     if not issubclass(type(error), grpc.RpcError):
         return None
 
+    # Retrieve status for general RpcError
     status: Status = rpc_status.from_call(error)
     if status is None:
         return None
@@ -25,15 +33,21 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
 
 
 def is_server_unavailable_error(error: Exception) -> bool:
-    """
-    Returns True if |error| is associated with UNAVAILABLE or DEADLINE_EXCEEDED
-    gRPC Status codes, and False otherwise.
+    """Checks if an exception indicates a gRPC server unavailable error.
+
+    This includes `UNAVAILABLE` and `DEADLINE_EXCEEDED` status codes,
+    and `StopAsyncIteration` which can occur during stream termination.
+
+    Args:
+        error: The exception to check.
+
+    Returns:
+        True if the error indicates server unavailability, False otherwise.
     """
     if issubclass(type(error), StopAsyncIteration):
         return True
 
     status_code = get_grpc_status_code(error)
-    print("FOUND STATUS CODE", status_code)
     unavailable_status = grpc.StatusCode.UNAVAILABLE
     deadline_exceeded_status = grpc.StatusCode.DEADLINE_EXCEEDED
     return status_code in (
@@ -43,12 +57,21 @@ def is_server_unavailable_error(error: Exception) -> bool:
 
 
 def is_grpc_error(error: Exception) -> bool:
+    """Checks if the given exception is a gRPC-related error.
+
+    Args:
+        error: The exception to check.
+
+    Returns:
+        True if the exception has an associated gRPC status code, False otherwise.
+    """
     return get_grpc_status_code(error) is not None
 
 
 async def delay_before_retry() -> None:
-    """
-    Delays between 4 and 8 seconds.
+    """Asynchronously waits for a random duration before a retry attempt.
+
+    The delay is uniformly distributed between 4 and 8 seconds.
     """
     delay = random.uniform(4, 8)
     await asyncio.sleep(delay)

@@ -1,3 +1,9 @@
+"""Provides RemoteDataAggregatorImpl, a concrete implementation of the RemoteDataAggregator interface.
+
+This class manages RemoteDataOrganizer instances for each data source (identified by
+CallerIdentifier) and handles data timeout tracking. It acts as a central point
+for collecting and accessing data from multiple remote endpoints.
+"""
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
@@ -219,7 +225,7 @@ class RemoteDataAggregatorImpl(
         id: Optional[CallerIdentifier] = None,
     ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
         """Retrieves data for a specific timestamp for one or all callers.
-        
+
         Args:
             timestamp: The `datetime` to compare data against.
             id: Optional `CallerIdentifier`. If provided, retrieves data for this
@@ -239,11 +245,13 @@ class RemoteDataAggregatorImpl(
                 organizer = self.__organizers.get(id)
                 if organizer is None:
                     raise KeyError(f"Caller ID '{id}' not found for get_data_for_timestamp.")
-                return organizer.get_data_for_timestamp(timestamp)
+                # The organizer's method should also take timestamp then id
+                return organizer.get_data_for_timestamp(timestamp=timestamp, id=id)
+
 
             results = {}
-            for key, organizer in self.__organizers.items():
-                results[key] = organizer.get_data_for_timestamp(timestamp)
+            for key, organizer_item in self.__organizers.items():
+                results[key] = organizer_item.get_data_for_timestamp(timestamp=timestamp)
             return results
 
     def _on_data_available(

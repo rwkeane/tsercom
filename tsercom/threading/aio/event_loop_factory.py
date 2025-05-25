@@ -1,3 +1,4 @@
+"""Provides EventLoopFactory for creating and managing asyncio event loops that run in separate threads, monitored by a ThreadWatcher."""
 import asyncio
 from typing import Any, Optional # Added Optional
 import threading
