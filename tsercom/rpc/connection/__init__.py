@@ -1,4 +1,4 @@
-from tsercom.rpc.common.channel_info import ChannelInfo # Changed import path
+from tsercom.rpc.common.channel_info import ChannelInfo  # Changed import path
 from tsercom.rpc.connection.client_disconnection_retrier import (
     ClientDisconnectionRetrier,
 )

@@ -42,7 +42,7 @@ class DummyExposedDataForOrganizerTests(ExposedData):
 
     def __repr__(self):
         # Ensure 'value' attribute exists for repr, provide a default if not
-        value_repr = getattr(self, 'value', 'N/A')
+        value_repr = getattr(self, "value", "N/A")
         return f"DummyExposedDataForOrganizerTests(caller_id='{self.caller_id.id_str}', timestamp='{self.timestamp}', value={value_repr})"
 
 
@@ -396,7 +396,9 @@ def test_get_data_for_timestamp_finds_correct_item(organizer, mock_caller_id):
 
 
 # 8. _on_triggered()
-def test_on_triggered_submits_to_thread_pool(organizer, mock_thread_pool, mocker):
+def test_on_triggered_submits_to_thread_pool(
+    organizer, mock_thread_pool, mocker
+):
     timeout_val = 30
     mock_thread_pool.submit = mocker.MagicMock()
     organizer._on_triggered(timeout_val)

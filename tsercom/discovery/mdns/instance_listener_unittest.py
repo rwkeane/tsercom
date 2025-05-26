@@ -117,7 +117,9 @@ class TestInstanceListener:
                 return ".".join(map(str, addr_bytes_param))
             return f"unmocked_format_for_{addr_bytes_param!r}"  # Fallback for unexpected format
 
-        mock_inet_ntoa = mocker.patch.object(socket, "inet_ntoa", autospec=True)  # Patch socket.inet_ntoa
+        mock_inet_ntoa = mocker.patch.object(
+            socket, "inet_ntoa", autospec=True
+        )  # Patch socket.inet_ntoa
         mock_inet_ntoa.side_effect = inet_ntoa_side_effect
         print(f"  socket.inet_ntoa patched with side effect: {mock_inet_ntoa}")
 
@@ -195,7 +197,9 @@ class TestInstanceListener:
         txt_record_empty = {}
         txt_record_other_keys = {b"other_key": b"other_value"}
 
-        mock_inet_ntoa = mocker.patch.object(socket, "inet_ntoa", autospec=True)
+        mock_inet_ntoa = mocker.patch.object(
+            socket, "inet_ntoa", autospec=True
+        )
         mock_inet_ntoa.side_effect = lambda addr_bytes_param: ".".join(
             map(str, addr_bytes_param)
         )

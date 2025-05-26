@@ -6,7 +6,9 @@ import datetime
 try:
     from tsercom.caller_id.caller_identifier import CallerIdentifier
 except ImportError:
-    CallerIdentifier = None  # Will use mocker.MagicMock(spec=CallerIdentifier) later
+    CallerIdentifier = (
+        None  # Will use mocker.MagicMock(spec=CallerIdentifier) later
+    )
 
 from tsercom.data.data_host_base import DataHostBase
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl

@@ -98,9 +98,11 @@ class MyRuntimeInitializer(RuntimeInitializer):
     def create(  # Changed from create_runtime to create
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler, # Removed type parameters
+        data_handler: RuntimeDataHandler,  # Removed type parameters
         grpc_channel_factory: GrpcChannelFactory,
-    ) -> Runtime:  # Return type is Runtime, not MyCustomRuntime explicitly, removed type parameters
+    ) -> (
+        Runtime
+    ):  # Return type is Runtime, not MyCustomRuntime explicitly, removed type parameters
         """Creates and returns an instance of MyCustomRuntime."""
         print("MyRuntimeInitializer: Creating MyCustomRuntime.")
         return MyCustomRuntime(
@@ -121,7 +123,7 @@ async def main():
     # 2. Create and register your custom RuntimeInitializer
     # A RuntimeInitializer is responsible for creating your specific Runtime instance.
     my_initializer = MyRuntimeInitializer()
-    handle_future: Future[RuntimeHandle] = ( # Removed type parameters
+    handle_future: Future[RuntimeHandle] = (  # Removed type parameters
         runtime_manager.register_runtime_initializer(my_initializer)
     )
     print("RuntimeInitializer registered.")
@@ -138,7 +140,7 @@ async def main():
     # The RuntimeHandle is used to interact with the started runtime.
     # We wait for the Future returned by register_runtime_initializer to complete.
     try:
-        runtime_handle: RuntimeHandle = ( # Removed type parameters
+        runtime_handle: RuntimeHandle = (  # Removed type parameters
             handle_future.result(timeout=5)
         )  # Wait up to 5s
         print(f"Obtained RuntimeHandle: {runtime_handle}")

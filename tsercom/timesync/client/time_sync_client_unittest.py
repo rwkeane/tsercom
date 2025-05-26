@@ -41,7 +41,9 @@ class TestTimeSyncClientNTPFailures:
         Test that __start_barrier is not set and no fake offsets are added
         if NTP requests always fail.
         """
-        MockNTPClient = mocker.patch("tsercom.timesync.client.time_sync_client.ntplib.NTPClient")
+        MockNTPClient = mocker.patch(
+            "tsercom.timesync.client.time_sync_client.ntplib.NTPClient"
+        )
         # Configure NTPClient mock to always raise NTPException on request
         mock_ntp_instance = MockNTPClient.return_value
         mock_ntp_instance.request.side_effect = ntplib.NTPException(
@@ -79,8 +81,12 @@ class TestTimeSyncClientNTPFailures:
         Test that get_offset_seconds blocks (does not return quickly)
         if the start barrier is not set due to NTP failures.
         """
-        MockNTPClient = mocker.patch("tsercom.timesync.client.time_sync_client.ntplib.NTPClient")
-        mock_time_sleep = mocker.patch("tsercom.timesync.client.time_sync_client.time.sleep")
+        MockNTPClient = mocker.patch(
+            "tsercom.timesync.client.time_sync_client.ntplib.NTPClient"
+        )
+        mock_time_sleep = mocker.patch(
+            "tsercom.timesync.client.time_sync_client.time.sleep"
+        )
         mock_ntp_instance = MockNTPClient.return_value
         mock_ntp_instance.request.side_effect = ntplib.NTPException(
             "Mock NTP failure"
@@ -155,7 +161,9 @@ class TestTimeSyncClientNTPFailures:
         self, mock_thread_watcher_fixture, mocker
     ):
         """Test that the barrier is set and offset is available after a successful NTP request."""
-        MockNTPClient = mocker.patch("tsercom.timesync.client.time_sync_client.ntplib.NTPClient")
+        MockNTPClient = mocker.patch(
+            "tsercom.timesync.client.time_sync_client.ntplib.NTPClient"
+        )
         mock_ntp_instance = MockNTPClient.return_value
         mock_response = mocker.MagicMock()
         mock_response.offset = 0.123  # Example offset

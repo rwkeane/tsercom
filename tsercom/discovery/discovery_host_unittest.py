@@ -35,7 +35,9 @@ def mock_discovery_host_client_fixture(mocker):
     client = mocker.AsyncMock(
         spec=DiscoveryHost.Client, name="MockDiscoveryHostClient"
     )
-    client._on_service_added = mocker.AsyncMock(name="client_on_service_added_method")
+    client._on_service_added = mocker.AsyncMock(
+        name="client_on_service_added_method"
+    )
     return client
 
 
@@ -119,7 +121,9 @@ async def mock_run_on_event_loop_replacement(
 # 6. Test for start_discovery
 @pytest.mark.asyncio
 async def test_start_discovery_with_proper_patching(
-    mock_actual_instance_listener_fixture, mock_discovery_host_client_fixture, mocker
+    mock_actual_instance_listener_fixture,
+    mock_discovery_host_client_fixture,
+    mocker,
 ):
     print("--- Starting test_start_discovery_with_proper_patching ---")
     MockListenerClass, mock_listener_instance = (

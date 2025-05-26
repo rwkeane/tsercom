@@ -10,13 +10,15 @@ import zeroconf as zeroconf_module  # For Zeroconf, ServiceBrowser, ServiceInfo 
 # MockRecordListenerClient will be mocker.MagicMock, this alias is mostly for type hinting.
 # We can't define it here using mocker directly as mocker is a fixture.
 # Tests that use this type hint will need mocker injected if they create such mocks.
-MockRecordListenerClient = "mocker.MagicMock" # Placeholder for type hinting
+MockRecordListenerClient = "mocker.MagicMock"  # Placeholder for type hinting
 
 
 class TestRecordListener:
 
     @pytest.fixture
-    def mock_client(self, mocker) -> MockRecordListenerClient: # mocker type hint is good enough
+    def mock_client(
+        self, mocker
+    ) -> MockRecordListenerClient:  # mocker type hint is good enough
         client = mocker.MagicMock(name="MockRecordListenerClient")
         # _on_service_added is expected to be a regular method by RecordListener
         client._on_service_added = mocker.MagicMock(
@@ -28,8 +30,12 @@ class TestRecordListener:
         self, mock_client, mocker
     ):
         print("\n--- Test: test_init_creates_zeroconf_and_service_browser ---")
-        MockZeroconf = mocker.patch.object(zeroconf_module, "Zeroconf", autospec=True)
-        MockServiceBrowser = mocker.patch.object(zeroconf_module, "ServiceBrowser", autospec=True)
+        MockZeroconf = mocker.patch.object(
+            zeroconf_module, "Zeroconf", autospec=True
+        )
+        MockServiceBrowser = mocker.patch.object(
+            zeroconf_module, "ServiceBrowser", autospec=True
+        )
         mock_zc_instance = MockZeroconf.return_value
         service_type = "_myservice._tcp"  # Type without .local. suffix
         expected_service_type_with_local = f"{service_type}.local."
@@ -69,7 +75,7 @@ class TestRecordListener:
         service_type_param: str,
         service_name_param: str,
         get_service_info_return_value: any,  # What mock_zc_instance_for_get_info.get_service_info returns
-        mocker, # Added mocker
+        mocker,  # Added mocker
     ):
         """Helper to run common logic for add_service and update_service tests."""
         expected_listener_type = "_goodservice._tcp.local."
@@ -99,7 +105,9 @@ class TestRecordListener:
     @pytest.mark.parametrize(
         "method_to_test", ["add_service", "update_service"]
     )
-    def test_service_change_type_mismatch(self, method_to_test, mock_client, mocker):
+    def test_service_change_type_mismatch(
+        self, method_to_test, mock_client, mocker
+    ):
         print(
             f"\n--- Test: test_service_change_type_mismatch (method: {method_to_test}) ---"
         )
@@ -131,7 +139,9 @@ class TestRecordListener:
     @pytest.mark.parametrize(
         "method_to_test", ["add_service", "update_service"]
     )
-    def test_service_change_info_is_none(self, method_to_test, mock_client, mocker):
+    def test_service_change_info_is_none(
+        self, method_to_test, mock_client, mocker
+    ):
         print(
             f"\n--- Test: test_service_change_info_is_none (method: {method_to_test}) ---"
         )
@@ -164,7 +174,9 @@ class TestRecordListener:
     @pytest.mark.parametrize(
         "method_to_test", ["add_service", "update_service"]
     )
-    def test_service_change_port_is_none(self, method_to_test, mock_client, mocker):
+    def test_service_change_port_is_none(
+        self, method_to_test, mock_client, mocker
+    ):
         print(
             f"\n--- Test: test_service_change_port_is_none (method: {method_to_test}) ---"
         )
@@ -172,7 +184,9 @@ class TestRecordListener:
             spec=zeroconf_module.Zeroconf
         )
 
-        mock_service_info_no_port = mocker.MagicMock(spec=zeroconf_module.ServiceInfo)
+        mock_service_info_no_port = mocker.MagicMock(
+            spec=zeroconf_module.ServiceInfo
+        )
         mock_service_info_no_port.port = (
             None  # Critical condition for this test
         )
@@ -204,7 +218,9 @@ class TestRecordListener:
     @pytest.mark.parametrize(
         "method_to_test", ["add_service", "update_service"]
     )
-    def test_service_change_successful(self, method_to_test, mock_client, mocker):
+    def test_service_change_successful(
+        self, method_to_test, mock_client, mocker
+    ):
         print(
             f"\n--- Test: test_service_change_successful (method: {method_to_test}) ---"
         )
@@ -224,7 +240,9 @@ class TestRecordListener:
         ]  # addresses are bytes
         expected_properties = {b"txt_key": b"txt_value"}
 
-        mock_service_info_valid = mocker.MagicMock(spec=zeroconf_module.ServiceInfo)
+        mock_service_info_valid = mocker.MagicMock(
+            spec=zeroconf_module.ServiceInfo
+        )
         mock_service_info_valid.name = full_service_name_from_zeroconf
         mock_service_info_valid.port = expected_port
         mock_service_info_valid.addresses = expected_addresses_bytes

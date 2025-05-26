@@ -22,8 +22,8 @@ class TestTimeSyncTracker:
             autospec=True,
         ) as mock_class:
             mock_instance = mock_class.return_value
-            mock_instance.get_synchronized_clock.return_value = mocker.MagicMock(
-                spec=SynchronizedClock
+            mock_instance.get_synchronized_clock.return_value = (
+                mocker.MagicMock(spec=SynchronizedClock)
             )
             yield mock_class
 

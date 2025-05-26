@@ -68,13 +68,17 @@ class TestRecordPublisher:
             "--- Test: test_init_properties_defaults_to_empty_dict finished ---"
         )
 
-    def test_publish_calls_dependencies_correctly(
-        self, mocker
-    ):
+    def test_publish_calls_dependencies_correctly(self, mocker):
         print("\n--- Test: test_publish_calls_dependencies_correctly ---")
-        MockZeroconf = mocker.patch.object(record_publisher_sut_module, "Zeroconf", autospec=True)
-        MockServiceInfo = mocker.patch.object(record_publisher_sut_module, "ServiceInfo", autospec=True)
-        mock_get_all_addresses = mocker.patch.object(tsercom_ip_module, "get_all_addresses", autospec=True)
+        MockZeroconf = mocker.patch.object(
+            record_publisher_sut_module, "Zeroconf", autospec=True
+        )
+        MockServiceInfo = mocker.patch.object(
+            record_publisher_sut_module, "ServiceInfo", autospec=True
+        )
+        mock_get_all_addresses = mocker.patch.object(
+            tsercom_ip_module, "get_all_addresses", autospec=True
+        )
 
         # Setup mock return values
         mock_packed_ips = [
