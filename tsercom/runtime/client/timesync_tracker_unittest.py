@@ -1,7 +1,6 @@
 """Tests for TimeSyncTracker."""
 
 import pytest
-from unittest import mock
 
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.threading.thread_watcher import ThreadWatcher
@@ -13,23 +12,23 @@ class TestTimeSyncTracker:
     """Tests for the TimeSyncTracker class."""
 
     @pytest.fixture
-    def mock_thread_watcher(self):
-        return mock.Mock(spec=ThreadWatcher)
+    def mock_thread_watcher(self, mocker):
+        return mocker.MagicMock(spec=ThreadWatcher)
 
     @pytest.fixture
-    def mock_time_sync_client_class(self):
-        with mock.patch(
+    def mock_time_sync_client_class(self, mocker):
+        with mocker.patch(
             "tsercom.runtime.client.timesync_tracker.TimeSyncClient",
             autospec=True,
         ) as mock_class:
             mock_instance = mock_class.return_value
-            mock_instance.get_synchronized_clock.return_value = mock.Mock(
+            mock_instance.get_synchronized_clock.return_value = mocker.MagicMock(
                 spec=SynchronizedClock
             )
             yield mock_class
 
     def test_on_connect_new_ip(
-        self, mock_thread_watcher, mock_time_sync_client_class
+        self, mock_thread_watcher, mock_time_sync_client_class, mocker
     ):
         """Test on_connect when a new IP address is encountered."""
         tracker = TimeSyncTracker(mock_thread_watcher)
@@ -57,7 +56,7 @@ class TestTimeSyncTracker:
         assert returned_clock == mock_synchronized_clock
 
     def test_on_connect_existing_ip(
-        self, mock_thread_watcher, mock_time_sync_client_class
+        self, mock_thread_watcher, mock_time_sync_client_class, mocker
     ):
         """Test on_connect when an IP address is already being tracked."""
         tracker = TimeSyncTracker(mock_thread_watcher)
@@ -102,7 +101,7 @@ class TestTimeSyncTracker:
         assert returned_clock_second == mock_synchronized_clock
 
     def test_on_disconnect_count_greater_than_one(
-        self, mock_thread_watcher, mock_time_sync_client_class
+        self, mock_thread_watcher, mock_time_sync_client_class, mocker
     ):
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.102"
@@ -119,7 +118,7 @@ class TestTimeSyncTracker:
         assert test_ip in tracker._TimeSyncTracker__map
 
     def test_on_disconnect_count_equals_one(
-        self, mock_thread_watcher, mock_time_sync_client_class
+        self, mock_thread_watcher, mock_time_sync_client_class, mocker
     ):
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.103"
@@ -133,7 +132,7 @@ class TestTimeSyncTracker:
         assert test_ip not in tracker._TimeSyncTracker__map
         client_instance.stop.assert_called_once()
 
-    def test_on_disconnect_non_existent_ip(self, mock_thread_watcher):
+    def test_on_disconnect_non_existent_ip(self, mock_thread_watcher, mocker):
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.104"
 
@@ -141,18 +140,18 @@ class TestTimeSyncTracker:
             tracker.on_disconnect(test_ip)
 
     def test_on_connect_different_ips(
-        self, mock_thread_watcher, mock_time_sync_client_class
+        self, mock_thread_watcher, mock_time_sync_client_class, mocker
     ):
         tracker = TimeSyncTracker(mock_thread_watcher)
         ip1 = "192.168.1.1"
         ip2 = "192.168.1.2"
 
-        mock_client_instance1 = mock.Mock(spec=TimeSyncClient)
-        mock_clock1 = mock.Mock(spec=SynchronizedClock)
+        mock_client_instance1 = mocker.MagicMock(spec=TimeSyncClient)
+        mock_clock1 = mocker.MagicMock(spec=SynchronizedClock)
         mock_client_instance1.get_synchronized_clock.return_value = mock_clock1
 
-        mock_client_instance2 = mock.Mock(spec=TimeSyncClient)
-        mock_clock2 = mock.Mock(spec=SynchronizedClock)
+        mock_client_instance2 = mocker.MagicMock(spec=TimeSyncClient)
+        mock_clock2 = mocker.MagicMock(spec=SynchronizedClock)
         mock_client_instance2.get_synchronized_clock.return_value = mock_clock2
 
         mock_time_sync_client_class.side_effect = [

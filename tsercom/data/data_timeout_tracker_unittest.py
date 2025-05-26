@@ -1,7 +1,6 @@
 import pytest
 import asyncio
 import functools
-from unittest.mock import MagicMock, call, ANY
 
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 

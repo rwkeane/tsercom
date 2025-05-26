@@ -1,7 +1,6 @@
 """Tests for ServerRuntimeDataHandler."""
 
 import pytest
-from unittest import mock
 
 from tsercom.runtime.server.server_runtime_data_handler import (
     ServerRuntimeDataHandler,
@@ -20,32 +19,32 @@ class TestServerRuntimeDataHandler:
     """Tests for the ServerRuntimeDataHandler class."""
 
     @pytest.fixture
-    def mock_thread_watcher(self):
-        return mock.Mock(spec=ThreadWatcher)
+    def mock_thread_watcher(self, mocker):
+        return mocker.MagicMock(spec=ThreadWatcher)
 
     @pytest.fixture
-    def mock_data_reader(self):
-        return mock.Mock(spec=RemoteDataReader)
+    def mock_data_reader(self, mocker):
+        return mocker.MagicMock(spec=RemoteDataReader)
 
     @pytest.fixture
-    def mock_event_source_poller(self):
-        return mock.Mock(spec=AsyncPoller)
+    def mock_event_source_poller(self, mocker):
+        return mocker.MagicMock(spec=AsyncPoller)
 
     @pytest.fixture
-    def mock_time_sync_server_instance(self):
-        mock_server = mock.Mock(spec=TimeSyncServer)
-        mock_server.get_synchronized_clock.return_value = mock.Mock(
+    def mock_time_sync_server_instance(self, mocker):
+        mock_server = mocker.MagicMock(spec=TimeSyncServer)
+        mock_server.get_synchronized_clock.return_value = mocker.MagicMock(
             spec=SynchronizedClock
         )
         return mock_server
 
     @pytest.fixture
-    def mock_id_tracker_instance(self):
-        return mock.Mock(spec=IdTracker)
+    def mock_id_tracker_instance(self, mocker):
+        return mocker.MagicMock(spec=IdTracker)
 
     @pytest.fixture
-    def mock_endpoint_data_processor(self):
-        return mock.Mock(spec=EndpointDataProcessor)
+    def mock_endpoint_data_processor(self, mocker):
+        return mocker.MagicMock(spec=EndpointDataProcessor)
 
     @pytest.fixture
     def handler(
@@ -54,13 +53,14 @@ class TestServerRuntimeDataHandler:
         mock_event_source_poller,
         mock_time_sync_server_instance,
         mock_id_tracker_instance,
+        mocker,
     ):
         with (
-            mock.patch(
+            mocker.patch(
                 "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
                 return_value=mock_time_sync_server_instance,
             ) as mock_ts_server_class,
-            mock.patch(
+            mocker.patch(
                 "tsercom.runtime.server.server_runtime_data_handler.IdTracker",
                 return_value=mock_id_tracker_instance,
             ) as mock_id_tracker_class,
@@ -108,7 +108,7 @@ class TestServerRuntimeDataHandler:
 
         expected_clock = handler._ServerRuntimeDataHandler__clock
 
-        with mock.patch.object(
+        with mocker.patch.object(
             handler,
             "_create_data_processor",
             return_value=mock_endpoint_data_processor,

@@ -1,6 +1,5 @@
 import asyncio
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, call
 import functools  # For functools.partial
 import socket  # For socket.inet_ntoa and AF_INET type
 
@@ -54,8 +53,8 @@ async def mock_run_on_event_loop_for_instance_listener(
 class TestInstanceListener:
 
     @pytest.fixture
-    def mock_client(self):
-        client = MagicMock(name="MockInstanceListenerClient")
+    def mock_client(self, mocker):
+        client = mocker.MagicMock(name="MockInstanceListenerClient")
         # _on_service_added on the client is expected to be a regular method,
         # but the call is wrapped by run_on_event_loop in the SUT,
         # which implies the actual implementation might be async or called from an async context.
@@ -63,16 +62,16 @@ class TestInstanceListener:
         # a simple MagicMock is sufficient to capture calls.
         # If __on_service_added_impl itself awaits client._on_service_added, then this needs to be AsyncMock.
         # Looking at InstanceListener, __on_service_added_impl is async and awaits client._on_service_added.
-        client._on_service_added = AsyncMock(
+        client._on_service_added = mocker.AsyncMock(
             name="client._on_service_added_async_mock"
         )
         return client
 
-    def test_init_creates_record_listener(self, mock_client):
+    def test_init_creates_record_listener(self, mock_client, mocker):
         print("\n--- Test: test_init_creates_record_listener ---")
         service_type = "test_service._tcp.local."
 
-        with patch.object(
+        with mocker.patch.object(
             record_listener_module, "RecordListener", autospec=True
         ) as MockRecordListenerCtor:
             print(
@@ -98,9 +97,8 @@ class TestInstanceListener:
             )
         print("--- Test: test_init_creates_record_listener finished ---")
 
-    @patch.object(socket, "inet_ntoa", autospec=True)  # Patch socket.inet_ntoa
     async def test_on_service_added_successful_population_with_txt_name(
-        self, mock_inet_ntoa, mock_client
+        self, mock_client, mocker
     ):
         print(
             "\n--- Test: test_on_service_added_successful_population_with_txt_name ---"
@@ -119,11 +117,12 @@ class TestInstanceListener:
                 return ".".join(map(str, addr_bytes_param))
             return f"unmocked_format_for_{addr_bytes_param!r}"  # Fallback for unexpected format
 
+        mock_inet_ntoa = mocker.patch.object(socket, "inet_ntoa", autospec=True)  # Patch socket.inet_ntoa
         mock_inet_ntoa.side_effect = inet_ntoa_side_effect
         print(f"  socket.inet_ntoa patched with side effect: {mock_inet_ntoa}")
 
         # Patch run_on_event_loop at its source module
-        with patch.object(
+        with mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
             new=mock_run_on_event_loop_for_instance_listener,
@@ -133,7 +132,7 @@ class TestInstanceListener:
             )
 
             # We need to bypass RecordListener creation for this direct test of _on_service_added
-            with patch.object(
+            with mocker.patch.object(
                 record_listener_module, "RecordListener"
             ):  # Keep RecordListener from starting
                 instance_listener = InstanceListener(mock_client, service_type)
@@ -183,9 +182,8 @@ class TestInstanceListener:
             "--- Test: test_on_service_added_successful_population_with_txt_name finished ---"
         )
 
-    @patch.object(socket, "inet_ntoa", autospec=True)
     async def test_on_service_added_successful_population_no_txt_name(
-        self, mock_inet_ntoa, mock_client
+        self, mock_client, mocker
     ):
         print(
             "\n--- Test: test_on_service_added_successful_population_no_txt_name ---"
@@ -197,16 +195,17 @@ class TestInstanceListener:
         txt_record_empty = {}
         txt_record_other_keys = {b"other_key": b"other_value"}
 
+        mock_inet_ntoa = mocker.patch.object(socket, "inet_ntoa", autospec=True)
         mock_inet_ntoa.side_effect = lambda addr_bytes_param: ".".join(
             map(str, addr_bytes_param)
         )
 
-        with patch.object(
+        with mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
             new=mock_run_on_event_loop_for_instance_listener,
         ) as mock_run_patch_obj:
-            with patch.object(record_listener_module, "RecordListener"):
+            with mocker.patch.object(record_listener_module, "RecordListener"):
                 instance_listener = InstanceListener(mock_client, service_type)
 
                 # Scenario 1: Empty TXT record
@@ -248,22 +247,22 @@ class TestInstanceListener:
             "--- Test: test_on_service_added_successful_population_no_txt_name finished ---"
         )
 
-    @patch.object(
-        socket, "inet_ntoa", side_effect=socket.error("inet_ntoa failed")
-    )  # inet_ntoa raises error
     async def test_on_service_added_populate_service_info_returns_none_bad_address(
-        self, mock_inet_ntoa_raising_error, mock_client
+        self, mock_client, mocker
     ):
         print(
             "\n--- Test: test_on_service_added_populate_service_info_returns_none_bad_address ---"
         )
         service_type = "test_bad_addr._tcp.local."
-        with patch.object(
+        mocker.patch.object(
+            socket, "inet_ntoa", side_effect=socket.error("inet_ntoa failed")
+        )  # inet_ntoa raises error
+        with mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
             new=mock_run_on_event_loop_for_instance_listener,
         ) as mock_run_patch_obj:
-            with patch.object(record_listener_module, "RecordListener"):
+            with mocker.patch.object(record_listener_module, "RecordListener"):
                 instance_listener = InstanceListener(mock_client, service_type)
 
                 # Call _on_service_added. __populate_service_info should return None due to inet_ntoa error.
@@ -286,16 +285,16 @@ class TestInstanceListener:
         )
 
     async def test_on_service_added_empty_address_bytes_list(
-        self, mock_client
+        self, mock_client, mocker
     ):
         print("\n--- Test: test_on_service_added_empty_address_bytes_list ---")
         service_type = "test_empty_addr_list._tcp.local."
-        with patch.object(
+        with mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
             new=mock_run_on_event_loop_for_instance_listener,
         ) as mock_run_patch_obj:
-            with patch.object(record_listener_module, "RecordListener"):
+            with mocker.patch.object(record_listener_module, "RecordListener"):
                 instance_listener = InstanceListener(mock_client, service_type)
 
                 # Call _on_service_added with an empty list for addresses_bytes
@@ -316,11 +315,11 @@ class TestInstanceListener:
         )
 
     def test_convert_service_info_is_identity(
-        self, mock_client
+        self, mock_client, mocker
     ):  # This is a synchronous method
         print("\n--- Test: test_convert_service_info_is_identity ---")
         instance_listener = InstanceListener(mock_client, "any_service")
-        mock_service_info = MagicMock(spec=ServiceInfo)
+        mock_service_info = mocker.MagicMock(spec=ServiceInfo)
 
         # Call the method (it's protected, but we test its behavior)
         returned_info = instance_listener._convert_service_info(mock_service_info)  # type: ignore

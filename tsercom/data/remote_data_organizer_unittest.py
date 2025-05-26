@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock, call, ANY
 import datetime
 import time  # For fine-grained timestamp control
 from concurrent.futures import ThreadPoolExecutor
@@ -55,12 +54,12 @@ class DummyExposedDataForOrganizerTests(ExposedData):
 
 @pytest.fixture
 def mock_thread_pool(mocker):
-    mock_pool = MagicMock(spec=ThreadPoolExecutor)
+    mock_pool = mocker.MagicMock(spec=ThreadPoolExecutor)
 
     def immediate_submit(func_to_call, *args_for_func, **kwargs_for_func):
         return func_to_call(*args_for_func, **kwargs_for_func)
 
-    mock_pool.submit = MagicMock(side_effect=immediate_submit)
+    mock_pool.submit = mocker.MagicMock(side_effect=immediate_submit)
     return mock_pool
 
 
@@ -71,12 +70,12 @@ def mock_caller_id():
 
 @pytest.fixture
 def mock_client(mocker):
-    return MagicMock(spec=RemoteDataOrganizer.Client)
+    return mocker.MagicMock(spec=RemoteDataOrganizer.Client)
 
 
 @pytest.fixture
 def mock_is_running_tracker(mocker):
-    mock_tracker_instance = MagicMock(spec=IsRunningTracker)
+    mock_tracker_instance = mocker.MagicMock(spec=IsRunningTracker)
     mock_tracker_instance.get.return_value = False
     mocker.patch(
         "tsercom.data.remote_data_organizer.IsRunningTracker",
@@ -172,14 +171,14 @@ def test_start_asserts_if_already_running(organizer, mock_is_running_tracker):
         organizer.start()
 
 
-def test_stop(organizer, mock_is_running_tracker):
+def test_stop(organizer, mock_is_running_tracker, mocker):
     mock_is_running_tracker.get.return_value = False
     organizer.start()
     mock_is_running_tracker.get.return_value = True
     organizer.stop()
     assert mock_is_running_tracker.set.call_args_list == [
-        call(True),
-        call(False),
+        mocker.call(True),
+        mocker.call(False),
     ]
 
 
@@ -191,10 +190,10 @@ def test_stop_asserts_if_not_running(organizer, mock_is_running_tracker):
 
 # 3. _on_data_ready() and __on_data_ready_impl()
 def test_on_data_ready_submits_to_thread_pool(
-    organizer, mock_thread_pool, mock_caller_id
+    organizer, mock_thread_pool, mock_caller_id, mocker
 ):
     data = create_data(mock_caller_id, datetime.datetime.now())
-    mock_thread_pool.submit = MagicMock()
+    mock_thread_pool.submit = mocker.MagicMock()
     organizer._on_data_ready(data)
     mock_thread_pool.submit.assert_called_once_with(
         organizer._RemoteDataOrganizer__on_data_ready_impl, data
@@ -398,12 +397,12 @@ def test_get_data_for_timestamp_finds_correct_item(organizer, mock_caller_id):
 
 
 # 8. _on_triggered()
-def test_on_triggered_submits_to_thread_pool(organizer, mock_thread_pool):
+def test_on_triggered_submits_to_thread_pool(organizer, mock_thread_pool, mocker):
     timeout_val = 30
-    mock_thread_pool.submit = MagicMock()
+    mock_thread_pool.submit = mocker.MagicMock()
     organizer._on_triggered(timeout_val)
 
-    mock_thread_pool.submit.assert_called_once_with(ANY)
+    mock_thread_pool.submit.assert_called_once_with(mocker.ANY)
     submitted_callable = mock_thread_pool.submit.call_args[0][0]
     assert isinstance(submitted_callable, functools.partial)
     assert (
@@ -417,8 +416,8 @@ def test_on_triggered_submits_to_thread_pool(organizer, mock_thread_pool):
 def test_timeout_old_data_removes_old_items(organizer, mock_caller_id, mocker):
     current_time_mock_val = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
-    datetime_module_mock = MagicMock(name="datetime_module_mock")
-    datetime_class_mock = MagicMock(name="datetime_class_mock")
+    datetime_module_mock = mocker.MagicMock(name="datetime_module_mock")
+    datetime_class_mock = mocker.MagicMock(name="datetime_class_mock")
     datetime_class_mock.now.return_value = current_time_mock_val
     datetime_module_mock.datetime = datetime_class_mock
     datetime_module_mock.timedelta = datetime.timedelta
@@ -467,8 +466,8 @@ def test_on_triggered_partial_call_integration(
     organizer, mock_caller_id, mocker
 ):
     current_time_mock_val = datetime.datetime(2023, 1, 1, 12, 0, 0)
-    datetime_module_mock = MagicMock(name="datetime_module_mock")
-    datetime_class_mock = MagicMock(name="datetime_class_mock")
+    datetime_module_mock = mocker.MagicMock(name="datetime_module_mock")
+    datetime_class_mock = mocker.MagicMock(name="datetime_class_mock")
     datetime_class_mock.now.return_value = current_time_mock_val
     datetime_module_mock.datetime = datetime_class_mock
     datetime_module_mock.timedelta = datetime.timedelta

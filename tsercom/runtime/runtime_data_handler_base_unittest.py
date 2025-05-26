@@ -1,7 +1,6 @@
 import asyncio
 import pytest
 import grpc.aio  # For ServicerContext
-from unittest import mock
 
 # from mock import AsyncMock, MagicMock, patch, call # Removed this line
 from typing import (
@@ -48,19 +47,20 @@ class TestableRuntimeDataHandler(
         self,
         data_reader: RemoteDataReader[DataType],
         event_source: AsyncPoller[Any],
+        mocker, # Added mocker
     ):
         super().__init__(data_reader, event_source)
-        self.mock_register_caller = mock.AsyncMock(
+        self.mock_register_caller = mocker.AsyncMock(
             name="_register_caller_impl"
         )
-        self.mock_unregister_caller = mock.AsyncMock(
+        self.mock_unregister_caller = mocker.AsyncMock(
             name="_unregister_caller_impl"
         )
-        self.mock_try_get_caller_id = mock.MagicMock(
+        self.mock_try_get_caller_id = mocker.MagicMock(
             name="_try_get_caller_id_impl"
         )
         # Mock the protected _on_data_ready to inspect calls to it
-        self._on_data_ready = mock.MagicMock(name="handler_on_data_ready_mock")  # type: ignore
+        self._on_data_ready = mocker.MagicMock(name="handler_on_data_ready_mock")  # type: ignore
         # print("TestableRuntimeDataHandler initialized.") # Reduced verbosity
 
     async def _register_caller(
@@ -84,58 +84,58 @@ class TestableRuntimeDataHandler(
 class TestRuntimeDataHandlerBaseBehavior:
 
     @pytest.fixture
-    def mock_data_reader(self):
-        reader = mock.MagicMock(spec=RemoteDataReader)
+    def mock_data_reader(self, mocker):
+        reader = mocker.MagicMock(spec=RemoteDataReader)
         # The SUT's _on_data_ready calls self.__data_reader._on_data_ready.
         # So, we mock this method on the reader instance passed to the SUT.
-        reader._on_data_ready = mock.MagicMock(
+        reader._on_data_ready = mocker.MagicMock(
             name="data_reader_on_data_ready_on_reader_mock"
         )
         return reader
 
     @pytest.fixture
-    def mock_event_source(self):
-        poller = mock.MagicMock(spec=AsyncPoller)
-        poller.__anext__ = mock.AsyncMock(name="event_source_anext")
+    def mock_event_source(self, mocker):
+        poller = mocker.MagicMock(spec=AsyncPoller)
+        poller.__anext__ = mocker.AsyncMock(name="event_source_anext")
         return poller
 
     @pytest.fixture
     def mock_caller_id(
-        self,
+        self, mocker
     ):  # Renamed to avoid conflict with test_caller_id_fixture
-        return mock.MagicMock(
+        return mocker.MagicMock(
             spec=CallerIdentifier, name="MockCallerIdInstance"
         )
 
     @pytest.fixture
-    def mock_servicer_context(self):
-        context = mock.AsyncMock(spec=ServicerContext)
-        context.peer = mock.MagicMock(return_value="ipv4:127.0.0.1:12345")
+    def mock_servicer_context(self, mocker):
+        context = mocker.AsyncMock(spec=ServicerContext)
+        context.peer = mocker.MagicMock(return_value="ipv4:127.0.0.1:12345")
         return context
 
     @pytest.fixture
-    def patch_get_client_ip(self):
-        with mock.patch.object(
+    def patch_get_client_ip(self, mocker):
+        with mocker.patch.object(
             grpc_addressing_module, "get_client_ip", autospec=True
         ) as mock_get_ip:
             yield mock_get_ip
 
     @pytest.fixture
-    def patch_get_client_port(self):
-        with mock.patch.object(
+    def patch_get_client_port(self, mocker):
+        with mocker.patch.object(
             grpc_addressing_module, "get_client_port", autospec=True
         ) as mock_get_port:
             yield mock_get_port
 
     @pytest.fixture
-    def handler(self, mock_data_reader, mock_event_source):
-        return TestableRuntimeDataHandler(mock_data_reader, mock_event_source)
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+        return TestableRuntimeDataHandler(mock_data_reader, mock_event_source, mocker)
 
     # Fixtures for DataProcessorImpl tests
     @pytest.fixture
-    def mock_sync_clock(self):
-        clock = mock.MagicMock(spec=SynchronizedClock)
-        clock.desync = mock.AsyncMock(
+    def mock_sync_clock(self, mocker):
+        clock = mocker.MagicMock(spec=SynchronizedClock)
+        clock.desync = mocker.AsyncMock(
             name="sync_clock_desync"
         )  # desync is async
         return clock
@@ -168,7 +168,7 @@ class TestRuntimeDataHandlerBaseBehavior:
     ):
         endpoint_str = "10.0.0.1"
         port_num = 9999
-        mock_processor_instance = mock.MagicMock(
+        mock_processor_instance = mocker.MagicMock(
             spec=RuntimeDataHandlerBase.EndpointDataProcessor
         )
         handler.mock_register_caller.return_value = mock_processor_instance
@@ -192,7 +192,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         expected_port = 5678
         patch_get_client_ip.return_value = expected_ip
         patch_get_client_port.return_value = expected_port
-        mock_processor_instance = mock.MagicMock(
+        mock_processor_instance = mocker.MagicMock(
             spec=RuntimeDataHandlerBase.EndpointDataProcessor
         )
         handler.mock_register_caller.return_value = mock_processor_instance
@@ -230,10 +230,10 @@ class TestRuntimeDataHandlerBaseBehavior:
         assert handler.get_data_iterator() is handler
 
     async def test_async_iteration_with_event_source(
-        self, handler, mock_event_source
+        self, handler, mock_event_source, mocker
     ):
-        item1 = mock.MagicMock(name="EventItem1")
-        item2 = mock.MagicMock(name="EventItem2")
+        item1 = mocker.MagicMock(name="EventItem1")
+        item2 = mocker.MagicMock(name="EventItem2")
         mock_event_source.__anext__.side_effect = [
             item1,
             item2,
@@ -263,7 +263,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         print(
             "\n--- Test: test_handler_on_data_ready_calls_reader_on_data_ready ---"
         )
-        mock_annotated_instance = mock.MagicMock(spec=AnnotatedInstance)
+        mock_annotated_instance = mocker.MagicMock(spec=AnnotatedInstance)
         # Call the public method on handler, which should internally call its own _on_data_ready
         # which then calls the reader's _on_data_ready.
         # Actually, _on_data_ready is a method of the data processor, which then calls
@@ -287,10 +287,10 @@ class TestRuntimeDataHandlerBaseBehavior:
     # --- Tests for _RuntimeDataHandlerBase__DataProcessorImpl ---
 
     async def test_processor_desynchronize(
-        self, data_processor, mock_sync_clock
+        self, data_processor, mock_sync_clock, mocker
     ):
         print("\n--- Test: test_processor_desynchronize ---")
-        mock_server_ts = mock.MagicMock(
+        mock_server_ts = mocker.MagicMock(
             spec=SerializableAnnotatedInstance
         )  # Changed spec
         expected_datetime = datetime.datetime.now(datetime.timezone.utc)
@@ -341,7 +341,7 @@ class TestRuntimeDataHandlerBaseBehavior:
             "\n--- Test: test_processor_process_data_with_server_timestamp ---"
         )
         test_payload = "payload_with_server_ts"
-        mock_server_ts = mock.MagicMock(
+        mock_server_ts = mocker.MagicMock(
             spec=SerializableAnnotatedInstance
         )  # Changed spec
         expected_desynced_dt = datetime.datetime.now(
@@ -376,7 +376,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         # Patch datetime.now inside the SUT module (runtime_data_handler_base)
         # to control the timestamp for "now"
         fixed_now = datetime.datetime.now(datetime.timezone.utc)
-        with mock.patch(
+        with mocker.patch(
             "tsercom.runtime.runtime_data_handler_base.datetime",
             wraps=datetime,
         ) as mock_dt_module:
@@ -407,11 +407,11 @@ class TestRuntimeDataHandlerBaseBehavior:
 
 # Minimal concrete implementation for testing
 class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):
-    def __init__(self, data_reader, event_source):
+    def __init__(self, data_reader, event_source, mocker): # Added mocker
         super().__init__(data_reader, event_source)
-        self._register_caller_mock = mock.Mock(spec=self._register_caller)
-        self._unregister_caller_mock = mock.Mock(spec=self._unregister_caller)
-        self._try_get_caller_id_mock = mock.Mock(spec=self._try_get_caller_id)
+        self._register_caller_mock = mocker.MagicMock(spec=self._register_caller)
+        self._unregister_caller_mock = mocker.MagicMock(spec=self._unregister_caller)
+        self._try_get_caller_id_mock = mocker.MagicMock(spec=self._try_get_caller_id)
 
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
@@ -430,30 +430,30 @@ class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):
 
 
 @pytest.fixture
-def mock_data_reader_fixture():
-    return mock.Mock(spec=RemoteDataReader[AnnotatedInstance[str]])
+def mock_data_reader_fixture(mocker):
+    return mocker.MagicMock(spec=RemoteDataReader[AnnotatedInstance[str]])
 
 
 @pytest.fixture
-def mock_event_source_fixture():
-    return mock.Mock(spec=AsyncPoller[SerializableAnnotatedInstance[str]])
+def mock_event_source_fixture(mocker):
+    return mocker.MagicMock(spec=AsyncPoller[SerializableAnnotatedInstance[str]])
 
 
 @pytest.fixture
-def mock_context_fixture():
-    return mock.Mock(spec=grpc.aio.ServicerContext)
+def mock_context_fixture(mocker):
+    return mocker.MagicMock(spec=grpc.aio.ServicerContext)
 
 
 @pytest.fixture
-def handler_fixture(mock_data_reader_fixture, mock_event_source_fixture):
+def handler_fixture(mock_data_reader_fixture, mock_event_source_fixture, mocker):
     return ConcreteRuntimeDataHandler(
-        mock_data_reader_fixture, mock_event_source_fixture
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
     )
 
 
 @pytest.fixture
-def mock_endpoint_processor_fixture():
-    return mock.Mock(spec=EndpointDataProcessor)
+def mock_endpoint_processor_fixture(mocker):
+    return mocker.MagicMock(spec=EndpointDataProcessor)
 
 
 class TestRuntimeDataHandlerBaseRegisterCaller:
@@ -478,21 +478,18 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
         )
         assert result == mock_endpoint_processor_fixture
 
-    @mock.patch("tsercom.runtime.runtime_data_handler_base.get_client_ip")
-    @mock.patch("tsercom.runtime.runtime_data_handler_base.get_client_port")
     def test_register_caller_with_context_success(
         self,
-        mock_get_port,
-        mock_get_ip,
         handler_fixture,
         mock_context_fixture,
         mock_endpoint_processor_fixture,
+        mocker, # Ensure mocker is passed here
     ):
         caller_id = CallerIdentifier.random()
         expected_ip = "192.168.0.1"
         expected_port = 1234
-        mock_get_ip.return_value = expected_ip
-        mock_get_port.return_value = expected_port
+        mock_get_ip = mocker.patch("tsercom.runtime.runtime_data_handler_base.get_client_ip", return_value=expected_ip)
+        mock_get_port = mocker.patch("tsercom.runtime.runtime_data_handler_base.get_client_port", return_value=expected_port)
         handler_fixture._register_caller_mock.return_value = (
             mock_endpoint_processor_fixture
         )
@@ -508,14 +505,12 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
         )
         assert result == mock_endpoint_processor_fixture
 
-    @mock.patch("tsercom.runtime.runtime_data_handler_base.get_client_ip")
-    @mock.patch("tsercom.runtime.runtime_data_handler_base.get_client_port")
     def test_register_caller_with_context_ip_none_returns_none(
-        self, mock_get_port, mock_get_ip, handler_fixture, mock_context_fixture
+        self, handler_fixture, mock_context_fixture, mocker # Ensure mocker is passed here
     ):
         caller_id = CallerIdentifier.random()
-        mock_get_ip.return_value = None  # Simulate IP not found
-        # mock_get_port can return anything or not be called, outcome should be None
+        mock_get_ip = mocker.patch("tsercom.runtime.runtime_data_handler_base.get_client_ip", return_value=None)
+        mocker.patch("tsercom.runtime.runtime_data_handler_base.get_client_port", return_value=1234) # Mock get_client_port as well
 
         result = handler_fixture.register_caller(
             caller_id, context=mock_context_fixture
@@ -527,15 +522,13 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
         handler_fixture._register_caller_mock.assert_not_called()
         assert result is None
 
-    @mock.patch("tsercom.runtime.runtime_data_handler_base.get_client_ip")
-    @mock.patch("tsercom.runtime.runtime_data_handler_base.get_client_port")
     def test_register_caller_with_context_port_none_raises_value_error(
-        self, mock_get_port, mock_get_ip, handler_fixture, mock_context_fixture
+        self, handler_fixture, mock_context_fixture, mocker # Ensure mocker is passed here
     ):
         caller_id = CallerIdentifier.random()
         expected_ip = "192.168.0.1"
-        mock_get_ip.return_value = expected_ip
-        mock_get_port.return_value = None  # Simulate port not found
+        mock_get_ip = mocker.patch("tsercom.runtime.runtime_data_handler_base.get_client_ip", return_value=expected_ip)
+        mock_get_port = mocker.patch("tsercom.runtime.runtime_data_handler_base.get_client_port", return_value=None)
 
         with pytest.raises(ValueError) as excinfo:
             handler_fixture.register_caller(
@@ -604,18 +597,17 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             in str(excinfo.value)
         )
 
-    @mock.patch("tsercom.runtime.runtime_data_handler_base.get_client_ip")
-    @mock.patch("tsercom.runtime.runtime_data_handler_base.get_client_port")
     def test_register_caller_context_is_not_servicer_context_raises_type_error(
-        self, mock_get_port, mock_get_ip, handler_fixture
+        self, handler_fixture, mocker # Ensure mocker is passed here
     ):
         """Test that if context is not None, it must be a ServicerContext."""
         caller_id = CallerIdentifier.random()
         not_a_servicer_context = object()  # Some other object type
 
         # These can return valid values, the type check for context should happen before.
-        mock_get_ip.return_value = "1.2.3.4"
-        mock_get_port.return_value = 1234
+        mock_get_ip = mocker.patch("tsercom.runtime.runtime_data_handler_base.get_client_ip", return_value="1.2.3.4")
+        mock_get_port = mocker.patch("tsercom.runtime.runtime_data_handler_base.get_client_port", return_value=1234)
+
 
         with pytest.raises(TypeError) as excinfo:
             handler_fixture.register_caller(
