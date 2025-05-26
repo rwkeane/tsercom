@@ -3,7 +3,7 @@
 from typing import Generic, TypeVar
 
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.api.split_process.data_reader_sink import DataReaderSink

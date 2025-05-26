@@ -5,7 +5,7 @@ import grpc
 import logging  # Added for logging
 
 from tsercom.rpc.common.channel_info import ChannelInfo  # Updated import path
-from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
 
 class InsecureGrpcChannelFactory(GrpcChannelFactory):

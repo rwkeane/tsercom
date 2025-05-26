@@ -8,7 +8,7 @@ from tsercom.runtime.runtime_main import (
 )
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime import Runtime
-from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher

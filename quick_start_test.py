@@ -15,7 +15,7 @@ from tsercom.runtime.runtime import Runtime  # Base class for custom runtime
 from tsercom.threading.thread_watcher import (
     ThreadWatcher,
 )  # For exception handling
-from tsercom.rpc.grpc.grpc_channel_factory import (
+from tsercom.rpc.grpc_util.grpc_channel_factory import (
     GrpcChannelFactory,
 )  # For gRPC channel
 
