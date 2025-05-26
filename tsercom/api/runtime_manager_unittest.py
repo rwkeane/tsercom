@@ -1,5 +1,3 @@
-import logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(threadName)s - %(message)s', force=True)
 import asyncio
 from collections.abc import Callable
 from concurrent.futures import Future

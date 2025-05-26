@@ -297,7 +297,6 @@ class RemoteDataAggregatorImpl(
         Raises:
             TypeError: If `new_data` is not a subclass of `ExposedData`.
         """
-        logging.debug(f"RemoteDataAggregatorImpl._on_data_ready: Received data for caller_id={new_data.caller_id}, timestamp={new_data.timestamp if hasattr(new_data, 'timestamp') else 'N/A'}")
         if not isinstance(new_data, ExposedData):
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
@@ -308,7 +307,6 @@ class RemoteDataAggregatorImpl(
 
         with self.__lock:
             if new_data.caller_id not in self.__organizers:
-                logging.debug(f"RemoteDataAggregatorImpl._on_data_ready: Creating new RemoteDataOrganizer for caller_id={new_data.caller_id}")
                 data_organizer = RemoteDataOrganizer(
                     self.__thread_pool, new_data.caller_id, self
                 )
@@ -318,10 +316,8 @@ class RemoteDataAggregatorImpl(
                 self.__organizers[new_data.caller_id] = data_organizer
                 is_new_organizer = True
             else:
-                logging.debug(f"RemoteDataAggregatorImpl._on_data_ready: Using existing RemoteDataOrganizer for caller_id={new_data.caller_id}")
                 data_organizer = self.__organizers[new_data.caller_id]
         
-        logging.debug(f"RemoteDataAggregatorImpl._on_data_ready: Calling data_organizer._on_data_ready for caller_id={new_data.caller_id}")
         data_organizer._on_data_ready(new_data)
 
         if is_new_organizer and self.__client is not None:

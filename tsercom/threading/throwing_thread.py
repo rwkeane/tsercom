@@ -31,7 +31,6 @@ class ThrowingThread(threading.Thread):
             *args (Any): Variable length argument list for the target callable.
             **kwargs (Any): Arbitrary keyword arguments for the target callable.
         """
-        logging.debug(f"ThrowingThread.__init__ called for target {target.__name__ if hasattr(target, '__name__') else 'unknown_target'}")
         assert on_error_cb is not None, "on_error_cb cannot be None"
         self.__on_error_cb = on_error_cb
         # Store the actual target to be called in _wrapped_target
@@ -40,7 +39,6 @@ class ThrowingThread(threading.Thread):
         self._kwargs = kwargs
         # Pass self._wrapped_target to super().__init__
         super().__init__(group=None, target=self._wrapped_target, daemon=True)
-        logging.debug(f"ThrowingThread.__init__ completed for {self.name}")
 
     def _wrapped_target(self) -> None:
         """
@@ -50,20 +48,17 @@ class ThrowingThread(threading.Thread):
         If the target callable raises an exception, it is caught, logged,
         and reported via the `on_error_cb`.
         """
-        logging.debug(f"ThrowingThread._wrapped_target started in thread {self.name} ({threading.get_ident()}) for {self._actual_target.__name__ if hasattr(self._actual_target, '__name__') else 'unknown_target'}")
         try:
             if self._actual_target:
                 self._actual_target(*self._args, **self._kwargs)
-                logging.debug(f"ThrowingThread._wrapped_target: self._actual_target completed for {self.name} ({threading.get_ident()})")
         except Exception as e:
-            logging.error(
+            logging.error( # This logging.error is part of the original logic
                 f"ThrowingThread._wrapped_target: Exception caught in thread {self.name} ({threading.get_ident()}): {e!r}", exc_info=True
             )
             if self.__on_error_cb is not None:
                 self.__on_error_cb(e)
             # Optionally re-raise or handle as per application needs,
             # but for a ThreadWatcher, reporting via callback is primary.
-        logging.debug(f"ThrowingThread._wrapped_target finished for {self.name} ({threading.get_ident()})")
 
     # We need to override run() to call _wrapped_target, 
     # because super().__init__ was called with target=self._wrapped_target
@@ -82,13 +77,13 @@ class ThrowingThread(threading.Thread):
         Raises:
             Exception: Any exception raised by `threading.Thread.start()`.
         """
-        logging.debug(f"ThrowingThread.start() called for {self.name}")
         try:
             super().start()
-            logging.debug(f"ThrowingThread.start() super().start() completed for {self.name}")
         except Exception as e_start:
             # This log captures exceptions from the thread starting mechanism itself.
-            logging.error(f"ThrowingThread.start() EXCEPTION during super().start() for {self.name}: {e_start!r}", exc_info=True)
+            logging.error( # This logging.error is part of the original logic
+                f"ThrowingThread.start() EXCEPTION during super().start() for {self.name}: {e_start!r}", exc_info=True
+            )
             if self.__on_error_cb is not None:
                 self.__on_error_cb(e_start) # Report error if start fails
             # Re-raise the exception that occurred during thread start-up.

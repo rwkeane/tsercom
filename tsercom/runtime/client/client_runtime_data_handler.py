@@ -76,7 +76,6 @@ class ClientRuntimeDataHandler(
         Returns:
             An `EndpointDataProcessor` configured for this caller.
         """
-        logging.debug(f"ClientRuntimeDataHandler._register_caller: Attempting to add ID {caller_id} for endpoint {endpoint}:{port}")
         self.__id_tracker.add(caller_id, endpoint, port)
         clock = self.__clock_tracker.on_connect(endpoint)
         return self._create_data_processor(caller_id, clock)
