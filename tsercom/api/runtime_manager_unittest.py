@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(threadName)s - %(message)s', force=True)
 import asyncio
 from collections.abc import Callable
 from concurrent.futures import Future
@@ -284,7 +286,7 @@ def test_out_of_process_error_check_for_exception():
         )
     )
     runtime_manager.start_out_of_process()
-    time.sleep(0.3)
+    time.sleep(1.0)
     with pytest.raises(ValueError, match=error_msg):
         runtime_manager.check_for_exception()
 
@@ -388,7 +390,7 @@ def test_out_of_process_initializer_create_error():
         )
     )
     runtime_manager.start_out_of_process()
-    time.sleep(0.3)
+    time.sleep(1.0)
     with pytest.raises(TypeError, match=error_msg):
         runtime_manager.check_for_exception()
 

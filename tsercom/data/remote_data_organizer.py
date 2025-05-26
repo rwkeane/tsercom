@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 from functools import partial
+import logging # Added for logging
 import threading
 from typing import Deque, Generic, List, Optional, TypeVar
 
@@ -122,10 +123,16 @@ class RemoteDataOrganizer(
             True if new data is available, False otherwise.
         """
         with self.__data_lock:
+            logging.debug(f"RemoteDataOrganizer.has_new_data: caller_id={self.caller_id}")
+            first_item_ts = self.__data[0].timestamp if self.__data else "N/A"
+            logging.debug(f"RemoteDataOrganizer.has_new_data: current first data timestamp={first_item_ts}, last_access={self.__last_access}")
             if not self.__data:  # More pythonic check for empty deque
+                logging.debug("RemoteDataOrganizer.has_new_data: No data, returning False")
                 return False
             # Data is new if the most recent item's timestamp is after the last access time.
-            return self.__data[0].timestamp > self.__last_access
+            result = self.__data[0].timestamp > self.__last_access
+            logging.debug(f"RemoteDataOrganizer.has_new_data: returning {result}")
+            return result
 
     def get_new_data(self) -> List[TDataType]:
         """Retrieves all data items received since the last call to this method.
@@ -220,6 +227,7 @@ class RemoteDataOrganizer(
         assert (
             new_data.caller_id == self.caller_id
         ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
+        logging.debug(f"RemoteDataOrganizer._on_data_ready: Submitting __on_data_ready_impl for caller_id={self.caller_id}, timestamp={new_data.timestamp if hasattr(new_data, 'timestamp') else 'N/A'}")
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: TDataType) -> None:
@@ -232,13 +240,21 @@ class RemoteDataOrganizer(
         Args:
             new_data: The `TDataType` item to process.
         """
+        logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: Entered for caller_id={self.caller_id}, timestamp={new_data.timestamp if hasattr(new_data, 'timestamp') else 'N/A'}")
+        logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: self.__is_running.get() = {self.__is_running.get()}")
         # Do not process data if the organizer is not running.
         if not self.__is_running.get():
+            logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: Not running, returning for caller_id={self.caller_id}")
             return
 
         data_inserted_or_updated = False
         with self.__data_lock:
+            # Log a summary of current __data for context
+            current_data_summary = [(item.timestamp if hasattr(item, 'timestamp') else 'N/A') for item in self.__data]
+            logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: Current data timestamps for caller_id={self.caller_id}: {current_data_summary}")
+
             if not self.__data:  # No data yet, just append.
+                logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: No existing data. Appending. Caller_id={self.caller_id}")
                 self.__data.append(new_data)
                 data_inserted_or_updated = True
             else:
@@ -246,7 +262,7 @@ class RemoteDataOrganizer(
                 new_data_time = new_data.timestamp
 
                 if new_data_time < current_most_recent_time:
-                    # New data is older than the current newest; find its place or discard if too old.
+                    logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: New data is older. Discarding/No-Op. Caller_id={self.caller_id}")
                     # This simple implementation discards if it's not the absolute newest.
                     # For a more robust history, one might insert it in sorted order.
                     # For now, we assume data generally arrives in order or only newest matters for updates.
@@ -262,15 +278,19 @@ class RemoteDataOrganizer(
                     # adhering to apparent original intent of primarily newest-first logic.
                     pass  # Or log if discarding out-of-order older data.
                 elif new_data_time == current_most_recent_time:
+                    logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: New data has same timestamp as most recent. Updating. Caller_id={self.caller_id}")
                     # Data with the same timestamp as the newest; update the newest.
                     self.__data[0] = new_data
                     data_inserted_or_updated = True
                 else:  # new_data_time > current_most_recent_time
+                    logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: New data is newest. Appending left. Caller_id={self.caller_id}")
                     # New data is the absolute newest; add to the front.
                     self.__data.appendleft(new_data)
                     data_inserted_or_updated = True
-
+        
+        logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: data_inserted_or_updated = {data_inserted_or_updated} for caller_id={self.caller_id}")
         if data_inserted_or_updated and self.__client is not None:
+            logging.debug(f"RemoteDataOrganizer.__on_data_ready_impl: Notifying client for caller_id={self.caller_id}")
             self.__client._on_data_available(self)
 
     def _on_triggered(self, timeout_seconds: int) -> None:

@@ -194,7 +194,7 @@ class RuntimeManager(ErrorWatcher):
         )
         factory_factory = LocalRuntimeFactoryFactory(thread_pool)
         factories = self.__create_factories(factory_factory)
-        thread_pool.shutdown(wait=True)
+        # thread_pool.shutdown(wait=True) # Removed this line
 
         # Import is deferred to avoid circular dependencies.
         from tsercom.runtime.runtime_main import (
@@ -246,7 +246,7 @@ class RuntimeManager(ErrorWatcher):
             thread_pool, self.__thread_watcher
         )
         factories = self.__create_factories(factory_factory)
-        thread_pool.shutdown(wait=True)
+        # thread_pool.shutdown(wait=True) # Removed this line
 
         # Import and prepare the main function for the remote process.
         # Import is deferred to avoid circular dependencies.

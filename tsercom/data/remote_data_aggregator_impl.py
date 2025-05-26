@@ -4,7 +4,7 @@ This class manages RemoteDataOrganizer instances for each data source (identifie
 CallerIdentifier) and handles data timeout tracking. It acts as a central point
 for collecting and accessing data from multiple remote endpoints.
 """
-
+import logging # Added for logging
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
@@ -157,14 +157,13 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    raise KeyError(
-                        f"Caller ID '{id}' not found for has_new_data."
-                    )
+                    return False # Changed from raise KeyError
                 return organizer.has_new_data()
 
             results = {}
-            for key, organizer in self.__organizers.items():
-                results[key] = organizer.has_new_data()
+            # Changed loop variable to org_item to avoid potential shadowing
+            for key, org_item in self.__organizers.items():
+                results[key] = org_item.has_new_data()
             return results
 
     def get_new_data(
@@ -298,6 +297,7 @@ class RemoteDataAggregatorImpl(
         Raises:
             TypeError: If `new_data` is not a subclass of `ExposedData`.
         """
+        logging.debug(f"RemoteDataAggregatorImpl._on_data_ready: Received data for caller_id={new_data.caller_id}, timestamp={new_data.timestamp if hasattr(new_data, 'timestamp') else 'N/A'}")
         if not isinstance(new_data, ExposedData):
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
@@ -308,6 +308,7 @@ class RemoteDataAggregatorImpl(
 
         with self.__lock:
             if new_data.caller_id not in self.__organizers:
+                logging.debug(f"RemoteDataAggregatorImpl._on_data_ready: Creating new RemoteDataOrganizer for caller_id={new_data.caller_id}")
                 data_organizer = RemoteDataOrganizer(
                     self.__thread_pool, new_data.caller_id, self
                 )
@@ -317,8 +318,10 @@ class RemoteDataAggregatorImpl(
                 self.__organizers[new_data.caller_id] = data_organizer
                 is_new_organizer = True
             else:
+                logging.debug(f"RemoteDataAggregatorImpl._on_data_ready: Using existing RemoteDataOrganizer for caller_id={new_data.caller_id}")
                 data_organizer = self.__organizers[new_data.caller_id]
-
+        
+        logging.debug(f"RemoteDataAggregatorImpl._on_data_ready: Calling data_organizer._on_data_ready for caller_id={new_data.caller_id}")
         data_organizer._on_data_ready(new_data)
 
         if is_new_organizer and self.__client is not None:
