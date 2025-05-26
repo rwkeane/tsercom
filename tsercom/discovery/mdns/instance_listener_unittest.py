@@ -55,7 +55,11 @@ class TestInstanceListener:
     @pytest.fixture
     def mock_client(self, mocker):
         # Use create_autospec to ensure the mock passes isinstance checks for InstanceListener.Client
-        client = mocker.create_autospec(InstanceListener.Client, instance=True, name="MockInstanceListenerClient")
+        client = mocker.create_autospec(
+            InstanceListener.Client,
+            instance=True,
+            name="MockInstanceListenerClient",
+        )
         # _on_service_added on the client is expected to be a regular method,
         # but the call is wrapped by run_on_event_loop in the SUT,
         # which implies the actual implementation might be async or called from an async context.
@@ -70,7 +74,7 @@ class TestInstanceListener:
 
     def test_init_creates_record_listener(self, mock_client, mocker):
         print("\n--- Test: test_init_creates_record_listener ---")
-        service_type = "_test_service._tcp.local." # Added underscore
+        service_type = "_test_service._tcp.local."  # Added underscore
 
         MockRecordListenerCtor = mocker.patch.object(
             record_listener_module, "RecordListener", autospec=True
@@ -104,7 +108,7 @@ class TestInstanceListener:
         print(
             "\n--- Test: test_on_service_added_successful_population_with_txt_name ---"
         )
-        service_type = "_test_service_txt._tcp.local." # Added underscore
+        service_type = "_test_service_txt._tcp.local."  # Added underscore
         mdns_record_name = "MyDevice._test_service_txt._tcp.local."
         port = 8080
         addr_bytes1 = b"\x01\x02\x03\x04"  # 1.2.3.4
@@ -139,9 +143,7 @@ class TestInstanceListener:
             record_listener_module, "RecordListener"
         )  # Keep RecordListener from starting
         instance_listener = InstanceListener(mock_client, service_type)
-        print(
-            "  InstanceListener instantiated for _on_service_added test."
-        )
+        print("  InstanceListener instantiated for _on_service_added test.")
 
         # Call the method to be tested (which is a callback for RecordListener)
         # This method is synchronous, but it calls __populate_service_info (sync)
@@ -191,7 +193,7 @@ class TestInstanceListener:
         print(
             "\n--- Test: test_on_service_added_successful_population_no_txt_name ---"
         )
-        service_type = "_test_service_no_txt._tcp.local." # Added underscore
+        service_type = "_test_service_no_txt._tcp.local."  # Added underscore
         mdns_record_name = "RawDeviceName._test_service_no_txt._tcp.local."
         port = 8081
         addr_bytes = [b"\x0a\x00\x00\x01"]  # 10.0.0.1
@@ -258,7 +260,7 @@ class TestInstanceListener:
         print(
             "\n--- Test: test_on_service_added_populate_service_info_returns_none_bad_address ---"
         )
-        service_type = "_test_bad_addr._tcp.local." # Added underscore
+        service_type = "_test_bad_addr._tcp.local."  # Added underscore
         mocker.patch.object(
             socket, "inet_ntoa", side_effect=socket.error("inet_ntoa failed")
         )  # inet_ntoa raises error
@@ -293,7 +295,7 @@ class TestInstanceListener:
         self, mock_client, mocker
     ):
         print("\n--- Test: test_on_service_added_empty_address_bytes_list ---")
-        service_type = "_test_empty_addr_list._tcp.local." # Added underscore
+        service_type = "_test_empty_addr_list._tcp.local."  # Added underscore
         mock_run_patch_obj = mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
@@ -303,9 +305,7 @@ class TestInstanceListener:
         instance_listener = InstanceListener(mock_client, service_type)
 
         # Call _on_service_added with an empty list for addresses_bytes
-        instance_listener._on_service_added(
-            "rec_empty_addr", 123, [], {}
-        )
+        instance_listener._on_service_added("rec_empty_addr", 123, [], {})
 
         mock_client._on_service_added.assert_not_called()
         print(
@@ -323,7 +323,9 @@ class TestInstanceListener:
         self, mock_client, mocker
     ):  # This is a synchronous method
         print("\n--- Test: test_convert_service_info_is_identity ---")
-        instance_listener = InstanceListener(mock_client, "_any_service._tcp.local.") # Made valid
+        instance_listener = InstanceListener(
+            mock_client, "_any_service._tcp.local."
+        )  # Made valid
         mock_service_info = mocker.MagicMock(spec=ServiceInfo)
 
         # Call the method (it's protected, but we test its behavior)

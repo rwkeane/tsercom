@@ -71,14 +71,14 @@ def clear_tsercom_event_loop() -> None:
     """
     global __g_global_event_loop
     global __g_event_loop_factory
-    global __g_global_event_loop_lock # Make sure this global is accessible
+    global __g_global_event_loop_lock  # Make sure this global is accessible
 
-    with __g_global_event_loop_lock: # Acquire the lock
+    with __g_global_event_loop_lock:  # Acquire the lock
         if __g_global_event_loop is not None:
             if __g_event_loop_factory is not None:
                 # Check if loop is running before stopping
                 if __g_global_event_loop.is_running():
-                     __g_global_event_loop.stop()
+                    __g_global_event_loop.stop()
             __g_global_event_loop = None
             __g_event_loop_factory = None
 

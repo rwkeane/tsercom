@@ -209,9 +209,7 @@ async def test_on_service_added_behavior(
     )
 
     await host.start_discovery(mock_dh_client)
-    print(
-        "  host.start_discovery called for _on_service_added test setup."
-    )
+    print("  host.start_discovery called for _on_service_added test setup.")
 
     service_info = ServiceInfo(
         name="TestSvcAddedV3",
@@ -239,8 +237,7 @@ async def test_on_service_added_behavior(
     )
 
     assert (
-        host._known_services[service_info.mdns_name]
-        is generated_id_instance
+        host._known_services[service_info.mdns_name] is generated_id_instance
     )
     print("  Assertion: CallerIdentifier cached correctly - PASSED")
 

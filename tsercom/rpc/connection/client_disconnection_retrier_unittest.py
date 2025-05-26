@@ -114,7 +114,7 @@ class TestClientDisconnectionRetrier:
         request.addfinalizer(finalizer)
 
     @pytest.fixture
-    def mock_thread_watcher(self, mocker): # Added mocker
+    def mock_thread_watcher(self, mocker):  # Added mocker
         watcher = mocker.MagicMock(spec=ThreadWatcher)
         watcher.on_exception_seen = mocker.MagicMock(
             name="thread_watcher_on_exception_seen"
@@ -122,15 +122,15 @@ class TestClientDisconnectionRetrier:
         return watcher
 
     @pytest.fixture
-    def mock_safe_disconnection_handler(self, mocker): # Added mocker
+    def mock_safe_disconnection_handler(self, mocker):  # Added mocker
         return mocker.MagicMock(name="safe_disconnection_handler_callback")
 
     @pytest.fixture
-    def mock_connect_impl(self, mocker): # Added mocker
+    def mock_connect_impl(self, mocker):  # Added mocker
         return mocker.AsyncMock(name="connect_impl_async_mock")
 
     @pytest.fixture(autouse=True)
-    def mock_delay_before_retry(self, mocker): # Added mocker
+    def mock_delay_before_retry(self, mocker):  # Added mocker
         mock_delay = mocker.patch.object(
             grpc_caller_module,
             "delay_before_retry",
@@ -140,7 +140,7 @@ class TestClientDisconnectionRetrier:
         return mock_delay
 
     @pytest.fixture
-    def mock_error_classifiers(self, mocker): # Added mocker
+    def mock_error_classifiers(self, mocker):  # Added mocker
         mocks = {}
         mock_is_grpc = mocker.patch.object(
             grpc_caller_module, "is_grpc_error", autospec=True
@@ -157,7 +157,9 @@ class TestClientDisconnectionRetrier:
         return mocks
 
     @pytest.fixture
-    async def mock_aio_utils(self, mocker, event_loop): # Added mocker and event_loop
+    async def mock_aio_utils(
+        self, mocker, event_loop
+    ):  # Added mocker and event_loop
         async def simplified_run_on_loop_mock(
             func_partial,
             current_event_loop=None,
@@ -278,9 +280,12 @@ class TestClientDisconnectionRetrier:
         mocker,
     ):
         import grpc
+
         print(f"GRPC module in test: {grpc}")
         print(f"GRPC dir in test: {dir(grpc)}")
-        print(f"GRPC version in test: {getattr(grpc, '__version__', 'not found')}")
+        print(
+            f"GRPC version in test: {getattr(grpc, '__version__', 'not found')}"
+        )
         print(f"Has StatusCode in test: {hasattr(grpc, 'StatusCode')}")
         test_exception = ConnectionRefusedError("Server unavailable")
         mock_connect_impl.side_effect = test_exception

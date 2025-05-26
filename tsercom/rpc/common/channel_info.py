@@ -10,7 +10,9 @@ class ChannelInfo:
     the network address and port it is connected to.
     """
 
-    def __init__(self, channel: 'grpc.Channel', address: str, port: int) -> None:
+    def __init__(
+        self, channel: "grpc.Channel", address: str, port: int
+    ) -> None:
         """Initializes a ChannelInfo instance.
 
         Args:
@@ -18,12 +20,12 @@ class ChannelInfo:
             address: The IP address or hostname of the connected endpoint.
             port: The network port of the connected endpoint.
         """
-        self.__channel: 'grpc.Channel' = channel
+        self.__channel: "grpc.Channel" = channel
         self.__address: str = address
         self.__port: int = port
 
     @property
-    def channel(self) -> 'grpc.Channel':
+    def channel(self) -> "grpc.Channel":
         """Gets the gRPC channel.
 
         Returns:

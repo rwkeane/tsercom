@@ -20,7 +20,11 @@ class TestRecordListener:
         self, mocker
     ) -> MockRecordListenerClient:  # mocker type hint is good enough
         # Use create_autospec to ensure the mock passes isinstance checks for RecordListener.Client
-        client = mocker.create_autospec(RecordListener.Client, instance=True, name="MockRecordListenerClient")
+        client = mocker.create_autospec(
+            RecordListener.Client,
+            instance=True,
+            name="MockRecordListenerClient",
+        )
         # _on_service_added is expected to be a regular method by RecordListener
         client._on_service_added = mocker.MagicMock(
             name="client_on_service_added_method"

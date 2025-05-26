@@ -101,7 +101,9 @@ class TestServerRuntimeDataHandler:
             == mock_event_source_poller
         )
 
-    def test_register_caller(self, handler, mock_endpoint_data_processor, mocker):
+    def test_register_caller(
+        self, handler, mock_endpoint_data_processor, mocker
+    ):
         mock_caller_id = CallerIdentifier.random()
         mock_endpoint = "192.168.1.100"
         mock_port = 12345

@@ -90,26 +90,32 @@ class EventLoopFactory:
             """
             try:
                 local_event_loop = asyncio.new_event_loop()
-                
+
                 local_event_loop.set_exception_handler(handle_exception)
-                
-                asyncio.set_event_loop(local_event_loop) # Associates loop with this thread's context
+
+                asyncio.set_event_loop(
+                    local_event_loop
+                )  # Associates loop with this thread's context
 
                 self.__event_loop = local_event_loop
-                
-                barrier.set() # Notifies waiting thread that loop is ready
-                
-                local_event_loop.run_forever() # Starts the event loop
+
+                barrier.set()  # Notifies waiting thread that loop is ready
+
+                local_event_loop.run_forever()  # Starts the event loop
             except Exception as e_thread:
                 # Original logging for exceptions during thread execution should be preserved if it was there.
                 # Assuming the added logging.error was for specific debug purposes of this task.
                 # If there was an original logging.error here, it should be restored.
                 # For now, removing the specific one added for debugging.
                 # logging.error(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: Exception caught in thread: {e_thread!r}", exc_info=True)
-                raise # Re-raise to be caught by ThrowingThread's wrapper
+                raise  # Re-raise to be caught by ThrowingThread's wrapper
             finally:
                 # Ensure loop is closed if it was initialized
-                if 'local_event_loop' in locals() and hasattr(local_event_loop, 'is_closed') and not local_event_loop.is_closed():
+                if (
+                    "local_event_loop" in locals()
+                    and hasattr(local_event_loop, "is_closed")
+                    and not local_event_loop.is_closed()
+                ):
                     if local_event_loop.is_running():
                         local_event_loop.stop()
                     local_event_loop.close()

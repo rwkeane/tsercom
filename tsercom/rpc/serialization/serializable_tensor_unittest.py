@@ -1,7 +1,9 @@
 import pytest
 
 # from unittest.mock import patch, MagicMock # Removed
-import torch
+# Conditionally import torch and skip tests if not available
+torch = pytest.importorskip("torch")
+
 import datetime  # For datetime.datetime, datetime.timezone
 from typing import List, Any  # For type hinting
 
@@ -15,35 +17,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 # Protobuf generated type for GrpcTensor
 # Assuming the path found in previous subtasks. Adjust if necessary.
-try:
-    from tsercom.rpc.proto.generated.v1_70.common_pb2 import GrpcTensor
-except ImportError:  # pragma: no cover
-    # This is a fallback for local dev if protos aren't built/found easily,
-    # tests might be limited or need more mocking if this path is taken.
-    # In CI, the correct protos should always be available.
-    print(
-        "Warning: Could not import GrpcTensor from v1_70, using a basic placeholder."
-    )
-
-    # GrpcTensor = MagicMock(name="MockGrpcTensor") # This would now require mocker if used.
-    # For tests to pass if this path is taken, GrpcTensor would need to be a mock
-    # created by mocker, but mocker is not available at global scope.
-    # This implies that for tests to run correctly, the real GrpcTensor must be importable.
-    # Using a simple placeholder that allows instantiation for type checking if necessary.
-    class MockGrpcTensorPlaceholder:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-            if (
-                "array" not in kwargs
-            ):  # Ensure array attribute exists for len() checks
-                self.array = []
-            if "size" not in kwargs:
-                self.size = []
-            if "timestamp" not in kwargs:
-                self.timestamp = None
-
-    GrpcTensor = MockGrpcTensorPlaceholder  # type: ignore
+from tsercom.rpc.proto import Tensor as GrpcTensor
 
 # Common datetime for tests, ensuring it's timezone-aware (UTC)
 # and has microseconds set to 0 for easier comparison with protobuf conversions
@@ -303,9 +277,7 @@ class TestSerializableTensor:
         parsed_st = SerializableTensor.try_parse(grpc_tensor_msg_bad_ts)
         print(f"  SerializableTensor.try_parse result: {parsed_st}")
 
-        mock_ts_try_parse.assert_called_once_with(
-            dummy_grpc_timestamp_proto
-        )
+        mock_ts_try_parse.assert_called_once_with(dummy_grpc_timestamp_proto)
         assert (
             parsed_st is None
         ), "try_parse should return None for bad timestamp"

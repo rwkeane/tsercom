@@ -4,7 +4,8 @@ This class manages RemoteDataOrganizer instances for each data source (identifie
 CallerIdentifier) and handles data timeout tracking. It acts as a central point
 for collecting and accessing data from multiple remote endpoints.
 """
-import logging # Added for logging
+
+import logging  # Added for logging
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
@@ -157,7 +158,7 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    return False # Changed from raise KeyError
+                    return False  # Changed from raise KeyError
                 return organizer.has_new_data()
 
             results = {}
@@ -317,7 +318,7 @@ class RemoteDataAggregatorImpl(
                 is_new_organizer = True
             else:
                 data_organizer = self.__organizers[new_data.caller_id]
-        
+
         data_organizer._on_data_ready(new_data)
 
         if is_new_organizer and self.__client is not None:

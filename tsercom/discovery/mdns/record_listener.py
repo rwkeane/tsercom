@@ -64,7 +64,9 @@ class RecordListener(ServiceListener):
                 "Client argument cannot be None for RecordListener."
             )
         # Changed from isinstance to hasattr to check for method implementation (duck typing for ABC)
-        if not hasattr(client, "_on_service_added") or not callable(getattr(client, "_on_service_added")):
+        if not hasattr(client, "_on_service_added") or not callable(
+            getattr(client, "_on_service_added")
+        ):
             raise TypeError(
                 f"Client must implement the RecordListener.Client interface (e.g., _on_service_added method), got {type(client).__name__}."
             )
@@ -85,11 +87,15 @@ class RecordListener(ServiceListener):
 
         self.__client: RecordListener.Client = client
         # Determine the expected type string for zeroconf
-        if service_type.endswith("._tcp.local.") or service_type.endswith("._udp.local."):
+        if service_type.endswith("._tcp.local.") or service_type.endswith(
+            "._udp.local."
+        ):
             self.__expected_type: str = service_type
-        elif service_type.endswith("._tcp") or service_type.endswith("._udp"): # e.g. _my_service._tcp
+        elif service_type.endswith("._tcp") or service_type.endswith(
+            "._udp"
+        ):  # e.g. _my_service._tcp
             self.__expected_type: str = f"{service_type}.local."
-        else: # e.g. _my_service
+        else:  # e.g. _my_service
             self.__expected_type: str = f"{service_type}._tcp.local."
 
         self.__mdns: Zeroconf = Zeroconf()

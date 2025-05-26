@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 from functools import partial
-import logging # Added for logging
+import logging  # Added for logging
 import threading
 from typing import Deque, Generic, List, Optional, TypeVar
 
@@ -270,7 +270,7 @@ class RemoteDataOrganizer(
                     # New data is the absolute newest; add to the front.
                     self.__data.appendleft(new_data)
                     data_inserted_or_updated = True
-        
+
         if data_inserted_or_updated and self.__client is not None:
             self.__client._on_data_available(self)
 

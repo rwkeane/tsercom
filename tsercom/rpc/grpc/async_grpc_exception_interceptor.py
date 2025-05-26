@@ -1,6 +1,6 @@
 from typing import Awaitable, Callable
 import grpc
-import grpc.aio # Explicitly import grpc.aio
+import grpc.aio  # Explicitly import grpc.aio
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 

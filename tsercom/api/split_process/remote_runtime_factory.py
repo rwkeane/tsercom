@@ -150,6 +150,8 @@ class RemoteRuntimeFactory(
             # Consider if _event_poller should always be called, e.g., in __init__ or at the start of create.
             pass  # Or log a warning, though current design relies on _event_poller being called if needed.
 
-        self.__command_source = RuntimeCommandSource(self.__command_source_queue)
+        self.__command_source = RuntimeCommandSource(
+            self.__command_source_queue
+        )
         self.__command_source.start_async(thread_watcher, runtime)
         return runtime
