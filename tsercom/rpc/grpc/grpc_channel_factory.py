@@ -2,8 +2,10 @@
 
 from __future__ import annotations  # Added this line
 from abc import ABC, abstractmethod
-# import typing # No longer strictly needed if TYPE_CHECKING block is removed
-from tsercom.rpc.common.channel_info import ChannelInfo # Direct import from new location
+import typing # Ensure typing is imported
+
+if typing.TYPE_CHECKING:
+    from tsercom.rpc.common.channel_info import ChannelInfo # Moved under TYPE_CHECKING
 
 # typing.Optional is removed as per task to use 'ChannelInfo' | None
 
