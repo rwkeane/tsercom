@@ -7,6 +7,7 @@ import logging
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')
 
 # Class responsible for creating and managing an asyncio event loop in a separate thread.
 class EventLoopFactory:
@@ -88,15 +89,37 @@ class EventLoopFactory:
             sets it as the current event loop for the thread, signals that
             the loop is ready, and then runs the loop forever.
             """
-            local_event_loop = asyncio.new_event_loop()
-            local_event_loop.set_exception_handler(handle_exception)
-            asyncio.set_event_loop(local_event_loop)
+            logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: Thread started")
+            try:
+                local_event_loop = asyncio.new_event_loop()
+                logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: new_event_loop() done")
+                
+                local_event_loop.set_exception_handler(handle_exception)
+                logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: set_exception_handler() done")
+                
+                asyncio.set_event_loop(local_event_loop) # Associates loop with this thread's context
+                logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: set_event_loop() done for this thread")
 
-            self.__event_loop = local_event_loop
-
-            # The loop is in a good state. Continue execution of the ctor.
-            barrier.set()  # Signal that the event loop is set up and running.
-            local_event_loop.run_forever()
+                self.__event_loop = local_event_loop
+                logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: self.__event_loop assigned")
+                
+                barrier.set() # Notifies waiting thread that loop is ready
+                logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: barrier.set() done, loop is ready")
+                
+                local_event_loop.run_forever() # Starts the event loop
+                logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: run_forever() exited")
+            except Exception as e_thread:
+                logging.error(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: Exception caught in thread: {e_thread!r}", exc_info=True)
+                raise # Re-raise to be caught by ThrowingThread's wrapper
+            finally:
+                logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: finally block entered")
+                # Ensure loop is closed if it was initialized
+                if 'local_event_loop' in locals() and hasattr(local_event_loop, 'is_closed') and not local_event_loop.is_closed():
+                    if local_event_loop.is_running():
+                        local_event_loop.stop()
+                        logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: loop stopped in finally")
+                    local_event_loop.close()
+                    logging.debug(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: loop closed in finally")
 
         self.__event_loop_thread = self.__watcher.create_tracked_thread(
             target=start_event_loop  # Pass the function to be executed
