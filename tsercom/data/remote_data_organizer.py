@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 from functools import partial
+import logging # Added for logging
 import threading
 from typing import Deque, Generic, List, Optional, TypeVar
 
@@ -125,7 +126,8 @@ class RemoteDataOrganizer(
             if not self.__data:  # More pythonic check for empty deque
                 return False
             # Data is new if the most recent item's timestamp is after the last access time.
-            return self.__data[0].timestamp > self.__last_access
+            result = self.__data[0].timestamp > self.__last_access
+            return result
 
     def get_new_data(self) -> List[TDataType]:
         """Retrieves all data items received since the last call to this method.
@@ -246,7 +248,6 @@ class RemoteDataOrganizer(
                 new_data_time = new_data.timestamp
 
                 if new_data_time < current_most_recent_time:
-                    # New data is older than the current newest; find its place or discard if too old.
                     # This simple implementation discards if it's not the absolute newest.
                     # For a more robust history, one might insert it in sorted order.
                     # For now, we assume data generally arrives in order or only newest matters for updates.
@@ -269,7 +270,7 @@ class RemoteDataOrganizer(
                     # New data is the absolute newest; add to the front.
                     self.__data.appendleft(new_data)
                     data_inserted_or_updated = True
-
+        
         if data_inserted_or_updated and self.__client is not None:
             self.__client._on_data_available(self)
 
