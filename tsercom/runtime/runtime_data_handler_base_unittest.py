@@ -2,7 +2,7 @@ import asyncio
 import pytest
 import grpc.aio  # For ServicerContext
 
-# from mock import AsyncMock, MagicMock, patch, call # Removed this line
+from unittest.mock import MagicMock, AsyncMock # Added for direct use in setup_method
 from typing import (
     Optional,
     Any,
@@ -43,11 +43,13 @@ DataType = TypeVar("DataType")
 class TestableRuntimeDataHandler(
     RuntimeDataHandlerBase[DataType, Any]
 ):  # Added Any for TEventType
+    __test__ = False  # Mark this class as not a test class for pytest
+
     def __init__(
         self,
         data_reader: RemoteDataReader[DataType],
         event_source: AsyncPoller[Any],
-        mocker, # Added mocker
+        mocker, 
     ):
         super().__init__(data_reader, event_source)
         self.mock_register_caller = mocker.AsyncMock(
@@ -59,9 +61,7 @@ class TestableRuntimeDataHandler(
         self.mock_try_get_caller_id = mocker.MagicMock(
             name="_try_get_caller_id_impl"
         )
-        # Mock the protected _on_data_ready to inspect calls to it
-        self._on_data_ready = mocker.MagicMock(name="handler_on_data_ready_mock")  # type: ignore
-        # print("TestableRuntimeDataHandler initialized.") # Reduced verbosity
+        self._on_data_ready = mocker.MagicMock(name="handler_on_data_ready_mock") # type: ignore
 
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int

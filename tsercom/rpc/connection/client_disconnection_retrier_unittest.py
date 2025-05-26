@@ -16,6 +16,7 @@ from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
     is_global_event_loop_set,
 )
+from unittest.mock import MagicMock # Added for self.mock_stopable
 
 
 # Type variable for the instance managed by ClientDisconnectionRetrier
@@ -34,15 +35,15 @@ class MockStopable(Stopable):
         self.stop_mock = (
             mocker.AsyncMock(name=f"{name}_stop_method")
             if mocker
-            else AsyncMock(name=f"{name}_stop_method")
+            else MagicMock(name=f"{name}_stop_method") # Changed to MagicMock if mocker is None for broader compatibility
         )
-        # print(f"MockStopable '{self.name}' created.") # Reduced verbosity
 
     async def stop(self) -> None:
-        # print(f"MockStopable '{self.name}'.stop() called.") # Reduced verbosity
         self._stop_called = True
-        await self.stop_mock()
-        # Simulate stop actually doing something that might raise if called again
+        if asyncio.iscoroutinefunction(self.stop_mock):
+            await self.stop_mock()
+        else:
+            self.stop_mock()
         self.stop_mock.side_effect = Exception(f"{self.name} already stopped")
 
     def __repr__(self):
@@ -51,6 +52,8 @@ class MockStopable(Stopable):
 
 # Concrete subclass for testing
 class TestRetrier(ClientDisconnectionRetrier[MockStopable]):
+    __test__ = False  # Mark this class as not a test class for pytest
+
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -62,32 +65,34 @@ class TestRetrier(ClientDisconnectionRetrier[MockStopable]):
         ] = None,
         name: str = "TestRetrier",
     ):
-        super().__init__(thread_watcher, safe_disconnection_handler, name)
+        super().__init__(thread_watcher, safe_disconnection_handler)
+        self.name = name # Ensure name is still set on the TestRetrier instance
         self._connect_impl = connect_impl
         self.connect_call_count = 0
         try:
-            self._ClientDisconnectionRetrier__event_loop = asyncio.get_running_loop()  # type: ignore
+            # Ensure __event_loop is prefixed correctly for ClientDisconnectionRetrier
+            self._ClientDisconnectionRetrier__event_loop = asyncio.get_running_loop()
         except RuntimeError:
-            self._ClientDisconnectionRetrier__event_loop = None  # type: ignore
-        # print(f"TestRetrier '{self.name}' created.") # Reduced verbosity
+            self._ClientDisconnectionRetrier__event_loop = None
+        # self.mock_stopable = MagicMock() # This was from prompt, but not in original __init__
 
     async def _connect(self) -> MockStopable:
-        # print(f"TestRetrier '{self.name}'._connect() called (call #{self.connect_call_count + 1}).") # Reduced verbosity
+        if not self._connect_impl: # Should not happen if __init__ is used correctly
+            raise ValueError("_connect_impl not set on TestRetrier instance.")
         self.connect_call_count += 1
         instance = await self._connect_impl()
-        # print(f"TestRetrier '{self.name}'._connect() returning/raising: {instance}") # Reduced verbosity
         return instance
 
     def get_internal_instance(self) -> Optional[MockStopable]:
-        return self._ClientDisconnectionRetrier__instance  # type: ignore
+        return self._ClientDisconnectionRetrier__instance
 
     def get_internal_event_loop(self) -> Optional[asyncio.AbstractEventLoop]:
-        return self._ClientDisconnectionRetrier__event_loop  # type: ignore
+        return self._ClientDisconnectionRetrier__event_loop
 
     def set_internal_event_loop(
         self, loop: Optional[asyncio.AbstractEventLoop]
     ):
-        self._ClientDisconnectionRetrier__event_loop = loop  # type: ignore
+        self._ClientDisconnectionRetrier__event_loop = loop
 
 
 @pytest.mark.asyncio
@@ -121,19 +126,17 @@ class TestClientDisconnectionRetrier:
 
     @pytest.fixture(autouse=True)
     def mock_delay_before_retry(self, mocker):
-        # Use mocker.patch correctly
         mock_delay = mocker.patch.object(
             grpc_caller_module,
             "delay_before_retry",
             new_callable=mocker.AsyncMock,
         )
         mock_delay.return_value = None
-        return mock_delay  # Return the mock itself
+        return mock_delay
 
     @pytest.fixture
     def mock_error_classifiers(self, mocker):
         mocks = {}
-        # Use mocker.patch correctly
         mock_is_grpc = mocker.patch.object(
             grpc_caller_module, "is_grpc_error", autospec=True
         )
@@ -153,29 +156,22 @@ class TestClientDisconnectionRetrier:
         async def simplified_run_on_loop_mock(
             func_partial, event_loop=None, *args, **kwargs
         ):
-            # print(f"MOCKED run_on_event_loop CALLED with: {func_partial}") # Reduced verbosity
             coro = func_partial()
-            if not asyncio.iscoroutine(
-                coro
-            ):  # pragma: no cover # Should always be a coroutine from __on_disconnect_impl
+            if not asyncio.iscoroutine(coro):
                 raise TypeError(
                     f"Mocked run_on_event_loop expected coroutine, got {type(coro)}"
                 )
-            # print(f"  Awaiting coroutine from partial: {coro}") # Reduced verbosity
             await coro
-            # print(f"  Coroutine awaited: {coro}") # Reduced verbosity
-
             f = asyncio.Future()
             try:
                 loop = asyncio.get_running_loop()
                 if not loop.is_closed():
                     asyncio.ensure_future(f, loop=loop)
             except RuntimeError:
-                pass  # pragma: no cover
+                pass
             f.set_result(None)
             return f
 
-        # Patch where ClientDisconnectionRetrier imports them
         mock_get_loop = mocker.patch(
             "tsercom.rpc.connection.client_disconnection_retrier.get_running_loop_or_none",
             autospec=True,
@@ -184,7 +180,6 @@ class TestClientDisconnectionRetrier:
             "tsercom.rpc.connection.client_disconnection_retrier.is_running_on_event_loop",
             autospec=True,
         )
-        # For 'new', we pass the function directly, not a string.
         mock_run_on_loop = mocker.patch(
             "tsercom.rpc.connection.client_disconnection_retrier.run_on_event_loop",
             new=simplified_run_on_loop_mock,
@@ -204,7 +199,7 @@ class TestClientDisconnectionRetrier:
         mock_thread_watcher,
         mock_connect_impl,
         mock_safe_disconnection_handler,
-        mocker,
+        mocker, # Added mocker fixture
     ):
         retrier = TestRetrier(
             thread_watcher=mock_thread_watcher,
@@ -214,10 +209,11 @@ class TestClientDisconnectionRetrier:
         )
         assert retrier is not None
         assert retrier.name == "CreationTestRetrier"
+        # If mock_stopable is needed, it should be set by the test method itself if TestRetrier doesn't own it.
+        # For now, removing `assert hasattr(retrier, 'mock_stopable')` as it's not part of restored __init__
         mock_connect_impl.assert_not_called()
         mock_safe_disconnection_handler.assert_not_called()
 
-    # --- Tests for start() ---
     async def test_start_successful_connection(
         self,
         mock_thread_watcher,
@@ -235,6 +231,7 @@ class TestClientDisconnectionRetrier:
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="StartSuccessRetrier" 
         )
 
         result = await retrier.start()
@@ -266,6 +263,7 @@ class TestClientDisconnectionRetrier:
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="StartServerUnavailableRetrier"
         )
 
         result = await retrier.start()
@@ -297,6 +295,7 @@ class TestClientDisconnectionRetrier:
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="StartOtherGrpcErrorRetrier"
         )
 
         with pytest.raises(RuntimeError, match="Some other gRPC error"):
@@ -327,6 +326,7 @@ class TestClientDisconnectionRetrier:
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="StartNonGrpcErrorRetrier"
         )
 
         with pytest.raises(ValueError, match="A non-gRPC configuration error"):
@@ -339,7 +339,6 @@ class TestClientDisconnectionRetrier:
             test_exception
         )
 
-    # --- Tests for stop() ---
     async def test_stop_with_existing_instance(
         self,
         mock_thread_watcher,
@@ -357,6 +356,7 @@ class TestClientDisconnectionRetrier:
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="StopWithInstanceRetrier"
         )
         await retrier.start()
         assert retrier.get_internal_instance() is mock_stopable_instance
@@ -368,7 +368,6 @@ class TestClientDisconnectionRetrier:
         mock_stopable_instance.stop_mock.assert_called_once()
         assert retrier.get_internal_instance() is None
         assert retrier.get_internal_event_loop() is None
-        # Access the mock directly from the dictionary to assert
         mock_run_on_loop = mock_aio_utils["run_on_event_loop"]
         mock_run_on_loop.assert_not_called()
 
@@ -384,6 +383,7 @@ class TestClientDisconnectionRetrier:
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="StopNoInstanceRetrier"
         )
         assert retrier.get_internal_instance() is None
 
@@ -407,17 +407,19 @@ class TestClientDisconnectionRetrier:
         )
         mock_connect_impl.return_value = mock_stopable_instance
 
-        retrier = TestRetrier(
+        retrier = TestRetrier( # Instantiation will handle loop capture
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="StopMismatchLoopRetrier"
         )
-
+        # Manually set the instance and its loop for this specific test scenario
+        # after normal instantiation (which captures current loop if any).
         original_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(original_loop)
+        # asyncio.set_event_loop(original_loop) # This might not be needed if we just set it on retrier
 
-        retrier._ClientDisconnectionRetrier__instance = mock_stopable_instance  # type: ignore
-        retrier.set_internal_event_loop(original_loop)
+        retrier.set_internal_event_loop(original_loop) # This is the key part for the test
+        retrier._ClientDisconnectionRetrier__instance = mock_stopable_instance
 
         current_test_loop = asyncio.get_event_loop()
         assert original_loop is not current_test_loop
@@ -426,7 +428,7 @@ class TestClientDisconnectionRetrier:
             current_test_loop
         )
         mock_aio_utils["is_running_on_event_loop"].return_value = (
-            False  # Simulate mismatch
+            False
         )
 
         await retrier.stop()
@@ -447,11 +449,9 @@ class TestClientDisconnectionRetrier:
 
         if (
             not original_loop.is_running() and not original_loop.is_closed()
-        ):  # pragma: no cover
+        ): 
             original_loop.call_soon_threadsafe(original_loop.stop)
-            # original_loop.close() # Be careful with loops not owned by test runner
 
-    # --- Tests for _on_disconnect() ---
     async def test_on_disconnect_server_unavailable_successful_retry(
         self,
         mock_thread_watcher,
@@ -462,48 +462,39 @@ class TestClientDisconnectionRetrier:
         mock_aio_utils,
         mocker,
     ):
-        print(
-            "--- Test: test_on_disconnect_server_unavailable_successful_retry ---"
-        )
         original_instance = MockStopable(
             name="OriginalInstance", mocker=mocker
         )
         new_instance = MockStopable(
             name="NewInstanceAfterRetry", mocker=mocker
         )
-        # _connect behavior: first success (for start), then success for retry
         mock_connect_impl.side_effect = [original_instance, new_instance]
 
         retrier = TestRetrier(
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="OnDisconnectSuccessfulRetryRetrier"
         )
-        await retrier.start()  # Initial connection
+        await retrier.start()
         assert retrier.get_internal_instance() is original_instance
 
-        # Configure error as server unavailable
         disconnect_error = ConnectionAbortedError("Disconnected!")
         mock_error_classifiers["is_grpc_error"].return_value = True
         mock_error_classifiers["is_server_unavailable_error"].return_value = (
             True
         )
 
-        # Simulate _on_disconnect call (usually from within the instance)
-        # This will use the mocked run_on_event_loop via mock_aio_utils
         await retrier._on_disconnect(disconnect_error)
 
         original_instance.stop_mock.assert_called_once()
         mock_delay_before_retry.assert_called_once()
-        assert mock_connect_impl.call_count == 2  # Initial call + 1 retry
+        assert mock_connect_impl.call_count == 2
         assert (
             retrier.get_internal_instance() is new_instance
-        )  # New instance should be stored
+        )
         mock_safe_disconnection_handler.assert_not_called()
         mock_thread_watcher.on_exception_seen.assert_not_called()
-        print(
-            "--- Test: test_on_disconnect_server_unavailable_successful_retry finished ---"
-        )
 
     async def test_on_disconnect_server_unavailable_persistent_failure(
         self,
@@ -515,16 +506,12 @@ class TestClientDisconnectionRetrier:
         mock_aio_utils,
         mocker,
     ):
-        print(
-            "--- Test: test_on_disconnect_server_unavailable_persistent_failure ---"
-        )
         original_instance = MockStopable(
             name="OriginalInstance", mocker=mocker
         )
         retry_fail_exception1 = ConnectionRefusedError("Retry fail 1")
         retry_fail_exception2 = ConnectionRefusedError("Retry fail 2")
 
-        # _connect: success for start, then two failures for retries
         mock_connect_impl.side_effect = [
             original_instance,
             retry_fail_exception1,
@@ -535,34 +522,25 @@ class TestClientDisconnectionRetrier:
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="OnDisconnectPersistentFailureRetrier"
         )
         await retrier.start()
 
         disconnect_error = ConnectionAbortedError("Initial disconnect")
         mock_error_classifiers["is_grpc_error"].return_value = True
         mock_error_classifiers["is_server_unavailable_error"].return_value = (
-            True  # Applies to all these errors
+            True
         )
 
-        # First disconnect
         await retrier._on_disconnect(disconnect_error)
         original_instance.stop_mock.assert_called_once()
 
-        # Assertions after first disconnect and two failed retries
-        # (delay_before_retry is called before each _connect attempt in retry loop)
         assert mock_delay_before_retry.call_count == 2
-        assert mock_connect_impl.call_count == 3  # Initial + 2 retries
+        assert mock_connect_impl.call_count == 3
 
-        # Instance should still be None as all retries failed
         assert retrier.get_internal_instance() is None
         mock_safe_disconnection_handler.assert_not_called()
-
-        # Check on_exception_seen for the retry failures that are server unavailable
-        # The SUT's __on_disconnect_impl logs these but doesn't pass to ThreadWatcher if server_unavailable
         mock_thread_watcher.on_exception_seen.assert_not_called()
-        print(
-            "--- Test: test_on_disconnect_server_unavailable_persistent_failure finished ---"
-        )
 
     async def test_on_disconnect_other_grpc_error(
         self,
@@ -574,35 +552,34 @@ class TestClientDisconnectionRetrier:
         mock_aio_utils,
         mocker,
     ):
-        print("--- Test: test_on_disconnect_other_grpc_error ---")
         original_instance = MockStopable(
             name="OriginalInstanceForOtherGrpcError", mocker=mocker
         )
-        mock_connect_impl.return_value = original_instance
+        mock_connect_impl.return_value = original_instance # Reset side_effect
         retrier = TestRetrier(
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="OnDisconnectOtherGrpcErrorRetrier"
         )
         await retrier.start()
 
         disconnect_error = RuntimeError("Other gRPC error")
         mock_error_classifiers["is_grpc_error"].return_value = True
         mock_error_classifiers["is_server_unavailable_error"].return_value = (
-            False  # Not server unavailable
+            False
         )
 
         await retrier._on_disconnect(disconnect_error)
 
         original_instance.stop_mock.assert_called_once()
-        mock_delay_before_retry.assert_not_called()  # No retry
-        assert mock_connect_impl.call_count == 1  # Only initial connect
-        assert retrier.get_internal_instance() is None  # Instance is cleared
+        mock_delay_before_retry.assert_not_called()
+        assert mock_connect_impl.call_count == 1
+        assert retrier.get_internal_instance() is None
         mock_safe_disconnection_handler.assert_called_once_with(
             disconnect_error
         )
-        mock_thread_watcher.on_exception_seen.assert_not_called()  # Handled by safe_disconnection_handler
-        print("--- Test: test_on_disconnect_other_grpc_error finished ---")
+        mock_thread_watcher.on_exception_seen.assert_not_called()
 
     async def test_on_disconnect_non_grpc_error(
         self,
@@ -614,21 +591,21 @@ class TestClientDisconnectionRetrier:
         mock_aio_utils,
         mocker,
     ):
-        print("--- Test: test_on_disconnect_non_grpc_error ---")
         original_instance = MockStopable(
             name="OriginalInstanceForNonGrpcError", mocker=mocker
         )
-        mock_connect_impl.return_value = original_instance
+        mock_connect_impl.return_value = original_instance # Reset side_effect
         retrier = TestRetrier(
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="OnDisconnectNonGrpcErrorRetrier"
         )
         await retrier.start()
 
         disconnect_error = ValueError("Non-gRPC app error")
         mock_error_classifiers["is_grpc_error"].return_value = (
-            False  # Not a gRPC error
+            False
         )
 
         await retrier._on_disconnect(disconnect_error)
@@ -637,11 +614,10 @@ class TestClientDisconnectionRetrier:
         mock_delay_before_retry.assert_not_called()
         assert mock_connect_impl.call_count == 1
         assert retrier.get_internal_instance() is None
-        mock_safe_disconnection_handler.assert_not_called()  # Not called for non-gRPC by default
+        mock_safe_disconnection_handler.assert_not_called()
         mock_thread_watcher.on_exception_seen.assert_called_once_with(
             disconnect_error
         )
-        print("--- Test: test_on_disconnect_non_grpc_error finished ---")
 
     async def test_on_disconnect_with_none_error(
         self,
@@ -651,27 +627,25 @@ class TestClientDisconnectionRetrier:
         mock_aio_utils,
         mocker,
     ):
-        print("--- Test: test_on_disconnect_with_none_error ---")
         original_instance = MockStopable(
             name="InstanceForNoneError", mocker=mocker
         )
-        mock_connect_impl.return_value = original_instance
+        mock_connect_impl.return_value = original_instance # Reset side_effect
         retrier = TestRetrier(
             thread_watcher=mock_thread_watcher,
             connect_impl=mock_connect_impl,
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="OnDisconnectNoneErrorRetrier"
         )
         await retrier.start()
 
-        await retrier._on_disconnect(None)  # Call with None error
+        await retrier._on_disconnect(None)
 
-        original_instance.stop_mock.assert_called_once()  # Stop should still be called
-        # An AssertionError should be reported to ThreadWatcher
+        original_instance.stop_mock.assert_called_once()
         assert mock_thread_watcher.on_exception_seen.call_count == 1
         arg = mock_thread_watcher.on_exception_seen.call_args[0][0]
         assert isinstance(arg, AssertionError)
         assert "ERROR: NO EXCEPTION FOUND!" in str(arg)
-        print("--- Test: test_on_disconnect_with_none_error finished ---")
 
     async def test_on_disconnect_thread_hopping_logic(
         self,
@@ -683,7 +657,6 @@ class TestClientDisconnectionRetrier:
         mock_aio_utils,
         mocker,
     ):
-        print("--- Test: test_on_disconnect_thread_hopping_logic ---")
         original_instance = MockStopable(
             name="OriginalInstanceForThreadHop", mocker=mocker
         )
@@ -697,33 +670,28 @@ class TestClientDisconnectionRetrier:
 
         retrier = TestRetrier(
             thread_watcher=mock_thread_watcher,
-            connect_impl=mock_connect_impl,
+            connect_impl=mock_connect_impl, # side_effect already set
             safe_disconnection_handler=mock_safe_disconnection_handler,
+            name="OnDisconnectThreadHopRetrier"
         )
-
-        # Simulate start() capturing one loop, then _on_disconnect called from another
+        # Manually set the instance and its loop for this specific test scenario
+        # after normal instantiation.
         captured_loop_by_start = asyncio.new_event_loop()
-        asyncio.set_event_loop(
-            captured_loop_by_start
-        )  # Set for start's context
+        # asyncio.set_event_loop(captured_loop_by_start) # This might not be needed
 
-        # Manually set internal state as if start() ran on captured_loop_by_start
         retrier.set_internal_event_loop(captured_loop_by_start)
-        retrier._ClientDisconnectionRetrier__instance = original_instance  # type: ignore
+        retrier._ClientDisconnectionRetrier__instance = original_instance
 
-        # Current test loop is different
         current_test_event_loop = asyncio.get_event_loop()
         assert captured_loop_by_start is not current_test_event_loop
 
-        # Configure aio_utils mocks for thread hopping scenario
         mock_aio_utils["get_running_loop_or_none"].return_value = (
             current_test_event_loop
         )
         mock_aio_utils["is_running_on_event_loop"].return_value = (
-            False  # Simulate called from different loop
+            False
         )
 
-        # Configure error as server unavailable to trigger retry logic
         disconnect_error = ConnectionRefusedError(
             "Server unavailable, cross-thread"
         )
@@ -732,13 +700,10 @@ class TestClientDisconnectionRetrier:
             True
         )
 
-        # Call _on_disconnect, expecting it to use run_on_event_loop
         await retrier._on_disconnect(disconnect_error)
 
-        # Assert run_on_event_loop was called to delegate __on_disconnect_impl
         mock_run_on_loop = mock_aio_utils["run_on_event_loop"]
         mock_run_on_loop.assert_called_once()
-        # Check the partial and the target loop for delegation
         call_args = mock_run_on_loop.call_args[0]
         assert (
             call_args[0].func.__name__
@@ -746,20 +711,17 @@ class TestClientDisconnectionRetrier:
         )
         assert (
             call_args[1] == captured_loop_by_start
-        )  # Should delegate to original loop
+        )
 
-        # Subsequent logic should proceed as normal (retry for server unavailable)
-        # because our mock for run_on_event_loop executes the coroutine.
         original_instance.stop_mock.assert_called_once()
         mock_delay_before_retry.assert_called_once()
-        assert mock_connect_impl.call_count == 2  # Initial + 1 retry
+        assert mock_connect_impl.call_count == 2
         assert retrier.get_internal_instance() is new_instance_after_retry
 
         if (
             not captured_loop_by_start.is_running()
             and not captured_loop_by_start.is_closed()
-        ):  # pragma: no cover
+        ):
             captured_loop_by_start.call_soon_threadsafe(
                 captured_loop_by_start.stop
             )
-        print("--- Test: test_on_disconnect_thread_hopping_logic finished ---")
