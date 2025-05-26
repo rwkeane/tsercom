@@ -73,6 +73,20 @@ class RemoteRuntimeFactory(
         self.__event_source: EventSource[TEventType] | None = None
         self.__command_source: RuntimeCommandSource | None = None
 
+    @property
+    def remote_data_reader(
+        self,
+    ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
+        """Provides a `RemoteDataReader` for accessing annotated data instances."""
+        return self._remote_data_reader()
+
+    @property
+    def event_poller(
+        self,
+    ) -> AsyncPoller[EventInstance[TEventType]]:
+        """Provides an `AsyncPoller` for receiving event instances."""
+        return self._event_poller()
+
     def _remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
@@ -123,8 +137,6 @@ class RemoteRuntimeFactory(
         """
         runtime = self._initializer_instance.create(
             data_handler=data_handler,
-            event_poller=self._event_poller(),
-            remote_data_reader=self._remote_data_reader(),
             grpc_channel_factory=grpc_channel_factory,
             thread_watcher=thread_watcher,
         )
@@ -138,8 +150,6 @@ class RemoteRuntimeFactory(
             # Consider if _event_poller should always be called, e.g., in __init__ or at the start of create.
             pass  # Or log a warning, though current design relies on _event_poller being called if needed.
 
-        self.__command_source = RuntimeCommandSource(
-            thread_watcher, self.__command_source_queue, runtime
-        )
-        self.__command_source.start()
+        self.__command_source = RuntimeCommandSource(self.__command_source_queue)
+        self.__command_source.start_async(thread_watcher, runtime)
         return runtime

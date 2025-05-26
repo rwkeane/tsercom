@@ -71,13 +71,16 @@ def clear_tsercom_event_loop() -> None:
     """
     global __g_global_event_loop
     global __g_event_loop_factory
-    if __g_global_event_loop is not None:
-        # If the loop was created by our factory, stopping it allows the
-        # factory's thread to terminate.
-        if __g_event_loop_factory is not None:
-            __g_global_event_loop.stop()
-        __g_global_event_loop = None
-        __g_event_loop_factory = None
+    global __g_global_event_loop_lock # Make sure this global is accessible
+
+    with __g_global_event_loop_lock: # Acquire the lock
+        if __g_global_event_loop is not None:
+            if __g_event_loop_factory is not None:
+                # Check if loop is running before stopping
+                if __g_global_event_loop.is_running():
+                     __g_global_event_loop.stop()
+            __g_global_event_loop = None
+            __g_event_loop_factory = None
 
 
 def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
