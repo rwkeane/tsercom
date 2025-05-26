@@ -10,7 +10,7 @@ import pytest  # Added for new tests
 from tsercom.api.runtime_manager import RuntimeManager
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.rpc.grpc_generated.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler

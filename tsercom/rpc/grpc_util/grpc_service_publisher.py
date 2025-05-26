@@ -64,7 +64,7 @@ class GrpcServicePublisher:
             connect_call: Callback to add servicer implementations to the server.
         """
         # Moved import here to break potential circular dependency
-        from tsercom.rpc.grpc_generated.async_grpc_exception_interceptor import (
+        from tsercom.rpc.grpc_util.async_grpc_exception_interceptor import (
             AsyncGrpcExceptionInterceptor,
         )
 
