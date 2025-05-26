@@ -1,9 +1,4 @@
 import pytest
-from unittest.mock import (
-    patch,
-    MagicMock,
-    ANY,
-)  # ANY might not be needed if properties are exact
 import zeroconf  # For IPVersion and potentially for spec if ServiceInfo is directly instantiated
 
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
@@ -73,13 +68,13 @@ class TestRecordPublisher:
             "--- Test: test_init_properties_defaults_to_empty_dict finished ---"
         )
 
-    @patch.object(record_publisher_sut_module, "Zeroconf", autospec=True)
-    @patch.object(record_publisher_sut_module, "ServiceInfo", autospec=True)
-    @patch.object(tsercom_ip_module, "get_all_addresses", autospec=True)
     def test_publish_calls_dependencies_correctly(
-        self, mock_get_all_addresses, MockServiceInfo, MockZeroconf
+        self, mocker
     ):
         print("\n--- Test: test_publish_calls_dependencies_correctly ---")
+        MockZeroconf = mocker.patch.object(record_publisher_sut_module, "Zeroconf", autospec=True)
+        MockServiceInfo = mocker.patch.object(record_publisher_sut_module, "ServiceInfo", autospec=True)
+        mock_get_all_addresses = mocker.patch.object(tsercom_ip_module, "get_all_addresses", autospec=True)
 
         # Setup mock return values
         mock_packed_ips = [
@@ -92,7 +87,7 @@ class TestRecordPublisher:
         )
 
         mock_zc_instance = MockZeroconf.return_value
-        mock_zc_instance.register_service = MagicMock(
+        mock_zc_instance.register_service = mocker.MagicMock(
             name="zc_instance_register_service"
         )
         print(f"  MockZeroconf instance configured: {mock_zc_instance}")

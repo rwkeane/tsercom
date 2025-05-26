@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock, patch
 import datetime
 
 # Attempt to import CallerIdentifier, if it exists and is simple.
@@ -7,7 +6,7 @@ import datetime
 try:
     from tsercom.caller_id.caller_identifier import CallerIdentifier
 except ImportError:
-    CallerIdentifier = None  # Will use MagicMock(spec=CallerIdentifier) later
+    CallerIdentifier = None  # Will use mocker.MagicMock(spec=CallerIdentifier) later
 
 from tsercom.data.data_host_base import DataHostBase
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
@@ -21,7 +20,7 @@ from tsercom.data.exposed_data import ExposedData
 class DummyExposedData(ExposedData):
     """A dummy implementation of ExposedData for type hinting and instantiation."""
 
-    def __init__(self, caller_id_mock: MagicMock, timestamp_mock: MagicMock):
+    def __init__(self, mocker, caller_id_mock, timestamp_mock):
         # Comply with ExposedData constructor by passing mocks
         super().__init__(caller_id_mock, timestamp_mock)
 
@@ -30,22 +29,22 @@ class DummyExposedData(ExposedData):
 def mock_caller_id(mocker):
     """Provides a mock CallerIdentifier."""
     if CallerIdentifier:  # pragma: no cover
-        return MagicMock(spec=CallerIdentifier)
-    return MagicMock(name="GenericMockCallerId")
+        return mocker.MagicMock(spec=CallerIdentifier)
+    return mocker.MagicMock(name="GenericMockCallerId")
 
 
 @pytest.fixture
 def mock_datetime_now(mocker):
     """Provides a mock datetime.datetime.now()."""
     # This fixture isn't strictly for datetime.now() but a mock datetime object
-    return MagicMock(spec=datetime.datetime, name="MockDateTimeObject")
+    return mocker.MagicMock(spec=datetime.datetime, name="MockDateTimeObject")
 
 
 @pytest.fixture
 def mock_thread_watcher(mocker):
     """Fixture to mock ThreadWatcher."""
-    mock = MagicMock(spec=ThreadWatcher)
-    mock.create_tracked_thread_pool_executor.return_value = MagicMock(
+    mock = mocker.MagicMock(spec=ThreadWatcher)
+    mock.create_tracked_thread_pool_executor.return_value = mocker.MagicMock(
         name="MockThreadPoolExecutor"
     )
     return mock
@@ -62,12 +61,12 @@ def mock_remote_data_aggregator_fixture(mocker):
         "tsercom.data.data_host_base.RemoteDataAggregatorImpl"
     )
 
-    mock_generic_alias_callable = MagicMock(
+    mock_generic_alias_callable = mocker.MagicMock(
         name="RemoteDataAggregatorImpl[TDataType]_Callable"
     )
     mock_class.__getitem__.return_value = mock_generic_alias_callable
 
-    mock_instance = MagicMock(
+    mock_instance = mocker.MagicMock(
         spec=RemoteDataAggregatorImpl, name="RemoteDataAggregatorImpl_Instance"
     )
     mock_generic_alias_callable.return_value = mock_instance
@@ -90,10 +89,10 @@ def mock_data_timeout_tracker_fixture(mocker):
         "tsercom.data.data_host_base.DataTimeoutTracker"
     )
 
-    mock_tracker_instance = MagicMock(
+    mock_tracker_instance = mocker.MagicMock(
         spec=DataTimeoutTracker, name="DataTimeoutTracker_Instance"
     )
-    mock_tracker_instance.start = MagicMock(
+    mock_tracker_instance.start = mocker.MagicMock(
         name="DataTimeoutTracker_Instance_start"
     )
 
@@ -105,7 +104,7 @@ def mock_data_timeout_tracker_fixture(mocker):
     mocker.patch.object(
         DataTimeoutTracker,
         "start",
-        new=MagicMock(
+        new=mocker.MagicMock(
             name="Original_DataTimeoutTracker_Class_start_Method_Mocked"
         ),
         create=True,
@@ -208,6 +207,7 @@ def test_data_host_base_on_data_ready_calls_aggregator_on_data_ready(
     mock_data_timeout_tracker_fixture,
     mock_caller_id,
     mock_datetime_now,
+    mocker,
 ):
     mock_aggregator_instance = mock_remote_data_aggregator_fixture[
         "mock_instance"
@@ -218,7 +218,7 @@ def test_data_host_base_on_data_ready_calls_aggregator_on_data_ready(
     )
 
     test_data = DummyExposedData(
-        caller_id_mock=mock_caller_id, timestamp_mock=mock_datetime_now
+        mocker, caller_id_mock=mock_caller_id, timestamp_mock=mock_datetime_now
     )
     data_host._on_data_ready(test_data)
 
