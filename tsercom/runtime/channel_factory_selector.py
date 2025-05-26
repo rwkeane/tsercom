@@ -5,8 +5,8 @@ insecure gRPC channel factory. Future extensions might allow for selection
 based on configuration or environment.
 """
 
-from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
-from tsercom.rpc.grpc.transport.insecure_grpc_channel_factory import (
+from tsercom.rpc.grpc_generated.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_generated.transport.insecure_grpc_channel_factory import (
     InsecureGrpcChannelFactory,
 )
 

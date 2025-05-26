@@ -9,7 +9,7 @@ from tsercom.util.stopable import Stopable
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 # For patching targets later
-import tsercom.rpc.grpc.grpc_caller as grpc_caller_module
+import tsercom.rpc.grpc_generated.grpc_caller as grpc_caller_module
 import tsercom.threading.aio.aio_utils as aio_utils_module
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop_to_current_thread,

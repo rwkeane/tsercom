@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_generated.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_config import RuntimeConfig
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler

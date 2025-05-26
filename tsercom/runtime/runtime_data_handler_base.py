@@ -15,7 +15,7 @@ from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.rpc.grpc.addressing import get_client_ip, get_client_port
+from tsercom.rpc.grpc_generated.addressing import get_client_ip, get_client_port
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock

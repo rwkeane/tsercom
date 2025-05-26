@@ -8,7 +8,7 @@ from tsercom.api.local_process.runtime_command_bridge import (
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_generated.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_factory import RuntimeFactory

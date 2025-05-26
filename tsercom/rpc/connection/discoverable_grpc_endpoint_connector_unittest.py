@@ -11,7 +11,7 @@ from tsercom.rpc.connection.discoverable_grpc_endpoint_connector import (
 
 # Dependencies for mocking/typing
 from tsercom.discovery.discovery_host import DiscoveryHost
-from tsercom.rpc.grpc.grpc_channel_factory import (
+from tsercom.rpc.grpc_generated.grpc_channel_factory import (
     GrpcChannelFactory,
 )  # Corrected import path
 from tsercom.rpc.common.channel_info import ChannelInfo  # Updated import path

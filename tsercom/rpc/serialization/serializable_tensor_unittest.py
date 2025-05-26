@@ -162,7 +162,7 @@ class TestSerializableTensor:
             grpc_tensor_msg.timestamp
         )
         assert parsed_ts_from_grpc is not None
-        assert parsed_ts_from_grpc.as_datetime() == FIXED_DATETIME_NOW
+        assert parsed_ts_from_grpc.as_datetime().replace(tzinfo=datetime.timezone.utc) == FIXED_DATETIME_NOW
 
         assert list(grpc_tensor_msg.size) == list(
             input_tensor.shape
@@ -244,7 +244,7 @@ class TestSerializableTensor:
 
         # Timestamp comparison
         assert (
-            parsed_st.timestamp.as_datetime() == FIXED_DATETIME_NOW
+            parsed_st.timestamp.as_datetime().replace(tzinfo=datetime.timezone.utc) == FIXED_DATETIME_NOW
         ), "Timestamp mismatch after parsing"
 
         # Tensor comparison

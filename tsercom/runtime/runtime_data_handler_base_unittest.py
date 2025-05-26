@@ -36,7 +36,7 @@ import grpc  # For grpc.StatusCode, if testable - not directly used in DataProce
 from grpc.aio import ServicerContext
 
 # Modules for patching
-import tsercom.rpc.grpc.addressing as grpc_addressing_module
+import tsercom.rpc.grpc_generated.addressing as grpc_addressing_module
 
 # Type variable for data
 DataType = TypeVar("DataType")
