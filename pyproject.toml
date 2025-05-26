@@ -46,6 +46,11 @@ typing = [
     "types-requests",
     "mypy-protobuf"
 ]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "sphinx-multiversion",
+]
 
 [project.urls]
 Homepage = "https://github.com/rwkeane/tsercom"
