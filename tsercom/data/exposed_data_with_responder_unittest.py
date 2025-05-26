@@ -1,6 +1,5 @@
 import pytest
 import datetime
-from unittest.mock import MagicMock
 
 from tsercom.data.exposed_data_with_responder import ExposedDataWithResponder
 from tsercom.data.remote_data_responder import RemoteDataResponder
@@ -12,9 +11,9 @@ from tsercom.data.exposed_data import ExposedData
 class ConcreteImplRemoteDataResponder(RemoteDataResponder):
     """A concrete implementation of RemoteDataResponder for testing purposes."""
 
-    def __init__(self):
+    def __init__(self, mocker):
         # Mock the method that will be called, so we can make assertions on it.
-        self._on_response_ready_mock = MagicMock()
+        self._on_response_ready_mock = mocker.MagicMock()
 
     def _on_response_ready(self, response: any) -> None:
         self._on_response_ready_mock(response)
@@ -24,22 +23,22 @@ class ConcreteImplRemoteDataResponder(RemoteDataResponder):
 @pytest.fixture
 def mock_caller_id(mocker):
     """Provides a mock CallerIdentifier."""
-    return MagicMock(spec=CallerIdentifier)
+    return mocker.MagicMock(spec=CallerIdentifier)
 
 
 @pytest.fixture
 def mock_timestamp(mocker):
     """Provides a mock datetime.datetime object."""
-    return MagicMock(spec=datetime.datetime)
+    return mocker.MagicMock(spec=datetime.datetime)
 
 
 @pytest.fixture
-def valid_responder_mock_method():
+def valid_responder_mock_method(mocker):
     """
     Provides an instance of ConcreteImplRemoteDataResponder.
     The instance itself is real, but its _on_response_ready_mock attribute is a MagicMock.
     """
-    return ConcreteImplRemoteDataResponder()
+    return ConcreteImplRemoteDataResponder(mocker)
 
 
 def test_exposed_data_with_responder_initialization_success(

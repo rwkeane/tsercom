@@ -1,6 +1,5 @@
 import asyncio
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
 import functools  # For functools.partial
 
 from tsercom.discovery.discovery_host import DiscoveryHost
@@ -32,28 +31,28 @@ def manage_tsercom_global_event_loop_fixture(request):
 
 # 2. Mock for DiscoveryHost.Client
 @pytest.fixture
-def mock_discovery_host_client_fixture():
-    client = AsyncMock(
+def mock_discovery_host_client_fixture(mocker):
+    client = mocker.AsyncMock(
         spec=DiscoveryHost.Client, name="MockDiscoveryHostClient"
     )
-    client._on_service_added = AsyncMock(name="client_on_service_added_method")
+    client._on_service_added = mocker.AsyncMock(name="client_on_service_added_method")
     return client
 
 
 # 3. Mock for the actual InstanceListener class
 @pytest.fixture
-def mock_actual_instance_listener_fixture():
+def mock_actual_instance_listener_fixture(mocker):
     # Patch the InstanceListener where DiscoveryHost would import it from if creating it.
     # This is tsercom.discovery.mdns.instance_listener.InstanceListener
-    with patch(
+    with mocker.patch(
         "tsercom.discovery.mdns.instance_listener.InstanceListener",
         autospec=True,
     ) as MockListenerClass:
-        mock_listener_instance = AsyncMock(
+        mock_listener_instance = mocker.AsyncMock(
             spec=ActualInstanceListener,
             name="MockedActualInstanceListenerInstance",
         )
-        mock_listener_instance.start = AsyncMock(
+        mock_listener_instance.start = mocker.AsyncMock(
             name="actual_listener_start_method"
         )
         MockListenerClass.return_value = mock_listener_instance
@@ -62,12 +61,12 @@ def mock_actual_instance_listener_fixture():
 
 # 4. Mock for CallerIdentifier.random (for _on_service_added tests)
 @pytest.fixture
-def mock_caller_identifier_random_fixture():
-    with patch.object(
+def mock_caller_identifier_random_fixture(mocker):
+    with mocker.patch.object(
         CallerIdentifier, "random", autospec=True
     ) as mock_random:
         # Ensure each call to random returns a new, distinct mock object for easier verification
-        mock_random.side_effect = lambda: MagicMock(
+        mock_random.side_effect = lambda: mocker.MagicMock(
             spec=CallerIdentifier,
             name=f"RandomCallerIdInstance_{mock_random.call_count}",
         )
@@ -120,7 +119,7 @@ async def mock_run_on_event_loop_replacement(
 # 6. Test for start_discovery
 @pytest.mark.asyncio
 async def test_start_discovery_with_proper_patching(
-    mock_actual_instance_listener_fixture, mock_discovery_host_client_fixture
+    mock_actual_instance_listener_fixture, mock_discovery_host_client_fixture, mocker
 ):
     print("--- Starting test_start_discovery_with_proper_patching ---")
     MockListenerClass, mock_listener_instance = (
@@ -129,7 +128,7 @@ async def test_start_discovery_with_proper_patching(
     mock_dh_client = mock_discovery_host_client_fixture
 
     # Patch run_on_event_loop at its source module: tsercom.threading.aio.aio_utils
-    with patch(
+    with mocker.patch(
         "tsercom.threading.aio.aio_utils.run_on_event_loop",
         new=mock_run_on_event_loop_replacement,
     ) as mock_run_patch_obj:
@@ -184,13 +183,14 @@ async def test_on_service_added_behavior(
     mock_actual_instance_listener_fixture,
     mock_discovery_host_client_fixture,
     mock_caller_identifier_random_fixture,
+    mocker,
 ):
     print("--- Starting test_on_service_added_behavior ---")
     _, _ = mock_actual_instance_listener_fixture  # Needed for start_discovery
     mock_dh_client = mock_discovery_host_client_fixture
     mock_random_caller_id_gen = mock_caller_identifier_random_fixture
 
-    with patch(
+    with mocker.patch(
         "tsercom.threading.aio.aio_utils.run_on_event_loop",
         new=mock_run_on_event_loop_replacement,
     ) as mock_run_patch_obj_for_add:
