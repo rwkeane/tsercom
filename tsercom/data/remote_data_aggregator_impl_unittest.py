@@ -176,13 +176,13 @@ def test_on_data_ready_new_organizer_no_client_no_tracker(
     mock_remote_data_organizer_class,
     exposed_data_factory,
     caller_id_1,
+    mocker,
 ):
     aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
         mock_thread_pool
     )
     new_data = exposed_data_factory(caller_id=caller_id_1)
 
-    mock_organizer_instance = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_organizer_instance = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_organizer_instance.caller_id = caller_id_1
     mock_remote_data_organizer_class.return_value = mock_organizer_instance
@@ -207,13 +207,14 @@ def test_on_data_ready_new_organizer_with_client_and_tracker(
     mock_remote_data_organizer_class,
     exposed_data_factory,
     caller_id_1,
+    mocker,
 ):
     aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
         mock_thread_pool, client=mock_client, tracker=explicit_mock_tracker
     )
     new_data = exposed_data_factory(caller_id=caller_id_1)
 
-    mock_organizer_instance = MagicMock(spec=RemoteDataOrganizer)
+    mock_organizer_instance = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_organizer_instance.caller_id = caller_id_1
     mock_remote_data_organizer_class.return_value = mock_organizer_instance
 
@@ -237,6 +238,7 @@ def test_on_data_ready_existing_organizer(
     mock_remote_data_organizer_class,
     exposed_data_factory,
     caller_id_1,
+    mocker,
 ):
     aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
         mock_thread_pool, client=mock_client, tracker=explicit_mock_tracker
@@ -601,7 +603,7 @@ def test_on_data_available_with_client(
     )
 
 
-def test_on_data_available_no_client(mock_thread_pool, caller_id_1):
+def test_on_data_available_no_client(mock_thread_pool, caller_id_1, mocker):
     aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
         mock_thread_pool, client=None
     )

@@ -54,7 +54,8 @@ class TestInstanceListener:
 
     @pytest.fixture
     def mock_client(self, mocker):
-        client = mocker.MagicMock(name="MockInstanceListenerClient")
+        # Use create_autospec to ensure the mock passes isinstance checks for InstanceListener.Client
+        client = mocker.create_autospec(InstanceListener.Client, instance=True, name="MockInstanceListenerClient")
         # _on_service_added on the client is expected to be a regular method,
         # but the call is wrapped by run_on_event_loop in the SUT,
         # which implies the actual implementation might be async or called from an async context.
@@ -69,32 +70,32 @@ class TestInstanceListener:
 
     def test_init_creates_record_listener(self, mock_client, mocker):
         print("\n--- Test: test_init_creates_record_listener ---")
-        service_type = "test_service._tcp.local."
+        service_type = "_test_service._tcp.local." # Added underscore
 
-        with mocker.patch.object(
+        MockRecordListenerCtor = mocker.patch.object(
             record_listener_module, "RecordListener", autospec=True
-        ) as MockRecordListenerCtor:
-            print(
-                f"  RecordListener patched. Mock object: {MockRecordListenerCtor}"
-            )
+        )
+        print(
+            f"  RecordListener patched. Mock object: {MockRecordListenerCtor}"
+        )
 
-            instance_listener = InstanceListener(mock_client, service_type)
-            print("  InstanceListener instantiated.")
+        instance_listener = InstanceListener(mock_client, service_type)
+        print("  InstanceListener instantiated.")
 
-            # Assert RecordListener was initialized with self (the InstanceListener instance) and service_type
-            MockRecordListenerCtor.assert_called_once_with(
-                instance_listener, service_type
-            )
-            print(
-                "  Assertion: RecordListener constructor called correctly - PASSED"
-            )
-            assert (
-                instance_listener._record_listener
-                is MockRecordListenerCtor.return_value
-            )
-            print(
-                "  Assertion: instance_listener._record_listener is set - PASSED"
-            )
+        # Assert RecordListener was initialized with self (the InstanceListener instance) and service_type
+        MockRecordListenerCtor.assert_called_once_with(
+            instance_listener, service_type
+        )
+        print(
+            "  Assertion: RecordListener constructor called correctly - PASSED"
+        )
+        assert (
+            instance_listener._record_listener
+            is MockRecordListenerCtor.return_value
+        )
+        print(
+            "  Assertion: instance_listener._record_listener is set - PASSED"
+        )
         print("--- Test: test_init_creates_record_listener finished ---")
 
     async def test_on_service_added_successful_population_with_txt_name(
@@ -103,7 +104,7 @@ class TestInstanceListener:
         print(
             "\n--- Test: test_on_service_added_successful_population_with_txt_name ---"
         )
-        service_type = "test_service_txt._tcp.local."
+        service_type = "_test_service_txt._tcp.local." # Added underscore
         mdns_record_name = "MyDevice._test_service_txt._tcp.local."
         port = 8080
         addr_bytes1 = b"\x01\x02\x03\x04"  # 1.2.3.4
@@ -124,62 +125,62 @@ class TestInstanceListener:
         print(f"  socket.inet_ntoa patched with side effect: {mock_inet_ntoa}")
 
         # Patch run_on_event_loop at its source module
-        with mocker.patch.object(
+        mock_run_on_event_loop_patch_obj = mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
             new=mock_run_on_event_loop_for_instance_listener,
-        ) as mock_run_on_event_loop_patch_obj:
-            print(
-                f"  run_on_event_loop patched. Mock object: {mock_run_on_event_loop_patch_obj}"
-            )
+        )
+        print(
+            f"  run_on_event_loop patched. Mock object: {mock_run_on_event_loop_patch_obj}"
+        )
 
-            # We need to bypass RecordListener creation for this direct test of _on_service_added
-            with mocker.patch.object(
-                record_listener_module, "RecordListener"
-            ):  # Keep RecordListener from starting
-                instance_listener = InstanceListener(mock_client, service_type)
-                print(
-                    "  InstanceListener instantiated for _on_service_added test."
-                )
+        # We need to bypass RecordListener creation for this direct test of _on_service_added
+        mocker.patch.object(
+            record_listener_module, "RecordListener"
+        )  # Keep RecordListener from starting
+        instance_listener = InstanceListener(mock_client, service_type)
+        print(
+            "  InstanceListener instantiated for _on_service_added test."
+        )
 
-                # Call the method to be tested (which is a callback for RecordListener)
-                # This method is synchronous, but it calls __populate_service_info (sync)
-                # and then schedules __on_service_added_impl (async) via run_on_event_loop.
-                instance_listener._on_service_added(
-                    mdns_record_name,
-                    port,
-                    [addr_bytes1, addr_bytes2],
-                    txt_record,
-                )
-                print("  instance_listener._on_service_added called.")
+        # Call the method to be tested (which is a callback for RecordListener)
+        # This method is synchronous, but it calls __populate_service_info (sync)
+        # and then schedules __on_service_added_impl (async) via run_on_event_loop.
+        instance_listener._on_service_added(
+            mdns_record_name,
+            port,
+            [addr_bytes1, addr_bytes2],
+            txt_record,
+        )
+        print("  instance_listener._on_service_added called.")
 
-                # Assert run_on_event_loop (our mock) was called
-                mock_run_on_event_loop_patch_obj.assert_called_once()
-                print(
-                    "  Assertion: mock_run_on_event_loop_patch_obj.assert_called_once() - PASSED"
-                )
+        # Assert run_on_event_loop (our mock) was called
+        mock_run_on_event_loop_patch_obj.assert_called_once()
+        print(
+            "  Assertion: mock_run_on_event_loop_patch_obj.assert_called_once() - PASSED"
+        )
 
-                # Assert client._on_service_added was called (via the mocked run_on_event_loop and __on_service_added_impl)
-                mock_client._on_service_added.assert_called_once()
-                print(
-                    "  Assertion: mock_client._on_service_added.assert_called_once() - PASSED"
-                )
+        # Assert client._on_service_added was called (via the mocked run_on_event_loop and __on_service_added_impl)
+        mock_client._on_service_added.assert_called_once()
+        print(
+            "  Assertion: mock_client._on_service_added.assert_called_once() - PASSED"
+        )
 
-                # Inspect the ServiceInfo object passed to client._on_service_added
-                call_args = mock_client._on_service_added.call_args
-                assert (
-                    call_args is not None
-                ), "Client's _on_service_added was not called with arguments"
-                service_info_arg: ServiceInfo = call_args[0][0]
+        # Inspect the ServiceInfo object passed to client._on_service_added
+        call_args = mock_client._on_service_added.call_args
+        assert (
+            call_args is not None
+        ), "Client's _on_service_added was not called with arguments"
+        service_info_arg: ServiceInfo = call_args[0][0]
 
-                assert isinstance(service_info_arg, ServiceInfo)
-                assert service_info_arg.name == "Friendly Device Name"
-                assert service_info_arg.port == port
-                assert sorted(service_info_arg.addresses) == sorted(
-                    ["1.2.3.4", "5.6.7.8"]
-                )
-                assert service_info_arg.mdns_name == mdns_record_name
-                print("  Assertion: ServiceInfo content verified - PASSED")
+        assert isinstance(service_info_arg, ServiceInfo)
+        assert service_info_arg.name == "Friendly Device Name"
+        assert service_info_arg.port == port
+        assert sorted(service_info_arg.addresses) == sorted(
+            ["1.2.3.4", "5.6.7.8"]
+        )
+        assert service_info_arg.mdns_name == mdns_record_name
+        print("  Assertion: ServiceInfo content verified - PASSED")
         print(
             "--- Test: test_on_service_added_successful_population_with_txt_name finished ---"
         )
@@ -190,7 +191,7 @@ class TestInstanceListener:
         print(
             "\n--- Test: test_on_service_added_successful_population_no_txt_name ---"
         )
-        service_type = "test_service_no_txt._tcp.local."
+        service_type = "_test_service_no_txt._tcp.local." # Added underscore
         mdns_record_name = "RawDeviceName._test_service_no_txt._tcp.local."
         port = 8081
         addr_bytes = [b"\x0a\x00\x00\x01"]  # 10.0.0.1
@@ -204,49 +205,49 @@ class TestInstanceListener:
             map(str, addr_bytes_param)
         )
 
-        with mocker.patch.object(
+        mock_run_patch_obj = mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
             new=mock_run_on_event_loop_for_instance_listener,
-        ) as mock_run_patch_obj:
-            with mocker.patch.object(record_listener_module, "RecordListener"):
-                instance_listener = InstanceListener(mock_client, service_type)
+        )
+        mocker.patch.object(record_listener_module, "RecordListener")
+        instance_listener = InstanceListener(mock_client, service_type)
 
-                # Scenario 1: Empty TXT record
-                instance_listener._on_service_added(
-                    mdns_record_name, port, addr_bytes, txt_record_empty
-                )
-                mock_run_patch_obj.assert_called_once()
-                mock_client._on_service_added.assert_called_once()
-                service_info_arg1: ServiceInfo = (
-                    mock_client._on_service_added.call_args[0][0]
-                )
-                assert (
-                    service_info_arg1.name == mdns_record_name
-                )  # Should default to mdns_record_name
-                print(
-                    f"  Assertion (empty TXT): ServiceInfo.name defaulted to mdns_name ('{service_info_arg1.name}') - PASSED"
-                )
+        # Scenario 1: Empty TXT record
+        instance_listener._on_service_added(
+            mdns_record_name, port, addr_bytes, txt_record_empty
+        )
+        mock_run_patch_obj.assert_called_once()
+        mock_client._on_service_added.assert_called_once()
+        service_info_arg1: ServiceInfo = (
+            mock_client._on_service_added.call_args[0][0]
+        )
+        assert (
+            service_info_arg1.name == mdns_record_name
+        ), "ServiceInfo.name should default to mdns_record_name for empty TXT"  # Should default to mdns_record_name
+        print(
+            f"  Assertion (empty TXT): ServiceInfo.name defaulted to mdns_name ('{service_info_arg1.name}') - PASSED"
+        )
 
-                # Reset for Scenario 2
-                mock_run_patch_obj.reset_mock()
-                mock_client._on_service_added.reset_mock()
+        # Reset for Scenario 2
+        mock_run_patch_obj.reset_mock()
+        mock_client._on_service_added.reset_mock()
 
-                # Scenario 2: TXT record with other keys but not 'name'
-                instance_listener._on_service_added(
-                    mdns_record_name, port, addr_bytes, txt_record_other_keys
-                )
-                mock_run_patch_obj.assert_called_once()
-                mock_client._on_service_added.assert_called_once()
-                service_info_arg2: ServiceInfo = (
-                    mock_client._on_service_added.call_args[0][0]
-                )
-                assert (
-                    service_info_arg2.name == mdns_record_name
-                )  # Should also default
-                print(
-                    f"  Assertion (other keys TXT): ServiceInfo.name defaulted to mdns_name ('{service_info_arg2.name}') - PASSED"
-                )
+        # Scenario 2: TXT record with other keys but not 'name'
+        instance_listener._on_service_added(
+            mdns_record_name, port, addr_bytes, txt_record_other_keys
+        )
+        mock_run_patch_obj.assert_called_once()
+        mock_client._on_service_added.assert_called_once()
+        service_info_arg2: ServiceInfo = (
+            mock_client._on_service_added.call_args[0][0]
+        )
+        assert (
+            service_info_arg2.name == mdns_record_name
+        ), "ServiceInfo.name should default to mdns_record_name for TXT without 'name' key"  # Should also default
+        print(
+            f"  Assertion (other keys TXT): ServiceInfo.name defaulted to mdns_name ('{service_info_arg2.name}') - PASSED"
+        )
         print(
             "--- Test: test_on_service_added_successful_population_no_txt_name finished ---"
         )
@@ -257,33 +258,33 @@ class TestInstanceListener:
         print(
             "\n--- Test: test_on_service_added_populate_service_info_returns_none_bad_address ---"
         )
-        service_type = "test_bad_addr._tcp.local."
+        service_type = "_test_bad_addr._tcp.local." # Added underscore
         mocker.patch.object(
             socket, "inet_ntoa", side_effect=socket.error("inet_ntoa failed")
         )  # inet_ntoa raises error
-        with mocker.patch.object(
+        mock_run_patch_obj = mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
             new=mock_run_on_event_loop_for_instance_listener,
-        ) as mock_run_patch_obj:
-            with mocker.patch.object(record_listener_module, "RecordListener"):
-                instance_listener = InstanceListener(mock_client, service_type)
+        )
+        mocker.patch.object(record_listener_module, "RecordListener")
+        instance_listener = InstanceListener(mock_client, service_type)
 
-                # Call _on_service_added. __populate_service_info should return None due to inet_ntoa error.
-                instance_listener._on_service_added(
-                    "rec_bad_addr", 123, [b"badip"], {}
-                )
+        # Call _on_service_added. __populate_service_info should return None due to inet_ntoa error.
+        instance_listener._on_service_added(
+            "rec_bad_addr", 123, [b"badip"], {}
+        )
 
-                # Assert client._on_service_added was NOT called
-                mock_client._on_service_added.assert_not_called()
-                print(
-                    "  Assertion: client._on_service_added.assert_not_called() - PASSED"
-                )
-                # Assert run_on_event_loop was NOT called
-                mock_run_patch_obj.assert_not_called()
-                print(
-                    "  Assertion: mock_run_on_event_loop_patch_obj.assert_not_called() - PASSED"
-                )
+        # Assert client._on_service_added was NOT called
+        mock_client._on_service_added.assert_not_called()
+        print(
+            "  Assertion: client._on_service_added.assert_not_called() - PASSED"
+        )
+        # Assert run_on_event_loop was NOT called
+        mock_run_patch_obj.assert_not_called()
+        print(
+            "  Assertion: mock_run_on_event_loop_patch_obj.assert_not_called() - PASSED"
+        )
         print(
             "--- Test: test_on_service_added_populate_service_info_returns_none_bad_address finished ---"
         )
@@ -292,28 +293,28 @@ class TestInstanceListener:
         self, mock_client, mocker
     ):
         print("\n--- Test: test_on_service_added_empty_address_bytes_list ---")
-        service_type = "test_empty_addr_list._tcp.local."
-        with mocker.patch.object(
+        service_type = "_test_empty_addr_list._tcp.local." # Added underscore
+        mock_run_patch_obj = mocker.patch.object(
             aio_utils_module,
             "run_on_event_loop",
             new=mock_run_on_event_loop_for_instance_listener,
-        ) as mock_run_patch_obj:
-            with mocker.patch.object(record_listener_module, "RecordListener"):
-                instance_listener = InstanceListener(mock_client, service_type)
+        )
+        mocker.patch.object(record_listener_module, "RecordListener")
+        instance_listener = InstanceListener(mock_client, service_type)
 
-                # Call _on_service_added with an empty list for addresses_bytes
-                instance_listener._on_service_added(
-                    "rec_empty_addr", 123, [], {}
-                )
+        # Call _on_service_added with an empty list for addresses_bytes
+        instance_listener._on_service_added(
+            "rec_empty_addr", 123, [], {}
+        )
 
-                mock_client._on_service_added.assert_not_called()
-                print(
-                    "  Assertion: client._on_service_added.assert_not_called() - PASSED"
-                )
-                mock_run_patch_obj.assert_not_called()
-                print(
-                    "  Assertion: mock_run_on_event_loop_patch_obj.assert_not_called() - PASSED"
-                )
+        mock_client._on_service_added.assert_not_called()
+        print(
+            "  Assertion: client._on_service_added.assert_not_called() - PASSED"
+        )
+        mock_run_patch_obj.assert_not_called()
+        print(
+            "  Assertion: mock_run_on_event_loop_patch_obj.assert_not_called() - PASSED"
+        )
         print(
             "--- Test: test_on_service_added_empty_address_bytes_list finished ---"
         )
@@ -322,7 +323,7 @@ class TestInstanceListener:
         self, mock_client, mocker
     ):  # This is a synchronous method
         print("\n--- Test: test_convert_service_info_is_identity ---")
-        instance_listener = InstanceListener(mock_client, "any_service")
+        instance_listener = InstanceListener(mock_client, "_any_service._tcp.local.") # Made valid
         mock_service_info = mocker.MagicMock(spec=ServiceInfo)
 
         # Call the method (it's protected, but we test its behavior)

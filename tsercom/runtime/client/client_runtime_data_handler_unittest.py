@@ -107,7 +107,7 @@ class TestClientRuntimeDataHandler:
             == mock_event_source_poller
         )
 
-    def test_register_caller(self, handler, mock_endpoint_data_processor):
+    def test_register_caller(self, handler, mock_endpoint_data_processor, mocker):
         mock_caller_id = CallerIdentifier.random()
         mock_endpoint = "192.168.1.100"
         mock_port = 12345
@@ -191,7 +191,7 @@ class TestClientRuntimeDataHandler:
             mock_address
         )
 
-    def test_unregister_caller_invalid_id_not_found(self, handler):
+    def test_unregister_caller_invalid_id_not_found(self, handler, mocker):
         """Test _unregister_caller with a non-existent caller_id."""
         mock_caller_id = CallerIdentifier.random()
 

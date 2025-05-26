@@ -286,30 +286,29 @@ class TestSerializableTensor:
     def test_try_parse_failure_bad_timestamp(self, mocker):  # Added mocker
         print("\n--- Test: test_try_parse_failure_bad_timestamp ---")
         # We need to mock SynchronizedTimestamp.try_parse for this.
-        # Changed to use mocker.patch.object
-        with mocker.patch.object(
+        mock_ts_try_parse = mocker.patch.object(
             SynchronizedTimestamp, "try_parse", return_value=None
-        ) as mock_ts_try_parse:
-            if not callable(GrpcTensor):  # pragma: no cover
-                pytest.skip(
-                    "GrpcTensor mock is not callable, test needs construction."
-                )
-
-            dummy_grpc_timestamp_proto = FIXED_SYNC_TIMESTAMP.to_grpc_type()
-            grpc_tensor_msg_bad_ts = GrpcTensor(
-                timestamp=dummy_grpc_timestamp_proto, size=[1], array=[1.0]
+        )
+        if not callable(GrpcTensor):  # pragma: no cover
+            pytest.skip(
+                "GrpcTensor mock is not callable, test needs construction."
             )
-            print("  GrpcTensor with (effectively) bad timestamp created.")
 
-            parsed_st = SerializableTensor.try_parse(grpc_tensor_msg_bad_ts)
-            print(f"  SerializableTensor.try_parse result: {parsed_st}")
+        dummy_grpc_timestamp_proto = FIXED_SYNC_TIMESTAMP.to_grpc_type()
+        grpc_tensor_msg_bad_ts = GrpcTensor(
+            timestamp=dummy_grpc_timestamp_proto, size=[1], array=[1.0]
+        )
+        print("  GrpcTensor with (effectively) bad timestamp created.")
 
-            mock_ts_try_parse.assert_called_once_with(
-                dummy_grpc_timestamp_proto
-            )
-            assert (
-                parsed_st is None
-            ), "try_parse should return None for bad timestamp"
+        parsed_st = SerializableTensor.try_parse(grpc_tensor_msg_bad_ts)
+        print(f"  SerializableTensor.try_parse result: {parsed_st}")
+
+        mock_ts_try_parse.assert_called_once_with(
+            dummy_grpc_timestamp_proto
+        )
+        assert (
+            parsed_st is None
+        ), "try_parse should return None for bad timestamp"
         print("--- Test: test_try_parse_failure_bad_timestamp finished ---")
 
     def test_try_parse_failure_tensor_reshape_error(

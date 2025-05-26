@@ -17,15 +17,15 @@ class TestTimeSyncTracker:
 
     @pytest.fixture
     def mock_time_sync_client_class(self, mocker):
-        with mocker.patch(
+        mock_class = mocker.patch(
             "tsercom.runtime.client.timesync_tracker.TimeSyncClient",
             autospec=True,
-        ) as mock_class:
-            mock_instance = mock_class.return_value
-            mock_instance.get_synchronized_clock.return_value = (
-                mocker.MagicMock(spec=SynchronizedClock)
-            )
-            yield mock_class
+        )
+        mock_instance = mock_class.return_value
+        mock_instance.get_synchronized_clock.return_value = (
+            mocker.MagicMock(spec=SynchronizedClock)
+        )
+        yield mock_class
 
     def test_on_connect_new_ip(
         self, mock_thread_watcher, mock_time_sync_client_class, mocker

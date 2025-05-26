@@ -46,33 +46,33 @@ def mock_discovery_host_client_fixture(mocker):
 def mock_actual_instance_listener_fixture(mocker):
     # Patch the InstanceListener where DiscoveryHost would import it from if creating it.
     # This is tsercom.discovery.mdns.instance_listener.InstanceListener
-    with mocker.patch(
+    MockListenerClass = mocker.patch(
         "tsercom.discovery.mdns.instance_listener.InstanceListener",
         autospec=True,
-    ) as MockListenerClass:
-        mock_listener_instance = mocker.AsyncMock(
-            spec=ActualInstanceListener,
-            name="MockedActualInstanceListenerInstance",
-        )
-        mock_listener_instance.start = mocker.AsyncMock(
-            name="actual_listener_start_method"
-        )
-        MockListenerClass.return_value = mock_listener_instance
-        yield MockListenerClass, mock_listener_instance
+    )
+    mock_listener_instance = mocker.AsyncMock(
+        spec=ActualInstanceListener,
+        name="MockedActualInstanceListenerInstance",
+    )
+    mock_listener_instance.start = mocker.AsyncMock(
+        name="actual_listener_start_method"
+    )
+    MockListenerClass.return_value = mock_listener_instance
+    yield MockListenerClass, mock_listener_instance
 
 
 # 4. Mock for CallerIdentifier.random (for _on_service_added tests)
 @pytest.fixture
 def mock_caller_identifier_random_fixture(mocker):
-    with mocker.patch.object(
+    mock_random = mocker.patch.object(
         CallerIdentifier, "random", autospec=True
-    ) as mock_random:
-        # Ensure each call to random returns a new, distinct mock object for easier verification
-        mock_random.side_effect = lambda: mocker.MagicMock(
-            spec=CallerIdentifier,
-            name=f"RandomCallerIdInstance_{mock_random.call_count}",
-        )
-        yield mock_random
+    )
+    # Ensure each call to random returns a new, distinct mock object for easier verification
+    mock_random.side_effect = lambda: mocker.MagicMock(
+        spec=CallerIdentifier,
+        name=f"RandomCallerIdInstance_{mock_random.call_count}",
+    )
+    yield mock_random
 
 
 # 5. The mock for run_on_event_loop
@@ -132,53 +132,53 @@ async def test_start_discovery_with_proper_patching(
     mock_dh_client = mock_discovery_host_client_fixture
 
     # Patch run_on_event_loop at its source module: tsercom.threading.aio.aio_utils
-    with mocker.patch(
+    mock_run_patch_obj = mocker.patch(
         "tsercom.threading.aio.aio_utils.run_on_event_loop",
         new=mock_run_on_event_loop_replacement,
-    ) as mock_run_patch_obj:
-        print(
-            f"  Patch applied for tsercom.threading.aio.aio_utils.run_on_event_loop. Mock object: {mock_run_patch_obj}"
-        )
+    )
+    print(
+        f"  Patch applied for tsercom.threading.aio.aio_utils.run_on_event_loop. Mock object: {mock_run_patch_obj}"
+    )
 
-        SERVICE_TYPE = "_test_service_type_final_v3._tcp.local."
-        # DiscoveryHost will try to import InstanceListener from tsercom.discovery.mdns.instance_listener
-        # which is what mock_actual_instance_listener_fixture patches.
-        host = DiscoveryHost(service_type=SERVICE_TYPE)
-        print(
-            f"  DiscoveryHost instance created with service_type: {SERVICE_TYPE}"
-        )
+    SERVICE_TYPE = "_test_service_type_final_v3._tcp.local."
+    # DiscoveryHost will try to import InstanceListener from tsercom.discovery.mdns.instance_listener
+    # which is what mock_actual_instance_listener_fixture patches.
+    host = DiscoveryHost(service_type=SERVICE_TYPE)
+    print(
+        f"  DiscoveryHost instance created with service_type: {SERVICE_TYPE}"
+    )
 
-        # DiscoveryHost.start_discovery is 'async def'.
-        # It calls run_on_event_loop (now our async mock_run_on_event_loop_replacement)
-        # without an internal await. So, start_discovery implicitly returns the coroutine from our mock.
-        # Thus, we await it here.
-        await host.start_discovery(mock_dh_client)
-        print("  Call to host.start_discovery has been awaited.")
+    # DiscoveryHost.start_discovery is 'async def'.
+    # It calls run_on_event_loop (now our async mock_run_on_event_loop_replacement)
+    # without an internal await. So, start_discovery implicitly returns the coroutine from our mock.
+    # Thus, we await it here.
+    await host.start_discovery(mock_dh_client)
+    print("  Call to host.start_discovery has been awaited.")
 
-        print("  Checking assertions for start_discovery...")
-        mock_run_patch_obj.assert_called_once()
-        print("  Assertion: mock_run_patch_obj.assert_called_once() - PASSED")
+    print("  Checking assertions for start_discovery...")
+    mock_run_patch_obj.assert_called_once()
+    print("  Assertion: mock_run_patch_obj.assert_called_once() - PASSED")
 
-        MockListenerClass.assert_called_once_with(service_type=SERVICE_TYPE)
-        print(
-            f"  Assertion: MockListenerClass.assert_called_once_with(service_type='{SERVICE_TYPE}') - PASSED"
-        )
+    MockListenerClass.assert_called_once_with(service_type=SERVICE_TYPE)
+    print(
+        f"  Assertion: MockListenerClass.assert_called_once_with(service_type='{SERVICE_TYPE}') - PASSED"
+    )
 
-        # This assertion depends on __start_discovery_impl awaiting listener_instance.start()
-        # If __start_discovery_impl is not awaiting it (a SUT issue), this might still pass if the call occurs.
-        mock_listener_instance.start.assert_called_once_with(host)
-        print(
-            f"  Assertion: mock_listener_instance.start.assert_called_once_with(host_instance) - PASSED"
-        )
+    # This assertion depends on __start_discovery_impl awaiting listener_instance.start()
+    # If __start_discovery_impl is not awaiting it (a SUT issue), this might still pass if the call occurs.
+    mock_listener_instance.start.assert_called_once_with(host)
+    print(
+        f"  Assertion: mock_listener_instance.start.assert_called_once_with(host_instance) - PASSED"
+    )
 
-        assert host._DiscoveryHost__client is mock_dh_client
-        print(
-            f"  Assertion: host._DiscoveryHost__client is mock_dh_client - PASSED"
-        )
+    assert host._DiscoveryHost__client is mock_dh_client
+    print(
+        f"  Assertion: host._DiscoveryHost__client is mock_dh_client - PASSED"
+    )
 
-        print(
-            "--- test_start_discovery_with_proper_patching finished successfully ---"
-        )
+    print(
+        "--- test_start_discovery_with_proper_patching finished successfully ---"
+    )
 
 
 # 7. Test for _on_service_added
@@ -194,74 +194,74 @@ async def test_on_service_added_behavior(
     mock_dh_client = mock_discovery_host_client_fixture
     mock_random_caller_id_gen = mock_caller_identifier_random_fixture
 
-    with mocker.patch(
+    mock_run_patch_obj_for_add = mocker.patch(
         "tsercom.threading.aio.aio_utils.run_on_event_loop",
         new=mock_run_on_event_loop_replacement,
-    ) as mock_run_patch_obj_for_add:
-        print(
-            f"  Patch for run_on_event_loop in _on_service_added test. Mock: {mock_run_patch_obj_for_add}"
-        )
+    )
+    print(
+        f"  Patch for run_on_event_loop in _on_service_added test. Mock: {mock_run_patch_obj_for_add}"
+    )
 
-        SERVICE_TYPE_ADD_TEST = "_test_add_service_final_v3._tcp.local."
-        host = DiscoveryHost(service_type=SERVICE_TYPE_ADD_TEST)
-        print(
-            f"  DiscoveryHost created for _on_service_added test with type: {SERVICE_TYPE_ADD_TEST}"
-        )
+    SERVICE_TYPE_ADD_TEST = "_test_add_service_final_v3._tcp.local."
+    host = DiscoveryHost(service_type=SERVICE_TYPE_ADD_TEST)
+    print(
+        f"  DiscoveryHost created for _on_service_added test with type: {SERVICE_TYPE_ADD_TEST}"
+    )
 
-        await host.start_discovery(mock_dh_client)
-        print(
-            "  host.start_discovery called for _on_service_added test setup."
-        )
+    await host.start_discovery(mock_dh_client)
+    print(
+        "  host.start_discovery called for _on_service_added test setup."
+    )
 
-        service_info = ServiceInfo(
-            name="TestSvcAddedV3",
-            port=3333,
-            addresses=["10.3.3.3"],
-            mdns_name="TestSvcAddedV3._test_add_service_final_v3._tcp.local.",
-        )
-        print(f"  ServiceInfo created: {service_info.name}")
+    service_info = ServiceInfo(
+        name="TestSvcAddedV3",
+        port=3333,
+        addresses=["10.3.3.3"],
+        mdns_name="TestSvcAddedV3._test_add_service_final_v3._tcp.local.",
+    )
+    print(f"  ServiceInfo created: {service_info.name}")
 
-        await host._on_service_added(service_info)
-        print(f"  host._on_service_added() called with {service_info.name}")
+    await host._on_service_added(service_info)
+    print(f"  host._on_service_added() called with {service_info.name}")
 
-        print("  Checking assertions for _on_service_added...")
-        mock_random_caller_id_gen.assert_called_once()
-        generated_id_instance = mock_random_caller_id_gen.return_value
-        print(
-            "  Assertion: mock_random_caller_id_gen.assert_called_once() - PASSED"
-        )
+    print("  Checking assertions for _on_service_added...")
+    mock_random_caller_id_gen.assert_called_once()
+    generated_id_instance = mock_random_caller_id_gen.return_value
+    print(
+        "  Assertion: mock_random_caller_id_gen.assert_called_once() - PASSED"
+    )
 
-        mock_dh_client._on_service_added.assert_called_once_with(
-            service_info, generated_id_instance
-        )
-        print(
-            "  Assertion: mock_dh_client._on_service_added called with correct args - PASSED"
-        )
+    mock_dh_client._on_service_added.assert_called_once_with(
+        service_info, generated_id_instance
+    )
+    print(
+        "  Assertion: mock_dh_client._on_service_added called with correct args - PASSED"
+    )
 
-        assert (
-            host._known_services[service_info.mdns_name]
-            is generated_id_instance
-        )
-        print("  Assertion: CallerIdentifier cached correctly - PASSED")
+    assert (
+        host._known_services[service_info.mdns_name]
+        is generated_id_instance
+    )
+    print("  Assertion: CallerIdentifier cached correctly - PASSED")
 
-        # Test caching
-        mock_random_caller_id_gen.reset_mock()
-        mock_dh_client._on_service_added.reset_mock()
-        updated_service_info = ServiceInfo(
-            name="TestSvcAddedV3Updated",
-            port=4444,
-            addresses=["10.4.4.4"],
-            mdns_name="TestSvcAddedV3._test_add_service_final_v3._tcp.local.",  # SAME mdns_name
-        )
-        await host._on_service_added(updated_service_info)
-        mock_random_caller_id_gen.assert_not_called()
-        print(
-            "  Assertion: mock_random_caller_id_gen.assert_not_called() for cached service - PASSED"
-        )
-        mock_dh_client._on_service_added.assert_called_once_with(
-            updated_service_info, generated_id_instance
-        )
-        print(
-            "  Assertion: mock_dh_client._on_service_added called with updated info and CACHED ID - PASSED"
-        )
-        print("--- test_on_service_added_behavior finished successfully ---")
+    # Test caching
+    mock_random_caller_id_gen.reset_mock()
+    mock_dh_client._on_service_added.reset_mock()
+    updated_service_info = ServiceInfo(
+        name="TestSvcAddedV3Updated",
+        port=4444,
+        addresses=["10.4.4.4"],
+        mdns_name="TestSvcAddedV3._test_add_service_final_v3._tcp.local.",  # SAME mdns_name
+    )
+    await host._on_service_added(updated_service_info)
+    mock_random_caller_id_gen.assert_not_called()
+    print(
+        "  Assertion: mock_random_caller_id_gen.assert_not_called() for cached service - PASSED"
+    )
+    mock_dh_client._on_service_added.assert_called_once_with(
+        updated_service_info, generated_id_instance
+    )
+    print(
+        "  Assertion: mock_dh_client._on_service_added called with updated info and CACHED ID - PASSED"
+    )
+    print("--- test_on_service_added_behavior finished successfully ---")
