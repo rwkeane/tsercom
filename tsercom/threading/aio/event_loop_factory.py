@@ -7,7 +7,6 @@ import logging
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')
 
 # Class responsible for creating and managing an asyncio event loop in a separate thread.
 class EventLoopFactory:
