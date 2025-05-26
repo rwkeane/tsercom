@@ -16,7 +16,6 @@ from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
     is_global_event_loop_set,
 )
-from unittest.mock import MagicMock  # Added for self.mock_stopable
 
 
 # Type variable for the instance managed by ClientDisconnectionRetrier
@@ -35,9 +34,11 @@ class MockStopable(Stopable):
         self.stop_mock = (
             mocker.AsyncMock(name=f"{name}_stop_method")
             if mocker
-            else MagicMock(
-                name=f"{name}_stop_method"
-            )  # Changed to MagicMock if mocker is None for broader compatibility
+            # If mocker is not provided, create a simple callable or dummy object.
+            # For now, assuming mocker will always be provided in test contexts.
+            # If direct instantiation without mocker is needed, this part might need adjustment.
+            # For example, a simple lambda: else lambda: None
+            else mocker.MagicMock(name=f"{name}_stop_method_fallback")
         )
 
     async def stop(self) -> None:
@@ -113,7 +114,7 @@ class TestClientDisconnectionRetrier:
         request.addfinalizer(finalizer)
 
     @pytest.fixture
-    def mock_thread_watcher(self, mocker):
+    def mock_thread_watcher(self, mocker): # Added mocker
         watcher = mocker.MagicMock(spec=ThreadWatcher)
         watcher.on_exception_seen = mocker.MagicMock(
             name="thread_watcher_on_exception_seen"
@@ -121,15 +122,15 @@ class TestClientDisconnectionRetrier:
         return watcher
 
     @pytest.fixture
-    def mock_safe_disconnection_handler(self, mocker):
+    def mock_safe_disconnection_handler(self, mocker): # Added mocker
         return mocker.MagicMock(name="safe_disconnection_handler_callback")
 
     @pytest.fixture
-    def mock_connect_impl(self, mocker):
+    def mock_connect_impl(self, mocker): # Added mocker
         return mocker.AsyncMock(name="connect_impl_async_mock")
 
     @pytest.fixture(autouse=True)
-    def mock_delay_before_retry(self, mocker):
+    def mock_delay_before_retry(self, mocker): # Added mocker
         mock_delay = mocker.patch.object(
             grpc_caller_module,
             "delay_before_retry",
@@ -139,7 +140,7 @@ class TestClientDisconnectionRetrier:
         return mock_delay
 
     @pytest.fixture
-    def mock_error_classifiers(self, mocker):
+    def mock_error_classifiers(self, mocker): # Added mocker
         mocks = {}
         mock_is_grpc = mocker.patch.object(
             grpc_caller_module, "is_grpc_error", autospec=True
@@ -156,9 +157,7 @@ class TestClientDisconnectionRetrier:
         return mocks
 
     @pytest.fixture
-    async def mock_aio_utils(
-        self, mocker, event_loop
-    ):  # Made async, added event_loop
+    async def mock_aio_utils(self, mocker, event_loop): # Added mocker and event_loop
         async def simplified_run_on_loop_mock(
             func_partial,
             current_event_loop=None,
@@ -278,6 +277,11 @@ class TestClientDisconnectionRetrier:
         mock_delay_before_retry,
         mocker,
     ):
+        import grpc
+        print(f"GRPC module in test: {grpc}")
+        print(f"GRPC dir in test: {dir(grpc)}")
+        print(f"GRPC version in test: {getattr(grpc, '__version__', 'not found')}")
+        print(f"Has StatusCode in test: {hasattr(grpc, 'StatusCode')}")
         test_exception = ConnectionRefusedError("Server unavailable")
         mock_connect_impl.side_effect = test_exception
 

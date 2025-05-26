@@ -128,17 +128,17 @@ class TestRuntimeDataHandlerBaseBehavior:
 
     @pytest.fixture
     def patch_get_client_ip(self, mocker):
-        with mocker.patch.object(
+        mock_get_ip = mocker.patch.object(
             grpc_addressing_module, "get_client_ip", autospec=True
-        ) as mock_get_ip:
-            yield mock_get_ip
+        )
+        yield mock_get_ip
 
     @pytest.fixture
     def patch_get_client_port(self, mocker):
-        with mocker.patch.object(
+        mock_get_port = mocker.patch.object(
             grpc_addressing_module, "get_client_port", autospec=True
-        ) as mock_get_port:
-            yield mock_get_port
+        )
+        yield mock_get_port
 
     @pytest.fixture
     def handler(self, mock_data_reader, mock_event_source, mocker):
@@ -401,15 +401,15 @@ class TestRuntimeDataHandlerBaseBehavior:
         # Patch datetime.now inside the SUT module (runtime_data_handler_base)
         # to control the timestamp for "now"
         fixed_now = datetime.datetime.now(datetime.timezone.utc)
-        with mocker.patch(
+        mock_dt_module = mocker.patch(
             "tsercom.runtime.runtime_data_handler_base.datetime",
             wraps=datetime,
-        ) as mock_dt_module:
-            mock_dt_module.now.return_value = fixed_now
+        )
+        mock_dt_module.now.return_value = fixed_now
 
-            await data_processor.process_data(test_payload, timestamp=None)
+        await data_processor.process_data(test_payload, timestamp=None)
 
-            mock_dt_module.now.assert_called_once_with(datetime.timezone.utc)
+        mock_dt_module.now.assert_called_once_with(datetime.timezone.utc)
 
         handler._on_data_ready.assert_called_once()
         args, _ = handler._on_data_ready.call_args

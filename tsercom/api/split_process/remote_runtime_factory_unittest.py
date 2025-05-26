@@ -271,11 +271,16 @@ def factory(
     fake_data_sink_queue,
     fake_command_queue,
     patch_dependencies_in_module,
+    mocker,  # Add mocker fixture
 ):
     # patch_dependencies_in_module ensures that when RemoteRuntimeFactory is created,
     # it will use the FakeEventSource, FakeDataReaderSink, etc., if it resolves them dynamically
     # or if the create() method resolves them from the module scope.
     # The prompt implies RemoteRuntimeFactory uses these classes internally in create(), so patching the module is key.
+
+    # Make RemoteRuntimeFactory concrete for this test
+    mocker.patch.multiple(RemoteRuntimeFactory, __abstractmethods__=set())
+
     return RemoteRuntimeFactory(
         initializer=fake_initializer,
         event_source_queue=fake_event_queue,  # Changed to event_source_queue

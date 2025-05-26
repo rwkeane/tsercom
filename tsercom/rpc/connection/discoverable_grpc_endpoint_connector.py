@@ -46,7 +46,7 @@ class DiscoverableGrpcEndpointConnector(
             self,
             connection_info: TServiceInfo,  # Detailed service information.
             caller_id: CallerIdentifier,  # Unique ID for the service instance.
-            channel: grpc.Channel,  # The established gRPC channel.
+            channel: 'grpc.Channel',  # The established gRPC channel.
         ) -> None:
             """Callback invoked when a gRPC channel to a discovered service is connected.
 
@@ -180,7 +180,7 @@ class DiscoverableGrpcEndpointConnector(
         )
 
         # ChannelInfo was a typo, should be grpc.Channel from find_async_channel
-        channel: Optional[grpc.Channel] = (
+        channel: Optional['grpc.Channel'] = (
             await self.__channel_factory.find_async_channel(
                 connection_info.addresses, connection_info.port
             )

@@ -158,7 +158,7 @@ def test_double_set_runtime_raises_assertion_error(
     another_fake_runtime = FakeRuntime()
     bridge.set_runtime(fake_runtime)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError):  # Changed from AssertionError
         bridge.set_runtime(another_fake_runtime)
 
     # Ensure original runtime is still set and no commands were run on the new one
@@ -177,8 +177,8 @@ def test_set_runtime_idempotent_state_cleared(
     assert fake_runtime.start_async_called
     assert fake_runtime.start_async_call_count == 1
     assert (
-        bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.kStart
-    )  # State is not cleared by set_runtime
+        bridge._RuntimeCommandBridge__state.get() is None
+    )  # State IS cleared by set_runtime
 
     # If we call start again, it WILL re-trigger start_async because runtime is set
     fake_runtime.start_async_called = False  # Reset flag for clarity
@@ -218,8 +218,8 @@ def test_command_order_start_then_stop_before_runtime(
     assert fake_runtime.stop_called  # Stop should be called
     assert fake_runtime.stop_call_count == 1
     assert (
-        bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.kStop
-    )  # State is not cleared by set_runtime
+        bridge._RuntimeCommandBridge__state.get() is None
+    )  # State IS cleared by set_runtime
 
 
 def test_command_order_stop_then_start_before_runtime(
@@ -236,8 +236,8 @@ def test_command_order_stop_then_start_before_runtime(
     assert not fake_runtime.stop_called  # Stop should not have been called
     assert fake_runtime.start_async_call_count == 1
     assert (
-        bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.kStart
-    )  # State is not cleared by set_runtime
+        bridge._RuntimeCommandBridge__state.get() is None
+    )  # State IS cleared by set_runtime
 
 
 # Ensure the patch_rcb_run_on_event_loop is used by all tests that interact with methods

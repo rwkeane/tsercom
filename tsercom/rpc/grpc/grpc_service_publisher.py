@@ -5,14 +5,12 @@ from typing import Callable, Iterable
 import grpc
 import logging
 
-from tsercom.rpc.grpc.async_grpc_exception_interceptor import (
-    AsyncGrpcExceptionInterceptor,
-)
+# Removed: from tsercom.rpc.grpc.async_grpc_exception_interceptor import AsyncGrpcExceptionInterceptor
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings
 
-AddServicerCB = Callable[[grpc.Server], None]
+AddServicerCB = Callable[['grpc.Server'], None]
 
 
 class GrpcServicePublisher:
@@ -65,6 +63,10 @@ class GrpcServicePublisher:
         Args:
             connect_call: Callback to add servicer implementations to the server.
         """
+        # Moved import here to break potential circular dependency
+        from tsercom.rpc.grpc.async_grpc_exception_interceptor import (
+            AsyncGrpcExceptionInterceptor,
+        )
         interceptor = AsyncGrpcExceptionInterceptor(self.__watcher)
         self.__server: grpc.Server = grpc.aio.server(  # type: ignore
             self.__watcher.create_tracked_thread_pool_executor(max_workers=1),
