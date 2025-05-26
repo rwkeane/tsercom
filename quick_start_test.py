@@ -30,7 +30,7 @@ MyDataType = str  # Example: string data
 MyEventType = str  # Example: string events
 
 
-class MyCustomRuntime(Runtime[MyDataType, MyEventType]):
+class MyCustomRuntime(Runtime):
     """
     A custom Runtime implementation.
     This class would typically contain the application-specific logic
@@ -84,7 +84,7 @@ class MyCustomRuntime(Runtime[MyDataType, MyEventType]):
         # The bridge calls this method, which should be a coroutine.
 
 
-class MyRuntimeInitializer(RuntimeInitializer[MyDataType, MyEventType]):
+class MyRuntimeInitializer(RuntimeInitializer):
     """
     Initializes MyCustomRuntime.
     This class is responsible for creating an instance of the custom runtime.
@@ -98,11 +98,9 @@ class MyRuntimeInitializer(RuntimeInitializer[MyDataType, MyEventType]):
     def create(  # Changed from create_runtime to create
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[MyDataType, MyEventType],
+        data_handler: RuntimeDataHandler, # Removed type parameters
         grpc_channel_factory: GrpcChannelFactory,
-    ) -> Runtime[
-        MyDataType, MyEventType
-    ]:  # Return type is Runtime, not MyCustomRuntime explicitly
+    ) -> Runtime:  # Return type is Runtime, not MyCustomRuntime explicitly, removed type parameters
         """Creates and returns an instance of MyCustomRuntime."""
         print("MyRuntimeInitializer: Creating MyCustomRuntime.")
         return MyCustomRuntime(
@@ -123,7 +121,7 @@ async def main():
     # 2. Create and register your custom RuntimeInitializer
     # A RuntimeInitializer is responsible for creating your specific Runtime instance.
     my_initializer = MyRuntimeInitializer()
-    handle_future: Future[RuntimeHandle[MyDataType, MyEventType]] = (
+    handle_future: Future[RuntimeHandle] = ( # Removed type parameters
         runtime_manager.register_runtime_initializer(my_initializer)
     )
     print("RuntimeInitializer registered.")
@@ -140,7 +138,7 @@ async def main():
     # The RuntimeHandle is used to interact with the started runtime.
     # We wait for the Future returned by register_runtime_initializer to complete.
     try:
-        runtime_handle: RuntimeHandle[MyDataType, MyEventType] = (
+        runtime_handle: RuntimeHandle = ( # Removed type parameters
             handle_future.result(timeout=5)
         )  # Wait up to 5s
         print(f"Obtained RuntimeHandle: {runtime_handle}")

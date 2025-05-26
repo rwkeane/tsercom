@@ -105,7 +105,7 @@ class ClientDisconnectionRetrier(
                     "Event loop not initialized before starting ClientDisconnectionRetrier."
                 )
 
-            self.__instance = self._connect()
+            self.__instance = await self._connect() # Added await
 
             if self.__instance is None:
                 raise RuntimeError(

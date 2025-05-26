@@ -2,7 +2,7 @@ import asyncio
 import pytest
 import grpc.aio  # For ServicerContext
 
-# from mock import AsyncMock, MagicMock, patch, call # Removed this line
+from unittest.mock import MagicMock, AsyncMock # Added for direct use in setup_method
 from typing import (
     Optional,
     Any,
@@ -43,25 +43,27 @@ DataType = TypeVar("DataType")
 class TestableRuntimeDataHandler(
     RuntimeDataHandlerBase[DataType, Any]
 ):  # Added Any for TEventType
+    __test__ = False  # Mark this class as not a test class for pytest
+
     def __init__(
         self,
-        data_reader: RemoteDataReader[DataType],
-        event_source: AsyncPoller[Any],
-        mocker, # Added mocker
+        data_reader: RemoteDataReader[DataType], # Type hints kept as they are in current file
+        event_source: AsyncPoller[Any],      # Type hints kept
+        mocker, 
     ):
         super().__init__(data_reader, event_source)
-        self.mock_register_caller = mocker.AsyncMock(
-            name="_register_caller_impl"
-        )
-        self.mock_unregister_caller = mocker.AsyncMock(
-            name="_unregister_caller_impl"
-        )
+        # Mocks as per prompt's specification
+        self.mock_register_caller = mocker.MagicMock() 
+        self.mock_unregister_caller = mocker.MagicMock() 
+        self.mock_wait_for_data = mocker.MagicMock(return_value=mocker.AsyncMock()) # Using AsyncMock for async_stub
+        self.mock_get_data = mocker.MagicMock(return_value=mocker.AsyncMock())      # Using AsyncMock for async_stub
+        self.mock_handle_data = mocker.MagicMock(return_value=mocker.AsyncMock())   # Using AsyncMock for async_stub
+        
+        # Preserving other original mocks from this class's __init__
         self.mock_try_get_caller_id = mocker.MagicMock(
-            name="_try_get_caller_id_impl"
+            name="_try_get_caller_id_impl" 
         )
-        # Mock the protected _on_data_ready to inspect calls to it
-        self._on_data_ready = mocker.MagicMock(name="handler_on_data_ready_mock")  # type: ignore
-        # print("TestableRuntimeDataHandler initialized.") # Reduced verbosity
+        self._on_data_ready = mocker.MagicMock(name="handler_on_data_ready_mock") # type: ignore
 
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
@@ -164,7 +166,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         assert handler._RuntimeDataHandlerBase__event_source is mock_event_source  # type: ignore
 
     async def test_register_caller_endpoint_port(
-        self, handler, mock_caller_id
+        self, handler, mock_caller_id, mocker # Added mocker
     ):
         endpoint_str = "10.0.0.1"
         port_num = 9999
@@ -187,6 +189,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         mock_servicer_context,
         patch_get_client_ip,
         patch_get_client_port,
+        mocker, # Added mocker
     ):
         expected_ip = "1.2.3.4"
         expected_port = 5678
@@ -258,7 +261,7 @@ class TestRuntimeDataHandlerBaseBehavior:
     # Test for the SUT's _on_data_ready, not the reader's.
     # The SUT's _on_data_ready calls the reader's _on_data_ready.
     def test_handler_on_data_ready_calls_reader_on_data_ready(
-        self, handler, mock_data_reader
+        self, handler, mock_data_reader, mocker # Added mocker
     ):
         print(
             "\n--- Test: test_handler_on_data_ready_calls_reader_on_data_ready ---"
@@ -335,7 +338,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
 
     async def test_processor_process_data_with_server_timestamp(
-        self, data_processor, handler, test_caller_id_instance, mock_sync_clock
+        self, data_processor, handler, test_caller_id_instance, mock_sync_clock, mocker # Added mocker
     ):
         print(
             "\n--- Test: test_processor_process_data_with_server_timestamp ---"
@@ -368,7 +371,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
 
     async def test_processor_process_data_no_timestamp(
-        self, data_processor, handler, test_caller_id_instance
+        self, data_processor, handler, test_caller_id_instance, mocker # Added mocker
     ):
         print("\n--- Test: test_processor_process_data_no_timestamp ---")
         test_payload = "payload_no_ts"

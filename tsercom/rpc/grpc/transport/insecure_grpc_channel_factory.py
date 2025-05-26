@@ -4,7 +4,7 @@ import asyncio
 import grpc
 import logging  # Added for logging
 
-from tsercom.rpc.connection.channel_info import ChannelInfo
+from tsercom.rpc.common.channel_info import ChannelInfo # Updated import path
 from tsercom.rpc.grpc.grpc_channel_factory import GrpcChannelFactory
 
 

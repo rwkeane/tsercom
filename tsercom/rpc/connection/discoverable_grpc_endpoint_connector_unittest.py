@@ -14,7 +14,7 @@ from tsercom.discovery.discovery_host import DiscoveryHost
 from tsercom.rpc.grpc.grpc_channel_factory import (
     GrpcChannelFactory,
 )  # Corrected import path
-from tsercom.rpc.connection.channel_info import ChannelInfo
+from tsercom.rpc.common.channel_info import ChannelInfo # Updated import path
 from tsercom.discovery.service_info import (
     ServiceInfo,
 )  # For creating instances

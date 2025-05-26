@@ -36,17 +36,14 @@ from tsercom.util.is_running_tracker import IsRunningTracker  # For mocking
 
 # --- Concrete Dummy ExposedData for type checks and usage ---
 class DummyExposedDataForOrganizerTests(ExposedData):
-    def __init__(
-        self,
-        caller_id: DummyCallerIdentifier,
-        timestamp: datetime.datetime,
-        value: int = 0,
-    ):
-        super().__init__(caller_id, timestamp)
-        self.value = value  # For differentiating data
+    __test__ = False  # Mark this class as not a test class for pytest
+    # __init__ removed to be pytest-compatible
+    # value attribute will be set in create_data or directly in tests
 
     def __repr__(self):
-        return f"DummyExposedDataForOrganizerTests(caller_id='{self.caller_id.id_str}', timestamp='{self.timestamp}', value={self.value})"
+        # Ensure 'value' attribute exists for repr, provide a default if not
+        value_repr = getattr(self, 'value', 'N/A')
+        return f"DummyExposedDataForOrganizerTests(caller_id='{self.caller_id.id_str}', timestamp='{self.timestamp}', value={value_repr})"
 
 
 # --- Fixtures ---
@@ -114,7 +111,9 @@ def create_data(caller_id, timestamp_input, value_id=0):
     else:  # Assume int/float offset from a base time for simplicity in some tests
         base_time = datetime.datetime(2023, 1, 1, 0, 0, 0)
         ts = base_time + datetime.timedelta(seconds=timestamp_input)
-    return DummyExposedDataForOrganizerTests(caller_id, ts, value=value_id)
+    instance = DummyExposedDataForOrganizerTests(caller_id, ts)
+    instance.value = value_id  # Set value directly
+    return instance
 
 
 # --- Test Cases ---
