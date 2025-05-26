@@ -22,6 +22,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx_rtd_theme',
+    'sphinx_multiversion',
 ]
 
 templates_path = ['_templates']
@@ -40,3 +41,12 @@ exclude_patterns = [
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+# Sphinx-multiversion settings
+smv_tag_whitelist = r'^v\d+\.\d+(\.\d+)?$'  # Tags like v1.0, v1.0.1
+smv_branch_whitelist = r'^(main|develop)$'   # Branches main and develop
+smv_latest_version = 'main'                # 'main' will be /latest/
+smv_remote_whitelist = r'^origin$'           # Only use the 'origin' remote
+smv_prefer_remote_refs = True              # Use remote refs if available
+smv_outputdir_format = '{ref.name}'        # Output dirs like /main/ or /v1.0/
+# smv_show_banner = True # Optional: show a banner for non-release versions
