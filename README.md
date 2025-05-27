@@ -1,6 +1,9 @@
 # TSERCOM
 ## Time SERies COMmunication
 
+[![CI Tests](https://github.com/rwkeane/tsercom/actions/workflows/python-tests.yml/badge.svg)](https://github.com/rwkeane/tsercom/actions/workflows/python-tests.yml)
+[![codecov](https://codecov.io/gh/rwkeane/tsercom/branch/main/graph/badge.svg)](https://codecov.io/gh/rwkeane/tsercom)
+
 Tsercom is a Python library designed to simplify the transmission and management of time-series data across networks using gRPC. It provides tools for establishing communication between clients and servers, handling data serialization, managing persistent client identities, and synchronizing timestamps, making it suitable for distributed data science and machine learning applications.
 
 ## Key Features
