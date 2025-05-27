@@ -108,6 +108,7 @@ python_functions = [
 markers = [
     "asyncio: mark a test as asynchronous (run by pytest-asyncio)",
 ]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.mypy]
 strict = true
