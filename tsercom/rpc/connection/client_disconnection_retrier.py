@@ -144,6 +144,7 @@ class ClientDisconnectionRetrier(
                     "_connect() did not return a valid instance (got None)."
                 )
             if not isinstance(self.__instance, Stopable):
+                self.__instance = None # Clear instance before raising
                 raise TypeError(
                     f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
                 )
@@ -300,6 +301,7 @@ class ClientDisconnectionRetrier(
                         f"Reconnected instance is not Stopable ({type(self.__instance).__name__}). Stopping retries."
                     )
                     # This is a critical type error, stop retrying.
+                    self.__instance = None # Clear instance before raising
                     raise TypeError(
                         f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
                     )
