@@ -45,7 +45,7 @@ class TestClientRuntimeDataHandler:
         return mocker.MagicMock(spec=EndpointDataProcessor)
 
     @pytest.fixture
-    def handler(
+    def handler_and_class_mocks( 
         self,
         mock_thread_watcher,
         mock_data_reader,
@@ -54,51 +54,63 @@ class TestClientRuntimeDataHandler:
         mock_id_tracker_instance,
         mocker,
     ):
-        with (
-            mocker.patch(
-                "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
-                return_value=mock_time_sync_tracker_instance,
-            ) as mock_ts_tracker_class,
-            mocker.patch(
-                "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
-                return_value=mock_id_tracker_instance,
-            ) as mock_id_tracker_class,
-        ):
+        # Per PytestMockWarning & subsequent errors, use mocker.patch directly.
+        # It should handle start/stop and return the mock itself.
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True, 
+        )
+        mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True, 
+        )
 
-            handler_instance = ClientRuntimeDataHandler(
-                thread_watcher=mock_thread_watcher,
-                data_reader=mock_data_reader,
-                event_source=mock_event_source_poller,
-            )
-            handler_instance._mock_ts_tracker_class = mock_ts_tracker_class
-            handler_instance._mock_id_tracker_class = mock_id_tracker_class
-            handler_instance._mock_time_sync_tracker_instance = (
-                mock_time_sync_tracker_instance
-            )
-            handler_instance._mock_id_tracker_instance = (
-                mock_id_tracker_instance
-            )
-            return handler_instance
+        handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            # is_testing=False is SUT default
+        )
+        # Attach instances for other tests that might use them via handler.
+        handler_instance._mock_time_sync_tracker_instance = mock_time_sync_tracker_instance
+        handler_instance._mock_id_tracker_instance = mock_id_tracker_instance
+        
+        # pytest-mock handles teardown of patches made via mocker.patch
+        yield { 
+            "handler": handler_instance,
+            "TimeSyncTracker_class_mock": mock_TimeSyncTracker_class,
+            "IdTracker_class_mock": mock_IdTracker_class,
+            "time_sync_tracker_instance_mock": mock_time_sync_tracker_instance,
+            "id_tracker_instance_mock": mock_id_tracker_instance,
+        }
 
     def test_init(
         self,
-        handler,
+        handler_and_class_mocks, # Use the new fixture that returns a dict
         mock_thread_watcher,
         mock_data_reader,
         mock_event_source_poller,
     ):
-        handler._mock_ts_tracker_class.assert_called_once_with(
-            mock_thread_watcher
+        handler = handler_and_class_mocks["handler"]
+        TimeSyncTracker_class_mock = handler_and_class_mocks["TimeSyncTracker_class_mock"]
+        IdTracker_class_mock = handler_and_class_mocks["IdTracker_class_mock"]
+        time_sync_tracker_instance_mock = handler_and_class_mocks["time_sync_tracker_instance_mock"]
+        id_tracker_instance_mock = handler_and_class_mocks["id_tracker_instance_mock"]
+
+        TimeSyncTracker_class_mock.assert_called_once_with(
+            mock_thread_watcher, is_testing=False
         )
-        handler._mock_id_tracker_class.assert_called_once()
+        IdTracker_class_mock.assert_called_once_with()
 
         assert (
             handler._ClientRuntimeDataHandler__clock_tracker
-            == handler._mock_time_sync_tracker_instance
+            == time_sync_tracker_instance_mock
         )
         assert (
             handler._ClientRuntimeDataHandler__id_tracker
-            == handler._mock_id_tracker_instance
+            == id_tracker_instance_mock
         )
 
         assert handler._RuntimeDataHandlerBase__data_reader == mock_data_reader

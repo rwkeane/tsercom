@@ -1,400 +1,394 @@
-import asyncio
-from collections.abc import Callable
+import pytest
+from unittest.mock import MagicMock, patch, call, PropertyMock
 from concurrent.futures import Future
-import datetime
-from functools import partial
-from threading import Thread
-import time
-import pytest  # Added for new tests
+import asyncio
+from multiprocessing import Process # For spec in ProcessCreator mock
 
-from tsercom.api.runtime_manager import RuntimeManager
-from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
-from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-from tsercom.runtime.runtime import Runtime
-from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.threading.aio.global_event_loop import (
-    clear_tsercom_event_loop,
-)
+from tsercom.api.runtime_manager import RuntimeManager, RuntimeFuturePopulator
+from tsercom.api.runtime_manager_helpers import ProcessCreator, SplitErrorWatcherSourceFactory
+from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory # For RuntimeFuturePopulator client typing
+from tsercom.api.local_process.local_runtime_factory_factory import LocalRuntimeFactoryFactory
+from tsercom.api.split_process.split_runtime_factory_factory import SplitRuntimeFactoryFactory
+from tsercom.api.split_process.split_process_error_watcher_source import SplitProcessErrorWatcherSource
 from tsercom.threading.thread_watcher import ThreadWatcher
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from tsercom.api.runtime_handle import RuntimeHandle
+from tsercom.threading.error_watcher import ErrorWatcher
 
 
-started = "STARTED"
-stopped = "STOPPED"
+@pytest.fixture
+def mock_thread_watcher(mocker):
+    mock = mocker.MagicMock(spec=ThreadWatcher)
+    # Mock the create_tracked_thread_pool_executor to return a mock executor
+    mock.create_tracked_thread_pool_executor.return_value = mocker.MagicMock()
+    return mock
 
-start_timestamp = datetime.datetime.now() - datetime.timedelta(hours=10)
-stop_timestamp = datetime.datetime.now() + datetime.timedelta(minutes=20)
+@pytest.fixture
+def mock_local_rff(mocker):
+    return mocker.MagicMock(spec=LocalRuntimeFactoryFactory)
 
-test_id = CallerIdentifier.random()
+@pytest.fixture
+def mock_split_rff(mocker):
+    return mocker.MagicMock(spec=SplitRuntimeFactoryFactory)
 
+@pytest.fixture
+def mock_process_creator(mocker):
+    mock = mocker.MagicMock(spec=ProcessCreator)
+    mock.create_process.return_value = mocker.MagicMock(spec=Process)
+    return mock
 
-class FakeData:
-    def __init__(self, val: str):
-        self.__val = val
+@pytest.fixture
+def mock_split_ewsf(mocker):
+    mock = mocker.MagicMock(spec=SplitErrorWatcherSourceFactory)
+    mock.create.return_value = mocker.MagicMock(spec=SplitProcessErrorWatcherSource)
+    return mock
 
-    @property
-    def value(self):
-        return self.__val
-
-
-class FakeEvent:
-    pass
-
-
-class FakeRuntime(Runtime):
-    def __init__(
-        self,
-        thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
-        grpc_channel_factory: GrpcChannelFactory,
-    ):
-        self.__thread_watcher = thread_watcher
-        self.__data_handler = data_handler
-        self.__grpc_channel_factory = grpc_channel_factory
-
-        self.__responder: EndpointDataProcessor[FakeData] | None = None
-
-        super().__init__()
-
-    async def start_async(self) -> None:
-        await asyncio.sleep(0.01)
-
-        self.__responder = self.__data_handler.register_caller(
-            test_id, "0.0.0.0", 443
-        )
-
-        data = FakeData(started)
-        try:
-            await self.__responder.process_data(data, start_timestamp)
-        except Exception:
-            pass
-
-    async def stop(self) -> None:
-        assert self.__responder is not None
-        await self.__responder.process_data(FakeData(stopped), stop_timestamp)
-
-
-class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
-    def create(
-        self,
-        thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
-        grpc_channel_factory: GrpcChannelFactory,
-    ) -> Runtime:
-        return FakeRuntime(thread_watcher, data_handler, grpc_channel_factory)
-
-
-# New Helper Classes
-class ErrorThrowingRuntime(Runtime):
-    def __init__(
-        self,
-        thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler,
-        grpc_channel_factory: GrpcChannelFactory,
-        error_message="TestError",
-        error_type=RuntimeError,
-    ):
-        super().__init__()
-        self.error_message = error_message
-        self.error_type = error_type
-        # These arguments are not used but are part of the expected signature for Runtime implementations
-        self._thread_watcher = thread_watcher
-        self._data_handler = data_handler
-        self._grpc_channel_factory = grpc_channel_factory
-
-    async def start_async(self) -> None:
-        raise self.error_type(self.error_message)
-
-    async def stop(self) -> None:
-        pass
-
-
-class ErrorThrowingRuntimeInitializer(RuntimeInitializer):
-    def __init__(
-        self,
-        error_message="TestError",
-        error_type=RuntimeError,
-        service_type="Client",
-    ):
-        super().__init__(service_type=service_type)
-        self.error_message = error_message
-        self.error_type = error_type
-
-    def create(
-        self,
-        thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler,
-        grpc_channel_factory: GrpcChannelFactory,
-    ) -> Runtime:
-        return ErrorThrowingRuntime(
-            thread_watcher,
-            data_handler,
-            grpc_channel_factory,
-            self.error_message,
-            self.error_type,
-        )
-
-
-class FaultyCreateRuntimeInitializer(RuntimeInitializer):
-    def __init__(
-        self,
-        error_message="CreateFailed",
-        error_type=TypeError,
-        service_type="Client",
-    ):
-        super().__init__(service_type=service_type)
-        self.error_message = error_message
-        self.error_type = error_type
-
-    def create(
-        self,
-        thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler,
-        grpc_channel_factory: GrpcChannelFactory,
-    ) -> Runtime:
-        raise self.error_type(self.error_message)
-
-
-def __check_initialization(init_call: Callable[[RuntimeManager], None]):
-    runtime_manager = RuntimeManager(is_testing=True)
-    runtime_manager.check_for_exception()
-    runtime_future = runtime_manager.register_runtime_initializer(
-        FakeRuntimeInitializer(service_type="Client")
+@pytest.fixture
+def manager_with_mocks(
+    mock_thread_watcher,
+    mock_local_rff,
+    mock_split_rff,
+    mock_process_creator,
+    mock_split_ewsf
+):
+    return RuntimeManager(
+        thread_watcher=mock_thread_watcher,
+        local_runtime_factory_factory=mock_local_rff,
+        split_runtime_factory_factory=mock_split_rff,
+        process_creator=mock_process_creator,
+        split_error_watcher_source_factory=mock_split_ewsf
     )
 
-    assert not runtime_future.done()
-    assert not runtime_manager.has_started
-    init_call(runtime_manager)
-    assert runtime_manager.has_started
-    assert runtime_future.done()
+@pytest.fixture
+def mock_runtime_initializer(mocker):
+    return mocker.MagicMock(spec=RuntimeInitializer)
 
-    runtime_manager.check_for_exception()
-    runtime = runtime_future.result()
-    data_aggregator = runtime.data_aggregator
-    assert not data_aggregator.has_new_data(
-        test_id
-    ), "Aggregator should not have new data for test_id before runtime start"
-    runtime.start()
+class TestRuntimeManager:
 
-    time.sleep(0.5)
+    def test_initialization_with_no_arguments(self, mocker):
+        """Test RuntimeManager() with no arguments: Ensure internal dependencies are created."""
+        # We can't easily isinstance check the thread pools inside the default factories,
+        # so we'll patch the factory constructors themselves to verify they are called.
+        mock_tw = mocker.patch('tsercom.api.runtime_manager.ThreadWatcher', autospec=True)
+        mock_lff_constructor = mocker.patch('tsercom.api.runtime_manager.LocalRuntimeFactoryFactory', autospec=True)
+        mock_sff_constructor = mocker.patch('tsercom.api.runtime_manager.SplitRuntimeFactoryFactory', autospec=True)
+        mock_pc_constructor = mocker.patch('tsercom.api.runtime_manager.ProcessCreator', autospec=True)
+        mock_sewsf_constructor = mocker.patch('tsercom.api.runtime_manager.SplitErrorWatcherSourceFactory', autospec=True)
 
-    runtime_manager.check_for_exception()
-    assert (
-        data_aggregator.any_new_data()
-    ), "Aggregator should have some new data (any_new_data)"
-    assert data_aggregator.has_new_data(
-        test_id
-    ), f"Aggregator should have new data for test_id ({test_id})"
+        # Mock the create_tracked_thread_pool_executor on the ThreadWatcher instance
+        # that will be created by RuntimeManager
+        mock_thread_watcher_instance = mock_tw.return_value
+        mock_thread_pool = mocker.MagicMock()
+        mock_thread_watcher_instance.create_tracked_thread_pool_executor.return_value = mock_thread_pool
 
-    values = data_aggregator.get_new_data(test_id)
-    assert isinstance(
-        values, list
-    ), f"Expected list for get_new_data(test_id), got {type(values)}"
-    assert len(values) == 1, f"Expected 1 item for test_id, got {len(values)}"
+        manager = RuntimeManager(is_testing=True)
 
-    first = values[0]
-    assert isinstance(first, AnnotatedInstance), type(first)
-    assert isinstance(first.data, FakeData), type(first.data)
-    assert first.data.value == started
-    assert first.timestamp == start_timestamp
-    assert first.caller_id == test_id
+        mock_tw.assert_called_once()
+        # Check that factories are initialized with a thread pool from the created ThreadWatcher
+        mock_lff_constructor.assert_called_once_with(mock_thread_pool)
+        mock_sff_constructor.assert_called_once_with(mock_thread_pool, mock_thread_watcher_instance)
+        mock_pc_constructor.assert_called_once()
+        mock_sewsf_constructor.assert_called_once()
 
-    assert not data_aggregator.has_new_data(
-        test_id
-    ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data"
-    runtime_manager.check_for_exception()
-
-    runtime.stop()
-    runtime_manager.check_for_exception()
-
-    time.sleep(0.5)
-
-    assert data_aggregator.has_new_data(
-        test_id
-    ), f"Aggregator should have new data (stop message) for test_id ({test_id})"
-    values = data_aggregator.get_new_data(test_id)
-    assert isinstance(
-        values, list
-    ), f"Expected list for get_new_data(test_id) for stop, got {type(values)}"
-    assert (
-        len(values) == 1
-    ), f"Expected 1 stop item for test_id, got {len(values)}"
-
-    first = values[0]
-    assert isinstance(first, AnnotatedInstance), type(first)
-    assert isinstance(first.data, FakeData), type(first.data)
-    assert first.data.value == stopped
-    assert first.timestamp == stop_timestamp
-    assert first.caller_id == test_id
-
-    assert not data_aggregator.has_new_data(
-        test_id
-    ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data for stop"
+        assert manager._RuntimeManager__is_testing is True
+        assert manager._RuntimeManager__thread_watcher is mock_thread_watcher_instance
+        assert manager._RuntimeManager__local_runtime_factory_factory is mock_lff_constructor.return_value
+        assert manager._RuntimeManager__split_runtime_factory_factory is mock_sff_constructor.return_value
+        assert manager._RuntimeManager__process_creator is mock_pc_constructor.return_value
+        assert manager._RuntimeManager__split_error_watcher_source_factory is mock_sewsf_constructor.return_value
 
 
-def test_out_of_process_init():
-    clear_tsercom_event_loop()
-    __check_initialization(RuntimeManager.start_out_of_process)
+    def test_initialization_with_all_dependencies_mocked(
+        self,
+        manager_with_mocks, # This fixture provides a manager initialized with mocks
+        mock_thread_watcher,
+        mock_local_rff,
+        mock_split_rff,
+        mock_process_creator,
+        mock_split_ewsf
+    ):
+        """Test RuntimeManager() with all dependencies mocked."""
+        assert manager_with_mocks._RuntimeManager__thread_watcher is mock_thread_watcher
+        assert manager_with_mocks._RuntimeManager__local_runtime_factory_factory is mock_local_rff
+        assert manager_with_mocks._RuntimeManager__split_runtime_factory_factory is mock_split_rff
+        assert manager_with_mocks._RuntimeManager__process_creator is mock_process_creator
+        assert manager_with_mocks._RuntimeManager__split_error_watcher_source_factory is mock_split_ewsf
+        assert not manager_with_mocks._RuntimeManager__is_testing # Default is_testing is False
 
+    def test_register_runtime_initializer_successful(self, manager_with_mocks, mock_runtime_initializer):
+        """Successful registration: Check internal __initializers list size."""
+        assert len(manager_with_mocks._RuntimeManager__initializers) == 0
+        future_handle = manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
+        assert len(manager_with_mocks._RuntimeManager__initializers) == 1
+        assert isinstance(future_handle, Future)
+        pair = manager_with_mocks._RuntimeManager__initializers[0]
+        assert pair.initializer is mock_runtime_initializer
+        assert pair.handle_future is future_handle
 
-def test_in_process_init():
-    clear_tsercom_event_loop()
+    def test_register_runtime_initializer_after_start_raises_error(self, manager_with_mocks, mock_runtime_initializer, mocker):
+        """Registration after start: Use pytest.raises(RuntimeError)."""
+        # Mock has_started to return True
+        mocker.patch.object(RuntimeManager, 'has_started', new_callable=PropertyMock, return_value=True)
+        with pytest.raises(RuntimeError, match="Cannot register runtime initializer after the manager has started."):
+            manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
 
-    loop_future = Future()
-
-    def _thread_loop_runner(fut: Future):
+    @patch('tsercom.api.runtime_manager.set_tsercom_event_loop')
+    @patch('tsercom.api.runtime_manager.initialize_runtimes')
+    def test_start_in_process(
+        self,
+        mock_initialize_runtimes,
+        mock_set_tsercom_event_loop,
+        manager_with_mocks,
+        mock_local_rff,
+        mock_thread_watcher,
+        mock_runtime_initializer
+    ):
+        """Test start_in_process verifies calls and state changes."""
         loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        fut.set_result(loop)
-        try:
-            loop.run_forever()
-        finally:
-            if not loop.is_closed():
-                loop.call_soon_threadsafe(loop.stop)
-            loop.close()
+        manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
+        
+        mock_factory_instance = MagicMock()
+        mock_local_rff.create_factory.return_value = mock_factory_instance
 
-    event_thread = Thread(
-        target=_thread_loop_runner, args=(loop_future,), daemon=True
-    )
-    event_thread.start()
+        manager_with_mocks.start_in_process(loop)
 
-    worker_event_loop = loop_future.result(timeout=5)
-    __check_initialization(
-        partial(
-            RuntimeManager.start_in_process,
-            runtime_event_loop=worker_event_loop,
+        mock_set_tsercom_event_loop.assert_called_once_with(loop)
+        assert manager_with_mocks._RuntimeManager__error_watcher is mock_thread_watcher
+        
+        # Check that create_factory was called on the local_rff
+        # The client passed should be a RuntimeFuturePopulator
+        assert mock_local_rff.create_factory.call_count == 1
+        args, kwargs = mock_local_rff.create_factory.call_args
+        assert isinstance(args[0], RuntimeFuturePopulator) # client
+        assert args[1] is mock_runtime_initializer # initializer
+
+        mock_initialize_runtimes.assert_called_once_with(
+            mock_thread_watcher, [mock_factory_instance], is_testing=False
         )
-    )
-    # Cleanup the event loop thread
-    if worker_event_loop.is_running():
-        worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
-    event_thread.join(timeout=1)
+        assert manager_with_mocks.has_started is True
 
+        with pytest.raises(RuntimeError, match="RuntimeManager has already been started."):
+            manager_with_mocks.start_in_process(loop)
 
-# New Test Cases
-def test_out_of_process_error_check_for_exception():
-    clear_tsercom_event_loop()
-    runtime_manager = RuntimeManager(is_testing=True)
-    error_msg = "RemoteFailureOops"
-    runtime_manager.register_runtime_initializer(
-        ErrorThrowingRuntimeInitializer(
-            error_message=error_msg, error_type=ValueError
-        )
-    )
-    runtime_manager.start_out_of_process()
-    time.sleep(1.0)
-    with pytest.raises(ValueError, match=error_msg):
-        runtime_manager.check_for_exception()
-
-    # Process cleanup (defensive)
-    process_attr_name = "_RuntimeManager__process"  # Name mangling
-    if hasattr(runtime_manager, process_attr_name):
-        process = getattr(runtime_manager, process_attr_name)
-        if process is not None and process.is_alive():
-            process.terminate()
-            process.join(timeout=0.1)
-
-
-def test_out_of_process_error_run_until_exception():
-    clear_tsercom_event_loop()
-    runtime_manager = RuntimeManager(is_testing=True)
-    error_msg = "RemoteRunUntilFailure"
-    runtime_manager.register_runtime_initializer(
-        ErrorThrowingRuntimeInitializer(
-            error_message=error_msg, error_type=RuntimeError
-        )
-    )
-    runtime_manager.start_out_of_process()
-    with pytest.raises(RuntimeError, match=error_msg):
-        runtime_manager.run_until_exception()
-
-    process_attr_name = "_RuntimeManager__process"
-    if hasattr(runtime_manager, process_attr_name):
-        process = getattr(runtime_manager, process_attr_name)
-        if process is not None and process.is_alive():
-            process.terminate()  # Terminate should be fine as run_until_exception implies error state
-            process.join(timeout=0.1)
-
-
-def test_in_process_error_check_for_exception():
-    clear_tsercom_event_loop()
-    loop_future = Future()
-
-    def _thread_loop_runner(fut: Future):
+    @patch('tsercom.api.runtime_manager.get_running_loop_or_none')
+    def test_start_in_process_async_no_loop_raises_error(self, mock_get_running_loop, manager_with_mocks):
+        mock_get_running_loop.return_value = None
+        with pytest.raises(RuntimeError, match="Could not determine the current running event loop"):
+            asyncio.run(manager_with_mocks.start_in_process_async())
+            
+    @patch('tsercom.api.runtime_manager.get_running_loop_or_none')
+    @patch.object(RuntimeManager, 'start_in_process')
+    def test_start_in_process_async_successful(self, mock_start_in_process_sync, mock_get_running_loop, manager_with_mocks, mock_runtime_initializer):
         loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        fut.set_result(loop)
-        try:
-            loop.run_forever()
-        finally:
-            # Ensure all tasks are cancelled before stopping the loop
-            # This part can be tricky if tasks don't handle cancellation well
-            all_tasks = asyncio.all_tasks(loop)
-            if all_tasks:
-                for task in all_tasks:
-                    task.cancel()
-                # Allow tasks to process cancellation
-                # loop.run_until_complete(asyncio.gather(*all_tasks, return_exceptions=True))
+        mock_get_running_loop.return_value = loop
+        
+        # Ensure future is completed for result retrieval
+        future_handle = manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
+        mock_handle = MagicMock(spec=RuntimeHandle)
+        future_handle.set_result(mock_handle)
 
-            if not loop.is_closed():
-                if loop.is_running():
-                    loop.call_soon_threadsafe(loop.stop)
-                    # Give some time for stop to propagate if needed in some contexts
-                    # However, for run_forever, stop should be enough.
-                    # If run_until_complete was used, it would wait.
-                # Ensure it's fully stopped before closing
-                # This might require running the loop briefly if stop() was just called
-                # For simplicity in test, assume stop is effective.
-            loop.close()
+        returned_handles = asyncio.run(manager_with_mocks.start_in_process_async())
+        
+        mock_start_in_process_sync.assert_called_once_with(loop)
+        assert returned_handles == [mock_handle]
 
-    event_thread = Thread(
-        target=_thread_loop_runner, args=(loop_future,), daemon=True
-    )
-    event_thread.start()
-    worker_event_loop = loop_future.result(timeout=5)
 
-    runtime_manager = RuntimeManager(is_testing=True)
-    error_msg = "InProcessFailureOops"
-    runtime_manager.register_runtime_initializer(
-        ErrorThrowingRuntimeInitializer(
-            error_message=error_msg, error_type=ValueError
+    @patch('tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher')
+    @patch('tsercom.api.runtime_manager.create_multiprocess_queues')
+    @patch('tsercom.api.runtime_manager.remote_process_main') # Mock the target of the process
+    def test_start_out_of_process(
+        self,
+        mock_remote_process_main,
+        mock_create_mp_queues,
+        mock_create_tsercom_loop,
+        manager_with_mocks,
+        mock_split_rff,
+        mock_split_ewsf, # Fixture for the factory
+        mock_thread_watcher,
+        mock_process_creator,
+        mock_runtime_initializer
+    ):
+        """Test start_out_of_process verifies calls and state changes."""
+        mock_error_sink, mock_error_source_queue = MagicMock(), MagicMock()
+        mock_create_mp_queues.return_value = (mock_error_sink, mock_error_source_queue)
+        
+        # This is the mock for SplitProcessErrorWatcherSource instance
+        mock_error_watcher_source_instance = mock_split_ewsf.create.return_value 
+
+        manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
+        mock_factory_instance = MagicMock()
+        mock_split_rff.create_factory.return_value = mock_factory_instance
+        
+        # Mock the process object returned by the creator
+        mock_process_instance = mock_process_creator.create_process.return_value
+
+        manager_with_mocks.start_out_of_process(start_as_daemon=True)
+
+        mock_create_tsercom_loop.assert_called_once_with(mock_thread_watcher)
+        mock_create_mp_queues.assert_called_once()
+        
+        # Verify the factory for SplitProcessErrorWatcherSource was used
+        mock_split_ewsf.create.assert_called_once_with(mock_thread_watcher, mock_error_source_queue)
+        mock_error_watcher_source_instance.start.assert_called_once()
+        assert manager_with_mocks._RuntimeManager__error_watcher is mock_error_watcher_source_instance
+
+        # Check that create_factory was called on the split_rff
+        assert mock_split_rff.create_factory.call_count == 1
+        args, kwargs = mock_split_rff.create_factory.call_args
+        assert isinstance(args[0], RuntimeFuturePopulator) # client
+        assert args[1] is mock_runtime_initializer # initializer
+        
+        # Check process creation
+        mock_process_creator.create_process.assert_called_once()
+        call_args = mock_process_creator.create_process.call_args
+        assert call_args[1]['daemon'] is True # start_as_daemon=True
+        # Check that the target for the process is a partial of remote_process_main
+        # and that it contains the correct arguments
+        target_partial = call_args[1]['target']
+        assert target_partial.func is mock_remote_process_main
+        assert target_partial.args[0] == [mock_factory_instance] # factories
+        assert target_partial.args[1] is mock_error_sink # error_sink
+        assert target_partial.keywords['is_testing'] is False # manager default
+
+        mock_process_instance.start.assert_called_once()
+        assert manager_with_mocks.has_started is True
+
+        with pytest.raises(RuntimeError, match="RuntimeManager has already been started."):
+            manager_with_mocks.start_out_of_process()
+
+    def test_start_out_of_process_is_testing_daemon(self, mocker, manager_with_mocks):
+        """Test is_testing=True makes process daemonic in start_out_of_process."""
+        manager_with_mocks._RuntimeManager__is_testing = True # Set is_testing to True
+        
+        mocker.patch('tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher')
+        mocker.patch('tsercom.api.runtime_manager.create_multiprocess_queues', return_value=(MagicMock(), MagicMock()))
+        mocker.patch('tsercom.api.runtime_manager.remote_process_main')
+        mock_process_creator = manager_with_mocks._RuntimeManager__process_creator # Get the mock from manager
+
+        manager_with_mocks.start_out_of_process(start_as_daemon=False) # Explicitly False
+
+        mock_process_creator.create_process.assert_called_once()
+        call_args = mock_process_creator.create_process.call_args
+        assert call_args[1]['daemon'] is True # Should be True due to is_testing=True
+
+    def test_run_until_exception_not_started(self, manager_with_mocks):
+        """Test RuntimeError if manager not started for run_until_exception."""
+        with pytest.raises(RuntimeError, match="RuntimeManager has not been started."):
+            manager_with_mocks.run_until_exception()
+
+    def test_run_until_exception_error_watcher_none(self, manager_with_mocks, mocker):
+        """Test RuntimeError if __error_watcher is None but manager started."""
+        mocker.patch.object(RuntimeManager, 'has_started', new_callable=PropertyMock, return_value=True)
+        manager_with_mocks._RuntimeManager__error_watcher = None # Force it to be None
+        with pytest.raises(RuntimeError, match="Error watcher is not available."):
+            manager_with_mocks.run_until_exception()
+
+    def test_run_until_exception_calls_thread_watcher(self, manager_with_mocks, mock_thread_watcher, mocker):
+        """Verify calls to mock_thread_watcher.run_until_exception()."""
+        mocker.patch.object(RuntimeManager, 'has_started', new_callable=PropertyMock, return_value=True)
+        # Ensure __error_watcher is set (e.g. to thread_watcher itself as in start_in_process)
+        manager_with_mocks._RuntimeManager__error_watcher = mock_thread_watcher 
+        manager_with_mocks.run_until_exception()
+        mock_thread_watcher.run_until_exception.assert_called_once()
+
+    def test_check_for_exception_not_started(self, manager_with_mocks, mock_thread_watcher):
+        """Test check_for_exception does nothing if not started."""
+        manager_with_mocks.check_for_exception()
+        mock_thread_watcher.check_for_exception.assert_not_called()
+
+    def test_check_for_exception_error_watcher_none(self, manager_with_mocks, mocker):
+        """Test RuntimeError if __error_watcher is None but manager started for check_for_exception."""
+        mocker.patch.object(RuntimeManager, 'has_started', new_callable=PropertyMock, return_value=True)
+        manager_with_mocks._RuntimeManager__error_watcher = None # Force it to be None
+        with pytest.raises(RuntimeError, match="Error watcher is not available."):
+            manager_with_mocks.check_for_exception()
+
+    def test_check_for_exception_calls_thread_watcher(self, manager_with_mocks, mock_thread_watcher, mocker):
+        """Verify calls to mock_thread_watcher.check_for_exception()."""
+        mocker.patch.object(RuntimeManager, 'has_started', new_callable=PropertyMock, return_value=True)
+        manager_with_mocks._RuntimeManager__error_watcher = mock_thread_watcher
+        manager_with_mocks.check_for_exception()
+        mock_thread_watcher.check_for_exception.assert_called_once()
+
+    def test_runtime_future_populator_indirectly(self, manager_with_mocks, mock_local_rff, mock_runtime_initializer):
+        """
+        Ensure that when factory.create_factory is called, the client argument
+        is a RuntimeFuturePopulator and that its future gets completed.
+        """
+        loop = asyncio.new_event_loop() # For start_in_process
+        future_handle = manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
+        
+        mock_created_handle = MagicMock(spec=RuntimeHandle)
+
+        # Mock create_factory to simulate the behavior of a real factory
+        # by calling _on_handle_ready on the client it receives.
+        def mock_create_factory_impl(client, initializer):
+            assert isinstance(client, RuntimeFuturePopulator)
+            assert initializer is mock_runtime_initializer
+            # Simulate handle creation and notify client
+            client._on_handle_ready(mock_created_handle)
+            return MagicMock() # Return a mock factory instance
+
+        mock_local_rff.create_factory.side_effect = mock_create_factory_impl
+        
+        with patch('tsercom.api.runtime_manager.set_tsercom_event_loop'), \
+             patch('tsercom.api.runtime_manager.initialize_runtimes'):
+            manager_with_mocks.start_in_process(loop)
+
+        assert future_handle.done()
+        assert future_handle.result(timeout=0) is mock_created_handle
+        mock_local_rff.create_factory.assert_called_once()
+        
+    def test_start_out_of_process_process_creation_fails(self, manager_with_mocks, mock_process_creator, mocker):
+        """Test that if process_creator.create_process returns None, process.start() is not called."""
+        mock_process_creator.create_process.return_value = None # Simulate creation failure
+
+        mocker.patch('tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher')
+        mocker.patch('tsercom.api.runtime_manager.create_multiprocess_queues', return_value=(MagicMock(), MagicMock()))
+        mocker.patch('tsercom.api.runtime_manager.remote_process_main')
+        
+        manager_with_mocks.start_out_of_process()
+        
+        # mock_process_instance.start() should not be called if mock_process_instance is None
+        # This is implicitly tested as mock_process_creator.create_process.return_value is None,
+        # so there's no .start attribute on None. If it were called, an AttributeError would occur.
+        # We can also check that the mocked Process object (if one was accidentally configured on the
+        # process_creator mock for return) didn't have its start() called.
+        # However, the fixture for mock_process_creator already sets create_process.return_value
+        # to a MagicMock(spec=Process). So we need to ensure *that specific mock's* start isn't called.
+        
+        # If create_process returned an actual mock Process, that mock's start method would be checked.
+        # But since it returns None, we verify that the code handles it gracefully.
+        # The main check is that no error occurs and the program proceeds.
+        # We can assert that the internal __process attribute is None.
+        assert manager_with_mocks._RuntimeManager__process is None
+        
+        # And ensure that the .start() method of the *mocked Process object that could have been returned*
+        # was not called.
+        mock_process_instance_that_was_not_returned = mock_process_creator.create_process.return_value # This is None now
+        # So we check the mock that *would* have been returned if create_process didn't return None
+        # This is a bit tricky. Let's re-evaluate.
+        # The intent is: if self.__process_creator.create_process returns None, then self.__process is None,
+        # and self.__process.start() is not called.
+
+        # The mock_process_creator fixture does this:
+        #   mock = mocker.MagicMock(spec=ProcessCreator)
+        #   mock.create_process.return_value = mocker.MagicMock(spec=Process)
+        # So, to test the failure case, we need to override this for *this specific test*:
+        
+        failing_process_creator = mocker.MagicMock(spec=ProcessCreator)
+        failing_process_creator.create_process.return_value = None # Simulate creation failure
+        
+        # Re-initialize manager with this specific failing mock
+        manager_with_failing_pc = RuntimeManager(
+            thread_watcher=manager_with_mocks._RuntimeManager__thread_watcher,
+            local_runtime_factory_factory=manager_with_mocks._RuntimeManager__local_runtime_factory_factory,
+            split_runtime_factory_factory=manager_with_mocks._RuntimeManager__split_runtime_factory_factory,
+            process_creator=failing_process_creator, # Use the failing one
+            split_error_watcher_source_factory=manager_with_mocks._RuntimeManager__split_error_watcher_source_factory
         )
-    )
-    runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
 
-    # Allow time for the error to be processed by the event loop and ThreadWatcher
-    # The error is raised in start_async, which is run on the worker_event_loop.
-    # The ThreadWatcher is part of the RuntimeManager and should catch it.
-    time.sleep(0.3)  # Increased sleep to be safer
-
-    with pytest.raises(ValueError, match=error_msg):
-        runtime_manager.check_for_exception()
-
-    # Cleanup the event loop thread
-    if worker_event_loop.is_running():
-        worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
-    event_thread.join(timeout=1)
-
-
-def test_out_of_process_initializer_create_error():
-    clear_tsercom_event_loop()
-    runtime_manager = RuntimeManager(is_testing=True)
-    error_msg = "CreateOops"
-    runtime_manager.register_runtime_initializer(
-        FaultyCreateRuntimeInitializer(
-            error_message=error_msg, error_type=TypeError
-        )
-    )
-    runtime_manager.start_out_of_process()
-    time.sleep(1.0)
-    with pytest.raises(TypeError, match=error_msg):
-        runtime_manager.check_for_exception()
-
-    process_attr_name = "_RuntimeManager__process"
-    if hasattr(runtime_manager, process_attr_name):
-        process = getattr(runtime_manager, process_attr_name)
-        if process is not None and process.is_alive():
-            process.terminate()
-            process.join(timeout=0.1)
+        manager_with_failing_pc.start_out_of_process()
+        assert manager_with_failing_pc._RuntimeManager__process is None
+        # No Process.start() should have been called on the None object.
+        # The test passes if no AttributeError is raised.

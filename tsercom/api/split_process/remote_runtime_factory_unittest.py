@@ -135,33 +135,21 @@ class FakeDataReaderSink:
 class FakeRuntimeCommandSource:
     _instances = []
 
-    def __init__(
-        self, thread_watcher, command_queue_source, runtime
-    ):  # Modified signature
-        self.thread_watcher = thread_watcher  # Store new arg
+    # __init__ now matches the real RuntimeCommandSource
+    def __init__(self, command_queue_source):
         self.command_queue_source = command_queue_source
-        self.runtime = runtime  # Store new arg
+        self.thread_watcher = None # Will be set by start_async
+        self.runtime = None      # Will be set by start_async
         self.start_async_called_with = None
         self.start_async_call_count = 0
-        self.start_called_count = 0  # For the new start method
+        # self.start_called_count = 0 # Not needed as the real class doesn't have a separate start() like this
         FakeRuntimeCommandSource._instances.append(self)
 
-    def start(self):
-        # This mock implementation can be simple, e.g., just pass
-        # or call self.start_async() if that makes sense for the fake.
-        # For now, let's make it call start_async if it exists.
-        self.start_called_count += 1  # Record that start() was called.
-        if hasattr(self, "start_async") and callable(self.start_async):
-            # The actual start_async in the fake takes watcher and runtime,
-            # which are not available here. The SUT directly calls start().
-            # The real RuntimeCommandSource.start() method is synchronous and starts a thread.
-            # So, the fake start() should just note it was called.
-            # If a test needs to verify what the thread would do, that's covered by start_async.
-            pass  # Do not call self.start_async() as it requires arguments not available here.
-        pass
-
-    def start_async(self, watcher, runtime):
-        self.start_async_called_with = (watcher, runtime)
+    # start_async is called by the code under test (RemoteRuntimeFactory)
+    def start_async(self, thread_watcher, runtime):
+        self.thread_watcher = thread_watcher
+        self.runtime = runtime
+        self.start_async_called_with = (thread_watcher, runtime)
         self.start_async_call_count += 1
 
     @classmethod
@@ -394,10 +382,11 @@ def test_create_method(
         command_source_instance.command_queue_source
         is factory._RemoteRuntimeFactory__command_source_queue  # Corrected attribute name
     )
-    assert (
-        command_source_instance.start_called_count == 1
-    )  # Changed from start_async_call_count
-    # Removed assertion for start_async_called_with
+    # Assert that start_async was called correctly
+    assert command_source_instance.start_async_call_count == 1
+    assert command_source_instance.start_async_called_with == (fake_thread_watcher, fake_initializer.runtime_to_return)
+    assert command_source_instance.thread_watcher is fake_thread_watcher
+    assert command_source_instance.runtime is fake_initializer.runtime_to_return
     assert (
         factory._RemoteRuntimeFactory__command_source
         is command_source_instance
