@@ -165,7 +165,9 @@ class DiscoveryHost(
             assert (
                 self.__service_type is not None
             ), "Service type must be set if no factory is provided."
-            self.__discoverer = InstanceListener[TServiceInfo](
+            # Removed [TServiceInfo] subscript as it's problematic with mocks
+            # and not standard for runtime instantiation if InstanceListener is a regular generic class.
+            self.__discoverer = InstanceListener(
                 self, self.__service_type
             )
         # Note: InstanceListener's own start method (if any) would need to be called
