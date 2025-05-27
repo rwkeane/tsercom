@@ -1,16 +1,16 @@
 from abc import abstractmethod
 import asyncio
 from functools import partial
-from typing import Callable, Generic, Optional, TypeVar
+from typing import Callable, Generic, Optional, TypeVar, Awaitable
 import logging
 
 from tsercom.rpc.connection.client_reconnection_handler import (
     ClientReconnectionManager,
 )
 from tsercom.rpc.grpc_util.grpc_caller import (
-    delay_before_retry,
-    is_grpc_error,
-    is_server_unavailable_error,
+    delay_before_retry as default_delay_before_retry,
+    is_grpc_error as default_is_grpc_error,
+    is_server_unavailable_error as default_is_server_unavailable_error,
 )
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -39,6 +39,15 @@ class ClientDisconnectionRetrier(
         self,
         watcher: ThreadWatcher,
         safe_disconnection_handler: Optional[Callable[[], None]] = None,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        delay_before_retry_func: Optional[
+            Callable[[], Awaitable[None]]
+        ] = None,
+        is_grpc_error_func: Optional[Callable[[Exception], bool]] = None,
+        is_server_unavailable_error_func: Optional[
+            Callable[[Exception], bool]
+        ] = None,
+        max_retries: Optional[int] = 5,
     ) -> None:
         """Initializes the ClientDisconnectionRetrier.
 
@@ -47,6 +56,13 @@ class ClientDisconnectionRetrier(
             safe_disconnection_handler: An optional callable to be invoked when
                                         a non-retriable gRPC disconnection occurs.
                                         Can be a coroutine or a regular function.
+            event_loop: An optional event loop to use. If None, the current
+                        running loop will be captured during `start()`.
+            delay_before_retry_func: Optional custom function for delaying retries.
+            is_grpc_error_func: Optional custom function to check for gRPC errors.
+            is_server_unavailable_error_func: Optional custom function to check
+                                              for server unavailable errors.
+            max_retries: Maximum number of reconnection attempts. None for infinite.
         Raises:
             TypeError: If `watcher` is not an instance of `ThreadWatcher`.
         """
@@ -60,9 +76,21 @@ class ClientDisconnectionRetrier(
         self.__safe_disconnection_handler: Optional[Callable[[], None]] = (
             safe_disconnection_handler
         )
+        self.__provided_event_loop = event_loop
+        self.__delay_before_retry_func = (
+            delay_before_retry_func or default_delay_before_retry
+        )
+        self.__is_grpc_error_func = (
+            is_grpc_error_func or default_is_grpc_error
+        )
+        self.__is_server_unavailable_error_func = (
+            is_server_unavailable_error_func
+            or default_is_server_unavailable_error
+        )
+        self.__max_retries = max_retries
 
         # Event loop on which this instance's async methods should primarily run.
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
+        self.__event_loop: Optional[asyncio.AbstractEventLoop] = self.__provided_event_loop
 
     @abstractmethod
     def _connect(self) -> TInstanceType:
@@ -99,7 +127,11 @@ class ClientDisconnectionRetrier(
             Exception: Any non-server-unavailable error raised by `_connect`.
         """
         try:
-            self.__event_loop = get_running_loop_or_none()
+            if self.__provided_event_loop:
+                self.__event_loop = self.__provided_event_loop
+            else:
+                self.__event_loop = get_running_loop_or_none()
+
             if self.__event_loop is None:
                 raise RuntimeError(
                     "Event loop not initialized before starting ClientDisconnectionRetrier."
@@ -122,7 +154,7 @@ class ClientDisconnectionRetrier(
             return True
         except Exception as error:
             # If it's a server unavailable error, don't raise, just log and return False.
-            if is_server_unavailable_error(error):
+            if self.__is_server_unavailable_error_func(error):
                 logging.warning(
                     f"Initial connection to server FAILED with server unavailable error: {error}"
                 )
@@ -212,7 +244,9 @@ class ClientDisconnectionRetrier(
         await self.__instance.stop()
         self.__instance = None
 
-        if is_grpc_error(error) and not is_server_unavailable_error(error):
+        if self.__is_grpc_error_func(
+            error
+        ) and not self.__is_server_unavailable_error_func(error):
             logging.warning(
                 f"Non-retriable gRPC session error: {error}. Notifying disconnection handler if available."
             )
@@ -226,7 +260,7 @@ class ClientDisconnectionRetrier(
                     self.__safe_disconnection_handler()  # type: ignore[misc] # mypy issue with callable check
             return
 
-        if not is_server_unavailable_error(error):
+        if not self.__is_server_unavailable_error_func(error):
             logging.error(
                 f"Local error or non-server-unavailable gRPC error: {error}. Reporting to ThreadWatcher."
             )
@@ -239,13 +273,20 @@ class ClientDisconnectionRetrier(
             f"Server unavailable error: {error}. Initiating reconnection attempts."
         )
 
+        retry_count = 0
         while (
             True
         ):  # Loop indefinitely until reconnected or a non-retriable error occurs.
             try:
-                await delay_before_retry()
-                logging.info("Retrying connection...")
-                self.__instance = self._connect()
+                if self.__max_retries is not None and retry_count >= self.__max_retries:
+                    logging.warning(
+                        f"Max retries ({self.__max_retries}) reached. Stopping reconnection attempts."
+                    )
+                    break
+
+                await self.__delay_before_retry_func()
+                logging.info(f"Retrying connection... (Attempt {retry_count + 1})")
+                self.__instance = await self._connect()
 
                 if self.__instance is None:
                     logging.error(
@@ -266,7 +307,7 @@ class ClientDisconnectionRetrier(
                 logging.info("Successfully reconnected.")
                 break
             except Exception as retry_error:
-                if not is_server_unavailable_error(retry_error):
+                if not self.__is_server_unavailable_error_func(retry_error):
                     # If the error during retry is not a server unavailable error,
                     # it's a more serious issue. Report it and stop retrying.
                     logging.error(
@@ -279,5 +320,6 @@ class ClientDisconnectionRetrier(
                     logging.warning(
                         f"Still server unavailable during retry: {retry_error}"
                     )
+                retry_count += 1
             # Ensure the loop continues if a server unavailable error occurred inside the try block.
             # No explicit 'continue' needed here as the loop naturally continues if no 'break' or 'raise'.
