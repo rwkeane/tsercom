@@ -169,16 +169,12 @@ from typing import TYPE_CHECKING
 if not TYPE_CHECKING:
     try:
         version = grpc.__version__
-        major_minor_version = ".".join(
-            version.split(".")[:2]
-        )  # Extract major.minor
-        version_string = (
-            f"v{major_minor_version.replace('.', '_')}"  # e.g., v1_62
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        raise RuntimeError(
-            f"Could not determine grpcio-tools version. Is it installed? Error: {e}"
-        ) from e
+        major_minor_version = ".".join(version.split(".")[:2])
+    except (AttributeError, subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"Warning: Failed to get grpc.__version__ ({e}), defaulting to 1.71 for proto loading.")
+        major_minor_version = "1.71" # Default to a version used in TYPE_CHECKING
+
+    version_string = f"v{major_minor_version.replace('.', '_')}"
 
     if False:
         pass
