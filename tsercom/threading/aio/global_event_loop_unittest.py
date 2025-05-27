@@ -306,25 +306,23 @@ class TestGlobalEventLoop:
         """Basic test for thread safety when multiple threads try to set the global loop."""
         num_threads = 5
         threads: list[threading.Thread] = []
-        success_count = threading.Value(
-            "i", 0
-        )  # Shared int for counting successes
-        runtime_error_count = threading.Value(
-            "i", 0
-        )  # Shared int for counting RuntimeErrors
+        success_count = 0
+        runtime_error_count = 0
+        counter_lock = threading.Lock()
 
         # Loops for each thread to try setting
         loops_to_set = [asyncio.new_event_loop() for _ in range(num_threads)]
 
         def attempt_set_loop(loop_instance: asyncio.AbstractEventLoop):
+            nonlocal success_count, runtime_error_count # Allow modification of outer scope variables
             try:
                 global_event_loop.set_tsercom_event_loop(loop_instance)
-                with success_count.get_lock():
-                    success_count.value += 1
+                with counter_lock:
+                    success_count += 1
             except RuntimeError as e:
                 if "Only one Global Event Loop may be set" in str(e):
-                    with runtime_error_count.get_lock():
-                        runtime_error_count.value += 1
+                    with counter_lock:
+                        runtime_error_count += 1
             except Exception:  # Other unexpected exceptions
                 pass  # Let test fail if something else goes wrong
 
@@ -341,10 +339,10 @@ class TestGlobalEventLoop:
             thread.join(timeout=1.0)
 
         assert (
-            success_count.value == 1
+            success_count == 1
         ), "Exactly one thread should succeed in setting the global loop."
         assert (
-            runtime_error_count.value == num_threads - 1
+            runtime_error_count == num_threads - 1
         ), "All other threads should have received a RuntimeError."
 
         # Cleanup created loops

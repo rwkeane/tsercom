@@ -273,7 +273,8 @@ def test_on_data_ready_impl_replaces_data_with_same_timestamp(
     assert len(organizer._RemoteDataOrganizer__data) == 1
     assert organizer._RemoteDataOrganizer__data[0] == data_replacement
     assert organizer._RemoteDataOrganizer__data[0].value == 2
-    mock_client._on_data_available.assert_not_called()  # As per current SUT logic (returns early)
+    # Client should be notified of the update.
+    mock_client._on_data_available.assert_called_once_with(organizer)
 
 
 def test_on_data_ready_impl_no_client_no_notification(
@@ -337,7 +338,8 @@ def test_get_new_data_retrieves_newer_than_last_access(
     new_data_list = organizer.get_new_data()
     assert len(new_data_list) == 1
     assert new_data_list[0] == data2
-    assert organizer._RemoteDataOrganizer__last_access == data1_ts
+    # __last_access should be updated to the timestamp of the newest item retrieved (data2)
+    assert organizer._RemoteDataOrganizer__last_access == data2_ts
 
 
 # 6. get_most_recent_data()
@@ -387,12 +389,14 @@ def test_get_data_for_timestamp_finds_correct_item(organizer, mock_caller_id):
     query_ts_between_2_3 = ts2 + datetime.timedelta(seconds=5)  # 12:00:15
     assert organizer.get_data_for_timestamp(query_ts_between_2_3) == data2
 
-    assert organizer.get_data_for_timestamp(ts2) == data1
+    # For ts2 (12:00:10), data2 is the most recent item at or before this time.
+    assert organizer.get_data_for_timestamp(ts2) == data2
 
     query_ts_after_all = ts3 + datetime.timedelta(seconds=5)
     assert organizer.get_data_for_timestamp(query_ts_after_all) == data3
 
-    assert organizer.get_data_for_timestamp(ts1) is None
+    # For ts1 (12:00:00), data1 is the most recent item at or before this time.
+    assert organizer.get_data_for_timestamp(ts1) == data1
 
 
 # 8. _on_triggered()
@@ -414,45 +418,48 @@ def test_on_triggered_submits_to_thread_pool(
 
 
 # 9. __timeout_old_data()
-def test_timeout_old_data_removes_old_items(organizer, mock_caller_id, mocker):
-    current_time_mock_val = datetime.datetime(2023, 1, 1, 12, 0, 0)
+    def test_timeout_old_data_removes_old_items(organizer, mock_caller_id, mocker, mock_is_running_tracker): # Added mock_is_running_tracker
+        current_time_mock_val = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
-    datetime_module_mock = mocker.MagicMock(name="datetime_module_mock")
-    datetime_class_mock = mocker.MagicMock(name="datetime_class_mock")
-    datetime_class_mock.now.return_value = current_time_mock_val
-    datetime_module_mock.datetime = datetime_class_mock
-    datetime_module_mock.timedelta = datetime.timedelta
-    mocker.patch(
-        "tsercom.data.remote_data_organizer.datetime", new=datetime_module_mock
-    )
+        # Ensure the organizer is "running" for this test
+        mock_is_running_tracker.get.return_value = True
 
-    timeout_seconds = 30
+        datetime_module_mock = mocker.MagicMock(name="datetime_module_mock")
+        datetime_class_mock = mocker.MagicMock(name="datetime_class_mock")
+        datetime_class_mock.now.return_value = current_time_mock_val
+        datetime_module_mock.datetime = datetime_class_mock
+        datetime_module_mock.timedelta = datetime.timedelta
+        mocker.patch(
+            "tsercom.data.remote_data_organizer.datetime", new=datetime_module_mock
+        )
 
-    # Timestamps relative to current_time_mock_val
-    ts_old = current_time_mock_val - datetime.timedelta(seconds=31)
-    ts_kept1 = current_time_mock_val - datetime.timedelta(seconds=29)
-    ts_kept2 = current_time_mock_val - datetime.timedelta(seconds=1)
+        timeout_seconds = 30
 
-    data_old = create_data(mock_caller_id, ts_old, value_id=1)
-    data_kept1 = create_data(mock_caller_id, ts_kept1, value_id=2)
-    data_kept2 = create_data(mock_caller_id, ts_kept2, value_id=3)
+        # Timestamps relative to current_time_mock_val
+        ts_old = current_time_mock_val - datetime.timedelta(seconds=31)
+        ts_kept1 = current_time_mock_val - datetime.timedelta(seconds=29)
+        ts_kept2 = current_time_mock_val - datetime.timedelta(seconds=1)
 
-    # Setup deque: [newest, ..., oldest] -> [data_kept2, data_kept1, data_old]
-    organizer._RemoteDataOrganizer__data.clear()
-    organizer._RemoteDataOrganizer__data.appendleft(data_old)
-    organizer._RemoteDataOrganizer__data.appendleft(data_kept1)
-    organizer._RemoteDataOrganizer__data.appendleft(data_kept2)
+        data_old = create_data(mock_caller_id, ts_old, value_id=1)
+        data_kept1 = create_data(mock_caller_id, ts_kept1, value_id=2)
+        data_kept2 = create_data(mock_caller_id, ts_kept2, value_id=3)
 
-    organizer._RemoteDataOrganizer__timeout_old_data(timeout_seconds)
+        # Setup deque: [newest, ..., oldest] -> [data_kept2, data_kept1, data_old]
+        organizer._RemoteDataOrganizer__data.clear()
+        organizer._RemoteDataOrganizer__data.appendleft(data_old)
+        organizer._RemoteDataOrganizer__data.appendleft(data_kept1)
+        organizer._RemoteDataOrganizer__data.appendleft(data_kept2)
 
-    assert len(organizer._RemoteDataOrganizer__data) == 2
-    assert data_old not in organizer._RemoteDataOrganizer__data
-    assert data_kept1 in organizer._RemoteDataOrganizer__data
-    assert data_kept2 in organizer._RemoteDataOrganizer__data
-    assert list(organizer._RemoteDataOrganizer__data) == [
-        data_kept2,
-        data_kept1,
-    ]
+        organizer._RemoteDataOrganizer__timeout_old_data(timeout_seconds)
+
+        assert len(organizer._RemoteDataOrganizer__data) == 2
+        assert data_old not in organizer._RemoteDataOrganizer__data
+        assert data_kept1 in organizer._RemoteDataOrganizer__data
+        assert data_kept2 in organizer._RemoteDataOrganizer__data
+        assert list(organizer._RemoteDataOrganizer__data) == [
+            data_kept2,
+            data_kept1,
+        ]
 
 
 def test_timeout_old_data_empty_deque(organizer):
@@ -464,8 +471,11 @@ def test_timeout_old_data_empty_deque(organizer):
 
 
 def test_on_triggered_partial_call_integration(
-    organizer, mock_caller_id, mocker
+    organizer, mock_caller_id, mocker, mock_is_running_tracker # Added mock_is_running_tracker
 ):
+    # Ensure the organizer is "running" for this test, so __timeout_old_data executes
+    mock_is_running_tracker.get.return_value = True
+
     current_time_mock_val = datetime.datetime(2023, 1, 1, 12, 0, 0)
     datetime_module_mock = mocker.MagicMock(name="datetime_module_mock")
     datetime_class_mock = mocker.MagicMock(name="datetime_class_mock")

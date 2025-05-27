@@ -162,8 +162,8 @@ class TestThreadWatcher:
     def test_create_tracked_thread_exception_in_target_behavior(self) -> None:
         """
         Test create_tracked_thread with a target that raises.
-        This test reflects the *actual* behavior of ThrowingThread: its on_error_cb
-        is NOT called for exceptions within the target. So, ThreadWatcher will NOT see it.
+        ThrowingThread's on_error_cb IS called for exceptions within the target,
+        so ThreadWatcher WILL see it.
         """
         tracked_thread = self.watcher.create_tracked_thread(
             target=lambda: self.target_that_raises(
@@ -175,16 +175,12 @@ class TestThreadWatcher:
             timeout=0.5
         )  # Wait for the thread to complete (it will die due to unhandled exc)
 
-        # Assert that ThreadWatcher did NOT see the exception from the target
-        try:
+        # Assert that ThreadWatcher DID see the exception from the target
+        with pytest.raises(ExcFromTarget, match="Error from ThrowingThread target"):
             self.watcher.check_for_exception()
-        except ExcFromTarget:
-            pytest.fail(
-                "ThreadWatcher should NOT have seen the exception from ThrowingThread's target due to ThrowingThread's current design."
-            )
 
-        # Verify the barrier was not set
-        assert not self.watcher._ThreadWatcher__barrier.is_set(), "Barrier should not be set for target exception."  # type: ignore
+        # Verify the barrier WAS set
+        assert self.watcher._ThreadWatcher__barrier.is_set(), "Barrier should be set for target exception."  # type: ignore
 
     def test_create_tracked_thread_exception_during_start_behavior(
         self,
