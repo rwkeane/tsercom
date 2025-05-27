@@ -138,15 +138,6 @@ def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
 
 
 def set_tsercom_event_loop_to_current_thread() -> None:
-    """
-    Sets the EventLoop for Tsercom to the event loop running on the current thread.
-
-    The Global Event Loop may only be set once.
-
-    Raises:
-        RuntimeError: If the global event loop has already been set,
-                      or if no event loop is running on the current thread.
-    """
     global __g_global_event_loop
     global __g_global_event_loop_lock
 
@@ -154,5 +145,21 @@ def set_tsercom_event_loop_to_current_thread() -> None:
         if __g_global_event_loop is not None:
             raise RuntimeError("Only one Global Event Loop may be set")
 
-        # This will raise a RuntimeError if no loop is running on the current thread.
-        __g_global_event_loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
+            # If the loop obtained is closed, and get_event_loop() didn't raise an error
+            # (e.g. if a policy returns a closed loop instead of raising error/creating new),
+            # we should explicitly create a new one.
+            if loop.is_closed():
+                # Dissociate the closed loop first if it was current.
+                asyncio.set_event_loop(None) 
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+        except RuntimeError:
+            # This handles "no current event loop" if get_event_loop() raises it,
+            # or potentially other RuntimeErrors from get_event_loop().
+            # Create a new event loop and set it for the current thread.
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        __g_global_event_loop = loop

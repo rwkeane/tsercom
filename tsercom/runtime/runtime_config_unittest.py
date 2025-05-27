@@ -154,14 +154,17 @@ class TestRuntimeConfig:
         assert server_config.is_server() is True
 
     def test_constructor_assertion_service_type_vs_other_config(self):
-        """Test assertion that only one of service_type or other_config is provided."""
-        with pytest.raises(AssertionError):
+        """Test ValueError when an invalid combination of service_type or other_config is provided."""
+        # This string is part of the actual error message raised by RuntimeConfig
+        expected_message_part = "Exactly one of 'service_type' or 'other_config' must be provided"
+
+        with pytest.raises(ValueError, match=expected_message_part):
             RuntimeConfig(
                 service_type="Client",
                 other_config=RuntimeConfig(service_type="Server"),
             )
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match=expected_message_part):
             RuntimeConfig()  # Neither provided
 
 
