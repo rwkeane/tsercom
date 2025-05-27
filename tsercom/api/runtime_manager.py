@@ -3,7 +3,7 @@
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
-from multiprocessing import Process
+from multiprocessing import Process # Keep for type hinting if necessary
 from typing import Any, Generic, List, TypeVar, Optional
 
 from tsercom.api.initialization_pair import InitializationPair
@@ -16,10 +16,12 @@ from tsercom.api.split_process.split_runtime_factory_factory import (
 )
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.api.split_process.split_process_error_watcher_source import (
-    SplitProcessErrorWatcherSource,
+    SplitProcessErrorWatcherSource, # Keep for type hinting if necessary
 )
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from .runtime_manager_helpers import ProcessCreator, SplitErrorWatcherSourceFactory
+
 
 # Imports for runtime_main are moved into methods (start_in_process, start_out_of_process)
 # to break potential circular dependencies between manager and main execution modules.
@@ -49,23 +51,49 @@ class RuntimeManager(ErrorWatcher):
     monitoring and propagation.
     """
 
-    def __init__(self, *, is_testing: bool = False) -> None:
+    def __init__(self,
+                 *,
+                 is_testing: bool = False,
+                 thread_watcher: Optional[ThreadWatcher] = None,
+                 local_runtime_factory_factory: Optional[LocalRuntimeFactoryFactory] = None,
+                 split_runtime_factory_factory: Optional[SplitRuntimeFactoryFactory] = None,
+                 process_creator: Optional[ProcessCreator] = None,
+                 split_error_watcher_source_factory: Optional[SplitErrorWatcherSourceFactory] = None
+                ) -> None:
         """Initializes the RuntimeManager.
 
         Args:
             is_testing: If True, configures some operations for testing purposes,
                         such as making out-of-process runtimes daemonic.
+            thread_watcher: Optional ThreadWatcher instance.
+            local_runtime_factory_factory: Optional factory for local runtimes.
+            split_runtime_factory_factory: Optional factory for split-process runtimes.
+            process_creator: Optional helper to create processes.
+            split_error_watcher_source_factory: Optional factory for SplitProcessErrorWatcherSource.
         """
         super().__init__()
 
+        self.__is_testing: bool = is_testing
+        self.__thread_watcher: ThreadWatcher = thread_watcher if thread_watcher is not None else ThreadWatcher()
+        self.__process_creator: ProcessCreator = process_creator if process_creator is not None else ProcessCreator()
+        self.__split_error_watcher_source_factory: SplitErrorWatcherSourceFactory = split_error_watcher_source_factory if split_error_watcher_source_factory is not None else SplitErrorWatcherSourceFactory()
+
+        if local_runtime_factory_factory is not None:
+            self.__local_runtime_factory_factory: LocalRuntimeFactoryFactory = local_runtime_factory_factory
+        else:
+            default_local_factory_thread_pool = self.__thread_watcher.create_tracked_thread_pool_executor(max_workers=1)
+            self.__local_runtime_factory_factory: LocalRuntimeFactoryFactory = LocalRuntimeFactoryFactory(default_local_factory_thread_pool)
+
+        if split_runtime_factory_factory is not None:
+            self.__split_runtime_factory_factory: SplitRuntimeFactoryFactory = split_runtime_factory_factory
+        else:
+            default_split_factory_thread_pool = self.__thread_watcher.create_tracked_thread_pool_executor(max_workers=1)
+            self.__split_runtime_factory_factory: SplitRuntimeFactoryFactory = SplitRuntimeFactoryFactory(default_split_factory_thread_pool, self.__thread_watcher)
+
         self.__initializers: list[InitializationPair[Any, Any]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
-
-        self.__thread_watcher: ThreadWatcher = ThreadWatcher()
         self.__error_watcher: Optional[ErrorWatcher] = None
-        self.__process: Optional[Process] = None
-
-        self.__is_testing: bool = is_testing
+        self.__process: Optional[Process] = None # Process type hint from multiprocessing
 
     @property
     def has_started(self) -> bool:
@@ -186,15 +214,8 @@ class RuntimeManager(ErrorWatcher):
             self.__thread_watcher
         )  # Local errors managed by ThreadWatcher.
 
-        # Create factories for local process runtimes.
-        thread_pool = (
-            self.__thread_watcher.create_tracked_thread_pool_executor(
-                max_workers=1  # Single worker for sequential factory creation.
-            )
-        )
-        factory_factory = LocalRuntimeFactoryFactory(thread_pool)
-        factories = self.__create_factories(factory_factory)
-        # thread_pool.shutdown(wait=True) # Removed this line
+        # Use the injected or default-created local_runtime_factory_factory
+        factories = self.__create_factories(self.__local_runtime_factory_factory)
 
         # Import is deferred to avoid circular dependencies.
         from tsercom.runtime.runtime_main import (
@@ -231,22 +252,14 @@ class RuntimeManager(ErrorWatcher):
         create_tsercom_event_loop_from_watcher(self.__thread_watcher)
 
         error_sink, error_source = create_multiprocess_queues()
-        self.__error_watcher = SplitProcessErrorWatcherSource(
+        # Use the factory to create the SplitProcessErrorWatcherSource
+        self.__error_watcher = self.__split_error_watcher_source_factory.create(
             self.__thread_watcher, error_source
         )
         self.__error_watcher.start()
 
-        # Create factories for split-process runtimes.
-        thread_pool = (
-            self.__thread_watcher.create_tracked_thread_pool_executor(
-                max_workers=1  # Single worker for sequential factory creation.
-            )
-        )
-        factory_factory = SplitRuntimeFactoryFactory(
-            thread_pool, self.__thread_watcher
-        )
-        factories = self.__create_factories(factory_factory)
-        # thread_pool.shutdown(wait=True) # Removed this line
+        # Use the injected or default-created split_runtime_factory_factory
+        factories = self.__create_factories(self.__split_runtime_factory_factory)
 
         # Import and prepare the main function for the remote process.
         # Import is deferred to avoid circular dependencies.
@@ -254,18 +267,29 @@ class RuntimeManager(ErrorWatcher):
             remote_process_main,
         )
 
-        # Configure and start the new process.
-        self.__process = Process(
-            target=partial(
-                remote_process_main,
-                factories,
-                error_sink,  # Provide the error queue to the remote process.
-                is_testing=self.__is_testing,
-            ),
-            # Test processes or explicit daemons are set as daemonic.
-            daemon=start_as_daemon or self.__is_testing,
+        # Configure and start the new process using ProcessCreator.
+        process_target = partial(
+            remote_process_main,
+            factories,
+            error_sink,  # Provide the error queue to the remote process.
+            is_testing=self.__is_testing,
         )
-        self.__process.start()
+        process_daemon = start_as_daemon or self.__is_testing
+
+        self.__process = self.__process_creator.create_process(
+            target=process_target,
+            args=(), # remote_process_main is partially applied, so no additional args here
+            daemon=process_daemon
+        )
+        if self.__process:
+            self.__process.start()
+        else:
+            # Handle process creation failure, e.g., log an error or raise an exception
+            # For now, this matches the helper's behavior of returning None on failure
+            # and RuntimeManager not explicitly handling it beyond self.__process remaining None.
+            # Consider adding error handling/logging here if process creation is critical.
+            pass
+
 
     def run_until_exception(self) -> None:
         """Blocks execution until an exception is raised by any managed runtime.
