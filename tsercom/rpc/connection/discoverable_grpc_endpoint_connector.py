@@ -86,14 +86,14 @@ class DiscoverableGrpcEndpointConnector(
 
         super().__init__()  # Calls __init__ of DiscoveryHost.Client
 
-    def start(self) -> None:
+    async def start(self) -> None:
         """Starts the service discovery process.
 
         This initiates discovery by calling `start_discovery` on the configured
         `DiscoveryHost`. This instance (`self`) is passed as the client to
         receive `_on_service_added` callbacks from the `DiscoveryHost`.
         """
-        self.__discovery_host.start_discovery(self)
+        await self.__discovery_host.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
         """Marks a client associated with a `CallerIdentifier` as failed or unhealthy.

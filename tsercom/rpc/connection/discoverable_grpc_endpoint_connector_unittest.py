@@ -1,5 +1,6 @@
 import asyncio
 import pytest
+import pytest_asyncio # Added import
 
 # from unittest.mock import patch, AsyncMock, MagicMock, call # Removed
 import functools  # For functools.partial
@@ -26,7 +27,7 @@ from tsercom.caller_id.caller_identifier import (
 import tsercom.rpc.connection.discoverable_grpc_endpoint_connector as connector_module_to_patch
 
 
-@pytest.fixture
+@pytest_asyncio.fixture # Added decorator
 async def mock_aio_utils_fixture(monkeypatch, mocker):  # Added mocker
     """
     Mocks aio_utils functions used by DiscoverableGrpcEndpointConnector,
@@ -130,9 +131,7 @@ async def mock_aio_utils_fixture(monkeypatch, mocker):  # Added mocker
 @pytest.mark.asyncio
 class TestDiscoverableGrpcEndpointConnector:
 
-    @pytest.fixture(autouse=True)
-    def _ensure_aio_utils_mocked(self, mock_aio_utils_fixture):
-        self.mocked_aio_utils = mock_aio_utils_fixture
+    # Removed _ensure_aio_utils_mocked fixture
 
     @pytest.fixture
     def mock_client(self, mocker):  # Added mocker
@@ -216,7 +215,7 @@ class TestDiscoverableGrpcEndpointConnector:
             mock_client, mock_channel_factory, mock_discovery_host
         )
 
-        connector.start()
+        await connector.start()
 
         mock_discovery_host.start_discovery.assert_called_once_with(connector)
         # Event loop capture assertion removed as per instruction
@@ -329,11 +328,13 @@ class TestDiscoverableGrpcEndpointConnector:
 
     async def test_mark_client_failed_removes_caller_id(
         self,
+        mock_aio_utils_fixture, # Added fixture
         mock_client,
         mock_channel_factory,
         mock_discovery_host,
         test_caller_id,
     ):
+        self.mocked_aio_utils = mock_aio_utils_fixture # Added line
         print("\n--- Test: test_mark_client_failed_removes_caller_id ---")
         connector = DiscoverableGrpcEndpointConnector(
             mock_client, mock_channel_factory, mock_discovery_host
@@ -366,11 +367,14 @@ class TestDiscoverableGrpcEndpointConnector:
 
     async def test_mark_client_failed_uses_run_on_event_loop_if_different_loop(
         self,
+        mocker, 
+        mock_aio_utils_fixture, # Added fixture
         mock_client,
         mock_channel_factory,
         mock_discovery_host,
         test_caller_id,
     ):
+        self.mocked_aio_utils = mock_aio_utils_fixture # Added line
         print(
             "\n--- Test: test_mark_client_failed_uses_run_on_event_loop_if_different_loop ---"
         )
@@ -378,9 +382,10 @@ class TestDiscoverableGrpcEndpointConnector:
             mock_client, mock_channel_factory, mock_discovery_host
         )
 
-        mock_target_loop = mocker.MagicMock(
-            spec=asyncio.AbstractEventLoop
-        )  # mocker.MagicMock
+        # Use the current running loop as the target loop for the SUT
+        # The test will then mock `is_running_on_event_loop` to return False,
+        # simulating that the SUT thinks it's on a different loop.
+        mock_target_loop = asyncio.get_running_loop()
         connector._DiscoverableGrpcEndpointConnector__event_loop = (
             mock_target_loop
         )
@@ -389,14 +394,18 @@ class TestDiscoverableGrpcEndpointConnector:
         )
 
         # Configure aio_utils mocks for this scenario
+        # get_running_loop_or_none in SUT will return this same loop
         self.mocked_aio_utils["get_running_loop_or_none"].return_value = (
-            asyncio.get_running_loop()
-        )  # Current loop
+            mock_target_loop 
+        )
+        # is_running_on_event_loop will be mocked to return False,
+        # forcing the SUT to use run_on_event_loop
         self.mocked_aio_utils["is_running_on_event_loop"].return_value = (
-            False  # Simulate mismatch
+            False
         )
 
         await connector.mark_client_failed(test_caller_id)
+        await asyncio.sleep(0)  # Allow scheduled tasks to run
 
         self.mocked_aio_utils["run_on_event_loop"].assert_called_once()
         # Check arguments of the call to run_on_event_loop
@@ -411,10 +420,10 @@ class TestDiscoverableGrpcEndpointConnector:
         assert isinstance(partial_arg, functools.partial)
         assert (
             partial_arg.func.__name__
-            == "_DiscoverableGrpcEndpointConnector__mark_client_failed_impl"
+            == "_mark_client_failed_impl"
         )
         assert partial_arg.args == (test_caller_id,)
-        assert loop_arg is mock_target_loop
+        assert loop_arg is mock_target_loop # Should be called with the SUT's __event_loop
 
         # __mark_client_failed_impl (called by the mock) should have removed the caller_id
         assert (
