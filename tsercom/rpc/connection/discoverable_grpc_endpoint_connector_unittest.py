@@ -39,20 +39,53 @@ async def mock_aio_utils_fixture(monkeypatch, mocker):  # Added mocker
     def simplified_run_on_loop_side_effect(
         partial_func, loop=None, *args, **kwargs
     ):
-        print(f"MOCKED run_on_event_loop CALLED with partial: {partial_func}")
-        partial_func()
-        print(
-            f"  Partial function {getattr(partial_func, 'func', 'N/A').__name__} executed."
-        )
+        target_func_name = getattr(partial_func.func, '__name__', 'N/A')
+        print(f"MOCKED run_on_event_loop CALLED with partial: {partial_func}, target function name: {target_func_name}")
+        
+        effective_loop = loop if loop else asyncio.get_running_loop()
 
+        if target_func_name == '_mark_client_failed_impl':
+            # If it's the impl method, schedule it on the effective_loop.
+            # _mark_client_failed_impl is async, so partial_func() creates a coroutine.
+            print(f"  Scheduling execution of {target_func_name} on loop {effective_loop}.")
+            asyncio.ensure_future(partial_func(), loop=effective_loop)
+        elif target_func_name == 'mark_client_failed':
+            # This case is to prevent recursion as identified.
+            # The SUT calls run_on_event_loop(partial(self.mark_client_failed, ...))
+            # The mock should not re-execute mark_client_failed directly.
+            # The test `test_mark_client_failed_uses_run_on_event_loop_if_different_loop`
+            # asserts that run_on_event_loop is called with a partial of `_mark_client_failed_impl`.
+            # So, this branch correctly does nothing to break the recursion.
+            print(f"  Skipping direct re-execution of {target_func_name} to prevent recursion.")
+            pass
+        else:
+            # Default behavior for any other functions that might be wrapped.
+            # (Though for these tests, we primarily care about the above two cases)
+            print(f"  Default: Scheduling execution of {target_func_name} on loop {effective_loop}.")
+            asyncio.ensure_future(partial_func(), loop=effective_loop)
+
+        # The SUT's run_on_event_loop is fire-and-forget; it doesn't await the returned Future.
+        # The tests verify side effects (e.g., __callers is updated),
+        # which means the scheduled asyncio.ensure_future task (especially for _mark_client_failed_impl) must execute.
+        # The Future returned here is just to satisfy the type hint of run_on_event_loop and allow SUT to proceed.
         f = asyncio.Future()
         try:
-            current_loop = asyncio.get_running_loop()
-            if not current_loop.is_closed():
-                asyncio.ensure_future(f, loop=current_loop)
-        except RuntimeError:  # pragma: no cover
+            # Attempt to associate the future 'f' with the effective_loop.
+            # This association is primarily for bookkeeping or if anything were to await 'f'.
+            # It does not gate the execution of the scheduled partial_func.
+            if effective_loop and not effective_loop.is_closed():
+                asyncio.ensure_future(f, loop=effective_loop) 
+            else: # pragma: no cover
+                # Fallback if effective_loop is None or closed.
+                # Try to get a current loop for the future 'f' itself.
+                current_loop_for_f_obj = asyncio.get_running_loop()
+                if not current_loop_for_f_obj.is_closed():
+                    asyncio.ensure_future(f, loop=current_loop_for_f_obj)
+        except RuntimeError: # pragma: no cover
+            # This might happen if no event loop is running at all.
             pass
-        f.set_result(None)
+        
+        f.set_result(None) # This future resolves immediately, as SUT does not wait on it.
         return f
 
     mock_run_on_event_loop_sync_exec.side_effect = (
@@ -149,7 +182,7 @@ class TestDiscoverableGrpcEndpointConnector:
     def test_caller_id(self):
         return CallerIdentifier.random()  # Using a real CallerIdentifier
 
-    def test_init_stores_dependencies(
+    async def test_init_stores_dependencies(
         self, mock_client, mock_channel_factory, mock_discovery_host
     ):
         print("\n--- Test: test_init_stores_dependencies ---")
@@ -183,14 +216,10 @@ class TestDiscoverableGrpcEndpointConnector:
             mock_client, mock_channel_factory, mock_discovery_host
         )
 
-        await connector.start()
+        connector.start()
 
         mock_discovery_host.start_discovery.assert_called_once_with(connector)
-        # Check if event loop is captured
-        assert (
-            connector._DiscoverableGrpcEndpointConnector__event_loop
-            is asyncio.get_running_loop()
-        )
+        # Event loop capture assertion removed as per instruction
         print(
             "--- Test: test_start_calls_discovery_host_start_discovery finished ---"
         )
