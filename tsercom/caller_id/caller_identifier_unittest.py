@@ -30,19 +30,20 @@ def PatchedCallerIdentifier(module_mocker):  # Renamed fixture
     import importlib
     import tsercom.caller_id.caller_identifier  # SUT module
 
-    # Mock the .proto module and its CallerId attribute
-    mock_proto_pkg_module = module_mocker.MagicMock(
-        name="mock_tsercom_caller_id_proto"
-    )
-    # Configure CallerId attribute on the mock module itself
-    mock_proto_pkg_module.CallerId = MockProtoCallerIdType
+    # Create a mock object that will represent the ...caller_id_pb2 module
+    mock_pb2_module = module_mocker.MagicMock(name="mock_caller_id_pb2_module")
+    mock_pb2_module.CallerId = MockProtoCallerIdType # Set the CallerId attribute on this mock module
 
-    # Patch sys.modules to make 'tsercom.caller_id.proto' point to our mock module
+    # Patch sys.modules to make the specific import path point to our mock_pb2_module
     module_mocker.patch.dict(
-        sys.modules, {"tsercom.caller_id.proto": mock_proto_pkg_module}
+        sys.modules,
+        {
+            "tsercom.caller_id.proto.generated.v1_70.caller_id_pb2": mock_pb2_module,
+        },
     )
 
-    # Reload the SUT module to ensure it picks up the mocked ProtoCallerId
+    # Reload the SUT module to ensure it picks up the mocked CallerId
+    # from the now-mocked ...caller_id_pb2 module
     importlib.reload(tsercom.caller_id.caller_identifier)
 
     return tsercom.caller_id.caller_identifier.CallerIdentifier

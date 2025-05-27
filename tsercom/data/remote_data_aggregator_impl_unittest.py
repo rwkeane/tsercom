@@ -322,7 +322,8 @@ def test_stop_with_caller_id(
     mock_organizer_2.stop.assert_not_called()
     assert caller_id_1 in aggregator._RemoteDataAggregatorImpl__organizers
 
-    with pytest.raises(AssertionError):
+    # Expect KeyError when stopping a non-existent ID
+    with pytest.raises(KeyError, match="Caller ID .* not found in active organizers during stop."):
         aggregator.stop(DummyCallerIdentifier("non_existent_id"))
 
 
@@ -563,7 +564,8 @@ def test_get_data_for_timestamp(
     data = exposed_data_factory(caller_id=caller_id_1)
     mock_organizer.get_data_for_timestamp.return_value = data
 
-    assert aggregator.get_data_for_timestamp(caller_id_1, timestamp) is data
+    # Corrected argument order: timestamp first, then caller_id_1
+    assert aggregator.get_data_for_timestamp(timestamp, caller_id_1) is data
     mock_organizer.get_data_for_timestamp.assert_called_once_with(timestamp)
 
 
@@ -575,14 +577,14 @@ def test_data_retrieval_non_existent_id(mock_thread_pool):
     non_existent_id = DummyCallerIdentifier("non_existent")
     timestamp = datetime.datetime.now()
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(KeyError, match="Caller ID .* not found for has_new_data."):
         aggregator.has_new_data(non_existent_id)
-    with pytest.raises(AssertionError):
+    with pytest.raises(KeyError, match="Caller ID .* not found for get_new_data."):
         aggregator.get_new_data(non_existent_id)
-    with pytest.raises(AssertionError):
+    with pytest.raises(KeyError, match="Caller ID .* not found for get_most_recent_data."):
         aggregator.get_most_recent_data(non_existent_id)
-    with pytest.raises(AssertionError):
-        aggregator.get_data_for_timestamp(non_existent_id, timestamp)
+    with pytest.raises(KeyError, match="Caller ID .* not found for get_data_for_timestamp."):
+        aggregator.get_data_for_timestamp(timestamp, non_existent_id)
 
 
 # 5. _on_data_available() Test

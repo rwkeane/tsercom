@@ -57,12 +57,12 @@ async def test_set_id_multiple_times_raises_assertion():
     # First call should succeed
     await waiter.set_caller_id(cid1)
 
-    # Second call with a different ID should raise AssertionError
-    with pytest.raises(AssertionError):
+    # Second call with a different ID should raise RuntimeError
+    with pytest.raises(RuntimeError):
         await waiter.set_caller_id(cid2)
 
-    # Also test that setting with the same ID raises AssertionError
-    with pytest.raises(AssertionError):
+    # Also test that setting with the same ID raises RuntimeError
+    with pytest.raises(RuntimeError):
         await waiter.set_caller_id(cid1)
 
 
@@ -84,15 +84,15 @@ async def test_has_id():
     """
     waiter = CallerIdentifierWaiter()
 
-    # Initially, __caller_id is None, so has_id (which implies "is ID slot empty / waiting for ID?") should be True.
+    # Initially, __caller_id is None, so has_id() (meaning "is ID present?") should be False.
     assert (
-        await waiter.has_id() is True
-    ), "Initially, has_id should be True (waiting for ID)."
+        await waiter.has_id() is False
+    ), "Initially, has_id should be False (ID not yet set)."
 
     cid = CallerIdentifier.random()
     await waiter.set_caller_id(cid)
 
-    # After setting, __caller_id is not None, so has_id should be False.
+    # After setting, __caller_id is not None, so has_id() should be True.
     assert (
-        await waiter.has_id() is False
-    ), "After setting ID, has_id should be False."
+        await waiter.has_id() is True
+    ), "After setting ID, has_id should be True (ID is now set)."

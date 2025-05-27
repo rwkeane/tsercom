@@ -149,8 +149,9 @@ class TestClientIdFetcher:
         mock_stub.GetId.return_value = mock_response
 
         # Use mocker.patch for the context manager or decorator functionality
+        # Patching where it's used by the SUT (ClientIdFetcher)
         mock_try_parse = mocker.patch(
-            "tsercom.caller_id.caller_identifier.CallerIdentifier.try_parse"
+            "tsercom.caller_id.client_id_fetcher.CallerIdentifier.try_parse"
         )
         mock_try_parse.return_value = None
 

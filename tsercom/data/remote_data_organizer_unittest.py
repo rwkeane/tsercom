@@ -166,7 +166,7 @@ def test_start(organizer, mock_is_running_tracker):
 
 def test_start_asserts_if_already_running(organizer, mock_is_running_tracker):
     mock_is_running_tracker.get.return_value = True
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError, match=".*is already running."):
         organizer.start()
 
 
@@ -183,7 +183,7 @@ def test_stop(organizer, mock_is_running_tracker, mocker):
 
 def test_stop_asserts_if_not_running(organizer, mock_is_running_tracker):
     mock_is_running_tracker.get.return_value = False
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError, match=".*is not running or has already been stopped."):
         organizer.stop()
 
 
