@@ -133,7 +133,7 @@ class TestRuntimeManager:
             manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
 
     @patch('tsercom.api.runtime_manager.set_tsercom_event_loop')
-    @patch('tsercom.api.runtime_manager.initialize_runtimes')
+    @patch('tsercom.runtime.runtime_main.initialize_runtimes')
     def test_start_in_process(
         self,
         mock_initialize_runtimes,
@@ -195,7 +195,7 @@ class TestRuntimeManager:
 
     @patch('tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher')
     @patch('tsercom.api.runtime_manager.create_multiprocess_queues')
-    @patch('tsercom.api.runtime_manager.remote_process_main') # Mock the target of the process
+    @patch('tsercom.runtime.runtime_main.remote_process_main') # Mock the target of the process
     def test_start_out_of_process(
         self,
         mock_remote_process_main,
@@ -262,7 +262,7 @@ class TestRuntimeManager:
         
         mocker.patch('tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher')
         mocker.patch('tsercom.api.runtime_manager.create_multiprocess_queues', return_value=(MagicMock(), MagicMock()))
-        mocker.patch('tsercom.api.runtime_manager.remote_process_main')
+        mocker.patch('tsercom.runtime.runtime_main.remote_process_main')
         mock_process_creator = manager_with_mocks._RuntimeManager__process_creator # Get the mock from manager
 
         manager_with_mocks.start_out_of_process(start_as_daemon=False) # Explicitly False
@@ -332,7 +332,7 @@ class TestRuntimeManager:
         mock_local_rff.create_factory.side_effect = mock_create_factory_impl
         
         with patch('tsercom.api.runtime_manager.set_tsercom_event_loop'), \
-             patch('tsercom.api.runtime_manager.initialize_runtimes'):
+             patch('tsercom.runtime.runtime_main.initialize_runtimes'):
             manager_with_mocks.start_in_process(loop)
 
         assert future_handle.done()
@@ -345,7 +345,7 @@ class TestRuntimeManager:
 
         mocker.patch('tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher')
         mocker.patch('tsercom.api.runtime_manager.create_multiprocess_queues', return_value=(MagicMock(), MagicMock()))
-        mocker.patch('tsercom.api.runtime_manager.remote_process_main')
+        mocker.patch('tsercom.runtime.runtime_main.remote_process_main')
         
         manager_with_mocks.start_out_of_process()
         

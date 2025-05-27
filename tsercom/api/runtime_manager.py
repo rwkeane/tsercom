@@ -313,7 +313,7 @@ class RuntimeManager(ErrorWatcher):
                 "Error watcher is not available. Ensure the RuntimeManager has been properly started."
             )
 
-        self.__thread_watcher.run_until_exception()
+        self.__error_watcher.run_until_exception()
 
     def check_for_exception(self) -> None:
         """Checks for and re-raises any exceptions from managed runtimes.
@@ -335,7 +335,7 @@ class RuntimeManager(ErrorWatcher):
                 "Error watcher is not available. Ensure the RuntimeManager has been properly started."
             )
 
-        self.__thread_watcher.check_for_exception()
+        self.__error_watcher.check_for_exception()
 
     def __create_factories(
         self, factory_factory: RuntimeFactoryFactory[Any, Any]
