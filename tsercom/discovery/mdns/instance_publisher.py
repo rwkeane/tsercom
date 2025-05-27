@@ -1,4 +1,5 @@
 import datetime
+from typing import Callable, Dict, Optional
 from uuid import getnode as get_mac
 
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
@@ -17,6 +18,9 @@ class InstancePublisher:
         self,
         port: int,
         service_type: str,
+        record_publisher_factory: Callable[
+            [str, str, int, Dict[bytes, bytes | None]], RecordPublisher
+        ],
         readable_name: str | None = None,
         instance_name: str | None = None,
     ) -> None:
@@ -25,6 +29,7 @@ class InstancePublisher:
         Args:
             port: The network port on which the service is available.
             service_type: The mDNS service type string (e.g., "_my_service._tcp.local.").
+            record_publisher_factory: A factory function to create RecordPublisher instances.
             readable_name: An optional human-readable name for the service.
                            This will be included in the TXT record if provided.
             instance_name: An optional specific mDNS instance name. If None,
@@ -65,6 +70,7 @@ class InstancePublisher:
                 f"instance_name must be a string or None, got {type(instance_name).__name__}."
             )
 
+        self.__port = port  # Store port for use with the factory
         self.__name: str | None = readable_name
 
         # The name is based on port and MAC address to provide some uniqueness,
@@ -89,11 +95,11 @@ class InstancePublisher:
                 "_make_txt_record failed to produce a TXT record."
             )
 
-        self.__record_publisher: RecordPublisher = RecordPublisher(
-            effective_instance_name, service_type, port, txt_record
+        self.__record_publisher = record_publisher_factory(
+            effective_instance_name, service_type, self.__port, txt_record
         )
 
-    def _make_txt_record(self) -> dict[bytes, bytes | None]:
+    def _make_txt_record(self) -> Dict[bytes, bytes | None]:
         """Creates the TXT record dictionary for the mDNS announcement.
 
         The TXT record includes the publication timestamp and, if provided,

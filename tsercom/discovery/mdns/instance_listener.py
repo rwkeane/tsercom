@@ -12,7 +12,8 @@ from typing import Dict, Generic, List, TypeVar, Optional
 import logging
 
 from tsercom.discovery.service_info import ServiceInfo
-from tsercom.discovery.mdns.record_listener import RecordListener
+from tsercom.discovery.mdns.record_listener import RecordListener # Still needed for RecordListener.Client type
+from tsercom.discovery.mdns.protocols import RecordListenerProtocol
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 
 # Generic type for service information, bound by the base ServiceInfo class.
@@ -55,20 +56,19 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
     def __init__(
         self,
         client: "InstanceListener.Client[TServiceInfo]",
-        service_type: str,
+        record_listener: RecordListenerProtocol, # Changed here
     ) -> None:
         """Initializes the InstanceListener.
 
         Args:
             client: An object implementing the `InstanceListener.Client` interface.
                     It will receive notifications about discovered services.
-            service_type: The mDNS service type string to listen for
-                          (e.g., "_my_service._tcp.local.").
+            record_listener: An instance of `RecordListener` that this
+                             `InstanceListener` will use to monitor mDNS records.
 
         Raises:
             ValueError: If `client` is None.
-            TypeError: If `client` is not a subclass of `InstanceListener.Client`,
-                       or if `service_type` is not a string.
+            TypeError: If `client` is not an instance of `InstanceListener.Client`.
         """
         if client is None:
             raise ValueError(
@@ -82,14 +82,9 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
             raise TypeError(
                 f"Client must be an instance of InstanceListener.Client, got {type(client).__name__}."
             )
-        if not isinstance(service_type, str):
-            raise TypeError(
-                f"service_type must be a string, got {type(service_type).__name__}."
-            )
 
         self.__client: InstanceListener.Client[TServiceInfo] = client
-        # This InstanceListener acts as the client to the RecordListener.
-        self.__listener: RecordListener = RecordListener(self, service_type)
+        self.__listener: RecordListenerProtocol = record_listener # Changed here
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
