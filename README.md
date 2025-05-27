@@ -1,12 +1,8 @@
-## Status & Coverage
+# TSERCOM
+## Time SERies COMmunication
 
 [![CI Tests](https://github.com/rwkeane/tsercom/actions/workflows/python-tests.yml/badge.svg)](https://github.com/rwkeane/tsercom/actions/workflows/python-tests.yml)
 [![codecov](https://codecov.io/gh/rwkeane/tsercom/branch/main/graph/badge.svg)](https://codecov.io/gh/rwkeane/tsercom)
-
-Code coverage reports are automatically generated on each push via GitHub Actions and uploaded to [Codecov](https://app.codecov.io/gh/rwkeane/tsercom).
-
-# TSERCOM
-## Time SERies COMmunication
 
 Tsercom is a Python library designed to simplify the transmission and management of time-series data across networks using gRPC. It provides tools for establishing communication between clients and servers, handling data serialization, managing persistent client identities, and synchronizing timestamps, making it suitable for distributed data science and machine learning applications.
 
