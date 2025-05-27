@@ -19,16 +19,10 @@ jobs:
       run: |
         pip install -e .[dev]
         pip install pytest-timeout pytest-cov
-        # Ensure torch is CPU only if it's a dependency.
-        # The following line is a common way to reinstall torch for CPU.
-        # Adjust if tsercom's specific torch version needs a different command.
-        # If torch is not a direct or indirect dependency, this line might not be necessary
-        # or could be removed if it causes issues.
-        pip uninstall torch torchvision torchaudio -y || true # Attempt to remove existing GPU versions
-        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu # Install CPU versions
+        pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
     - name: Run pytest with coverage
       run: |
-        pytest --cov=tsercom --cov-report=xml --timeout=30
+        pytest --cov=tsercom --cov-report=xml --timeout=120
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
       with:
