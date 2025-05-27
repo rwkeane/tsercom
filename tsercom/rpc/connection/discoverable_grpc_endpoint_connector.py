@@ -112,23 +112,22 @@ class DiscoverableGrpcEndpointConnector(
             logging.warning(
                 "mark_client_failed called before event loop was captured. This may indicate an issue if called before any service discovery."
             )
-            # Attempt to get the loop now, though ideally it's set by _on_service_added first.
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
                 logging.error(
                     "Failed to get event loop in mark_client_failed."
                 )
-                # Cannot proceed without an event loop if not already on one.
-                # Or, if this function *must* run on a loop, it should be scheduled.
-                # For now, log and return if loop is critical and missing.
                 return
 
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(
-                partial(self.mark_client_failed, caller_id), self.__event_loop
+                partial(self._mark_client_failed_impl, caller_id), self.__event_loop
             )
             return
 
+        await self._mark_client_failed_impl(caller_id)
+
+    async def _mark_client_failed_impl(self, caller_id: CallerIdentifier) -> None:
         # Assert that the caller_id was indeed being tracked.
         assert (
             caller_id in self.__callers
