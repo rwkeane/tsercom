@@ -158,7 +158,7 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    return False  # Changed from raise KeyError
+                    raise KeyError(f"Caller ID '{id}' not found for has_new_data.")
                 return organizer.has_new_data()
 
             results = {}
@@ -258,10 +258,8 @@ class RemoteDataAggregatorImpl(
                     raise KeyError(
                         f"Caller ID '{id}' not found for get_data_for_timestamp."
                     )
-                # The organizer's method should also take timestamp then id
-                return organizer.get_data_for_timestamp(
-                    timestamp=timestamp, id=id
-                )
+                # The organizer's method only takes timestamp, as it's specific to an ID
+                return organizer.get_data_for_timestamp(timestamp)
 
             results = {}
             for key, organizer_item in self.__organizers.items():

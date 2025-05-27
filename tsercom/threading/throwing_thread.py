@@ -15,10 +15,14 @@ class ThrowingThread(threading.Thread):
 
     def __init__(
         self,
-        target: Callable[..., Any],  # Target function for the thread
-        on_error_cb: Callable[[Exception], None],  # Callback for exceptions
-        *args: Any,  # Positional arguments for the target function
-        **kwargs: Any,  # Keyword arguments for the target function
+        target: Callable[..., Any],
+        on_error_cb: Callable[[Exception], None],
+        args: tuple = (),       # Explicit 'args' for target
+        kwargs: dict = None,    # Explicit 'kwargs' for target
+        # Allow other threading.Thread parameters too
+        group: None = None,
+        name: None = None,
+        daemon: None = None,
     ) -> None:
         """
         Initializes a ThrowingThread.
@@ -26,19 +30,20 @@ class ThrowingThread(threading.Thread):
         Args:
             target (Callable[..., Any]): The callable object to be invoked by the run() method.
             on_error_cb (Callable[[Exception], None]): A callback function that will be
-                called if an exception occurs in the target callable. The exception
-                object will be passed as an argument to this callback.
-            *args (Any): Variable length argument list for the target callable.
-            **kwargs (Any): Arbitrary keyword arguments for the target callable.
+                called if an exception occurs in the target callable.
+            args (tuple): Arguments to pass to the target function.
+            kwargs (dict): Keyword arguments to pass to the target function.
+            group, name, daemon: Standard threading.Thread arguments.
         """
         assert on_error_cb is not None, "on_error_cb cannot be None"
         self.__on_error_cb = on_error_cb
-        # Store the actual target to be called in _wrapped_target
         self._actual_target = target
-        self._args = args
-        self._kwargs = kwargs
-        # Pass self._wrapped_target to super().__init__
-        super().__init__(group=None, target=self._wrapped_target, daemon=True)
+        self._actual_args = args
+        self._actual_kwargs = kwargs if kwargs is not None else {}
+        
+        # The target for the base threading.Thread is _wrapped_target
+        # _wrapped_target itself takes no arguments from the Thread's calling mechanism
+        super().__init__(group=group, target=self._wrapped_target, name=name, daemon=daemon)
 
     def _wrapped_target(self) -> None:
         """
@@ -50,9 +55,9 @@ class ThrowingThread(threading.Thread):
         """
         try:
             if self._actual_target:
-                self._actual_target(*self._args, **self._kwargs)
+                self._actual_target(*self._actual_args, **self._actual_kwargs)
         except Exception as e:
-            logging.error(  # This logging.error is part of the original logic
+            logging.error(
                 f"ThrowingThread._wrapped_target: Exception caught in thread {self.name} ({threading.get_ident()}): {e!r}",
                 exc_info=True,
             )
