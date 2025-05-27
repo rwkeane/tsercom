@@ -120,8 +120,9 @@ class TestClientRuntimeDataHandler:
         )
 
     def test_register_caller(
-        self, handler, mock_endpoint_data_processor, mocker
+        self, handler_and_class_mocks, mock_endpoint_data_processor, mocker
     ):
+        handler = handler_and_class_mocks["handler"]
         mock_caller_id = CallerIdentifier.random()
         mock_endpoint = "192.168.1.100"
         mock_port = 12345
@@ -131,14 +132,15 @@ class TestClientRuntimeDataHandler:
             mock_synchronized_clock
         )
 
-        with mocker.patch.object(
-            handler,
-            "_create_data_processor",
-            return_value=mock_endpoint_data_processor,
-        ) as mock_create_dp:
-            returned_processor = handler._register_caller(
-                mock_caller_id, mock_endpoint, mock_port
-            )
+        # Patch the _create_data_processor method directly on the handler instance
+        # This is generally more robust if the method is guaranteed to exist.
+        mock_create_dp_method = mocker.patch.object(
+            handler, "_create_data_processor", return_value=mock_endpoint_data_processor
+        )
+        
+        returned_processor = handler._register_caller(
+            mock_caller_id, mock_endpoint, mock_port
+        )
 
         handler._mock_id_tracker_instance.add.assert_called_once_with(
             mock_caller_id, mock_endpoint, mock_port
@@ -146,40 +148,18 @@ class TestClientRuntimeDataHandler:
         handler._mock_time_sync_tracker_instance.on_connect.assert_called_once_with(
             mock_endpoint
         )
-        mock_create_dp.assert_called_once_with(
+        # Use the patched method directly for assertion
+        mock_create_dp_method.assert_called_once_with(
             mock_caller_id, mock_synchronized_clock
         )
         assert returned_processor == mock_endpoint_data_processor
 
-    def test_unregister_caller(self, handler):
-        mock_caller_id = CallerIdentifier.random()
-        mock_address = "192.168.1.200"
-        mock_port = 54321
-
-        handler._mock_id_tracker_instance.get.return_value = (
-            mock_address,
-            mock_port,
-        )
-
-        with pytest.raises(AssertionError) as excinfo:
-            handler._unregister_caller(mock_caller_id)
-
-        handler._mock_id_tracker_instance.get.assert_called_once_with(
-            mock_caller_id
-        )
-
-        # self.__clock_tracker.on_disconnect(address) is NOT called due to the assert False
-        handler._mock_time_sync_tracker_instance.on_disconnect.assert_not_called()
-
-        assert "Find out if I should be keeping or deleting these?" in str(
-            excinfo.value
-        )
-
     # Remove the old test_unregister_caller as its testing an assert False
     # The new tests will cover the updated logic.
 
-    def test_unregister_caller_valid_id(self, handler):
+    def test_unregister_caller_valid_id(self, handler_and_class_mocks):
         """Test _unregister_caller with a valid and existing caller_id."""
+        handler = handler_and_class_mocks["handler"]
         mock_caller_id = CallerIdentifier.random()
         mock_address = "192.168.1.100"
         mock_port = 12345
@@ -205,18 +185,20 @@ class TestClientRuntimeDataHandler:
             mock_address
         )
 
-    def test_unregister_caller_invalid_id_not_found(self, handler, mocker):
+    def test_unregister_caller_invalid_id_not_found(self, handler_and_class_mocks, mocker):
         """Test _unregister_caller with a non-existent caller_id."""
+        handler = handler_and_class_mocks["handler"]
         mock_caller_id = CallerIdentifier.random()
 
         # Configure mocks
         handler._mock_id_tracker_instance.try_get.return_value = None
 
-        # Patch logging.warning for this specific test
-        with mocker.patch(
+        # Patch the logging module used in client_runtime_data_handler
+        mock_logging_module = mocker.patch(
             "tsercom.runtime.client.client_runtime_data_handler.logging"
-        ) as mock_logging:
-            result = handler._unregister_caller(mock_caller_id)
+        )
+        
+        result = handler._unregister_caller(mock_caller_id)
 
         assert result is False
         handler._mock_id_tracker_instance.try_get.assert_called_once_with(
@@ -224,11 +206,12 @@ class TestClientRuntimeDataHandler:
         )
         handler._mock_id_tracker_instance.remove.assert_not_called()
         handler._mock_time_sync_tracker_instance.on_disconnect.assert_not_called()
-        mock_logging.warning.assert_called_once_with(
+        mock_logging_module.warning.assert_called_once_with(
             f"Attempted to unregister non-existent caller_id: {mock_caller_id}"
         )
 
-    def test_try_get_caller_id(self, handler):
+    def test_try_get_caller_id(self, handler_and_class_mocks):
+        handler = handler_and_class_mocks["handler"]
         mock_endpoint = "10.0.0.1"
         mock_port = 8080
         expected_caller_id = CallerIdentifier.random()
@@ -246,7 +229,8 @@ class TestClientRuntimeDataHandler:
         )
         assert returned_caller_id == expected_caller_id
 
-    def test_try_get_caller_id_not_found(self, handler):
+    def test_try_get_caller_id_not_found(self, handler_and_class_mocks):
+        handler = handler_and_class_mocks["handler"]
         mock_endpoint = "10.0.0.2"
         mock_port = 8081
 
