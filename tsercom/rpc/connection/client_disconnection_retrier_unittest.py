@@ -55,14 +55,8 @@ class ConcreteTestRetrier(ClientDisconnectionRetrier[MockStopable]):
 
 # Pytest Fixtures
 
-@pytest.fixture
-def event_loop():
-    # Pytest's built-in event_loop fixture for asyncio tests
-    # Forcing a new loop for each test to ensure isolation
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
+# The custom event_loop fixture has been removed.
+# pytest-asyncio or anyio is expected to provide this.
 
 @pytest.fixture
 def mock_thread_watcher(mocker: MockerFixture): # Added MockerFixture type hint
