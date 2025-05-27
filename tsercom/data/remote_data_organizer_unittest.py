@@ -183,7 +183,9 @@ def test_stop(organizer, mock_is_running_tracker, mocker):
 
 def test_stop_asserts_if_not_running(organizer, mock_is_running_tracker):
     mock_is_running_tracker.get.return_value = False
-    with pytest.raises(RuntimeError, match=".*is not running or has already been stopped."):
+    with pytest.raises(
+        RuntimeError, match=".*is not running or has already been stopped."
+    ):
         organizer.stop()
 
 
@@ -416,9 +418,10 @@ def test_on_triggered_submits_to_thread_pool(
     )
     assert submitted_callable.args == (timeout_val,)
 
-
-# 9. __timeout_old_data()
-    def test_timeout_old_data_removes_old_items(organizer, mock_caller_id, mocker, mock_is_running_tracker): # Added mock_is_running_tracker
+    # 9. __timeout_old_data()
+    def test_timeout_old_data_removes_old_items(
+        organizer, mock_caller_id, mocker, mock_is_running_tracker
+    ):  # Added mock_is_running_tracker
         current_time_mock_val = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
         # Ensure the organizer is "running" for this test
@@ -430,7 +433,8 @@ def test_on_triggered_submits_to_thread_pool(
         datetime_module_mock.datetime = datetime_class_mock
         datetime_module_mock.timedelta = datetime.timedelta
         mocker.patch(
-            "tsercom.data.remote_data_organizer.datetime", new=datetime_module_mock
+            "tsercom.data.remote_data_organizer.datetime",
+            new=datetime_module_mock,
         )
 
         timeout_seconds = 30
@@ -471,7 +475,10 @@ def test_timeout_old_data_empty_deque(organizer):
 
 
 def test_on_triggered_partial_call_integration(
-    organizer, mock_caller_id, mocker, mock_is_running_tracker # Added mock_is_running_tracker
+    organizer,
+    mock_caller_id,
+    mocker,
+    mock_is_running_tracker,  # Added mock_is_running_tracker
 ):
     # Ensure the organizer is "running" for this test, so __timeout_old_data executes
     mock_is_running_tracker.get.return_value = True

@@ -176,7 +176,9 @@ class TestThreadWatcher:
         )  # Wait for the thread to complete (it will die due to unhandled exc)
 
         # Assert that ThreadWatcher DID see the exception from the target
-        with pytest.raises(ExcFromTarget, match="Error from ThrowingThread target"):
+        with pytest.raises(
+            ExcFromTarget, match="Error from ThrowingThread target"
+        ):
             self.watcher.check_for_exception()
 
         # Verify the barrier WAS set

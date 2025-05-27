@@ -314,7 +314,7 @@ class TestGlobalEventLoop:
         loops_to_set = [asyncio.new_event_loop() for _ in range(num_threads)]
 
         def attempt_set_loop(loop_instance: asyncio.AbstractEventLoop):
-            nonlocal success_count, runtime_error_count # Allow modification of outer scope variables
+            nonlocal success_count, runtime_error_count  # Allow modification of outer scope variables
             try:
                 global_event_loop.set_tsercom_event_loop(loop_instance)
                 with counter_lock:

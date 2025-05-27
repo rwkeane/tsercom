@@ -32,7 +32,9 @@ def PatchedCallerIdentifier(module_mocker):  # Renamed fixture
 
     # Create a mock object that will represent the ...caller_id_pb2 module
     mock_pb2_module = module_mocker.MagicMock(name="mock_caller_id_pb2_module")
-    mock_pb2_module.CallerId = MockProtoCallerIdType # Set the CallerId attribute on this mock module
+    mock_pb2_module.CallerId = (
+        MockProtoCallerIdType  # Set the CallerId attribute on this mock module
+    )
 
     # Patch sys.modules to make the specific import path point to our mock_pb2_module
     module_mocker.patch.dict(

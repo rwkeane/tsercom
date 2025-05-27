@@ -66,7 +66,8 @@ def test_exposed_data_with_responder_init_raises_assertion_error_if_responder_is
     """Tests that AssertionError is raised if the responder is None."""
     # The application code raises ValueError if responder is None.
     with pytest.raises(
-        ValueError, match="Responder argument cannot be None for ExposedDataWithResponder."
+        ValueError,
+        match="Responder argument cannot be None for ExposedDataWithResponder.",
     ):
         ExposedDataWithResponder(
             caller_id=mock_caller_id, timestamp=mock_timestamp, responder=None
@@ -84,7 +85,8 @@ def test_exposed_data_with_responder_init_raises_assertion_error_if_responder_is
     invalid_responder = NotAResponder()
     # The application code raises TypeError if responder is not a subclass of RemoteDataResponder.
     with pytest.raises(
-        TypeError, match="Responder must be a subclass of RemoteDataResponder, got NotAResponder."
+        TypeError,
+        match="Responder must be a subclass of RemoteDataResponder, got NotAResponder.",
     ):
         ExposedDataWithResponder(
             caller_id=mock_caller_id,
@@ -137,7 +139,8 @@ def test_exposed_data_with_responder_init_with_autospec_mock_responder_fails_iss
     # This test verifies our understanding of why the previous generic MagicMock failed.
     # The application code raises TypeError as type(autospec_mock_responder) is MagicMock.
     with pytest.raises(
-        TypeError, match="Responder must be a subclass of RemoteDataResponder, got NonCallableMagicMock."
+        TypeError,
+        match="Responder must be a subclass of RemoteDataResponder, got NonCallableMagicMock.",
     ):
         ExposedDataWithResponder(
             caller_id=mock_caller_id,

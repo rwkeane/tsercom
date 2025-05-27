@@ -80,9 +80,7 @@ class ClientDisconnectionRetrier(
         self.__delay_before_retry_func = (
             delay_before_retry_func or default_delay_before_retry
         )
-        self.__is_grpc_error_func = (
-            is_grpc_error_func or default_is_grpc_error
-        )
+        self.__is_grpc_error_func = is_grpc_error_func or default_is_grpc_error
         self.__is_server_unavailable_error_func = (
             is_server_unavailable_error_func
             or default_is_server_unavailable_error
@@ -90,7 +88,9 @@ class ClientDisconnectionRetrier(
         self.__max_retries = max_retries
 
         # Event loop on which this instance's async methods should primarily run.
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = self.__provided_event_loop
+        self.__event_loop: Optional[asyncio.AbstractEventLoop] = (
+            self.__provided_event_loop
+        )
 
     @abstractmethod
     def _connect(self) -> TInstanceType:
@@ -144,7 +144,7 @@ class ClientDisconnectionRetrier(
                     "_connect() did not return a valid instance (got None)."
                 )
             if not isinstance(self.__instance, Stopable):
-                self.__instance = None # Clear instance before raising
+                self.__instance = None  # Clear instance before raising
                 raise TypeError(
                     f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
                 )
@@ -279,14 +279,19 @@ class ClientDisconnectionRetrier(
             True
         ):  # Loop indefinitely until reconnected or a non-retriable error occurs.
             try:
-                if self.__max_retries is not None and retry_count >= self.__max_retries:
+                if (
+                    self.__max_retries is not None
+                    and retry_count >= self.__max_retries
+                ):
                     logging.warning(
                         f"Max retries ({self.__max_retries}) reached. Stopping reconnection attempts."
                     )
                     break
 
                 await self.__delay_before_retry_func()
-                logging.info(f"Retrying connection... (Attempt {retry_count + 1})")
+                logging.info(
+                    f"Retrying connection... (Attempt {retry_count + 1})"
+                )
                 self.__instance = await self._connect()
 
                 if self.__instance is None:
@@ -301,7 +306,7 @@ class ClientDisconnectionRetrier(
                         f"Reconnected instance is not Stopable ({type(self.__instance).__name__}). Stopping retries."
                     )
                     # This is a critical type error, stop retrying.
-                    self.__instance = None # Clear instance before raising
+                    self.__instance = None  # Clear instance before raising
                     raise TypeError(
                         f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
                     )

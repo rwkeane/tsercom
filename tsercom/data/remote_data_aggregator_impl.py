@@ -158,7 +158,9 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    raise KeyError(f"Caller ID '{id}' not found for has_new_data.")
+                    raise KeyError(
+                        f"Caller ID '{id}' not found for has_new_data."
+                    )
                 return organizer.has_new_data()
 
             results = {}

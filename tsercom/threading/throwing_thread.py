@@ -17,8 +17,8 @@ class ThrowingThread(threading.Thread):
         self,
         target: Callable[..., Any],
         on_error_cb: Callable[[Exception], None],
-        args: tuple = (),       # Explicit 'args' for target
-        kwargs: dict = None,    # Explicit 'kwargs' for target
+        args: tuple = (),  # Explicit 'args' for target
+        kwargs: dict = None,  # Explicit 'kwargs' for target
         # Allow other threading.Thread parameters too
         group: None = None,
         name: None = None,
@@ -40,10 +40,12 @@ class ThrowingThread(threading.Thread):
         self._actual_target = target
         self._actual_args = args
         self._actual_kwargs = kwargs if kwargs is not None else {}
-        
+
         # The target for the base threading.Thread is _wrapped_target
         # _wrapped_target itself takes no arguments from the Thread's calling mechanism
-        super().__init__(group=group, target=self._wrapped_target, name=name, daemon=daemon)
+        super().__init__(
+            group=group, target=self._wrapped_target, name=name, daemon=daemon
+        )
 
     def _wrapped_target(self) -> None:
         """

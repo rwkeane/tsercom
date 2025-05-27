@@ -323,7 +323,10 @@ def test_stop_with_caller_id(
     assert caller_id_1 in aggregator._RemoteDataAggregatorImpl__organizers
 
     # Expect KeyError when stopping a non-existent ID
-    with pytest.raises(KeyError, match="Caller ID .* not found in active organizers during stop."):
+    with pytest.raises(
+        KeyError,
+        match="Caller ID .* not found in active organizers during stop.",
+    ):
         aggregator.stop(DummyCallerIdentifier("non_existent_id"))
 
 
@@ -577,13 +580,21 @@ def test_data_retrieval_non_existent_id(mock_thread_pool):
     non_existent_id = DummyCallerIdentifier("non_existent")
     timestamp = datetime.datetime.now()
 
-    with pytest.raises(KeyError, match="Caller ID .* not found for has_new_data."):
+    with pytest.raises(
+        KeyError, match="Caller ID .* not found for has_new_data."
+    ):
         aggregator.has_new_data(non_existent_id)
-    with pytest.raises(KeyError, match="Caller ID .* not found for get_new_data."):
+    with pytest.raises(
+        KeyError, match="Caller ID .* not found for get_new_data."
+    ):
         aggregator.get_new_data(non_existent_id)
-    with pytest.raises(KeyError, match="Caller ID .* not found for get_most_recent_data."):
+    with pytest.raises(
+        KeyError, match="Caller ID .* not found for get_most_recent_data."
+    ):
         aggregator.get_most_recent_data(non_existent_id)
-    with pytest.raises(KeyError, match="Caller ID .* not found for get_data_for_timestamp."):
+    with pytest.raises(
+        KeyError, match="Caller ID .* not found for get_data_for_timestamp."
+    ):
         aggregator.get_data_for_timestamp(timestamp, non_existent_id)
 
 
