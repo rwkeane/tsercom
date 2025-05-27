@@ -215,7 +215,7 @@ class RuntimeDataHandlerBase(
         """
         return await self.__event_source.__anext__()
 
-    async def __aiter__(
+    def __aiter__( # Changed to a regular method
         self,
     ) -> AsyncIterator[
         Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]
@@ -268,11 +268,11 @@ class RuntimeDataHandlerBase(
 
         async def desynchronize(self, timestamp: ServerTimestamp) -> datetime:
             """Desynchronizes a server timestamp using the provided clock."""
-            return self.__clock.desync(timestamp)
+            return await self.__clock.desync(timestamp) # Added await
 
         async def deregister_caller(self) -> None:
             """Deregisters the caller via the parent data handler."""
-            self.__data_handler._unregister_caller(self.caller_id)
+            await self.__data_handler._unregister_caller(self.caller_id) # Added await
 
         async def _process_data(
             self, data: TDataType, timestamp: datetime
