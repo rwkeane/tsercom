@@ -1,3 +1,10 @@
+## Status & Coverage
+
+[![CI Tests](https://github.com/rwkeane/tsercom/actions/workflows/python-tests.yml/badge.svg)](https://github.com/rwkeane/tsercom/actions/workflows/python-tests.yml)
+[![codecov](https://codecov.io/gh/rwkeane/tsercom/branch/main/graph/badge.svg)](https://codecov.io/gh/rwkeane/tsercom)
+
+Code coverage reports are automatically generated on each push via GitHub Actions and uploaded to [Codecov](https://app.codecov.io/gh/rwkeane/tsercom).
+
 # TSERCOM
 ## Time SERies COMmunication
 
