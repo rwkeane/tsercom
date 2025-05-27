@@ -101,17 +101,92 @@ class TestRetrier(ClientDisconnectionRetrier[MockStopable]):
 
 
 @pytest.mark.asyncio
+async def test_minimal_async_event_loop(event_loop):
+    assert event_loop is not None
+    await asyncio.sleep(0)
+
+
+# @pytest.fixture(autouse=True) # Temporarily disabled
+def manage_tsercom_global_event_loop(request):
+    if not is_global_event_loop_set():
+        set_tsercom_event_loop_to_current_thread()
+
+    def finalizer():
+        clear_tsercom_event_loop()
+
+    request.addfinalizer(finalizer)
+
+
+@pytest.fixture
+async def mock_aio_utils(mocker, event_loop): # No self parameter, ensuring correct top-level definition
+    async def simplified_run_on_loop_mock(
+        func_partial,
+        current_event_loop=None,
+        *args,
+        **kwargs,  # Renamed event_loop to current_event_loop to avoid clash
+    ):
+        coro = func_partial()
+        if not asyncio.iscoroutine(coro):
+            raise TypeError(
+                f"Mocked run_on_event_loop expected coroutine, got {type(coro)}"
+            )
+        await coro
+        f = asyncio.Future()
+        try:
+            # Use the passed event_loop if available, otherwise get current running loop
+            loop_to_use = current_event_loop or asyncio.get_running_loop()
+            if (
+                not loop_to_use.is_closed()
+            ):  # Check if the specific loop is closed
+                asyncio.ensure_future(f, loop=loop_to_use)
+        except (
+            RuntimeError
+        ):  # Catch if get_running_loop fails and current_event_loop was None
+            pass
+        # Ensure future gets a result even if loop operations fail, to prevent blocking
+        if not f.done():
+            f.set_result(None)
+        return f
+
+    mock_get_loop = mocker.patch(
+        "tsercom.rpc.connection.client_disconnection_retrier.get_running_loop_or_none",
+        autospec=True,
+    )
+    mock_is_on_loop = mocker.patch(
+        "tsercom.rpc.connection.client_disconnection_retrier.is_running_on_event_loop",
+        autospec=True,
+    )
+    mock_run_on_loop = mocker.patch(
+        "tsercom.rpc.connection.client_disconnection_retrier.run_on_event_loop",
+        new=simplified_run_on_loop_mock,
+    )
+
+    mock_get_loop.return_value = event_loop  # Use the event_loop fixture
+    mock_is_on_loop.return_value = (
+        True  # This mock might need to be more dynamic
+    )
+
+    # The simplified_run_on_loop_mock needs to be aware of the correct event loop
+    # We can curry it or ensure it uses the 'event_loop' fixture's loop when called
+    # For simplicity, ensure simplified_run_on_loop_mock uses the 'event_loop' from the fixture scope if possible
+    # However, its current implementation tries asyncio.get_running_loop() which should be fine in async tests.
+
+    # To ensure simplified_run_on_loop_mock uses the test's event_loop when event_loop=None is passed to it by SUT:
+    # We can modify its signature or how it's patched if needed, but pytest-asyncio usually handles this.
+    # The main fix is making mock_aio_utils async and using event_loop for mock_get_loop.return_value.
+
+    return {
+        "get_running_loop_or_none": mock_get_loop,
+        "is_running_on_event_loop": mock_is_on_loop,
+        "run_on_event_loop": mock_run_on_loop,
+    }
+
+
+@pytest.mark.asyncio
 class TestClientDisconnectionRetrier:
 
-    @pytest.fixture(autouse=True)
-    def manage_tsercom_global_event_loop(self, request):
-        if not is_global_event_loop_set():
-            set_tsercom_event_loop_to_current_thread()
-
-        def finalizer():
-            clear_tsercom_event_loop()
-
-        request.addfinalizer(finalizer)
+    # mock_aio_utils is now module-level, so it's not defined here.
+    # Tests that need it will receive it from the module scope.
 
     @pytest.fixture
     def mock_thread_watcher(self, mocker):  # Added mocker
@@ -156,71 +231,7 @@ class TestClientDisconnectionRetrier:
         mocks["is_server_unavailable_error"] = mock_is_unavailable
         return mocks
 
-    @pytest.fixture
-    async def mock_aio_utils(
-        self, mocker, event_loop
-    ):  # Added mocker and event_loop
-        async def simplified_run_on_loop_mock(
-            func_partial,
-            current_event_loop=None,
-            *args,
-            **kwargs,  # Renamed event_loop to current_event_loop to avoid clash
-        ):
-            coro = func_partial()
-            if not asyncio.iscoroutine(coro):
-                raise TypeError(
-                    f"Mocked run_on_event_loop expected coroutine, got {type(coro)}"
-                )
-            await coro
-            f = asyncio.Future()
-            try:
-                # Use the passed event_loop if available, otherwise get current running loop
-                loop_to_use = current_event_loop or asyncio.get_running_loop()
-                if (
-                    not loop_to_use.is_closed()
-                ):  # Check if the specific loop is closed
-                    asyncio.ensure_future(f, loop=loop_to_use)
-            except (
-                RuntimeError
-            ):  # Catch if get_running_loop fails and current_event_loop was None
-                pass
-            # Ensure future gets a result even if loop operations fail, to prevent blocking
-            if not f.done():
-                f.set_result(None)
-            return f
-
-        mock_get_loop = mocker.patch(
-            "tsercom.rpc.connection.client_disconnection_retrier.get_running_loop_or_none",
-            autospec=True,
-        )
-        mock_is_on_loop = mocker.patch(
-            "tsercom.rpc.connection.client_disconnection_retrier.is_running_on_event_loop",
-            autospec=True,
-        )
-        mock_run_on_loop = mocker.patch(
-            "tsercom.rpc.connection.client_disconnection_retrier.run_on_event_loop",
-            new=simplified_run_on_loop_mock,
-        )
-
-        mock_get_loop.return_value = event_loop  # Use the event_loop fixture
-        mock_is_on_loop.return_value = (
-            True  # This mock might need to be more dynamic
-        )
-
-        # The simplified_run_on_loop_mock needs to be aware of the correct event loop
-        # We can curry it or ensure it uses the 'event_loop' fixture's loop when called
-        # For simplicity, ensure simplified_run_on_loop_mock uses the 'event_loop' from the fixture scope if possible
-        # However, its current implementation tries asyncio.get_running_loop() which should be fine in async tests.
-
-        # To ensure simplified_run_on_loop_mock uses the test's event_loop when event_loop=None is passed to it by SUT:
-        # We can modify its signature or how it's patched if needed, but pytest-asyncio usually handles this.
-        # The main fix is making mock_aio_utils async and using event_loop for mock_get_loop.return_value.
-
-        return {
-            "get_running_loop_or_none": mock_get_loop,
-            "is_running_on_event_loop": mock_is_on_loop,
-            "run_on_event_loop": mock_run_on_loop,
-        }
+    # Removed mock_aio_utils fixture from here as it's now module-level
 
     async def test_retrier_creation(
         self,
@@ -380,7 +391,7 @@ class TestClientDisconnectionRetrier:
         mock_thread_watcher,
         mock_connect_impl,
         mock_safe_disconnection_handler,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         mock_stopable_instance = MockStopable(
@@ -412,7 +423,7 @@ class TestClientDisconnectionRetrier:
         mock_thread_watcher,
         mock_connect_impl,
         mock_safe_disconnection_handler,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         retrier = TestRetrier(
@@ -435,7 +446,7 @@ class TestClientDisconnectionRetrier:
         mock_thread_watcher,
         mock_connect_impl,
         mock_safe_disconnection_handler,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         mock_stopable_instance = MockStopable(
@@ -493,7 +504,7 @@ class TestClientDisconnectionRetrier:
         mock_safe_disconnection_handler,
         mock_error_classifiers,
         mock_delay_before_retry,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         original_instance = MockStopable(
@@ -535,7 +546,7 @@ class TestClientDisconnectionRetrier:
         mock_safe_disconnection_handler,
         mock_error_classifiers,
         mock_delay_before_retry,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         original_instance = MockStopable(
@@ -581,7 +592,7 @@ class TestClientDisconnectionRetrier:
         mock_safe_disconnection_handler,
         mock_error_classifiers,
         mock_delay_before_retry,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         original_instance = MockStopable(
@@ -620,7 +631,7 @@ class TestClientDisconnectionRetrier:
         mock_safe_disconnection_handler,
         mock_error_classifiers,
         mock_delay_before_retry,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         original_instance = MockStopable(
@@ -654,7 +665,7 @@ class TestClientDisconnectionRetrier:
         mock_thread_watcher,
         mock_connect_impl,
         mock_safe_disconnection_handler,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         original_instance = MockStopable(
@@ -684,7 +695,7 @@ class TestClientDisconnectionRetrier:
         mock_safe_disconnection_handler,
         mock_error_classifiers,
         mock_delay_before_retry,
-        mock_aio_utils,
+        mock_aio_utils, # This test will now use the module-level fixture
         mocker,
     ):
         original_instance = MockStopable(
