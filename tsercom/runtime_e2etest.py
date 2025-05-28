@@ -66,10 +66,7 @@ class FakeRuntime(Runtime):
         )
 
         data = FakeData(started)
-        try:
-            await self.__responder.process_data(data, start_timestamp)
-        except Exception:
-            pass
+        await self.__responder.process_data(data, start_timestamp)
 
     async def stop(self) -> None:
         assert self.__responder is not None
@@ -159,9 +156,10 @@ class FaultyCreateRuntimeInitializer(RuntimeInitializer):
 
 def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     runtime_manager = RuntimeManager(is_testing=True)
-    runtime_manager.check_for_exception()
-    runtime_future = runtime_manager.register_runtime_initializer(
-        FakeRuntimeInitializer(service_type="Client")
+    try:
+        runtime_manager.check_for_exception()
+        runtime_future = runtime_manager.register_runtime_initializer(
+            FakeRuntimeInitializer(service_type="Client")
     )
 
     assert not runtime_future.done()
@@ -232,6 +230,8 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     assert not data_aggregator.has_new_data(
         test_id
     ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data for stop"
+    finally:
+        runtime_manager.shutdown()
 
 
 def test_out_of_process_init():
