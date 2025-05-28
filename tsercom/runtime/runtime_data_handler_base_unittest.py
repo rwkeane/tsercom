@@ -30,7 +30,7 @@ from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )  # For type hints
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-from tsercom.timesync.common.proto import ServerTimestamp # Added import
+from tsercom.timesync.common.proto import ServerTimestamp  # Added import
 
 # For gRPC context testing
 import grpc  # For grpc.StatusCode, if testable - not directly used in DataProcessorImpl tests
@@ -60,7 +60,9 @@ class TestableRuntimeDataHandler(
         super().__init__(data_reader, event_source)
         # Mocks as per prompt's specification
         self.mock_register_caller = mocker.AsyncMock()
-        self.mock_unregister_caller = mocker.AsyncMock(return_value=True) # Ensure it returns bool
+        self.mock_unregister_caller = mocker.AsyncMock(
+            return_value=True
+        )  # Ensure it returns bool
         self.mock_wait_for_data = mocker.MagicMock(
             return_value=mocker.AsyncMock()
         )  # Using AsyncMock for async_stub
@@ -83,9 +85,11 @@ class TestableRuntimeDataHandler(
         # print(f"TestableRuntimeDataHandler._register_caller called with: {caller_id}, {endpoint}, {port}") # Reduced verbosity
         return await self.mock_register_caller(caller_id, endpoint, port)
 
-    async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool: # Signature changed to bool
+    async def _unregister_caller(
+        self, caller_id: CallerIdentifier
+    ) -> bool:  # Signature changed to bool
         # print(f"TestableRuntimeDataHandler._unregister_caller called with: {caller_id}") # Reduced verbosity
-        return await self.mock_unregister_caller(caller_id) # Added return
+        return await self.mock_unregister_caller(caller_id)  # Added return
 
     def _try_get_caller_id(
         self, endpoint: str, port: int
@@ -131,7 +135,8 @@ class TestRuntimeDataHandlerBaseBehavior:
     def patch_get_client_ip(self, mocker):
         # Patch where it's used in the SUT
         mock_get_ip = mocker.patch(
-            "tsercom.runtime.runtime_data_handler_base.get_client_ip", autospec=True
+            "tsercom.runtime.runtime_data_handler_base.get_client_ip",
+            autospec=True,
         )
         yield mock_get_ip
 
@@ -139,7 +144,8 @@ class TestRuntimeDataHandlerBaseBehavior:
     def patch_get_client_port(self, mocker):
         # Patch where it's used in the SUT
         mock_get_port = mocker.patch(
-            "tsercom.runtime.runtime_data_handler_base.get_client_port", autospec=True
+            "tsercom.runtime.runtime_data_handler_base.get_client_port",
+            autospec=True,
         )
         yield mock_get_port
 
@@ -186,9 +192,7 @@ class TestRuntimeDataHandlerBaseBehavior:
     ):
         endpoint_str = "10.0.0.1"
         port_num = 9999
-        mock_processor_instance = mocker.MagicMock(
-            spec=EndpointDataProcessor
-        )
+        mock_processor_instance = mocker.MagicMock(spec=EndpointDataProcessor)
         handler.mock_register_caller.return_value = mock_processor_instance
         returned_processor = await handler.register_caller(
             mock_caller_id, endpoint_str, port_num
@@ -211,12 +215,11 @@ class TestRuntimeDataHandlerBaseBehavior:
         expected_port = 5678
         patch_get_client_ip.return_value = expected_ip
         patch_get_client_port.return_value = expected_port
-        mock_processor_instance = mocker.MagicMock(
-            spec=EndpointDataProcessor
-        )
+        mock_processor_instance = mocker.MagicMock(spec=EndpointDataProcessor)
         handler.mock_register_caller.return_value = mock_processor_instance
         returned_processor = await handler.register_caller(
-                mock_caller_id, context=mock_servicer_context  # Use keyword argument
+            mock_caller_id,
+            context=mock_servicer_context,  # Use keyword argument
         )
         patch_get_client_ip.assert_called_once_with(mock_servicer_context)
         patch_get_client_port.assert_called_once_with(mock_servicer_context)
@@ -237,7 +240,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         patch_get_client_port.return_value = (
             5678  # Does not matter if IP is None
         )
-        returned_processor = handler.register_caller( # Removed await
+        returned_processor = handler.register_caller(  # Removed await
             mock_caller_id, context=mock_servicer_context
         )
         patch_get_client_ip.assert_called_once_with(mock_servicer_context)
@@ -278,7 +281,7 @@ class TestRuntimeDataHandlerBaseBehavior:
 
     # Test for the SUT's _on_data_ready, not the reader's.
     # The SUT's _on_data_ready calls the reader's _on_data_ready.
-    async def test_handler_on_data_ready_calls_reader_on_data_ready( # Made async
+    async def test_handler_on_data_ready_calls_reader_on_data_ready(  # Made async
         self, handler, mock_data_reader, mocker
     ):
         print(
@@ -287,12 +290,14 @@ class TestRuntimeDataHandlerBaseBehavior:
         mock_annotated_instance = mocker.MagicMock(spec=AnnotatedInstance)
 
         # Ensure the handler instance uses the mock_data_reader
-        handler._RuntimeDataHandlerBase__data_reader = mock_data_reader # type: ignore
+        handler._RuntimeDataHandlerBase__data_reader = mock_data_reader  # type: ignore
 
         # Call the actual _on_data_ready method from RuntimeDataHandlerBase
         # using the 'handler' instance. This bypasses TestableRuntimeDataHandler's
         # own mock of _on_data_ready.
-        await RuntimeDataHandlerBase._on_data_ready(handler, mock_annotated_instance)
+        await RuntimeDataHandlerBase._on_data_ready(
+            handler, mock_annotated_instance
+        )
 
         mock_data_reader._on_data_ready.assert_called_once_with(
             mock_annotated_instance
@@ -364,7 +369,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
         test_payload = "payload_with_server_ts"
         mock_server_ts = mocker.MagicMock(
-            spec=ServerTimestamp # Changed spec to ServerTimestamp
+            spec=ServerTimestamp  # Changed spec to ServerTimestamp
         )
         expected_desynced_dt = datetime.datetime.now(
             datetime.timezone.utc
@@ -408,7 +413,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         # or 'import datetime' and then 'datetime.datetime.now()' is used.
         # If 'from datetime.datetime import now' is used, the target would be different.
         mock_datetime_class = mocker.patch(
-            "tsercom.runtime.endpoint_data_processor.datetime" # Target the datetime class
+            "tsercom.runtime.endpoint_data_processor.datetime"  # Target the datetime class
         )
         # Configure the .now() method on the mocked class instance to return fixed_now.
         # When the SUT calls datetime.now(timezone.utc), it will use this mock.
@@ -659,7 +664,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, port=1234
             )  # Endpoint is None
         assert (
-            "Exactly one of 'endpoint'/'port' combination or 'context' must be provided" # Updated error message
+            "Exactly one of 'endpoint'/'port' combination or 'context' must be provided"  # Updated error message
             in str(excinfo.value)
         )
 

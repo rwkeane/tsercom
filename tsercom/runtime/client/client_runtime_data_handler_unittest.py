@@ -45,7 +45,7 @@ class TestClientRuntimeDataHandler:
         return mocker.MagicMock(spec=EndpointDataProcessor)
 
     @pytest.fixture
-    def handler_and_class_mocks( 
+    def handler_and_class_mocks(
         self,
         mock_thread_watcher,
         mock_data_reader,
@@ -59,12 +59,12 @@ class TestClientRuntimeDataHandler:
         mock_TimeSyncTracker_class = mocker.patch(
             "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
             return_value=mock_time_sync_tracker_instance,
-            autospec=True, 
+            autospec=True,
         )
         mock_IdTracker_class = mocker.patch(
             "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
             return_value=mock_id_tracker_instance,
-            autospec=True, 
+            autospec=True,
         )
 
         handler_instance = ClientRuntimeDataHandler(
@@ -74,11 +74,13 @@ class TestClientRuntimeDataHandler:
             # is_testing=False is SUT default
         )
         # Attach instances for other tests that might use them via handler.
-        handler_instance._mock_time_sync_tracker_instance = mock_time_sync_tracker_instance
+        handler_instance._mock_time_sync_tracker_instance = (
+            mock_time_sync_tracker_instance
+        )
         handler_instance._mock_id_tracker_instance = mock_id_tracker_instance
-        
+
         # pytest-mock handles teardown of patches made via mocker.patch
-        yield { 
+        yield {
             "handler": handler_instance,
             "TimeSyncTracker_class_mock": mock_TimeSyncTracker_class,
             "IdTracker_class_mock": mock_IdTracker_class,
@@ -88,16 +90,22 @@ class TestClientRuntimeDataHandler:
 
     def test_init(
         self,
-        handler_and_class_mocks, # Use the new fixture that returns a dict
+        handler_and_class_mocks,  # Use the new fixture that returns a dict
         mock_thread_watcher,
         mock_data_reader,
         mock_event_source_poller,
     ):
         handler = handler_and_class_mocks["handler"]
-        TimeSyncTracker_class_mock = handler_and_class_mocks["TimeSyncTracker_class_mock"]
+        TimeSyncTracker_class_mock = handler_and_class_mocks[
+            "TimeSyncTracker_class_mock"
+        ]
         IdTracker_class_mock = handler_and_class_mocks["IdTracker_class_mock"]
-        time_sync_tracker_instance_mock = handler_and_class_mocks["time_sync_tracker_instance_mock"]
-        id_tracker_instance_mock = handler_and_class_mocks["id_tracker_instance_mock"]
+        time_sync_tracker_instance_mock = handler_and_class_mocks[
+            "time_sync_tracker_instance_mock"
+        ]
+        id_tracker_instance_mock = handler_and_class_mocks[
+            "id_tracker_instance_mock"
+        ]
 
         TimeSyncTracker_class_mock.assert_called_once_with(
             mock_thread_watcher, is_testing=False
@@ -135,9 +143,11 @@ class TestClientRuntimeDataHandler:
         # Patch the _create_data_processor method directly on the handler instance
         # This is generally more robust if the method is guaranteed to exist.
         mock_create_dp_method = mocker.patch.object(
-            handler, "_create_data_processor", return_value=mock_endpoint_data_processor
+            handler,
+            "_create_data_processor",
+            return_value=mock_endpoint_data_processor,
         )
-        
+
         returned_processor = handler._register_caller(
             mock_caller_id, mock_endpoint, mock_port
         )
@@ -185,7 +195,9 @@ class TestClientRuntimeDataHandler:
             mock_address
         )
 
-    def test_unregister_caller_invalid_id_not_found(self, handler_and_class_mocks, mocker):
+    def test_unregister_caller_invalid_id_not_found(
+        self, handler_and_class_mocks, mocker
+    ):
         """Test _unregister_caller with a non-existent caller_id."""
         handler = handler_and_class_mocks["handler"]
         mock_caller_id = CallerIdentifier.random()
@@ -197,7 +209,7 @@ class TestClientRuntimeDataHandler:
         mock_logging_module = mocker.patch(
             "tsercom.runtime.client.client_runtime_data_handler.logging"
         )
-        
+
         result = handler._unregister_caller(mock_caller_id)
 
         assert result is False

@@ -8,9 +8,10 @@ upon the discovery of a complete service instance.
 from abc import ABC, abstractmethod
 from functools import partial
 import socket
-from typing import Dict, Generic, List, TypeVar, Optional
+from typing import Callable, Dict, Generic, List, TypeVar, Optional
 import logging
 
+from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.threading.aio.aio_utils import run_on_event_loop
@@ -20,7 +21,7 @@ from tsercom.threading.aio.aio_utils import run_on_event_loop
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
-class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
+class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
     """Listens for mDNS service instances of a specified type and notifies a client.
 
     This class uses a `RecordListener` to monitor for mDNS records. When
@@ -56,6 +57,10 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
         self,
         client: "InstanceListener.Client[TServiceInfo]",
         service_type: str,
+        *,
+        mdns_listener_factory: Optional[
+            Callable[[MdnsListener.Client, str], MdnsListener]
+        ] = None,
     ) -> None:
         """Initializes the InstanceListener.
 
@@ -89,7 +94,15 @@ class InstanceListener(Generic[TServiceInfo], RecordListener.Client):
 
         self.__client: InstanceListener.Client[TServiceInfo] = client
         # This InstanceListener acts as the client to the RecordListener.
-        self.__listener: RecordListener = RecordListener(self, service_type)
+
+        if mdns_listener_factory is None:
+
+            def mdns_listener_factory(a, b):
+                return RecordListener(a, b)
+
+        self.__listener: MdnsListener = mdns_listener_factory(
+            self, service_type
+        )
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)

@@ -1,10 +1,10 @@
-from abc import ABC, abstractmethod
-from typing import Dict, List
-from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
+from zeroconf import ServiceBrowser, Zeroconf
 import logging
 
+from tsercom.discovery.mdns.mdns_listener import MdnsListener
 
-class RecordListener(ServiceListener):
+
+class RecordListener(MdnsListener):
     """A low-level listener for mDNS service records using the `zeroconf` library.
 
     This class implements the `zeroconf.ServiceListener` interface. It monitors
@@ -12,45 +12,11 @@ class RecordListener(ServiceListener):
     when services are added or updated, providing detailed record information.
     """
 
-    class Client(ABC):
-        """Interface for clients of `RecordListener`.
-
-        Implementers are notified when full service details (name, port, addresses,
-        TXT record) for a service of the monitored type are discovered or updated.
-        """
-
-        @abstractmethod
-        def _on_service_added(
-            self,
-            name: str,  # The mDNS instance name of the service.
-            port: int,  # The service port number.
-            addresses: List[bytes],  # List of raw binary IP addresses.
-            txt_record: Dict[
-                bytes, bytes | None
-            ],  # Parsed TXT record as a dictionary.
-        ) -> None:
-            """Callback invoked when a new service is discovered or an existing one is updated.
-
-            Args:
-                name: The unique mDNS instance name of the service (e.g., "MyDevice._myservice._tcp.local.").
-                port: The network port on which the service is available.
-                addresses: A list of raw IP addresses (in binary format) associated with the service.
-                           These typically come from A or AAAA records.
-                txt_record: A dictionary representing the service's TXT record,
-                            containing key-value metadata. Keys are bytes, values are bytes or None.
-            """
-            # This method must be implemented by concrete client classes.
-            raise NotImplementedError(
-                "RecordListener.Client._on_service_added must be implemented by subclasses."
-            )
-
-    def __init__(
-        self, client: "RecordListener.Client", service_type: str
-    ) -> None:
+    def __init__(self, client: MdnsListener.Client, service_type: str) -> None:
         """Initializes the RecordListener.
 
         Args:
-            client: An object implementing the `RecordListener.Client` interface.
+            client: An object implementing the `MdnsListener.Client` interface.
             service_type: The base mDNS service type to listen for (e.g., "_myservice").
                           It will be appended with "._tcp.local." internally.
 
@@ -68,7 +34,7 @@ class RecordListener(ServiceListener):
             getattr(client, "_on_service_added")
         ):
             raise TypeError(
-                f"Client must implement the RecordListener.Client interface (e.g., _on_service_added method), got {type(client).__name__}."
+                f"Client must implement the MdnsListener.Client interface (e.g., _on_service_added method), got {type(client).__name__}."
             )
 
         if service_type is None:
@@ -85,7 +51,7 @@ class RecordListener(ServiceListener):
                 f"service_type must start with an underscore (e.g., '_my_service'), got '{service_type}'."
             )
 
-        self.__client: RecordListener.Client = client
+        self.__client: MdnsListener.Client = client
         # Determine the expected type string for zeroconf
         if service_type.endswith("._tcp.local.") or service_type.endswith(
             "._udp.local."

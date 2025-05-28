@@ -152,7 +152,7 @@ def set_tsercom_event_loop_to_current_thread() -> None:
             # we should explicitly create a new one.
             if loop.is_closed():
                 # Dissociate the closed loop first if it was current.
-                asyncio.set_event_loop(None) 
+                asyncio.set_event_loop(None)
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
         except RuntimeError:
@@ -161,5 +161,5 @@ def set_tsercom_event_loop_to_current_thread() -> None:
             # Create a new event loop and set it for the current thread.
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-        
+
         __g_global_event_loop = loop

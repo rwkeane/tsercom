@@ -1,6 +1,8 @@
 import datetime
+from typing import Callable, Dict, Optional
 from uuid import getnode as get_mac
 
+from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
 
 
@@ -19,6 +21,13 @@ class InstancePublisher:
         service_type: str,
         readable_name: str | None = None,
         instance_name: str | None = None,
+        *,
+        mdns_publisher_factory: Optional[
+            Callable[
+                [str, str, int, Optional[Dict[bytes, bytes | None]]],
+                MdnsPublisher,
+            ]
+        ] = None,
     ) -> None:
         """Initializes the InstancePublisher.
 
@@ -89,9 +98,15 @@ class InstancePublisher:
                 "_make_txt_record failed to produce a TXT record."
             )
 
-        self.__record_publisher: RecordPublisher = RecordPublisher(
-            effective_instance_name, service_type, port, txt_record
-        )
+        if mdns_publisher_factory is None:
+
+            def mdns_publisher_factory(a, b, c, d):
+                return RecordPublisher(a, b, c, d)
+
+        else:
+            self.__record_publisher: MdnsPublisher = mdns_publisher_factory(
+                effective_instance_name, service_type, port, txt_record
+            )
 
     def _make_txt_record(self) -> dict[bytes, bytes | None]:
         """Creates the TXT record dictionary for the mDNS announcement.

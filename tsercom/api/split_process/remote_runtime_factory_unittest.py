@@ -138,8 +138,8 @@ class FakeRuntimeCommandSource:
     # __init__ now matches the real RuntimeCommandSource
     def __init__(self, command_queue_source):
         self.command_queue_source = command_queue_source
-        self.thread_watcher = None # Will be set by start_async
-        self.runtime = None      # Will be set by start_async
+        self.thread_watcher = None  # Will be set by start_async
+        self.runtime = None  # Will be set by start_async
         self.start_async_called_with = None
         self.start_async_call_count = 0
         # self.start_called_count = 0 # Not needed as the real class doesn't have a separate start() like this
@@ -384,9 +384,14 @@ def test_create_method(
     )
     # Assert that start_async was called correctly
     assert command_source_instance.start_async_call_count == 1
-    assert command_source_instance.start_async_called_with == (fake_thread_watcher, fake_initializer.runtime_to_return)
+    assert command_source_instance.start_async_called_with == (
+        fake_thread_watcher,
+        fake_initializer.runtime_to_return,
+    )
     assert command_source_instance.thread_watcher is fake_thread_watcher
-    assert command_source_instance.runtime is fake_initializer.runtime_to_return
+    assert (
+        command_source_instance.runtime is fake_initializer.runtime_to_return
+    )
     assert (
         factory._RemoteRuntimeFactory__command_source
         is command_source_instance

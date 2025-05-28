@@ -143,11 +143,11 @@ class RemoteRuntimeFactory(
             data_handler=data_handler,
             grpc_channel_factory=grpc_channel_factory,
             thread_watcher=thread_watcher,
-            event_poller=current_event_poller,       # Pass the event_poller
-            remote_data_reader=current_remote_data_reader # Pass the remote_data_reader
+            event_poller=current_event_poller,  # Pass the event_poller
+            remote_data_reader=current_remote_data_reader,  # Pass the remote_data_reader
         )
 
-        if self.__event_source: # self.__event_source is current_event_poller
+        if self.__event_source:  # self.__event_source is current_event_poller
             self.__event_source.start(thread_watcher)
         else:
             # WARNING: Event source was not initialized prior to create call.
