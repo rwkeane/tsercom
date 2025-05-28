@@ -36,6 +36,7 @@ class MockConnectable(Stopable):
 
 
 class _TestableRetrier(ClientDisconnectionRetrier[MockConnectable]): # Renamed
+    __test__ = False # Add this line
     def set_on_connect(self, mock_connect_func: AsyncMock):
         self.connect_func = mock_connect_func
 
