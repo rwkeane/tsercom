@@ -397,51 +397,39 @@ class RuntimeManager(ErrorWatcher):
         """
         print("RuntimeManager.shutdown: Starting.", file=sys.stderr)
 
-        # New: Stop ThreadWatcher's event loop and clear global loop
+        if self.__process is not None:
+            self.__process.kill()
+
+        # Stop ThreadWatcher's event loop and clear global loop
         # Accessing __thread_watcher via its mangled name _RuntimeManager__thread_watcher
         # Assuming _RuntimeManager__thread_watcher exists and has stop_event_loop_thread if it's the correct type.
         if hasattr(self, "_RuntimeManager__thread_watcher") and \
            hasattr(self._RuntimeManager__thread_watcher, 'stop_event_loop_thread'):
-            print("RuntimeManager.shutdown: Stopping internal ThreadWatcher's event loop thread.", file=sys.stderr)
             self._RuntimeManager__thread_watcher.stop_event_loop_thread()
 
-        if is_global_event_loop_set(): # from global_event_loop import
-            print("RuntimeManager.shutdown: Clearing global Tsercom event loop.", file=sys.stderr)
-            clear_tsercom_event_loop() # from global_event_loop import
+        if is_global_event_loop_set():
+            clear_tsercom_event_loop()
 
         # Existing logic for stopping SplitProcessErrorWatcherSource
         # Assuming _RuntimeManager__error_watcher attribute exists (e.g. initialized to None or an object)
-        if isinstance(self._RuntimeManager__error_watcher, SplitProcessErrorWatcherSource):
-            if self._RuntimeManager__error_watcher.is_running():
-                print("RuntimeManager.shutdown: Stopping error watcher source.", file=sys.stderr)
-                self._RuntimeManager__error_watcher.stop()
+        if isinstance(self.__error_watcher, SplitProcessErrorWatcherSource):
+            if self.__error_watcher.is_running():
+                self.__error_watcher.stop()
         
         # Existing logic for process termination (with prints)
         # Assuming _RuntimeManager__process attribute exists (e.g. initialized to None or an object)
-        if self._RuntimeManager__process and self._RuntimeManager__process.is_alive():
-            print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} is alive. Attempting to terminate.", file=sys.stderr)
-            self._RuntimeManager__process.terminate()
-            self._RuntimeManager__process.join(timeout=1.0)
-            if self._RuntimeManager__process.is_alive():
-                print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} not terminated after terminate(), trying kill().", file=sys.stderr)
-                self._RuntimeManager__process.kill()
-                print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} kill signal sent. Joining...", file=sys.stderr)
-                self._RuntimeManager__process.join(timeout=1.0)
-                if self._RuntimeManager__process.is_alive():
-                    print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} still alive after kill() and join.", file=sys.stderr)
-                else:
-                    print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} successfully killed and joined.", file=sys.stderr)
-            else:
-                print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} successfully terminated and joined.", file=sys.stderr)
+        if self.__process and self.__process.is_alive():
+            self.__process.terminate()
+            self.__process.join(timeout=1.0)
+            if self.__process.is_alive():
+                self.__process.kill()
+                self.__process.join(timeout=1.0)
+                
         elif self._RuntimeManager__process: # Process object exists but is not alive
              # Check for .pid only if self._RuntimeManager__process is not None
             pid_info = self._RuntimeManager__process.pid if hasattr(self._RuntimeManager__process, 'pid') and self._RuntimeManager__process.pid is not None else "unknown_pid (process object invalid or None)"
-            print(f"RuntimeManager.shutdown: Process {pid_info} was already not alive.", file=sys.stderr)
-        else: # self._RuntimeManager__process is None or evaluates to False
-            print("RuntimeManager.shutdown: No process to manage (process attribute is None or invalid).", file=sys.stderr)
 
         self._RuntimeManager__process = None
-        print("RuntimeManager.shutdown: Completed.", file=sys.stderr)
 
     def __create_factories(
         self, factory_factory: RuntimeFactoryFactory[Any, Any]
