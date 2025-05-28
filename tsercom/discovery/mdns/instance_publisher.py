@@ -100,11 +100,19 @@ class InstancePublisher:
 
         if mdns_publisher_factory is None:
             # Default factory creates RecordPublisher
-            def default_mdns_publisher_factory(eff_inst_name: str, s_type: str, p: int, txt: Optional[Dict[bytes, bytes | None]]) -> MdnsPublisher:
+            def default_mdns_publisher_factory(
+                eff_inst_name: str,
+                s_type: str,
+                p: int,
+                txt: Optional[Dict[bytes, bytes | None]],
+            ) -> MdnsPublisher:
                 # RecordPublisher is already imported at the top of the file.
                 return RecordPublisher(eff_inst_name, s_type, p, txt)
-            self.__record_publisher: MdnsPublisher = default_mdns_publisher_factory(
-                effective_instance_name, service_type, port, txt_record
+
+            self.__record_publisher: MdnsPublisher = (
+                default_mdns_publisher_factory(
+                    effective_instance_name, service_type, port, txt_record
+                )
             )
         else:
             # Use provided factory

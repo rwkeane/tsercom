@@ -121,13 +121,16 @@ class DiscoverableGrpcEndpointConnector(
 
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(
-                partial(self._mark_client_failed_impl, caller_id), self.__event_loop
+                partial(self._mark_client_failed_impl, caller_id),
+                self.__event_loop,
             )
             return
 
         await self._mark_client_failed_impl(caller_id)
 
-    async def _mark_client_failed_impl(self, caller_id: CallerIdentifier) -> None:
+    async def _mark_client_failed_impl(
+        self, caller_id: CallerIdentifier
+    ) -> None:
         # Assert that the caller_id was indeed being tracked.
         assert (
             caller_id in self.__callers

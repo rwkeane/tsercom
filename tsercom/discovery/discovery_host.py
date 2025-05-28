@@ -14,7 +14,9 @@ TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
 class DiscoveryHost(
-    InstanceListener.Client[TServiceInfo] # InstanceListener.Client is now Generic[TServiceInfo]
+    InstanceListener.Client[
+        TServiceInfo
+    ]  # InstanceListener.Client is now Generic[TServiceInfo]
 ):
     """Manages service discovery using mDNS and CallerIdentifier association.
 

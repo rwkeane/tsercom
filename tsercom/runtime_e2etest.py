@@ -160,76 +160,81 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_manager.check_for_exception()
         runtime_future = runtime_manager.register_runtime_initializer(
             FakeRuntimeInitializer(service_type="Client")
-    )
+        )
 
-    assert not runtime_future.done()
-    assert not runtime_manager.has_started
-    init_call(runtime_manager)
-    assert runtime_manager.has_started
-    assert runtime_future.done()
+        assert not runtime_future.done()
+        assert not runtime_manager.has_started
+        init_call(runtime_manager)
+        assert runtime_manager.has_started
+        assert runtime_future.done()
 
-    runtime_manager.check_for_exception()
-    runtime = runtime_future.result()
-    data_aggregator = runtime.data_aggregator
-    assert not data_aggregator.has_new_data(
-        test_id
-    ), "Aggregator should not have new data for test_id before runtime start"
-    runtime.start()
+        runtime_manager.check_for_exception()
+        runtime = runtime_future.result()
+        data_aggregator = runtime.data_aggregator
+        assert not data_aggregator.has_new_data(
+            test_id
+        ), "Aggregator should not have new data for test_id before runtime start"
+        runtime.start()
 
-    time.sleep(0.5)
+        time.sleep(0.5)
 
-    runtime_manager.check_for_exception()
-    assert (
-        data_aggregator.any_new_data()
-    ), "Aggregator should have some new data (any_new_data)"
-    assert data_aggregator.has_new_data(
-        test_id
-    ), f"Aggregator should have new data for test_id ({test_id})"
+        runtime_manager.check_for_exception()
+        assert (
+            data_aggregator.any_new_data()
+        ), "Aggregator should have some new data (any_new_data)"
+        assert data_aggregator.has_new_data(
+            test_id
+        ), f"Aggregator should have new data for test_id ({test_id})"
 
-    values = data_aggregator.get_new_data(test_id)
-    assert isinstance(
-        values, list
-    ), f"Expected list for get_new_data(test_id), got {type(values)}"
-    assert len(values) == 1, f"Expected 1 item for test_id, got {len(values)}"
+        values = data_aggregator.get_new_data(test_id)
+        assert isinstance(
+            values, list
+        ), f"Expected list for get_new_data(test_id), got {type(values)}"
+        assert (
+            len(values) == 1
+        ), f"Expected 1 item for test_id, got {len(values)}"
 
-    first = values[0]
-    assert isinstance(first, AnnotatedInstance), type(first)
-    assert isinstance(first.data, FakeData), type(first.data)
-    assert first.data.value == started
-    assert first.timestamp == start_timestamp
-    assert first.caller_id == test_id
+        first = values[0]
+        assert isinstance(first, AnnotatedInstance), type(first)
+        assert isinstance(first.data, FakeData), type(first.data)
+        assert first.data.value == started
+        assert first.timestamp == start_timestamp
+        assert first.caller_id == test_id
 
-    assert not data_aggregator.has_new_data(
-        test_id
-    ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data"
-    runtime_manager.check_for_exception()
+        assert not data_aggregator.has_new_data(
+            test_id
+        ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data"
+        runtime_manager.check_for_exception()
 
-    runtime.stop()
-    runtime_manager.check_for_exception()
+        runtime.stop()
+        runtime_manager.check_for_exception()
 
-    time.sleep(0.5)
+        time.sleep(0.5)
 
-    assert data_aggregator.has_new_data(
-        test_id
-    ), f"Aggregator should have new data (stop message) for test_id ({test_id})"
-    values = data_aggregator.get_new_data(test_id)
-    assert isinstance(
-        values, list
-    ), f"Expected list for get_new_data(test_id) for stop, got {type(values)}"
-    assert (
-        len(values) == 1
-    ), f"Expected 1 stop item for test_id, got {len(values)}"
+        assert data_aggregator.has_new_data(
+            test_id
+        ), f"Aggregator should have new data (stop message) for test_id ({test_id})"
+        values = data_aggregator.get_new_data(test_id)
+        assert isinstance(
+            values, list
+        ), f"Expected list for get_new_data(test_id) for stop, got {type(values)}"
+        assert (
+            len(values) == 1
+        ), f"Expected 1 stop item for test_id, got {len(values)}"
 
-    first = values[0]
-    assert isinstance(first, AnnotatedInstance), type(first)
-    assert isinstance(first.data, FakeData), type(first.data)
-    assert first.data.value == stopped
-    assert first.timestamp == stop_timestamp
-    assert first.caller_id == test_id
+        first = values[0]
+        assert isinstance(first, AnnotatedInstance), type(first)
+        assert isinstance(first.data, FakeData), type(first.data)
+        assert first.data.value == stopped
+        assert first.timestamp == stop_timestamp
+        assert first.caller_id == test_id
 
-    assert not data_aggregator.has_new_data(
-        test_id
-    ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data for stop"
+        assert not data_aggregator.has_new_data(
+            test_id
+        ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data for stop"
+
+    except Exception as e:
+        raise e
     finally:
         runtime_manager.shutdown()
 

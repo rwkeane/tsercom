@@ -70,12 +70,12 @@ class SplitProcessErrorWatcherSource:
             RuntimeError: If `stop` is called when the source is not currently running.
         """
         self.__is_running.stop()  # Will raise RuntimeError if not running.
-        if self.__thread is not None: # Check if thread exists
-            self.__thread.join(timeout=2.0) # Join with a timeout
+        if self.__thread is not None:  # Check if thread exists
+            self.__thread.join(timeout=2.0)  # Join with a timeout
             if self.__thread.is_alive():
                 # Optionally log if still alive, though it should exit as __is_running is False
                 # print(f"SplitProcessErrorWatcherSource: Polling thread {self.__thread.name} did not join in time.", file=sys.stderr)
-                pass # For now, no print in library code without proper logging
+                pass  # For now, no print in library code without proper logging
         # Note: Consider joining self.__thread here if immediate cleanup is critical,
         # though IsRunningTracker pattern usually means the thread exits cleanly.
         # The above comment is now addressed by the join.

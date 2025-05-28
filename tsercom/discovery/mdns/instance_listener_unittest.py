@@ -2,12 +2,20 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import socket
 from typing import Generic, TypeVar, Callable, List, Dict, Optional, cast, Any
-import asyncio # For asyncio.sleep if needed, though mock usually suffices
+import asyncio  # For asyncio.sleep if needed, though mock usually suffices
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
-from tsercom.discovery.mdns.instance_listener import InstanceListener, ServiceInfo, TServiceInfo
-from tsercom.discovery.mdns.record_listener import RecordListener # For default factory test
+from tsercom.discovery.mdns.instance_listener import (
+    InstanceListener,
+    ServiceInfo,
+    TServiceInfo,
+)
+from tsercom.discovery.mdns.record_listener import (
+    RecordListener,
+)  # For default factory test
+
 # FakeMdnsListener is defined below in this file.
+
 
 # Helper function for IP conversion
 def str_to_ip_bytes(ip_str: str) -> bytes:
@@ -21,6 +29,7 @@ class FakeMdnsListener(MdnsListener):
     This fake listener is intended to be returned by a factory function
     passed to InstanceListener's constructor.
     """
+
     def __init__(self, client: MdnsListener.Client, service_type: str):
         super().__init__()
         self.client: MdnsListener.Client = client
@@ -30,20 +39,24 @@ class FakeMdnsListener(MdnsListener):
         self.add_service_calls: List[Dict[str, Any]] = []
 
     def update_service(self, zc: Any, type_: str, name: str) -> None:
-        self.update_service_calls.append({'zc': zc, 'type_': type_, 'name': name})
+        self.update_service_calls.append(
+            {"zc": zc, "type_": type_, "name": name}
+        )
 
     def remove_service(self, zc: Any, type_: str, name: str) -> None:
-        self.remove_service_calls.append({'zc': zc, 'type_': type_, 'name': name})
+        self.remove_service_calls.append(
+            {"zc": zc, "type_": type_, "name": name}
+        )
 
     def add_service(self, zc: Any, type_: str, name: str) -> None:
-        self.add_service_calls.append({'zc': zc, 'type_': type_, 'name': name})
+        self.add_service_calls.append({"zc": zc, "type_": type_, "name": name})
 
     def simulate_service_added(
         self,
         name: str,
         port: int,
         addresses: List[bytes],
-        txt_record: Dict[bytes, bytes | None]
+        txt_record: Dict[bytes, bytes | None],
     ) -> None:
         if self.client:
             self.client._on_service_added(name, port, addresses, txt_record)
@@ -59,6 +72,7 @@ class FakeMdnsListener(MdnsListener):
 # Generic type variable for use with FakeInstanceListenerClient
 FClientServiceInfo = TypeVar("FClientServiceInfo", bound=ServiceInfo)
 
+
 # InstanceListener.Client is now Generic[TServiceInfo], so FakeInstanceListenerClient
 # just needs to inherit from it with its specific type var.
 class FakeInstanceListenerClient(InstanceListener.Client[FClientServiceInfo]):
@@ -69,13 +83,17 @@ class FakeInstanceListenerClient(InstanceListener.Client[FClientServiceInfo]):
         self.received_services: List[FClientServiceInfo] = []
 
     # This is the concrete implementation of the abstract method.
-    async def _on_service_added(self, connection_info: FClientServiceInfo) -> None:
+    async def _on_service_added(
+        self, connection_info: FClientServiceInfo
+    ) -> None:
         """Concrete implementation of the abstract method.
         It calls the AsyncMock to record the call and allow assertions.
         """
-        self.received_services.append(connection_info) # Optional: direct recording
+        self.received_services.append(
+            connection_info
+        )  # Optional: direct recording
         await self._on_service_added_mock(connection_info)
-    
+
     # Kept for potential direct configuration if needed, though direct call to mock is primary.
     # def configure_mock_to_record(self):
     #     """Configures the AsyncMock to call our recording method."""
@@ -87,7 +105,7 @@ class FakeInstanceListenerClient(InstanceListener.Client[FClientServiceInfo]):
             # call_args is a tuple (args, kwargs), we want args[0]
             return self._on_service_added_mock.call_args_list[-1][0][0]
         return None
-        
+
     def get_received_service_info(self) -> Optional[FClientServiceInfo]:
         """Helper to get the ServiceInfo from the last call to the AsyncMock."""
         if self._on_service_added_mock.call_count > 0:
@@ -104,23 +122,31 @@ class TestInstanceListener:
     """Unit tests for the InstanceListener class using factory-based injection."""
 
     SERVICE_TYPE = "_test_service._tcp.local."
-    captured_fake_mdns_listener: Optional[FakeMdnsListener] = None # Class variable to capture the fake listener
+    captured_fake_mdns_listener: Optional[FakeMdnsListener] = (
+        None  # Class variable to capture the fake listener
+    )
 
     def setup_method(self):
         """Set up common test objects for each test method."""
         self.mock_il_client = FakeInstanceListenerClient[ServiceInfo]()
-        
+
         # Reset captured listener for each test
         TestInstanceListener.captured_fake_mdns_listener = None
 
         # This factory will be called by InstanceListener.__init__
-        def fake_mdns_listener_factory(listener_client: MdnsListener.Client, service_type_arg: str) -> FakeMdnsListener:
+        def fake_mdns_listener_factory(
+            listener_client: MdnsListener.Client, service_type_arg: str
+        ) -> FakeMdnsListener:
             # listener_client will be the InstanceListener instance itself
             # service_type_arg will be self.SERVICE_TYPE
-            fake_listener = FakeMdnsListener(client=listener_client, service_type=service_type_arg)
-            TestInstanceListener.captured_fake_mdns_listener = fake_listener # Capture the instance
+            fake_listener = FakeMdnsListener(
+                client=listener_client, service_type=service_type_arg
+            )
+            TestInstanceListener.captured_fake_mdns_listener = (
+                fake_listener  # Capture the instance
+            )
             return fake_listener
-        
+
         self.factory_under_test = fake_mdns_listener_factory
 
         # Patch run_on_event_loop to schedule the coroutine produced by func_obj()
@@ -132,8 +158,8 @@ class TestInstanceListener:
             return asyncio.create_task(coro)
 
         self.run_on_event_loop_patcher = patch(
-            'tsercom.discovery.mdns.instance_listener.run_on_event_loop',
-            side_effect=mock_run_on_event_loop_schedule_side_effect
+            "tsercom.discovery.mdns.instance_listener.run_on_event_loop",
+            side_effect=mock_run_on_event_loop_schedule_side_effect,
         )
         self.mock_run_on_event_loop = self.run_on_event_loop_patcher.start()
 
@@ -146,14 +172,27 @@ class TestInstanceListener:
         instance_listener = InstanceListener[ServiceInfo](
             client=self.mock_il_client,
             service_type=self.SERVICE_TYPE,
-            mdns_listener_factory=self.factory_under_test
+            mdns_listener_factory=self.factory_under_test,
         )
-        assert TestInstanceListener.captured_fake_mdns_listener is not None, "Factory was not called or did not capture listener"
+        assert (
+            TestInstanceListener.captured_fake_mdns_listener is not None
+        ), "Factory was not called or did not capture listener"
         # Check that the client of the FakeMdnsListener is the InstanceListener instance
-        assert TestInstanceListener.captured_fake_mdns_listener.client == instance_listener
-        assert TestInstanceListener.captured_fake_mdns_listener.service_type == self.SERVICE_TYPE
-        assert instance_listener._InstanceListener__client == self.mock_il_client
-        assert instance_listener._InstanceListener__listener == TestInstanceListener.captured_fake_mdns_listener
+        assert (
+            TestInstanceListener.captured_fake_mdns_listener.client
+            == instance_listener
+        )
+        assert (
+            TestInstanceListener.captured_fake_mdns_listener.service_type
+            == self.SERVICE_TYPE
+        )
+        assert (
+            instance_listener._InstanceListener__client == self.mock_il_client
+        )
+        assert (
+            instance_listener._InstanceListener__listener
+            == TestInstanceListener.captured_fake_mdns_listener
+        )
 
     def test_init_successful_default_factory(self):
         """Test __init__ uses RecordListener by default."""
@@ -163,25 +202,42 @@ class TestInstanceListener:
         # For now, assume the default patcher is okay or RecordListener is not affected in __init__.
         instance_listener = InstanceListener[ServiceInfo](
             client=self.mock_il_client,
-            service_type=self.SERVICE_TYPE
+            service_type=self.SERVICE_TYPE,
             # No mdns_listener_factory provided
         )
-        assert isinstance(instance_listener._InstanceListener__listener, RecordListener)
+        assert isinstance(
+            instance_listener._InstanceListener__listener, RecordListener
+        )
 
     def test_init_invalid_client_none(self):
         """Test __init__ with client=None raises ValueError."""
         with pytest.raises(ValueError, match="Client argument cannot be None"):
-            InstanceListener(client=None, service_type=self.SERVICE_TYPE, mdns_listener_factory=self.factory_under_test)
+            InstanceListener(
+                client=None,
+                service_type=self.SERVICE_TYPE,
+                mdns_listener_factory=self.factory_under_test,
+            )
 
     def test_init_invalid_client_type(self):
         """Test __init__ with invalid client type raises TypeError."""
-        with pytest.raises(TypeError, match="Client must be an instance of InstanceListener.Client"):
-            InstanceListener(client=MagicMock(), service_type=self.SERVICE_TYPE, mdns_listener_factory=self.factory_under_test)
+        with pytest.raises(
+            TypeError,
+            match="Client must be an instance of InstanceListener.Client",
+        ):
+            InstanceListener(
+                client=MagicMock(),
+                service_type=self.SERVICE_TYPE,
+                mdns_listener_factory=self.factory_under_test,
+            )
 
     def test_init_invalid_service_type(self):
         """Test __init__ with invalid service_type raises TypeError."""
         with pytest.raises(TypeError, match="service_type must be a string"):
-            InstanceListener(client=self.mock_il_client, service_type=123, mdns_listener_factory=self.factory_under_test)
+            InstanceListener(
+                client=self.mock_il_client,
+                service_type=123,
+                mdns_listener_factory=self.factory_under_test,
+            )
 
     @pytest.mark.asyncio
     async def test_on_service_added_success(self):
@@ -189,7 +245,7 @@ class TestInstanceListener:
         instance_listener = InstanceListener[ServiceInfo](
             client=self.mock_il_client,
             service_type=self.SERVICE_TYPE,
-            mdns_listener_factory=self.factory_under_test
+            mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
 
@@ -199,52 +255,71 @@ class TestInstanceListener:
         ip_bytes = str_to_ip_bytes(ip_str)
         txt_record = {b"name": b"My Readable Name", b"version": b"1.0"}
 
-        TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(record_name, port, [ip_bytes], txt_record)
-        
+        TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+            record_name, port, [ip_bytes], txt_record
+        )
+
         # Allow the created task to run
-        await asyncio.sleep(0) 
+        await asyncio.sleep(0)
         self.mock_il_client._on_service_added_mock.assert_called_once()
-        
+
         # Get the ServiceInfo object passed to the mock
         received_info = self.mock_il_client.get_received_service_info()
         assert received_info is not None
         assert isinstance(received_info, ServiceInfo)
-        assert received_info.name == "My Readable Name" # Changed readable_name to name
+        assert (
+            received_info.name == "My Readable Name"
+        )  # Changed readable_name to name
         assert received_info.port == port
         assert received_info.addresses == [ip_str]
-        assert received_info.mdns_name == record_name # Changed instance_name to mdns_name
+        assert (
+            received_info.mdns_name == record_name
+        )  # Changed instance_name to mdns_name
 
     @pytest.mark.asyncio
     async def test_on_service_added_no_ip_addresses(self):
         """Test _on_service_added with no IP addresses does not notify client."""
         instance_listener = InstanceListener[ServiceInfo](
-            client=self.mock_il_client, service_type=self.SERVICE_TYPE, mdns_listener_factory=self.factory_under_test
+            client=self.mock_il_client,
+            service_type=self.SERVICE_TYPE,
+            mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
-        TestInstanceListener.captured_fake_mdns_listener.simulate_service_added("NoIPService", 8080, [], {b"name": b"No IP"})
-        await asyncio.sleep(0) # Allow event loop to process potential tasks
+        TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+            "NoIPService", 8080, [], {b"name": b"No IP"}
+        )
+        await asyncio.sleep(0)  # Allow event loop to process potential tasks
         self.mock_il_client._on_service_added_mock.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_on_service_added_ip_conversion_failure_all_invalid(self):
         """Test _on_service_added with all invalid IP addresses does not notify client."""
         instance_listener = InstanceListener[ServiceInfo](
-            client=self.mock_il_client, service_type=self.SERVICE_TYPE, mdns_listener_factory=self.factory_under_test
+            client=self.mock_il_client,
+            service_type=self.SERVICE_TYPE,
+            mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
-        invalid_ip_bytes = b"this is not an ip" 
-        with patch('socket.inet_ntoa', side_effect=socket.error("Invalid IP format")):
+        invalid_ip_bytes = b"this is not an ip"
+        with patch(
+            "socket.inet_ntoa", side_effect=socket.error("Invalid IP format")
+        ):
             TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
-                "InvalidIPService", 8080, [invalid_ip_bytes], {b"name": b"Invalid IP"}
+                "InvalidIPService",
+                8080,
+                [invalid_ip_bytes],
+                {b"name": b"Invalid IP"},
             )
-        await asyncio.sleep(0) # Allow event loop to process potential tasks
+        await asyncio.sleep(0)  # Allow event loop to process potential tasks
         self.mock_il_client._on_service_added_mock.assert_not_called()
-        
+
     @pytest.mark.asyncio
     async def test_on_service_added_ip_conversion_failure_some_invalid(self):
         """Test _on_service_added with some invalid IP addresses processes valid ones."""
         instance_listener = InstanceListener[ServiceInfo](
-            client=self.mock_il_client, service_type=self.SERVICE_TYPE, mdns_listener_factory=self.factory_under_test
+            client=self.mock_il_client,
+            service_type=self.SERVICE_TYPE,
+            mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
 
@@ -253,51 +328,58 @@ class TestInstanceListener:
         invalid_ip_bytes = b"badip"
 
         def mock_inet_ntoa(data):
-            if data == valid_ip_bytes: return valid_ip_str
+            if data == valid_ip_bytes:
+                return valid_ip_str
             raise socket.error("Invalid IP")
 
-        with patch('socket.inet_ntoa', side_effect=mock_inet_ntoa):
+        with patch("socket.inet_ntoa", side_effect=mock_inet_ntoa):
             TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
-                "MixedIPService", 8080, [invalid_ip_bytes, valid_ip_bytes], {b"name": b"Mixed IP"}
+                "MixedIPService",
+                8080,
+                [invalid_ip_bytes, valid_ip_bytes],
+                {b"name": b"Mixed IP"},
             )
-        
-        await asyncio.sleep(0) # Allow event loop to process potential tasks
+
+        await asyncio.sleep(0)  # Allow event loop to process potential tasks
         self.mock_il_client._on_service_added_mock.assert_called_once()
         received_info = self.mock_il_client.get_received_service_info()
         assert received_info is not None
         assert received_info.addresses == [valid_ip_str]
 
-
     @pytest.mark.asyncio
     async def test_on_service_added_txt_name_decoding_error(self):
         """Test _on_service_added with TXT name decoding error falls back to record_name."""
         instance_listener = InstanceListener[ServiceInfo](
-            client=self.mock_il_client, service_type=self.SERVICE_TYPE, mdns_listener_factory=self.factory_under_test
+            client=self.mock_il_client,
+            service_type=self.SERVICE_TYPE,
+            mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
 
         record_name = "UTF8ErrorService"
         ip_bytes = str_to_ip_bytes("192.168.1.102")
-        txt_record_invalid_utf8 = {b"name": b"\xff\xfe"} # Invalid UTF-8
+        txt_record_invalid_utf8 = {b"name": b"\xff\xfe"}  # Invalid UTF-8
 
         TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
             record_name, 8080, [ip_bytes], txt_record_invalid_utf8
         )
-        
-        await asyncio.sleep(0) # Allow event loop to process potential tasks
+
+        await asyncio.sleep(0)  # Allow event loop to process potential tasks
         self.mock_il_client._on_service_added_mock.assert_called_once()
         received_info = self.mock_il_client.get_received_service_info()
         assert received_info is not None
-        assert received_info.name == record_name 
+        assert received_info.name == record_name
 
     @pytest.mark.asyncio
     async def test_on_service_added_txt_name_missing(self):
         """Test _on_service_added with no 'name' in TXT record falls back to record_name."""
         instance_listener = InstanceListener[ServiceInfo](
-            client=self.mock_il_client, service_type=self.SERVICE_TYPE, mdns_listener_factory=self.factory_under_test
+            client=self.mock_il_client,
+            service_type=self.SERVICE_TYPE,
+            mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
-        
+
         record_name = "NoNameService"
         ip_bytes = str_to_ip_bytes("192.168.1.103")
         txt_record_no_name = {b"other_key": b"other_value"}
@@ -305,10 +387,12 @@ class TestInstanceListener:
         TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
             record_name, 8080, [ip_bytes], txt_record_no_name
         )
-        
-        await asyncio.sleep(0) # Allow event loop to process potential tasks
+
+        await asyncio.sleep(0)  # Allow event loop to process potential tasks
         self.mock_il_client._on_service_added_mock.assert_called_once()
         received_info = self.mock_il_client.get_received_service_info()
         assert received_info is not None
-        assert received_info.name == record_name # Ensured this is .name
+        assert received_info.name == record_name  # Ensured this is .name
+
+
 # Ensure no trailing characters or syntax errors exist beyond this point.

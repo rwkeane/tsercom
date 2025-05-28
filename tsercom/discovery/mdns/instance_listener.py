@@ -97,13 +97,20 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
 
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
-            def default_mdns_listener_factory(listener_client: MdnsListener.Client, s_type: str) -> MdnsListener:
+            def default_mdns_listener_factory(
+                listener_client: MdnsListener.Client, s_type: str
+            ) -> MdnsListener:
                 # RecordListener is already imported at the top of the file.
                 return RecordListener(listener_client, s_type)
-            self.__listener: MdnsListener = default_mdns_listener_factory(self, service_type)
+
+            self.__listener: MdnsListener = default_mdns_listener_factory(
+                self, service_type
+            )
         else:
             # Use provided factory
-            self.__listener: MdnsListener = mdns_listener_factory(self, service_type)
+            self.__listener: MdnsListener = mdns_listener_factory(
+                self, service_type
+            )
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)

@@ -16,15 +16,15 @@ from tsercom.api.split_process.split_runtime_factory_factory import (
     SplitRuntimeFactoryFactory,
 )
 from tsercom.api.runtime_handle import RuntimeHandle
+from tsercom.api.runtime_manager_helpers import (
+    ProcessCreator,
+    SplitErrorWatcherSourceFactory,
+)
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,  # Keep for type hinting if necessary
 )
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from .runtime_manager_helpers import (
-    ProcessCreator,
-    SplitErrorWatcherSourceFactory,
-)
 
 
 # Imports for runtime_main are moved into methods (start_in_process, start_out_of_process)
@@ -33,9 +33,8 @@ from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
     create_tsercom_event_loop_from_watcher,
     set_tsercom_event_loop,
-    clear_tsercom_event_loop,  # Added
-    get_global_event_loop,  # Added
-    is_global_event_loop_set,  # Added
+    clear_tsercom_event_loop,
+    is_global_event_loop_set,
 )
 from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -137,9 +136,7 @@ class RuntimeManager(ErrorWatcher):
         self.__initializers: list[InitializationPair[Any, Any]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[ErrorWatcher] = None
-        self.__process: Optional[Process] = (
-            None  # Process type hint from multiprocessing
-        )
+        self.__process: Optional[Process] = None
 
     @property
     def has_started(self) -> bool:
@@ -400,13 +397,6 @@ class RuntimeManager(ErrorWatcher):
         if self.__process is not None:
             self.__process.kill()
 
-        # Stop ThreadWatcher's event loop and clear global loop
-        # Accessing __thread_watcher via its mangled name _RuntimeManager__thread_watcher
-        # Assuming _RuntimeManager__thread_watcher exists and has stop_event_loop_thread if it's the correct type.
-        if hasattr(self, "_RuntimeManager__thread_watcher") and \
-           hasattr(self._RuntimeManager__thread_watcher, 'stop_event_loop_thread'):
-            self._RuntimeManager__thread_watcher.stop_event_loop_thread()
-
         if is_global_event_loop_set():
             clear_tsercom_event_loop()
 
@@ -415,19 +405,15 @@ class RuntimeManager(ErrorWatcher):
         if isinstance(self.__error_watcher, SplitProcessErrorWatcherSource):
             if self.__error_watcher.is_running():
                 self.__error_watcher.stop()
-        
+
         # Existing logic for process termination (with prints)
         # Assuming _RuntimeManager__process attribute exists (e.g. initialized to None or an object)
-        if self.__process and self.__process.is_alive():
-            self.__process.terminate()
-            self.__process.join(timeout=1.0)
+        if self.__process:
             if self.__process.is_alive():
-                self.__process.kill()
+                self.__process.terminate()
                 self.__process.join(timeout=1.0)
-                
-        elif self._RuntimeManager__process: # Process object exists but is not alive
-             # Check for .pid only if self._RuntimeManager__process is not None
-            pid_info = self._RuntimeManager__process.pid if hasattr(self._RuntimeManager__process, 'pid') and self._RuntimeManager__process.pid is not None else "unknown_pid (process object invalid or None)"
+            self.__process.kill()
+            self.__process.join(timeout=1.0)
 
         self._RuntimeManager__process = None
 

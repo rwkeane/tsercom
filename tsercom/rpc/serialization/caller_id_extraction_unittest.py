@@ -65,11 +65,13 @@ class TestCallerIdExtraction:
         # This is the method that will be called by SUT: is_running.create_stoppable_iterator()
         # It needs to be an async function (coroutine) because SUT awaits it.
         # Its return value (after await) should be the async_generator.
-        async def mock_create_stoppable_iterator_method(iterator_arg, stop_event=None):
+        async def mock_create_stoppable_iterator_method(
+            iterator_arg, stop_event=None
+        ):
             return actual_stoppable_iterator(iterator_arg, stop_event)
 
         tracker.create_stoppable_iterator = mocker.MagicMock(
-            side_effect=mock_create_stoppable_iterator_method, # side_effect is an async def function
+            side_effect=mock_create_stoppable_iterator_method,  # side_effect is an async def function
             name="mock_create_stoppable_iterator",
         )  # mocker.MagicMock
         tracker.get = mocker.MagicMock(
@@ -126,7 +128,9 @@ class TestCallerIdExtraction:
         print("\n--- Test: test_extract_id_call_object_has_no_id_attr ---")
         # call_without_id_attr = mocker.MagicMock(spec=[])  # This would cause AttributeError in default extractor
         call_without_id_attr = mocker.MagicMock()
-        call_without_id_attr.id = None # Make extractor return None to hit "Missing CallerID"
+        call_without_id_attr.id = (
+            None  # Make extractor return None to hit "Missing CallerID"
+        )
 
         caller_id = await extract_id_from_call(
             call_without_id_attr, mock_servicer_context
@@ -272,7 +276,7 @@ class TestCallerIdExtraction:
         assert caller_id is None
         assert first_call is None
         mock_servicer_context.abort.assert_called_once_with(
-            grpc.StatusCode.CANCELLED, # Corrected: SUT uses CANCELLED here
+            grpc.StatusCode.CANCELLED,  # Corrected: SUT uses CANCELLED here
             "First call never received!",
         )
         # mock_is_running_tracker.create_stoppable_iterator.assert_called_once_with(
@@ -317,7 +321,9 @@ class TestCallerIdExtraction:
         # The `iterator = await is_running.create_stoppable_iterator(iterator)` line in SUT
         # means the original_iterator is wrapped. Iterating this wrapped iterator (original_iterator)
         # will consume it via the mock's actual_stoppable_iterator.
-        assert not remaining_items # Corrected: The iterator is consumed by the stoppable_iterator wrapper
+        assert (
+            not remaining_items
+        )  # Corrected: The iterator is consumed by the stoppable_iterator wrapper
         print(
             "--- Test: test_extract_first_is_running_becomes_false finished ---"
         )
@@ -326,7 +332,7 @@ class TestCallerIdExtraction:
         self,
         mock_servicer_context,
         mock_is_running_tracker,
-        mock_call_object, # mock_call_object is not used here, can be removed if not needed for other reasons
+        mock_call_object,  # mock_call_object is not used here, can be removed if not needed for other reasons
         mocker,
     ):
         print(
@@ -342,7 +348,7 @@ class TestCallerIdExtraction:
         )
 
         assert caller_id is None
-        assert first_call is call1 # The first item was processed
+        assert first_call is call1  # The first item was processed
         mock_servicer_context.abort.assert_called_once_with(
             grpc.StatusCode.INVALID_ARGUMENT, "Invalid CallerID received"
         )
@@ -358,7 +364,7 @@ class TestCallerIdExtraction:
         self,
         mock_servicer_context,
         mock_is_running_tracker,
-        mock_call_object, # mock_call_object is not used here
+        mock_call_object,  # mock_call_object is not used here
         mocker,
     ):
         print(
@@ -370,7 +376,7 @@ class TestCallerIdExtraction:
             print("Faulty iterator starting...")
             await asyncio.sleep(0)
             raise test_exception
-            yield "never_yielded" # Should not be reached
+            yield "never_yielded"  # Should not be reached
 
         original_iterator_fails_first = faulty_iterator_fails_first()
 

@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-import pytest_asyncio # Added import
+import pytest_asyncio  # Added import
 
 # from unittest.mock import patch, AsyncMock, MagicMock, call # Removed
 import functools  # For functools.partial
@@ -27,7 +27,7 @@ from tsercom.caller_id.caller_identifier import (
 import tsercom.rpc.connection.discoverable_grpc_endpoint_connector as connector_module_to_patch
 
 
-@pytest_asyncio.fixture # Added decorator
+@pytest_asyncio.fixture  # Added decorator
 async def mock_aio_utils_fixture(monkeypatch, mocker):  # Added mocker
     """
     Mocks aio_utils functions used by DiscoverableGrpcEndpointConnector,
@@ -40,29 +40,37 @@ async def mock_aio_utils_fixture(monkeypatch, mocker):  # Added mocker
     def simplified_run_on_loop_side_effect(
         partial_func, loop=None, *args, **kwargs
     ):
-        target_func_name = getattr(partial_func.func, '__name__', 'N/A')
-        print(f"MOCKED run_on_event_loop CALLED with partial: {partial_func}, target function name: {target_func_name}")
-        
+        target_func_name = getattr(partial_func.func, "__name__", "N/A")
+        print(
+            f"MOCKED run_on_event_loop CALLED with partial: {partial_func}, target function name: {target_func_name}"
+        )
+
         effective_loop = loop if loop else asyncio.get_running_loop()
 
-        if target_func_name == '_mark_client_failed_impl':
+        if target_func_name == "_mark_client_failed_impl":
             # If it's the impl method, schedule it on the effective_loop.
             # _mark_client_failed_impl is async, so partial_func() creates a coroutine.
-            print(f"  Scheduling execution of {target_func_name} on loop {effective_loop}.")
+            print(
+                f"  Scheduling execution of {target_func_name} on loop {effective_loop}."
+            )
             asyncio.ensure_future(partial_func(), loop=effective_loop)
-        elif target_func_name == 'mark_client_failed':
+        elif target_func_name == "mark_client_failed":
             # This case is to prevent recursion as identified.
             # The SUT calls run_on_event_loop(partial(self.mark_client_failed, ...))
             # The mock should not re-execute mark_client_failed directly.
             # The test `test_mark_client_failed_uses_run_on_event_loop_if_different_loop`
             # asserts that run_on_event_loop is called with a partial of `_mark_client_failed_impl`.
             # So, this branch correctly does nothing to break the recursion.
-            print(f"  Skipping direct re-execution of {target_func_name} to prevent recursion.")
+            print(
+                f"  Skipping direct re-execution of {target_func_name} to prevent recursion."
+            )
             pass
         else:
             # Default behavior for any other functions that might be wrapped.
             # (Though for these tests, we primarily care about the above two cases)
-            print(f"  Default: Scheduling execution of {target_func_name} on loop {effective_loop}.")
+            print(
+                f"  Default: Scheduling execution of {target_func_name} on loop {effective_loop}."
+            )
             asyncio.ensure_future(partial_func(), loop=effective_loop)
 
         # The SUT's run_on_event_loop is fire-and-forget; it doesn't await the returned Future.
@@ -75,18 +83,20 @@ async def mock_aio_utils_fixture(monkeypatch, mocker):  # Added mocker
             # This association is primarily for bookkeeping or if anything were to await 'f'.
             # It does not gate the execution of the scheduled partial_func.
             if effective_loop and not effective_loop.is_closed():
-                asyncio.ensure_future(f, loop=effective_loop) 
-            else: # pragma: no cover
+                asyncio.ensure_future(f, loop=effective_loop)
+            else:  # pragma: no cover
                 # Fallback if effective_loop is None or closed.
                 # Try to get a current loop for the future 'f' itself.
                 current_loop_for_f_obj = asyncio.get_running_loop()
                 if not current_loop_for_f_obj.is_closed():
                     asyncio.ensure_future(f, loop=current_loop_for_f_obj)
-        except RuntimeError: # pragma: no cover
+        except RuntimeError:  # pragma: no cover
             # This might happen if no event loop is running at all.
             pass
-        
-        f.set_result(None) # This future resolves immediately, as SUT does not wait on it.
+
+        f.set_result(
+            None
+        )  # This future resolves immediately, as SUT does not wait on it.
         return f
 
     mock_run_on_event_loop_sync_exec.side_effect = (
@@ -328,13 +338,13 @@ class TestDiscoverableGrpcEndpointConnector:
 
     async def test_mark_client_failed_removes_caller_id(
         self,
-        mock_aio_utils_fixture, # Added fixture
+        mock_aio_utils_fixture,  # Added fixture
         mock_client,
         mock_channel_factory,
         mock_discovery_host,
         test_caller_id,
     ):
-        self.mocked_aio_utils = mock_aio_utils_fixture # Added line
+        self.mocked_aio_utils = mock_aio_utils_fixture  # Added line
         print("\n--- Test: test_mark_client_failed_removes_caller_id ---")
         connector = DiscoverableGrpcEndpointConnector(
             mock_client, mock_channel_factory, mock_discovery_host
@@ -367,14 +377,14 @@ class TestDiscoverableGrpcEndpointConnector:
 
     async def test_mark_client_failed_uses_run_on_event_loop_if_different_loop(
         self,
-        mocker, 
-        mock_aio_utils_fixture, # Added fixture
+        mocker,
+        mock_aio_utils_fixture,  # Added fixture
         mock_client,
         mock_channel_factory,
         mock_discovery_host,
         test_caller_id,
     ):
-        self.mocked_aio_utils = mock_aio_utils_fixture # Added line
+        self.mocked_aio_utils = mock_aio_utils_fixture  # Added line
         print(
             "\n--- Test: test_mark_client_failed_uses_run_on_event_loop_if_different_loop ---"
         )
@@ -396,13 +406,11 @@ class TestDiscoverableGrpcEndpointConnector:
         # Configure aio_utils mocks for this scenario
         # get_running_loop_or_none in SUT will return this same loop
         self.mocked_aio_utils["get_running_loop_or_none"].return_value = (
-            mock_target_loop 
+            mock_target_loop
         )
         # is_running_on_event_loop will be mocked to return False,
         # forcing the SUT to use run_on_event_loop
-        self.mocked_aio_utils["is_running_on_event_loop"].return_value = (
-            False
-        )
+        self.mocked_aio_utils["is_running_on_event_loop"].return_value = False
 
         await connector.mark_client_failed(test_caller_id)
         await asyncio.sleep(0)  # Allow scheduled tasks to run
@@ -418,12 +426,11 @@ class TestDiscoverableGrpcEndpointConnector:
         loop_arg = call_args_list[0][0][1]  # The event loop it should run on
 
         assert isinstance(partial_arg, functools.partial)
-        assert (
-            partial_arg.func.__name__
-            == "_mark_client_failed_impl"
-        )
+        assert partial_arg.func.__name__ == "_mark_client_failed_impl"
         assert partial_arg.args == (test_caller_id,)
-        assert loop_arg is mock_target_loop # Should be called with the SUT's __event_loop
+        assert (
+            loop_arg is mock_target_loop
+        )  # Should be called with the SUT's __event_loop
 
         # __mark_client_failed_impl (called by the mock) should have removed the caller_id
         assert (
