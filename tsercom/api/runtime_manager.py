@@ -1,5 +1,6 @@
 """Manages the creation and lifecycle of Tsercom runtimes."""
 
+import sys  # Added for stderr printing
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
@@ -383,6 +384,54 @@ class RuntimeManager(ErrorWatcher):
             )
 
         self.__error_watcher.check_for_exception()
+
+    def shutdown(self) -> None:
+        """Shuts down the managed process and associated error watcher if applicable.
+
+        This method is intended to clean up resources, particularly for out-of-process
+        runtimes. It stops the error watcher if it's a SplitProcessErrorWatcherSource
+        and terminates the managed process.
+        """
+        print("RuntimeManager.shutdown: Starting.", file=sys.stderr)
+
+        # Preserve existing error watcher logic, using self.__error_watcher which Python mangles
+        if isinstance(
+            self.__error_watcher, SplitProcessErrorWatcherSource
+        ) and self.__error_watcher.is_running():
+            print("RuntimeManager.shutdown: Stopping error watcher source.", file=sys.stderr)
+            self.__error_watcher.stop()
+        
+        # Process management with detailed tracing, using self._RuntimeManager__process as requested
+        # Ensure the attribute exists before trying to use it, good practice with explicit mangled names.
+        if hasattr(self, "_RuntimeManager__process"):
+            # Check if the process attribute is not None before trying to access pid or is_alive
+            if self._RuntimeManager__process and self._RuntimeManager__process.is_alive():
+                print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} is alive. Attempting to terminate.", file=sys.stderr)
+                self._RuntimeManager__process.terminate()
+                self._RuntimeManager__process.join(timeout=1.0)
+                if self._RuntimeManager__process.is_alive():
+                    print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} not terminated after terminate(), trying kill().", file=sys.stderr)
+                    self._RuntimeManager__process.kill()
+                    print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} kill signal sent. Joining...", file=sys.stderr)
+                    self._RuntimeManager__process.join(timeout=1.0)
+                    if self._RuntimeManager__process.is_alive():
+                        print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} still alive after kill() and join.", file=sys.stderr)
+                    else:
+                        print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} successfully killed and joined.", file=sys.stderr)
+                else:
+                    print(f"RuntimeManager.shutdown: Process {self._RuntimeManager__process.pid} successfully terminated and joined.", file=sys.stderr)
+            elif self._RuntimeManager__process: # Process object exists but not alive
+                # It's possible self._RuntimeManager__process is None here if not initialized,
+                # so accessing .pid could fail. Check again.
+                pid_info = self._RuntimeManager__process.pid if hasattr(self._RuntimeManager__process, 'pid') and self._RuntimeManager__process.pid is not None else "unknown_pid"
+                print(f"RuntimeManager.shutdown: Process {pid_info} was already not alive or process object is invalid.", file=sys.stderr)
+            else: # No process object, or it's None
+                print("RuntimeManager.shutdown: Process attribute is None.", file=sys.stderr)
+        else: # No process attribute at all
+            print("RuntimeManager.shutdown: No process attribute '_RuntimeManager__process' to manage.", file=sys.stderr)
+
+        self._RuntimeManager__process = None # Assigning to the mangled name as requested
+        print("RuntimeManager.shutdown: Completed.", file=sys.stderr)
 
     def __create_factories(
         self, factory_factory: RuntimeFactoryFactory[Any, Any]
