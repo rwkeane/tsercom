@@ -181,25 +181,35 @@ class TestGlobalEventLoop:
                 pass
             elif not original_loop.is_closed():
                 # If there's a non-running, non-closed loop, close it.
-                asyncio.set_event_loop(None) # Dissociate first
+                asyncio.set_event_loop(None)  # Dissociate first
                 original_loop.close()
-            original_loop = None # Ensure it's not reused if closed
-        except RuntimeError: # No loop was set or loop was already closed
+            original_loop = None  # Ensure it's not reused if closed
+        except RuntimeError:  # No loop was set or loop was already closed
             pass
-        asyncio.set_event_loop(None) # Ensure no loop is current for this thread before the test logic
+        asyncio.set_event_loop(
+            None
+        )  # Ensure no loop is current for this thread before the test logic
 
         # At this point, asyncio.get_event_loop() should create a new loop via policy.
-        
+
         try:
             global_event_loop.set_tsercom_event_loop_to_current_thread()
-            assert global_event_loop.is_global_event_loop_set(), "Global loop was not set."
-            
+            assert (
+                global_event_loop.is_global_event_loop_set()
+            ), "Global loop was not set."
+
             the_loop_that_was_set = global_event_loop.get_global_event_loop()
-            assert the_loop_that_was_set is not None, "get_global_event_loop() returned None."
+            assert (
+                the_loop_that_was_set is not None
+            ), "get_global_event_loop() returned None."
 
             # The loop obtained by get_event_loop() inside the SUT should be the current one.
-            current_policy_loop = asyncio.get_event_loop_policy().get_event_loop()
-            assert the_loop_that_was_set is current_policy_loop,                 "Set loop is not the one from current policy."
+            current_policy_loop = (
+                asyncio.get_event_loop_policy().get_event_loop()
+            )
+            assert (
+                the_loop_that_was_set is current_policy_loop
+            ), "Set loop is not the one from current policy."
 
         finally:
             # Cleanup: clear tsercom's global state (done by autouse fixture).
@@ -211,14 +221,22 @@ class TestGlobalEventLoop:
             try:
                 # Try to get what asyncio considers current, it might be the one we want to close.
                 loop_to_potentially_close = asyncio.get_event_loop()
-            except RuntimeError: # No loop currently set (e.g. if clear_tsercom_event_loop also did asyncio.set_event_loop(None))
+            except (
+                RuntimeError
+            ):  # No loop currently set (e.g. if clear_tsercom_event_loop also did asyncio.set_event_loop(None))
                 pass
-            
-            if loop_to_potentially_close and                not loop_to_potentially_close.is_running() and                not loop_to_potentially_close.is_closed():
-                asyncio.set_event_loop(None) # Dissociate
+
+            if (
+                loop_to_potentially_close
+                and not loop_to_potentially_close.is_running()
+                and not loop_to_potentially_close.is_closed()
+            ):
+                asyncio.set_event_loop(None)  # Dissociate
                 loop_to_potentially_close.close()
-            
-            asyncio.set_event_loop(None) # Final cleanup of current thread's loop association
+
+            asyncio.set_event_loop(
+                None
+            )  # Final cleanup of current thread's loop association
 
     # # 4. create_tsercom_event_loop_from_watcher()
     # def test_create_tsercom_event_loop_from_watcher(

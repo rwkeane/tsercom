@@ -1,10 +1,11 @@
 from typing import Dict, Optional
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 
+from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.util.ip import get_all_addresses
 
 
-class RecordPublisher:
+class RecordPublisher(MdnsPublisher):
     """Publishes a service instance to mDNS using specific record details.
 
     This class takes detailed service parameters (name, type, port, properties)
@@ -55,12 +56,6 @@ class RecordPublisher:
         # Replacing print with logging for better practice, assuming logger is configured elsewhere.
 
     def publish(self) -> None:
-        """Publishes the service to mDNS.
-
-        Constructs a `zeroconf.ServiceInfo` object with the configured details
-        and registers it with a `Zeroconf` instance. The service is published
-        using IPVersion.V4Only.
-        """
         # `addresses` are fetched dynamically to get all current IPv4 addresses of the host.
         service_info = ServiceInfo(
             type_=self.__ptr,  # The service type (e.g., "_myservice._tcp.local.")

@@ -61,7 +61,9 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         pass
 
     async def process_data(
-        self, data: TDataType, timestamp: datetime | ServerTimestamp | None = None # Allow None
+        self,
+        data: TDataType,
+        timestamp: datetime | ServerTimestamp | None = None,  # Allow None
     ) -> None:
         """Processes incoming data, converting timestamp if necessary.
 
@@ -78,16 +80,19 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         if timestamp is None:
             # Ensure timezone is available if datetime.now needs it.
             # Assumes 'from datetime import datetime, timezone' in this file
-            from datetime import timezone  # Ensure timezone is in scope for .now()
+            from datetime import (
+                timezone,
+            )  # Ensure timezone is in scope for .now()
+
             actual_timestamp = datetime.now(timezone.utc)
         elif isinstance(timestamp, ServerTimestamp):
             actual_timestamp = await self.desynchronize(timestamp)
-        else: # Is already a datetime object
+        else:  # Is already a datetime object
             actual_timestamp = timestamp
-        
+
         # The problematic 'assert isinstance(timestamp, datetime)' was here.
         # It's removed as the logic above ensures actual_timestamp is a datetime.
-        
+
         await self._process_data(data, actual_timestamp)
 
     @abstractmethod
