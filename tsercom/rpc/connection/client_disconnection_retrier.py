@@ -93,7 +93,7 @@ class ClientDisconnectionRetrier(
         )
 
     @abstractmethod
-    def _connect(self) -> TInstanceType:
+    async def _connect(self) -> TInstanceType:
         """Abstract method to establish a connection and return the connected instance.
 
         Subclasses must implement this method to provide the logic for creating

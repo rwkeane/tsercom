@@ -86,14 +86,14 @@ class DiscoverableGrpcEndpointConnector(
 
         super().__init__()  # Calls __init__ of DiscoveryHost.Client
 
-    def start(self) -> None:
+    async def start(self) -> None:
         """Starts the service discovery process.
 
         This initiates discovery by calling `start_discovery` on the configured
         `DiscoveryHost`. This instance (`self`) is passed as the client to
         receive `_on_service_added` callbacks from the `DiscoveryHost`.
         """
-        self.__discovery_host.start_discovery(self)
+        await self.__discovery_host.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
         """Marks a client associated with a `CallerIdentifier` as failed or unhealthy.
@@ -112,23 +112,22 @@ class DiscoverableGrpcEndpointConnector(
             logging.warning(
                 "mark_client_failed called before event loop was captured. This may indicate an issue if called before any service discovery."
             )
-            # Attempt to get the loop now, though ideally it's set by _on_service_added first.
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
                 logging.error(
                     "Failed to get event loop in mark_client_failed."
                 )
-                # Cannot proceed without an event loop if not already on one.
-                # Or, if this function *must* run on a loop, it should be scheduled.
-                # For now, log and return if loop is critical and missing.
                 return
 
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(
-                partial(self.mark_client_failed, caller_id), self.__event_loop
+                partial(self._mark_client_failed_impl, caller_id), self.__event_loop
             )
             return
 
+        await self._mark_client_failed_impl(caller_id)
+
+    async def _mark_client_failed_impl(self, caller_id: CallerIdentifier) -> None:
         # Assert that the caller_id was indeed being tracked.
         assert (
             caller_id in self.__callers
