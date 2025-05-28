@@ -1,11 +1,10 @@
 """Defines the Runtime abstract base class, representing a service that can be started and stopped."""
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
-from tsercom.util.stopable import Stopable
 
-
-class Runtime(Stopable, ABC):
+class Runtime(ABC):
     """Abstract base class for a runtime service.
 
     A Runtime represents a service that has a lifecycle involving starting
@@ -18,5 +17,15 @@ class Runtime(Stopable, ABC):
 
         Subclasses must implement this method to define the startup logic
         for the service.
+        """
+        pass
+
+    @abstractmethod
+    async def stop(self, exception: Optional[Exception] = None) -> None:
+        """Asynchronously stops the object.
+
+        Subclasses must implement this method to define how the runtime should
+        stop. |exception| is the exception, if any, that caused the runtime to
+        stop.
         """
         pass

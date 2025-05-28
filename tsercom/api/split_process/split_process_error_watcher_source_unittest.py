@@ -25,7 +25,7 @@ class FakeThread:
 
     def join(self, timeout=None):  # Add timeout argument
         """Fake join method."""
-        self._started = False # After join, thread is no longer "alive"
+        self._started = False  # After join, thread is no longer "alive"
 
     def is_alive(self):
         """Fake is_alive method."""

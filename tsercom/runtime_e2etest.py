@@ -68,7 +68,7 @@ class FakeRuntime(Runtime):
         data = FakeData(started)
         await self.__responder.process_data(data, start_timestamp)
 
-    async def stop(self) -> None:
+    async def stop(self, exception) -> None:
         assert self.__responder is not None
         await self.__responder.process_data(FakeData(stopped), stop_timestamp)
 
@@ -104,7 +104,7 @@ class ErrorThrowingRuntime(Runtime):
     async def start_async(self) -> None:
         raise self.error_type(self.error_message)
 
-    async def stop(self) -> None:
+    async def stop(self, exception) -> None:
         pass
 
 

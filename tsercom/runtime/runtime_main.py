@@ -140,9 +140,12 @@ def remote_process_main(
         # If initialize_runtimes succeeds, then wait for other errors from sink
         sink.run_until_exception()
     except Exception as e:
-        if error_queue:  # error_queue is an argument to remote_process_main
-            error_queue.put_nowait(e)
-        raise  # Important to re-raise so child process indicates error
-    finally:
         for runtime in runtimes:
-            run_on_event_loop(runtime.stop)
+            run_on_event_loop(partial(runtime.stop, e))
+
+        if error_queue:
+            error_queue.put_nowait(e)
+        raise
+
+    for runtime in runtimes:
+        run_on_event_loop(runtime.stop)

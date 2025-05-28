@@ -102,7 +102,7 @@ class EventLoopFactory:
                 barrier.set()  # Notifies waiting thread that loop is ready
 
                 local_event_loop.run_forever()  # Starts the event loop
-            except Exception as e_thread:
+            except Exception:
                 # Original logging for exceptions during thread execution should be preserved if it was there.
                 # Assuming the added logging.error was for specific debug purposes of this task.
                 # If there was an original logging.error here, it should be restored.

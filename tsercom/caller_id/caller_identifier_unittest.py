@@ -35,7 +35,7 @@ def PatchedCallerIdentifier(mocker):
     # directly within the tsercom.caller_id.caller_identifier module's namespace.
     mocker.patch(
         "tsercom.caller_id.caller_identifier.CallerId",  # The alias used in caller_identifier.py
-        new=MockProtoCallerIdType
+        new=MockProtoCallerIdType,
     )
 
     # No importlib.reload is needed.

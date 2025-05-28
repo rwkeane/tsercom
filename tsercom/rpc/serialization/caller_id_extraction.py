@@ -114,17 +114,26 @@ async def extract_id_from_call(
         return None
 
     # If the id is malformed, return.
-    extracted = extractor(call) # This is expected to be the GrpcCallerId protobuf message
-    if extracted is None or not hasattr(extracted, 'id') or not extracted.id: # Check if message or its id string is missing
-        logging.error(f"CallerID string missing or empty in extracted message: {extracted}")
+    extracted = extractor(
+        call
+    )  # This is expected to be the GrpcCallerId protobuf message
+    if (
+        extracted is None or not hasattr(extracted, "id") or not extracted.id
+    ):  # Check if message or its id string is missing
+        logging.error(
+            f"CallerID string missing or empty in extracted message: {extracted}"
+        )
         if context is not None:
             # Using INVALID_ARGUMENT as it's a malformed/missing ID from client perspective
             await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT, "Malformed or missing CallerID string"
+                grpc.StatusCode.INVALID_ARGUMENT,
+                "Malformed or missing CallerID string",
             )
         return None
 
-    caller_id = CallerIdentifier.try_parse(extracted.id) # Parse the .id string field of the message
+    caller_id = CallerIdentifier.try_parse(
+        extracted.id
+    )  # Parse the .id string field of the message
     if caller_id is None:
         # Log extracted.id as that's what was parsed, not the whole message object string form
         logging.error(f"Invalid CallerID format received: {extracted.id}")

@@ -5,7 +5,6 @@ CallerIdentifier) and handles data timeout tracking. It acts as a central point
 for collecting and accessing data from multiple remote endpoints.
 """
 
-import logging  # Added for logging
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
