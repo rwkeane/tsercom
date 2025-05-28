@@ -1,11 +1,12 @@
 """Provides InsecureGrpcChannelFactory for creating insecure gRPC channels."""
 
 import asyncio
-import grpc
-import logging  # Added for logging
+import grpc # Keep for potential grpc.aio.AioRpcError, though not explicitly used in new code
+import logging
 
-from tsercom.rpc.common.channel_info import ChannelInfo  # Updated import path
+from tsercom.rpc.common.channel_info import ChannelInfo
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
+from ..grpc_channel_credentials_provider import GrpcChannelCredentialsProvider
 
 
 class InsecureGrpcChannelFactory(GrpcChannelFactory):
@@ -15,6 +16,15 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
     and returns a ChannelInfo object for the first successful connection.
     It does not use any transport security (e.g., TLS).
     """
+
+    def __init__(self, credentials_provider: GrpcChannelCredentialsProvider):
+        """Initializes InsecureGrpcChannelFactory.
+
+        Args:
+            credentials_provider: The provider for gRPC channel credentials.
+        """
+        super().__init__()
+        self._credentials_provider = credentials_provider
 
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
@@ -52,24 +62,38 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
 
         for current_address in address_list:
             try:
+                target = f"{current_address}:{port}"
                 logging.info(
-                    f"Attempting connection to {current_address}:{port}"
+                    f"Attempting connection to {target}"
                 )
-                channel = grpc.aio.insecure_channel(
-                    f"{current_address}:{port}"
+                # Use the credentials provider to create the insecure channel
+                channel = self._credentials_provider.create_insecure_channel(
+                    target=target
                 )
-                # Wait for the channel to be ready, with a timeout.
-                await asyncio.wait_for(
-                    channel.channel_ready(), timeout=5.0
-                )  # Use float for timeout
-                logging.info(
-                    f"Successfully connected to {current_address}:{port}"
-                )
-                return ChannelInfo(channel, current_address, port)
+                if channel:
+                    # Wait for the channel to be ready, with a timeout.
+                    await asyncio.wait_for(
+                        channel.channel_ready(), timeout=5.0
+                    )
+                    logging.info(
+                        f"Successfully connected to {target}"
+                    )
+                    return ChannelInfo(channel, current_address, port)
+                else:
+                    logging.warning(f"Channel creation returned None for {target}")
+                    # Continue to next address if channel is None
 
+            except grpc.aio.AioRpcError as e: # More specific error handling
+                logging.warning(
+                    f"Address {target} unreachable. gRPC AioRpcError: {e.code()} - {e.details()}"
+                )
+            except asyncio.TimeoutError:
+                logging.warning(
+                    f"Timeout waiting for channel to be ready for {target}."
+                )
             except Exception as e:
                 logging.warning(
-                    f"Address {current_address}:{port} unreachable. Error: {e}"
+                    f"Address {target} unreachable. Error: {e}"
                 )
                 if isinstance(e, AssertionError):  # Re-raise assertion errors
                     raise
