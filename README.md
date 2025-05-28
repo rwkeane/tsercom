@@ -221,17 +221,17 @@ A common, albeit somewhat counter-intuitive, architecture with Tsercom involves 
 
 **Alternative:** It's also possible for the Tsercom SERVER to host the gRPC server and Tsercom CLIENTs to connect to it. However, the suggested architecture above is often preferred as it simplifies the management of dynamic client appearances and persistent identities.
 
-## WARNING
-This library is still in alpha version. It works for the author's project use cases but has not yet been exhaustively tested with unit tests across all potential scenarios. Use at your own risk!
-
 ## Dependencies
 Tsercom relies on several key libraries:
-- `grpcio`, `grpcio-status`, `grpcio-tools`: For the core gRPC communication.
+- `grpcio`*, `grpcio-status`*, `grpcio-tools`*: For the core gRPC communication.
 - `ntplib`: For network time synchronization.
 - `zeroconf`: For mDNS-based service discovery.
 - `psutil`: For system utilities, potentially used in process management or monitoring.
 
-_NOTE_: If the gRPC dependency version causes issues, updating it usually involves regenerating protobuf files using `scripts/generate_protos.py` (if you have the repository checked out).
+Optional dependencies:
+- `pytorch`: To support serializing and deserializing `torch.Tensor` instances. Only enabled if `pytorch` is installed 
+
+*: If the gRPC dependency version causes issues, updating it usually involves regenerating protobuf files using `scripts/generate_protos.py` (if you have the repository checked out).
 
 ## Contributing
 Contributions are welcome! If you find a bug, have a feature request, or want to improve the documentation, please open an issue or submit a pull request on the GitHub repository.
