@@ -2,6 +2,7 @@
 
 import asyncio
 import grpc # Keep for potential grpc.aio.AioRpcError, though not explicitly used in new code
+import grpc.aio # Added for type hinting grpc.aio.Channel
 import logging
 
 from tsercom.rpc.common.channel_info import ChannelInfo
@@ -61,44 +62,43 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
         )
 
         for current_address in address_list:
+            target = f"{current_address}:{port}" 
+            # Initialize channel to None before the try block, ensure it has type hint e.g. grpc.aio.Channel | None
+            channel: grpc.aio.Channel | None = None 
             try:
-                target = f"{current_address}:{port}"
-                logging.info(
-                    f"Attempting connection to {target}"
-                )
-                # Use the credentials provider to create the insecure channel
-                channel = self._credentials_provider.create_insecure_channel(
-                    target=target
+                logging.info(f"Attempting connection to {target}") 
+                channel = self._credentials_provider.create_insecure_channel(target=target)
+
+                if not channel:
+                    logging.warning(f"Channel creation returned None for {target}") 
+                    continue # Try next address
+
+                await asyncio.wait_for(channel.channel_ready(), timeout=5.0) 
+                
+                logging.info(f"Successfully connected to {target}") 
+                return ChannelInfo(channel, current_address, port)
+
+            except grpc.aio.AioRpcError as e:
+                logging.warning(
+                    f"Address {target} unreachable. gRPC AioRpcError: {e.code()} - {e.details()}" 
                 )
                 if channel:
-                    # Wait for the channel to be ready, with a timeout.
-                    await asyncio.wait_for(
-                        channel.channel_ready(), timeout=5.0
-                    )
-                    logging.info(
-                        f"Successfully connected to {target}"
-                    )
-                    return ChannelInfo(channel, current_address, port)
-                else:
-                    logging.warning(f"Channel creation returned None for {target}")
-                    # Continue to next address if channel is None
-
-            except grpc.aio.AioRpcError as e: # More specific error handling
-                logging.warning(
-                    f"Address {target} unreachable. gRPC AioRpcError: {e.code()} - {e.details()}"
-                )
+                    await channel.close() 
             except asyncio.TimeoutError:
                 logging.warning(
-                    f"Timeout waiting for channel to be ready for {target}."
+                    f"Timeout waiting for channel to be ready for {target}." 
                 )
+                if channel:
+                    await channel.close() 
             except Exception as e:
                 logging.warning(
-                    f"Address {target} unreachable. Error: {e}"
+                    f"Address {target} unreachable. Error: {e}" 
                 )
-                if isinstance(e, AssertionError):  # Re-raise assertion errors
+                if channel:
+                    await channel.close() 
+                if isinstance(e, AssertionError):
                     raise
-                # For other exceptions, continue to the next address.
-
+        
         logging.warning(
             f"Failed to connect to any of the provided addresses: {address_list} on port {port}"
         )
