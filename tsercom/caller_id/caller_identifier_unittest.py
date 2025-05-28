@@ -21,33 +21,27 @@ class MockProtoCallerIdType:
 # Removed global import of CallerIdentifier
 
 
-@pytest.fixture(scope="module")  # Removed autouse=True, tests will request it
-def PatchedCallerIdentifier(module_mocker):  # Renamed fixture
+@pytest.fixture(scope="function")
+def PatchedCallerIdentifier(mocker):
     """
-    Mocks tsercom.caller_id.proto.CallerId and reloads CallerIdentifier.
-    Returns the reloaded CallerIdentifier class.
+    Mocks the 'CallerId' protobuf class dependency within the
+    tsercom.caller_id.caller_identifier module for the duration of a test.
+    Returns the original CallerIdentifier class, which will now use the mocked
+    protobuf class.
     """
-    import importlib
     import tsercom.caller_id.caller_identifier  # SUT module
 
-    # Create a mock object that will represent the ...caller_id_pb2 module
-    mock_pb2_module = module_mocker.MagicMock(name="mock_caller_id_pb2_module")
-    mock_pb2_module.CallerId = (
-        MockProtoCallerIdType  # Set the CallerId attribute on this mock module
+    # Patch the 'CallerId' name (which is an imported protobuf class)
+    # directly within the tsercom.caller_id.caller_identifier module's namespace.
+    mocker.patch(
+        "tsercom.caller_id.caller_identifier.CallerId",  # The alias used in caller_identifier.py
+        new=MockProtoCallerIdType
     )
 
-    # Patch sys.modules to make the specific import path point to our mock_pb2_module
-    module_mocker.patch.dict(
-        sys.modules,
-        {
-            "tsercom.caller_id.proto.generated.v1_70.caller_id_pb2": mock_pb2_module,
-        },
-    )
-
-    # Reload the SUT module to ensure it picks up the mocked CallerId
-    # from the now-mocked ...caller_id_pb2 module
-    importlib.reload(tsercom.caller_id.caller_identifier)
-
+    # No importlib.reload is needed.
+    # The CallerIdentifier class itself is not reloaded or replaced.
+    # Its behavior changes because its internal reference to the protobuf class 'CallerId'
+    # now points to MockProtoCallerIdType for the scope of the patch.
     return tsercom.caller_id.caller_identifier.CallerIdentifier
 
 
