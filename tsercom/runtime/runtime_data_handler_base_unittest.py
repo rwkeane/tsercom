@@ -98,8 +98,7 @@ class TestableRuntimeDataHandler(
         return self.mock_try_get_caller_id(endpoint, port)
 
 
-@pytest.mark.asyncio
-class TestRuntimeDataHandlerBaseBehavior:
+class TestRuntimeDataHandlerBaseBehavior: # Removed @pytest.mark.asyncio from class
 
     @pytest.fixture
     def mock_data_reader(self, mocker):
@@ -183,10 +182,11 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
 
     # --- Tests for RuntimeDataHandlerBase direct methods ---
-    def test_constructor(self, handler, mock_data_reader, mock_event_source):
+    def test_constructor(self, handler, mock_data_reader, mock_event_source): # No asyncio mark
         assert handler._RuntimeDataHandlerBase__data_reader is mock_data_reader  # type: ignore
         assert handler._RuntimeDataHandlerBase__event_source is mock_event_source  # type: ignore
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_register_caller_endpoint_port(
         self, handler, mock_caller_id, mocker  # Added mocker
     ):
@@ -202,6 +202,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
         assert returned_processor is mock_processor_instance
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_register_caller_grpc_context_success(
         self,
         handler,
@@ -228,6 +229,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
         assert returned_processor is mock_processor_instance
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_register_caller_grpc_context_no_ip(
         self,
         handler,
@@ -250,9 +252,10 @@ class TestRuntimeDataHandlerBaseBehavior:
         handler.mock_register_caller.assert_not_called()
         assert returned_processor is None
 
-    def test_get_data_iterator_returns_self(self, handler):
+    def test_get_data_iterator_returns_self(self, handler): # No asyncio mark
         assert handler.get_data_iterator() is handler
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_async_iteration_with_event_source(
         self, handler, mock_event_source, mocker
     ):
@@ -269,7 +272,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         assert collected_items == [item1, item2]
         assert mock_event_source.__anext__.call_count == 3
 
-    def test_check_for_caller_id(self, handler, mock_caller_id):
+    def test_check_for_caller_id(self, handler, mock_caller_id): # No asyncio mark
         endpoint_str = "test_ep"
         port_num = 1122
         handler.mock_try_get_caller_id.return_value = mock_caller_id
@@ -281,6 +284,7 @@ class TestRuntimeDataHandlerBaseBehavior:
 
     # Test for the SUT's _on_data_ready, not the reader's.
     # The SUT's _on_data_ready calls the reader's _on_data_ready.
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_handler_on_data_ready_calls_reader_on_data_ready(  # Made async
         self, handler, mock_data_reader, mocker
     ):
@@ -308,6 +312,7 @@ class TestRuntimeDataHandlerBaseBehavior:
 
     # --- Tests for _RuntimeDataHandlerBase__DataProcessorImpl ---
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_processor_desynchronize(
         self, data_processor, mock_sync_clock, mocker
     ):
@@ -324,6 +329,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         assert result_dt is expected_datetime
         print("--- Test: test_processor_desynchronize finished ---")
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_processor_deregister_caller(
         self, data_processor, handler, test_caller_id_instance
     ):
@@ -334,6 +340,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
         print("--- Test: test_processor_deregister_caller finished ---")
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_processor_process_data_with_datetime(
         self, data_processor, handler, test_caller_id_instance
     ):
@@ -356,6 +363,7 @@ class TestRuntimeDataHandlerBaseBehavior:
             "--- Test: test_processor_process_data_with_datetime finished ---"
         )
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_processor_process_data_with_server_timestamp(
         self,
         data_processor,
@@ -394,6 +402,7 @@ class TestRuntimeDataHandlerBaseBehavior:
             "--- Test: test_processor_process_data_with_server_timestamp finished ---"
         )
 
+    @pytest.mark.asyncio # Added asyncio mark
     async def test_processor_process_data_no_timestamp(
         self,
         data_processor,
