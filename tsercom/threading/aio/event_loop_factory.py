@@ -69,6 +69,9 @@ class EventLoopFactory:
             exception = context.get("exception")
             message = context.get("message")
             if exception:
+                if isinstance(exception, asyncio.CancelledError):
+                    raise exception
+
                 logging.error(
                     f"Unhandled exception in event loop: {message}",
                     exc_info=exception,
@@ -108,9 +111,8 @@ class EventLoopFactory:
                 # If there was an original logging.error here, it should be restored.
                 # For now, removing the specific one added for debugging.
                 # logging.error(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: Exception caught in thread: {e_thread!r}", exc_info=True)
-                raise  # Re-raise to be caught by ThrowingThread's wrapper
+                raise
             finally:
-                # Ensure loop is closed if it was initialized
                 if (
                     "local_event_loop" in locals()
                     and hasattr(local_event_loop, "is_closed")
@@ -124,6 +126,7 @@ class EventLoopFactory:
             target=start_event_loop  # Pass the function to be executed
         )
         self.__event_loop_thread.start()
+
         # Wait until the event loop is set up and running.
         barrier.wait()
 

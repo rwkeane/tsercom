@@ -148,4 +148,4 @@ def remote_process_main(
         raise
 
     for runtime in runtimes:
-        run_on_event_loop(runtime.stop)
+        run_on_event_loop(partial(runtime.stop, None))

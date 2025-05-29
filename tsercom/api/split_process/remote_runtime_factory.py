@@ -135,16 +135,10 @@ class RemoteRuntimeFactory(
         Returns:
             The created Runtime instance, configured for remote operation.
         """
-        # Ensure event_poller and remote_data_reader are initialized before creating the runtime
-        current_event_poller = self._event_poller()
-        current_remote_data_reader = self._remote_data_reader()
-
         runtime = self._initializer_instance.create(
+            thread_watcher=thread_watcher,
             data_handler=data_handler,
             grpc_channel_factory=grpc_channel_factory,
-            thread_watcher=thread_watcher,
-            event_poller=current_event_poller,  # Pass the event_poller
-            remote_data_reader=current_remote_data_reader,  # Pass the remote_data_reader
         )
 
         if self.__event_source:  # self.__event_source is current_event_poller

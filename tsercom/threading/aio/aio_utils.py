@@ -86,11 +86,6 @@ def run_on_event_loop(
     if event_loop is None:
         event_loop = get_global_event_loop()
         if event_loop is None:
-            # Raise an error if no event loop is available.
             raise RuntimeError("ERROR: tsercom global event loop not set!")
-    # The `asyncio.run_coroutine_threadsafe` function can sometimes be tricky for
-    # type checkers to fully understand, especially with generic parameters (P, T)
-    # and complex callables. The `type: ignore` is used here to acknowledge that
-    # the type hinting is sound, but mypy or other checkers might struggle with
-    # this specific combination of generics and `run_coroutine_threadsafe`.
+
     return asyncio.run_coroutine_threadsafe(call(*args, **kwargs), event_loop)  # type: ignore[arg-type]

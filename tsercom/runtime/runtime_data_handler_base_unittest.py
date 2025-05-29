@@ -77,7 +77,9 @@ class TestableRuntimeDataHandler(
         self.mock_try_get_caller_id = mocker.MagicMock(
             name="_try_get_caller_id_impl"
         )
-        self._on_data_ready = mocker.AsyncMock(name="handler_on_data_ready_mock")  # type: ignore, Changed to AsyncMock
+        self._on_data_ready = mocker.AsyncMock(
+            name="handler_on_data_ready_mock"
+        )
 
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int

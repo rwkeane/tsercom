@@ -34,7 +34,6 @@ from tsercom.threading.aio.global_event_loop import (
     create_tsercom_event_loop_from_watcher,
     set_tsercom_event_loop,
     clear_tsercom_event_loop,
-    is_global_event_loop_set,
 )
 from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -135,7 +134,7 @@ class RuntimeManager(ErrorWatcher):
 
         self.__initializers: list[InitializationPair[Any, Any]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
-        self.__error_watcher: Optional[ErrorWatcher] = None
+        self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
         self.__process: Optional[Process] = None
 
     @property
@@ -253,9 +252,6 @@ class RuntimeManager(ErrorWatcher):
         self.__has_started.start()
 
         set_tsercom_event_loop(runtime_event_loop)
-        self.__error_watcher = (
-            self.__thread_watcher
-        )  # Local errors managed by ThreadWatcher.
 
         # Use the injected or default-created local_runtime_factory_factory
         factories = self.__create_factories(
@@ -330,6 +326,7 @@ class RuntimeManager(ErrorWatcher):
             args=(),  # remote_process_main is partially applied, so no additional args here
             daemon=process_daemon,
         )
+
         if self.__process:
             self.__process.start()
         else:
@@ -354,14 +351,14 @@ class RuntimeManager(ErrorWatcher):
             RuntimeError: If the manager hasn't started or the error watcher isn't set.
         """
         if not self.has_started:
-            # Added this check for consistency, as __error_watcher depends on has_started
+            # Added this check for consistency, as __thread_watcher depends on has_started
             raise RuntimeError("RuntimeManager has not been started.")
-        if self.__error_watcher is None:
+        if self.__thread_watcher is None:
             raise RuntimeError(
                 "Error watcher is not available. Ensure the RuntimeManager has been properly started."
             )
 
-        self.__error_watcher.run_until_exception()
+        self.__thread_watcher.run_until_exception()
 
     def check_for_exception(self) -> None:
         """Checks for and re-raises any exceptions from managed runtimes.
@@ -377,13 +374,13 @@ class RuntimeManager(ErrorWatcher):
         if not self.has_started:
             return  # No exceptions to check if not started.
 
-        if self.__error_watcher is None:
+        if self.__thread_watcher is None:
             # This implies it wasn't started correctly or state is corrupted.
             raise RuntimeError(
                 "Error watcher is not available. Ensure the RuntimeManager has been properly started."
             )
 
-        self.__error_watcher.check_for_exception()
+        self.__thread_watcher.check_for_exception()
 
     def shutdown(self) -> None:
         """Shuts down the managed process and associated error watcher if applicable.
@@ -397,25 +394,13 @@ class RuntimeManager(ErrorWatcher):
         if self.__process is not None:
             self.__process.kill()
 
-        if is_global_event_loop_set():
-            clear_tsercom_event_loop()
-
         # Existing logic for stopping SplitProcessErrorWatcherSource
         # Assuming _RuntimeManager__error_watcher attribute exists (e.g. initialized to None or an object)
         if isinstance(self.__error_watcher, SplitProcessErrorWatcherSource):
             if self.__error_watcher.is_running():
                 self.__error_watcher.stop()
 
-        # Existing logic for process termination (with prints)
-        # Assuming _RuntimeManager__process attribute exists (e.g. initialized to None or an object)
-        if self.__process:
-            if self.__process.is_alive():
-                self.__process.terminate()
-                self.__process.join(timeout=1.0)
-            self.__process.kill()
-            self.__process.join(timeout=1.0)
-
-        self._RuntimeManager__process = None
+        clear_tsercom_event_loop()
 
     def __create_factories(
         self, factory_factory: RuntimeFactoryFactory[Any, Any]

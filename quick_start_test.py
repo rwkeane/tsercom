@@ -1,7 +1,7 @@
 import asyncio
 import time
 from datetime import datetime  # For timestamp
-from typing import Any  # For type hinting
+from typing import Any, Optional  # For type hinting
 from concurrent.futures import Future
 
 from tsercom.api.runtime_manager import RuntimeManager
@@ -75,7 +75,9 @@ class MyCustomRuntime(Runtime):
         # This part is highly dependent on the concrete RuntimeDataHandler implementation
         # and the application's specific data flow design.
 
-    async def stop(self) -> None:  # Made async, removed unused 'exception'
+    async def stop(
+        self, exception: Optional[Exception] = None
+    ) -> None:  # Made async, removed unused 'exception'
         """Stops the custom runtime's operations."""
         print("MyCustomRuntime stopping.")
         # If super().stop() from Stopable is needed and MyCustomRuntime is the end of the Stopable chain:

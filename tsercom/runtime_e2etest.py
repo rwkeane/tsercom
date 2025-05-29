@@ -154,6 +154,14 @@ class FaultyCreateRuntimeInitializer(RuntimeInitializer):
         raise self.error_type(self.error_message)
 
 
+@pytest.fixture
+def clear_loop_fixture():
+    clear_tsercom_event_loop()
+    yield
+    print("STOPPING LOOP")
+    clear_tsercom_event_loop()
+
+
 def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     runtime_manager = RuntimeManager(is_testing=True)
     try:
@@ -169,12 +177,12 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         assert runtime_future.done()
 
         runtime_manager.check_for_exception()
-        runtime = runtime_future.result()
-        data_aggregator = runtime.data_aggregator
+        runtime_handle = runtime_future.result()
+        data_aggregator = runtime_handle.data_aggregator
         assert not data_aggregator.has_new_data(
             test_id
         ), "Aggregator should not have new data for test_id before runtime start"
-        runtime.start()
+        runtime_handle.start()
 
         time.sleep(0.5)
 
@@ -206,7 +214,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data"
         runtime_manager.check_for_exception()
 
-        runtime.stop()
+        runtime_handle.stop()
         runtime_manager.check_for_exception()
 
         time.sleep(0.5)
@@ -239,14 +247,11 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_manager.shutdown()
 
 
-def test_out_of_process_init():
-    clear_tsercom_event_loop()
+def test_out_of_process_init(clear_loop_fixture):
     __check_initialization(RuntimeManager.start_out_of_process)
 
 
-def test_in_process_init():
-    clear_tsercom_event_loop()
-
+def test_in_process_init(clear_loop_fixture):
     loop_future = Future()
 
     def _thread_loop_runner(fut: Future):
@@ -279,8 +284,7 @@ def test_in_process_init():
 
 
 # New Test Cases
-def test_out_of_process_error_check_for_exception():
-    clear_tsercom_event_loop()
+def test_out_of_process_error_check_for_exception(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "RemoteFailureOops"
     runtime_manager.register_runtime_initializer(
@@ -293,17 +297,8 @@ def test_out_of_process_error_check_for_exception():
     with pytest.raises(ValueError, match=error_msg):
         runtime_manager.check_for_exception()
 
-    # Process cleanup (defensive)
-    process_attr_name = "_RuntimeManager__process"  # Name mangling
-    if hasattr(runtime_manager, process_attr_name):
-        process = getattr(runtime_manager, process_attr_name)
-        if process is not None and process.is_alive():
-            process.terminate()
-            process.join(timeout=0.1)
 
-
-def test_out_of_process_error_run_until_exception():
-    clear_tsercom_event_loop()
+def test_out_of_process_error_run_until_exception(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "RemoteRunUntilFailure"
     runtime_manager.register_runtime_initializer(
@@ -315,16 +310,8 @@ def test_out_of_process_error_run_until_exception():
     with pytest.raises(RuntimeError, match=error_msg):
         runtime_manager.run_until_exception()
 
-    process_attr_name = "_RuntimeManager__process"
-    if hasattr(runtime_manager, process_attr_name):
-        process = getattr(runtime_manager, process_attr_name)
-        if process is not None and process.is_alive():
-            process.terminate()  # Terminate should be fine as run_until_exception implies error state
-            process.join(timeout=0.1)
 
-
-def test_in_process_error_check_for_exception():
-    clear_tsercom_event_loop()
+def test_in_process_error_check_for_exception(clear_loop_fixture):
     loop_future = Future()
 
     def _thread_loop_runner(fut: Future):
@@ -383,8 +370,7 @@ def test_in_process_error_check_for_exception():
     event_thread.join(timeout=1)
 
 
-def test_out_of_process_initializer_create_error():
-    clear_tsercom_event_loop()
+def test_out_of_process_initializer_create_error(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "CreateOops"
     runtime_manager.register_runtime_initializer(
@@ -396,10 +382,3 @@ def test_out_of_process_initializer_create_error():
     time.sleep(1.0)
     with pytest.raises(TypeError, match=error_msg):
         runtime_manager.check_for_exception()
-
-    process_attr_name = "_RuntimeManager__process"
-    if hasattr(runtime_manager, process_attr_name):
-        process = getattr(runtime_manager, process_attr_name)
-        if process is not None and process.is_alive():
-            process.terminate()
-            process.join(timeout=0.1)

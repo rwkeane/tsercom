@@ -1,5 +1,6 @@
 """Defines the RuntimeCommandBridge for relaying commands to a Runtime instance."""
 
+from functools import partial
 from threading import Lock
 from typing import Optional
 
@@ -83,4 +84,4 @@ class RuntimeCommandBridge:
                 # Runtime not yet available, store the command.
                 self.__state.set(RuntimeCommand.kStop)
             else:
-                run_on_event_loop(self.__runtime.stop)
+                run_on_event_loop(partial(self.__runtime.stop, None))

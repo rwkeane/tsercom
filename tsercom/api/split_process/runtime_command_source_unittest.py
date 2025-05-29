@@ -8,6 +8,7 @@ from tsercom.api.split_process.runtime_command_source import (
     RuntimeCommandSource,
 )
 from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.runtime.runtime import Runtime
 from tsercom.util.is_running_tracker import (
     IsRunningTracker,
 )  # For isinstance checks
@@ -15,7 +16,7 @@ from tsercom.util.is_running_tracker import (
 # --- Fake Classes ---
 
 
-class FakeRuntime:
+class FakeRuntime(Runtime):
     def __init__(self):
         self.start_async_called = False
         self.start_async_call_count = 0
@@ -26,7 +27,7 @@ class FakeRuntime:
         self.start_async_called = True
         self.start_async_call_count += 1
 
-    def stop(self):
+    def stop(self, exception):
         self.stop_called = True
         self.stop_call_count += 1
 

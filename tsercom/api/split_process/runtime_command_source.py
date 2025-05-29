@@ -1,5 +1,6 @@
 """Defines RuntimeCommandSource for receiving and processing runtime commands from a queue."""
 
+from functools import partial
 import threading
 
 from tsercom.runtime.runtime import Runtime
@@ -85,7 +86,7 @@ class RuntimeCommandSource:
                 if command == RuntimeCommand.kStart:
                     run_on_event_loop(self.__runtime.start_async)
                 elif command == RuntimeCommand.kStop:
-                    run_on_event_loop(self.__runtime.stop)
+                    run_on_event_loop(partial(self.__runtime.stop, None))
                 else:
                     raise ValueError(f"Unknown command: {command}")
 
