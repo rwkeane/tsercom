@@ -40,8 +40,8 @@ class ThreadWatcher(ErrorWatcher):
         self.__exceptions: List[Exception] = []
 
     def create_tracked_thread(
-        self, target: Callable[[], None]
-    ) -> ThrowingThread:
+        self, target: Callable[[], None], is_daemon: bool = True
+    ) -> threading.Thread:
         """
         Creates a `ThrowingThread` instance that is tracked by this watcher. # Changed in docstring
 
@@ -56,7 +56,7 @@ class ThreadWatcher(ErrorWatcher):
             ThrowingThread: The created thread object.
         """
         return ThrowingThread(
-            target=target, on_error_cb=self.on_exception_seen
+            target=target, on_error_cb=self.on_exception_seen, daemon=is_daemon
         )
 
     def create_tracked_thread_pool_executor(

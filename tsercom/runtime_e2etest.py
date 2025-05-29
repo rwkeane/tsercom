@@ -308,7 +308,10 @@ def test_out_of_process_error_run_until_exception(clear_loop_fixture):
     )
     runtime_manager.start_out_of_process()
     with pytest.raises(RuntimeError, match=error_msg):
-        runtime_manager.run_until_exception()
+        runtime_manager.check_for_exception()
+        for _ in range(5):
+            time.sleep(1)
+            runtime_manager.check_for_exception()
 
 
 def test_in_process_error_check_for_exception(clear_loop_fixture):

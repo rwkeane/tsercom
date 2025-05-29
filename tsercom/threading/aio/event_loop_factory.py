@@ -106,11 +106,6 @@ class EventLoopFactory:
 
                 local_event_loop.run_forever()  # Starts the event loop
             except Exception:
-                # Original logging for exceptions during thread execution should be preserved if it was there.
-                # Assuming the added logging.error was for specific debug purposes of this task.
-                # If there was an original logging.error here, it should be restored.
-                # For now, removing the specific one added for debugging.
-                # logging.error(f"EventLoopFactory.start_event_loop [{threading.get_ident()}]: Exception caught in thread: {e_thread!r}", exc_info=True)
                 raise
             finally:
                 if (

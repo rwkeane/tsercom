@@ -20,8 +20,6 @@ setting or clearing the loop are atomic and prevent race conditions.
 
 from asyncio import AbstractEventLoop
 import asyncio
-import faulthandler
-from sys import stderr
 import threading
 
 from tsercom.threading.aio.event_loop_factory import EventLoopFactory
@@ -85,8 +83,9 @@ def clear_tsercom_event_loop() -> None:
                         for t in asyncio.all_tasks()
                         if t is not asyncio.current_task()
                     ]
-                    [task.cancel() for task in tasks]
-                    await asyncio.wait(tasks, timeout=2)
+                    if len(tasks) != 0:
+                        [task.cancel() for task in tasks]
+                        await asyncio.wait(tasks, timeout=2)
                     __g_global_event_loop.stop()
 
                 future = asyncio.run_coroutine_threadsafe(
@@ -95,10 +94,7 @@ def clear_tsercom_event_loop() -> None:
                 try:
                     future.result(timeout=5)
                 except asyncio.TimeoutError:
-                    faulthandler.enable()
-                    faulthandler.dump_traceback_later(
-                        30, exit=True, file=stderr
-                    )
+                    raise RuntimeError("Failed to shut down EventLoop!")
 
             __g_global_event_loop = None
             __g_event_loop_factory = None

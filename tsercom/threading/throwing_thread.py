@@ -22,7 +22,7 @@ class ThrowingThread(threading.Thread):
         # Allow other threading.Thread parameters too
         group: None = None,
         name: None = None,
-        daemon: None = None,
+        daemon: bool = True,
     ) -> None:
         """
         Initializes a ThrowingThread.
