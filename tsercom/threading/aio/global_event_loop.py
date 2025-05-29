@@ -62,6 +62,16 @@ def get_global_event_loop() -> AbstractEventLoop:
     return __g_global_event_loop
 
 
+def reset_global_event_loop_state_for_child_process():
+    global __g_global_event_loop
+    global __g_event_loop_factory
+    global __g_global_event_loop_lock
+    with __g_global_event_loop_lock:
+        print("global_event_loop: Resetting global event loop state for child process.", flush=True)
+        __g_global_event_loop = None
+        __g_event_loop_factory = None
+
+
 def clear_tsercom_event_loop() -> None:
     """
     Clears the global event loop for tsercom.

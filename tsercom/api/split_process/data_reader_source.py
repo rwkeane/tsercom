@@ -75,6 +75,12 @@ class DataReaderSource(Generic[TDataType]):
         self.__is_running.stop()
         if self.__thread:
             self.__thread.join(timeout=5)
+            if self.__thread.is_alive():
+                # In a real application, this would be a more specific error
+                # or logged more extensively.
+                print(f"ERROR: DataReaderSource thread for queue {self.__queue} did not terminate within 5 seconds.")
+                # Optionally, raise an error to make it more visible during testing:
+                # raise RuntimeError(f"DataReaderSource thread for queue {self.__queue} did not terminate.")
 
     def __poll_for_data(self) -> None:
         """Continuously polls the queue for data and forwards it.
