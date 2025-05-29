@@ -97,7 +97,7 @@ def clear_tsercom_event_loop() -> None:
                 except asyncio.TimeoutError:
                     faulthandler.enable()
                     faulthandler.dump_traceback_later(
-                        10, exit=True, file=stderr
+                        30, exit=True, file=stderr
                     )
 
             __g_global_event_loop = None
