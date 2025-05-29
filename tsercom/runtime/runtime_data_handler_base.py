@@ -154,12 +154,65 @@ class RuntimeDataHandlerBase(
         Args:
             data: The `AnnotatedInstance` containing the data and metadata.
         """
-        if self.__data_reader is None:
-            # This case should ideally not be hit if initialization is correct
-            # Consider logging an error or raising if it's an invalid state
+        # Define data_val_for_log and caller_id_for_log at the top
+        data_val_for_log = ""
+        if hasattr(data, 'data') and hasattr(data.data, 'value'):
+            data_val_for_log = data.data.value
+        elif hasattr(data, 'data'):
+            data_val_for_log = str(data.data)
+        else:
+            data_val_for_log = str(data)
+        
+        caller_id_for_log = data.caller_id if hasattr(data, 'caller_id') else 'N/A'
+
+        print(f"RuntimeDataHandlerBase._on_data_ready (id={id(self)}): ENTERED. Data val='{data_val_for_log}', caller_id='{caller_id_for_log}', data_id={id(data)}.", flush=True)
+        
+        data_reader_instance = self.__data_reader 
+
+        if data_reader_instance is None:
+            print(f"RuntimeDataHandlerBase._on_data_ready (id={id(self)}): self.__data_reader is None. Cannot process data '{data_val}'.", flush=True)
             return
-        # DataReaderSink._on_data_ready is synchronous
-        self.__data_reader._on_data_ready(data)
+
+        # --- New Detailed Method Inspection ---
+        print(f"RuntimeDataHandlerBase._on_data_ready (id={id(self)}): Inspecting method before call for data_val='{data_val_for_log}', data_id={id(data)}:", flush=True)
+        print(f"  - data_reader_instance is: (id={id(data_reader_instance)}, type={type(data_reader_instance).__name__})", flush=True)
+        
+        actual_method_obj = None
+        is_callable_direct = False
+        method_id_direct = "N/A"
+        try:
+            actual_method_obj = data_reader_instance._on_data_ready # Access the method
+            method_id_direct = id(actual_method_obj)
+            is_callable_direct = callable(actual_method_obj)
+            print(f"  - Direct access data_reader_instance._on_data_ready is: {actual_method_obj} (id={method_id_direct})", flush=True)
+            print(f"  - Is callable (direct access)?: {is_callable_direct}", flush=True)
+        except Exception as e_direct_access:
+            print(f"  - EXCEPTION during direct access to _on_data_ready: {type(e_direct_access).__name__} - {e_direct_access}", flush=True)
+
+        getattr_method_obj = "NOT_FOUND"
+        is_callable_getattr = False
+        method_id_getattr = "N/A"
+        try:
+            getattr_method_obj = getattr(data_reader_instance, '_on_data_ready', "NOT_FOUND")
+            if getattr_method_obj != "NOT_FOUND":
+                method_id_getattr = id(getattr_method_obj)
+                is_callable_getattr = callable(getattr_method_obj)
+            print(f"  - getattr(data_reader_instance, '_on_data_ready') is: {getattr_method_obj} (id={method_id_getattr})", flush=True)
+            print(f"  - Is callable (getattr)?: {is_callable_getattr}", flush=True)
+        except Exception as e_getattr_access:
+            print(f"  - EXCEPTION during getattr access or callable check: {type(e_getattr_access).__name__} - {e_getattr_access}", flush=True)
+        # --- End New Detailed Method Inspection ---
+
+        print(f"RuntimeDataHandlerBase._on_data_ready (id={id(self)}): About to call data_reader_instance._on_data_ready for data_val='{data_val_for_log}', data_id={id(data)}.", flush=True)
+        try:
+            data_reader_instance._on_data_ready(data)
+            print(f"RuntimeDataHandlerBase._on_data_ready (id={id(self)}): SUCCESSFULLY RETURNED from data_reader_instance._on_data_ready for data_val='{data_val_for_log}', data_id={id(data)}.", flush=True)
+        except Exception as e:
+            print(f"RuntimeDataHandlerBase._on_data_ready (id={id(self)}): EXCEPTION during data_reader_instance._on_data_ready for data_val='{data_val_for_log}', data_id={id(data)}: {type(e).__name__} - {e}", flush=True)
+            # To understand if this exception is then handled or re-raised by caller,
+            # we might need to re-raise, but for now, just log.
+            # raise 
+        # --- End New Detailed Logging ---
 
     @abstractmethod
     def _register_caller(
@@ -280,5 +333,7 @@ class RuntimeDataHandlerBase(
             self, data: TDataType, timestamp: datetime
         ) -> None:
             """Processes data by wrapping it in an `AnnotatedInstance` and passing to the parent."""
+            print(f"DataProcessorImpl._process_data: Received data='{data.value if hasattr(data, 'value') else data}', timestamp='{timestamp}', caller_id='{self.caller_id}'. Self id={id(self)}", flush=True)
             wrapped_data = AnnotatedInstance(data, self.caller_id, timestamp)
+            print(f"DataProcessorImpl._process_data: Wrapped data='{wrapped_data.data.value if hasattr(wrapped_data.data, 'value') else wrapped_data.data}', caller_id='{wrapped_data.caller_id}'. Self id={id(self)}", flush=True)
             await self.__data_handler._on_data_ready(wrapped_data)

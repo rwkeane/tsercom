@@ -1,6 +1,8 @@
 """Defines ShimRuntimeHandle for interacting with a runtime in a separate process."""
 
 import datetime  # Required for on_event overload, though not used in current simple form
+import time # Added import
+from queue import Empty as QueueEmptyException # Added import
 from typing import TypeVar, Optional
 
 from tsercom.caller_id.caller_identifier import (
@@ -74,10 +76,15 @@ class ShimRuntimeHandle(
             data_aggregator
         )
         self.__block: bool = block
+        
+        # --- Store data_queue as an attribute ---
+        self.__data_queue: MultiprocessQueueSource[TDataType] = data_queue # New line
+        # --- End store data_queue ---
 
+        # DataReaderSource is initialized with the same data_queue
         self.__data_reader_source: DataReaderSource[TDataType] = (
             DataReaderSource(
-                thread_watcher, data_queue, self.__data_aggregator
+                thread_watcher, data_queue, self.__data_aggregator # Pass data_queue here
             )
         )
 
@@ -88,8 +95,34 @@ class ShimRuntimeHandle(
         the remote runtime, and then sends a 'start' command to the remote
         runtime via the command queue.
         """
-        self.__data_reader_source.start()
+        print(f"ShimRuntimeHandle.start: Called. Attempting to start DataReaderSource. Self id={id(self)}", flush=True)
+        self.__data_reader_source.start() # This starts the DataReaderSource's polling thread
+        print(f"ShimRuntimeHandle.start: DataReaderSource started. Self id={id(self)}", flush=True)
+
+        # --- Modified diagnostic "dummy read" using the stored attribute ---
+        # Access the stored queue via its mangled name
+        data_queue_for_dummy_read = self._ShimRuntimeHandle__data_queue
+        
+        print(f"ShimRuntimeHandle.start: DIAGNOSTIC: Attempting dummy non-blocking get from data_queue id={id(data_queue_for_dummy_read)}", flush=True)
+        try:
+            dummy_data = data_queue_for_dummy_read.get_blocking(timeout=0.001) 
+            if dummy_data is not None:
+                print(f"ShimRuntimeHandle.start: DIAGNOSTIC: Dummy get unexpectedly got data: {dummy_data.value if hasattr(dummy_data, 'value') else dummy_data}", flush=True)
+            else:
+                print(f"ShimRuntimeHandle.start: DIAGNOSTIC: Dummy get got None (as expected if queue empty or timeout).", flush=True)
+        except QueueEmptyException: # If get_nowait() were used
+             print(f"ShimRuntimeHandle.start: DIAGNOSTIC: Dummy get via get_nowait found queue empty (as expected).", flush=True)
+        except Exception as e_dummy_get:
+            print(f"ShimRuntimeHandle.start: DIAGNOSTIC: Dummy get resulted in exception: {type(e_dummy_get).__name__} - {e_dummy_get}", flush=True)
+        # --- End modified diagnostic "dummy read" ---
+
+        diagnostic_sleep_duration = 0.1 
+        print(f"ShimRuntimeHandle.start: DIAGNOSTIC: Sleeping for {diagnostic_sleep_duration}s before sending kStart. Self id={id(self)}", flush=True)
+        time.sleep(diagnostic_sleep_duration) 
+        print(f"ShimRuntimeHandle.start: DIAGNOSTIC: Woke up from {diagnostic_sleep_duration}s sleep. Sending kStart. Self id={id(self)}", flush=True)
+
         self.__runtime_command_queue.put_blocking(RuntimeCommand.kStart)
+        print(f"ShimRuntimeHandle.start: kStart command sent. Self id={id(self)}", flush=True)
 
     def on_event(
         self,

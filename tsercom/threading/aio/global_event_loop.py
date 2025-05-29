@@ -73,41 +73,31 @@ def reset_global_event_loop_state_for_child_process():
 
 
 def clear_tsercom_event_loop() -> None:
-    """
-    Clears the global event loop for tsercom.
-
-    If the event loop was created by tsercom's EventLoopFactory,
-    it also stops the event loop, allowing its managing thread to terminate.
-    """
+    # Clears the global event loop for tsercom.
+    # If the event loop was created by tsercom's EventLoopFactory,
+    # it also stops the event loop, allowing its managing thread to terminate.
+    # This version uses a more direct stop method as per user suggestion.
     global __g_global_event_loop
     global __g_event_loop_factory
     global __g_global_event_loop_lock
 
+    print("clear_tsercom_event_loop: Using user-suggested direct stop version.", flush=True)
+
     with __g_global_event_loop_lock:
         if __g_global_event_loop is not None:
+            loop_id_for_log = id(__g_global_event_loop) # Capture ID for logging after it might be None
             if __g_global_event_loop.is_running():
-
-                async def cancel_all_tasks():
-                    tasks = [
-                        t
-                        for t in asyncio.all_tasks()
-                        if t is not asyncio.current_task()
-                    ]
-                    if len(tasks) != 0:
-                        [task.cancel() for task in tasks]
-                        await asyncio.wait(tasks, timeout=2)
-                    __g_global_event_loop.stop()
-
-                future = asyncio.run_coroutine_threadsafe(
-                    cancel_all_tasks(), __g_global_event_loop
-                )
-                try:
-                    future.result(timeout=5)
-                except asyncio.TimeoutError:
-                    raise RuntimeError("Failed to shut down EventLoop!")
-
+                  print(f"clear_tsercom_event_loop: Loop (id={loop_id_for_log}) is running. Calling stop().", flush=True)
+                  __g_global_event_loop.stop()
+                  print(f"clear_tsercom_event_loop: Loop (id={loop_id_for_log}) stop() called.", flush=True)
+            else:
+                  print(f"clear_tsercom_event_loop: Loop (id={loop_id_for_log}) is not running.", flush=True)
+            
             __g_global_event_loop = None
             __g_event_loop_factory = None
+            print(f"clear_tsercom_event_loop: Global loop variables reset to None (original loop id was {loop_id_for_log}).", flush=True)
+        else:
+            print("clear_tsercom_event_loop: No global loop was set.", flush=True)
 
 
 def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:

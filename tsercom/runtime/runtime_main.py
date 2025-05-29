@@ -91,19 +91,47 @@ def initialize_runtimes(
         print(f"initialize_runtimes: Runtime object {i} in list: id={id(rt_obj)}, type={type(rt_obj)}", flush=True)
     # --- End New Detailed Prints ---
 
-    # THE FOLLOWING LOOP AND CALLBACK LOGIC IS REMOVED:
-    # print(f"initialize_runtimes: About to Loop 2 (schedule start_async). Runtimes list (id={id(runtimes)}): {runtimes}", flush=True)
-    # for runtime_idx, runtime in enumerate(runtimes):
-    #     print(f"initialize_runtimes: Loop 2: Processing runtime_idx={runtime_idx}, runtime={runtime} (id={id(runtime)})", flush=True)
-    #     active_loop = get_global_event_loop()
-    #     coro_to_run = runtime.start_async
-    #     future = run_on_event_loop(coro_to_run, event_loop=active_loop)
-    #     print(f"initialize_runtimes: Loop 2: Scheduled start_async for runtime_idx={runtime_idx}. Future: {future}", flush=True)
-    #     def _runtime_start_done_callback(...): ...
-    #     future.add_done_callback(...)
-    # print(f"initialize_runtimes: Completed Loop 2.", flush=True)
-    
-    print("initialize_runtimes: Runtimes created. Explicit start_async loop removed. Actual start is delegated to RuntimeCommand.kStart mechanism.", flush=True)
+    print(f"initialize_runtimes: About to Loop 2 (schedule start_async and add callback). Runtimes list (id={id(runtimes)}): {runtimes}", flush=True)
+    for runtime_idx, runtime in enumerate(runtimes): # Add enumerate for logging
+        print(f"initialize_runtimes: Loop 2: Processing runtime_idx={runtime_idx}, runtime={runtime} (id={id(runtime)})", flush=True)
+        active_loop = get_global_event_loop() # Ensure get_global_event_loop is imported
+        
+        coro_to_run = runtime.start_async
+        # The print statement from aio_utils.run_on_event_loop will log details of this call
+        future = run_on_event_loop(coro_to_run, event_loop=active_loop) # future is a concurrent.futures.Future
+        print(f"initialize_runtimes: Loop 2: Scheduled start_async for runtime_idx={runtime_idx}. Future: {future}", flush=True)
+        
+        # --- UNCOMMENT AND RESTORE THE CALLBACK DEFINITION AND REGISTRATION ---
+        def _runtime_start_done_callback(
+            f: concurrent.futures.Future, # Use the imported ConcurrentFuture type hint
+            tw_ref: ThreadWatcher,
+            rt_identity: str 
+        ):
+            try:
+                if f.done() and not f.cancelled():
+                    exc = f.exception()
+                    if exc is not None:
+                        print(f"initialize_runtimes: _runtime_start_done_callback (for {rt_identity}): Exception from runtime.start_async: {type(exc).__name__} - {exc}", flush=True)
+                        tw_ref.on_exception_seen(exc) # Report to ThreadWatcher
+                    # Optional: Log success if no exception
+                    # else:
+                    #    print(f"initialize_runtimes: _runtime_start_done_callback (for {rt_identity}): runtime.start_async completed successfully (no exception).", flush=True)
+                # Optional: Log if cancelled
+                # elif f.cancelled():
+                #    print(f"initialize_runtimes: _runtime_start_done_callback (for {rt_identity}): runtime.start_async was cancelled.", flush=True)
+
+            except Exception as cb_exc:
+                print(f"initialize_runtimes: _runtime_start_done_callback (for {rt_identity}): Exception IN CALLBACK: {type(cb_exc).__name__} - {cb_exc}", flush=True)
+                # Optionally report callback exceptions to thread watcher too if they are critical
+                # tw_ref.on_exception_seen(cb_exc)
+
+        future.add_done_callback(
+            partial(_runtime_start_done_callback, tw_ref=thread_watcher, rt_identity=f"runtime_idx_{runtime_idx}_id_{id(runtime)}")
+        )
+        print(f"initialize_runtimes: Loop 2: Added done_callback for runtime_idx={runtime_idx}.", flush=True)
+        # --- END UNCOMMENT AND RESTORE ---
+
+    print(f"initialize_runtimes: Completed Loop 2 (scheduling and callback registration).", flush=True)
     return runtimes
 
 
