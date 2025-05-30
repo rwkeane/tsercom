@@ -90,9 +90,9 @@ class RemoteDataAggregatorImpl(
         Raises:
             AssertionError: If both `tracker` and `timeout` are provided.
         """
-        assert not (
-            timeout is not None and tracker is not None
-        ), "Cannot specify both 'timeout' and 'tracker' simultaneously."
+        assert not (timeout is not None and tracker is not None), (
+            "Cannot specify both 'timeout' and 'tracker' simultaneously."
+        )
 
         if tracker is None and timeout is not None and timeout > 0:
             tracker = DataTimeoutTracker(timeout)
@@ -145,19 +145,15 @@ class RemoteDataAggregatorImpl(
                 caller. Otherwise, checks for all callers.
 
         Returns:
-            If `id` is provided, returns a boolean indicating if new data is
-            available for that caller.
+            If `id` is provided, returns a boolean indicating if new data is available for that caller (returns False if the `id` is not found).
             If `id` is None, returns a dictionary mapping each `CallerIdentifier`
             to a boolean.
-
-        Raises:
-            KeyError: If `id` is provided but not found.
         """
         with self.__lock:
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    return False  # Reverted: Return False if ID is not found
+                    return False
                 return organizer.has_new_data()
 
             results = {}

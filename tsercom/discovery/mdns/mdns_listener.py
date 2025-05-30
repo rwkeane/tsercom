@@ -1,11 +1,22 @@
+"""Defines the MdnsListener abstract base class and its client interface for mDNS service discovery."""
+
 from abc import ABC, abstractmethod
 from typing import Dict, List
 from zeroconf import ServiceListener
 
 
 class MdnsListener(ServiceListener):
+    """Abstract base class for mDNS service listeners.
+
+    This class extends `zeroconf.ServiceListener` and defines a `Client`
+    interface for notifying clients about discovered raw service details.
+    Subclasses are expected to implement the methods from `zeroconf.ServiceListener`
+    (e.g., `add_service`, `update_service`, `remove_service`) and use this
+    `Client` interface to propagate relevant service information.
+    """
+
     class Client(ABC):
-        """Interface for clients of `RecordListener`.
+        """Interface for clients of `MdnsListener`.
 
         Implementers are notified when full service details (name, port, addresses,
         TXT record) for a service of the monitored type are discovered or updated.
@@ -33,5 +44,5 @@ class MdnsListener(ServiceListener):
             """
             # This method must be implemented by concrete client classes.
             raise NotImplementedError(
-                "RecordListener.Client._on_service_added must be implemented by subclasses."
+                "MdnsListener.Client._on_service_added must be implemented by subclasses."
             )

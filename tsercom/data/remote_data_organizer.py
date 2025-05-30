@@ -1,3 +1,6 @@
+"""Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
+
+import logging  # Add logging import
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 import datetime
@@ -13,6 +16,8 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 
 # Generic type for the data being organized, bound by ExposedData.
 TDataType = TypeVar("TDataType", bound=ExposedData)
+
+logger = logging.getLogger(__name__)  # Initialize logger
 
 
 class RemoteDataOrganizer(
@@ -88,13 +93,9 @@ class RemoteDataOrganizer(
         """Starts this data organizer, allowing it to process incoming data.
 
         Raises:
-            RuntimeError: If the organizer is already running.
+            RuntimeError: If the organizer is already running (typically by `IsRunningTracker.start()`).
         """
-        if self.__is_running.get():
-            raise RuntimeError(
-                f"RemoteDataOrganizer for caller ID '{self.caller_id}' is already running."
-            )
-        self.__is_running.set(True)
+        self.__is_running.start()
 
     def stop(self) -> None:
         """Stops this data organizer from processing new data.
@@ -104,15 +105,9 @@ class RemoteDataOrganizer(
         based on the tracker's implementation.
 
         Raises:
-            RuntimeError: If the organizer is not running or has already been stopped.
+            RuntimeError: If the organizer is not running or has already been stopped (typically by `IsRunningTracker.stop()`).
         """
-        if (
-            not self.__is_running.get()
-        ):  # Check current state before trying to stop
-            raise RuntimeError(
-                f"RemoteDataOrganizer for caller ID '{self.caller_id}' is not running or has already been stopped."
-            )
-        self.__is_running.set(False)
+        self.__is_running.stop()
 
     def has_new_data(self) -> bool:
         """Checks if new data has been received since the last call to `get_new_data`.
@@ -124,7 +119,6 @@ class RemoteDataOrganizer(
             True if new data is available, False otherwise.
         """
         with self.__data_lock:
-            # Add comprehensive logging
             if not self.__data:
                 return False
 
@@ -224,9 +218,9 @@ class RemoteDataOrganizer(
             )
 
         # Ensure the data belongs to this organizer.
-        assert (
-            new_data.caller_id == self.caller_id
-        ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
+        assert new_data.caller_id == self.caller_id, (
+            f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
+        )
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: TDataType) -> None:
@@ -253,20 +247,26 @@ class RemoteDataOrganizer(
                 new_data_time = new_data.timestamp
 
                 if new_data_time < current_most_recent_time:
-                    # This simple implementation discards if it's not the absolute newest.
-                    # For a more robust history, one might insert it in sorted order.
-                    # For now, we assume data generally arrives in order or only newest matters for updates.
-                    # If out-of-order older data is important, this logic needs expansion.
-                    # Current behavior: only add if newer or same timestamp (for update).
-                    # To insert in order (if deque should maintain full sorted history):
-                    #   idx = 0
-                    #   while idx < len(self.__data) and new_data_time < self.__data[idx].timestamp:
-                    #       idx += 1
-                    #   self.__data.insert(idx, new_data)
-                    #   data_inserted_or_updated = True
-                    # This example does not implement full sorted insertion for simplicity,
-                    # adhering to apparent original intent of primarily newest-first logic.
-                    pass  # Or log if discarding out-of-order older data.
+                    logger.debug(
+                        f"CallerID {self.caller_id}: Discarding out-of-order older data "
+                        f"(ts: {new_data_time}, newest_is: {current_most_recent_time})."
+                    )
+                    # DESIGN NOTE: This implementation handles new data as follows:
+                    # - If the deque is empty, the new data is added.
+                    # - If the new data's timestamp is older than the current newest data,
+                    #   it is currently discarded (see log message). For a more robust history
+                    #   that includes all out-of-order data, one might insert it in sorted order.
+                    # - If timestamps match, the existing newest item is updated.
+                    # - If the new data is strictly newer, it's added to the front.
+                    # The current approach prioritizes simplicity and focuses on the latest state
+                    # or strictly sequential data.
+                    # To implement full sorted insertion for a complete history:
+                    #   # idx = 0
+                    #   # while idx < len(self.__data) and new_data_time < self.__data[idx].timestamp:
+                    #   #     idx += 1
+                    #   # self.__data.insert(idx, new_data)
+                    #   # data_inserted_or_updated = True
+                    pass
                 elif new_data_time == current_most_recent_time:
                     # Data with the same timestamp as the newest; update the newest.
                     self.__data[0] = new_data

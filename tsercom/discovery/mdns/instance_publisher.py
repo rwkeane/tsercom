@@ -1,3 +1,5 @@
+"""Defines InstancePublisher for announcing service instances via mDNS, including TXT record preparation."""
+
 import datetime
 from typing import Callable, Dict, Optional
 from uuid import getnode as get_mac
@@ -82,8 +84,9 @@ class InstancePublisher:
         if instance_name is None:
             mac_address = get_mac()
             generated_name = f"{port}{mac_address}"
-            # mDNS instance names are often recommended to be relatively short.
-            # Truncating to 15 chars is an arbitrary choice here, specific requirements may vary.
+            # TODO(developer/issue_id): Verify the 15-character truncation for generated
+            # instance names. Standard mDNS labels can typically be up to 63 characters.
+            # Ensure this truncation is intentional and necessary, or adjust if possible.
             if len(generated_name) > 15:
                 effective_instance_name = generated_name[:15]
             else:

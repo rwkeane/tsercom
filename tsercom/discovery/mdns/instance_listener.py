@@ -79,8 +79,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
             raise ValueError(
                 "Client argument cannot be None for InstanceListener."
             )
-        # Note: issubclass check might be too restrictive if duck typing is intended,
-        # but for typed code, it's a reasonable assertion.
+        # isinstance is used here, which is generally preferred for ABCs.
         if not isinstance(
             client, InstanceListener.Client
         ):  # isinstance is usually preferred for ABCs
@@ -139,6 +138,14 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
             )
             return None
 
+        # TODO(developer/issue_id): Enhance IP address conversion to support IPv6.
+        # The current use of socket.inet_ntoa() is IPv4-specific.
+        # To handle IPv6, we would need to know the address family (AF_INET or AF_INET6)
+        # for each addr_bytes. This might require changes in how RecordListener
+        # provides these addresses (e.g., as tuples of (family, bytes), by
+        # attempting to guess based on length which is fragile, or by trying both
+        # inet_ntoa and inet_ntop).
+        # Example for IPv6: socket.inet_ntop(socket.AF_INET6, addr_bytes)
         addresses_out: List[str] = []
         for addr_bytes in addresses:
             try:

@@ -1,9 +1,13 @@
 import pytest
 import datetime
-import time  # For fine-grained timestamp control
 from concurrent.futures import ThreadPoolExecutor
 from collections import deque  # Corrected import
 import functools  # For checking partial
+
+# Import actual classes from tsercom
+from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_organizer import RemoteDataOrganizer
+from tsercom.util.is_running_tracker import IsRunningTracker  # For mocking
 
 
 # Assuming CallerIdentifier.py is missing, define a functional dummy for tests.
@@ -26,12 +30,6 @@ class DummyCallerIdentifier:
     @property
     def name(self) -> str:
         return self.id_str
-
-
-# Import actual classes from tsercom
-from tsercom.data.exposed_data import ExposedData
-from tsercom.data.remote_data_organizer import RemoteDataOrganizer
-from tsercom.util.is_running_tracker import IsRunningTracker  # For mocking
 
 
 # --- Concrete Dummy ExposedData for type checks and usage ---
@@ -159,33 +157,40 @@ def test_initialization_no_client(
 
 # 2. start() and stop()
 def test_start(organizer, mock_is_running_tracker):
-    mock_is_running_tracker.get.return_value = False
     organizer.start()
-    mock_is_running_tracker.set.assert_called_once_with(True)
+    # Check that the 'start' method of the mock_is_running_tracker was called
+    mock_is_running_tracker.start.assert_called_once()
 
 
 def test_start_asserts_if_already_running(organizer, mock_is_running_tracker):
-    mock_is_running_tracker.get.return_value = True
-    with pytest.raises(RuntimeError, match=".*is already running."):
+    # Configure the mock's start() method to raise RuntimeError
+    # This simulates the behavior of IsRunningTracker.start() when called on an already started instance
+    mock_is_running_tracker.start.side_effect = RuntimeError(
+        "IsRunningTracker already started."
+    )
+    with pytest.raises(
+        RuntimeError, match="IsRunningTracker already started."
+    ):
         organizer.start()
 
 
-def test_stop(organizer, mock_is_running_tracker, mocker):
-    mock_is_running_tracker.get.return_value = False
+def test_stop(organizer, mock_is_running_tracker):
+    # First, call start() to ensure the mock_is_running_tracker's start() is called
+    # and to put the organizer in a state where stop() is meaningful.
     organizer.start()
-    mock_is_running_tracker.get.return_value = True
+    # Then call stop()
     organizer.stop()
-    assert mock_is_running_tracker.set.call_args_list == [
-        mocker.call(True),
-        mocker.call(False),
-    ]
+    # Check that the 'stop' method of the mock_is_running_tracker was called
+    mock_is_running_tracker.stop.assert_called_once()
 
 
 def test_stop_asserts_if_not_running(organizer, mock_is_running_tracker):
-    mock_is_running_tracker.get.return_value = False
-    with pytest.raises(
-        RuntimeError, match=".*is not running or has already been stopped."
-    ):
+    # Configure the mock's stop() method to raise RuntimeError
+    # This simulates the behavior of IsRunningTracker.stop() when called on an already stopped instance
+    mock_is_running_tracker.stop.side_effect = RuntimeError(
+        "IsRunningTracker not running."
+    )
+    with pytest.raises(RuntimeError, match="IsRunningTracker not running."):
         organizer.stop()
 
 

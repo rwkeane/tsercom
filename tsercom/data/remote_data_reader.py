@@ -1,3 +1,5 @@
+"""Defines the RemoteDataReader abstract base class, an interface for components that process incoming remote data."""
+
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
