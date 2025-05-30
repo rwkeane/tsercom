@@ -278,13 +278,5 @@ class RuntimeDataHandlerBase(
             self, data: TDataType, timestamp: datetime
         ) -> None:
             """Processes data by wrapping it in an `AnnotatedInstance` and passing to the parent."""
-            print(
-                f"DataProcessorImpl._process_data: Received data='{data.value if hasattr(data, 'value') else data}', timestamp='{timestamp}', caller_id='{self.caller_id}'. Self id={id(self)}",
-                flush=True,
-            )
             wrapped_data = AnnotatedInstance(data, self.caller_id, timestamp)
-            print(
-                f"DataProcessorImpl._process_data: Wrapped data='{wrapped_data.data.value if hasattr(wrapped_data.data, 'value') else wrapped_data.data}', caller_id='{wrapped_data.caller_id}'. Self id={id(self)}",
-                flush=True,
-            )
             await self.__data_handler._on_data_ready(wrapped_data)

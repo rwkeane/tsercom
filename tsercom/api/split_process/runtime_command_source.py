@@ -123,12 +123,7 @@ class RuntimeCommandSource:
                 timeout=5
             )  # Or another reasonable timeout
             if self.__command_thread.is_alive():
-                print(
+                raise RuntimeError(
                     f"ERROR: RuntimeCommandSource thread for queue {self.__runtime_command_queue} did not terminate within 5 seconds.",
                     flush=True,
                 )
-                # Optionally, raise an error:
-                # raise RuntimeError("RuntimeCommandSource thread did not terminate.")
-
-        # Consider setting self.__runtime = None and self.__command_thread = None here
-        # if this instance is not expected to be reused.

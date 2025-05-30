@@ -76,13 +76,9 @@ class DataReaderSource(Generic[TDataType]):
         if self.__thread:
             self.__thread.join(timeout=5)
             if self.__thread.is_alive():
-                # In a real application, this would be a more specific error
-                # or logged more extensively.
-                print(
+                raise RuntimeError(
                     f"ERROR: DataReaderSource thread for queue {self.__queue} did not terminate within 5 seconds."
                 )
-                # Optionally, raise an error to make it more visible during testing:
-                # raise RuntimeError(f"DataReaderSource thread for queue {self.__queue} did not terminate.")
 
     def __poll_for_data(self) -> None:
         """Continuously polls the queue for data and forwards it.
@@ -93,43 +89,6 @@ class DataReaderSource(Generic[TDataType]):
         keep the polling loop alive.
         """
         while self.__is_running.get():
-            q_size = -99  # Default if method not found
-            if hasattr(self.__queue, "get_internal_qsize_approx"):
-                q_size = self.__queue.get_internal_qsize_approx()
-            elif hasattr(
-                self.__queue, "_qsize"
-            ):  # Fallback if direct _qsize is preferred and exists
-                try:
-                    q_size = (
-                        self.__queue._qsize()
-                    )  # This would be accessing the underlying mp.Queue's _qsize directly
-                except Exception:
-                    q_size = -1  # Error accessing _qsize
-
-            print(
-                f"DataReaderSource.__poll_for_data: Approx qsize={q_size} before get_blocking on queue id={id(self._DataReaderSource__queue)}. Self id={id(self)}",
-                flush=True,
-            )
-
             data = self.__queue.get_blocking(timeout=1)
             if data is not None:
-                # After getting data, q_size might have changed, but the q_size *before* get is more relevant here.
-                print(
-                    f"DataReaderSource.__poll_for_data: Received data='{data.data.value if hasattr(data, 'data') and hasattr(data.data, 'value') else data.value if hasattr(data, 'value') else data}', caller_id='{data.caller_id if hasattr(data, 'caller_id') else 'N/A'}' from queue id={id(self._DataReaderSource__queue)}. Approx qsize before get={q_size}. Self id={id(self)}",
-                    flush=True,
-                )
-                try:
-                    self.__data_reader._on_data_ready(data)
-                except (
-                    Exception
-                ) as e_proc:  # Catch exceptions during data processing
-                    print(
-                        f"DataReaderSource.__poll_for_data: Exception during self.__data_reader._on_data_ready: {e_proc}",
-                        flush=True,
-                    )
-            else:
-                # This print is now UNCOMMENTED
-                print(
-                    f"DataReaderSource.__poll_for_data: get_blocking timed out or got None from queue id={id(self._DataReaderSource__queue)}. Approx qsize when timed out={q_size}. Self id={id(self)}",
-                    flush=True,
-                )
+                self.__data_reader._on_data_ready(data)

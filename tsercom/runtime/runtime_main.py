@@ -51,17 +51,7 @@ def initialize_runtimes(
     channel_factory = channel_factory_selector.get_instance()
 
     runtimes: List[Runtime] = []
-    print(
-        f"initialize_runtimes: Initializing runtimes list (id={id(runtimes)}).",
-        flush=True,
-    )  # Log list creation
-    for factory_idx, initializer_factory in enumerate(
-        initializers
-    ):  # Add enumerate for logging
-        print(
-            f"initialize_runtimes: Loop 1: Processing factory_idx={factory_idx}, factory={initializer_factory}",
-            flush=True,
-        )
+    for factory_idx, initializer_factory in enumerate(initializers):
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
 
@@ -86,29 +76,23 @@ def initialize_runtimes(
         )
         runtimes.append(runtime_instance)
 
-    for runtime_idx, runtime in enumerate(
-        runtimes
-    ):  # Add enumerate for logging
-        active_loop = (
-            get_global_event_loop()
-        )  # Ensure get_global_event_loop is imported
+    for runtime_idx, runtime in enumerate(runtimes):
+        active_loop = get_global_event_loop()
 
         coro_to_run = runtime.start_async
-        # The print statement from aio_utils.run_on_event_loop will log details of this call
-        future = run_on_event_loop(
-            coro_to_run, event_loop=active_loop
-        )  # future is a concurrent.futures.Future
+        future = run_on_event_loop(coro_to_run, event_loop=active_loop)
 
         def _runtime_start_done_callback(
-            f: concurrent.futures.Future,  # Use the imported ConcurrentFuture type hint
+            f: concurrent.futures.Future,
             thread_watcher: ThreadWatcher,
         ):
-            if f.done() and not f.cancelled():
-                exc = f.exception()
-                if exc is not None:
-                    thread_watcher.on_exception_seen(
-                        exc
-                    )  # Report to ThreadWatcher
+            try:
+                if f.done() and not f.cancelled():
+                    exc = f.exception()
+                    if exc is not None:
+                        thread_watcher.on_exception_seen(exc)
+            except Exception:
+                pass
 
         future.add_done_callback(
             partial(
@@ -161,9 +145,4 @@ def remote_process_main(
             run_on_event_loop(partial(runtime.stop, None))
 
         for factory_idx, factory in enumerate(initializers):
-            # RemoteRuntimeFactory is the only one, and this is needed to stop
-            # the underlying polling instances.
-            if hasattr(factory, "stop_command_source") and callable(
-                getattr(factory, "stop_command_source")
-            ):
-                factory.stop_command_source()  # type: ignore
+            factory._stop()
