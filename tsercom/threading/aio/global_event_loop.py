@@ -62,39 +62,15 @@ def get_global_event_loop() -> AbstractEventLoop:
     return __g_global_event_loop
 
 
-def clear_tsercom_event_loop() -> None:
-    """
-    Clears the global event loop for tsercom.
-
-    If the event loop was created by tsercom's EventLoopFactory,
-    it also stops the event loop, allowing its managing thread to terminate.
-    """
+def clear_tsercom_event_loop(try_stop_loop=True) -> None:
     global __g_global_event_loop
     global __g_event_loop_factory
     global __g_global_event_loop_lock
 
     with __g_global_event_loop_lock:
         if __g_global_event_loop is not None:
-            if __g_global_event_loop.is_running():
-
-                async def cancel_all_tasks():
-                    tasks = [
-                        t
-                        for t in asyncio.all_tasks()
-                        if t is not asyncio.current_task()
-                    ]
-                    if len(tasks) != 0:
-                        [task.cancel() for task in tasks]
-                        await asyncio.wait(tasks, timeout=2)
-                    __g_global_event_loop.stop()
-
-                future = asyncio.run_coroutine_threadsafe(
-                    cancel_all_tasks(), __g_global_event_loop
-                )
-                try:
-                    future.result(timeout=5)
-                except asyncio.TimeoutError:
-                    raise RuntimeError("Failed to shut down EventLoop!")
+            if try_stop_loop and __g_global_event_loop.is_running():
+                __g_global_event_loop.stop()
 
             __g_global_event_loop = None
             __g_event_loop_factory = None

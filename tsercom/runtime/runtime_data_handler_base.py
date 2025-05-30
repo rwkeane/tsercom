@@ -155,10 +155,8 @@ class RuntimeDataHandlerBase(
             data: The `AnnotatedInstance` containing the data and metadata.
         """
         if self.__data_reader is None:
-            # This case should ideally not be hit if initialization is correct
-            # Consider logging an error or raising if it's an invalid state
-            return
-        # DataReaderSink._on_data_ready is synchronous
+            raise ValueError("Data reader instance is None.")
+
         self.__data_reader._on_data_ready(data)
 
     @abstractmethod

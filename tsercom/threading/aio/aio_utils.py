@@ -8,11 +8,13 @@ This module provides helper functions to:
   from a synchronous context, returning a future for the result.
 """
 
-from asyncio import AbstractEventLoop, Future
+from asyncio import AbstractEventLoop
 import asyncio
 from collections.abc import Callable
 from typing import Any, Coroutine, Optional, ParamSpec, TypeVar
+from concurrent.futures import Future
 
+import concurrent  # Changed import for Future
 from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
 
@@ -63,7 +65,7 @@ def run_on_event_loop(
     event_loop: Optional[AbstractEventLoop] = None,
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Future[T]:
+) -> concurrent.futures.Future[T]:
     """
     Runs a coroutine on the specified event loop.
 
@@ -88,4 +90,6 @@ def run_on_event_loop(
         if event_loop is None:
             raise RuntimeError("ERROR: tsercom global event loop not set!")
 
-    return asyncio.run_coroutine_threadsafe(call(*args, **kwargs), event_loop)  # type: ignore[arg-type]
+    coro_obj = call(*args, **kwargs)
+    cf_future = asyncio.run_coroutine_threadsafe(coro_obj, event_loop)
+    return cf_future

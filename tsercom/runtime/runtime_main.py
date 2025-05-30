@@ -14,18 +14,19 @@ from tsercom.runtime.server.server_runtime_data_handler import (
     ServerRuntimeDataHandler,
 )
 from tsercom.threading.aio.aio_utils import run_on_event_loop
-import asyncio  # Added for asyncio.Future
 from functools import partial  # Added for functools.partial
 from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
     create_tsercom_event_loop_from_watcher,
     is_global_event_loop_set,
     get_global_event_loop,  # Added for get_global_event_loop
+    # clear_tsercom_event_loop is not explicitly used in the new remote_process_main start
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
+import concurrent.futures  # Added for type hint in callback
 
 
 def initialize_runtimes(
@@ -50,7 +51,7 @@ def initialize_runtimes(
     channel_factory = channel_factory_selector.get_instance()
 
     runtimes: List[Runtime] = []
-    for initializer_factory in initializers:
+    for factory_idx, initializer_factory in enumerate(initializers):
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
 
@@ -75,35 +76,28 @@ def initialize_runtimes(
         )
         runtimes.append(runtime_instance)
 
-    # Ensure asyncio and functools.partial are imported (done above)
-    # from tsercom.threading.aio.global_event_loop import get_global_event_loop (done above)
-    # from tsercom.threading.thread_watcher import ThreadWatcher (already imported)
-
-    for runtime in runtimes:
-        # Use the global event loop which start_in_process would have set.
-        # This is important because runtime.start_async is expected to run on that specific loop.
+    for runtime_idx, runtime in enumerate(runtimes):
         active_loop = get_global_event_loop()
-        future = run_on_event_loop(runtime.start_async, event_loop=active_loop)
 
-        # Define the callback function
-        # It needs a reference to the thread_watcher passed to initialize_runtimes
+        coro_to_run = runtime.start_async
+        future = run_on_event_loop(coro_to_run, event_loop=active_loop)
+
         def _runtime_start_done_callback(
-            f: asyncio.Future, tw_ref: ThreadWatcher
+            f: concurrent.futures.Future,
+            thread_watcher: ThreadWatcher,
         ):
             try:
-                # Check if the future completed with an exception
                 if f.done() and not f.cancelled():
                     exc = f.exception()
                     if exc is not None:
-                        tw_ref.on_exception_seen(exc)
+                        thread_watcher.on_exception_seen(exc)
             except Exception:
-                # Log errors from the callback itself, if any, to prevent loop crashes.
-                # (Requires a logger, or pass for now)
                 pass
 
-        # Add the callback, using partial to pass the thread_watcher
         future.add_done_callback(
-            partial(_runtime_start_done_callback, tw_ref=thread_watcher)
+            partial(
+                _runtime_start_done_callback, thread_watcher=thread_watcher
+            )
         )
 
     return runtimes
@@ -125,27 +119,30 @@ def remote_process_main(
         error_queue: A `MultiprocessQueueSink` to send exceptions back to the parent.
         is_testing: Boolean flag for testing mode.
     """
-    # Only needed on linux systems.
-    clear_tsercom_event_loop()
+    # When launched as a new process, a copy of the event loop is made, but the
+    # underlying thread with which its assocaited is NOT copied. So it must be
+    # cleared WITHOUT attempting to check if it is running.
+    clear_tsercom_event_loop(try_stop_loop=False)
 
     thread_watcher = ThreadWatcher()
     create_tsercom_event_loop_from_watcher(thread_watcher)
+
     sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
-    runtimes: List[Runtime] = []  # Initialize runtimes to an empty list
+    runtimes: List[Runtime] = []
     try:
         runtimes = initialize_runtimes(
             thread_watcher, initializers, is_testing=is_testing
         )
-        # If initialize_runtimes succeeds, then wait for other errors from sink
         sink.run_until_exception()
-    except Exception as e:
-        for runtime in runtimes:
-            run_on_event_loop(partial(runtime.stop, e))
 
+    except Exception as e:
         if error_queue:
             error_queue.put_nowait(e)
         raise
+    finally:
+        for runtime_idx, runtime in enumerate(runtimes):
+            run_on_event_loop(partial(runtime.stop, None))
 
-    for runtime in runtimes:
-        run_on_event_loop(partial(runtime.stop, None))
+        for factory_idx, factory in enumerate(initializers):
+            factory._stop()

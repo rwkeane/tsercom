@@ -295,6 +295,7 @@ class RemoteDataAggregatorImpl(
         Raises:
             TypeError: If `new_data` is not a subclass of `ExposedData`.
         """
+
         if not isinstance(new_data, ExposedData):
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
@@ -306,13 +307,18 @@ class RemoteDataAggregatorImpl(
         with self.__lock:
             if new_data.caller_id not in self.__organizers:
                 data_organizer = RemoteDataOrganizer(
-                    self.__thread_pool, new_data.caller_id, self
+                    self.__thread_pool,
+                    new_data.caller_id,
+                    self,  # self is RemoteDataAggregatorImpl (RemoteDataOrganizer.Client)
                 )
+
                 if self.__tracker is not None:
                     self.__tracker.register(data_organizer)
-                data_organizer.start()
+
+                data_organizer.start()  # Start the organizer
                 self.__organizers[new_data.caller_id] = data_organizer
                 is_new_organizer = True
+
             else:
                 data_organizer = self.__organizers[new_data.caller_id]
 

@@ -107,6 +107,7 @@ class RuntimeCommandSource:
         Raises:
             AssertionError: If not currently running or if internal state is inconsistent.
         """
+        print("RuntimeCommandSource.stop_async() called", flush=True)
         # Ensure that stop_async is called only when running and in a valid state.
         assert (
             self.__is_running is not None
@@ -116,6 +117,13 @@ class RuntimeCommandSource:
         ), "RuntimeCommandSource is not marked as running."
 
         self.__is_running.stop()
-        # Note: Thread joining and resource cleanup (like setting self.__runtime to None)
-        # might be considered here for robust lifecycle management, but are
-        # currently outside the scope of these changes.
+
+        if self.__command_thread:
+            self.__command_thread.join(
+                timeout=5
+            )  # Or another reasonable timeout
+            if self.__command_thread.is_alive():
+                raise RuntimeError(
+                    f"ERROR: RuntimeCommandSource thread for queue {self.__runtime_command_queue} did not terminate within 5 seconds.",
+                    flush=True,
+                )

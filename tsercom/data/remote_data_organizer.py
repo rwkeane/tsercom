@@ -64,14 +64,16 @@ class RemoteDataOrganizer(
 
         # Thread lock to protect access to __data and __last_access.
         self.__data_lock: threading.Lock = threading.Lock()
+
         # Deque to store received data, ordered by timestamp (most recent first).
         self.__data: Deque[TDataType] = Deque[TDataType]()
+
         # Timestamp of the most recent data item retrieved via get_new_data().
         self.__last_access: datetime.datetime = datetime.datetime.min
 
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
-        super().__init__()  # Calls __init__ of DataTimeoutTracker.Tracked if it has one (ABC usually doesn't)
+        super().__init__()
 
     @property
     def caller_id(self) -> CallerIdentifier:
@@ -122,10 +124,14 @@ class RemoteDataOrganizer(
             True if new data is available, False otherwise.
         """
         with self.__data_lock:
-            if not self.__data:  # More pythonic check for empty deque
+            # Add comprehensive logging
+            if not self.__data:
                 return False
-            # Data is new if the most recent item's timestamp is after the last access time.
-            result = self.__data[0].timestamp > self.__last_access
+
+            most_recent_timestamp = self.__data[0].timestamp
+            last_access_timestamp = self.__last_access
+            result = most_recent_timestamp > last_access_timestamp
+
             return result
 
     def get_new_data(self) -> List[TDataType]:
@@ -143,15 +149,15 @@ class RemoteDataOrganizer(
             if not self.__data:
                 return results
 
-            for item in self.__data:  # Iterate directly since deque is ordered
+            for item_idx, item in enumerate(self.__data):
                 if item.timestamp > self.__last_access:
                     results.append(item)
                 else:
-                    # Stop once we encounter data older than or same as last access.
                     break
 
             if results:
-                self.__last_access = results[0].timestamp
+                new_last_access = results[0].timestamp
+                self.__last_access = new_last_access
 
             return results
 

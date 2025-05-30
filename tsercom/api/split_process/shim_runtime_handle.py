@@ -1,6 +1,8 @@
 """Defines ShimRuntimeHandle for interacting with a runtime in a separate process."""
 
 import datetime  # Required for on_event overload, though not used in current simple form
+import time  # Added import
+from queue import Empty as QueueEmptyException  # Added import
 from typing import TypeVar, Optional
 
 from tsercom.caller_id.caller_identifier import (
@@ -75,9 +77,12 @@ class ShimRuntimeHandle(
         )
         self.__block: bool = block
 
+        # DataReaderSource is initialized with the same data_queue
         self.__data_reader_source: DataReaderSource[TDataType] = (
             DataReaderSource(
-                thread_watcher, data_queue, self.__data_aggregator
+                thread_watcher,
+                data_queue,
+                self.__data_aggregator,  # Pass data_queue here
             )
         )
 
@@ -89,7 +94,6 @@ class ShimRuntimeHandle(
         runtime via the command queue.
         """
         self.__data_reader_source.start()
-        self.__runtime_command_queue.put_blocking(RuntimeCommand.kStart)
 
     def on_event(
         self,

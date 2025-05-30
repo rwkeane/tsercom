@@ -155,3 +155,7 @@ class RemoteRuntimeFactory(
         )
         self.__command_source.start_async(thread_watcher, runtime)
         return runtime
+
+    def _stop(self) -> None:
+        if self.__command_source is not None:
+            self.__command_source.stop_async()

@@ -72,3 +72,9 @@ class RuntimeFactory(
             An `AsyncPoller` instance.
         """
         pass
+
+    def _stop() -> None:
+        """
+        Stops any underlying calls and executions associated with this instance.
+        """
+        pass

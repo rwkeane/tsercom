@@ -75,6 +75,10 @@ class DataReaderSource(Generic[TDataType]):
         self.__is_running.stop()
         if self.__thread:
             self.__thread.join(timeout=5)
+            if self.__thread.is_alive():
+                raise RuntimeError(
+                    f"ERROR: DataReaderSource thread for queue {self.__queue} did not terminate within 5 seconds."
+                )
 
     def __poll_for_data(self) -> None:
         """Continuously polls the queue for data and forwards it.
@@ -85,13 +89,13 @@ class DataReaderSource(Generic[TDataType]):
         keep the polling loop alive.
         """
         while self.__is_running.get():
-            # Block and wait for data from the queue with a timeout to allow checking is_running.
             data = self.__queue.get_blocking(timeout=1)
             if data is not None:
                 try:
                     self.__data_reader._on_data_ready(data)
-                except Exception:
-                    # It's important to catch exceptions here to prevent the polling thread
-                    # from dying silently if _on_data_ready (e.g., in aggregator) raises one.
-                    # Proper logging/handling would go here in a real application.
-                    pass
+                except Exception as e:
+                    # It's important to catch exceptions here to prevent the
+                    # polling thread from dying silently if _on_data_ready
+                    # (e.g., in aggregator) raises one.
+                    self.__watcher.on_exception_seen(e)
+                    raise e
