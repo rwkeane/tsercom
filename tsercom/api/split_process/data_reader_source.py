@@ -91,4 +91,11 @@ class DataReaderSource(Generic[TDataType]):
         while self.__is_running.get():
             data = self.__queue.get_blocking(timeout=1)
             if data is not None:
-                self.__data_reader._on_data_ready(data)
+                try:
+                    self.__data_reader._on_data_ready(data)
+                except Exception as e:
+                    # It's important to catch exceptions here to prevent the
+                    # polling thread from dying silently if _on_data_ready
+                    # (e.g., in aggregator) raises one.
+                    self.__watcher.on_exception_seen(e)
+                    raise e

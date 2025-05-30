@@ -297,7 +297,9 @@ class RemoteDataAggregatorImpl(
         """
 
         if not isinstance(new_data, ExposedData):
-            raise ValueError("new_data must be a subclass of ExposedData.")
+            raise TypeError(
+                f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+            )
 
         data_organizer: RemoteDataOrganizer[TDataType]
         is_new_organizer = False
