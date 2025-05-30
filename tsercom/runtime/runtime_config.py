@@ -18,6 +18,11 @@ class RuntimeConfig:
     or by copying from another `RuntimeConfig` instance.
     """
 
+    # Server-side TLS configuration paths
+    server_tls_key_path: Optional[str]
+    server_tls_cert_path: Optional[str]
+    server_tls_client_ca_path: Optional[str]
+
     @overload
     def __init__(
         self,
@@ -26,6 +31,9 @@ class RuntimeConfig:
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
         timeout_seconds: Optional[int] = 60,
         grpc_channel_factory_config: Optional[GrpcChannelFactoryConfig] = None,
+        server_tls_key_path: Optional[str] = None,
+        server_tls_cert_path: Optional[str] = None,
+        server_tls_client_ca_path: Optional[str] = None,
     ): ...
 
     @overload
@@ -36,6 +44,9 @@ class RuntimeConfig:
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
         timeout_seconds: Optional[int] = 60,
         grpc_channel_factory_config: Optional[GrpcChannelFactoryConfig] = None,
+        server_tls_key_path: Optional[str] = None,
+        server_tls_cert_path: Optional[str] = None,
+        server_tls_client_ca_path: Optional[str] = None,
     ): ...
 
     @overload
@@ -52,6 +63,11 @@ class RuntimeConfig:
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
         timeout_seconds: Optional[int] = 60,
         grpc_channel_factory_config: Optional[GrpcChannelFactoryConfig] = None,
+        server_tls_key_path: Optional[str] = None,  # New server TLS field
+        server_tls_cert_path: Optional[str] = None,  # New server TLS field
+        server_tls_client_ca_path: Optional[
+            str
+        ] = None,  # New server TLS field
     ):
         """Initializes the RuntimeConfig.
 
@@ -84,6 +100,9 @@ class RuntimeConfig:
                 data_aggregator_client=other_config.data_aggregator_client,
                 timeout_seconds=other_config.timeout_seconds,
                 grpc_channel_factory_config=other_config.grpc_channel_factory_config,
+                server_tls_key_path=other_config.server_tls_key_path,
+                server_tls_cert_path=other_config.server_tls_cert_path,
+                server_tls_client_ca_path=other_config.server_tls_client_ca_path,
             )
             return
 
@@ -104,6 +123,11 @@ class RuntimeConfig:
         self.__grpc_channel_factory_config: Optional[
             GrpcChannelFactoryConfig
         ] = grpc_channel_factory_config
+        self.__server_tls_key_path: Optional[str] = server_tls_key_path
+        self.__server_tls_cert_path: Optional[str] = server_tls_cert_path
+        self.__server_tls_client_ca_path: Optional[str] = (
+            server_tls_client_ca_path
+        )
 
     def is_client(self) -> bool:
         """Checks if the runtime is configured as a client.
@@ -157,6 +181,18 @@ class RuntimeConfig:
         or None if no specific configuration is set.
         """
         return self.__grpc_channel_factory_config
+
+    @property
+    def server_tls_key_path(self) -> Optional[str]:
+        return self.__server_tls_key_path
+
+    @property
+    def server_tls_cert_path(self) -> Optional[str]:
+        return self.__server_tls_cert_path
+
+    @property
+    def server_tls_client_ca_path(self) -> Optional[str]:
+        return self.__server_tls_client_ca_path
 
 
 class ServiceType(Enum):
