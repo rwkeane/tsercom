@@ -90,9 +90,9 @@ class RemoteDataAggregatorImpl(
         Raises:
             AssertionError: If both `tracker` and `timeout` are provided.
         """
-        assert not (timeout is not None and tracker is not None), (
-            "Cannot specify both 'timeout' and 'tracker' simultaneously."
-        )
+        assert not (
+            timeout is not None and tracker is not None
+        ), "Cannot specify both 'timeout' and 'tracker' simultaneously."
 
         if tracker is None and timeout is not None and timeout > 0:
             tracker = DataTimeoutTracker(timeout)

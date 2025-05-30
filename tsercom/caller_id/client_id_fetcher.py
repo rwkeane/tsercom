@@ -59,9 +59,9 @@ class ClientIdFetcher:
                     )
 
                     # Ensure the response is of the expected type.
-                    assert isinstance(id_response, GetIdResponse), (
-                        f"Expected GetIdResponse, got {type(id_response)}"
-                    )
+                    assert isinstance(
+                        id_response, GetIdResponse
+                    ), f"Expected GetIdResponse, got {type(id_response)}"
 
                     # CallerIdentifier.try_parse can return None if the string is invalid.
                     # id_response.id is the CallerId message, id_response.id.id is its string payload.

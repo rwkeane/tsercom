@@ -97,33 +97,41 @@ class RuntimeManager(ErrorWatcher):
             if process_creator is not None
             else ProcessCreator()
         )
-        self.__split_error_watcher_source_factory: SplitErrorWatcherSourceFactory = (
+        self.__split_error_watcher_source_factory: (
+            SplitErrorWatcherSourceFactory
+        ) = (
             split_error_watcher_source_factory
             if split_error_watcher_source_factory is not None
             else SplitErrorWatcherSourceFactory()
         )
 
         if local_runtime_factory_factory is not None:
-            self.__local_runtime_factory_factory: LocalRuntimeFactoryFactory = local_runtime_factory_factory
+            self.__local_runtime_factory_factory: (
+                LocalRuntimeFactoryFactory
+            ) = local_runtime_factory_factory
         else:
             default_local_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
                     max_workers=1
                 )
             )
-            self.__local_runtime_factory_factory: LocalRuntimeFactoryFactory = LocalRuntimeFactoryFactory(
-                default_local_factory_thread_pool
-            )
+            self.__local_runtime_factory_factory: (
+                LocalRuntimeFactoryFactory
+            ) = LocalRuntimeFactoryFactory(default_local_factory_thread_pool)
 
         if split_runtime_factory_factory is not None:
-            self.__split_runtime_factory_factory: SplitRuntimeFactoryFactory = split_runtime_factory_factory
+            self.__split_runtime_factory_factory: (
+                SplitRuntimeFactoryFactory
+            ) = split_runtime_factory_factory
         else:
             default_split_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
                     max_workers=1
                 )
             )
-            self.__split_runtime_factory_factory: SplitRuntimeFactoryFactory = SplitRuntimeFactoryFactory(
+            self.__split_runtime_factory_factory: (
+                SplitRuntimeFactoryFactory
+            ) = SplitRuntimeFactoryFactory(
                 default_split_factory_thread_pool, self.__thread_watcher
             )
 

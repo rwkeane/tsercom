@@ -37,25 +37,27 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                                       for SSL target name override.
         """
         if isinstance(client_cert_pem, str):
-            self.client_cert_pem_bytes: bytes = client_cert_pem.encode('utf-8')
+            self.client_cert_pem_bytes: bytes = client_cert_pem.encode("utf-8")
         else:
             self.client_cert_pem_bytes: bytes = client_cert_pem
 
         if isinstance(client_key_pem, str):
-            self.client_key_pem_bytes: bytes = client_key_pem.encode('utf-8')
+            self.client_key_pem_bytes: bytes = client_key_pem.encode("utf-8")
         else:
             self.client_key_pem_bytes: bytes = client_key_pem
 
         if root_ca_cert_pem:
             if isinstance(root_ca_cert_pem, str):
-                self.root_ca_cert_pem_bytes: Optional[bytes] = root_ca_cert_pem.encode('utf-8')
+                self.root_ca_cert_pem_bytes: Optional[bytes] = (
+                    root_ca_cert_pem.encode("utf-8")
+                )
             else:
                 self.root_ca_cert_pem_bytes: Optional[bytes] = root_ca_cert_pem
         else:
             self.root_ca_cert_pem_bytes: Optional[bytes] = None
 
         self.server_hostname_override: Optional[str] = server_hostname_override
-        super().__init__() # GrpcChannelFactory has no __init__, but good practice
+        super().__init__()  # GrpcChannelFactory has no __init__, but good practice
 
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
@@ -75,7 +77,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
-            address_list = list(addresses) # Ensure it's a list copy
+            address_list = list(addresses)  # Ensure it's a list copy
 
         auth_type = "Client Auth"
         if self.root_ca_cert_pem_bytes:
@@ -90,14 +92,21 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         credentials = grpc.ssl_channel_credentials(
             certificate_chain=self.client_cert_pem_bytes,
             private_key=self.client_key_pem_bytes,
-            root_certificates=self.root_ca_cert_pem_bytes # Can be None
+            root_certificates=self.root_ca_cert_pem_bytes,  # Can be None
         )
 
         options: list[tuple[str, Any]] = []
-        if self.server_hostname_override:
-            options.append(('grpc.ssl_target_name_override', self.server_hostname_override))
+        if self.server_hostname_override: # Revert to always adding if provided
+            options.append(
+                (
+                    "grpc.ssl_target_name_override",
+                    self.server_hostname_override,
+                )
+            )
 
-        active_channel: Optional[grpc.aio.Channel] = None # Define for broader scope in error handling
+        active_channel: Optional[grpc.aio.Channel] = (
+            None  # Define for broader scope in error handling
+        )
 
         for current_address in address_list:
             target = f"{current_address}:{port}"
@@ -110,14 +119,20 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 )
 
                 # Wait for the channel to be ready, with a timeout.
-                await asyncio.wait_for(active_channel.channel_ready(), timeout=5.0)
+                await asyncio.wait_for(
+                    active_channel.channel_ready(), timeout=5.0
+                )
 
                 logger.info(
                     f"Successfully connected securely to {target} ({auth_type})."
                 )
                 channel_to_return = active_channel
-                active_channel = None # Detach from variable so it's not closed in finally
-                return ChannelInfo(channel_to_return, current_address, port, is_secure=True)
+                active_channel = (
+                    None  # Detach from variable so it's not closed in finally
+                )
+                return ChannelInfo(
+                    channel_to_return, current_address, port
+                )
 
             except grpc.aio.AioRpcError as e:
                 logger.warning(
@@ -131,12 +146,14 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 logger.error(
                     f"An unexpected error occurred while trying to connect to {target} ({auth_type}): {e}"
                 )
-                if isinstance(e, AssertionError): # Re-raise assertion errors
+                if isinstance(e, AssertionError):  # Re-raise assertion errors
                     raise
             finally:
-                if active_channel: # If loop breaks or error occurs, close the partially opened channel
+                if (
+                    active_channel
+                ):  # If loop breaks or error occurs, close the partially opened channel
                     await active_channel.close()
-                    active_channel = None # Reset to prevent re-closing
+                    active_channel = None  # Reset to prevent re-closing
 
         logger.warning(
             f"Failed to establish secure connection ({auth_type}) to any of the provided addresses: {address_list} on port {port}"

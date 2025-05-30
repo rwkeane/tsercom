@@ -73,9 +73,9 @@ class DataTimeoutTracker:
             tracked: The `Tracked` object to add to the list.
         """
         # Ensure this part of the registration runs on the designated event loop.
-        assert is_running_on_event_loop(), (
-            "Registration implementation must run on the event loop."
-        )
+        assert (
+            is_running_on_event_loop()
+        ), "Registration implementation must run on the event loop."
         self.__tracked_list.append(tracked)
 
     def start(self) -> None:
@@ -99,9 +99,9 @@ class DataTimeoutTracker:
     async def __signal_stop_impl(self) -> None:
         """Internal implementation to signal stop on the event loop."""
         # Ensure this runs on the loop, though run_on_event_loop handles scheduling
-        assert is_running_on_event_loop(), (
-            "Stop signal must be processed on the event loop."
-        )
+        assert (
+            is_running_on_event_loop()
+        ), "Stop signal must be processed on the event loop."
         if self.__is_running.get():  # Double check on the loop
             self.__is_running.stop()
             logger.info("DataTimeoutTracker stop signaled.")
@@ -121,7 +121,7 @@ class DataTimeoutTracker:
             await asyncio.sleep(self.__timeout_seconds)
             if not self.__is_running.get():
                 break
-            for tracked_item in list(self.__tracked_list): # Iterate a copy
+            for tracked_item in list(self.__tracked_list):  # Iterate a copy
                 try:
                     tracked_item._on_triggered(self.__timeout_seconds)
                 except Exception as e:
@@ -143,9 +143,9 @@ class DataTimeoutTracker:
 
     async def __unregister_impl(self, tracked: Tracked) -> None:
         """Internal implementation to unregister a 'Tracked' object."""
-        assert is_running_on_event_loop(), (
-            "Unregistration must run on the event loop."
-        )
+        assert (
+            is_running_on_event_loop()
+        ), "Unregistration must run on the event loop."
         try:
             self.__tracked_list.remove(tracked)
             logger.info(f"Unregistered item: {tracked}")

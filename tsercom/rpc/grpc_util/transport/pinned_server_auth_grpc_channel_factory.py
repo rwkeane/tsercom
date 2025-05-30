@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import grpc
 import logging
-from typing import Any, Optional # Use modern Optional
+from typing import Any, Optional  # Use modern Optional
 
 from tsercom.rpc.common.channel_info import ChannelInfo
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
@@ -35,12 +35,14 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
                                       but you still want to validate the certificate content.
         """
         if isinstance(expected_server_cert_pem, str):
-            self.expected_server_cert_pem: bytes = expected_server_cert_pem.encode('utf-8')
+            self.expected_server_cert_pem: bytes = (
+                expected_server_cert_pem.encode("utf-8")
+            )
         else:
             self.expected_server_cert_pem: bytes = expected_server_cert_pem
 
         self.server_hostname_override: Optional[str] = server_hostname_override
-        super().__init__() # GrpcChannelFactory has no __init__, but good practice
+        super().__init__()  # GrpcChannelFactory has no __init__, but good practice
 
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
@@ -61,7 +63,7 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
-            address_list = list(addresses) # Ensure it's a list copy
+            address_list = list(addresses)  # Ensure it's a list copy
 
         logger.info(
             f"Attempting secure connection (Pinned Server Auth) to addresses: {address_list} on port {port}"
@@ -75,13 +77,20 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
 
         options: list[tuple[str, Any]] = []
         if self.server_hostname_override:
-            options.append(('grpc.ssl_target_name_override', self.server_hostname_override))
+            options.append(
+                (
+                    "grpc.ssl_target_name_override",
+                    self.server_hostname_override,
+                )
+            )
         # Without hostname override, gRPC would also try to validate the hostname in the cert against the target address.
         # If target is an IP, this usually fails unless IP is in SANs.
         # For pinning, you might primarily care about the cert content, and override ensures hostname validation doesn't fail separately
         # if the pinned cert is correct.
 
-        active_channel: Optional[grpc.aio.Channel] = None # To ensure closure on failure
+        active_channel: Optional[grpc.aio.Channel] = (
+            None  # To ensure closure on failure
+        )
 
         for current_address in address_list:
             target = f"{current_address}:{port}"
@@ -95,7 +104,9 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
 
                 # Wait for the channel to be ready, with a timeout.
                 # Consider making the timeout configurable or part of class constants.
-                await asyncio.wait_for(active_channel.channel_ready(), timeout=5.0)
+                await asyncio.wait_for(
+                    active_channel.channel_ready(), timeout=5.0
+                )
 
                 logger.info(
                     f"Successfully connected securely to {target} (Pinned Server Auth)."
@@ -103,7 +114,9 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
                 # Detach active_channel from the variable so it's not closed in a finally block if successful
                 channel_to_return = active_channel
                 active_channel = None
-                return ChannelInfo(channel_to_return, current_address, port, is_secure=True)
+                return ChannelInfo(
+                    channel_to_return, current_address, port
+                )
 
             except grpc.aio.AioRpcError as e:
                 logger.warning(
@@ -117,12 +130,14 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
                 logger.error(
                     f"An unexpected error occurred while trying to connect to {target} (Pinned Server Auth): {e}"
                 )
-                if isinstance(e, AssertionError): # Re-raise assertion errors
+                if isinstance(e, AssertionError):  # Re-raise assertion errors
                     raise
             finally:
-                if active_channel: # If loop breaks or error occurs, close the partially opened channel
+                if (
+                    active_channel
+                ):  # If loop breaks or error occurs, close the partially opened channel
                     await active_channel.close()
-                    active_channel = None # Reset to prevent re-closing
+                    active_channel = None  # Reset to prevent re-closing
 
         logger.warning(
             f"Failed to establish secure connection (Pinned Server Auth) to any of the provided addresses: {address_list} on port {port}"
