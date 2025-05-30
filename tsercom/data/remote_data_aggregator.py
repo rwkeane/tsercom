@@ -24,7 +24,7 @@ class RemoteDataAggregator(ABC, Generic[TDataType]):
     availability and new endpoint discovery.
     """
 
-    class Client(ABC, Generic[TDataType]):
+    class Client(ABC):  # TDataType from outer scope is implicitly available
         """Interface for clients wishing to receive callbacks from a RemoteDataAggregator.
 
         Implementers of this interface can register with a `RemoteDataAggregator`

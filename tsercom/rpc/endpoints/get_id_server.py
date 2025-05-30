@@ -55,7 +55,7 @@ class AsyncGetIdServer:
             A GetIdResponse containing the new CallerIdentifier.
         """
         new_id = (
-            CallerIdentifier()
+            CallerIdentifier.random()
         )  # Renamed from 'id' to avoid shadowing built-in
         if self.__callback is not None:
             self.__callback(new_id)

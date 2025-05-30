@@ -1,7 +1,7 @@
 """Provides IdTracker for managing bidirectional mappings between CallerIdentifiers and network addresses."""
 
 import threading
-from typing import Dict, Optional, overload, Iterator
+from typing import Dict, Optional, overload, Iterator, Any
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
@@ -28,9 +28,9 @@ class IdTracker:
 
     def try_get(
         self,
-        id: Optional[CallerIdentifier] = None,
-        address: Optional[str] = None,
-        port: Optional[int] = None,
+        id: Any = None,
+        address: Any = None,
+        port: Any = None,
     ) -> Optional[tuple[str, int] | CallerIdentifier]:
         """Attempts to retrieve a value from the tracker.
 
@@ -79,9 +79,9 @@ class IdTracker:
 
     def get(
         self,
-        id: Optional[CallerIdentifier] = None,
-        address: Optional[str] = None,
-        port: Optional[int] = None,
+        id: Any = None,
+        address: Any = None,
+        port: Any = None,
     ) -> tuple[str, int] | CallerIdentifier:
         """Retrieves a value from the tracker, raising KeyError if not found.
 
@@ -101,15 +101,31 @@ class IdTracker:
             ValueError: If incorrect arguments are provided.
             KeyError: If the lookup key is not found.
         """
-        result = self.try_get(
-            id=id, address=address, port=port
-        )  # Use named args for clarity
-        if result is None:
+        resolved_result: Optional[tuple[str, int] | CallerIdentifier] = None
+        if id is not None and address is None and port is None:
+            # Corresponds to: @overload def try_get(self, id: CallerIdentifier) -> Optional[tuple[str, int]]:
+            resolved_result = self.try_get(id=id)
+        elif address is not None and port is not None and id is None:
+            # Corresponds to: @overload def try_get(self, address: str, port: int) -> Optional[CallerIdentifier]:
+            resolved_result = self.try_get(address=address, port=port)
+        else:
+            # This path indicates incorrect argument combination for 'get'
+            # try_get itself has robust validation for its arguments.
+            # We raise a ValueError here to indicate improper use of 'get' method's contract.
+            raise ValueError(
+                f"Invalid arguments to get: provide CallerIdentifier OR (address and port). "
+                f"Got id={id}, address={address}, port={port}"
+            )
+
+        if resolved_result is None:
+            # This means the specific key (id or address/port combination) was not found by try_get
             raise KeyError(
                 f"Key not found for query: id={id}, address={address}, port={port}"
             )
 
-        return result  # Type of result is correctly inferred by mypy here based on overload
+        # If resolved_result is not None, its type is (tuple[str, int] | CallerIdentifier),
+        # which matches the return annotation of 'get'.
+        return resolved_result
 
     def add(self, id: CallerIdentifier, address: str, port: int) -> None:
         """Adds a new bidirectional mapping to the tracker.

@@ -30,7 +30,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
     and notifies its registered `Client` about the newly discovered service instance.
     """
 
-    class Client(ABC, Generic[TServiceInfo]):
+    class Client(ABC): # TServiceInfo from outer InstanceListener scope is implicitly available
         """Interface for clients of `InstanceListener`.
 
         Implementers of this interface are notified when a complete service
@@ -40,7 +40,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
 
         @abstractmethod
         async def _on_service_added(
-            self, connection_info: TServiceInfo
+            self, connection_info: TServiceInfo # TServiceInfo is from outer scope
         ) -> None:
             """Callback invoked when a new service instance is discovered.
 
@@ -55,7 +55,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
 
     def __init__(
         self,
-        client: "InstanceListener.Client[TServiceInfo]",
+        client: "InstanceListener.Client", # Client is no longer generic here
         service_type: str,
         *,
         mdns_listener_factory: Optional[
@@ -91,9 +91,10 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
                 f"service_type must be a string, got {type(service_type).__name__}."
             )
 
-        self.__client: InstanceListener.Client[TServiceInfo] = client
+        self.__client: InstanceListener.Client = client # Client is no longer generic here
         # This InstanceListener acts as the client to the MdnsListener.
 
+        self.__listener: MdnsListener # Declare type once for __listener
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
             def default_mdns_listener_factory(
@@ -102,12 +103,12 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
                 # RecordListener is already imported at the top of the file.
                 return RecordListener(listener_client, s_type)
 
-            self.__listener: MdnsListener = default_mdns_listener_factory(
+            self.__listener = default_mdns_listener_factory(
                 self, service_type
             )
         else:
             # Use provided factory
-            self.__listener: MdnsListener = mdns_listener_factory(
+            self.__listener = mdns_listener_factory(
                 self, service_type
             )
 

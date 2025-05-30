@@ -1,14 +1,15 @@
 """Configuration for Tsercom runtimes, specifying service type and data handling."""
 
 from enum import Enum
-from typing import Literal, Optional, TypeVar, overload
+from typing import Literal, Optional, TypeVar, overload, Generic, Any
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
+from tsercom.data.exposed_data import ExposedData # Import ExposedData
 
-TDataType = TypeVar("TDataType")
+TDataType = TypeVar("TDataType", bound=ExposedData) # Constrain TDataType
 TEventType = TypeVar("TEventType")
 
 
-class RuntimeConfig:
+class RuntimeConfig(Generic[TDataType]):
     """Holds configuration parameters for a Tsercom runtime.
 
     This includes the service type (client or server), data aggregator client,
@@ -21,7 +22,7 @@ class RuntimeConfig:
         self,
         service_type: "ServiceType",
         *,
-        data_aggregator_client: Optional[RemoteDataAggregator] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator[TDataType]] = None,
         timeout_seconds: Optional[int] = 60,
     ): ...
 
@@ -30,12 +31,12 @@ class RuntimeConfig:
         self,
         service_type: Literal["Client", "Server"],
         *,
-        data_aggregator_client: Optional[RemoteDataAggregator] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator[TDataType]] = None,
         timeout_seconds: Optional[int] = 60,
     ): ...
 
     @overload
-    def __init__(self, *, other_config: "RuntimeConfig"): ...
+    def __init__(self, *, other_config: "RuntimeConfig[TDataType]"): ...
 
     def __init__(
         self,
@@ -44,8 +45,8 @@ class RuntimeConfig:
             | "ServiceType"  # Actually ServiceType enum
         ] = None,
         *,
-        other_config: Optional["RuntimeConfig"] = None,
-        data_aggregator_client: Optional[RemoteDataAggregator] = None,
+        other_config: Optional["RuntimeConfig[TDataType]"] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator[TDataType]] = None,
         timeout_seconds: Optional[int] = 60,
     ):
         """Initializes the RuntimeConfig.
@@ -73,11 +74,14 @@ class RuntimeConfig:
             # Call __init__ directly to bypass overload resolution issues with self-recursion
             # and to correctly set private attributes of the new instance.
             # This is a common pattern for implementing copy constructors in Python.
-            RuntimeConfig.__init__(  # type: ignore
-                self,  # type: ignore
-                service_type=other_config.__service_type,  # type: ignore
-                data_aggregator_client=other_config.data_aggregator_client,
-                timeout_seconds=other_config.timeout_seconds,
+            # The type: ignore for service_type might still be needed if __service_type is considered private by mypy
+            # depending on its exact rules for __mangled_names from another instance.
+            # For data_aggregator_client and timeout_seconds, direct access to properties of other_config is fine.
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum, # Use new property
+                data_aggregator_client=other_config.data_aggregator_client, # This will use the property
+                timeout_seconds=other_config.timeout_seconds # This will use the property
             )
             return
 
@@ -89,9 +93,9 @@ class RuntimeConfig:
             else:
                 raise ValueError(f"Invalid service type: {service_type}")
         else:
-            self.__service_type = service_type  # type: ignore
+            self.__service_type = service_type # type: ignore[assignment] # service_type can be ServiceType enum or string here
 
-        self.__data_aggregator_client: Optional[RemoteDataAggregator] = (
+        self.__data_aggregator_client: Optional[RemoteDataAggregator[TDataType]] = (
             data_aggregator_client
         )
         self.__timeout_seconds: Optional[int] = timeout_seconds
@@ -122,7 +126,12 @@ class RuntimeConfig:
         return self.__service_type == ServiceType.kServer
 
     @property
-    def data_aggregator_client(self) -> RemoteDataAggregator:
+    def service_type_enum(self) -> "ServiceType":
+        """Returns the raw ServiceType enum value."""
+        return self.__service_type # type: ignore[no-any-return] # __service_type is ServiceType | str, but should be ServiceType after __init__ logic
+
+    @property
+    def data_aggregator_client(self) -> Optional[RemoteDataAggregator[TDataType]]:
         """
         Returns the client that should be informed when new data is provided to
         the RemoteDataAggregator instance created for the runtime created from
@@ -131,7 +140,7 @@ class RuntimeConfig:
         return self.__data_aggregator_client
 
     @property
-    def timeout_seconds(self) -> int:
+    def timeout_seconds(self) -> Optional[int]:
         """
         Returns the timeout (in seconds) that should be used for data received
         by the runtime created from this initializer, or None if data should not

@@ -1,4 +1,4 @@
-from zeroconf import ServiceBrowser, Zeroconf
+from zeroconf import ServiceBrowser, Zeroconf  # type: ignore[import-not-found]
 import logging
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
@@ -52,17 +52,18 @@ class RecordListener(MdnsListener):
             )
 
         self.__client: MdnsListener.Client = client
+        self.__expected_type: str  # Declare type once
         # Determine the expected type string for zeroconf
         if service_type.endswith("._tcp.local.") or service_type.endswith(
             "._udp.local."
         ):
-            self.__expected_type: str = service_type
+            self.__expected_type = service_type
         elif service_type.endswith("._tcp") or service_type.endswith(
             "._udp"
         ):  # e.g. _my_service._tcp
-            self.__expected_type: str = f"{service_type}.local."
+            self.__expected_type = f"{service_type}.local."
         else:  # e.g. _my_service
-            self.__expected_type: str = f"{service_type}._tcp.local."
+            self.__expected_type = f"{service_type}._tcp.local."
 
         self.__mdns: Zeroconf = Zeroconf()
         logging.info(
