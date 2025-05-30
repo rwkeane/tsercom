@@ -1,3 +1,5 @@
+"""Defines ExposedDataWithResponder, extending ExposedData to include response capabilities via a RemoteDataResponder."""
+
 import datetime
 from typing import Generic, TypeVar
 

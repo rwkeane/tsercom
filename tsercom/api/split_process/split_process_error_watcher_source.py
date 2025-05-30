@@ -1,11 +1,14 @@
 """Defines an error watcher source that reads exceptions from a multiprocess queue."""
 
+import logging  # Add logging import
 import threading
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
+
+logger = logging.getLogger(__name__)
 
 
 class SplitProcessErrorWatcherSource:
@@ -52,7 +55,17 @@ class SplitProcessErrorWatcherSource:
                 # Poll the queue with a timeout to allow checking is_running periodically.
                 remote_exception = self.__queue.get_blocking(timeout=1)
                 if remote_exception is not None:
-                    self.__thread_watcher.on_exception_seen(remote_exception)
+                    try:
+                        self.__thread_watcher.on_exception_seen(
+                            remote_exception
+                        )
+                    except Exception as e_seen:
+                        logger.error(
+                            f"Exception occurred within ThreadWatcher.on_exception_seen() "
+                            f"while handling {type(remote_exception).__name__}: {e_seen}",
+                            exc_info=True,
+                        )
+                        # Loop should continue to report further exceptions.
 
         self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception  # Pass target for clarity
@@ -73,13 +86,12 @@ class SplitProcessErrorWatcherSource:
         if self.__thread is not None:  # Check if thread exists
             self.__thread.join(timeout=2.0)  # Join with a timeout
             if self.__thread.is_alive():
-                # Optionally log if still alive, though it should exit as __is_running is False
-                # print(f"SplitProcessErrorWatcherSource: Polling thread {self.__thread.name} did not join in time.", file=sys.stderr)
-                pass  # For now, no print in library code without proper logging
-        # Note: Consider joining self.__thread here if immediate cleanup is critical,
-        # though IsRunningTracker pattern usually means the thread exits cleanly.
-        # The above comment is now addressed by the join.
+                logger.warning(
+                    f"SplitProcessErrorWatcherSource: Polling thread {self.__thread.name} "
+                    f"did not join in 2.0s."
+                )
 
+    @property
     def is_running(self) -> bool:
         """Checks if the error watcher source is currently polling for exceptions.
 

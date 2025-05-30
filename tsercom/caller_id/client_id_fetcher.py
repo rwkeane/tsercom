@@ -1,5 +1,6 @@
 """Defines ClientIdFetcher for lazily fetching a CallerIdentifier via gRPC."""
 
+import logging  # Add logging import
 import asyncio
 from typing import Any, Optional
 
@@ -15,6 +16,8 @@ class ClientIdFetcher:
     stub and caches the result. Subsequent calls return the cached ID.
     Access is thread-safe using an asyncio.Lock.
     """
+
+    logger = logging.getLogger(__name__)
 
     def __init__(self, stub: Any) -> None:
         """Initializes the ClientIdFetcher.
@@ -56,24 +59,26 @@ class ClientIdFetcher:
                     )
 
                     # Ensure the response is of the expected type.
-                    assert isinstance(
-                        id_response, GetIdResponse
-                    ), f"Expected GetIdResponse, got {type(id_response)}"
+                    assert isinstance(id_response, GetIdResponse), (
+                        f"Expected GetIdResponse, got {type(id_response)}"
+                    )
 
                     # CallerIdentifier.try_parse can return None if the string is invalid.
-                    if id_response.id and id_response.id.id:
-                        self.__id = CallerIdentifier.try_parse(
-                            id_response.id.id
+                    # id_response.id is the CallerId message, id_response.id.id is its string payload.
+                    parsed_id = CallerIdentifier.try_parse(id_response.id.id)
+                    if parsed_id is None:
+                        ClientIdFetcher.logger.warning(
+                            f"Failed to parse client ID string received from service. "
+                            f"Raw ID string: '{id_response.id.id}'"
                         )
-                    else:
-                        # Handle cases where response or its nested id is missing.
-                        self.__id = None
-                        # Optionally log a warning here if this case is unexpected.
+                    self.__id = parsed_id
 
                 # This could be None if fetching or parsing failed.
                 return self.__id
         except Exception as e:  # pylint: disable=broad-except
             # Broad exception catch for any issues during RPC call or processing.
             # In a production system, more specific error handling and logging would be preferred.
-            print(f"Error fetching client ID: {e}")  # Basic error logging.
+            ClientIdFetcher.logger.error(
+                f"Error fetching client ID: {e}", exc_info=True
+            )
             return None

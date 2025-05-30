@@ -1,3 +1,5 @@
+"""Defines DataHostBase, a reusable base class implementing DataHost and RemoteDataReader functionalities."""
+
 from typing import Any, Generic, Optional, TypeVar
 
 from tsercom.data.data_host import DataHost

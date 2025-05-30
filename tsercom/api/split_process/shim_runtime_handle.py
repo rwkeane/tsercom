@@ -80,7 +80,7 @@ class ShimRuntimeHandle(
             DataReaderSource(
                 thread_watcher,
                 data_queue,
-                self.__data_aggregator,  # Pass data_queue here
+                self.__data_aggregator,  # Pass data_aggregator as the data_reader for the DataReaderSource
             )
         )
 
@@ -163,6 +163,20 @@ class ShimRuntimeHandle(
     @property
     def data_aggregator(
         self,
-    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
-        # TODO: Address potential type mismatch (same as above)
-        return self._get_remote_data_aggregator()  # type: ignore
+    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:  # type: ignore[override]
+        # TODO(developer/bug_id): This property currently returns self._get_remote_data_aggregator(),
+        # which is of type RemoteDataAggregator[TDataType]. This may not match the
+        # RuntimeHandle base class's expected return type of
+        # RemoteDataAggregator[AnnotatedInstance[TDataType]] if TDataType itself
+        # is not an AnnotatedInstance. This type mismatch is currently suppressed
+        # with type: ignore[override] and needs to be resolved.
+        """Provides the remote data aggregator.
+
+        Note: There is a potential type mismatch with the base `RuntimeHandle` class
+        if `TDataType` for this handle is not already an `AnnotatedInstance`.
+        See TODO comment in source code for details.
+
+        Returns:
+            The `RemoteDataAggregator` instance.
+        """
+        return self._get_remote_data_aggregator()

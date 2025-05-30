@@ -1,3 +1,5 @@
+"""Defines the RemoteDataResponder abstract base class, an interface for components that send responses."""
+
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 

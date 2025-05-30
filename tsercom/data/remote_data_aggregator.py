@@ -1,3 +1,5 @@
+"""Defines the RemoteDataAggregator abstract base class, an interface for aggregating and accessing data from remote sources."""
+
 from abc import ABC, abstractmethod
 import datetime
 from typing import Dict, Generic, List, Optional, TypeVar, overload

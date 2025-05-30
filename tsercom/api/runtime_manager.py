@@ -1,6 +1,6 @@
 """Manages the creation and lifecycle of Tsercom runtimes."""
 
-import sys  # Added for stderr printing
+import logging
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
@@ -45,6 +45,9 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 # Type variables for generic RuntimeHandle and related classes.
 TDataType = TypeVar("TDataType")
 TEventType = TypeVar("TEventType")
+
+
+logger = logging.getLogger(__name__)
 
 
 class RuntimeManager(ErrorWatcher):
@@ -94,41 +97,33 @@ class RuntimeManager(ErrorWatcher):
             if process_creator is not None
             else ProcessCreator()
         )
-        self.__split_error_watcher_source_factory: (
-            SplitErrorWatcherSourceFactory
-        ) = (
+        self.__split_error_watcher_source_factory: SplitErrorWatcherSourceFactory = (
             split_error_watcher_source_factory
             if split_error_watcher_source_factory is not None
             else SplitErrorWatcherSourceFactory()
         )
 
         if local_runtime_factory_factory is not None:
-            self.__local_runtime_factory_factory: (
-                LocalRuntimeFactoryFactory
-            ) = local_runtime_factory_factory
+            self.__local_runtime_factory_factory: LocalRuntimeFactoryFactory = local_runtime_factory_factory
         else:
             default_local_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
                     max_workers=1
                 )
             )
-            self.__local_runtime_factory_factory: (
-                LocalRuntimeFactoryFactory
-            ) = LocalRuntimeFactoryFactory(default_local_factory_thread_pool)
+            self.__local_runtime_factory_factory: LocalRuntimeFactoryFactory = LocalRuntimeFactoryFactory(
+                default_local_factory_thread_pool
+            )
 
         if split_runtime_factory_factory is not None:
-            self.__split_runtime_factory_factory: (
-                SplitRuntimeFactoryFactory
-            ) = split_runtime_factory_factory
+            self.__split_runtime_factory_factory: SplitRuntimeFactoryFactory = split_runtime_factory_factory
         else:
             default_split_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
                     max_workers=1
                 )
             )
-            self.__split_runtime_factory_factory: (
-                SplitRuntimeFactoryFactory
-            ) = SplitRuntimeFactoryFactory(
+            self.__split_runtime_factory_factory: SplitRuntimeFactoryFactory = SplitRuntimeFactoryFactory(
                 default_split_factory_thread_pool, self.__thread_watcher
             )
 
@@ -182,7 +177,7 @@ class RuntimeManager(ErrorWatcher):
 
     async def start_in_process_async(
         self,
-    ) -> List[RuntimeHandle[Any, Any]]:
+    ) -> None:
         """Creates and starts all registered runtimes in the current process.
 
         This method calls the synchronous `start_in_process` method, providing
@@ -193,14 +188,8 @@ class RuntimeManager(ErrorWatcher):
         the `Future` objects returned by `register_runtime_initializer`.
 
         Returns:
-            A list containing `RuntimeHandle` instances for any runtimes whose
-            initialization `Future` had already completed (i.e., `future.done()` is true)
-            at the time of this call. This is checked by attempting to retrieve the
-            result with a zero timeout (`future.result(timeout=0)`).
-            This list may be empty or incomplete if runtime initializations are
-            still pending. The primary method for obtaining all `RuntimeHandle`
-            instances remains the `Future` objects returned by
-            `register_runtime_initializer`.
+            None. RuntimeHandle instances are obtained via the `Future` objects
+            returned by `register_runtime_initializer`.
 
         Raises:
             RuntimeError: If no event loop is running when this method is called.
@@ -224,11 +213,6 @@ class RuntimeManager(ErrorWatcher):
         # For now, aligning with start_in_process's void return.
         # If handles were to be returned, it would look like:
         # return [pair.handle_future.result() for pair in self.__initializers]
-        return [
-            pair.handle_future.result(timeout=0)
-            for pair in self.__initializers
-            if pair.handle_future.done()
-        ]
 
     def start_in_process(
         self,
@@ -334,7 +318,9 @@ class RuntimeManager(ErrorWatcher):
             # For now, this matches the helper's behavior of returning None on failure
             # and RuntimeManager not explicitly handling it beyond self.__process remaining None.
             # Consider adding error handling/logging here if process creation is critical.
-            pass
+            logger.warning(
+                "Failed to create process for out-of-process runtime."
+            )
 
     def run_until_exception(self) -> None:
         """Blocks execution until an exception is raised by any managed runtime.
@@ -350,9 +336,6 @@ class RuntimeManager(ErrorWatcher):
             Any exception propagated from the managed runtimes.
             RuntimeError: If the manager hasn't started or the error watcher isn't set.
         """
-        if not self.has_started:
-            # Added this check for consistency, as __thread_watcher depends on has_started
-            raise RuntimeError("RuntimeManager has not been started.")
         if not self.has_started:
             # Added this check for consistency, as __thread_watcher depends on has_started
             raise RuntimeError("RuntimeManager has not been started.")
@@ -392,7 +375,7 @@ class RuntimeManager(ErrorWatcher):
         runtimes. It stops the error watcher if it's a SplitProcessErrorWatcherSource
         and terminates the managed process.
         """
-        print("RuntimeManager.shutdown: Starting.", file=sys.stderr)
+        logger.info("RuntimeManager.shutdown: Starting.")
 
         if self.__process is not None:
             self.__process.kill()
@@ -400,7 +383,7 @@ class RuntimeManager(ErrorWatcher):
         # Existing logic for stopping SplitProcessErrorWatcherSource
         # Assuming _RuntimeManager__error_watcher attribute exists (e.g. initialized to None or an object)
         if isinstance(self.__error_watcher, SplitProcessErrorWatcherSource):
-            if self.__error_watcher.is_running():
+            if self.__error_watcher.is_running:  # Access as a property
                 self.__error_watcher.stop()
 
         clear_tsercom_event_loop()

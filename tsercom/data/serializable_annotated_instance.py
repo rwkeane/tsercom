@@ -1,3 +1,5 @@
+"""Defines SerializableAnnotatedInstance, a data wrapper with CallerIdentifier and SynchronizedTimestamp, suitable for serialization where time consistency is key."""
+
 from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier

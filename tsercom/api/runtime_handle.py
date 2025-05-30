@@ -24,7 +24,6 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
     """
 
     @property
-    @abstractmethod
     def data_aggregator(
         self,
     ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
@@ -36,7 +35,7 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
         # This property relies on _get_remote_data_aggregator being implemented.
         # For an ABC, it's better to make the property itself abstract
         # or implement it using an abstract method if there's common logic.
-        raise NotImplementedError()
+        return self._get_remote_data_aggregator()
 
     @abstractmethod
     def start(self) -> None:

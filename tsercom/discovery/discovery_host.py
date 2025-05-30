@@ -163,14 +163,19 @@ class DiscoveryHost(
             self.__discoverer = self.__instance_listener_factory(self)
         else:
             # This assertion is safe due to the __init__ constructor logic.
-            assert (
-                self.__service_type is not None
-            ), "Service type must be set if no factory is provided."
+            assert self.__service_type is not None, (
+                "Service type must be set if no factory is provided."
+            )
             self.__discoverer = InstanceListener[TServiceInfo](
                 self, self.__service_type
             )
-        # Note: InstanceListener's own start method (if any) would need to be called
-        # if it doesn't start automatically upon instantiation. Assuming it does for now.
+        # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener)
+        # requires an explicit start() method to be called after instantiation.
+        # If so, it should be called here. For example:
+        # if hasattr(self.__discoverer, "start") and callable(self.__discoverer.start):
+        #     # await self.__discoverer.start() # If async
+        #     # self.__discoverer.start() # If sync
+        #     pass # Actual call depends on InstanceListener's API
 
     async def _on_service_added(self, connection_info: TServiceInfo) -> None:
         """Callback from `InstanceListener` when a new service instance is found.
@@ -205,3 +210,9 @@ class DiscoveryHost(
             self.__caller_id_map[service_mdns_name] = caller_id
 
         await self.__client._on_service_added(connection_info, caller_id)
+
+
+# TODO(developer/issue_id): Implement a stop_discovery() method.
+# This method should handle stopping the self.__discoverer (InstanceListener)
+# if it has a stop() method, and potentially clear self.__client,
+# self.__discoverer, and self.__caller_id_map to allow for restart or cleanup.

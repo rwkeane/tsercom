@@ -1,4 +1,4 @@
-"""Defines the LocalRuntimeFactory for creating Runtime instances locally."""
+"""Defines LocalRuntimeFactory, responsible for creating and configuring Runtime instances that operate within the same process as the caller."""
 
 from typing import Generic, TypeVar
 
@@ -117,12 +117,12 @@ class LocalRuntimeFactory(
     def remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
-        """Provides a `RemoteDataReader` for accessing annotated data instances."""
+        """Gets the RemoteDataReader used by runtimes created by this factory. This reader handles incoming data instances."""
         return self._remote_data_reader()
 
     @property
     def event_poller(
         self,
     ) -> AsyncPoller[EventInstance[TEventType]]:
-        """Provides an `AsyncPoller` for receiving event instances."""
+        """Gets the AsyncPoller used by runtimes created by this factory. This poller handles incoming event instances."""
         return self._event_poller()
