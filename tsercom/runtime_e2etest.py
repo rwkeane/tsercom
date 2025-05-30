@@ -58,42 +58,59 @@ class FakeRuntime(Runtime):
 
         super().__init__()
 
-    def __repr__(self) -> str: # New __repr__ method
+    def __repr__(self) -> str:  # New __repr__ method
         return f"<FakeRuntime instance at {id(self)}>"
 
     async def start_async(self) -> None:
-       # Ensure asyncio is imported in the file
-       # import asyncio # Usually at the top of the file
+        # Ensure asyncio is imported in the file
+        # import asyncio # Usually at the top of the file
 
-       current_task = None
-       try:
-           current_task = asyncio.current_task()
-       except RuntimeError: # If no loop or task factory set
-           pass # current_task will remain None
+        current_task = None
+        try:
+            current_task = asyncio.current_task()
+        except RuntimeError:  # If no loop or task factory set
+            pass  # current_task will remain None
 
-       # Original print statement, now with task info
-       print(f"FakeRuntime.start_async: Entered. self_id={id(self)}, test_id={test_id} (id={id(test_id)}), self.__data_handler_id={id(self.__data_handler)}, task_id={id(current_task) if current_task else 'N/A'}, task={current_task}", flush=True)
+        # Original print statement, now with task info
+        print(
+            f"FakeRuntime.start_async: Entered. self_id={id(self)}, test_id={test_id} (id={id(test_id)}), self.__data_handler_id={id(self.__data_handler)}, task_id={id(current_task) if current_task else 'N/A'}, task={current_task}",
+            flush=True,
+        )
 
-       await asyncio.sleep(0.01)
+        await asyncio.sleep(0.01)
 
-       print(f"FakeRuntime.start_async: (After sleep) About to call register_caller for test_id={test_id}. task_id={id(current_task) if current_task else 'N/A'}", flush=True)
-       self.__responder = self.__data_handler.register_caller(
-           test_id, "0.0.0.0", 443
-       )
-       print(f"FakeRuntime.start_async: Returned from register_caller. Responder type {type(self.__responder)}. task_id={id(current_task) if current_task else 'N/A'}", flush=True)
+        print(
+            f"FakeRuntime.start_async: (After sleep) About to call register_caller for test_id={test_id}. task_id={id(current_task) if current_task else 'N/A'}",
+            flush=True,
+        )
+        self.__responder = self.__data_handler.register_caller(
+            test_id, "0.0.0.0", 443
+        )
+        print(
+            f"FakeRuntime.start_async: Returned from register_caller. Responder type {type(self.__responder)}. task_id={id(current_task) if current_task else 'N/A'}",
+            flush=True,
+        )
 
-       # --- Create and send completely fresh data ---
-       fresh_data_value = "FRESH_SIMPLE_DATA_V2" # Changed value slightly for clarity
-       fresh_data_object = FakeData(fresh_data_value)
-       fresh_timestamp = datetime.datetime.now() # Fresh timestamp
-       
-       print(f"FakeRuntime.start_async: About to send FRESH data: val='{fresh_data_value}', data_obj_id={id(fresh_data_object)}, ts={fresh_timestamp}. Task: {asyncio.current_task()}", flush=True)
-       
-       # EndpointDataProcessor._process_data creates AnnotatedInstance using self.caller_id (which is test_id)
-       await self.__responder.process_data(fresh_data_object, fresh_timestamp)
-       # --- End fresh data ---
+        # --- Create and send completely fresh data ---
+        fresh_data_value = (
+            "FRESH_SIMPLE_DATA_V2"  # Changed value slightly for clarity
+        )
+        fresh_data_object = FakeData(fresh_data_value)
+        fresh_timestamp = datetime.datetime.now()  # Fresh timestamp
 
-       print(f"FakeRuntime.start_async: Completed process_data with FRESH data. Task: {asyncio.current_task()}", flush=True)
+        print(
+            f"FakeRuntime.start_async: About to send FRESH data: val='{fresh_data_value}', data_obj_id={id(fresh_data_object)}, ts={fresh_timestamp}. Task: {asyncio.current_task()}",
+            flush=True,
+        )
+
+        # EndpointDataProcessor._process_data creates AnnotatedInstance using self.caller_id (which is test_id)
+        await self.__responder.process_data(fresh_data_object, fresh_timestamp)
+        # --- End fresh data ---
+
+        print(
+            f"FakeRuntime.start_async: Completed process_data with FRESH data. Task: {asyncio.current_task()}",
+            flush=True,
+        )
 
     async def stop(self, exception) -> None:
         assert self.__responder is not None
@@ -215,30 +232,35 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
 
         data_arrived = False
         max_wait_time = 5.0  # seconds
-        poll_interval = 0.1 # seconds
+        poll_interval = 0.1  # seconds
         waited_time = 0.0
         while waited_time < max_wait_time:
             has_data_now = data_aggregator.has_new_data(test_id)
-            print(f"__check_initialization (polling): waited_time={waited_time:.1f}s, data_aggregator.has_new_data(test_id={test_id}) is {has_data_now}", flush=True)
+            print(
+                f"__check_initialization (polling): waited_time={waited_time:.1f}s, data_aggregator.has_new_data(test_id={test_id}) is {has_data_now}",
+                flush=True,
+            )
             if has_data_now:
                 data_arrived = True
                 break
             time.sleep(poll_interval)
             waited_time += poll_interval
-        
-        runtime_manager.check_for_exception() # Keep this check
-        assert data_arrived, f"Aggregator did not receive data for test_id ({test_id}) within {max_wait_time}s"
-        
+
+        runtime_manager.check_for_exception()  # Keep this check
+        assert (
+            data_arrived
+        ), f"Aggregator did not receive data for test_id ({test_id}) within {max_wait_time}s"
+
         # The original assertion for any_new_data can be commented out or removed for now
         # assert (
-        #     data_aggregator.any_new_data() 
+        #     data_aggregator.any_new_data()
         # ), "Aggregator should have some new data (any_new_data)"
 
         # Continue with the existing assertions for data content:
         assert data_aggregator.has_new_data(
             test_id
         ), f"Aggregator should have new data for test_id ({test_id}) after polling"
-        
+
         values = data_aggregator.get_new_data(test_id)
         assert isinstance(
             values, list
@@ -252,12 +274,24 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         assert isinstance(first.data, FakeData), type(first.data)
         # --- Assertions for the FIRST data item (now "FRESH_SIMPLE_DATA_V2") ---
         expected_fresh_value = "FRESH_SIMPLE_DATA_V2"
-        actual_value_for_log = first.data.value if hasattr(first.data, 'value') else 'N/A'
-        print(f"__check_initialization: Asserting FIRST data value. Expected: '{expected_fresh_value}', Actual: '{actual_value_for_log}'", flush=True)
-        assert first.data.value == expected_fresh_value, f"Expected '{expected_fresh_value}', got '{actual_value_for_log}'"
-        
-        print(f"__check_initialization: Received FIRST data timestamp: {first.timestamp}. Type: {type(first.timestamp)}", flush=True)
-        assert isinstance(first.timestamp, datetime.datetime), "Timestamp is not a datetime object for fresh data"
+        actual_value_for_log = (
+            first.data.value if hasattr(first.data, "value") else "N/A"
+        )
+        print(
+            f"__check_initialization: Asserting FIRST data value. Expected: '{expected_fresh_value}', Actual: '{actual_value_for_log}'",
+            flush=True,
+        )
+        assert (
+            first.data.value == expected_fresh_value
+        ), f"Expected '{expected_fresh_value}', got '{actual_value_for_log}'"
+
+        print(
+            f"__check_initialization: Received FIRST data timestamp: {first.timestamp}. Type: {type(first.timestamp)}",
+            flush=True,
+        )
+        assert isinstance(
+            first.timestamp, datetime.datetime
+        ), "Timestamp is not a datetime object for fresh data"
         # Exact timestamp match for datetime.now() is too brittle for this diagnostic.
         # The original start_timestamp check is removed for the fresh data.
         assert first.caller_id == test_id
@@ -287,10 +321,16 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         assert isinstance(first, AnnotatedInstance), type(first)
         assert isinstance(first.data, FakeData), type(first.data)
         # --- Assertions for the SECOND data item ("STOPPED") ---
-        print(f"__check_initialization: Asserting STOPPED data value. Expected: '{stopped}', Actual: '{first.data.value if hasattr(first.data, 'value') else 'N/A'}'", flush=True)
+        print(
+            f"__check_initialization: Asserting STOPPED data value. Expected: '{stopped}', Actual: '{first.data.value if hasattr(first.data, 'value') else 'N/A'}'",
+            flush=True,
+        )
         assert first.data.value == stopped
-        print(f"__check_initialization: Received STOPPED data timestamp: {first.timestamp}. Type: {type(first.timestamp)}", flush=True)
-        assert first.timestamp == stop_timestamp 
+        print(
+            f"__check_initialization: Received STOPPED data timestamp: {first.timestamp}. Type: {type(first.timestamp)}",
+            flush=True,
+        )
+        assert first.timestamp == stop_timestamp
         assert first.caller_id == test_id
 
         assert not data_aggregator.has_new_data(
@@ -302,11 +342,15 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     finally:
         if runtime_handle_for_cleanup:
             try:
-                print("Attempting runtime_handle_for_cleanup.stop() in finally block.")
+                print(
+                    "Attempting runtime_handle_for_cleanup.stop() in finally block."
+                )
                 runtime_handle_for_cleanup.stop()
                 print("runtime_handle_for_cleanup.stop() completed.")
             except Exception as e_stop:
-                print(f"ERROR during runtime_handle_for_cleanup.stop() in finally: {e_stop}")
+                print(
+                    f"ERROR during runtime_handle_for_cleanup.stop() in finally: {e_stop}"
+                )
         runtime_manager.shutdown()
 
 
@@ -350,11 +394,13 @@ def test_in_process_init(clear_loop_fixture):
 def test_out_of_process_error_check_for_exception(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "RemoteFailureOops"
-    
+
     # Capture the future for the handle
     handle_future = runtime_manager.register_runtime_initializer(
         ErrorThrowingRuntimeInitializer(
-            error_message=error_msg, error_type=ValueError, service_type="Server" # Assuming service_type="Server" is appropriate for ErrorThrowingRuntime
+            error_message=error_msg,
+            error_type=ValueError,
+            service_type="Server",  # Assuming service_type="Server" is appropriate for ErrorThrowingRuntime
         )
     )
     # service_type="Server" is important because ErrorThrowingRuntimeInitializer
@@ -363,35 +409,66 @@ def test_out_of_process_error_check_for_exception(clear_loop_fixture):
     # a server-like runtime to be the one primarily managed in remote_process_main.
     # Let's assume "Server" is a more robust choice for a primary runtime in a process.
 
-    print(f"test_out_of_process_error_check_for_exception: Initializer registered. Starting out-of-process manager.", flush=True)
+    print(
+        "test_out_of_process_error_check_for_exception: Initializer registered. Starting out-of-process manager.",
+        flush=True,
+    )
     runtime_manager.start_out_of_process()
-    print(f"test_out_of_process_error_check_for_exception: Out-of-process manager started.", flush=True)
+    print(
+        "test_out_of_process_error_check_for_exception: Out-of-process manager started.",
+        flush=True,
+    )
 
     try:
         # Get the handle. It should be available very quickly because the handle
         # (ShimRuntimeHandle) is created before the remote process fully starts its logic.
         # Using a short timeout.
-        print(f"test_out_of_process_error_check_for_exception: Attempting to get runtime_handle from future.", flush=True)
-        runtime_handle = handle_future.result(timeout=2) # Increased timeout slightly just in case
-        print(f"test_out_of_process_error_check_for_exception: Got runtime_handle (id={id(runtime_handle)}, type={type(runtime_handle)}). Calling start() on handle.", flush=True)
-        runtime_handle.start() # This sends the kStart command
-        print(f"test_out_of_process_error_check_for_exception: runtime_handle.start() called.", flush=True)
+        print(
+            "test_out_of_process_error_check_for_exception: Attempting to get runtime_handle from future.",
+            flush=True,
+        )
+        runtime_handle = handle_future.result(
+            timeout=2
+        )  # Increased timeout slightly just in case
+        print(
+            f"test_out_of_process_error_check_for_exception: Got runtime_handle (id={id(runtime_handle)}, type={type(runtime_handle)}). Calling start() on handle.",
+            flush=True,
+        )
+        runtime_handle.start()  # This sends the kStart command
+        print(
+            "test_out_of_process_error_check_for_exception: runtime_handle.start() called.",
+            flush=True,
+        )
     except Exception as e_handle:
         # Ensure pytest is imported at the top of the file: import pytest
-        print(f"test_out_of_process_error_check_for_exception: Failed to get/start runtime_handle: {type(e_handle).__name__} - {e_handle}", flush=True)
+        print(
+            f"test_out_of_process_error_check_for_exception: Failed to get/start runtime_handle: {type(e_handle).__name__} - {e_handle}",
+            flush=True,
+        )
         pytest.fail(f"Failed to get or start runtime_handle: {e_handle}")
 
     # Wait for the remote process to start, execute start_async, and raise the error.
     # The error should be caught by ThreadWatcher in the main process via the error queue.
-    wait_time_for_error = 1.5 # Adjusted from 1.0, to give a bit more time for IPC
-    print(f"test_out_of_process_error_check_for_exception: Waiting for {wait_time_for_error}s for error to propagate.", flush=True)
-    time.sleep(wait_time_for_error) 
+    wait_time_for_error = (
+        1.5  # Adjusted from 1.0, to give a bit more time for IPC
+    )
+    print(
+        f"test_out_of_process_error_check_for_exception: Waiting for {wait_time_for_error}s for error to propagate.",
+        flush=True,
+    )
+    time.sleep(wait_time_for_error)
     # Ensure 'import time' is at the top of the file
 
-    print(f"test_out_of_process_error_check_for_exception: About to check for exception.", flush=True)
+    print(
+        "test_out_of_process_error_check_for_exception: About to check for exception.",
+        flush=True,
+    )
     with pytest.raises(ValueError, match=error_msg):
         runtime_manager.check_for_exception()
-    print(f"test_out_of_process_error_check_for_exception: Correctly caught expected ValueError.", flush=True)
+    print(
+        "test_out_of_process_error_check_for_exception: Correctly caught expected ValueError.",
+        flush=True,
+    )
 
 
 def test_out_of_process_error_run_until_exception(clear_loop_fixture):

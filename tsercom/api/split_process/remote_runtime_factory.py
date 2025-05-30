@@ -158,11 +158,20 @@ class RemoteRuntimeFactory(
 
     def stop_command_source(self) -> None:
         # Helper print statements for debugging during the test run
-        print(f"RemoteRuntimeFactory: Attempting to stop command source for initializer type {type(self._initializer_instance).__name__}...", flush=True)
+        print(
+            f"RemoteRuntimeFactory: Attempting to stop command source for initializer type {type(self._initializer_instance).__name__}...",
+            flush=True,
+        )
         if self.__command_source is not None:
             # Assuming self.__command_source has a stop_async method
             # as per previous modifications to RuntimeCommandSource
             self.__command_source.stop_async()
-            print(f"RemoteRuntimeFactory: Command source stop_async() called for {type(self._initializer_instance).__name__}.", flush=True)
+            print(
+                f"RemoteRuntimeFactory: Command source stop_async() called for {type(self._initializer_instance).__name__}.",
+                flush=True,
+            )
         else:
-            print(f"RemoteRuntimeFactory: No command source to stop for {type(self._initializer_instance).__name__}.", flush=True)
+            print(
+                f"RemoteRuntimeFactory: No command source to stop for {type(self._initializer_instance).__name__}.",
+                flush=True,
+            )

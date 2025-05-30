@@ -46,9 +46,15 @@ class DataReaderSink(Generic[TDataType], RemoteDataReader[TDataType]):
         Raises:
             RuntimeError: If `is_lossy` is False and the queue is full.
         """
-        print(f"DataReaderSink._on_data_ready: Received data='{new_data.data.value if hasattr(new_data, 'data') and hasattr(new_data.data, 'value') else new_data.value if hasattr(new_data, 'value') else new_data}', caller_id='{new_data.caller_id if hasattr(new_data, 'caller_id') else 'N/A'}'. Attempting put_nowait to queue id={id(self._DataReaderSink__queue)}. Self id={id(self)}", flush=True)
+        print(
+            f"DataReaderSink._on_data_ready: Received data='{new_data.data.value if hasattr(new_data, 'data') and hasattr(new_data.data, 'value') else new_data.value if hasattr(new_data, 'value') else new_data}', caller_id='{new_data.caller_id if hasattr(new_data, 'caller_id') else 'N/A'}'. Attempting put_nowait to queue id={id(self._DataReaderSink__queue)}. Self id={id(self)}",
+            flush=True,
+        )
         success = self.__queue.put_nowait(new_data)
-        print(f"DataReaderSink._on_data_ready: put_nowait success: {success}. Queue id={id(self._DataReaderSink__queue)}. Self id={id(self)}", flush=True)
+        print(
+            f"DataReaderSink._on_data_ready: put_nowait success: {success}. Queue id={id(self._DataReaderSink__queue)}. Self id={id(self)}",
+            flush=True,
+        )
         # If putting to queue failed (e.g., full) and this sink is not lossy, raise an error.
         if not success and not self.__is_lossy:
             raise RuntimeError(

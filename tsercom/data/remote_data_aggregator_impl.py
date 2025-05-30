@@ -298,66 +298,124 @@ class RemoteDataAggregatorImpl(
         # --- Minimal Entry Log ---
         # We are trying to see if this method is entered AT ALL for the "STARTED" message.
         # Therefore, do not access any attributes of new_data yet, just its id and type.
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): MINIMAL ENTRY LOG. Received new_data_id={id(new_data)}, type={type(new_data).__name__}.", flush=True)
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): MINIMAL ENTRY LOG. Received new_data_id={id(new_data)}, type={type(new_data).__name__}.",
+            flush=True,
+        )
         # --- End Minimal Entry Log ---
 
         # --- Reintroduce initial data inspection and isinstance check ---
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Preparing to inspect new_data (id={id(new_data)}).", flush=True)
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Preparing to inspect new_data (id={id(new_data)}).",
+            flush=True,
+        )
 
         data_val_for_log = ""
-        if hasattr(new_data, 'data') and hasattr(new_data.data, 'value'): # If it's AnnotatedInstance(FakeData)
+        if hasattr(new_data, "data") and hasattr(
+            new_data.data, "value"
+        ):  # If it's AnnotatedInstance(FakeData)
             data_val_for_log = new_data.data.value
-        elif hasattr(new_data, 'value'): # If it's FakeData directly (not expected for _on_data_ready here)
+        elif hasattr(
+            new_data, "value"
+        ):  # If it's FakeData directly (not expected for _on_data_ready here)
             data_val_for_log = new_data.value
         else:
             data_val_for_log = str(new_data)
 
-        caller_id_for_log = new_data.caller_id if hasattr(new_data, 'caller_id') else 'N/A'
-        
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Inspected data. Value='{data_val_for_log}', CallerID='{caller_id_for_log}'. new_data_id={id(new_data)}.", flush=True)
+        caller_id_for_log = (
+            new_data.caller_id if hasattr(new_data, "caller_id") else "N/A"
+        )
+
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Inspected data. Value='{data_val_for_log}', CallerID='{caller_id_for_log}'. new_data_id={id(new_data)}.",
+            flush=True,
+        )
 
         # ExposedData is already imported in this file.
 
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Before isinstance(new_data, ExposedData) check. new_data_id={id(new_data)}.", flush=True)
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Before isinstance(new_data, ExposedData) check. new_data_id={id(new_data)}.",
+            flush=True,
+        )
         if not isinstance(new_data, ExposedData):
-            print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): ERROR - new_data (id={id(new_data)}, type={type(new_data).__name__}) is NOT an instance of ExposedData. Aborting further processing.", flush=True)
-            return 
-        
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): After isinstance(new_data, ExposedData) check (it PASSED). new_data_id={id(new_data)}.", flush=True)
+            print(
+                f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): ERROR - new_data (id={id(new_data)}, type={type(new_data).__name__}) is NOT an instance of ExposedData. Aborting further processing.",
+                flush=True,
+            )
+            return
+
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): After isinstance(new_data, ExposedData) check (it PASSED). new_data_id={id(new_data)}.",
+            flush=True,
+        )
         # --- End reintroduction ---
 
         # --- Restore full original logic with logging ---
         data_organizer: RemoteDataOrganizer[TDataType]
         is_new_organizer = False
 
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Attempting to acquire lock self.__lock (id={id(self._RemoteDataAggregatorImpl__lock)}).", flush=True)
-        with self._RemoteDataAggregatorImpl__lock: # Use mangled name for lock
-            print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Lock acquired.", flush=True)
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Attempting to acquire lock self.__lock (id={id(self._RemoteDataAggregatorImpl__lock)}).",
+            flush=True,
+        )
+        with self._RemoteDataAggregatorImpl__lock:  # Use mangled name for lock
+            print(
+                f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Lock acquired.",
+                flush=True,
+            )
             # Ensure new_data.caller_id is accessible here (it should be if isinstance(ExposedData) passed)
             if new_data.caller_id not in self.__organizers:
-                print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Creating new RemoteDataOrganizer for caller_id='{caller_id_for_log}'.", flush=True)
+                print(
+                    f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Creating new RemoteDataOrganizer for caller_id='{caller_id_for_log}'.",
+                    flush=True,
+                )
                 # Ensure RemoteDataOrganizer is imported
                 data_organizer = RemoteDataOrganizer(
-                    self.__thread_pool, new_data.caller_id, self # self is RemoteDataAggregatorImpl (RemoteDataOrganizer.Client)
+                    self.__thread_pool,
+                    new_data.caller_id,
+                    self,  # self is RemoteDataAggregatorImpl (RemoteDataOrganizer.Client)
                 )
                 if self.__tracker is not None:
-                    print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Registering new organizer (id={id(data_organizer)}) with tracker.", flush=True)
+                    print(
+                        f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Registering new organizer (id={id(data_organizer)}) with tracker.",
+                        flush=True,
+                    )
                     self.__tracker.register(data_organizer)
-                data_organizer.start() # Start the organizer
+                data_organizer.start()  # Start the organizer
                 self.__organizers[new_data.caller_id] = data_organizer
                 is_new_organizer = True
-                print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): New organizer (id={id(data_organizer)}) created and started.", flush=True)
+                print(
+                    f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): New organizer (id={id(data_organizer)}) created and started.",
+                    flush=True,
+                )
             else:
                 data_organizer = self.__organizers[new_data.caller_id]
-                print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Reusing existing organizer (id={id(data_organizer)}) for caller_id='{caller_id_for_log}'.", flush=True)
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Lock released.", flush=True)
+                print(
+                    f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Reusing existing organizer (id={id(data_organizer)}) for caller_id='{caller_id_for_log}'.",
+                    flush=True,
+                )
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Lock released.",
+            flush=True,
+        )
 
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Routing to organizer._on_data_ready (organizer_id={id(data_organizer)}) for data_val='{data_val_for_log}'.", flush=True)
-        data_organizer._on_data_ready(new_data) # This calls RemoteDataOrganizer._on_data_ready -> which submits __on_data_ready_impl to thread pool
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Routing to organizer._on_data_ready (organizer_id={id(data_organizer)}) for data_val='{data_val_for_log}'.",
+            flush=True,
+        )
+        data_organizer._on_data_ready(
+            new_data
+        )  # This calls RemoteDataOrganizer._on_data_ready -> which submits __on_data_ready_impl to thread pool
 
         if is_new_organizer and self.__client is not None:
-            print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Notifying self.__client about new endpoint for caller_id='{caller_id_for_log}'.", flush=True)
+            print(
+                f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Notifying self.__client about new endpoint for caller_id='{caller_id_for_log}'.",
+                flush=True,
+            )
             self.__client._on_new_endpoint_began_transmitting(
                 self, data_organizer.caller_id
             )
-        print(f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Exiting method for new_data_id={id(new_data)}.", flush=True)
+        print(
+            f"RemoteDataAggregatorImpl._on_data_ready (id={id(self)}): Exiting method for new_data_id={id(new_data)}.",
+            flush=True,
+        )

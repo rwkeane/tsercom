@@ -123,23 +123,41 @@ class IdTracker:
             KeyError: If the ID or the address/port combination already exists.
         """
         # --- New Prints ---
-        print(f"IdTracker.add: Called with caller_id={id}, endpoint=({address}, {port})", flush=True)
-        print(f"IdTracker.add: Current self.__id_to_address before add: {self.__id_to_address}", flush=True)
-        print(f"IdTracker.add: Current self.__address_to_id before add: {self.__address_to_id}", flush=True)
+        print(
+            f"IdTracker.add: Called with caller_id={id}, endpoint=({address}, {port})",
+            flush=True,
+        )
+        print(
+            f"IdTracker.add: Current self.__id_to_address before add: {self.__id_to_address}",
+            flush=True,
+        )
+        print(
+            f"IdTracker.add: Current self.__address_to_id before add: {self.__address_to_id}",
+            flush=True,
+        )
         # --- End New Prints ---
         with self.__lock:
             if id in self.__id_to_address:
-                print(f"IdTracker.add: Raising KeyError because caller_id {id} is already in self.__id_to_address.", flush=True)
+                print(
+                    f"IdTracker.add: Raising KeyError because caller_id {id} is already in self.__id_to_address.",
+                    flush=True,
+                )
                 raise KeyError(f"ID {id} already exists in tracker.")
             if (address, port) in self.__address_to_id:
-                print(f"IdTracker.add: Raising KeyError because key ({address}, {port}) is already in self.__address_to_id.", flush=True)
+                print(
+                    f"IdTracker.add: Raising KeyError because key ({address}, {port}) is already in self.__address_to_id.",
+                    flush=True,
+                )
                 raise KeyError(
                     f"Address ({address}:{port}) already exists in tracker."
                 )
 
             self.__address_to_id[(address, port)] = id
             self.__id_to_address[id] = (address, port)
-            print(f"IdTracker.add: Successfully added caller_id={id}, endpoint=({address}, {port})", flush=True)
+            print(
+                f"IdTracker.add: Successfully added caller_id={id}, endpoint=({address}, {port})",
+                flush=True,
+            )
 
     def has_id(self, id: CallerIdentifier) -> bool:
         """Checks if the given `CallerIdentifier` exists in the tracker.

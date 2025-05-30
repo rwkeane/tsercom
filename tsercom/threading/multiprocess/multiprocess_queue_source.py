@@ -37,7 +37,10 @@ class MultiprocessQueueSource(Generic[TQueueType]):
         """
         self.__queue = queue
         actual_queue_object = self._MultiprocessQueueSource__queue
-        print(f"MultiprocessQueueSource.__init__: Underlying queue object type is {type(actual_queue_object)}, passed queue type was {type(queue)}. Self id={id(self)}", flush=True)
+        print(
+            f"MultiprocessQueueSource.__init__: Underlying queue object type is {type(actual_queue_object)}, passed queue type was {type(queue)}. Self id={id(self)}",
+            flush=True,
+        )
 
     def get_blocking(self, timeout: float | None = None) -> TQueueType | None:
         """
@@ -84,13 +87,22 @@ class MultiprocessQueueSource(Generic[TQueueType]):
 
     def get_internal_qsize_approx(self) -> int:
         actual_queue_object = self._MultiprocessQueueSource__queue
-        print(f"MultiprocessQueueSource.get_internal_qsize_approx: Checking queue of type {type(actual_queue_object)}. Self id={id(self)}", flush=True)
-        if hasattr(actual_queue_object, '_qsize'):
+        print(
+            f"MultiprocessQueueSource.get_internal_qsize_approx: Checking queue of type {type(actual_queue_object)}. Self id={id(self)}",
+            flush=True,
+        )
+        if hasattr(actual_queue_object, "_qsize"):
             try:
                 return actual_queue_object._qsize()
             except Exception as e:
-                print(f"MultiprocessQueueSource.get_internal_qsize_approx: Error calling _qsize: {e}", flush=True)
-                return -1 
+                print(
+                    f"MultiprocessQueueSource.get_internal_qsize_approx: Error calling _qsize: {e}",
+                    flush=True,
+                )
+                return -1
         else:
-            print(f"MultiprocessQueueSource.get_internal_qsize_approx: Underlying queue type {type(actual_queue_object)} does not have _qsize.", flush=True)
+            print(
+                f"MultiprocessQueueSource.get_internal_qsize_approx: Underlying queue type {type(actual_queue_object)} does not have _qsize.",
+                flush=True,
+            )
             return -2

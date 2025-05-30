@@ -68,7 +68,10 @@ class RemoteDataOrganizer(
         self.__data: Deque[TDataType] = Deque[TDataType]()
         # Timestamp of the most recent data item retrieved via get_new_data().
         self.__last_access: datetime.datetime = datetime.datetime.min
-        print(f"RemoteDataOrganizer.__init__ (id={id(self)}): Initialized for caller_id='{self.__caller_id}'. self.__last_access set to {self.__last_access}", flush=True)
+        print(
+            f"RemoteDataOrganizer.__init__ (id={id(self)}): Initialized for caller_id='{self.__caller_id}'. self.__last_access set to {self.__last_access}",
+            flush=True,
+        )
 
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
@@ -125,17 +128,27 @@ class RemoteDataOrganizer(
         with self.__data_lock:
             # Add comprehensive logging
             if not self.__data:
-                print(f"RemoteDataOrganizer.has_new_data (id={id(self)}): No data in deque. Returning False. self.__last_access={self.__last_access}", flush=True)
+                print(
+                    f"RemoteDataOrganizer.has_new_data (id={id(self)}): No data in deque. Returning False. self.__last_access={self.__last_access}",
+                    flush=True,
+                )
                 return False
-            
+
             most_recent_timestamp = self.__data[0].timestamp
             last_access_timestamp = self.__last_access
             result = most_recent_timestamp > last_access_timestamp
-            
+
             # Log data values for context if available
-            most_recent_data_val = self.__data[0].value if hasattr(self.__data[0], 'value') else self.__data[0]
-            
-            print(f"RemoteDataOrganizer.has_new_data (id={id(self)}): self.__last_access={last_access_timestamp}, most_recent_data_timestamp ({most_recent_data_val})={most_recent_timestamp}. Result (>{last_access_timestamp}?): {result}", flush=True)
+            most_recent_data_val = (
+                self.__data[0].value
+                if hasattr(self.__data[0], "value")
+                else self.__data[0]
+            )
+
+            print(
+                f"RemoteDataOrganizer.has_new_data (id={id(self)}): self.__last_access={last_access_timestamp}, most_recent_data_timestamp ({most_recent_data_val})={most_recent_timestamp}. Result (>{last_access_timestamp}?): {result}",
+                flush=True,
+            )
             return result
 
     def get_new_data(self) -> List[TDataType]:
@@ -150,30 +163,51 @@ class RemoteDataOrganizer(
         """
         with self.__data_lock:
             # Add comprehensive logging
-            print(f"RemoteDataOrganizer.get_new_data (id={id(self)}): ENTERED. Current self.__last_access={self.__last_access}. Data in deque (len={len(self.__data)}): {list(self.__data)}", flush=True)
-            
+            print(
+                f"RemoteDataOrganizer.get_new_data (id={id(self)}): ENTERED. Current self.__last_access={self.__last_access}. Data in deque (len={len(self.__data)}): {list(self.__data)}",
+                flush=True,
+            )
+
             results: List[TDataType] = []
             if not self.__data:
-                print(f"RemoteDataOrganizer.get_new_data (id={id(self)}): No data in deque. Returning empty list.", flush=True)
+                print(
+                    f"RemoteDataOrganizer.get_new_data (id={id(self)}): No data in deque. Returning empty list.",
+                    flush=True,
+                )
                 return results
 
             for item_idx, item in enumerate(self.__data):
-                item_val = item.value if hasattr(item, 'value') else item
-                print(f"RemoteDataOrganizer.get_new_data (id={id(self)}): Checking item {item_idx} (val='{item_val}', ts={item.timestamp}) against self.__last_access={self.__last_access}", flush=True)
+                item_val = item.value if hasattr(item, "value") else item
+                print(
+                    f"RemoteDataOrganizer.get_new_data (id={id(self)}): Checking item {item_idx} (val='{item_val}', ts={item.timestamp}) against self.__last_access={self.__last_access}",
+                    flush=True,
+                )
                 if item.timestamp > self.__last_access:
                     results.append(item)
-                    print(f"RemoteDataOrganizer.get_new_data (id={id(self)}): Added item {item_idx} (val='{item_val}') to results.", flush=True)
+                    print(
+                        f"RemoteDataOrganizer.get_new_data (id={id(self)}): Added item {item_idx} (val='{item_val}') to results.",
+                        flush=True,
+                    )
                 else:
-                    print(f"RemoteDataOrganizer.get_new_data (id={id(self)}): Item {item_idx} (val='{item_val}') is not newer. Breaking loop.", flush=True)
+                    print(
+                        f"RemoteDataOrganizer.get_new_data (id={id(self)}): Item {item_idx} (val='{item_val}') is not newer. Breaking loop.",
+                        flush=True,
+                    )
                     break
-            
+
             if results:
                 new_last_access = results[0].timestamp
-                print(f"RemoteDataOrganizer.get_new_data (id={id(self)}): New data found. Updating self.__last_access from {self.__last_access} to {new_last_access}", flush=True)
+                print(
+                    f"RemoteDataOrganizer.get_new_data (id={id(self)}): New data found. Updating self.__last_access from {self.__last_access} to {new_last_access}",
+                    flush=True,
+                )
                 self.__last_access = new_last_access
             else:
-                print(f"RemoteDataOrganizer.get_new_data (id={id(self)}): No new data found. self.__last_access remains {self.__last_access}", flush=True)
-                
+                print(
+                    f"RemoteDataOrganizer.get_new_data (id={id(self)}): No new data found. self.__last_access remains {self.__last_access}",
+                    flush=True,
+                )
+
             return results
 
     def get_most_recent_data(self) -> Optional[TDataType]:
@@ -233,7 +267,10 @@ class RemoteDataOrganizer(
             AssertionError: If `new_data.caller_id` does not match this
                             organizer's `caller_id`.
         """
-        print(f"RemoteDataOrganizer._on_data_ready: Received data with value='{new_data.value if hasattr(new_data, 'value') else new_data}', caller_id='{new_data.caller_id if hasattr(new_data, 'caller_id') else 'N/A'}'. Storing in deque. Self id={id(self)}", flush=True)
+        print(
+            f"RemoteDataOrganizer._on_data_ready: Received data with value='{new_data.value if hasattr(new_data, 'value') else new_data}', caller_id='{new_data.caller_id if hasattr(new_data, 'caller_id') else 'N/A'}'. Storing in deque. Self id={id(self)}",
+            flush=True,
+        )
         if not isinstance(new_data, ExposedData):
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
