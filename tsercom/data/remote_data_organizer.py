@@ -218,9 +218,9 @@ class RemoteDataOrganizer(
             )
 
         # Ensure the data belongs to this organizer.
-        assert new_data.caller_id == self.caller_id, (
-            f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
-        )
+        assert (
+            new_data.caller_id == self.caller_id
+        ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: TDataType) -> None:

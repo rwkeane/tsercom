@@ -163,9 +163,9 @@ class DiscoveryHost(
             self.__discoverer = self.__instance_listener_factory(self)
         else:
             # This assertion is safe due to the __init__ constructor logic.
-            assert self.__service_type is not None, (
-                "Service type must be set if no factory is provided."
-            )
+            assert (
+                self.__service_type is not None
+            ), "Service type must be set if no factory is provided."
             self.__discoverer = InstanceListener[TServiceInfo](
                 self, self.__service_type
             )

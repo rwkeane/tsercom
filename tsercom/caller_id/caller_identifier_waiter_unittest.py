@@ -19,9 +19,9 @@ async def test_set_then_get_id():
     # Get the ID
     retrieved_cid = await waiter.get_caller_id_async()
 
-    assert retrieved_cid is cid, (
-        "Retrieved CID should be the same as the one set."
-    )
+    assert (
+        retrieved_cid is cid
+    ), "Retrieved CID should be the same as the one set."
 
 
 @pytest.mark.asyncio
@@ -40,9 +40,9 @@ async def test_get_then_set_id():
     results = await asyncio.gather(waiter.get_caller_id_async(), setter_task())
 
     retrieved_cid = results[0]  # Result from get_caller_id_async()
-    assert retrieved_cid is cid_to_set, (
-        "Retrieved CID should be the one set by the concurrent task."
-    )
+    assert (
+        retrieved_cid is cid_to_set
+    ), "Retrieved CID should be the one set by the concurrent task."
 
 
 @pytest.mark.asyncio
@@ -85,14 +85,14 @@ async def test_has_id():
     waiter = CallerIdentifierWaiter()
 
     # Initially, __caller_id is None, so has_id() (meaning "is ID present?") should be False.
-    assert waiter.has_id() is False, (
-        "Initially, has_id should be False (ID not yet set)."
-    )
+    assert (
+        waiter.has_id() is False
+    ), "Initially, has_id should be False (ID not yet set)."
 
     cid = CallerIdentifier.random()
     await waiter.set_caller_id(cid)
 
     # After setting, __caller_id is not None, so has_id() should be True.
-    assert waiter.has_id() is True, (
-        "After setting ID, has_id should be True (ID is now set)."
-    )
+    assert (
+        waiter.has_id() is True
+    ), "After setting ID, has_id should be True (ID is now set)."

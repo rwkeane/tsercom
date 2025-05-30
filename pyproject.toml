@@ -42,6 +42,7 @@ dev = [
     "black",
     "mypy",
     "pylint",
+    "cryptography", # Added
 ]
 typing = [
     "types-psutil",

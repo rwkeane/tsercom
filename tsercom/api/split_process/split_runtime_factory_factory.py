@@ -81,9 +81,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
             initializer, event_source, data_sink, runtime_command_source
         )
 
-        aggregator = RemoteDataAggregatorImpl[
-            TDataType
-        ](
+        aggregator = RemoteDataAggregatorImpl[TDataType](
             self.__thread_pool,
             client=initializer.data_aggregator_client,  # Client to consume aggregated data.
             timeout=initializer.timeout_seconds,

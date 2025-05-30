@@ -107,7 +107,9 @@ class TestRuntimeManager:
         # that will be created by RuntimeManager
         mock_thread_watcher_instance = mock_tw.return_value
         mock_thread_pool = mocker.MagicMock()
-        mock_thread_watcher_instance.create_tracked_thread_pool_executor.return_value = mock_thread_pool
+        mock_thread_watcher_instance.create_tracked_thread_pool_executor.return_value = (
+            mock_thread_pool
+        )
 
         manager = RuntimeManager(is_testing=True)
 
