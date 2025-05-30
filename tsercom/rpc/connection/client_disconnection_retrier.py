@@ -1,6 +1,6 @@
-from abc import abstractmethod
+"""Provides an abstract base class for clients that require automatic reconnection logic upon disconnection."""
+from abc import ABC, abstractmethod
 import asyncio
-from functools import partial
 from typing import Callable, Generic, Optional, TypeVar, Awaitable
 import logging
 
@@ -25,7 +25,7 @@ TInstanceType = TypeVar("TInstanceType", bound=Stopable)
 
 
 class ClientDisconnectionRetrier(
-    Generic[TInstanceType], ClientReconnectionManager
+    ABC, Generic[TInstanceType], ClientReconnectionManager
 ):
     """Abstract base class for managing client connections with automatic retry logic.
 
@@ -76,7 +76,7 @@ class ClientDisconnectionRetrier(
         self.__safe_disconnection_handler: Optional[Callable[[], None]] = (
             safe_disconnection_handler
         )
-        self.__provided_event_loop = event_loop
+        self.__user_provided_event_loop = event_loop  # Store user-provided loop
         self.__delay_before_retry_func = (
             delay_before_retry_func or default_delay_before_retry
         )
@@ -87,10 +87,8 @@ class ClientDisconnectionRetrier(
         )
         self.__max_retries = max_retries
 
-        # Event loop on which this instance's async methods should primarily run.
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = (
-            self.__provided_event_loop
-        )
+        # Event loop will be determined in start() if not provided by the user.
+        self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
     @abstractmethod
     async def _connect(self) -> TInstanceType:
@@ -127,17 +125,14 @@ class ClientDisconnectionRetrier(
             Exception: Any non-server-unavailable error raised by `_connect`.
         """
         try:
-            if self.__provided_event_loop:
-                self.__event_loop = self.__provided_event_loop
-            else:
-                self.__event_loop = get_running_loop_or_none()
+            self.__event_loop = self.__user_provided_event_loop or get_running_loop_or_none()
 
             if self.__event_loop is None:
                 raise RuntimeError(
                     "Event loop not initialized before starting ClientDisconnectionRetrier."
                 )
 
-            self.__instance = await self._connect()  # Added await
+            self.__instance = await self._connect()
 
             if self.__instance is None:
                 raise RuntimeError(

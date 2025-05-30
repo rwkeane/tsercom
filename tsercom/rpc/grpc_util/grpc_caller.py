@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 from google.rpc.status_pb2 import Status
 import grpc  # Keep grpc import at global scope
+from grpc_status import rpc_status
 import random
 
 
@@ -17,8 +18,6 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
         The `grpc.StatusCode` if the error is a gRPC error and a status code
         can be extracted, otherwise `None`.
     """
-    from grpc_status import rpc_status
-
     if issubclass(type(error), grpc.aio.AioRpcError):
         return error.code()  # type: ignore # AioRpcError provides .code() directly.
 

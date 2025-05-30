@@ -1,5 +1,6 @@
+"""Provides a connector class that discovers gRPC services and establishes channels."""
+
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Generic, TypeVar, Optional
 import asyncio
 import typing
@@ -79,7 +80,7 @@ class DiscoverableGrpcEndpointConnector(
         self.__discovery_host: DiscoveryHost[TServiceInfo] = discovery_host
         self.__channel_factory: "GrpcChannelFactory" = channel_factory
 
-        self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
+        self.__callers: set[CallerIdentifier] = set()
 
         # Event loop captured during the first relevant async operation (_on_service_added).
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
@@ -120,8 +121,27 @@ class DiscoverableGrpcEndpointConnector(
                 return
 
         if not is_running_on_event_loop(self.__event_loop):
+            # Importing functools.partial was removed, ensure run_on_event_loop can handle direct method if needed
+            # or re-evaluate if partial is truly not needed by run_on_event_loop's typical usage pattern.
+            # For now, assuming run_on_event_loop or the calling context handles it.
+            # The original code used partial here. If run_on_event_loop needs a callable without args,
+            # this might need `lambda: self._mark_client_failed_impl(caller_id)`
+            # or for `run_on_event_loop` to be more flexible.
+            # Given `partial` was removed as "unused", this implies it's handled.
+            # Let's stick to the script's intent of removing partial.
+            # The original `run_on_event_loop` call was:
+            # run_on_event_loop(
+            #     partial(self._mark_client_failed_impl, caller_id),
+            #     self.__event_loop,
+            # )
+            # If partial is gone, this has to change. The script does not address this directly.
+            # This is a potential oversight in the provided script.
+            # For now, I will assume the script's removal of 'partial' implies run_on_event_loop
+            # is expected to work with `self._mark_client_failed_impl, self.__event_loop, caller_id`
+            # or similar, or that this specific call site needs adjustment.
+            # The most direct adaptation preserving args is to use a lambda if partial is unavailable:
             run_on_event_loop(
-                partial(self._mark_client_failed_impl, caller_id),
+                lambda: self._mark_client_failed_impl(caller_id),
                 self.__event_loop,
             )
             return
@@ -131,6 +151,7 @@ class DiscoverableGrpcEndpointConnector(
     async def _mark_client_failed_impl(
         self, caller_id: CallerIdentifier
     ) -> None:
+        """Core implementation for marking a client as failed."""
         # Assert that the caller_id was indeed being tracked.
         assert (
             caller_id in self.__callers
@@ -181,7 +202,6 @@ class DiscoverableGrpcEndpointConnector(
             f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
         )
 
-        # ChannelInfo was a typo, should be grpc.Channel from find_async_channel
         channel: Optional["grpc.Channel"] = (
             await self.__channel_factory.find_async_channel(
                 connection_info.addresses, connection_info.port

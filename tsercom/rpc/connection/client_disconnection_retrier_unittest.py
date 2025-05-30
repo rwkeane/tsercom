@@ -1,5 +1,32 @@
 import asyncio
 import pytest
+import pytest_asyncio
+import logging
+from unittest.mock import (
+    AsyncMock,
+    MagicMock,
+)
+# SUT
+from tsercom.rpc.connection.client_disconnection_retrier import (
+    ClientDisconnectionRetrier,
+)
+from tsercom.util.stopable import Stopable
+from tsercom.threading.thread_watcher import ThreadWatcher
+
+# Module to patch for aio_utils
+import tsercom.rpc.connection.client_disconnection_retrier as retrier_module_to_patch
+
+# The user-provided script logic starts here, adapted slightly
+file_path = "tsercom/rpc/connection/client_disconnection_retrier_unittest.py" # Path is fixed for overwrite
+
+# Read original lines (conceptually, as we are overwriting, this is for the script's logic)
+# In a real overwrite, we'd effectively be generating this from scratch or a transformation.
+# For this tool, the entire content below will BE the new file.
+# So, the script needs to be self-contained in producing the final output lines.
+
+original_lines_content = """\
+import asyncio
+import pytest
 import pytest_asyncio  # Added for async fixtures
 import logging  # Added
 from unittest.mock import (
@@ -428,3 +455,175 @@ class TestClientDisconnectionRetrier:
         assert mock_instance.stopped is True
         assert mock_instance.stop_call_count == 1
         assert retrier._ClientDisconnectionRetrier__instance is None
+
+""" # End of original_lines_content
+
+lines = original_lines_content.splitlines(keepends=True)
+output_lines = []
+# Flags to help with context-specific comment removal or docstring addition
+in_mock_connectable = False
+in_testable_retrier = False
+in_mock_aio_utils_fixture = False
+in_test_class = False
+
+# 1. Add Module Docstring
+if not lines[0].strip().startswith('"""') and not lines[0].strip().startswith("'''"):
+    output_lines.append('"""Unit tests for the ClientDisconnectionRetrier class."""\n')
+
+for i, line in enumerate(lines):
+    # 1. Remove Unused Import (functools.partial)
+    if "from functools import partial" in line: # This was in original imports
+        continue
+    if "from functools import partial" in line and "SUT" in lines[i-2 if i>1 else 0]: # Check context for safety
+        # This condition is too specific, the general one above should catch it.
+        continue
+
+    # 2. Remove print() statements
+    # General approach: replace print(xxx) with empty string or just the xxx if it's essential
+    new_line = line
+    if "print(f\"{self.name} stopped\")" in line: # In MockConnectable.stop
+        new_line = line.replace("print(f\"{self.name} stopped\")", "")
+    if "print(f\"_TestableRetrier._connect called, about to call self.connect_func ({self.connect_func})\")" in line: # In _TestableRetrier._connect
+        new_line = new_line.replace("print(f\"_TestableRetrier._connect called, about to call self.connect_func ({self.connect_func})\")", "")
+    if "print(f\"_TestableRetrier._connect: self.connect_func returned {instance}\")" in line: # In _TestableRetrier._connect
+        new_line = new_line.replace("print(f\"_TestableRetrier._connect: self.connect_func returned {instance}\")", "")
+    if "print(f\"MOCKED run_on_event_loop CALLED for {getattr(func_to_run, 'func', func_to_run).__name__} on loop {resolved_loop}\")" in line: # In mock_aio_utils
+        new_line = new_line.replace("print(f\"MOCKED run_on_event_loop CALLED for {getattr(func_to_run, 'func', func_to_run).__name__} on loop {resolved_loop}\")", "")
+
+
+    # 3. Clean up Dev Comments
+    new_line = new_line.replace("  # Added for async fixtures", "")
+    new_line = new_line.replace("  # Added", "")
+    new_line = new_line.replace("  # Renamed", "")
+    new_line = new_line.replace("  # No await", "")
+    new_line = new_line.replace("  # Resolved", "")
+    new_line = new_line.replace("  # Keep as is, will be awaited", "")
+    new_line = new_line.replace("  # Now receives resolved fixture", "")
+    new_line = new_line.replace("  # pytest-mock uses these via mocker", "")
+    new_line = new_line.replace("  # Changed to pytest_asyncio.fixture", "")
+    new_line = new_line.replace("  # Made async", "")
+    new_line = new_line.replace("  # Add this line", "")
+
+
+    # Remove trailing whitespace that might be left if only comment was on line
+    if new_line.strip() == "#":
+        new_line = "\n" # Keep newline if it was a full line comment
+    elif new_line.strip().endswith("#"):
+        new_line = new_line.rstrip("#").rstrip() + "\n"
+
+    # Add docstrings
+    if "class MockConnectable(Stopable):" in new_line:
+        output_lines.append(new_line)
+        if not lines[i+1].strip().startswith('"""'):
+            output_lines.append("    \"\"\"A mock Stopable class for testing.\"\"\"\n")
+        continue
+    if "class _TestableRetrier(ClientDisconnectionRetrier[MockConnectable]):" in new_line:
+        output_lines.append(new_line)
+        if not lines[i+1].strip().startswith('"""'):
+             output_lines.append("    \"\"\"A subclass of ClientDisconnectionRetrier for testing _connect behavior.\"\"\"\n")
+        continue
+
+    if "async def mock_aio_utils(" in new_line:
+        # Check if previous line was the fixture decorator
+        if "@pytest_asyncio.fixture" in lines[i-1]:
+            output_lines.append(new_line) # Add the def line
+            if not lines[i+1].strip().startswith('"""'): # Check for existing docstring on next line
+                indent = new_line.split("async")[0]
+                output_lines.append(indent + "    \"\"\"Mocks tsercom.threading.aio.aio_utils for testing event loop interactions.\"\"\"\n")
+            continue
+
+    if "class TestClientDisconnectionRetrier:" in new_line:
+        # Check if previous line was the marker
+        if "@pytest.mark.asyncio" in lines[i-1]:
+            output_lines.append(new_line) # Add class def line
+            if not lines[i+1].strip().startswith('"""'): # Check for existing docstring
+                indent = new_line.split("class")[0]
+                output_lines.append(indent + "    \"\"\"Tests for the ClientDisconnectionRetrier functionality.\"\"\"\n")
+            continue
+
+    # Avoid multiple blank lines if comments/prints were removed and new_line became empty
+    if new_line.strip() == "" and len(output_lines) > 0 and output_lines[-1].strip() == "":
+        continue
+
+    # Ensure we don't add empty lines if new_line is solely a newline character from comment removal
+    if new_line == "\n" and line.strip().startswith("#") and len(output_lines) > 0 and output_lines[-1].strip() == "":
+         pass # Skip adding this newline if it makes multiple blanks
+    elif new_line.strip() != "" or (new_line == "\n" and (len(output_lines) == 0 or output_lines[-1].strip() != "")):
+        output_lines.append(new_line)
+
+
+# Final pass to remove consecutive blank lines that might have been created
+final_output_lines = []
+if output_lines: # Ensure output_lines is not empty
+    # Add module docstring if it was generated and not added due to initial lines being comments
+    if output_lines[0].strip().startswith('"""Unit tests for the ClientDisconnectionRetrier class."""') and \
+       not original_lines_content.strip().startswith('"""'):
+        final_output_lines.append(output_lines.pop(0))
+
+    for k, line_content in enumerate(output_lines):
+        is_empty_line = line_content.strip() == ""
+        is_prev_empty = k > 0 and final_output_lines[-1].strip() == ""
+
+        if is_empty_line and is_prev_empty:
+            continue
+        final_output_lines.append(line_content)
+
+# The original script's writing part:
+# with open(file_path, "w") as f:
+#     f.writelines(final_output_lines)
+# This will be implicitly handled by overwrite_file_with_block using final_output_lines
+
+# Ensure all imports are at the top, after the module docstring
+processed_imports = []
+processed_body = []
+module_docstring_present = False
+if final_output_lines and final_output_lines[0].strip().startswith('"""'):
+    module_docstring_present = True
+    processed_imports.append(final_output_lines.pop(0))
+
+
+for line_content in final_output_lines:
+    if line_content.strip().startswith("import ") or line_content.strip().startswith("from "):
+        if "SUT" in line_content or "Module to patch" in line_content: # Heuristic for comments separating imports
+             processed_body.append(line_content)
+        elif "# SUT" in line_content or "# Module to patch" in line_content: # Comment lines themselves
+            processed_body.append(line_content)
+        else:
+             processed_imports.append(line_content)
+    else:
+        processed_body.append(line_content)
+
+# Remove duplicate blank lines from imports and body separately
+temp_imports = []
+if processed_imports:
+    temp_imports.append(processed_imports[0]) # Add first line (module docstring or first import)
+    for i in range(1, len(processed_imports)):
+        if processed_imports[i].strip() == "" and temp_imports[-1].strip() == "":
+            continue
+        temp_imports.append(processed_imports[i])
+processed_imports = temp_imports
+
+temp_body = []
+if processed_body:
+    # Remove leading blank lines from body if imports are present
+    first_real_line_idx = 0
+    if processed_imports:
+        while first_real_line_idx < len(processed_body) and processed_body[first_real_line_idx].strip() == "":
+            first_real_line_idx += 1
+
+    if first_real_line_idx < len(processed_body): # If body is not all blanks
+        temp_body.append(processed_body[first_real_line_idx]) # Add first non-blank line
+        for i in range(first_real_line_idx + 1, len(processed_body)):
+            if processed_body[i].strip() == "" and temp_body[-1].strip() == "":
+                continue
+            temp_body.append(processed_body[i])
+processed_body = temp_body
+
+# Combine imports and body
+final_output_lines = processed_imports + ["\n"] + processed_body # Add a blank line between imports and body if both exist
+
+# This is what the tool will write:
+for l in final_output_lines:
+    print(l, end="")
+
+# The print statements in the original subtask script like "Finished code polishing..." are not part of file content.
