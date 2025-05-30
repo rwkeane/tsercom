@@ -47,13 +47,30 @@ def initialize_runtimes(
     """
     assert is_global_event_loop_set()
 
-    channel_factory_selector = ChannelFactorySelector()
-    channel_factory = channel_factory_selector.get_instance()
+    channel_factory_selector = ChannelFactorySelector()  # Instantiate once
 
     runtimes: List[Runtime] = []
-    for factory_idx, initializer_factory in enumerate(initializers):
-        data_reader = initializer_factory._remote_data_reader()
-        event_poller = initializer_factory._event_poller()
+    for factory_idx, initializer_factory in enumerate(
+        initializers
+    ):  # initializer_factory is clearer
+        # Retrieve GrpcChannelFactoryConfig from the initializer_factory
+        # initializer_factory is a RuntimeFactory, which is a RuntimeInitializer, which is a RuntimeConfig
+        grpc_config = (
+            initializer_factory.grpc_channel_factory_config
+        )  # Access the property
+
+        # Create the channel factory using the config
+        # The create_factory_from_config method handles None config by returning InsecureGrpcChannelFactory
+        channel_factory = channel_factory_selector.create_factory_from_config(
+            grpc_config
+        )
+
+        data_reader = (
+            initializer_factory._remote_data_reader()
+        )  # Was remote_data_reader()
+        event_poller = (
+            initializer_factory._event_poller()
+        )  # Was event_poller()
 
         if initializer_factory.is_client():
             data_handler = ClientRuntimeDataHandler(

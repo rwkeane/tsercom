@@ -123,12 +123,25 @@ class FakeRuntime(Runtime):
         await self.__responder.process_data(FakeData(stopped), stop_timestamp)
 
 
+from tsercom.config.grpc_channel_config import (
+    GrpcChannelFactoryConfig,
+)  # Added import
+
+
 class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
     def __init__(
-        self, test_id: CallerIdentifier, service_type="Client"
-    ):  # Added test_id
-        super().__init__(service_type=service_type)
-        self._test_id = test_id  # Store it
+        self,
+        test_id: CallerIdentifier,
+        service_type="Client",
+        grpc_channel_factory_config: (
+            GrpcChannelFactoryConfig | None
+        ) = None,  # Added config
+    ):
+        super().__init__(
+            service_type=service_type,
+            grpc_channel_factory_config=grpc_channel_factory_config,
+        )  # Pass to super
+        self._test_id = test_id
 
     def create(
         self,
@@ -172,8 +185,14 @@ class ErrorThrowingRuntimeInitializer(RuntimeInitializer):
         error_message="TestError",
         error_type=RuntimeError,
         service_type="Client",
+        grpc_channel_factory_config: (
+            GrpcChannelFactoryConfig | None
+        ) = None,  # Added config
     ):
-        super().__init__(service_type=service_type)
+        super().__init__(
+            service_type=service_type,
+            grpc_channel_factory_config=grpc_channel_factory_config,
+        )  # Pass to super
         self.error_message = error_message
         self.error_type = error_type
 
@@ -198,8 +217,14 @@ class FaultyCreateRuntimeInitializer(RuntimeInitializer):
         error_message="CreateFailed",
         error_type=TypeError,
         service_type="Client",
+        grpc_channel_factory_config: (
+            GrpcChannelFactoryConfig | None
+        ) = None,  # Added config
     ):
-        super().__init__(service_type=service_type)
+        super().__init__(
+            service_type=service_type,
+            grpc_channel_factory_config=grpc_channel_factory_config,
+        )  # Pass to super
         self.error_message = error_message
         self.error_type = error_type
 
@@ -234,8 +259,12 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_manager.check_for_exception()
         runtime_future = runtime_manager.register_runtime_initializer(
             FakeRuntimeInitializer(
-                test_id=current_test_id, service_type="Server"
-            )  # Pass it
+                test_id=current_test_id,
+                service_type="Server",
+                grpc_channel_factory_config=GrpcChannelFactoryConfig(
+                    factory_type="insecure"
+                ),
+            )
         )
 
         assert not runtime_future.done()
@@ -429,7 +458,10 @@ def test_out_of_process_error_check_for_exception(clear_loop_fixture):
         ErrorThrowingRuntimeInitializer(
             error_message=error_msg,
             error_type=ValueError,
-            service_type="Server",  # Assuming service_type="Server" is appropriate for ErrorThrowingRuntime
+            service_type="Server",
+            grpc_channel_factory_config=GrpcChannelFactoryConfig(
+                factory_type="insecure"
+            ),
         )
     )
     # service_type="Server" is important because ErrorThrowingRuntimeInitializer
@@ -505,7 +537,11 @@ def test_out_of_process_error_run_until_exception(clear_loop_fixture):
     error_msg = "RemoteRunUntilFailure"
     runtime_manager.register_runtime_initializer(
         ErrorThrowingRuntimeInitializer(
-            error_message=error_msg, error_type=RuntimeError
+            error_message=error_msg,
+            error_type=RuntimeError,
+            grpc_channel_factory_config=GrpcChannelFactoryConfig(
+                factory_type="insecure"
+            ),
         )
     )
     runtime_manager.start_out_of_process()
@@ -556,7 +592,11 @@ def test_in_process_error_check_for_exception(clear_loop_fixture):
     error_msg = "InProcessFailureOops"
     runtime_manager.register_runtime_initializer(
         ErrorThrowingRuntimeInitializer(
-            error_message=error_msg, error_type=ValueError
+            error_message=error_msg,
+            error_type=ValueError,
+            grpc_channel_factory_config=GrpcChannelFactoryConfig(
+                factory_type="insecure"
+            ),
         )
     )
     runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
@@ -580,7 +620,11 @@ def test_out_of_process_initializer_create_error(clear_loop_fixture):
     error_msg = "CreateOops"
     runtime_manager.register_runtime_initializer(
         FaultyCreateRuntimeInitializer(
-            error_message=error_msg, error_type=TypeError
+            error_message=error_msg,
+            error_type=TypeError,
+            grpc_channel_factory_config=GrpcChannelFactoryConfig(
+                factory_type="insecure"
+            ),
         )
     )
     runtime_manager.start_out_of_process()

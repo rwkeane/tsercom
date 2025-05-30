@@ -2,6 +2,8 @@
 
 from enum import Enum
 from typing import Literal, Optional, TypeVar, overload
+
+from tsercom.config.grpc_channel_config import GrpcChannelFactoryConfig
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
 TDataType = TypeVar("TDataType")
@@ -23,6 +25,7 @@ class RuntimeConfig:
         *,
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
         timeout_seconds: Optional[int] = 60,
+        grpc_channel_factory_config: Optional[GrpcChannelFactoryConfig] = None,
     ): ...
 
     @overload
@@ -32,6 +35,7 @@ class RuntimeConfig:
         *,
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
         timeout_seconds: Optional[int] = 60,
+        grpc_channel_factory_config: Optional[GrpcChannelFactoryConfig] = None,
     ): ...
 
     @overload
@@ -47,6 +51,7 @@ class RuntimeConfig:
         other_config: Optional["RuntimeConfig"] = None,
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
         timeout_seconds: Optional[int] = 60,
+        grpc_channel_factory_config: Optional[GrpcChannelFactoryConfig] = None,
     ):
         """Initializes the RuntimeConfig.
 
@@ -78,6 +83,7 @@ class RuntimeConfig:
                 service_type=other_config.__service_type,  # type: ignore
                 data_aggregator_client=other_config.data_aggregator_client,
                 timeout_seconds=other_config.timeout_seconds,
+                grpc_channel_factory_config=other_config.grpc_channel_factory_config,
             )
             return
 
@@ -95,6 +101,9 @@ class RuntimeConfig:
             data_aggregator_client
         )
         self.__timeout_seconds: Optional[int] = timeout_seconds
+        self.__grpc_channel_factory_config: Optional[
+            GrpcChannelFactoryConfig
+        ] = grpc_channel_factory_config
 
     def is_client(self) -> bool:
         """Checks if the runtime is configured as a client.
@@ -138,6 +147,16 @@ class RuntimeConfig:
         time out.
         """
         return self.__timeout_seconds
+
+    @property
+    def grpc_channel_factory_config(
+        self,
+    ) -> Optional[GrpcChannelFactoryConfig]:
+        """
+        Returns the configuration for creating GrpcChannelFactory instances,
+        or None if no specific configuration is set.
+        """
+        return self.__grpc_channel_factory_config
 
 
 class ServiceType(Enum):

@@ -42,11 +42,13 @@ class FakeRuntimeInitializer:
         service_type="Server",
         data_aggregator_client=None,
         timeout_seconds=60,
+        grpc_channel_factory_config=None, # Added
     ):
         # Attributes needed by RuntimeConfig logic
         self._RuntimeConfig__service_type = service_type
         self.data_aggregator_client = data_aggregator_client
         self.timeout_seconds = timeout_seconds
+        self.grpc_channel_factory_config = grpc_channel_factory_config # Added
 
         # Attributes/methods that might be called by the class under test or its collaborators
         self.create_called = False

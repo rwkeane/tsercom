@@ -11,10 +11,11 @@ class FakeRuntime:
 
 
 class FakeRuntimeInitializer:
-    def __init__(self):
-        self._RuntimeConfig__service_type = "Server"  # Added
-        self.data_aggregator_client = None  # Added
-        self.timeout_seconds = 60  # Added
+    def __init__(self, grpc_channel_factory_config=None): # Added argument
+        self._RuntimeConfig__service_type = "Server"
+        self.data_aggregator_client = None
+        self.timeout_seconds = 60
+        self.grpc_channel_factory_config = grpc_channel_factory_config # Added
         self.create_called = False
         self.create_args = None
         self.runtime_to_return = FakeRuntime()

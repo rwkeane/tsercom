@@ -30,11 +30,13 @@ class FakeRuntimeInitializer:
         service_type="Server",
         data_aggregator_client=None,
         timeout_seconds=60,
+        grpc_channel_factory_config=None, # Added
     ):
         # Attributes needed by RuntimeConfig logic (for parent class of RemoteRuntimeFactory)
         self._RuntimeConfig__service_type = service_type
         self.data_aggregator_client = data_aggregator_client
         self.timeout_seconds = timeout_seconds
+        self.grpc_channel_factory_config = grpc_channel_factory_config # Added
 
         self.create_called_with = None
         self.create_call_count = 0

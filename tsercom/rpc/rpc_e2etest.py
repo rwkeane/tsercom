@@ -62,10 +62,8 @@ from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory imp
 from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
     ClientAuthGrpcChannelFactory,
 )  # Added
+
 # Removed duplicated import of ClientAuthGrpcChannelFactory by ensuring only one import line exists
-from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
-    ClientAuthGrpcChannelFactory,
-)
 from tsercom.rpc.common.channel_info import (
     ChannelInfo,
 )  # Expected by InsecureGrpcChannelFactory
@@ -1741,7 +1739,7 @@ async def test_client_auth_no_server_validation_by_client(
         server_key_pem=server_key_pem,
         server_cert_pem=server_cert_pem,
         client_ca_cert_pem=ca_cert_pem,  # Server needs this to validate the client cert
-        require_client_auth=server_requires_client_auth, # Corrected: use the parameterized value
+        require_client_auth=server_requires_client_auth,  # Corrected: use the parameterized value
         server_cn=server_cn,
     )
     assert returned_server_cn == server_cn
@@ -1774,7 +1772,9 @@ async def test_client_auth_no_server_validation_by_client(
         )
 
     finally:
-        if channel_info and channel_info.channel: # Should not be reached if assert above holds
+        if (
+            channel_info and channel_info.channel
+        ):  # Should not be reached if assert above holds
             await channel_info.channel.close()
 
 
@@ -1959,10 +1959,10 @@ async def test_client_auth_no_server_validation_by_client(
     host, port, returned_server_cn = await secure_async_test_server_factory(
         server_key_pem=server_key_pem,
         server_cert_pem=server_cert_pem,
-            # Server should always be given the CA that signed the client cert,
-            # if it's expected to potentially verify it.
-            # require_client_auth will determine if it's enforced.
-            client_ca_cert_pem=ca_cert_pem,
+        # Server should always be given the CA that signed the client cert,
+        # if it's expected to potentially verify it.
+        # require_client_auth will determine if it's enforced.
+        client_ca_cert_pem=ca_cert_pem,
         require_client_auth=server_requires_client_auth,
         server_cn=server_cn,
     )
@@ -1973,8 +1973,8 @@ async def test_client_auth_no_server_validation_by_client(
         client_cert_pem=client_cert_pem,
         client_key_pem=client_key_pem,
         root_ca_cert_pem=None,  # Explicitly None: client does not validate server cert
-            # Reverting to server_cn for override, as None did not help and might be less standard.
-            server_hostname_override=server_cn,
+        # Reverting to server_cn for override, as None did not help and might be less standard.
+        server_hostname_override=server_cn,
     )
 
     channel_info: Optional[ChannelInfo] = None
@@ -1995,7 +1995,9 @@ async def test_client_auth_no_server_validation_by_client(
         )
 
     finally:
-        if channel_info and channel_info.channel: # Should not be reached if assert above holds
+        if (
+            channel_info and channel_info.channel
+        ):  # Should not be reached if assert above holds
             await channel_info.channel.close()
 
 

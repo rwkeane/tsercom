@@ -50,14 +50,19 @@ class TestInitializeRuntimes:
         mock_channel_factory_selector_instance = (
             MockChannelFactorySelector.return_value
         )
-        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
-        mock_channel_factory_selector_instance.get_instance.return_value = (
-            mock_grpc_channel_factory
-        )
+        # mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory) # Old, replaced by below
+        # mock_channel_factory_selector_instance.get_instance.return_value = (
+        #     mock_grpc_channel_factory
+        # ) # Old
+        # New: configure the mock for create_factory_from_config
+        mock_configured_channel_factory = mocker.Mock(spec=GrpcChannelFactory, name="configured_channel_factory_client")
+        mock_channel_factory_selector_instance.create_factory_from_config.return_value = mock_configured_channel_factory
+
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
+        mock_client_factory.grpc_channel_factory_config = None # Added
         # Configure the return values for the internal calls that initialize_runtimes will make
         mock_client_data_reader_actual_instance = mocker.Mock(
             spec=RemoteDataReader, name="client_data_reader_instance"
@@ -95,19 +100,21 @@ class TestInitializeRuntimes:
         mock_is_global_event_loop_set.assert_called_once()
         mock_get_global_event_loop.assert_called_once()
         MockChannelFactorySelector.assert_called_once_with()
-        mock_channel_factory_selector_instance.get_instance.assert_called_once_with()
+        mock_channel_factory_selector_instance.create_factory_from_config.assert_called_once_with(
+            mock_client_factory.grpc_channel_factory_config
+        )
 
         MockClientRuntimeDataHandler.assert_called_once_with(
             mock_thread_watcher,
-            mock_client_data_reader_actual_instance,  # Assert with the instance that was returned by _remote_data_reader()
-            mock_client_event_poller_actual_instance,  # Assert with the instance that was returned by _event_poller()
+            mock_client_data_reader_actual_instance,
+            mock_client_event_poller_actual_instance,
             is_testing=False,
         )
         MockServerRuntimeDataHandler.assert_not_called()
         mock_client_factory.create.assert_called_once_with(
             mock_thread_watcher,
             MockClientRuntimeDataHandler.return_value,
-            mock_grpc_channel_factory,
+            mock_configured_channel_factory,
         )
         mock_run_on_event_loop.assert_called_once_with(
             mock_runtime_instance.start_async,
@@ -141,14 +148,17 @@ class TestInitializeRuntimes:
         mock_channel_factory_selector_instance = (
             MockChannelFactorySelector.return_value
         )
-        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
-        mock_channel_factory_selector_instance.get_instance.return_value = (
-            mock_grpc_channel_factory
-        )
+        # mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory) # Old
+        # mock_channel_factory_selector_instance.get_instance.return_value = (
+        #     mock_grpc_channel_factory
+        # ) # Old
+        mock_configured_channel_factory = mocker.Mock(spec=GrpcChannelFactory, name="configured_channel_factory_server")
+        mock_channel_factory_selector_instance.create_factory_from_config.return_value = mock_configured_channel_factory
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
+        mock_server_factory.grpc_channel_factory_config = None # Added
         # Configure the return values for the internal calls that initialize_runtimes will make
         mock_server_data_reader_actual_instance = mocker.Mock(
             spec=RemoteDataReader, name="server_data_reader_instance"
@@ -186,18 +196,20 @@ class TestInitializeRuntimes:
         mock_is_global_event_loop_set.assert_called_once()
         mock_get_global_event_loop.assert_called_once()
         MockChannelFactorySelector.assert_called_once_with()
-        mock_channel_factory_selector_instance.get_instance.assert_called_once_with()
+        mock_channel_factory_selector_instance.create_factory_from_config.assert_called_once_with(
+            mock_server_factory.grpc_channel_factory_config
+        )
 
         MockServerRuntimeDataHandler.assert_called_once_with(
-            mock_server_data_reader_actual_instance,  # Assert with the instance that was returned by _remote_data_reader()
-            mock_server_event_poller_actual_instance,  # Assert with the instance that was returned by _event_poller()
+            mock_server_data_reader_actual_instance,
+            mock_server_event_poller_actual_instance,
             is_testing=False,
         )
         MockClientRuntimeDataHandler.assert_not_called()
         mock_server_factory.create.assert_called_once_with(
             mock_thread_watcher,
             MockServerRuntimeDataHandler.return_value,
-            mock_grpc_channel_factory,
+            mock_configured_channel_factory,
         )
         mock_run_on_event_loop.assert_called_once_with(
             mock_runtime_instance.start_async,
@@ -231,14 +243,18 @@ class TestInitializeRuntimes:
         mock_channel_factory_selector_instance = (
             MockChannelFactorySelector.return_value
         )
-        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
-        mock_channel_factory_selector_instance.get_instance.return_value = (
-            mock_grpc_channel_factory
-        )
+        # mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory) # Old
+        # mock_channel_factory_selector_instance.get_instance.return_value = (
+        #     mock_grpc_channel_factory
+        # ) # Old
+        mock_configured_channel_factory_for_multi = mocker.Mock(spec=GrpcChannelFactory, name="configured_channel_factory_multi")
+        mock_channel_factory_selector_instance.create_factory_from_config.return_value = mock_configured_channel_factory_for_multi
+
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
+        mock_client_factory.grpc_channel_factory_config = None # Added
         # Configure the return values for the client factory's internal calls
         mock_client_data_reader_actual_instance_multi = mocker.Mock(
             spec=RemoteDataReader, name="client_data_reader_instance_multi"
@@ -261,6 +277,7 @@ class TestInitializeRuntimes:
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
+        mock_server_factory.grpc_channel_factory_config = None # Added
         # Configure the return values for the server factory's internal calls
         mock_server_data_reader_actual_instance_multi = mocker.Mock(
             spec=RemoteDataReader, name="server_data_reader_instance_multi"
@@ -296,7 +313,14 @@ class TestInitializeRuntimes:
 
         mock_get_global_event_loop.assert_called()  # Or assert_called_once() if appropriate for single runtime
         MockChannelFactorySelector.assert_called_once_with()
-        mock_channel_factory_selector_instance.get_instance.assert_called_once_with()
+        # Check that create_factory_from_config is called for each initializer
+        mock_channel_factory_selector_instance.create_factory_from_config.assert_any_call(
+            mock_client_factory.grpc_channel_factory_config
+        )
+        mock_channel_factory_selector_instance.create_factory_from_config.assert_any_call(
+            mock_server_factory.grpc_channel_factory_config
+        )
+        assert mock_channel_factory_selector_instance.create_factory_from_config.call_count == 2
 
         assert MockClientRuntimeDataHandler.call_count == 1
         MockClientRuntimeDataHandler.assert_any_call(
@@ -312,8 +336,24 @@ class TestInitializeRuntimes:
             is_testing=False,
         )
 
-        mock_client_factory.create.assert_called_once()
-        mock_server_factory.create.assert_called_once()
+        # Ensure create is called with the result of create_factory_from_config
+        # This requires knowing which factory instance was returned for which call.
+        # Assuming create_factory_from_config returns distinct mocks or the same one if that's how it's designed.
+        # For simplicity, let's assume it returns the same mock_configured_channel_factory_for_multi for None config.
+        # If it returns different ones, the test setup for mock_configured_channel_factory_for_multi would need adjustment.
+        # This line is already set above:
+        # mock_channel_factory_selector_instance.create_factory_from_config.return_value = mock_configured_channel_factory_for_multi
+
+        mock_client_factory.create.assert_called_once_with(
+            mock_thread_watcher,
+            MockClientRuntimeDataHandler.return_value,
+            mock_configured_channel_factory_for_multi,
+        )
+        mock_server_factory.create.assert_called_once_with(
+            mock_thread_watcher,
+            MockServerRuntimeDataHandler.return_value,
+            mock_configured_channel_factory_for_multi,
+        )
 
         mock_run_on_event_loop.assert_any_call(
             mock_client_runtime.start_async,
