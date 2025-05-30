@@ -64,9 +64,23 @@ class FakeThread:
         self.args = args
         self.daemon = daemon  # RuntimeCommandSource sets daemon=True
         self._started = False
+        self.join_called = False
+        self.join_timeout = None
 
     def start(self):
         self._started = True
+        self._is_alive = True # Assume alive once started
+
+    def join(self, timeout=None):
+        self.join_called = True
+        self.join_timeout = timeout
+        # In a fake, we don't actually block or join anything.
+        # Typically, after join (even with timeout), is_alive would be false if thread finished.
+        self._is_alive = False
+        pass
+
+    def is_alive(self):
+        return self._is_alive
 
 
 class FakeThreadWatcher:

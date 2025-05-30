@@ -18,7 +18,7 @@ class FakeRuntime:
         self.start_async_called = True
         self.start_async_call_count += 1
 
-    def stop(self):
+    def stop(self, _=None):  # Add optional argument to match partial call
         self.stop_called = True
         self.stop_call_count += 1
 

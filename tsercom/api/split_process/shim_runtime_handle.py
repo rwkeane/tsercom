@@ -94,6 +94,7 @@ class ShimRuntimeHandle(
         runtime via the command queue.
         """
         self.__data_reader_source.start()
+        self.__runtime_command_queue.put_blocking(RuntimeCommand.kStart)
 
     def on_event(
         self,
