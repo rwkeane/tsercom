@@ -1,6 +1,7 @@
 """Tests for tsercom.runtime.runtime_main."""
 
 import pytest
+from functools import partial # Import partial
 
 from tsercom.runtime.runtime_main import (
     initialize_runtimes,
@@ -383,8 +384,17 @@ class TestRemoteProcessMain:
         mock_sink_instance.run_until_exception.assert_called_once()
 
         assert mock_run_on_event_loop.call_count == 2
-        mock_run_on_event_loop.assert_any_call(mock_runtime1.stop)
-        mock_run_on_event_loop.assert_any_call(mock_runtime2.stop)
+        # Check the calls to run_on_event_loop more carefully for partials
+        expected_stop_funcs = {mock_runtime1.stop, mock_runtime2.stop}
+        actual_called_stop_funcs = set()
+        for call_args in mock_run_on_event_loop.call_args_list:
+            partial_obj = call_args.args[0] # run_on_event_loop(callable, ...) -> callable is args[0]
+            assert isinstance(partial_obj, partial), "Argument should be a functools.partial object"
+            actual_called_stop_funcs.add(partial_obj.func)
+            assert partial_obj.args == (None,), "Partial should have been called with (None,)"
+        assert actual_called_stop_funcs == expected_stop_funcs, \
+            f"Expected stop functions {expected_stop_funcs} to be called via partial, got {actual_called_stop_funcs}"
+
 
     def test_exception_in_run_until_exception(
         self,
@@ -431,5 +441,13 @@ class TestRemoteProcessMain:
             test_exception
         )  # Added this line
         assert mock_run_on_event_loop.call_count == 2
-        mock_run_on_event_loop.assert_any_call(mock_runtime1.stop)
-        mock_run_on_event_loop.assert_any_call(mock_runtime2.stop)
+        # Check the calls to run_on_event_loop more carefully for partials
+        expected_stop_funcs = {mock_runtime1.stop, mock_runtime2.stop}
+        actual_called_stop_funcs = set()
+        for call_args in mock_run_on_event_loop.call_args_list:
+            partial_obj = call_args.args[0] # run_on_event_loop(callable, ...) -> callable is args[0]
+            assert isinstance(partial_obj, partial), "Argument should be a functools.partial object"
+            actual_called_stop_funcs.add(partial_obj.func)
+            assert partial_obj.args == (None,), "Partial should have been called with (None,)"
+        assert actual_called_stop_funcs == expected_stop_funcs, \
+            f"Expected stop functions {expected_stop_funcs} to be called via partial, got {actual_called_stop_funcs}"

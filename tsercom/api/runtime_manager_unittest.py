@@ -239,10 +239,10 @@ class TestRuntimeManager:
         manager_with_mocks.start_in_process(loop)
 
         mock_set_tsercom_event_loop.assert_called_once_with(loop)
-        assert (
-            manager_with_mocks._RuntimeManager__error_watcher
-            is mock_thread_watcher
-        )
+        # For start_in_process, __error_watcher is not set; errors are handled by __thread_watcher.
+        assert manager_with_mocks._RuntimeManager__error_watcher is None
+        assert manager_with_mocks._RuntimeManager__thread_watcher is mock_thread_watcher
+
 
         # Check that create_factory was called on the local_rff
         # The client passed should be a RuntimeFuturePopulator
@@ -430,28 +430,31 @@ class TestRuntimeManager:
             new_callable=PropertyMock,
             return_value=True,
         )
-        manager_with_mocks._RuntimeManager__error_watcher = (
-            None  # Force it to be None
+        # manager_with_mocks._RuntimeManager__error_watcher = None # No longer relevant for this check
+        manager_with_mocks._RuntimeManager__thread_watcher = (
+            None  # This should trigger the error
         )
         with pytest.raises(
-            RuntimeError, match="Error watcher is not available."
+            RuntimeError,
+            match="Error watcher is not available. Ensure the RuntimeManager has been properly started.",
         ):
             manager_with_mocks.run_until_exception()
 
-    def test_run_until_exception_calls_thread_watcher(
+    def test_run_until_exception_calls_thread_watcher( # Renamed
         self, manager_with_mocks, mock_thread_watcher, mocker
     ):
-        """Verify calls to mock_thread_watcher.run_until_exception()."""
+        """Verify calls to mock_thread_watcher.run_until_exception().""" # Simplified
         mocker.patch.object(
             RuntimeManager,
             "has_started",
             new_callable=PropertyMock,
             return_value=True,
         )
-        # Ensure __error_watcher is set (e.g. to thread_watcher itself as in start_in_process)
-        manager_with_mocks._RuntimeManager__error_watcher = mock_thread_watcher
+        # __error_watcher state doesn't influence the call to __thread_watcher here
+        manager_with_mocks._RuntimeManager__thread_watcher = mock_thread_watcher
         manager_with_mocks.run_until_exception()
         mock_thread_watcher.run_until_exception.assert_called_once()
+
 
     def test_check_for_exception_not_started(
         self, manager_with_mocks, mock_thread_watcher
@@ -470,27 +473,71 @@ class TestRuntimeManager:
             new_callable=PropertyMock,
             return_value=True,
         )
-        manager_with_mocks._RuntimeManager__error_watcher = (
-            None  # Force it to be None
-        )
+        # Only __thread_watcher needs to be None to cause the error now
+        manager_with_mocks._RuntimeManager__thread_watcher = None
         with pytest.raises(
-            RuntimeError, match="Error watcher is not available."
+            RuntimeError,
+            match="Error watcher is not available. Ensure the RuntimeManager has been properly started.", # Updated match
         ):
             manager_with_mocks.check_for_exception()
 
-    def test_check_for_exception_calls_thread_watcher(
+    def test_check_for_exception_calls_thread_watcher( # Renamed
         self, manager_with_mocks, mock_thread_watcher, mocker
     ):
-        """Verify calls to mock_thread_watcher.check_for_exception()."""
+        """Verify calls to mock_thread_watcher.check_for_exception().""" # Docstring updated & simplified
         mocker.patch.object(
             RuntimeManager,
             "has_started",
             new_callable=PropertyMock,
             return_value=True,
         )
-        manager_with_mocks._RuntimeManager__error_watcher = mock_thread_watcher
+        manager_with_mocks._RuntimeManager__thread_watcher = mock_thread_watcher
         manager_with_mocks.check_for_exception()
         mock_thread_watcher.check_for_exception.assert_called_once()
+
+    # This test appears duplicated in the source, ensure it's the correct one to keep or modify
+    def test_check_for_exception_not_started(
+        self, manager_with_mocks, mock_thread_watcher
+    ):
+        """Test check_for_exception does nothing if not started."""
+        manager_with_mocks.check_for_exception()
+        mock_thread_watcher.check_for_exception.assert_not_called()
+
+    def test_check_for_exception_error_watcher_none(
+        self, manager_with_mocks, mocker
+    ):
+        """Test RuntimeError if __error_watcher is None but manager started for check_for_exception."""
+        mocker.patch.object(
+            RuntimeManager,
+            "has_started",
+            new_callable=PropertyMock,
+            return_value=True,
+        )
+        # manager_with_mocks._RuntimeManager__error_watcher = None # No longer relevant for this check
+        manager_with_mocks._RuntimeManager__thread_watcher = (
+            None  # This should trigger the error
+        )
+        with pytest.raises(
+            RuntimeError,
+            match="Error watcher is not available. Ensure the RuntimeManager has been properly started.",
+        ):
+            manager_with_mocks.check_for_exception()
+
+    def test_check_for_exception_calls_thread_watcher( # Renamed
+        self, manager_with_mocks, mock_thread_watcher, mocker
+    ):
+        """Verify calls to mock_thread_watcher.check_for_exception().""" # Simplified
+        mocker.patch.object(
+            RuntimeManager,
+            "has_started",
+            new_callable=PropertyMock,
+            return_value=True,
+        )
+        # __error_watcher state doesn't influence the call to __thread_watcher here
+        manager_with_mocks._RuntimeManager__thread_watcher = mock_thread_watcher
+        manager_with_mocks.check_for_exception()
+        mock_thread_watcher.check_for_exception.assert_called_once()
+
 
     def test_runtime_future_populator_indirectly(
         self, manager_with_mocks, mock_local_rff, mock_runtime_initializer

@@ -353,7 +353,10 @@ class RuntimeManager(ErrorWatcher):
         if not self.has_started:
             # Added this check for consistency, as __thread_watcher depends on has_started
             raise RuntimeError("RuntimeManager has not been started.")
-        if self.__thread_watcher is None:
+        if not self.has_started:
+            # Added this check for consistency, as __thread_watcher depends on has_started
+            raise RuntimeError("RuntimeManager has not been started.")
+        if self.__thread_watcher is None: # Reverted to simpler check
             raise RuntimeError(
                 "Error watcher is not available. Ensure the RuntimeManager has been properly started."
             )
@@ -374,8 +377,8 @@ class RuntimeManager(ErrorWatcher):
         if not self.has_started:
             return  # No exceptions to check if not started.
 
+        # Reverted: If manager has started, but __thread_watcher is somehow None, it's an issue.
         if self.__thread_watcher is None:
-            # This implies it wasn't started correctly or state is corrupted.
             raise RuntimeError(
                 "Error watcher is not available. Ensure the RuntimeManager has been properly started."
             )

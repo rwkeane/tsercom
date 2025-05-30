@@ -49,12 +49,14 @@ class FakeRuntime(Runtime):
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[FakeData, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
+        test_id: CallerIdentifier, # Added test_id
     ):
         self.__thread_watcher = thread_watcher
         self.__data_handler = data_handler
         self.__grpc_channel_factory = grpc_channel_factory
-
+        self.__test_id = test_id # Store it
         self.__responder: EndpointDataProcessor[FakeData] | None = None
+        self._data_sent = False # For idempotency
 
         super().__init__()
 
@@ -73,44 +75,46 @@ class FakeRuntime(Runtime):
 
         # Original print statement, now with task info
         print(
-            f"FakeRuntime.start_async: Entered. self_id={id(self)}, test_id={test_id} (id={id(test_id)}), self.__data_handler_id={id(self.__data_handler)}, task_id={id(current_task) if current_task else 'N/A'}, task={current_task}",
+            f"FakeRuntime.start_async: Entered. self_id={id(self)}, test_id={self.__test_id} (id={id(self.__test_id)}), self.__data_handler_id={id(self.__data_handler)}, task_id={id(current_task) if current_task else 'N/A'}, task={current_task}",
             flush=True,
         )
 
         await asyncio.sleep(0.01)
 
         print(
-            f"FakeRuntime.start_async: (After sleep) About to call register_caller for test_id={test_id}. task_id={id(current_task) if current_task else 'N/A'}",
+            f"FakeRuntime.start_async: (After sleep) About to call register_caller for test_id={self.__test_id}. task_id={id(current_task) if current_task else 'N/A'}",
             flush=True,
         )
         self.__responder = self.__data_handler.register_caller(
-            test_id, "0.0.0.0", 443
+            self.__test_id, "0.0.0.0", 443 # Use self.__test_id
         )
         print(
             f"FakeRuntime.start_async: Returned from register_caller. Responder type {type(self.__responder)}. task_id={id(current_task) if current_task else 'N/A'}",
             flush=True,
         )
 
-        # --- Create and send completely fresh data ---
-        fresh_data_value = (
-            "FRESH_SIMPLE_DATA_V2"  # Changed value slightly for clarity
-        )
-        fresh_data_object = FakeData(fresh_data_value)
-        fresh_timestamp = datetime.datetime.now()  # Fresh timestamp
+        # --- Create and send completely fresh data (if not already sent) ---
+        if not self._data_sent:
+            fresh_data_value = (
+                "FRESH_SIMPLE_DATA_V2"
+            )
+            fresh_data_object = FakeData(fresh_data_value)
+            fresh_timestamp = datetime.datetime.now()
 
-        print(
-            f"FakeRuntime.start_async: About to send FRESH data: val='{fresh_data_value}', data_obj_id={id(fresh_data_object)}, ts={fresh_timestamp}. Task: {asyncio.current_task()}",
-            flush=True,
-        )
+            print(
+                f"FakeRuntime.start_async: About to send FRESH data: val='{fresh_data_value}', data_obj_id={id(fresh_data_object)}, ts={fresh_timestamp}. Task: {asyncio.current_task()}",
+                flush=True,
+            )
+            # EndpointDataProcessor._process_data creates AnnotatedInstance using self.caller_id
+            await self.__responder.process_data(fresh_data_object, fresh_timestamp)
+            print(
+                f"FakeRuntime.start_async: Completed process_data with FRESH data. Task: {asyncio.current_task()}",
+                flush=True,
+            )
+            self._data_sent = True
+        else:
+            print(f"FakeRuntime.start_async: Data already sent for {self.__test_id}. Skipping duplicate send. Task: {asyncio.current_task()}", flush=True)
 
-        # EndpointDataProcessor._process_data creates AnnotatedInstance using self.caller_id (which is test_id)
-        await self.__responder.process_data(fresh_data_object, fresh_timestamp)
-        # --- End fresh data ---
-
-        print(
-            f"FakeRuntime.start_async: Completed process_data with FRESH data. Task: {asyncio.current_task()}",
-            flush=True,
-        )
 
     async def stop(self, exception) -> None:
         assert self.__responder is not None
@@ -118,13 +122,17 @@ class FakeRuntime(Runtime):
 
 
 class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
+    def __init__(self, test_id: CallerIdentifier, service_type="Client"): # Added test_id
+        super().__init__(service_type=service_type)
+        self._test_id = test_id # Store it
+
     def create(
         self,
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[FakeData, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        return FakeRuntime(thread_watcher, data_handler, grpc_channel_factory)
+        return FakeRuntime(thread_watcher, data_handler, grpc_channel_factory, self._test_id) # Pass it
 
 
 # New Helper Classes
@@ -210,9 +218,11 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_handle_for_cleanup = None
     try:
+        current_test_id = CallerIdentifier.random() # Create unique ID for this test run
+        print(f"__check_initialization: Using test_id={current_test_id}", flush=True)
         runtime_manager.check_for_exception()
         runtime_future = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(service_type="Server")
+            FakeRuntimeInitializer(test_id=current_test_id, service_type="Server") # Pass it
         )
 
         assert not runtime_future.done()
@@ -226,7 +236,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_handle_for_cleanup = runtime_handle
         data_aggregator = runtime_handle.data_aggregator
         assert not data_aggregator.has_new_data(
-            test_id
+            current_test_id # Use current_test_id
         ), "Aggregator should not have new data for test_id before runtime start"
         runtime_handle.start()
 
@@ -235,9 +245,9 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         poll_interval = 0.1  # seconds
         waited_time = 0.0
         while waited_time < max_wait_time:
-            has_data_now = data_aggregator.has_new_data(test_id)
+            has_data_now = data_aggregator.has_new_data(current_test_id) # Use current_test_id
             print(
-                f"__check_initialization (polling): waited_time={waited_time:.1f}s, data_aggregator.has_new_data(test_id={test_id}) is {has_data_now}",
+                f"__check_initialization (polling): waited_time={waited_time:.1f}s, data_aggregator.has_new_data(test_id={current_test_id}) is {has_data_now}",
                 flush=True,
             )
             if has_data_now:
@@ -249,7 +259,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_manager.check_for_exception()  # Keep this check
         assert (
             data_arrived
-        ), f"Aggregator did not receive data for test_id ({test_id}) within {max_wait_time}s"
+        ), f"Aggregator did not receive data for test_id ({current_test_id}) within {max_wait_time}s"
 
         # The original assertion for any_new_data can be commented out or removed for now
         # assert (
@@ -258,10 +268,10 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
 
         # Continue with the existing assertions for data content:
         assert data_aggregator.has_new_data(
-            test_id
-        ), f"Aggregator should have new data for test_id ({test_id}) after polling"
+            current_test_id # Use current_test_id
+        ), f"Aggregator should have new data for test_id ({current_test_id}) after polling"
 
-        values = data_aggregator.get_new_data(test_id)
+        values = data_aggregator.get_new_data(current_test_id) # Use current_test_id
         assert isinstance(
             values, list
         ), f"Expected list for get_new_data(test_id), got {type(values)}"
@@ -294,11 +304,11 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         ), "Timestamp is not a datetime object for fresh data"
         # Exact timestamp match for datetime.now() is too brittle for this diagnostic.
         # The original start_timestamp check is removed for the fresh data.
-        assert first.caller_id == test_id
+        assert first.caller_id == current_test_id # Use current_test_id
 
         assert not data_aggregator.has_new_data(
-            test_id
-        ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data"
+            current_test_id # Use current_test_id
+        ), f"Aggregator should not have new data for test_id ({current_test_id}) after get_new_data"
         runtime_manager.check_for_exception()
 
         runtime_handle.stop()
@@ -307,9 +317,9 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         time.sleep(0.5)
 
         assert data_aggregator.has_new_data(
-            test_id
-        ), f"Aggregator should have new data (stop message) for test_id ({test_id})"
-        values = data_aggregator.get_new_data(test_id)
+            current_test_id # Use current_test_id
+        ), f"Aggregator should have new data (stop message) for test_id ({current_test_id})"
+        values = data_aggregator.get_new_data(current_test_id) # Use current_test_id
         assert isinstance(
             values, list
         ), f"Expected list for get_new_data(test_id) for stop, got {type(values)}"
@@ -331,11 +341,11 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
             flush=True,
         )
         assert first.timestamp == stop_timestamp
-        assert first.caller_id == test_id
+        assert first.caller_id == current_test_id # Use current_test_id
 
         assert not data_aggregator.has_new_data(
-            test_id
-        ), f"Aggregator should not have new data for test_id ({test_id}) after get_new_data for stop"
+            current_test_id # Use current_test_id
+        ), f"Aggregator should not have new data for test_id ({current_test_id}) after get_new_data for stop"
 
     except Exception as e:
         raise e

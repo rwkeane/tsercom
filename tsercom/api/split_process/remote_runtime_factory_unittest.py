@@ -50,18 +50,18 @@ class FakeRuntimeInitializer:
         thread_watcher,
         data_handler,
         grpc_channel_factory,
-        event_poller=None,
-        remote_data_reader=None,
-    ):  # Added new args
+        # event_poller=None, # Removed, RRF.create doesn't pass this
+        # remote_data_reader=None, # Removed, RRF.create doesn't pass this
+    ):
         self.create_called_with = (
             thread_watcher,
             data_handler,
             grpc_channel_factory,
-            event_poller,  # Store new arg
-            remote_data_reader,  # Store new arg
+            # event_poller,
+            # remote_data_reader,
         )
-        self.event_poller_received = event_poller
-        self.remote_data_reader_received = remote_data_reader
+        # self.event_poller_received = event_poller # Not passed
+        # self.remote_data_reader_received = remote_data_reader # Not passed
         self.create_call_count += 1
         return self.runtime_to_return
 
@@ -337,43 +337,44 @@ def test_create_method(
 ):
     """Test RemoteRuntimeFactory.create() method."""
 
+    # Access properties to trigger lazy initialization of event_source and data_reader_sink
+    # This ensures they exist before create() is called, if create() relies on them (e.g. event_source.start())
+    event_poller_instance = factory.event_poller # Calls _event_poller()
+    data_reader_instance = factory.remote_data_reader # Calls _remote_data_reader()
+
     returned_runtime = factory.create(
         fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
     )
 
-    # Assert initializer.create was called
+    # Assert initializer.create was called with the correct arguments
     assert fake_initializer.create_call_count == 1
-    # Updated to include the new arguments in the expected tuple
     assert fake_initializer.create_called_with == (
         fake_thread_watcher,
         fake_data_handler,
         fake_grpc_channel_factory,
-        FakeEventSource.get_last_instance(),  # Assuming it's the event_poller
-        FakeDataReaderSink.get_last_instance(),  # Assuming it's the remote_data_reader
+        # Event poller and data reader are not passed to initializer by RRF.create
     )
 
-    # Assert FakeEventSource interactions
-    event_source_instance = FakeEventSource.get_last_instance()
-    assert event_source_instance is not None
+    # Assert FakeEventSource interactions (now it's event_poller_instance)
+    assert event_poller_instance is not None
+    assert event_poller_instance is FakeEventSource.get_last_instance()
     assert (
-        event_source_instance.event_source_queue
-        is factory._RemoteRuntimeFactory__event_source_queue  # Corrected attribute name
+        event_poller_instance.event_source_queue
+        is factory._RemoteRuntimeFactory__event_source_queue
     )
-    assert event_source_instance.start_call_count == 1
-    assert event_source_instance.start_called_with is fake_thread_watcher
-    assert factory._RemoteRuntimeFactory__event_source is event_source_instance
+    # create() calls self.__event_source.start() if self.__event_source exists.
+    assert event_poller_instance.start_call_count == 1
+    assert event_poller_instance.start_called_with is fake_thread_watcher
+    assert factory._RemoteRuntimeFactory__event_source is event_poller_instance
 
-    # Assert FakeDataReaderSink interactions
-    data_reader_sink_instance = FakeDataReaderSink.get_last_instance()
-    assert data_reader_sink_instance is not None
+    # Assert FakeDataReaderSink interactions (now it's data_reader_instance)
+    assert data_reader_instance is not None
+    assert data_reader_instance is FakeDataReaderSink.get_last_instance()
     assert (
-        data_reader_sink_instance.data_reader_queue_sink
-        is factory._RemoteRuntimeFactory__data_reader_queue  # Corrected attribute name
+        data_reader_instance.data_reader_queue_sink
+        is factory._RemoteRuntimeFactory__data_reader_queue
     )
-    assert (
-        factory._RemoteRuntimeFactory__data_reader_sink
-        is data_reader_sink_instance  # Corrected attribute name
-    )
+    assert factory._RemoteRuntimeFactory__data_reader_sink is data_reader_instance
 
     # Assert FakeRuntimeCommandSource interactions
     command_source_instance = FakeRuntimeCommandSource.get_last_instance()
@@ -406,29 +407,27 @@ def test_remote_data_reader_method(
 ):
     """Test RemoteRuntimeFactory._remote_data_reader() method."""
     # Call create() first to populate self.__data_reader
-    factory.create(
+    factory.create( # This call doesn't affect the sink/source for these tests
         fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
     )
 
-    data_reader_sink_instance = FakeDataReaderSink.get_last_instance()
-    assert factory._remote_data_reader() is data_reader_sink_instance
-    assert (
-        factory._remote_data_reader()
-        is factory._RemoteRuntimeFactory__data_reader_sink  # Corrected attribute name
-    )
+    # _remote_data_reader() will create the instance on first call
+    actual_sink = factory._remote_data_reader()
+    assert isinstance(actual_sink, FakeDataReaderSink)
+    assert actual_sink is FakeDataReaderSink.get_last_instance()
+    assert actual_sink is factory._RemoteRuntimeFactory__data_reader_sink
 
 
 def test_event_poller_method(
     factory, fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
 ):
     """Test RemoteRuntimeFactory._event_poller() method."""
-    # Call create() first to populate self.__event_source
-    factory.create(
+    factory.create( # This call doesn't affect the sink/source for these tests
         fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
     )
 
-    event_source_instance = FakeEventSource.get_last_instance()
-    assert factory._event_poller() is event_source_instance
-    assert (
-        factory._event_poller() is factory._RemoteRuntimeFactory__event_source
-    )
+    # _event_poller() will create the instance on first call
+    actual_source = factory._event_poller()
+    assert isinstance(actual_source, FakeEventSource)
+    assert actual_source is FakeEventSource.get_last_instance()
+    assert actual_source is factory._RemoteRuntimeFactory__event_source
