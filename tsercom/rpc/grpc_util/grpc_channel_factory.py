@@ -1,21 +1,19 @@
 """Abstract base class defining the interface for gRPC channel factories."""
 
-from __future__ import annotations  # Added this line
+from __future__ import annotations
 from abc import ABC, abstractmethod
 import typing  # Ensure typing is imported
 
 if typing.TYPE_CHECKING:
     from tsercom.rpc.common.channel_info import (
         ChannelInfo,
-    )  # Moved under TYPE_CHECKING
-
-# typing.Optional is removed as per task to use 'ChannelInfo' | None
+    )
 
 
 class GrpcChannelFactory(ABC):
     """
     This class is responsible for finding channels to use for a gRPC Stub
-    definition, by testing against various |addresses| and a given |port|.
+    definition, by testing against various addresses and a given port.
     """
 
     @abstractmethod
