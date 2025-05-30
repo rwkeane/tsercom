@@ -1,3 +1,5 @@
+"""Defines the interface for client reconnection management."""
+
 from abc import ABC, abstractmethod
 from typing import Optional
 

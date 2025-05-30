@@ -1,11 +1,9 @@
+"""Unit tests for the ClientDisconnectionRetrier."""
+
 import asyncio
 import pytest
-import pytest_asyncio  # Added for async fixtures
-import logging  # Added
-from unittest.mock import (
-    AsyncMock,
-    MagicMock,
-)  # pytest-mock uses these via mocker
+import pytest_asyncio
+import logging
 from functools import partial
 
 # SUT
@@ -29,26 +27,19 @@ class MockConnectable(Stopable):
     async def stop(self) -> None:
         self.stopped = True
         self.stop_call_count += 1
-        print(f"{self.name} stopped")
 
     def __repr__(self):
         return f"<MockConnectable {self.name}>"
 
 
-class _TestableRetrier(ClientDisconnectionRetrier[MockConnectable]):  # Renamed
-    __test__ = False  # Add this line
+class _TestableRetrier(ClientDisconnectionRetrier[MockConnectable]):
+    __test__ = False
 
-    def set_on_connect(self, mock_connect_func: AsyncMock):
+    def set_on_connect(self, mock_connect_func: AsyncMock): # This line might cause issues after import removal
         self.connect_func = mock_connect_func
 
     async def _connect(self) -> MockConnectable:
-        print(
-            f"_TestableRetrier._connect called, about to call self.connect_func ({self.connect_func})"
-        )
         instance = await self.connect_func()
-        print(
-            f"_TestableRetrier._connect: self.connect_func returned {instance}"
-        )
         return instance
 
 
@@ -84,16 +75,15 @@ def mock_connect_func(mocker):
     return mocker.AsyncMock(name="connect_func")
 
 
-@pytest_asyncio.fixture  # Changed to pytest_asyncio.fixture
-async def current_event_loop():  # Made async
+@pytest_asyncio.fixture
+async def current_event_loop():
     return asyncio.get_running_loop()
 
 
-@pytest_asyncio.fixture  # Changed to pytest_asyncio.fixture
+@pytest_asyncio.fixture
 async def mock_aio_utils(
     mocker, monkeypatch, current_event_loop
-):  # Made async
-    # current_event_loop is now the resolved loop instance, no need to await it here.
+):
     mock_get_loop = mocker.MagicMock(return_value=current_event_loop)
     mock_is_on_loop = mocker.MagicMock(
         return_value=True
@@ -105,9 +95,6 @@ async def mock_aio_utils(
     ):
         # Use current_event_loop (which is loop_instance from the outer scope) as default
         resolved_loop = loop_arg if loop_arg else current_event_loop
-        print(
-            f"MOCKED run_on_event_loop CALLED for {getattr(func_to_run, 'func', func_to_run).__name__} on loop {resolved_loop}"
-        )
         if isinstance(func_to_run, partial):
             # If it's a partial, it might be an async method.
             # The SUT uses it for self.stop and self._on_disconnect
@@ -151,16 +138,16 @@ class TestClientDisconnectionRetrier:
         self,
         mock_watcher,
         mock_connect_func,
-        current_event_loop,  # Keep as is, will be awaited
-        mock_aio_utils,  # Now receives resolved fixture
+        current_event_loop,
+        mock_aio_utils,
     ):
-        loop = current_event_loop  # No await
-        _mock_aio_utils = mock_aio_utils  # No await
+        loop = current_event_loop
+        _mock_aio_utils = mock_aio_utils
 
         mock_instance = MockConnectable("instance1")
         mock_connect_func.return_value = mock_instance
 
-        retrier = _TestableRetrier(  # Renamed
+        retrier = _TestableRetrier(
             watcher=mock_watcher, event_loop=loop
         )
         retrier.set_on_connect(mock_connect_func)
@@ -175,17 +162,17 @@ class TestClientDisconnectionRetrier:
         mock_watcher,
         mock_connect_func,
         mock_is_server_unavailable_error_func,
-        current_event_loop,  # Resolved
-        mock_aio_utils,  # Resolved
+        current_event_loop,
+        mock_aio_utils,
     ):
-        loop = current_event_loop  # No await
-        _mock_aio_utils = mock_aio_utils  # No await
+        loop = current_event_loop
+        _mock_aio_utils = mock_aio_utils
 
         test_error = ConnectionRefusedError("Server unavailable")
         mock_connect_func.side_effect = test_error
         mock_is_server_unavailable_error_func.return_value = True
 
-        retrier = _TestableRetrier(  # Renamed
+        retrier = _TestableRetrier(
             watcher=mock_watcher,
             is_server_unavailable_error_func=mock_is_server_unavailable_error_func,
             event_loop=loop,
@@ -198,26 +185,26 @@ class TestClientDisconnectionRetrier:
             test_error
         )
         assert retrier._ClientDisconnectionRetrier__instance is None
-        mock_watcher.on_exception_seen.assert_not_called()  # Should not be called for server unavailable on start
+        mock_watcher.on_exception_seen.assert_not_called()
 
     async def test_initial_connection_other_error(
         self,
         mock_watcher,
         mock_connect_func,
         mock_is_server_unavailable_error_func,
-        current_event_loop,  # Resolved
-        mock_aio_utils,  # Resolved
+        current_event_loop,
+        mock_aio_utils,
     ):
-        loop = current_event_loop  # No await
-        _mock_aio_utils = mock_aio_utils  # No await
+        loop = current_event_loop
+        _mock_aio_utils = mock_aio_utils
 
         test_error = ValueError("Some other connection error")
         mock_connect_func.side_effect = test_error
         mock_is_server_unavailable_error_func.return_value = (
-            False  # Not server unavailable
+            False
         )
 
-        retrier = _TestableRetrier(  # Renamed
+        retrier = _TestableRetrier(
             watcher=mock_watcher,
             is_server_unavailable_error_func=mock_is_server_unavailable_error_func,
             event_loop=loop,
@@ -232,27 +219,26 @@ class TestClientDisconnectionRetrier:
             test_error
         )
         assert retrier._ClientDisconnectionRetrier__instance is None
-        # The error is raised by start(), not reported to watcher via _on_disconnect path
         mock_watcher.on_exception_seen.assert_not_called()
 
     async def test_stop_method_basic(
         self,
         mock_watcher,
         mock_connect_func,
-        current_event_loop,  # Resolved
-        mock_aio_utils,  # Resolved
+        current_event_loop,
+        mock_aio_utils,
     ):
-        loop = current_event_loop  # No await
-        _mock_aio_utils = mock_aio_utils  # No await
+        loop = current_event_loop
+        _mock_aio_utils = mock_aio_utils
 
         mock_instance = MockConnectable("instance_to_stop")
         mock_connect_func.return_value = mock_instance
 
-        retrier = _TestableRetrier(  # Renamed
+        retrier = _TestableRetrier(
             watcher=mock_watcher, event_loop=loop
         )
         retrier.set_on_connect(mock_connect_func)
-        await retrier.start()  # Connect
+        await retrier.start()
         assert retrier._ClientDisconnectionRetrier__instance is mock_instance
 
         await retrier.stop()
@@ -267,17 +253,16 @@ class TestClientDisconnectionRetrier:
         mock_connect_func,
         mock_delay_func,
         mock_is_server_unavailable_error_func,
-        current_event_loop,  # Resolved
-        mock_aio_utils,  # Resolved
+        current_event_loop,
+        mock_aio_utils,
     ):
-        loop = current_event_loop  # No await
-        _mock_aio_utils = mock_aio_utils  # No await
+        loop = current_event_loop
+        _mock_aio_utils = mock_aio_utils
 
-        # Initial successful connection
         instance1 = MockConnectable("instance1")
         mock_connect_func.return_value = instance1
 
-        retrier = _TestableRetrier(  # Renamed
+        retrier = _TestableRetrier(
             watcher=mock_watcher,
             delay_before_retry_func=mock_delay_func,
             is_server_unavailable_error_func=mock_is_server_unavailable_error_func,
@@ -287,34 +272,28 @@ class TestClientDisconnectionRetrier:
         retrier.set_on_connect(mock_connect_func)
         await retrier.start()
         assert retrier._ClientDisconnectionRetrier__instance is instance1
-        mock_connect_func.reset_mock()  # Reset for a new sequence of calls
+        mock_connect_func.reset_mock()
 
-        # Simulate disconnect with a server unavailable error
         disconnect_error = ConnectionAbortedError("Server connection lost")
         mock_is_server_unavailable_error_func.return_value = True
 
-        # Prepare for reconnect success
         instance2 = MockConnectable("instance2")
-        # Mock _connect to fail once then succeed
         mock_connect_func.side_effect = [
             instance2
-        ]  # Succeeds on first retry call
+        ]
 
-        # Trigger disconnect
         await retrier._on_disconnect(disconnect_error)
         await asyncio.sleep(
             0
-        )  # Allow scheduled tasks like _on_disconnect's body to run
+        )
 
-        # Verifications
         mock_is_server_unavailable_error_func.assert_called_with(
             disconnect_error
         )
         assert instance1.stopped is True, "Original instance should be stopped"
 
-        mock_delay_func.assert_called_once()  # Called before the successful retry
+        mock_delay_func.assert_called_once()
 
-        # _connect should be called once for the successful retry
         mock_connect_func.assert_called_once()
 
         assert (
@@ -328,20 +307,19 @@ class TestClientDisconnectionRetrier:
         mock_connect_func,
         mock_delay_func,
         mock_is_server_unavailable_error_func,
-        current_event_loop,  # Resolved
-        mock_aio_utils,  # Resolved
+        current_event_loop,
+        mock_aio_utils,
         caplog,
     ):
-        loop = current_event_loop  # No await
-        _mock_aio_utils = mock_aio_utils  # No await
+        loop = current_event_loop
+        _mock_aio_utils = mock_aio_utils
 
         caplog.set_level(logging.INFO)
-        # Initial successful connection
         instance1 = MockConnectable("instance_max_retry")
         mock_connect_func.return_value = instance1
-        max_retries = 2  # Keep it small for the test
+        max_retries = 2
 
-        retrier = _TestableRetrier(  # Renamed
+        retrier = _TestableRetrier(
             watcher=mock_watcher,
             delay_before_retry_func=mock_delay_func,
             is_server_unavailable_error_func=mock_is_server_unavailable_error_func,
@@ -352,22 +330,18 @@ class TestClientDisconnectionRetrier:
         await retrier.start()
         mock_connect_func.reset_mock()
 
-        # Simulate disconnect
         disconnect_error = ConnectionRefusedError(
             "Server unavailable persistently"
         )
         mock_is_server_unavailable_error_func.return_value = True
 
-        # Mock _connect to always fail for retries
         retry_connect_error = ConnectionRefusedError("Still unavailable")
         mock_connect_func.side_effect = [retry_connect_error] * max_retries
 
-        # Trigger disconnect
         await retrier._on_disconnect(disconnect_error)
-        await asyncio.sleep(0)  # Allow _on_disconnect body to run
-        await asyncio.sleep(0)  # Allow potential retry loop tasks to run
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
 
-        # Verifications
         assert instance1.stopped is True
         assert mock_delay_func.call_count == max_retries
         assert mock_connect_func.call_count == max_retries
@@ -379,50 +353,41 @@ class TestClientDisconnectionRetrier:
             f"Max retries ({max_retries}) reached. Stopping reconnection attempts."
             in caplog.text
         )
-        mock_watcher.on_exception_seen.assert_not_called()  # Server unavailable errors are not reported to watcher by default
-        _mock_aio_utils[  # Use awaited version
+        mock_watcher.on_exception_seen.assert_not_called()
+        _mock_aio_utils[
             "run_on_event_loop"
-        ].assert_not_called()  # Should be on the same loop
+        ].assert_not_called()
 
     async def test_stop_method_when_not_on_event_loop(
         self,
         mock_watcher,
         mock_connect_func,
-        current_event_loop,  # Resolved
-        mock_aio_utils,  # Resolved
+        current_event_loop,
+        mock_aio_utils,
     ):
-        loop = current_event_loop  # No await
-        _mock_aio_utils = mock_aio_utils  # No await
+        loop = current_event_loop
+        _mock_aio_utils = mock_aio_utils
 
         mock_instance = MockConnectable("instance_to_stop_off_loop")
         mock_connect_func.return_value = mock_instance
 
-        # Simulate being on a different event loop for the first call to stop(),
-        # then on the event loop for the rescheduled call.
         is_on_loop_mock = _mock_aio_utils["is_running_on_event_loop"]
         is_on_loop_mock.side_effect = [False, True]
 
-        retrier = _TestableRetrier(  # Renamed
+        retrier = _TestableRetrier(
             watcher=mock_watcher,
-            event_loop=loop,  # This is the SUT's main loop
+            event_loop=loop,
         )
         retrier.set_on_connect(mock_connect_func)
         await retrier.start()
 
-        await retrier.stop()  # This should trigger run_on_event_loop
+        await retrier.stop()
 
-        # Check that run_on_event_loop was called to reschedule stop
         _mock_aio_utils["run_on_event_loop"].assert_called_once()
         call_args = _mock_aio_utils["run_on_event_loop"].call_args[0]
-        # func_to_run is self.stop. loop is loop.
         assert call_args[0] == retrier.stop
         assert call_args[1] == loop
 
-        # Because the mock 'run_on_event_loop' schedules 'retrier.stop' on the current_event_loop
-        # and we `await asyncio.sleep(0)` after this call in the test usually,
-        # the stop() method on the instance should eventually be called.
-        # The mock simplified_run_on_loop_side_effect uses ensure_future.
-        # We need to allow this task to run.
         await asyncio.sleep(0)
 
         assert mock_instance.stopped is True
