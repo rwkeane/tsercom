@@ -35,12 +35,13 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-asyncio",
-    "pytest-mock", # Added
+    "pytest-mock", 
     "pytest-timeout",
     "pre-commit",
     "ruff",
     "black",
     "mypy",
+    "pylint",
 ]
 typing = [
     "types-psutil",
@@ -127,7 +128,22 @@ exclude = [
     ".*_pb2_grpc.py",   # Exclude gRPC generated files
     ".*_pb2.pyi",       # Exclude Protocol Buffer stub files
     "migrations",
-    "scripts"
+    "scripts",
+    # Exclude test files based on pytest configuration and common patterns
+    # More specific paths:
+    "tsercom/.*_test\\.py$",
+    "tsercom/.*_tests\\.py$",
+    "tsercom/.*_unittest\\.py$",
+    "tsercom/.*_unittests\\.py$",
+    "tsercom/.*_e2etest\\.py$",
+    "tsercom/.*_e2etests\\.py$",
+    # Also keep broader ones just in case, or if tests are outside tsercom
+    ".*/.*_test\\.py$",
+    ".*/.*_tests\\.py$",
+    ".*/.*_unittest\\.py$",
+    ".*/.*_unittests\\.py$",
+    ".*/.*_e2etest\\.py$",
+    ".*/.*_e2etests\\.py$"
 ]
 
 [[tool.mypy.overrides]]
@@ -141,3 +157,33 @@ disable_error_code = ["attr-defined"]
 [[tool.mypy.overrides]]
 module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*" ]  # Target the grpc module and its submodules
 ignore_missing_imports = true
+
+[tool.pylint.main]
+# Comma-separated list of glob patterns for files/directories to ignore.
+# This list consolidates exclusions from Ruff, Mypy, and setuptools configurations.
+ignore = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    "docs",        # From setuptools exclude
+    "tests",       # From setuptools exclude
+    "scripts",     # From setuptools and mypy exclude
+    "migrations",  # From mypy exclude
+    # Protobuf and gRPC generated files (from Ruff and Mypy)
+    "**/*_pb2.py",
+    "**/*_pb2.pyi",
+    "**/*_pb2_grpc.py",
+    # Test files (based on pytest config, Ruff, and Mypy exclusions)
+    # These patterns should cover the specific ones in mypy and pytest
+    "**/*_test.py",
+    "**/*_tests.py",
+    "**/*_unittest.py",
+    "**/*_unittests.py",
+    "**/*_e2etest.py",
+    "**/*_e2etests.py",
+]
+
+[tool.pylint.format]
+max-line-length = 79  # Must match Black's and Ruff's line-length
