@@ -56,9 +56,10 @@ class DataReaderSource(Generic[TDataType]):
     def start(self) -> None:
         """Starts the data polling thread.
 
-        If already started, this method might have no effect or could raise
-        an error depending on IsRunningTracker's behavior (currently seems to allow restart).
         A new thread is created and started to poll for data from the queue.
+
+        Raises:
+            RuntimeError: If the source is already running.
         """
         self.__is_running.start()
         self.__thread = self.__watcher.create_tracked_thread(

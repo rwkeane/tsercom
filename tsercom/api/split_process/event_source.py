@@ -1,6 +1,7 @@
 """Defines EventSource for polling events from a multiprocess queue."""
 
-from typing import Generic, TypeVar
+import threading  # Added for Optional[threading.Thread]
+from typing import Generic, TypeVar, Optional  # Added for Optional
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.threading.async_poller import AsyncPoller
@@ -34,8 +35,15 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
         """
         self.__event_source = event_source
         self.__is_running = IsRunningTracker()
+        self.__thread_watcher: Optional[ThreadWatcher] = None
+        self.__thread: Optional[threading.Thread] = None
 
         super().__init__()
+
+    @property
+    def is_running(self) -> bool:
+        """Checks if the event source is currently running its polling loop."""
+        return self.__is_running.get()
 
     def start(self, thread_watcher: ThreadWatcher) -> None:
         """Starts the event polling thread.
@@ -49,6 +57,7 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
             thread_watcher: A ThreadWatcher instance to monitor the polling thread.
         """
         self.__is_running.start()
+        self.__thread_watcher = thread_watcher
 
         def loop_until_exception() -> None:
             """Polls events from queue and calls on_available until stopped."""
@@ -56,18 +65,33 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
                 # Poll the queue with a timeout to allow checking is_running periodically.
                 remote_instance = self.__event_source.get_blocking(timeout=1)
                 if remote_instance is not None:
-                    self.on_available(remote_instance)
+                    try:
+                        self.on_available(remote_instance)
+                    except Exception as e:
+                        if self.__thread_watcher:  # Check if watcher is set
+                            self.__thread_watcher.on_exception_seen(e)
+                        # Re-raise to terminate the loop, consistent with DataReaderSource
+                        raise e
 
-        thread = thread_watcher.create_tracked_thread(
+        self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception
         )
-        thread.start()
+        self.__thread.start()
 
     def stop(self) -> None:
         """Stops the event polling thread.
 
-        Signals the polling thread to terminate. The thread will exit
-        after its current polling attempt (with timeout) completes and
-        it observes the changed `is_running` state.
+        Signals the polling thread to terminate and waits for it to join.
         """
         self.__is_running.stop()
+        if self.__thread and self.__thread.is_alive():
+            self.__thread.join(timeout=5)  # 5 seconds timeout
+            if self.__thread.is_alive():
+                # Consider logging this error instead of raising.
+                # For now, raising RuntimeError for consistency.
+                raise RuntimeError(
+                    f"ERROR: EventSource thread for {self.__event_source} did not "
+                    f"terminate within 5 seconds."
+                )
+        self.__thread = None
+        # self.__thread_watcher = None # Optional: clear watcher if appropriate for lifecycle

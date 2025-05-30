@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch, call, PropertyMock
+from unittest.mock import MagicMock, patch, PropertyMock
 from concurrent.futures import Future
 import asyncio
 from multiprocessing import Process  # For spec in ProcessCreator mock
@@ -9,9 +9,6 @@ from tsercom.api.runtime_manager_helpers import (
     ProcessCreator,
     SplitErrorWatcherSourceFactory,
 )
-from tsercom.api.runtime_factory_factory import (
-    RuntimeFactoryFactory,
-)  # For RuntimeFuturePopulator client typing
 from tsercom.api.local_process.local_runtime_factory_factory import (
     LocalRuntimeFactoryFactory,
 )
@@ -24,7 +21,6 @@ from tsercom.api.split_process.split_process_error_watcher_source import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.api.runtime_handle import RuntimeHandle
-from tsercom.threading.error_watcher import ErrorWatcher
 
 
 @pytest.fixture
@@ -84,7 +80,6 @@ def mock_runtime_initializer(mocker):
 
 
 class TestRuntimeManager:
-
     def test_initialization_with_no_arguments(self, mocker):
         """Test RuntimeManager() with no arguments: Ensure internal dependencies are created."""
         # We can't easily isinstance check the thread pools inside the default factories,
@@ -112,9 +107,7 @@ class TestRuntimeManager:
         # that will be created by RuntimeManager
         mock_thread_watcher_instance = mock_tw.return_value
         mock_thread_pool = mocker.MagicMock()
-        mock_thread_watcher_instance.create_tracked_thread_pool_executor.return_value = (
-            mock_thread_pool
-        )
+        mock_thread_watcher_instance.create_tracked_thread_pool_executor.return_value = mock_thread_pool
 
         manager = RuntimeManager(is_testing=True)
 
@@ -293,12 +286,15 @@ class TestRuntimeManager:
         mock_handle = MagicMock(spec=RuntimeHandle)
         future_handle.set_result(mock_handle)
 
-        returned_handles = asyncio.run(
+        returned_value = asyncio.run(
             manager_with_mocks.start_in_process_async()
         )
 
         mock_start_in_process_sync.assert_called_once_with(loop)
-        assert returned_handles == [mock_handle]
+        assert returned_value is None
+        # Verify that the future was indeed populated, which is the primary
+        # way to get the handle now.
+        assert future_handle.result(timeout=0) == mock_handle
 
     @patch(
         "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
@@ -500,51 +496,6 @@ class TestRuntimeManager:
         manager_with_mocks.check_for_exception()
         mock_thread_watcher.check_for_exception.assert_called_once()
 
-    # This test appears duplicated in the source, ensure it's the correct one to keep or modify
-    def test_check_for_exception_not_started(
-        self, manager_with_mocks, mock_thread_watcher
-    ):
-        """Test check_for_exception does nothing if not started."""
-        manager_with_mocks.check_for_exception()
-        mock_thread_watcher.check_for_exception.assert_not_called()
-
-    def test_check_for_exception_error_watcher_none(
-        self, manager_with_mocks, mocker
-    ):
-        """Test RuntimeError if __error_watcher is None but manager started for check_for_exception."""
-        mocker.patch.object(
-            RuntimeManager,
-            "has_started",
-            new_callable=PropertyMock,
-            return_value=True,
-        )
-        # manager_with_mocks._RuntimeManager__error_watcher = None # No longer relevant for this check
-        manager_with_mocks._RuntimeManager__thread_watcher = (
-            None  # This should trigger the error
-        )
-        with pytest.raises(
-            RuntimeError,
-            match="Error watcher is not available. Ensure the RuntimeManager has been properly started.",
-        ):
-            manager_with_mocks.check_for_exception()
-
-    def test_check_for_exception_calls_thread_watcher(  # Renamed
-        self, manager_with_mocks, mock_thread_watcher, mocker
-    ):
-        """Verify calls to mock_thread_watcher.check_for_exception()."""  # Simplified
-        mocker.patch.object(
-            RuntimeManager,
-            "has_started",
-            new_callable=PropertyMock,
-            return_value=True,
-        )
-        # __error_watcher state doesn't influence the call to __thread_watcher here
-        manager_with_mocks._RuntimeManager__thread_watcher = (
-            mock_thread_watcher
-        )
-        manager_with_mocks.check_for_exception()
-        mock_thread_watcher.check_for_exception.assert_called_once()
-
     def test_runtime_future_populator_indirectly(
         self, manager_with_mocks, mock_local_rff, mock_runtime_initializer
     ):
@@ -615,9 +566,6 @@ class TestRuntimeManager:
 
         # And ensure that the .start() method of the *mocked Process object that could have been returned*
         # was not called.
-        mock_process_instance_that_was_not_returned = (
-            mock_process_creator.create_process.return_value
-        )  # This is None now
         # So we check the mock that *would* have been returned if create_process didn't return None
         # This is a bit tricky. Let's re-evaluate.
         # The intent is: if self.__process_creator.create_process returns None, then self.__process is None,

@@ -1,5 +1,4 @@
 import pytest
-import threading  # For type hinting if necessary, though FakeThread is used
 
 from tsercom.api.split_process.event_source import EventSource
 from tsercom.data.event_instance import EventInstance  # For creating test data
@@ -16,14 +15,20 @@ class FakeThread:
         self.args = args
         self.daemon = daemon
         self._started = False
-        self._joined = False  # Not strictly needed by EventSource tests
+        self._joined = False
+        self._is_alive = False  # Initialize as not alive
 
     def start(self):
         self._started = True
+        self._is_alive = True  # Set to alive when started
         # For tests, target (loop_until_exception) will be called directly.
 
     def join(self, timeout=None):
         self._joined = True
+        self._is_alive = False  # Set to not alive after join
+
+    def is_alive(self):
+        return self._is_alive
 
 
 class FakeThreadWatcher:
@@ -347,7 +352,7 @@ def test_loop_terminates_on_stop_call(
     fake_is_running_tracker.set_is_running(True)
 
     event_source_instance.start(fake_thread_watcher)
-    loop_target = fake_thread_watcher.created_thread_target
+    # loop_target = fake_thread_watcher.created_thread_target # This was unused
 
     # Simulate loop that stops after a few iterations
     max_iterations = 5  # Safety break for the test

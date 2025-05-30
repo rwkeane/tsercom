@@ -1,4 +1,4 @@
-"""Defines the InitializationPair class used in the tsercom API."""
+"""Defines InitializationPair, a utility class for managing asynchronous initialization of tsercom runtimes."""
 
 from concurrent.futures import Future
 from typing import Generic, TypeVar

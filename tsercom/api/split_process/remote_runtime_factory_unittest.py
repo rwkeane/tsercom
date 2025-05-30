@@ -1,5 +1,4 @@
 import pytest
-import importlib
 
 # Import the module to be tested and whose attributes will be patched
 import tsercom.api.split_process.remote_runtime_factory as remote_runtime_factory_module
@@ -101,11 +100,13 @@ class FakeEventSource:
         self.event_source_queue = event_source_queue
         self.start_called_with = None
         self.start_call_count = 0
+        self.is_running = False  # Added is_running attribute
         FakeEventSource._instances.append(self)
 
     def start(self, watcher):
         self.start_called_with = watcher
         self.start_call_count += 1
+        self.is_running = True  # Set to true when start is called
 
     @classmethod
     def get_last_instance(cls):
