@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 import functools
 
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -124,11 +123,21 @@ async def test_execute_periodically_calls_sleep_and_on_triggered(
     tracker = DataTimeoutTracker(timeout_seconds=test_timeout)
     await tracker._DataTimeoutTracker__register_impl(mock_tracked_object)
 
-    # Make _on_triggered raise BreakLoop to exit after one full iteration
-    mock_tracked_object._on_triggered.side_effect = BreakLoop
+    # Manually start the tracker's running state for direct test of __execute_periodically
+    tracker._DataTimeoutTracker__is_running.start()
 
-    with pytest.raises(BreakLoop):
-        await tracker._DataTimeoutTracker__execute_periodically()
+    def stop_and_raise_breakloop_on_triggered(*args, **kwargs):
+        tracker._DataTimeoutTracker__is_running.stop()
+        raise BreakLoop("Break from _on_triggered")
+
+    mock_tracked_object._on_triggered.side_effect = (
+        stop_and_raise_breakloop_on_triggered
+    )
+
+    # __execute_periodically will catch BreakLoop from _on_triggered and log it.
+    # The loop terminates because __is_running is set to False by the side effect.
+    await tracker._DataTimeoutTracker__execute_periodically()
+    # No explicit stop needed here as the side effect handles it.
 
     mock_asyncio_sleep.assert_called_once_with(test_timeout)
     mock_tracked_object._on_triggered.assert_called_once_with(test_timeout)
@@ -151,11 +160,20 @@ async def test_execute_periodically_multiple_objects(
     await tracker._DataTimeoutTracker__register_impl(tracked_obj1)
     await tracker._DataTimeoutTracker__register_impl(tracked_obj2)
 
-    # Make the last object's _on_triggered raise BreakLoop
-    tracked_obj2._on_triggered.side_effect = BreakLoop
+    # Manually start the tracker's running state
+    tracker._DataTimeoutTracker__is_running.start()
 
-    with pytest.raises(BreakLoop):
-        await tracker._DataTimeoutTracker__execute_periodically()
+    def stop_and_raise_breakloop_on_obj2_triggered(*args, **kwargs):
+        tracker._DataTimeoutTracker__is_running.stop()
+        raise BreakLoop("Break from obj2._on_triggered")
+
+    tracked_obj2._on_triggered.side_effect = (
+        stop_and_raise_breakloop_on_obj2_triggered
+    )
+
+    # __execute_periodically will catch BreakLoop from _on_triggered and log it.
+    await tracker._DataTimeoutTracker__execute_periodically()
+    # No explicit stop needed here.
 
     mock_asyncio_sleep.assert_called_once_with(test_timeout)
     tracked_obj1._on_triggered.assert_called_once_with(test_timeout)
@@ -167,11 +185,27 @@ async def test_execute_periodically_no_tracked_objects(mock_asyncio_sleep):
     test_timeout = 15
     tracker = DataTimeoutTracker(timeout_seconds=test_timeout)
 
-    # asyncio.sleep itself will raise BreakLoop because no _on_triggered to attach it to
-    mock_asyncio_sleep.side_effect = BreakLoop
+    # Manually start the tracker's running state
+    tracker._DataTimeoutTracker__is_running.start()
 
-    with pytest.raises(BreakLoop):
+    def stop_and_raise_breakloop_on_sleep(*args, **kwargs):
+        # This exception should propagate out of __execute_periodically
+        # because the try-except in SUT only covers _on_triggered.
+        # tracker._DataTimeoutTracker__is_running.stop() # Stop to ensure loop termination if BreakLoop was caught
+        raise BreakLoop("Break from sleep")
+
+    mock_asyncio_sleep.side_effect = stop_and_raise_breakloop_on_sleep
+
+    with pytest.raises(BreakLoop, match="Break from sleep"):
         await tracker._DataTimeoutTracker__execute_periodically()
+
+    # Explicitly stop if BreakLoop didn't also stop it via side effect,
+    # or if the test needs to ensure it's stopped regardless.
+    # Given stop_and_raise_breakloop_on_sleep doesn't stop it, we might need it here if loop could continue.
+    # However, if BreakLoop propagates, __is_running.stop() might not be strictly necessary for this test's assertions.
+    # For safety and consistency, ensuring it's stopped if it was started:
+    if tracker._DataTimeoutTracker__is_running.get():
+        tracker._DataTimeoutTracker__is_running.stop()
 
     mock_asyncio_sleep.assert_called_once_with(test_timeout)
 
@@ -203,32 +237,34 @@ async def test_execute_periodically_handles_exception_in_on_triggered_and_contin
     await tracker._DataTimeoutTracker__register_impl(tracked_obj2)
     await tracker._DataTimeoutTracker__register_impl(tracked_obj3)
 
-    # Expect BreakLoop because obj3 should be reached and its _on_triggered will raise it.
-    # The RuntimeError from obj2 should be caught by the SUT if it's designed to be robust.
-    # Current SUT: It does NOT catch errors in _on_triggered. So this test needs to expect RuntimeError.
+    # Manually start the tracker's running state
+    tracker._DataTimeoutTracker__is_running.start()
 
-    mock_asyncio_sleep.reset_mock()  # Reset as sleep might not be reached if error occurs earlier
-    tracked_obj1._on_triggered.reset_mock()
-    tracked_obj2._on_triggered.reset_mock()
-    tracked_obj3._on_triggered.reset_mock()
+    def stop_and_raise_breakloop_on_obj3_triggered(*args, **kwargs):
+        tracker._DataTimeoutTracker__is_running.stop()
+        raise BreakLoop("Break from obj3._on_triggered")
 
-    tracked_obj2._on_triggered.side_effect = RuntimeError(
-        "Error from obj2"
-    )  # This error will propagate
+    tracked_obj2._on_triggered.side_effect = (
+        RuntimeError(  # This will be caught and logged by SUT
+            "Test error in _on_triggered"
+        )
+    )
+    tracked_obj3._on_triggered.side_effect = (
+        stop_and_raise_breakloop_on_obj3_triggered
+    )
 
-    with pytest.raises(RuntimeError, match="Error from obj2"):
-        await tracker._DataTimeoutTracker__execute_periodically()
+    # __execute_periodically will catch RuntimeError and BreakLoop. Loop terminates via side effect.
+    await tracker._DataTimeoutTracker__execute_periodically()
+    # No explicit stop needed here.
 
     mock_asyncio_sleep.assert_called_once_with(test_timeout)
     tracked_obj1._on_triggered.assert_called_once_with(test_timeout)
-    tracked_obj2._on_triggered.assert_called_once_with(test_timeout)
-    tracked_obj3._on_triggered.assert_not_called()  # Not called due to error from obj2 stopping the loop iteration
+    tracked_obj2._on_triggered.assert_called_once_with(
+        test_timeout
+    )  # Error is caught, loop continues
+    tracked_obj3._on_triggered.assert_called_once_with(
+        test_timeout
+    )  # Should be called now
 
-    # To test "continues after exception", the SUT's __execute_periodically would need:
-    # for tracked in self.__tracked_list:
-    #     try:
-    #         tracked._on_triggered(self.__timeout_seconds)
-    #     except Exception:
-    #         # log error, continue
-    #         pass
-    # Since SUT doesn't have this, the current assertions are correct for its behavior.
+    # The SUT now catches exceptions from _on_triggered and continues,
+    # so all assertions about calls should hold.

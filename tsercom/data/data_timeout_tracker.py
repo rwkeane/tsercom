@@ -1,3 +1,6 @@
+"""Defines DataTimeoutTracker for managing and triggering periodic timeout notifications for registered objects."""
+
+import logging  # Add logging import
 from abc import ABC, abstractmethod
 import asyncio
 from functools import partial
@@ -7,6 +10,11 @@ from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
+from tsercom.util.is_running_tracker import (
+    IsRunningTracker,
+)  # Add IsRunningTracker import
+
+logger = logging.getLogger(__name__)
 
 
 class DataTimeoutTracker:
@@ -43,6 +51,7 @@ class DataTimeoutTracker:
         """
         self.__timeout_seconds: int = timeout_seconds
         self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
+        self.__is_running: IsRunningTracker = IsRunningTracker()
 
     def register(self, tracked: Tracked) -> None:
         """Registers a 'Tracked' object to be monitored for timeouts.
@@ -64,17 +73,42 @@ class DataTimeoutTracker:
             tracked: The `Tracked` object to add to the list.
         """
         # Ensure this part of the registration runs on the designated event loop.
-        assert (
-            is_running_on_event_loop()
-        ), "Registration implementation must run on the event loop."
+        assert is_running_on_event_loop(), (
+            "Registration implementation must run on the event loop."
+        )
         self.__tracked_list.append(tracked)
 
     def start(self) -> None:
         """Starts the periodic timeout checking mechanism.
 
         This schedules the `__execute_periodically` coroutine on the event loop.
+        Raises:
+            RuntimeError: If the tracker is already running.
         """
+        self.__is_running.start()
         run_on_event_loop(self.__execute_periodically)
+
+    def stop(self) -> None:
+        """Signals the periodic timeout execution to stop.
+
+        This method is thread-safe; the stop signal is scheduled on the event loop.
+        """
+        if self.__is_running.get():  # Check if running before trying to stop
+            run_on_event_loop(self.__signal_stop_impl)
+
+    async def __signal_stop_impl(self) -> None:
+        """Internal implementation to signal stop on the event loop."""
+        # Ensure this runs on the loop, though run_on_event_loop handles scheduling
+        assert is_running_on_event_loop(), (
+            "Stop signal must be processed on the event loop."
+        )
+        if self.__is_running.get():  # Double check on the loop
+            self.__is_running.stop()
+            logger.info("DataTimeoutTracker stop signaled.")
+        else:
+            logger.info(
+                "DataTimeoutTracker already stopped or stop signal processed."
+            )
 
     async def __execute_periodically(self) -> None:
         """Periodically triggers the timeout callback on all registered objects.
@@ -82,8 +116,41 @@ class DataTimeoutTracker:
         This coroutine runs indefinitely, sleeping for `__timeout_seconds`
         and then calling `_on_triggered` for each registered `Tracked` object.
         """
-        # Loop indefinitely to provide continuous timeout monitoring.
-        while True:
+        logger.info("DataTimeoutTracker: Starting periodic execution.")
+        while self.__is_running.get():
             await asyncio.sleep(self.__timeout_seconds)
-            for tracked_item in self.__tracked_list:
-                tracked_item._on_triggered(self.__timeout_seconds)
+            if not self.__is_running.get():
+                break
+            for tracked_item in list(self.__tracked_list): # Iterate a copy
+                try:
+                    tracked_item._on_triggered(self.__timeout_seconds)
+                except Exception as e:
+                    logger.error(
+                        f"Exception in DataTimeoutTracker._on_triggered for {tracked_item}: {e}",
+                        exc_info=True,
+                    )
+        logger.info("DataTimeoutTracker: Stopped periodic execution.")
+
+    def unregister(self, tracked: Tracked) -> None:
+        """Unregisters a 'Tracked' object.
+
+        The unregistration is performed asynchronously on the event loop.
+
+        Args:
+            tracked: The object to unregister.
+        """
+        run_on_event_loop(partial(self.__unregister_impl, tracked))
+
+    async def __unregister_impl(self, tracked: Tracked) -> None:
+        """Internal implementation to unregister a 'Tracked' object."""
+        assert is_running_on_event_loop(), (
+            "Unregistration must run on the event loop."
+        )
+        try:
+            self.__tracked_list.remove(tracked)
+            logger.info(f"Unregistered item: {tracked}")
+        except ValueError:
+            logger.warning(
+                f"Attempted to unregister a non-registered or "
+                f"already unregistered item: {tracked}"
+            )

@@ -41,8 +41,10 @@ class CallerIdentifierWaiter:
             )
         return self.__caller_id
 
-    async def has_id(self) -> bool:
+    def has_id(self) -> bool:
         """Checks if the `CallerIdentifier` has been set.
+
+        This is a synchronous check.
 
         Returns:
             True if `__caller_id` has been set (is not `None`),

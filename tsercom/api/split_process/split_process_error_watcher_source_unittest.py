@@ -1,14 +1,10 @@
 import pytest
-import importlib
 
 # Module to be tested & whose attributes will be patched
 import tsercom.api.split_process.split_process_error_watcher_source as spews_module
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
-from tsercom.util.is_running_tracker import (
-    IsRunningTracker,
-)  # For isinstance checks
 
 # --- Fake Classes ---
 
@@ -199,24 +195,21 @@ def test_is_running_method(error_source):
     assert isinstance(internal_tracker, FakeIsRunningTracker)
 
     # Before start
-    assert error_source.is_running() is False
-    assert internal_tracker.get_call_count == 1  # is_running() calls get()
+    assert error_source.is_running is False  # Access as property
+    assert (
+        internal_tracker.get_call_count == 1
+    )  # is_running property calls get()
 
     # After start
     error_source.start()
-    assert error_source.is_running() is True
-    assert (
-        internal_tracker.get_call_count == 2
-    )  # get() called again (once in start, once in is_running)
-    # Actually, start calls tracker.start() which sets internal bool.
-    # is_running() calls get().
-    # Let's re-verify get_call_count logic for FakeIsRunningTracker
+    assert error_source.is_running is True  # Access as property
+    assert internal_tracker.get_call_count == 2  # get() called again
     # FakeIsRunningTracker.start() doesn't call get().
-    # So, after start(), first is_running() makes get_call_count = 2.
+    # So, after start(), first access to is_running property makes get_call_count = 2.
 
     # After stop
     error_source.stop()
-    assert error_source.is_running() is False
+    assert error_source.is_running is False  # Access as property
     assert internal_tracker.get_call_count == 3  # get() called again
 
 

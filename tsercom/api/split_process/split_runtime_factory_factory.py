@@ -1,7 +1,7 @@
 """Defines a factory for creating runtime factories and handles for split-process runtimes."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypeVar, Tuple  # Retaining Tuple for explicit type hinting
+from typing import TypeVar, Tuple
 
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.runtime_handle import RuntimeHandle
@@ -48,7 +48,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
 
     def _create_pair(
         self, initializer: RuntimeInitializer[TDataType, TEventType]
-    ) -> Tuple[  # Using typing.Tuple for explicit return type
+    ) -> Tuple[
         RuntimeHandle[TDataType, TEventType],
         RuntimeFactory[TDataType, TEventType],
     ]:
@@ -81,7 +81,9 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
             initializer, event_source, data_sink, runtime_command_source
         )
 
-        aggregator = RemoteDataAggregatorImpl[TDataType](
+        aggregator = RemoteDataAggregatorImpl[
+            TDataType
+        ](
             self.__thread_pool,
             client=initializer.data_aggregator_client,  # Client to consume aggregated data.
             timeout=initializer.timeout_seconds,

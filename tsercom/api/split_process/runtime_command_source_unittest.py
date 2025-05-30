@@ -1,6 +1,4 @@
 import pytest
-import importlib
-import threading  # For type hinting if necessary
 
 # Import the module to be tested and whose attributes will be patched
 import tsercom.api.split_process.runtime_command_source as rcs_module
@@ -9,9 +7,6 @@ from tsercom.api.split_process.runtime_command_source import (
 )
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.runtime.runtime import Runtime
-from tsercom.util.is_running_tracker import (
-    IsRunningTracker,
-)  # For isinstance checks
 
 # --- Fake Classes ---
 
@@ -89,6 +84,7 @@ class FakeThreadWatcher:
         self.created_thread_args = None
         self.created_thread_daemon = None
         self.fake_thread = None
+        self.last_exception_seen = None  # For on_exception_seen
 
     def create_tracked_thread(self, target, args=(), daemon=True):
         self.created_thread_target = target
@@ -96,6 +92,10 @@ class FakeThreadWatcher:
         self.created_thread_daemon = daemon
         self.fake_thread = FakeThread(target=target, args=args, daemon=daemon)
         return self.fake_thread
+
+    def on_exception_seen(self, exception: Exception) -> None:
+        """Records the exception seen by the thread watcher."""
+        self.last_exception_seen = exception
 
 
 class FakeIsRunningTracker:  # No global variable needed here
@@ -216,12 +216,12 @@ def test_start_async(
     )  # FakeIsRunningTracker is created here
 
     internal_fake_tracker = command_source._RuntimeCommandSource__is_running
-    assert (
-        internal_fake_tracker is not None
-    ), "Internal tracker not set after start_async"
-    assert isinstance(
-        internal_fake_tracker, FakeIsRunningTracker
-    ), "Internal tracker is not a FakeIsRunningTracker"
+    assert internal_fake_tracker is not None, (
+        "Internal tracker not set after start_async"
+    )
+    assert isinstance(internal_fake_tracker, FakeIsRunningTracker), (
+        "Internal tracker is not a FakeIsRunningTracker"
+    )
 
     assert (
         command_source._RuntimeCommandSource__runtime is fake_runtime_instance
@@ -249,9 +249,9 @@ def test_stop_async(
     """Test stop_async() method."""
     command_source.start_async(fake_thread_watcher, fake_runtime_instance)
     internal_fake_tracker = command_source._RuntimeCommandSource__is_running
-    assert isinstance(
-        internal_fake_tracker, FakeIsRunningTracker
-    ), "Internal tracker is not a FakeIsRunningTracker"
+    assert isinstance(internal_fake_tracker, FakeIsRunningTracker), (
+        "Internal tracker is not a FakeIsRunningTracker"
+    )
 
     command_source.stop_async()
     assert internal_fake_tracker.stop_call_count == 1
@@ -270,9 +270,9 @@ def setup_watch_commands_test(
     # patch_is_running_tracker_in_rcs_module should be active in the calling test function
     command_source.start_async(fake_thread_watcher, fake_runtime_instance)
     internal_fake_tracker = command_source._RuntimeCommandSource__is_running
-    assert isinstance(
-        internal_fake_tracker, FakeIsRunningTracker
-    ), "Internal tracker is not FakeIsRunningTracker in setup. Ensure calling test uses patch_is_running_tracker_in_rcs_module."
+    assert isinstance(internal_fake_tracker, FakeIsRunningTracker), (
+        "Internal tracker is not FakeIsRunningTracker in setup. Ensure calling test uses patch_is_running_tracker_in_rcs_module."
+    )
     loop_target_function = fake_thread_watcher.created_thread_target
     assert callable(loop_target_function)
     return internal_fake_tracker, loop_target_function

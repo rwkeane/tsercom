@@ -383,7 +383,7 @@ class RuntimeManager(ErrorWatcher):
         # Existing logic for stopping SplitProcessErrorWatcherSource
         # Assuming _RuntimeManager__error_watcher attribute exists (e.g. initialized to None or an object)
         if isinstance(self.__error_watcher, SplitProcessErrorWatcherSource):
-            if self.__error_watcher.is_running():
+            if self.__error_watcher.is_running:  # Access as a property
                 self.__error_watcher.stop()
 
         clear_tsercom_event_loop()
