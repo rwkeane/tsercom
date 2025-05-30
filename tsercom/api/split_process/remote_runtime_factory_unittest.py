@@ -339,8 +339,10 @@ def test_create_method(
 
     # Access properties to trigger lazy initialization of event_source and data_reader_sink
     # This ensures they exist before create() is called, if create() relies on them (e.g. event_source.start())
-    event_poller_instance = factory.event_poller # Calls _event_poller()
-    data_reader_instance = factory.remote_data_reader # Calls _remote_data_reader()
+    event_poller_instance = factory.event_poller  # Calls _event_poller()
+    data_reader_instance = (
+        factory.remote_data_reader
+    )  # Calls _remote_data_reader()
 
     returned_runtime = factory.create(
         fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
@@ -374,7 +376,9 @@ def test_create_method(
         data_reader_instance.data_reader_queue_sink
         is factory._RemoteRuntimeFactory__data_reader_queue
     )
-    assert factory._RemoteRuntimeFactory__data_reader_sink is data_reader_instance
+    assert (
+        factory._RemoteRuntimeFactory__data_reader_sink is data_reader_instance
+    )
 
     # Assert FakeRuntimeCommandSource interactions
     command_source_instance = FakeRuntimeCommandSource.get_last_instance()
@@ -407,7 +411,7 @@ def test_remote_data_reader_method(
 ):
     """Test RemoteRuntimeFactory._remote_data_reader() method."""
     # Call create() first to populate self.__data_reader
-    factory.create( # This call doesn't affect the sink/source for these tests
+    factory.create(  # This call doesn't affect the sink/source for these tests
         fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
     )
 
@@ -422,7 +426,7 @@ def test_event_poller_method(
     factory, fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
 ):
     """Test RemoteRuntimeFactory._event_poller() method."""
-    factory.create( # This call doesn't affect the sink/source for these tests
+    factory.create(  # This call doesn't affect the sink/source for these tests
         fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
     )
 

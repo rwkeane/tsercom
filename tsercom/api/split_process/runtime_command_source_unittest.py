@@ -69,7 +69,7 @@ class FakeThread:
 
     def start(self):
         self._started = True
-        self._is_alive = True # Assume alive once started
+        self._is_alive = True  # Assume alive once started
 
     def join(self, timeout=None):
         self.join_called = True

@@ -241,8 +241,10 @@ class TestRuntimeManager:
         mock_set_tsercom_event_loop.assert_called_once_with(loop)
         # For start_in_process, __error_watcher is not set; errors are handled by __thread_watcher.
         assert manager_with_mocks._RuntimeManager__error_watcher is None
-        assert manager_with_mocks._RuntimeManager__thread_watcher is mock_thread_watcher
-
+        assert (
+            manager_with_mocks._RuntimeManager__thread_watcher
+            is mock_thread_watcher
+        )
 
         # Check that create_factory was called on the local_rff
         # The client passed should be a RuntimeFuturePopulator
@@ -440,10 +442,10 @@ class TestRuntimeManager:
         ):
             manager_with_mocks.run_until_exception()
 
-    def test_run_until_exception_calls_thread_watcher( # Renamed
+    def test_run_until_exception_calls_thread_watcher(  # Renamed
         self, manager_with_mocks, mock_thread_watcher, mocker
     ):
-        """Verify calls to mock_thread_watcher.run_until_exception().""" # Simplified
+        """Verify calls to mock_thread_watcher.run_until_exception()."""  # Simplified
         mocker.patch.object(
             RuntimeManager,
             "has_started",
@@ -451,10 +453,11 @@ class TestRuntimeManager:
             return_value=True,
         )
         # __error_watcher state doesn't influence the call to __thread_watcher here
-        manager_with_mocks._RuntimeManager__thread_watcher = mock_thread_watcher
+        manager_with_mocks._RuntimeManager__thread_watcher = (
+            mock_thread_watcher
+        )
         manager_with_mocks.run_until_exception()
         mock_thread_watcher.run_until_exception.assert_called_once()
-
 
     def test_check_for_exception_not_started(
         self, manager_with_mocks, mock_thread_watcher
@@ -477,21 +480,23 @@ class TestRuntimeManager:
         manager_with_mocks._RuntimeManager__thread_watcher = None
         with pytest.raises(
             RuntimeError,
-            match="Error watcher is not available. Ensure the RuntimeManager has been properly started.", # Updated match
+            match="Error watcher is not available. Ensure the RuntimeManager has been properly started.",  # Updated match
         ):
             manager_with_mocks.check_for_exception()
 
-    def test_check_for_exception_calls_thread_watcher( # Renamed
+    def test_check_for_exception_calls_thread_watcher(  # Renamed
         self, manager_with_mocks, mock_thread_watcher, mocker
     ):
-        """Verify calls to mock_thread_watcher.check_for_exception().""" # Docstring updated & simplified
+        """Verify calls to mock_thread_watcher.check_for_exception()."""  # Docstring updated & simplified
         mocker.patch.object(
             RuntimeManager,
             "has_started",
             new_callable=PropertyMock,
             return_value=True,
         )
-        manager_with_mocks._RuntimeManager__thread_watcher = mock_thread_watcher
+        manager_with_mocks._RuntimeManager__thread_watcher = (
+            mock_thread_watcher
+        )
         manager_with_mocks.check_for_exception()
         mock_thread_watcher.check_for_exception.assert_called_once()
 
@@ -523,10 +528,10 @@ class TestRuntimeManager:
         ):
             manager_with_mocks.check_for_exception()
 
-    def test_check_for_exception_calls_thread_watcher( # Renamed
+    def test_check_for_exception_calls_thread_watcher(  # Renamed
         self, manager_with_mocks, mock_thread_watcher, mocker
     ):
-        """Verify calls to mock_thread_watcher.check_for_exception().""" # Simplified
+        """Verify calls to mock_thread_watcher.check_for_exception()."""  # Simplified
         mocker.patch.object(
             RuntimeManager,
             "has_started",
@@ -534,10 +539,11 @@ class TestRuntimeManager:
             return_value=True,
         )
         # __error_watcher state doesn't influence the call to __thread_watcher here
-        manager_with_mocks._RuntimeManager__thread_watcher = mock_thread_watcher
+        manager_with_mocks._RuntimeManager__thread_watcher = (
+            mock_thread_watcher
+        )
         manager_with_mocks.check_for_exception()
         mock_thread_watcher.check_for_exception.assert_called_once()
-
 
     def test_runtime_future_populator_indirectly(
         self, manager_with_mocks, mock_local_rff, mock_runtime_initializer

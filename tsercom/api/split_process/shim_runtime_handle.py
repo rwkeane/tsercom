@@ -1,8 +1,6 @@
 """Defines ShimRuntimeHandle for interacting with a runtime in a separate process."""
 
 import datetime  # Required for on_event overload, though not used in current simple form
-import time  # Added import
-from queue import Empty as QueueEmptyException  # Added import
 from typing import TypeVar, Optional
 
 from tsercom.caller_id.caller_identifier import (

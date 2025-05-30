@@ -582,7 +582,7 @@ def test_data_retrieval_non_existent_id(mock_thread_pool):
 
     # has_new_data should return False for a non-existent ID, not raise KeyError
     assert aggregator.has_new_data(non_existent_id) is False
-    
+
     # Other get* methods should still raise KeyError for a non-existent ID
     with pytest.raises(
         KeyError, match="Caller ID .* not found for get_new_data."

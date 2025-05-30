@@ -126,14 +126,22 @@ class IdTracker:
             if id in self.__id_to_address:
                 # ID already exists. Remove old mapping before adding the new one.
                 old_address_port = self.__id_to_address.pop(id)
-                if old_address_port in self.__address_to_id and self.__address_to_id[old_address_port] == id:
+                if (
+                    old_address_port in self.__address_to_id
+                    and self.__address_to_id[old_address_port] == id
+                ):
                     self.__address_to_id.pop(old_address_port)
-            
+
             # Now, check if the new address/port is already mapped to a *different* ID.
             # If (address, port) is the same as old_address_port, this check is fine.
             # If (address, port) is new, this check is also fine.
             # If (address, port) is currently mapped to another ID, we should still raise an error.
-            if (address, port) in self.__address_to_id and self.__address_to_id[(address,port)] != id:
+            if (
+                address,
+                port,
+            ) in self.__address_to_id and self.__address_to_id[
+                (address, port)
+            ] != id:
                 raise KeyError(
                     f"New address ({address}:{port}) already mapped to a different ID ({self.__address_to_id[(address,port)]}). Cannot reassign to {id}."
                 )

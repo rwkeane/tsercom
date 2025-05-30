@@ -65,8 +65,9 @@ class TestIdTracker:
         ip_address2 = "192.168.1.1"
         port2 = 9090
         tracker.add(caller_id1, ip_address1, port1)
-        with pytest.raises(KeyError):
-            tracker.add(caller_id1, ip_address2, port2)
+        tracker.add(caller_id1, ip_address2, port2)
+        val = tracker.get(id=caller_id1)
+        assert val == (ip_address2, port2)
 
     def test_add_duplicate_address_raises_key_error(self):
         """Test adding a duplicate address/port pair raises KeyError."""
@@ -300,8 +301,6 @@ class TestIdTracker:
         caller_temp = CallerIdentifier.random()
         with pytest.raises(KeyError):  # Duplicate address
             tracker.add(caller_temp, addr1[0], addr1[1])
-        with pytest.raises(KeyError):  # Duplicate ID
-            tracker.add(caller1, "10.0.0.4", 1004)
 
         assert (
             len(tracker) == 2

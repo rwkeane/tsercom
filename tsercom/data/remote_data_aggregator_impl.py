@@ -157,7 +157,7 @@ class RemoteDataAggregatorImpl(
             if id is not None:
                 organizer = self.__organizers.get(id)
                 if organizer is None:
-                    return False # Reverted: Return False if ID is not found
+                    return False  # Reverted: Return False if ID is not found
                 return organizer.has_new_data()
 
             results = {}

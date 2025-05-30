@@ -12,7 +12,6 @@ from asyncio import AbstractEventLoop
 import asyncio
 from collections.abc import Callable
 from typing import Any, Coroutine, Optional, ParamSpec, TypeVar
-from concurrent.futures import Future
 
 import concurrent  # Changed import for Future
 from tsercom.threading.aio.global_event_loop import get_global_event_loop
