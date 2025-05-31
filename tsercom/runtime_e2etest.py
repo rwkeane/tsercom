@@ -15,11 +15,46 @@ from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
+import grpc  # For generic handler
+import logging  # For logging in FakeRuntime
+from typing import Optional  # For Optional type hint
+
+from tsercom.config.grpc_channel_config import (
+    GrpcChannelFactoryConfig,
+)  # Existing
+from tsercom.rpc.endpoints.test_connection_server import (
+    AsyncTestConnectionServer,
+)  # New
+from tsercom.rpc.grpc_util.grpc_service_publisher import (
+    GrpcServicePublisher,
+)  # New
+from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
+    TestConnectionCall,
+    TestConnectionResponse,
+)  # New
+from tsercom.runtime.runtime_config import (
+    RuntimeConfig,
+)  # New - For FakeRuntime type hint
+import os  # New import for path joining
+from tsercom.rpc.common.channel_info import ChannelInfo  # New import
+from tsercom.runtime.channel_factory_selector import (
+    ChannelFactorySelector,
+)  # New import
+from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
+    ClientAuthGrpcChannelFactory,
+)  # New
+from tsercom.rpc.grpc_util.transport.server_auth_grpc_channel_factory import (
+    ServerAuthGrpcChannelFactory,
+)  # New import
+from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory import (
+    PinnedServerAuthGrpcChannelFactory,
+)  # New
 from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
+TEST_SECURE_SERVER_PORT = 50099  # Ensured module level
 
 started = "STARTED"
 stopped = "STOPPED"
@@ -49,23 +84,73 @@ class FakeRuntime(Runtime):
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[FakeData, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
-        test_id: CallerIdentifier,  # Added test_id
+        test_id: CallerIdentifier,
+        runtime_config: RuntimeConfig,  # New
     ):
         self.__thread_watcher = thread_watcher
         self.__data_handler = data_handler
         self.__grpc_channel_factory = grpc_channel_factory
-        self.__test_id = test_id  # Store it
+        self.__test_id = test_id
+        self.__runtime_config = runtime_config  # New
         self.__responder: EndpointDataProcessor[FakeData] | None = None
-        self._data_sent = False  # For idempotency
+        self._data_sent = False
+        self.__service_publisher: Optional[GrpcServicePublisher] = None  # New
 
         super().__init__()
 
-    def __repr__(self) -> str:  # New __repr__ method
+    def __repr__(self) -> str:
         return f"<FakeRuntime instance at {id(self)}>"
 
     async def start_async(self) -> None:
-        # Ensure asyncio is imported in the file
-        # import asyncio # Usually at the top of the file
+        if self.__runtime_config.is_server():
+            # Start GrpcServicePublisher if this FakeRuntime is a server
+            self.__service_publisher = GrpcServicePublisher(
+                watcher=self.__thread_watcher,
+                port=TEST_SECURE_SERVER_PORT,  # Using a fixed test port
+                addresses=["0.0.0.0"],  # Listen on all interfaces for testing
+                server_key_path=self.__runtime_config.server_tls_key_path,
+                server_cert_path=self.__runtime_config.server_tls_cert_path,
+                client_ca_cert_path=self.__runtime_config.server_tls_client_ca_path,
+            )
+
+            def connect_call(server: grpc.Server):  # type: ignore
+                servicer = AsyncTestConnectionServer()  # Removed delay_s=0
+                # Using generic handler for simplicity
+                generic_handler = grpc.method_handlers_generic_handler(
+                    "TestConnectionService",  # Service name
+                    {
+                        "TestConnection": grpc.unary_unary_rpc_method_handler(  # RPC method name
+                            servicer.TestConnection,  # Corrected method attribute
+                            request_deserializer=TestConnectionCall.FromString,
+                            response_serializer=TestConnectionResponse.SerializeToString,
+                        )
+                    },
+                )
+                custom_handlers = [generic_handler]
+                # The GrpcServicePublisher's __server attribute is what we need to call add_generic_rpc_handlers on.
+                # This is an internal detail, but for this test FakeRuntime, it's how we hook it up.
+                # Alternatively, GrpcServicePublisher could expose a method to add generic handlers.
+                if (
+                    hasattr(
+                        self.__service_publisher,
+                        "_GrpcServicePublisher__server",
+                    )
+                    and self.__service_publisher._GrpcServicePublisher__server
+                    is not None
+                ):
+                    self.__service_publisher._GrpcServicePublisher__server.add_generic_rpc_handlers(
+                        custom_handlers
+                    )
+                else:
+                    logging.error(
+                        "GrpcServicePublisher's internal server not available for adding generic handlers."
+                    )
+
+            await self.__service_publisher.start_async(connect_call)
+            chosen_port = self.__service_publisher.get_chosen_port()
+            logging.info(
+                f"FakeRuntime server started its GrpcServicePublisher on port: {chosen_port}"
+            )
 
         current_task = None
         try:
@@ -119,13 +204,17 @@ class FakeRuntime(Runtime):
             )
 
     async def stop(self, exception) -> None:
-        assert self.__responder is not None
-        await self.__responder.process_data(FakeData(stopped), stop_timestamp)
+        if self.__service_publisher:
+            logging.info(
+                "FakeRuntime server stopping its GrpcServicePublisher..."
+            )
+            await self.__service_publisher.stop()
+            logging.info("FakeRuntime server GrpcServicePublisher stopped.")
 
-
-from tsercom.config.grpc_channel_config import (
-    GrpcChannelFactoryConfig,
-)  # Added import
+        if self.__responder is not None:  # Changed from assert to if
+            await self.__responder.process_data(
+                FakeData(stopped), stop_timestamp
+            )
 
 
 class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
@@ -133,14 +222,18 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
         self,
         test_id: CallerIdentifier,
         service_type="Client",
-        grpc_channel_factory_config: (
-            GrpcChannelFactoryConfig | None
-        ) = None,  # Added config
+        grpc_channel_factory_config: GrpcChannelFactoryConfig | None = None,
+        server_tls_key_path: Optional[str] = None,  # New
+        server_tls_cert_path: Optional[str] = None,  # New
+        server_tls_client_ca_path: Optional[str] = None,  # New
     ):
         super().__init__(
             service_type=service_type,
             grpc_channel_factory_config=grpc_channel_factory_config,
-        )  # Pass to super
+            server_tls_key_path=server_tls_key_path,  # Pass up
+            server_tls_cert_path=server_tls_cert_path,  # Pass up
+            server_tls_client_ca_path=server_tls_client_ca_path,  # Pass up
+        )
         self._test_id = test_id
 
     def create(
@@ -150,8 +243,12 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         return FakeRuntime(
-            thread_watcher, data_handler, grpc_channel_factory, self._test_id
-        )  # Pass it
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self._test_id,
+            runtime_config=self,  # Pass the initializer (self) as it is a RuntimeConfig
+        )
 
 
 # New Helper Classes
@@ -264,6 +361,9 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
                 grpc_channel_factory_config=GrpcChannelFactoryConfig(
                     factory_type="insecure"
                 ),
+                server_tls_key_path=None,  # Explicitly None for now
+                server_tls_cert_path=None,
+                server_tls_client_ca_path=None,
             )
         )
 
@@ -458,10 +558,11 @@ def test_out_of_process_error_check_for_exception(clear_loop_fixture):
         ErrorThrowingRuntimeInitializer(
             error_message=error_msg,
             error_type=ValueError,
-            service_type="Server",
+            service_type="Server",  # This will now also have server_tls_...=None by default from its __init__
             grpc_channel_factory_config=GrpcChannelFactoryConfig(
                 factory_type="insecure"
             ),
+            # No explicit server_tls settings here means they default to None in ErrorThrowingRuntimeInitializer
         )
     )
     # service_type="Server" is important because ErrorThrowingRuntimeInitializer
@@ -538,7 +639,7 @@ def test_out_of_process_error_run_until_exception(clear_loop_fixture):
     runtime_manager.register_runtime_initializer(
         ErrorThrowingRuntimeInitializer(
             error_message=error_msg,
-            error_type=RuntimeError,
+            error_type=RuntimeError,  # Defaults to service_type="Client", server_tls...=None
             grpc_channel_factory_config=GrpcChannelFactoryConfig(
                 factory_type="insecure"
             ),
@@ -593,7 +694,7 @@ def test_in_process_error_check_for_exception(clear_loop_fixture):
     runtime_manager.register_runtime_initializer(
         ErrorThrowingRuntimeInitializer(
             error_message=error_msg,
-            error_type=ValueError,
+            error_type=ValueError,  # Defaults to service_type="Client", server_tls...=None
             grpc_channel_factory_config=GrpcChannelFactoryConfig(
                 factory_type="insecure"
             ),
@@ -621,7 +722,7 @@ def test_out_of_process_initializer_create_error(clear_loop_fixture):
     runtime_manager.register_runtime_initializer(
         FaultyCreateRuntimeInitializer(
             error_message=error_msg,
-            error_type=TypeError,
+            error_type=TypeError,  # Defaults to service_type="Client", server_tls...=None
             grpc_channel_factory_config=GrpcChannelFactoryConfig(
                 factory_type="insecure"
             ),
@@ -631,3 +732,282 @@ def test_out_of_process_initializer_create_error(clear_loop_fixture):
     time.sleep(1.0)
     with pytest.raises(TypeError, match=error_msg):
         runtime_manager.check_for_exception()
+
+
+@pytest.mark.asyncio
+async def test_e2e_server_auth_secure_connection(clear_loop_fixture):
+    # Define paths to certs (assuming pytest runs from repo root)
+    certs_dir = "tsercom/test_utils/test_certs"
+    server_key_file = os.path.join(certs_dir, "server.key")
+    server_crt_file = os.path.join(certs_dir, "server.crt")
+    root_ca_file = os.path.join(certs_dir, "root_ca.pem")
+
+    # Server RuntimeManager and Initializer
+    server_manager = RuntimeManager(is_testing=True)
+    server_test_id = CallerIdentifier.random()
+    server_initializer = FakeRuntimeInitializer(
+        test_id=server_test_id,
+        service_type="Server",
+        grpc_channel_factory_config=None,  # Server doesn't use client factory for listening
+        server_tls_key_path=server_key_file,
+        server_tls_cert_path=server_crt_file,
+        server_tls_client_ca_path=None,  # Not mTLS for this test
+    )
+    server_handle_future = server_manager.register_runtime_initializer(
+        server_initializer
+    )
+    server_manager.start_out_of_process()  # Start server in a separate process
+    server_handle = None  # Initialize for finally block
+    try:
+        server_handle = server_handle_future.result(
+            timeout=10
+        )  # Increased timeout for process start
+        server_handle.start()
+
+        # Give server time to start its GrpcServicePublisher
+        await asyncio.sleep(1.0)  # Increased sleep for server to fully start
+
+        client_channel_factory_config = GrpcChannelFactoryConfig(
+            factory_type="server_auth",
+            root_ca_cert_pem_or_path=root_ca_file,
+            server_hostname_override="localhost",  # CN of server.crt is "localhost"
+        )
+
+        selector = ChannelFactorySelector()
+        actual_client_factory = selector.create_factory_from_config(
+            client_channel_factory_config
+        )
+        assert isinstance(actual_client_factory, ServerAuthGrpcChannelFactory)
+
+        channel_info: Optional[ChannelInfo] = None
+        try:
+            channel_info = await actual_client_factory.find_async_channel(
+                "127.0.0.1", TEST_SECURE_SERVER_PORT
+            )
+            assert (
+                channel_info is not None
+            ), "Client failed to connect using ServerAuthGrpcChannelFactory"
+            assert (
+                channel_info.channel is not None
+            ), "ChannelInfo has no channel object"
+
+            # Method path for TestConnectionService.TestConnection
+            method_path = "/TestConnectionService/TestConnection"  # Corrected method name in path
+
+            request = TestConnectionCall()
+
+            response = await channel_info.channel.unary_unary(
+                method_path,
+                request_serializer=TestConnectionCall.SerializeToString,
+                response_deserializer=TestConnectionResponse.FromString,
+            )(request)
+
+            assert isinstance(
+                response, TestConnectionResponse
+            ), "RPC call failed or returned wrong type"
+            logging.info(
+                "Successfully connected and made RPC call using ServerAuthGrpcChannelFactory."
+            )
+
+        except grpc.aio.AioRpcError as e:
+            pytest.fail(
+                f"ServerAuth E2E test RPC call failed: {e.code()} - {e.details()} - Debug: {e.debug_error_string()}"
+            )
+        except Exception as e:
+            pytest.fail(
+                f"ServerAuth E2E test failed with unexpected error: {e}"
+            )
+        finally:
+            if channel_info and channel_info.channel:
+                await channel_info.channel.close()
+    finally:
+        if server_handle:
+            server_handle.stop()
+        server_manager.shutdown()
+        await asyncio.sleep(0.1)  # Brief pause for cleanup
+
+
+@pytest.mark.asyncio
+async def test_e2e_client_auth_mtls_secure_connection(clear_loop_fixture):
+    # Define paths to certs
+    certs_dir = "tsercom/test_utils/test_certs"
+    server_key_file = os.path.join(certs_dir, "server.key")
+    server_crt_file = os.path.join(certs_dir, "server.crt")
+    client_key_file = os.path.join(certs_dir, "client.key")
+    client_crt_file = os.path.join(certs_dir, "client.crt")
+    root_ca_file = os.path.join(certs_dir, "root_ca.pem")
+
+    # Server RuntimeManager and Initializer (configured for mTLS)
+    server_manager = RuntimeManager(is_testing=True)
+    server_test_id = CallerIdentifier.random()
+    server_initializer = FakeRuntimeInitializer(
+        test_id=server_test_id,
+        service_type="Server",
+        grpc_channel_factory_config=None,
+        server_tls_key_path=server_key_file,
+        server_tls_cert_path=server_crt_file,
+        server_tls_client_ca_path=root_ca_file,  # Server expects client cert signed by this CA
+    )
+    server_handle_future = server_manager.register_runtime_initializer(
+        server_initializer
+    )
+    server_manager.start_out_of_process()
+    server_handle = None
+    try:
+        server_handle = server_handle_future.result(timeout=10)
+        server_handle.start()
+
+        await asyncio.sleep(1.0)  # Give server time to start
+
+        # Client Channel Factory Configuration for mTLS
+        client_channel_factory_config = GrpcChannelFactoryConfig(
+            factory_type="client_auth",
+            client_cert_pem_or_path=client_crt_file,
+            client_key_pem_or_path=client_key_file,
+            root_ca_cert_pem_or_path=root_ca_file,  # Client uses this to verify server
+            server_hostname_override="localhost",
+        )
+
+        selector = ChannelFactorySelector()
+        actual_client_factory = selector.create_factory_from_config(
+            client_channel_factory_config
+        )
+        assert isinstance(actual_client_factory, ClientAuthGrpcChannelFactory)
+
+        channel_info: Optional[ChannelInfo] = None
+        try:
+            channel_info = await actual_client_factory.find_async_channel(
+                "127.0.0.1", TEST_SECURE_SERVER_PORT
+            )
+            assert (
+                channel_info is not None
+            ), "Client failed to connect using ClientAuthGrpcChannelFactory (mTLS)"
+            assert (
+                channel_info.channel is not None
+            ), "ChannelInfo has no channel object (mTLS)"
+
+            method_path = "/TestConnectionService/TestConnection"
+            request = TestConnectionCall()
+
+            response = await channel_info.channel.unary_unary(
+                method_path,
+                request_serializer=TestConnectionCall.SerializeToString,
+                response_deserializer=TestConnectionResponse.FromString,
+            )(request)
+
+            assert isinstance(
+                response, TestConnectionResponse
+            ), "mTLS RPC call failed or returned wrong type"
+            logging.info(
+                "Successfully connected and made RPC call using ClientAuthGrpcChannelFactory (mTLS)."
+            )
+
+        except grpc.aio.AioRpcError as e:
+            pytest.fail(
+                f"ClientAuth (mTLS) E2E test RPC call failed: {e.code()} - {e.details()} - Debug: {e.debug_error_string()}"
+            )
+        except Exception as e:
+            pytest.fail(
+                f"ClientAuth (mTLS) E2E test failed with unexpected error: {type(e).__name__} - {e}"
+            )
+        finally:
+            if channel_info and channel_info.channel:
+                await channel_info.channel.close()
+    finally:
+        if server_handle:
+            server_handle.stop()
+        server_manager.shutdown()
+        await asyncio.sleep(0.1)
+
+
+@pytest.mark.asyncio
+async def test_e2e_pinned_server_auth_secure_connection(clear_loop_fixture):
+    # Define paths to certs
+    certs_dir = "tsercom/test_utils/test_certs"
+    server_key_file = os.path.join(certs_dir, "server.key")
+    server_crt_file = os.path.join(certs_dir, "server.crt")
+    # root_ca_file is not strictly needed by the client for pinning, nor by server if not doing mTLS.
+
+    # Server RuntimeManager and Initializer (basic TLS, no client auth required by server)
+    server_manager = RuntimeManager(is_testing=True)
+    server_test_id = CallerIdentifier.random()
+    server_initializer = FakeRuntimeInitializer(
+        test_id=server_test_id,
+        service_type="Server",
+        grpc_channel_factory_config=None,
+        server_tls_key_path=server_key_file,
+        server_tls_cert_path=server_crt_file,
+        server_tls_client_ca_path=None,  # Server does not require client certs for this test
+    )
+    server_handle_future = server_manager.register_runtime_initializer(
+        server_initializer
+    )
+    server_manager.start_out_of_process()
+    server_handle = None
+    try:
+        server_handle = server_handle_future.result(
+            timeout=10
+        )  # Adjusted timeout
+        server_handle.start()
+
+        await asyncio.sleep(1.0)  # Give server time to start
+
+        # Client Channel Factory Configuration for Pinned Server Auth
+        client_channel_factory_config = GrpcChannelFactoryConfig(
+            factory_type="pinned_server_auth",
+            expected_server_cert_pem_or_path=server_crt_file,  # Client pins the server's actual certificate
+            server_hostname_override="localhost",  # CN of server.crt is "localhost"
+        )
+
+        selector = ChannelFactorySelector()
+        actual_client_factory = selector.create_factory_from_config(
+            client_channel_factory_config
+        )
+        assert isinstance(
+            actual_client_factory, PinnedServerAuthGrpcChannelFactory
+        )
+
+        channel_info: Optional[ChannelInfo] = None
+        try:
+            channel_info = await actual_client_factory.find_async_channel(
+                "127.0.0.1", TEST_SECURE_SERVER_PORT
+            )
+            assert (
+                channel_info is not None
+            ), "Client failed to connect using PinnedServerAuthGrpcChannelFactory"
+            assert (
+                channel_info.channel is not None
+            ), "ChannelInfo has no channel object (PinnedServerAuth)"
+
+            method_path = "/TestConnectionService/TestConnection"
+            request = TestConnectionCall()
+
+            response = await channel_info.channel.unary_unary(
+                method_path,
+                request_serializer=TestConnectionCall.SerializeToString,
+                response_deserializer=TestConnectionResponse.FromString,
+            )(request)
+
+            assert isinstance(
+                response, TestConnectionResponse
+            ), "PinnedServerAuth RPC call failed or returned wrong type"
+            logging.info(
+                "Successfully connected and made RPC call using PinnedServerAuthGrpcChannelFactory."
+            )
+
+        except grpc.aio.AioRpcError as e:
+            pytest.fail(
+                f"PinnedServerAuth E2E test RPC call failed: {e.code()} - {e.details()} - Debug: {e.debug_error_string()}"
+            )
+        except Exception as e:
+            pytest.fail(
+                f"PinnedServerAuth E2E test failed with unexpected error: {type(e).__name__} - {e}"
+            )
+        finally:
+            if channel_info and channel_info.channel:
+                await channel_info.channel.close()
+    finally:
+        if server_handle:
+            server_handle.stop()
+        server_manager.shutdown()
+        await asyncio.sleep(0.1)

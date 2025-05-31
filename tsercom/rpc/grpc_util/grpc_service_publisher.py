@@ -42,6 +42,7 @@ class GrpcServicePublisher:
         self.__port = port
         self.__server: grpc.Server = None  # type: ignore
         self.__watcher = watcher
+        self._chosen_port: Optional[int] = None  # Added
         self.__server_key_path = server_key_path
         self.__server_cert_path = server_cert_path
         self.__client_ca_cert_path = client_ca_cert_path
@@ -57,11 +58,11 @@ class GrpcServicePublisher:
         self._connect()
         self.__server.start()
 
-    def start_async(self, connect_call: AddServicerCB) -> None:
+    async def start_async(self, connect_call: AddServicerCB) -> None:
         """
         Starts an asynchronous server.
         """
-        run_on_event_loop(partial(self.__start_async_impl, connect_call))
+        await self.__start_async_impl(connect_call)
 
     async def __start_async_impl(self, connect_call: AddServicerCB) -> None:
         """Internal implementation to start the asynchronous gRPC server.
@@ -135,6 +136,10 @@ class GrpcServicePublisher:
                         port_out = self.__server.add_secure_port(  # type: ignore
                             f"{address}:{self.__port}", server_credentials
                         )
+                        if (
+                            worked == 0
+                        ):  # Store the first successfully bound port
+                            self._chosen_port = port_out
                         logging.info(
                             f"Running SECURE gRPC Server on {address}:{port_out} (expected: {self.__port})"
                         )
@@ -168,6 +173,8 @@ class GrpcServicePublisher:
                     port_out = self.__server.add_insecure_port(  # type: ignore
                         f"{address}:{self.__port}"
                     )
+                    if worked == 0:  # Store the first successfully bound port
+                        self._chosen_port = port_out
                     logging.info(
                         f"Running INSECURE gRPC Server on {address}:{port_out} (expected: {self.__port})"
                     )
@@ -190,11 +197,29 @@ class GrpcServicePublisher:
 
         return worked > 0  # Returns True if at least one address was bound
 
-    def stop(self) -> None:
+    def get_chosen_port(self) -> Optional[int]:
+        return self._chosen_port
+
+    async def stop(self, grace: Optional[float] = None) -> None:
         """
         Stops the server.
         """
         if self.__server is None:
-            raise RuntimeError("Server not started")
-        self.__server.stop(0)  # type: ignore # This is a blocking call for non-async server, grace=0 for async
+            # It's possible stop is called before start_async completed or if _connect failed.
+            logging.info(
+                "gRPC Server stop called, but server was not fully started or not running."
+            )
+            return
+
+        # Check if it's an async server (grpc.aio.Server)
+        # Need to import asyncio for iscoroutinefunction if not already available
+        import asyncio
+
+        if hasattr(self.__server, "stop") and asyncio.iscoroutinefunction(self.__server.stop):  # type: ignore
+            await self.__server.stop(grace)  # type: ignore
+        else:
+            # For synchronous server, stop is blocking and might not have grace.
+            # This part of the code might need to be run in an executor if called from async code.
+            # However, start_async sets up an async server, so this branch is less likely with current usage.
+            self.__server.stop(0)  # type: ignore
         logging.info("gRPC Server stopped.")
