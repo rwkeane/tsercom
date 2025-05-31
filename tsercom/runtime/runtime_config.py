@@ -9,6 +9,13 @@ TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
 TEventType = TypeVar("TEventType")
 
 
+class ServiceType(Enum):
+    """Defines the type of service for a Tsercom runtime."""
+
+    kClient = 0
+    kServer = 1
+
+
 class RuntimeConfig(Generic[TDataType]):
     """Holds configuration parameters for a Tsercom runtime.
 
@@ -91,7 +98,11 @@ class RuntimeConfig(Generic[TDataType]):
                 self.__service_type = ServiceType.kServer
             else:
                 raise ValueError(f"Invalid service type: {service_type}")
+        elif isinstance(service_type, ServiceType):
             self.__service_type = service_type
+        else:
+            # This case should ideally not be reached if type hints are respected.
+            raise TypeError(f"Unsupported service_type: {type(service_type)}")
 
         self.__data_aggregator_client: Optional[
             RemoteDataAggregator[TDataType]
@@ -126,9 +137,19 @@ class RuntimeConfig(Generic[TDataType]):
     @property
     def service_type_enum(self) -> "ServiceType":
         """Returns the raw ServiceType enum value."""
-        return (
-            self.__service_type
-        )  # __service_type is ServiceType | str, but should be ServiceType after __init__ logic
+        if isinstance(self.__service_type, str):
+            # This block is to handle the case where __service_type might still be a string.
+            # This should ideally be fully resolved by the __init__ logic.
+            if self.__service_type == "Client":
+                return ServiceType.kClient
+            elif self.__service_type == "Server":
+                return ServiceType.kServer
+            else:
+                # Should not happen based on current __init__
+                raise ValueError(
+                    f"Invalid string for service_type: {self.__service_type}"
+                )
+        return self.__service_type
 
     @property
     def data_aggregator_client(

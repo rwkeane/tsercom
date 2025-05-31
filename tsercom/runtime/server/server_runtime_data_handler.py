@@ -101,7 +101,7 @@ class ServerRuntimeDataHandler(
         Args:
             caller_id: The `CallerIdentifier` of the caller to unregister.
         """
-        return False 
+        return False
 
     def _try_get_caller_id(
         self, endpoint: str, port: int
