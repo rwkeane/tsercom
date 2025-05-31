@@ -47,9 +47,7 @@ def initialize_runtimes(
     """
     assert is_global_event_loop_set()
 
-    channel_factory_selector = (
-        ChannelFactorySelector()
-    )  # Instantiate selector once
+    channel_factory_selector = ChannelFactorySelector()
 
     runtimes: List[Runtime] = []
     for factory_idx, initializer_factory in enumerate(initializers):
