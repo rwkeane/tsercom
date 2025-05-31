@@ -66,9 +66,8 @@ class FakeRuntime(Runtime):
         return f"<FakeRuntime instance at {id(self)}>"
 
     async def start_async(self) -> None:
-        current_task = None
         try:
-            current_task = asyncio.current_task()
+            asyncio.current_task()
         except RuntimeError:
             pass
 
@@ -94,9 +93,7 @@ class FakeRuntime(Runtime):
 
 
 class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
-    def __init__(
-        self, test_id: CallerIdentifier, service_type="Client"
-    ):
+    def __init__(self, test_id: CallerIdentifier, service_type="Client"):
         super().__init__(service_type=service_type)
         self._test_id = test_id
 
@@ -225,7 +222,9 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
             waited_time += poll_interval
 
         runtime_manager.check_for_exception()
-        assert data_arrived, f"Aggregator did not receive data for test_id ({current_test_id}) within {max_wait_time}s"
+        assert (
+            data_arrived
+        ), f"Aggregator did not receive data for test_id ({current_test_id}) within {max_wait_time}s"
         assert data_aggregator.has_new_data(current_test_id)
 
         values = data_aggregator.get_new_data(current_test_id)
@@ -236,7 +235,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         assert isinstance(first, AnnotatedInstance)
         assert isinstance(first.data, FakeData)
         expected_fresh_value = "FRESH_SIMPLE_DATA_V2"
-        actual_value_for_log = first.data.value if hasattr(first.data, "value") else "N/A"
+        # actual_value_for_log was removed as it was unused
         assert first.data.value == expected_fresh_value
         assert isinstance(first.timestamp, datetime.datetime)
         assert first.caller_id == current_test_id
@@ -269,7 +268,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         if runtime_handle_for_cleanup:
             try:
                 runtime_handle_for_cleanup.stop()
-            except Exception as e_stop:
+            except Exception:
                 pass
         runtime_manager.shutdown()
 

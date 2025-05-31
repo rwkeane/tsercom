@@ -127,9 +127,7 @@ class TestDiscoverableGrpcEndpointConnector:
 
     @pytest.fixture
     def mock_channel_info(self, mocker):
-        return mocker.MagicMock(
-            spec=ChannelInfo, name="MockChannelInfo"
-        )
+        return mocker.MagicMock(spec=ChannelInfo, name="MockChannelInfo")
 
     @pytest.fixture
     def test_service_info(self):
@@ -219,9 +217,7 @@ class TestDiscoverableGrpcEndpointConnector:
         connector._DiscoverableGrpcEndpointConnector__event_loop = (
             asyncio.get_running_loop()
         )
-        mock_channel_factory.find_async_channel.return_value = (
-            None
-        )
+        mock_channel_factory.find_async_channel.return_value = None
         await connector._on_service_added(test_service_info, test_caller_id)
         mock_channel_factory.find_async_channel.assert_called_once_with(
             test_service_info.addresses, test_service_info.port
@@ -271,16 +267,12 @@ class TestDiscoverableGrpcEndpointConnector:
             test_caller_id
         )
         self.mocked_aio_utils["is_running_on_event_loop"].return_value = True
-        await connector.mark_client_failed(
-            test_caller_id
-        )
+        await connector.mark_client_failed(test_caller_id)
         assert (
             test_caller_id
             not in connector._DiscoverableGrpcEndpointConnector__callers
         )
-        self.mocked_aio_utils[
-            "run_on_event_loop"
-        ].assert_not_called()
+        self.mocked_aio_utils["run_on_event_loop"].assert_not_called()
 
     async def test_mark_client_failed_uses_run_on_event_loop_if_different_loop(
         self,
@@ -318,9 +310,7 @@ class TestDiscoverableGrpcEndpointConnector:
         assert isinstance(partial_arg, functools.partial)
         assert partial_arg.func.__name__ == "_mark_client_failed_impl"
         assert partial_arg.args == (test_caller_id,)
-        assert (
-            loop_arg is mock_target_loop
-        )
+        assert loop_arg is mock_target_loop
         assert (
             test_caller_id
             not in connector._DiscoverableGrpcEndpointConnector__callers
