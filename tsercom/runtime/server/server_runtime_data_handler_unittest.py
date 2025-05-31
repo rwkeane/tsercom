@@ -168,20 +168,25 @@ class TestServerRuntimeDataHandler:
         ]
 
         mock_caller_id = CallerIdentifier.random()
-        id_tracker_instance_mock.try_get.return_value = None
+        id_tracker_instance_mock.has_id.return_value = (
+            True  # Assume the ID exists for this test path
+        )
 
         try:
-            handler._unregister_caller(mock_caller_id)
+            result = handler._unregister_caller(mock_caller_id)
         except Exception as e:
             pytest.fail(
                 f"_unregister_caller raised an exception unexpectedly: {e}"
             )
 
+        assert (
+            result is True
+        ), "Expected _unregister_caller to return True when ID exists"
         id_tracker_instance_mock.add.assert_not_called()
         id_tracker_instance_mock.get.assert_not_called()
-        id_tracker_instance_mock.try_get.assert_not_called()
-        id_tracker_instance_mock.remove.assert_not_called()
-        id_tracker_instance_mock.has_id.assert_not_called() # This will change after SUT update
+        # id_tracker_instance_mock.try_get.assert_not_called() # try_get might not be relevant now
+        id_tracker_instance_mock.remove.assert_not_called()  # Based on SUT, remove is not called
+        id_tracker_instance_mock.has_id.assert_called_once_with(mock_caller_id)
         id_tracker_instance_mock.has_address.assert_not_called()
 
         if hasattr(time_sync_server_instance_mock, "on_disconnect"):

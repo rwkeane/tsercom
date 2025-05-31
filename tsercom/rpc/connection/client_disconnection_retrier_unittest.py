@@ -5,6 +5,7 @@ import pytest
 import pytest_asyncio
 import logging
 from functools import partial
+from unittest.mock import AsyncMock
 
 # SUT
 from tsercom.rpc.connection.client_disconnection_retrier import (
@@ -35,7 +36,9 @@ class MockConnectable(Stopable):
 class _TestableRetrier(ClientDisconnectionRetrier[MockConnectable]):
     __test__ = False
 
-    def set_on_connect(self, mock_connect_func: AsyncMock): # This line might cause issues after import removal
+    def set_on_connect(
+        self, mock_connect_func: AsyncMock
+    ):  # This line might cause issues after import removal
         self.connect_func = mock_connect_func
 
     async def _connect(self) -> MockConnectable:
@@ -81,9 +84,7 @@ async def current_event_loop():
 
 
 @pytest_asyncio.fixture
-async def mock_aio_utils(
-    mocker, monkeypatch, current_event_loop
-):
+async def mock_aio_utils(mocker, monkeypatch, current_event_loop):
     mock_get_loop = mocker.MagicMock(return_value=current_event_loop)
     mock_is_on_loop = mocker.MagicMock(
         return_value=True
@@ -147,9 +148,7 @@ class TestClientDisconnectionRetrier:
         mock_instance = MockConnectable("instance1")
         mock_connect_func.return_value = mock_instance
 
-        retrier = _TestableRetrier(
-            watcher=mock_watcher, event_loop=loop
-        )
+        retrier = _TestableRetrier(watcher=mock_watcher, event_loop=loop)
         retrier.set_on_connect(mock_connect_func)
 
         assert await retrier.start() is True
@@ -200,9 +199,7 @@ class TestClientDisconnectionRetrier:
 
         test_error = ValueError("Some other connection error")
         mock_connect_func.side_effect = test_error
-        mock_is_server_unavailable_error_func.return_value = (
-            False
-        )
+        mock_is_server_unavailable_error_func.return_value = False
 
         retrier = _TestableRetrier(
             watcher=mock_watcher,
@@ -234,9 +231,7 @@ class TestClientDisconnectionRetrier:
         mock_instance = MockConnectable("instance_to_stop")
         mock_connect_func.return_value = mock_instance
 
-        retrier = _TestableRetrier(
-            watcher=mock_watcher, event_loop=loop
-        )
+        retrier = _TestableRetrier(watcher=mock_watcher, event_loop=loop)
         retrier.set_on_connect(mock_connect_func)
         await retrier.start()
         assert retrier._ClientDisconnectionRetrier__instance is mock_instance
@@ -278,14 +273,10 @@ class TestClientDisconnectionRetrier:
         mock_is_server_unavailable_error_func.return_value = True
 
         instance2 = MockConnectable("instance2")
-        mock_connect_func.side_effect = [
-            instance2
-        ]
+        mock_connect_func.side_effect = [instance2]
 
         await retrier._on_disconnect(disconnect_error)
-        await asyncio.sleep(
-            0
-        )
+        await asyncio.sleep(0)
 
         mock_is_server_unavailable_error_func.assert_called_with(
             disconnect_error
@@ -354,9 +345,7 @@ class TestClientDisconnectionRetrier:
             in caplog.text
         )
         mock_watcher.on_exception_seen.assert_not_called()
-        _mock_aio_utils[
-            "run_on_event_loop"
-        ].assert_not_called()
+        _mock_aio_utils["run_on_event_loop"].assert_not_called()
 
     async def test_stop_method_when_not_on_event_loop(
         self,
