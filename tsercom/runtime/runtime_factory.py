@@ -26,7 +26,7 @@ class RuntimeFactory(
     """
 
     @property
-    @abstractmethod  # Properties that must be implemented by subclasses
+    @abstractmethod
     def remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
@@ -37,7 +37,7 @@ class RuntimeFactory(
         pass
 
     @property
-    @abstractmethod  # Properties that must be implemented by subclasses
+    @abstractmethod
     def event_poller(
         self,
     ) -> AsyncPoller[EventInstance[TEventType]]:
@@ -74,6 +74,11 @@ class RuntimeFactory(
         pass
 
     def _stop() -> None:
+        # TODO(developer): Clarify the purpose and signature of this _stop() method.
+        # It is currently a static method (no self) with a 'pass' body,
+        # but its docstring implies instance-specific cleanup ('associated with this instance').
+        # If it's for instance cleanup, it should take 'self' and likely be abstract.
+        # If static, its purpose and docstring need revision. If unused, consider removal.
         """
         Stops any underlying calls and executions associated with this instance.
         """

@@ -126,7 +126,7 @@ class TestTimeSyncTracker:
         client_instance.stop.assert_called_once()
 
     def test_on_disconnect_non_existent_ip(self, mock_thread_watcher, mocker):
-        """Test on_disconnect with a non-existent IP address.""" # Existing docstring
+        """Test on_disconnect with a non-existent IP address."""
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.104"
 

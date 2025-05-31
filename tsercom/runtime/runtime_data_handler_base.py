@@ -81,8 +81,6 @@ class RuntimeDataHandlerBase(
                 "Exactly one of 'endpoint'/'port' combination or 'context' must be provided to register_caller. "
                 f"Got endpoint={endpoint}, context={'<Provided>' if context is not None else None}."
             )
-        # This check implies that if endpoint is not None, port must not be None.
-        # And if endpoint is None, port must be None.
         if (port is None) != (endpoint is None):
             raise ValueError(
                 "If 'endpoint' is provided, 'port' must also be provided. If 'endpoint' is None, 'port' must also be None. "
@@ -101,7 +99,7 @@ class RuntimeDataHandlerBase(
             extracted_port = get_client_port(context)
 
             if extracted_endpoint is None:
-                return None  # Cannot register if IP cannot be determined from context
+                return None
             if extracted_port is None:
                 raise ValueError(
                     f"Could not determine client port from context for endpoint {extracted_endpoint}."
@@ -110,13 +108,10 @@ class RuntimeDataHandlerBase(
             actual_port = extracted_port
         elif (
             endpoint is not None and port is not None
-        ):  # Explicitly check for type safety
+        ):
             actual_endpoint = endpoint
             actual_port = port
         else:
-            # This case should be theoretically unreachable due to the initial XOR check on endpoint and context,
-            # and the subsequent check on endpoint/port pairing.
-            # However, as a safeguard:
             raise ValueError(
                 "Internal error: Inconsistent endpoint/port/context state."
             )
@@ -128,6 +123,12 @@ class RuntimeDataHandlerBase(
     ) -> AsyncIterator[
         Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]
     ]:
+        # TODO(developer): Fix type mismatch: This implementation yields/returns
+        # Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]],
+        # but the parent RuntimeDataHandler interface expects
+        # AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]].
+        # This class's __anext__ and __aiter__ also reflect the Dict-based type.
+        # The event_source poller or the processing here needs adjustment.
         """Returns an async iterator for event data, grouped by CallerIdentifier.
 
         This implementation returns `self` as it implements `__aiter__` and `__anext__`.
@@ -213,7 +214,7 @@ class RuntimeDataHandlerBase(
         """
         return await self.__event_source.__anext__()
 
-    def __aiter__(  # Changed to a regular method
+    def __aiter__(
         self,
     ) -> AsyncIterator[
         Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]
@@ -226,7 +227,7 @@ class RuntimeDataHandlerBase(
 
     def _create_data_processor(
         self, caller_id: CallerIdentifier, clock: SynchronizedClock
-    ) -> EndpointDataProcessor[TDataType]:  # Corrected return type
+    ) -> EndpointDataProcessor[TDataType]:
         """Factory method to create a concrete `EndpointDataProcessor`.
 
         Args:
@@ -266,13 +267,11 @@ class RuntimeDataHandlerBase(
 
         async def desynchronize(self, timestamp: ServerTimestamp) -> datetime:
             """Desynchronizes a server timestamp using the provided clock."""
-            return await self.__clock.desync(timestamp)  # Added await
+            return await self.__clock.desync(timestamp)
 
         async def deregister_caller(self) -> None:
             """Deregisters the caller via the parent data handler."""
-            await self.__data_handler._unregister_caller(
-                self.caller_id
-            )  # Added await
+            await self.__data_handler._unregister_caller(self.caller_id)
 
         async def _process_data(
             self, data: TDataType, timestamp: datetime

@@ -14,19 +14,18 @@ from tsercom.runtime.server.server_runtime_data_handler import (
     ServerRuntimeDataHandler,
 )
 from tsercom.threading.aio.aio_utils import run_on_event_loop
-from functools import partial  # Added for functools.partial
+from functools import partial
 from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
     create_tsercom_event_loop_from_watcher,
     is_global_event_loop_set,
-    get_global_event_loop,  # Added for get_global_event_loop
-    # clear_tsercom_event_loop is not explicitly used in the new remote_process_main start
+    get_global_event_loop,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-import concurrent.futures  # Added for type hint in callback
+import concurrent.futures
 
 
 def initialize_runtimes(
@@ -119,9 +118,6 @@ def remote_process_main(
         error_queue: A `MultiprocessQueueSink` to send exceptions back to the parent.
         is_testing: Boolean flag for testing mode.
     """
-    # When launched as a new process, a copy of the event loop is made, but the
-    # underlying thread with which its assocaited is NOT copied. So it must be
-    # cleared WITHOUT attempting to check if it is running.
     clear_tsercom_event_loop(try_stop_loop=False)
 
     thread_watcher = ThreadWatcher()
