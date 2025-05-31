@@ -107,9 +107,7 @@ class RuntimeDataHandlerBase(
                 )
             actual_endpoint = extracted_endpoint
             actual_port = extracted_port
-        elif (
-            endpoint is not None and port is not None
-        ):
+        elif endpoint is not None and port is not None:
             actual_endpoint = endpoint
             actual_port = port
         else:

@@ -54,11 +54,13 @@ class AsyncGetIdServer:
         Returns:
             A GetIdResponse containing the new CallerIdentifier.
         """
+        assert isinstance(request, GetIdRequest), "Invalid request type"
         new_id = (
             CallerIdentifier.random()
         )  # Renamed from 'id' to avoid shadowing built-in
         if self.__callback is not None:
             self.__callback(new_id)
+
         try:
             return GetIdResponse(id=new_id.to_grpc_type())
         except Exception as e:
@@ -70,5 +72,7 @@ class AsyncGetIdServer:
                 f"Error during GetId processing for context {context.peer() if context else 'Unknown'}: {e}",
                 exc_info=True,
             )
-            await context.abort(grpc.StatusCode.FAILED_PRECONDITION)
-            return GetIdResponse()
+            await context.abort(
+                grpc.StatusCode.INTERNAL,
+                "An internal error occurred while generating an ID.",
+            )
