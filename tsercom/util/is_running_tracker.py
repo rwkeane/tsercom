@@ -2,10 +2,10 @@ import asyncio
 from collections.abc import Coroutine
 from functools import partial
 import threading
-from typing import Any, AsyncIterator, TypeVar
+from typing import Any, AsyncIterator, TypeVar, Optional, Callable
 
 from tsercom.threading.aio.aio_utils import (
-    get_running_loop_or_none,
+    get_running_loop_or_none as default_get_running_loop_or_none,
     is_running_on_event_loop,
     run_on_event_loop,
 )
@@ -25,7 +25,12 @@ class IsRunningTracker(Atomic[bool]):
     may only be called from that loop in future.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        get_loop_func: Optional[
+            Callable[[], Optional[asyncio.AbstractEventLoop]]
+        ] = None,
+    ) -> None:
         """
         Initializes an IsRunningTracker instance.
 
@@ -40,6 +45,7 @@ class IsRunningTracker(Atomic[bool]):
         # sync.
         self.__event_loop_lock = threading.Lock()
         self.__event_loop: asyncio.AbstractEventLoop | None = None
+        self._get_loop_func = get_loop_func or default_get_running_loop_or_none
 
         super().__init__(False)
 
@@ -256,10 +262,12 @@ class IsRunningTracker(Atomic[bool]):
             if self.__event_loop is not None:
                 return
 
-            self.__event_loop = get_running_loop_or_none()
-            assert (
-                self.__event_loop is not None
-            ), "Must be called from within a running event loop or have an event loop set."
+            self.__event_loop = self._get_loop_func()
+            if self.__event_loop is None:
+                raise RuntimeError(
+                    "Event loop not found by _get_loop_func. "
+                    "Must be called from within a running event loop or have an event loop set."
+                )
             value = self.get()
         # Initialize the asyncio event states based on the current value.
         await self.__set_impl(value)
