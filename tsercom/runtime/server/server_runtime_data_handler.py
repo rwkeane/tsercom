@@ -8,6 +8,7 @@ and uses its local clock as the source of truth for time synchronization.
 
 from typing import Generic, TypeVar
 from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.exposed_data import ExposedData # Import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
@@ -24,7 +25,7 @@ from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
 TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType")
+TDataType = TypeVar("TDataType", bound=ExposedData) # Constrain TDataType
 
 
 class ServerRuntimeDataHandler(
@@ -57,6 +58,7 @@ class ServerRuntimeDataHandler(
         super().__init__(data_reader, event_source)
 
         self.__id_tracker = IdTracker()
+        self.__clock: SynchronizedClock # Explicitly annotate __clock
 
         if is_testing:
             self.__clock = FakeSynchronizedClock()
@@ -86,18 +88,19 @@ class ServerRuntimeDataHandler(
         self.__id_tracker.add(caller_id, endpoint, port)
         return self._create_data_processor(caller_id, self.__clock)
 
-    def _unregister_caller(self, caller_id: CallerIdentifier) -> None:
+    def _unregister_caller(self, caller_id: CallerIdentifier) -> bool: # Changed return type to bool
         """Handles unregistration of a caller.
 
         In this server implementation, this method is currently a no-op.
         CallerIDs are kept to allow re-establishment of connections.
+        Returning False as the caller is not actively removed.
 
         Args:
             caller_id: The `CallerIdentifier` of the caller to unregister.
         """
         # Keep all CallerID instances around, so a connection can be
         # re-established with the same id (if reconnection possible).
-        pass
+        return False # Return bool
 
     def _try_get_caller_id(
         self, endpoint: str, port: int

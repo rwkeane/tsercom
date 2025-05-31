@@ -12,11 +12,14 @@ from tsercom.threading.aio.aio_utils import run_on_event_loop
 # Generic type for service information, bound by the base ServiceInfo class.
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
+# Type Aliases for complex types
+_InstanceListenerClient = InstanceListener[TServiceInfo].Client
+_InstanceListenerFactory = Callable[[_InstanceListenerClient], InstanceListener[TServiceInfo]]
+_OptionalInstanceListenerFactory = Optional[_InstanceListenerFactory]
+
 
 class DiscoveryHost(
-    InstanceListener.Client[
-        TServiceInfo
-    ]  # InstanceListener.Client is now Generic[TServiceInfo]
+    Generic[TServiceInfo], InstanceListener[TServiceInfo].Client
 ):
     """Manages service discovery using mDNS and CallerIdentifier association.
 
@@ -27,7 +30,7 @@ class DiscoveryHost(
     `InstanceListener` to receive raw service discovery events.
     """
 
-    class Client(ABC, Generic[TServiceInfo]):
+    class Client(ABC): # TServiceInfo from outer DiscoveryHost scope is implicitly available
         """Interface for clients wishing to receive discovery notifications from `DiscoveryHost`.
 
         Implementers of this interface are notified when new services, relevant
@@ -57,10 +60,7 @@ class DiscoveryHost(
     def __init__(
         self,
         *,
-        instance_listener_factory: Callable[
-            [InstanceListener[TServiceInfo].Client],
-            InstanceListener[TServiceInfo],
-        ],
+        instance_listener_factory: _InstanceListenerFactory, # Use type alias
     ):
         """Initializes DiscoveryHost with a factory for creating an InstanceListener."""
         ...
@@ -69,12 +69,7 @@ class DiscoveryHost(
         self,
         *,
         service_type: Optional[str] = None,
-        instance_listener_factory: Optional[
-            Callable[
-                [InstanceListener[TServiceInfo].Client],
-                InstanceListener[TServiceInfo],
-            ]
-        ] = None,
+        instance_listener_factory: _OptionalInstanceListenerFactory = None, # Use type alias
     ) -> None:
         """Initializes the DiscoveryHost.
 
@@ -104,22 +99,17 @@ class DiscoveryHost(
             )
 
         self.__service_type: Optional[str] = service_type
-        self.__instance_listener_factory: Optional[
-            Callable[
-                [InstanceListener[TServiceInfo].Client],
-                InstanceListener[TServiceInfo],
-            ]
-        ] = instance_listener_factory
+        self.__instance_listener_factory: _OptionalInstanceListenerFactory = instance_listener_factory # Use type alias
 
         # The actual mDNS instance listener; initialized in start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
-        self.__client: Optional[DiscoveryHost.Client[TServiceInfo]] = None
+        self.__client: Optional[DiscoveryHost.Client] = None # Client is no longer generic
 
         # Maps mDNS instance names to their assigned CallerIdentifiers.
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
     def start_discovery(
-        self, client: "DiscoveryHost.Client[TServiceInfo]"
+        self, client: "DiscoveryHost.Client" # Client is no longer generic
     ) -> None:
         """Starts the service discovery process.
 
@@ -136,7 +126,7 @@ class DiscoveryHost(
 
     async def __start_discovery_impl(
         self,
-        client: "DiscoveryHost.Client[TServiceInfo]",  # Added generic type
+        client: "DiscoveryHost.Client",  # Client is no longer generic
     ) -> None:
         """Internal implementation for starting discovery; runs on the event loop.
 

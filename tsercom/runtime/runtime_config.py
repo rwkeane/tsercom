@@ -128,7 +128,7 @@ class RuntimeConfig(Generic[TDataType]):
     @property
     def service_type_enum(self) -> "ServiceType":
         """Returns the raw ServiceType enum value."""
-        return self.__service_type # type: ignore[no-any-return] # __service_type is ServiceType | str, but should be ServiceType after __init__ logic
+        return self.__service_type # __service_type is ServiceType | str, but should be ServiceType after __init__ logic
 
     @property
     def data_aggregator_client(self) -> Optional[RemoteDataAggregator[TDataType]]:
