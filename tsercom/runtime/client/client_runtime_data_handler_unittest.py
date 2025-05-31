@@ -6,9 +6,7 @@ from tsercom.runtime.client.client_runtime_data_handler import (
     ClientRuntimeDataHandler,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-from tsercom.data.remote_data_reader import (
-    RemoteDataReader,
-)  # For type hint if needed by mock
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.id_tracker import IdTracker
@@ -22,26 +20,32 @@ class TestClientRuntimeDataHandler:
 
     @pytest.fixture
     def mock_thread_watcher(self, mocker):
+        """Provides a mock ThreadWatcher instance."""
         return mocker.MagicMock(spec=ThreadWatcher)
 
     @pytest.fixture
     def mock_data_reader(self, mocker):
+        """Provides a mock RemoteDataReader instance."""
         return mocker.MagicMock(spec=RemoteDataReader)
 
     @pytest.fixture
     def mock_event_source_poller(self, mocker):
+        """Provides a mock AsyncPoller instance for events."""
         return mocker.MagicMock(spec=AsyncPoller)
 
     @pytest.fixture
     def mock_time_sync_tracker_instance(self, mocker):
+        """Provides a mock TimeSyncTracker instance."""
         return mocker.MagicMock(spec=TimeSyncTracker)
 
     @pytest.fixture
     def mock_id_tracker_instance(self, mocker):
+        """Provides a mock IdTracker instance."""
         return mocker.MagicMock(spec=IdTracker)
 
     @pytest.fixture
     def mock_endpoint_data_processor(self, mocker):
+        """Provides a mock EndpointDataProcessor instance."""
         return mocker.MagicMock(spec=EndpointDataProcessor)
 
     @pytest.fixture
@@ -54,8 +58,7 @@ class TestClientRuntimeDataHandler:
         mock_id_tracker_instance,
         mocker,
     ):
-        # Per PytestMockWarning & subsequent errors, use mocker.patch directly.
-        # It should handle start/stop and return the mock itself.
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
         mock_TimeSyncTracker_class = mocker.patch(
             "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
             return_value=mock_time_sync_tracker_instance,
@@ -71,15 +74,12 @@ class TestClientRuntimeDataHandler:
             thread_watcher=mock_thread_watcher,
             data_reader=mock_data_reader,
             event_source=mock_event_source_poller,
-            # is_testing=False is SUT default
         )
-        # Attach instances for other tests that might use them via handler.
         handler_instance._mock_time_sync_tracker_instance = (
             mock_time_sync_tracker_instance
         )
         handler_instance._mock_id_tracker_instance = mock_id_tracker_instance
 
-        # pytest-mock handles teardown of patches made via mocker.patch
         yield {
             "handler": handler_instance,
             "TimeSyncTracker_class_mock": mock_TimeSyncTracker_class,
@@ -90,11 +90,12 @@ class TestClientRuntimeDataHandler:
 
     def test_init(
         self,
-        handler_and_class_mocks,  # Use the new fixture that returns a dict
+        handler_and_class_mocks,
         mock_thread_watcher,
         mock_data_reader,
         mock_event_source_poller,
     ):
+        """Tests the __init__ method for correct instantiation and dependency setup."""
         handler = handler_and_class_mocks["handler"]
         TimeSyncTracker_class_mock = handler_and_class_mocks[
             "TimeSyncTracker_class_mock"
@@ -130,6 +131,7 @@ class TestClientRuntimeDataHandler:
     def test_register_caller(
         self, handler_and_class_mocks, mock_endpoint_data_processor, mocker
     ):
+        """Tests the _register_caller method for correct registration flow."""
         handler = handler_and_class_mocks["handler"]
         mock_caller_id = CallerIdentifier.random()
         mock_endpoint = "192.168.1.100"
@@ -140,8 +142,6 @@ class TestClientRuntimeDataHandler:
             mock_synchronized_clock
         )
 
-        # Patch the _create_data_processor method directly on the handler instance
-        # This is generally more robust if the method is guaranteed to exist.
         mock_create_dp_method = mocker.patch.object(
             handler,
             "_create_data_processor",
@@ -158,14 +158,10 @@ class TestClientRuntimeDataHandler:
         handler._mock_time_sync_tracker_instance.on_connect.assert_called_once_with(
             mock_endpoint
         )
-        # Use the patched method directly for assertion
         mock_create_dp_method.assert_called_once_with(
             mock_caller_id, mock_synchronized_clock
         )
         assert returned_processor == mock_endpoint_data_processor
-
-    # Remove the old test_unregister_caller as its testing an assert False
-    # The new tests will cover the updated logic.
 
     def test_unregister_caller_valid_id(self, handler_and_class_mocks):
         """Test _unregister_caller with a valid and existing caller_id."""
@@ -174,12 +170,10 @@ class TestClientRuntimeDataHandler:
         mock_address = "192.168.1.100"
         mock_port = 12345
 
-        # Configure mocks
         handler._mock_id_tracker_instance.try_get.return_value = (
             mock_address,
             mock_port,
         )
-        # remove() should return True if successful, though _unregister_caller doesn't check this return
         handler._mock_id_tracker_instance.remove.return_value = True
 
         result = handler._unregister_caller(mock_caller_id)
@@ -202,10 +196,8 @@ class TestClientRuntimeDataHandler:
         handler = handler_and_class_mocks["handler"]
         mock_caller_id = CallerIdentifier.random()
 
-        # Configure mocks
         handler._mock_id_tracker_instance.try_get.return_value = None
 
-        # Patch the logging module used in client_runtime_data_handler
         mock_logging_module = mocker.patch(
             "tsercom.runtime.client.client_runtime_data_handler.logging"
         )
@@ -223,6 +215,7 @@ class TestClientRuntimeDataHandler:
         )
 
     def test_try_get_caller_id(self, handler_and_class_mocks):
+        """Tests _try_get_caller_id for a successfully found ID."""
         handler = handler_and_class_mocks["handler"]
         mock_endpoint = "10.0.0.1"
         mock_port = 8080
@@ -242,6 +235,7 @@ class TestClientRuntimeDataHandler:
         assert returned_caller_id == expected_caller_id
 
     def test_try_get_caller_id_not_found(self, handler_and_class_mocks):
+        """Tests _try_get_caller_id when the ID is not found."""
         handler = handler_and_class_mocks["handler"]
         mock_endpoint = "10.0.0.2"
         mock_port = 8081
@@ -256,6 +250,3 @@ class TestClientRuntimeDataHandler:
             mock_endpoint, mock_port
         )
         assert returned_caller_id is None
-
-
-# Removed final syntax error.

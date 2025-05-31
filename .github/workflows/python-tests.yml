@@ -22,7 +22,7 @@ jobs:
         pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
     - name: Run pytest with coverage
       run: |
-        pytest --cov=tsercom --cov-report=xml --timeout=120
+        pytest --cov=tsercom --cov-report=xml --cov-report=html --timeout=120
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
       with:

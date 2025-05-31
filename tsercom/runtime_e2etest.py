@@ -1,3 +1,5 @@
+"""End-to-end tests for Tsercom runtime initialization, data flow, and error handling."""
+
 import asyncio
 from collections.abc import Callable, AsyncGenerator
 from concurrent.futures import Future
@@ -85,6 +87,7 @@ class FakeEvent: pass
 
 class FakeRuntime(Runtime):
     def __init__(self, thread_watcher: ThreadWatcher, data_handler: RuntimeDataHandler, grpc_channel_factory: GrpcChannelFactory, test_id: CallerIdentifier, runtime_config: RuntimeConfig):
+
         self.__thread_watcher = thread_watcher
         self.__data_handler = data_handler
         self.__grpc_channel_factory = grpc_channel_factory
@@ -133,6 +136,24 @@ class FakeRuntime(Runtime):
             logging.info(f"FakeRuntime server ({id(self)}) for test_id {self.__test_id} GrpcServicePublisher stopped.")
         if self.__responder is not None: await self.__responder.process_data(FakeData(stopped), stop_timestamp)
 
+
+class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
+    def __init__(
+        self, test_id: CallerIdentifier, service_type="Client"
+    ):
+        super().__init__(service_type=service_type)
+        self._test_id = test_id
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        return FakeRuntime(
+            thread_watcher, data_handler, grpc_channel_factory, self._test_id
+        )
+
 class FakeRuntimeInitializer(RuntimeInitializer):
     def __init__(self, test_id: CallerIdentifier, service_type: str ="Client", grpc_channel_factory_config: Optional[GrpcChannelFactoryConfig] = None, server_tls_key_path: Optional[str] = None, server_tls_cert_path: Optional[str] = None, server_tls_client_ca_path: Optional[str] = None):
         super().__init__(service_type=service_type, grpc_channel_factory_config=grpc_channel_factory_config, server_tls_key_path=server_tls_key_path, server_tls_cert_path=server_tls_cert_path, server_tls_client_ca_path=server_tls_client_ca_path)
@@ -141,10 +162,26 @@ class FakeRuntimeInitializer(RuntimeInitializer):
         return FakeRuntime(thread_watcher,data_handler,grpc_channel_factory,self._test_id,runtime_config=self)
 
 class ErrorThrowingRuntime(Runtime):
-    def __init__(self,thread_watcher: ThreadWatcher,data_handler: RuntimeDataHandler,grpc_channel_factory: GrpcChannelFactory,error_message:str="TestError",error_type:type[BaseException]=RuntimeError):
-        super().__init__(); self.error_message=error_message; self.error_type=error_type; self._thread_watcher=thread_watcher; self._data_handler=data_handler; self._grpc_channel_factory=grpc_channel_factory
-    async def start_async(self) -> None: raise self.error_type(self.error_message)
-    async def stop(self, exception: Optional[Exception] = None) -> None: pass
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler,
+        grpc_channel_factory: GrpcChannelFactory,
+        error_message="TestError",
+        error_type=RuntimeError,
+    ):
+        super().__init__()
+        self.error_message = error_message
+        self.error_type = error_type
+        self._thread_watcher = thread_watcher
+        self._data_handler = data_handler
+        self._grpc_channel_factory = grpc_channel_factory
+
+    async def start_async(self) -> None:
+        raise self.error_type(self.error_message)
+
+    async def stop(self, exception) -> None:
+        pass
 
 class ErrorThrowingRuntimeInitializer(RuntimeInitializer):
     def __init__(self,error_message:str="TestError",error_type:type[BaseException]=RuntimeError,service_type:str="Client",grpc_channel_factory_config:Optional[GrpcChannelFactoryConfig]=None):
@@ -172,28 +209,91 @@ async def aggressive_async_cleanup() -> AsyncGenerator[None, None]:
     if tasks_to_await: await asyncio.gather(*tasks_to_await, return_exceptions=True)
     clear_tsercom_event_loop(try_stop_loop=False)
 
-def __check_initialization(init_call: Callable[[RuntimeManager], None]) -> None:
-    runtime_manager = RuntimeManager(is_testing=True); runtime_handle_for_cleanup: Optional[Any] = None
+
+def __check_initialization(init_call: Callable[[RuntimeManager], None]):
+    runtime_manager = RuntimeManager(is_testing=True)
+    runtime_handle_for_cleanup = None
     try:
         current_test_id = CallerIdentifier.random()
-        initializer = FakeRuntimeInitializer(test_id=current_test_id,service_type="Server", grpc_channel_factory_config=GrpcChannelFactoryConfig(factory_type="insecure"), server_tls_key_path=None,server_tls_cert_path=None,server_tls_client_ca_path=None)
-        runtime_future: Future[Any] = runtime_manager.register_runtime_initializer(initializer)
+        runtime_manager.check_for_exception()
+        runtime_future = runtime_manager.register_runtime_initializer(
+            FakeRuntimeInitializer(
+                test_id=current_test_id, service_type="Server"
+            )
+        )
+
+        assert not runtime_future.done()
+        assert not runtime_manager.has_started
         init_call(runtime_manager)
-        runtime_handle = runtime_future.result(); runtime_handle_for_cleanup = runtime_handle
-        data_aggregator: Any = runtime_handle.data_aggregator
+        assert runtime_manager.has_started
+        assert runtime_future.done()
+
+        runtime_manager.check_for_exception()
+        runtime_handle = runtime_future.result()
+        runtime_handle_for_cleanup = runtime_handle
+        data_aggregator = runtime_handle.data_aggregator
+        assert not data_aggregator.has_new_data(current_test_id)
         runtime_handle.start()
-        waited_time = 0.0; max_wait_time = 5.0; poll_interval = 0.1; data_arrived = False
+
+        data_arrived = False
+        max_wait_time = 5.0
+        poll_interval = 0.1
+        waited_time = 0.0
         while waited_time < max_wait_time:
-            if data_aggregator.has_new_data(current_test_id): data_arrived = True; break
-            time.sleep(poll_interval); waited_time += poll_interval
-        assert data_arrived, f"Data did not arrive for {current_test_id}"
-        values: List[AnnotatedInstance[FakeData]] = data_aggregator.get_new_data(current_test_id)
-        assert len(values) == 1 and isinstance(values[0].data, FakeData) and values[0].data.value == "FRESH_SIMPLE_DATA_V2"
-        runtime_handle.stop(); time.sleep(0.5)
+            has_data_now = data_aggregator.has_new_data(current_test_id)
+            if has_data_now:
+                data_arrived = True
+                break
+            time.sleep(poll_interval)
+            waited_time += poll_interval
+
+        runtime_manager.check_for_exception()
+        assert data_arrived, f"Aggregator did not receive data for test_id ({current_test_id}) within {max_wait_time}s"
+        assert data_aggregator.has_new_data(current_test_id)
+
         values = data_aggregator.get_new_data(current_test_id)
-        assert len(values) == 1 and isinstance(values[0].data, FakeData) and values[0].data.value == stopped
+        assert isinstance(values, list)
+        assert len(values) == 1
+
+        first = values[0]
+        assert isinstance(first, AnnotatedInstance)
+        assert isinstance(first.data, FakeData)
+        expected_fresh_value = "FRESH_SIMPLE_DATA_V2"
+        actual_value_for_log = first.data.value if hasattr(first.data, "value") else "N/A"
+        assert first.data.value == expected_fresh_value
+        assert isinstance(first.timestamp, datetime.datetime)
+        assert first.caller_id == current_test_id
+
+        assert not data_aggregator.has_new_data(current_test_id)
+        runtime_manager.check_for_exception()
+
+        runtime_handle.stop()
+        runtime_manager.check_for_exception()
+
+        time.sleep(0.5)
+
+        assert data_aggregator.has_new_data(current_test_id)
+        values = data_aggregator.get_new_data(current_test_id)
+        assert isinstance(values, list)
+        assert len(values) == 1
+
+        first = values[0]
+        assert isinstance(first, AnnotatedInstance)
+        assert isinstance(first.data, FakeData)
+        assert first.data.value == stopped
+        assert first.timestamp == stop_timestamp
+        assert first.caller_id == current_test_id
+
+        assert not data_aggregator.has_new_data(current_test_id)
+
+    except Exception as e:
+        raise e
     finally:
-        if runtime_handle_for_cleanup: runtime_handle_for_cleanup.stop()
+        if runtime_handle_for_cleanup:
+            try:
+                runtime_handle_for_cleanup.stop()
+            except Exception as e_stop:
+                pass
         runtime_manager.shutdown()
 
 def test_out_of_process_init() -> None: __check_initialization(RuntimeManager.start_out_of_process)
@@ -203,36 +303,52 @@ def test_in_process_init() -> None:
         loop = asyncio.new_event_loop(); asyncio.set_event_loop(loop); fut.set_result(loop)
         try: loop.run_forever()
         finally:
-            all_tasks = asyncio.all_tasks(loop)
-            if all_tasks:
-                for task in all_tasks:
-                    if not task.done(): task.cancel()
-                loop.run_until_complete(asyncio.gather(*all_tasks, return_exceptions=True))
-
-            if not loop.is_closed(): loop.call_soon_threadsafe(loop.stop)
+            if not loop.is_closed():
+                loop.call_soon_threadsafe(loop.stop)
             loop.close()
-    event_thread = Thread(target=_thread_loop_runner, args=(loop_future,), daemon=True); event_thread.start()
-    worker_event_loop: asyncio.AbstractEventLoop = loop_future.result(timeout=5)
-    try:
-        __check_initialization(partial(RuntimeManager.start_in_process,runtime_event_loop=worker_event_loop,))
-    finally:
-        logging.info("test_in_process_init: FINALLY - Sleeping for 0.5s before stopping worker_event_loop.")
-        time.sleep(0.5)
-        if worker_event_loop.is_running(): worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
-        event_thread.join(timeout=5)
 
-def test_out_of_process_error_check_for_exception() -> None:
-    runtime_manager = RuntimeManager(is_testing=True); error_msg = "RemoteFailureOops"
-    initializer = ErrorThrowingRuntimeInitializer(error_message=error_msg, error_type=ValueError, service_type="Server", grpc_channel_factory_config=GrpcChannelFactoryConfig(factory_type="insecure"))
-    handle_future: Future[Any] = runtime_manager.register_runtime_initializer(initializer)
+    event_thread = Thread(
+        target=_thread_loop_runner, args=(loop_future,), daemon=True
+    )
+    event_thread.start()
+
+    worker_event_loop = loop_future.result(timeout=5)
+    __check_initialization(
+        partial(
+            RuntimeManager.start_in_process,
+            runtime_event_loop=worker_event_loop,
+        )
+    )
+    if worker_event_loop.is_running():
+        worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
+    event_thread.join(timeout=1)
+
+
+def test_out_of_process_error_check_for_exception(clear_loop_fixture):
+    runtime_manager = RuntimeManager(is_testing=True)
+    error_msg = "RemoteFailureOops"
+
+    handle_future = runtime_manager.register_runtime_initializer(
+        ErrorThrowingRuntimeInitializer(
+            error_message=error_msg,
+            error_type=ValueError,
+            service_type="Server",
+            grpc_channel_factory_config=GrpcChannelFactoryConfig(factory_type="insecure"))
+        )
+    )
     runtime_manager.start_out_of_process()
-    runtime_handle: Optional[Any]=None
+
     try:
-        runtime_handle = handle_future.result(timeout=5); runtime_handle.start()
-        time.sleep(1.5);
-        with pytest.raises(ValueError, match=error_msg): runtime_manager.check_for_exception()
-    finally:
-        runtime_manager.shutdown()
+        runtime_handle = handle_future.result(timeout=2)
+        runtime_handle.start()
+    except Exception as e_handle:
+        pytest.fail(f"Failed to get or start runtime_handle: {e_handle}")
+
+    wait_time_for_error = 1.5
+    time.sleep(wait_time_for_error)
+
+    with pytest.raises(ValueError, match=error_msg):
+        runtime_manager.check_for_exception()
 
 def test_out_of_process_error_run_until_exception() -> None:
     runtime_manager = RuntimeManager(is_testing=True); error_msg = "RemoteRunUntilFailure"
@@ -255,9 +371,13 @@ def test_in_process_error_check_for_exception() -> None:
             for task_to_cancel in all_tasks:
                  if not task_to_cancel.done(): task_to_cancel.cancel()
             if all_tasks:
+                for task in all_tasks:
+                    task.cancel()
                 loop.run_until_complete(asyncio.gather(*all_tasks, return_exceptions=True))
+
             if not loop.is_closed():
-                if loop.is_running(): loop.call_soon_threadsafe(loop.stop)
+                if loop.is_running():
+                    loop.call_soon_threadsafe(loop.stop)
             loop.close()
     event_thread = Thread(target=_thread_loop_runner, args=(loop_future,), daemon=True); event_thread.start()
     worker_event_loop: asyncio.AbstractEventLoop = loop_future.result(timeout=5)
@@ -274,6 +394,30 @@ def test_in_process_error_check_for_exception() -> None:
         if worker_event_loop.is_running(): worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
         event_thread.join(timeout=5)
         runtime_manager.shutdown()
+
+    event_thread = Thread(
+        target=_thread_loop_runner, args=(loop_future,), daemon=True
+    )
+    event_thread.start()
+    worker_event_loop = loop_future.result(timeout=5)
+
+    runtime_manager = RuntimeManager(is_testing=True)
+    error_msg = "InProcessFailureOops"
+    runtime_manager.register_runtime_initializer(
+        ErrorThrowingRuntimeInitializer(
+            error_message=error_msg, error_type=ValueError
+        )
+    )
+    runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
+
+    time.sleep(0.3)
+
+    with pytest.raises(ValueError, match=error_msg):
+        runtime_manager.check_for_exception()
+
+    if worker_event_loop.is_running():
+        worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
+    event_thread.join(timeout=1)
 
 def test_out_of_process_initializer_create_error() -> None:
     runtime_manager = RuntimeManager(is_testing=True); error_msg = "CreateOops"

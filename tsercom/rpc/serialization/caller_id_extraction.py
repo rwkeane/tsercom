@@ -1,3 +1,5 @@
+"""Utilities for extracting CallerIdentifier from gRPC calls, especially from iterators."""
+
 from typing import AsyncIterator, Callable, Optional, Tuple, TypeVar
 import grpc
 import logging
@@ -50,7 +52,7 @@ async def extract_id_from_first_call(
                 )
             break
     except Exception as e:
-        # TODO: Maybe this should check the exception code and split behavior?
+        # TODO(developer): Consider checking specific gRPC exception codes for more granular behavior.
         if isinstance(e, grpc.RpcError):
             logging.error(
                 f"RpcError while iterating for first call: code={e.code()}, details='{e.details()}'. Original exception: {e}",
@@ -116,15 +118,14 @@ async def extract_id_from_call(
     # If the id is malformed, return.
     extracted = extractor(
         call
-    )  # This is expected to be the GrpcCallerId protobuf message
+    )
     if (
         extracted is None or not hasattr(extracted, "id") or not extracted.id
-    ):  # Check if message or its id string is missing
+    ):
         logging.error(
             f"CallerID string missing or empty in extracted message: {extracted}"
         )
         if context is not None:
-            # Using INVALID_ARGUMENT as it's a malformed/missing ID from client perspective
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
                 "Malformed or missing CallerID string",
@@ -133,9 +134,8 @@ async def extract_id_from_call(
 
     caller_id = CallerIdentifier.try_parse(
         extracted.id
-    )  # Parse the .id string field of the message
+    )
     if caller_id is None:
-        # Log extracted.id as that's what was parsed, not the whole message object string form
         logging.error(f"Invalid CallerID format received: {extracted.id}")
         if context is not None:
             await context.abort(

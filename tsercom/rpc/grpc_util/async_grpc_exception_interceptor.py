@@ -1,11 +1,10 @@
+"""Provides an asynchronous gRPC server interceptor for centralized exception handling."""
+
 from typing import Awaitable, Callable
 import grpc
 import grpc.aio  # Explicitly import grpc.aio
 
 from tsercom.threading.thread_watcher import ThreadWatcher
-
-# NOTE: This class is in the |threading| directory to avoid weird circular
-# dependencies having |threading| -> |rpc| -> |threading|.
 
 
 class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
@@ -92,8 +91,6 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                 return await method(request, context)
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
-            except Warning as e:
-                await self._handle_exception(e, method_name, context)
 
         return wrapper
 
@@ -118,8 +115,6 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                     yield response
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
-            except Warning as e:
-                await self._handle_exception(e, method_name, context)
 
         return wrapper
 
@@ -138,8 +133,6 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                 # The original method for stream-unary expects an async iterator.
                 return await method(request_iterator, context)
             except Exception as e:
-                await self._handle_exception(e, method_name, context)
-            except Warning as e:
                 await self._handle_exception(e, method_name, context)
 
         return wrapper
@@ -165,8 +158,6 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                 async for response in method(request_iterator, context):  # type: ignore
                     yield response
             except Exception as e:
-                await self._handle_exception(e, method_name, context)
-            except Warning as e:
                 await self._handle_exception(e, method_name, context)
 
         return wrapper

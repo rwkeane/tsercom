@@ -16,7 +16,7 @@ AddServicerCB = Callable[["grpc.Server"], None]
 
 class GrpcServicePublisher:
     """
-    This class Is a helper to publish a gRPC Service/
+    Helper class to publish gRPC services.
     """
 
     def __init__(
@@ -84,7 +84,6 @@ class GrpcServicePublisher:
             maximum_concurrent_rpcs=None,
         )
         connect_call(self.__server)
-        self.__server  # type: ignore
         self._connect()
         await self.__server.start()  # type: ignore
 
@@ -204,6 +203,9 @@ class GrpcServicePublisher:
         """
         Stops the server.
         """
+        # TODO(review): The current synchronous stop() may not correctly handle
+        # graceful shutdown for an asyncio gRPC server (if __server is grpc.aio.Server).
+        # Consider making this method async or adding a separate stop_async().
         if self.__server is None:
             # It's possible stop is called before start_async completed or if _connect failed.
             logging.info(

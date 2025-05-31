@@ -6,8 +6,15 @@ from typing import Literal, Optional, TypeVar, overload
 from tsercom.config.grpc_channel_config import GrpcChannelFactoryConfig
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
-TDataType = TypeVar("TDataType")
-TEventType = TypeVar("TEventType")
+# TDataType = TypeVar("TDataType") # Removed
+# TEventType = TypeVar("TEventType") # Removed
+
+
+class ServiceType(Enum):
+    """Enumerates the operational roles for a Tsercom runtime."""
+
+    kClient = 1
+    kServer = 2
 
 
 class RuntimeConfig:
@@ -55,8 +62,7 @@ class RuntimeConfig:
     def __init__(
         self,
         service_type: Optional[
-            Literal["Client", "Server"]
-            | "ServiceType"  # Actually ServiceType enum
+            Literal["Client", "Server"] | ServiceType
         ] = None,
         *,
         other_config: Optional["RuntimeConfig"] = None,
@@ -91,12 +97,9 @@ class RuntimeConfig:
             )
 
         if other_config is not None:
-            # Call __init__ directly to bypass overload resolution issues with self-recursion
-            # and to correctly set private attributes of the new instance.
-            # This is a common pattern for implementing copy constructors in Python.
-            RuntimeConfig.__init__(  # type: ignore
-                self,  # type: ignore
-                service_type=other_config.__service_type,  # type: ignore
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.__service_type,
                 data_aggregator_client=other_config.data_aggregator_client,
                 timeout_seconds=other_config.timeout_seconds,
                 grpc_channel_factory_config=other_config.grpc_channel_factory_config,
@@ -114,7 +117,7 @@ class RuntimeConfig:
             else:
                 raise ValueError(f"Invalid service type: {service_type}")
         else:
-            self.__service_type = service_type  # type: ignore
+            self.__service_type = service_type
 
         self.__data_aggregator_client: Optional[RemoteDataAggregator] = (
             data_aggregator_client
