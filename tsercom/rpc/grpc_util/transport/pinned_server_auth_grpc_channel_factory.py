@@ -36,8 +36,8 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
         """
         self.expected_server_cert_pem: bytes  # Declare type once
         if isinstance(expected_server_cert_pem, str):
-            self.expected_server_cert_pem = (
-                expected_server_cert_pem.encode("utf-8")
+            self.expected_server_cert_pem = expected_server_cert_pem.encode(
+                "utf-8"
             )
         else:
             self.expected_server_cert_pem = expected_server_cert_pem
@@ -115,9 +115,7 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
                 # Detach active_channel from the variable so it's not closed in a finally block if successful
                 channel_to_return = active_channel
                 active_channel = None
-                return ChannelInfo(
-                    channel_to_return, current_address, port
-                )
+                return ChannelInfo(channel_to_return, current_address, port)
 
             except grpc.aio.AioRpcError as e:
                 logger.warning(

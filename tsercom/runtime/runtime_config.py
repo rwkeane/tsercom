@@ -1,11 +1,11 @@
 """Configuration for Tsercom runtimes, specifying service type and data handling."""
 
 from enum import Enum
-from typing import Literal, Optional, TypeVar, overload, Generic, Any
+from typing import Literal, Optional, TypeVar, overload, Generic
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
-from tsercom.data.exposed_data import ExposedData # Import ExposedData
+from tsercom.data.exposed_data import ExposedData  # Import ExposedData
 
-TDataType = TypeVar("TDataType", bound=ExposedData) # Constrain TDataType
+TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
 TEventType = TypeVar("TEventType")
 
 
@@ -22,7 +22,9 @@ class RuntimeConfig(Generic[TDataType]):
         self,
         service_type: "ServiceType",
         *,
-        data_aggregator_client: Optional[RemoteDataAggregator[TDataType]] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator[TDataType]
+        ] = None,
         timeout_seconds: Optional[int] = 60,
     ): ...
 
@@ -31,7 +33,9 @@ class RuntimeConfig(Generic[TDataType]):
         self,
         service_type: Literal["Client", "Server"],
         *,
-        data_aggregator_client: Optional[RemoteDataAggregator[TDataType]] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator[TDataType]
+        ] = None,
         timeout_seconds: Optional[int] = 60,
     ): ...
 
@@ -46,7 +50,9 @@ class RuntimeConfig(Generic[TDataType]):
         ] = None,
         *,
         other_config: Optional["RuntimeConfig[TDataType]"] = None,
-        data_aggregator_client: Optional[RemoteDataAggregator[TDataType]] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator[TDataType]
+        ] = None,
         timeout_seconds: Optional[int] = 60,
     ):
         """Initializes the RuntimeConfig.
@@ -79,9 +85,9 @@ class RuntimeConfig(Generic[TDataType]):
             # For data_aggregator_client and timeout_seconds, direct access to properties of other_config is fine.
             RuntimeConfig.__init__(
                 self,
-                service_type=other_config.service_type_enum, # Use new property
-                data_aggregator_client=other_config.data_aggregator_client, # This will use the property
-                timeout_seconds=other_config.timeout_seconds # This will use the property
+                service_type=other_config.service_type_enum,  # Use new property
+                data_aggregator_client=other_config.data_aggregator_client,  # This will use the property
+                timeout_seconds=other_config.timeout_seconds,  # This will use the property
             )
             return
 
@@ -93,11 +99,11 @@ class RuntimeConfig(Generic[TDataType]):
             else:
                 raise ValueError(f"Invalid service type: {service_type}")
         else:
-            self.__service_type = service_type # type: ignore[assignment] # service_type can be ServiceType enum or string here
+            self.__service_type = service_type  # type: ignore[assignment] # service_type can be ServiceType enum or string here
 
-        self.__data_aggregator_client: Optional[RemoteDataAggregator[TDataType]] = (
-            data_aggregator_client
-        )
+        self.__data_aggregator_client: Optional[
+            RemoteDataAggregator[TDataType]
+        ] = data_aggregator_client
         self.__timeout_seconds: Optional[int] = timeout_seconds
 
     def is_client(self) -> bool:
@@ -128,10 +134,14 @@ class RuntimeConfig(Generic[TDataType]):
     @property
     def service_type_enum(self) -> "ServiceType":
         """Returns the raw ServiceType enum value."""
-        return self.__service_type # __service_type is ServiceType | str, but should be ServiceType after __init__ logic
+        return (
+            self.__service_type
+        )  # __service_type is ServiceType | str, but should be ServiceType after __init__ logic
 
     @property
-    def data_aggregator_client(self) -> Optional[RemoteDataAggregator[TDataType]]:
+    def data_aggregator_client(
+        self,
+    ) -> Optional[RemoteDataAggregator[TDataType]]:
         """
         Returns the client that should be informed when new data is provided to
         the RemoteDataAggregator instance created for the runtime created from

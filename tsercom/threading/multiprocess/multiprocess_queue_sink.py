@@ -8,7 +8,7 @@ to a queue that is shared between processes, abstracting the underlying queue
 and focusing solely on the "put" operations.
 """
 
-import multiprocessing
+from multiprocessing import Queue as MpQueue
 from queue import (
     Full,
 )  # Exception raised when a non-blocking put is called on a full queue.
@@ -27,15 +27,15 @@ class MultiprocessQueueSink(Generic[TQueueType]):
     and can handle queues of any specific type.
     """
 
-    def __init__(self, queue: multiprocessing.Queue[TQueueType]) -> None:
+    def __init__(self, queue: "MpQueue[TQueueType]") -> None:
         """
         Initializes the MultiprocessQueueSink with a given multiprocessing queue.
 
         Args:
-            queue (multiprocessing.Queue[TQueueType]): The multiprocessing queue
+            queue ("MpQueue[TQueueType]"): The multiprocessing queue
                 to be used as the sink.
         """
-        self.__queue: multiprocessing.Queue[TQueueType] = queue
+        self.__queue: "MpQueue[TQueueType]" = queue
 
     def put_blocking(
         self, obj: TQueueType, timeout: float | None = None
