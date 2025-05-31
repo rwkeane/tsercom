@@ -1,15 +1,15 @@
-"""Defines AnnotatedInstance, a wrapper for data with caller ID and timestamp."""
-
-from datetime import datetime
+import dataclasses
 from typing import Generic, TypeVar
 
-from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 
 TDataType = TypeVar("TDataType")  # Generic type for the wrapped data.
 
 
-class AnnotatedInstance(Generic[TDataType], ExposedData):
+@dataclasses.dataclass
+class AnnotatedInstance(
+    ExposedData, Generic[TDataType]
+):  # Inherits from ExposedData
     """Wraps a data instance with metadata like caller ID and timestamp.
 
     This class extends `ExposedData`, inheriting its `caller_id` and
@@ -17,25 +17,21 @@ class AnnotatedInstance(Generic[TDataType], ExposedData):
     the actual data payload.
     """
 
-    def __init__(
-        self, data: TDataType, caller_id: CallerIdentifier, timestamp: datetime
-    ) -> None:
-        """Initializes an AnnotatedInstance.
+    # ExposedData fields (caller_id, timestamp) are inherited.
+    # Only need to define fields specific to AnnotatedInstance.
+    data: TDataType
 
-        Args:
-            data: The actual data payload to be wrapped.
-            caller_id: The `CallerIdentifier` associated with this data.
-            timestamp: The `datetime` object representing when this data
-                       was created or received.
-        """
-        super().__init__(caller_id=caller_id, timestamp=timestamp)
-        self.__data: TDataType = data
+    # The __init__ method from the original version:
+    # def __init__(
+    #     self, data: TDataType, caller_id: CallerIdentifier, timestamp: datetime
+    # ) -> None:
+    #     super().__init__(caller_id=caller_id, timestamp=timestamp)
+    #     self.__data: TDataType = data
+    #
+    # With ExposedData as a dataclass, and AnnotatedInstance as a dataclass,
+    # the generated __init__ for AnnotatedInstance will be:
+    # __init__(self, caller_id: CallerIdentifier, timestamp: datetime, data: TDataType)
+    # This order (inherited fields first, then own fields) is standard for dataclass inheritance.
+    # This matches the intent of the original __init__.
 
-    @property
-    def data(self) -> TDataType:
-        """Gets the wrapped data payload.
-
-        Returns:
-            The underlying data of type `TDataType`.
-        """
-        return self.__data
+    # The @property for data is no longer needed.

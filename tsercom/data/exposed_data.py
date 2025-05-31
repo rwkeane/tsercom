@@ -1,48 +1,20 @@
-"""Defines ExposedData, an abstract base class for data structures that include caller ID and timestamp information."""
-
-from abc import ABC
-import datetime
-
+import dataclasses
+from datetime import datetime  # Ensure datetime is imported
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
-class ExposedData(ABC):
-    """Abstract base class for data structures exposed by client or server hosts.
+@dataclasses.dataclass
+class ExposedData:
+    """Base class for data exposed by a runtime, including caller ID and timestamp.
 
-    This class provides a common foundation for data that includes metadata
-    about the caller and the time of creation or reception. Subclasses should
-    inherit from `ExposedData` to ensure they include these essential pieces
-    of information.
+    This class serves as a container for common metadata associated with data
+    points, namely the identifier of the originating caller and the timestamp
+    of the data's creation or reception.
     """
 
-    def __init__(
-        self, caller_id: CallerIdentifier, timestamp: datetime.datetime
-    ) -> None:
-        """Initializes the ExposedData instance.
+    # Original __init__ order: caller_id: CallerIdentifier, timestamp: datetime
+    caller_id: CallerIdentifier
+    timestamp: datetime
 
-        Args:
-            caller_id: The `CallerIdentifier` of the entity that originated
-                       or is associated with this data.
-            timestamp: A `datetime` object indicating when the data was
-                       created or recorded.
-        """
-        self.__caller_id: CallerIdentifier = caller_id
-        self.__timestamp: datetime.datetime = timestamp
-
-    @property
-    def caller_id(self) -> CallerIdentifier:
-        """Gets the CallerIdentifier associated with this data.
-
-        Returns:
-            The `CallerIdentifier` instance.
-        """
-        return self.__caller_id
-
-    @property
-    def timestamp(self) -> datetime.datetime:
-        """Gets the timestamp of when this data was created or recorded.
-
-        Returns:
-            A `datetime` object representing the timestamp.
-        """
-        return self.__timestamp
+    # Properties for caller_id and timestamp are no longer needed.
+    # __init__, __repr__, __eq__ will be auto-generated.
