@@ -40,14 +40,14 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client[TDataType]] = None,
+        client: Optional[RemoteDataAggregator.Client] = None, # Removed [TDataType]
     ): ...
 
     @overload
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client[TDataType]] = None,
+        client: Optional[RemoteDataAggregator.Client] = None, # Removed [TDataType]
         *,
         tracker: DataTimeoutTracker,
     ): ...
@@ -56,7 +56,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client[TDataType]] = None,
+        client: Optional[RemoteDataAggregator.Client] = None, # Removed [TDataType]
         *,
         timeout: int,
     ): ...
@@ -64,7 +64,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client[TDataType]] = None,
+        client: Optional[RemoteDataAggregator.Client] = None, # Removed [TDataType]
         *,
         tracker: Optional[DataTimeoutTracker] = None,
         timeout: Optional[int] = None,
@@ -99,7 +99,7 @@ class RemoteDataAggregatorImpl(
             tracker.start()
 
         self.__thread_pool: ThreadPoolExecutor = thread_pool
-        self.__client: Optional[RemoteDataAggregator.Client[TDataType]] = (
+        self.__client: Optional[RemoteDataAggregator.Client] = ( # Removed [TDataType]
             client
         )
         self.__tracker: Optional[DataTimeoutTracker] = tracker

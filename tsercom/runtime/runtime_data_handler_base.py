@@ -270,5 +270,7 @@ class RuntimeDataHandlerBase(
             self, data: TDataType, timestamp: datetime
         ) -> None:
             """Processes data by wrapping it in an `AnnotatedInstance` and passing to the parent."""
-            wrapped_data = AnnotatedInstance(data, self.caller_id, timestamp)
+            wrapped_data = AnnotatedInstance(
+                caller_id=self.caller_id, timestamp=timestamp, data=data
+            )
             await self.__data_handler._on_data_ready(wrapped_data)

@@ -30,7 +30,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
     and notifies its registered `Client` about the newly discovered service instance.
     """
 
-    class Client(ABC, Generic[TServiceInfo]):
+    class Client(ABC): # Removed Generic[TServiceInfo]
         """Interface for clients of `InstanceListener`.
 
         Implementers of this interface are notified when a complete service
@@ -55,7 +55,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
 
     def __init__(
         self,
-        client: "InstanceListener.Client[TServiceInfo]",
+        client: "InstanceListener.Client", # Removed [TServiceInfo]
         service_type: str,
         *,
         mdns_listener_factory: Optional[
@@ -91,7 +91,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
                 f"service_type must be a string, got {type(service_type).__name__}."
             )
 
-        self.__client: InstanceListener.Client[TServiceInfo] = client
+        self.__client: InstanceListener.Client = client # Removed [TServiceInfo]
         # This InstanceListener acts as the client to the MdnsListener.
 
         self.__listener: MdnsListener  # Declare type once for __listener

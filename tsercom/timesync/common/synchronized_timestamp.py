@@ -1,7 +1,7 @@
 import dataclasses
 import datetime
 from typing import TypeAlias, Union, Optional
-import logging
+import logging  # Preserved as it's used by try_parse
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from tsercom.timesync.common.proto import ServerTimestamp
@@ -11,7 +11,7 @@ TimestampType: TypeAlias = Union["SynchronizedTimestamp", datetime.datetime]
 
 @dataclasses.dataclass(
     eq=False, order=False, unsafe_hash=False
-)  # Keep custom eq and order methods
+)  # Retaining custom eq/order
 class SynchronizedTimestamp:
     """
     A wrapper around a `datetime.datetime` object to represent a timestamp
@@ -27,16 +27,11 @@ class SynchronizedTimestamp:
     underlying `datetime.datetime` object for the actual comparison.
     """
 
-    timestamp: datetime.datetime  # Field for the dataclass
-
-    # __init__ will be auto-generated: def __init__(self, timestamp: datetime.datetime)
-    # The original __init__ had assertions, which can be moved to __post_init__.
+    timestamp: datetime.datetime
 
     def __post_init__(self) -> None:
         """Post-initialization checks."""
-        if (
-            self.timestamp is None
-        ):  # Changed from self.__timestamp to self.timestamp
+        if self.timestamp is None:
             raise AssertionError("Timestamp cannot be None.")
         if not isinstance(self.timestamp, datetime.datetime):
             raise AssertionError(
@@ -53,6 +48,7 @@ class SynchronizedTimestamp:
         if isinstance(other, ServerTimestamp):
             other = other.timestamp
 
+        # This assertion is a useful precondition check.
         assert isinstance(
             other, Timestamp
         ), "Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one."
@@ -61,34 +57,24 @@ class SynchronizedTimestamp:
             dt_object = other.ToDatetime()
             return cls(dt_object)
         except ValueError as e:
+            # Logging here is important for debugging potential data issues.
             logging.warning(f"Failed to parse gRPC Timestamp to datetime: {e}")
             return None
 
     def as_datetime(self) -> datetime.datetime:
-        return (
-            self.timestamp
-        )  # Changed from self.__timestamp to self.timestamp
+        return self.timestamp
 
     def to_grpc_type(self) -> ServerTimestamp:
         timestamp_pb = Timestamp()
-        timestamp_pb.FromDatetime(
-            self.timestamp
-        )  # Changed from self.__timestamp to self.timestamp
+        timestamp_pb.FromDatetime(self.timestamp)
         return ServerTimestamp(timestamp=timestamp_pb)
-
-    # Keep all custom comparison methods as their logic is specific
-    # (comparing unwrapped datetime and handling mixed types).
 
     def __gt__(self, other: TimestampType) -> bool:
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
             other_dt = other
-
         if not isinstance(other_dt, datetime.datetime):
-            # To maintain original behavior, if it's not a datetime, it might raise error or return False
-            # Depending on Python version, datetime comparison with non-datetime might raise TypeError.
-            # The original code had an assert, which would raise an error. Let's keep that.
             raise TypeError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )

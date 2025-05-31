@@ -11,7 +11,6 @@ class ServiceInfo:
     mDNS instance name.
     """
 
-    # Original __init__ order: name: str, port: int, addresses: List[str], mdns_name: str
     name: str
     port: int
     addresses: List[str]

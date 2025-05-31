@@ -2,7 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar, Tuple
-
+from tsercom.data.exposed_data import ExposedData # Added import
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.api.split_process.remote_runtime_factory import (
@@ -18,7 +18,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_factory import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-TDataType = TypeVar("TDataType")  # Generic type for data.
+TDataType = TypeVar("TDataType", bound=ExposedData)  # Generic type for data.
 TEventType = TypeVar("TEventType")  # Generic type for events.
 
 

@@ -7,6 +7,7 @@ for Tsercom runtimes operating in a client role.
 
 from typing import Generic, TypeVar
 from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.exposed_data import ExposedData # Added import
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
@@ -22,7 +23,7 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType")
+TDataType = TypeVar("TDataType", bound=ExposedData) # Constrained TDataType
 
 
 class ClientRuntimeDataHandler(
