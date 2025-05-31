@@ -1,21 +1,22 @@
 """Configuration for Tsercom runtimes, specifying service type and data handling."""
 
 from enum import Enum
-from typing import Literal, Optional, overload  # Removed TypeVar import
+from typing import Literal, Optional, TypeVar, overload, Generic
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
+from tsercom.data.exposed_data import ExposedData  # Import ExposedData
 
-# TDataType = TypeVar("TDataType") # Removed
-# TEventType = TypeVar("TEventType") # Removed
+TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
+TEventType = TypeVar("TEventType")
 
 
 class ServiceType(Enum):
-    """Enumerates the operational roles for a Tsercom runtime."""
+    """Defines the type of service for a Tsercom runtime."""
 
-    kClient = 1
-    kServer = 2
+    kClient = 0
+    kServer = 1
 
 
-class RuntimeConfig:
+class RuntimeConfig(Generic[TDataType]):
     """Holds configuration parameters for a Tsercom runtime.
 
     This includes the service type (client or server), data aggregator client,
@@ -28,7 +29,9 @@ class RuntimeConfig:
         self,
         service_type: "ServiceType",
         *,
-        data_aggregator_client: Optional[RemoteDataAggregator] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator[TDataType]
+        ] = None,
         timeout_seconds: Optional[int] = 60,
     ): ...
 
@@ -37,12 +40,14 @@ class RuntimeConfig:
         self,
         service_type: Literal["Client", "Server"],
         *,
-        data_aggregator_client: Optional[RemoteDataAggregator] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator[TDataType]
+        ] = None,
         timeout_seconds: Optional[int] = 60,
     ): ...
 
     @overload
-    def __init__(self, *, other_config: "RuntimeConfig"): ...
+    def __init__(self, *, other_config: "RuntimeConfig[TDataType]"): ...
 
     def __init__(
         self,
@@ -50,8 +55,10 @@ class RuntimeConfig:
             Literal["Client", "Server"] | ServiceType
         ] = None,
         *,
-        other_config: Optional["RuntimeConfig"] = None,
-        data_aggregator_client: Optional[RemoteDataAggregator] = None,
+        other_config: Optional["RuntimeConfig[TDataType]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator[TDataType]
+        ] = None,
         timeout_seconds: Optional[int] = 60,
     ):
         """Initializes the RuntimeConfig.
@@ -91,12 +98,15 @@ class RuntimeConfig:
                 self.__service_type = ServiceType.kServer
             else:
                 raise ValueError(f"Invalid service type: {service_type}")
-        else:
+        elif isinstance(service_type, ServiceType):
             self.__service_type = service_type
+        else:
+            # This case should ideally not be reached if type hints are respected.
+            raise TypeError(f"Unsupported service_type: {type(service_type)}")
 
-        self.__data_aggregator_client: Optional[RemoteDataAggregator] = (
-            data_aggregator_client
-        )
+        self.__data_aggregator_client: Optional[
+            RemoteDataAggregator[TDataType]
+        ] = data_aggregator_client
         self.__timeout_seconds: Optional[int] = timeout_seconds
 
     def is_client(self) -> bool:
@@ -125,7 +135,26 @@ class RuntimeConfig:
         return self.__service_type == ServiceType.kServer
 
     @property
-    def data_aggregator_client(self) -> RemoteDataAggregator:
+    def service_type_enum(self) -> "ServiceType":
+        """Returns the raw ServiceType enum value."""
+        if isinstance(self.__service_type, str):
+            # This block is to handle the case where __service_type might still be a string.
+            # This should ideally be fully resolved by the __init__ logic.
+            if self.__service_type == "Client":
+                return ServiceType.kClient
+            elif self.__service_type == "Server":
+                return ServiceType.kServer
+            else:
+                # Should not happen based on current __init__
+                raise ValueError(
+                    f"Invalid string for service_type: {self.__service_type}"
+                )
+        return self.__service_type
+
+    @property
+    def data_aggregator_client(
+        self,
+    ) -> Optional[RemoteDataAggregator[TDataType]]:
         """
         Returns the client that should be informed when new data is provided to
         the RemoteDataAggregator instance created for the runtime created from
@@ -134,7 +163,7 @@ class RuntimeConfig:
         return self.__data_aggregator_client
 
     @property
-    def timeout_seconds(self) -> int:
+    def timeout_seconds(self) -> Optional[int]:
         """
         Returns the timeout (in seconds) that should be used for data received
         by the runtime created from this initializer, or None if data should not

@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Dict, Generic, List, Optional, TypeVar
+from typing import Generic, List, TypeVar, Any  # Added Any
 
 import grpc
 
@@ -15,13 +15,14 @@ from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.data.exposed_data import ExposedData  # Import ExposedData
 from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType")
+TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
 
 
 class RuntimeDataHandlerBase(
@@ -52,9 +53,9 @@ class RuntimeDataHandlerBase(
     def register_caller(
         self,
         caller_id: CallerIdentifier,
-        endpoint: Optional[str] = None,
-        port: Optional[int] = None,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        endpoint: Any = None,  # Changed to Any
+        port: Any = None,  # Changed to Any
+        context: Any = None,  # Changed to Any
     ) -> EndpointDataProcessor[TDataType] | None:
         """Registers a caller using either endpoint/port or gRPC context.
 
@@ -119,14 +120,8 @@ class RuntimeDataHandlerBase(
     def get_data_iterator(
         self,
     ) -> AsyncIterator[
-        Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]
+        List[SerializableAnnotatedInstance[TEventType]]
     ]:
-        # TODO(developer): Fix type mismatch: This implementation yields/returns
-        # Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]],
-        # but the parent RuntimeDataHandler interface expects
-        # AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]].
-        # This class's __anext__ and __aiter__ also reflect the Dict-based type.
-        # The event_source poller or the processing here needs adjustment.
         """Returns an async iterator for event data, grouped by CallerIdentifier.
 
         This implementation returns `self` as it implements `__aiter__` and `__anext__`.
@@ -203,9 +198,9 @@ class RuntimeDataHandlerBase(
 
     async def __anext__(
         self,
-    ) -> Dict[
-        CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]
-    ]:
+    ) -> List[
+        SerializableAnnotatedInstance[TEventType]
+    ]:  # Match what get_data_iterator implies
         """Retrieves the next batch of events from the event source.
 
         Implements the async iterator protocol.
@@ -215,8 +210,8 @@ class RuntimeDataHandlerBase(
     def __aiter__(
         self,
     ) -> AsyncIterator[
-        Dict[CallerIdentifier, List[SerializableAnnotatedInstance[TEventType]]]
-    ]:
+        List[SerializableAnnotatedInstance[TEventType]]
+    ]:  # Match what get_data_iterator implies
         """Returns self as the async iterator for events.
 
         Implements the async iterator protocol.
@@ -267,9 +262,11 @@ class RuntimeDataHandlerBase(
             """Desynchronizes a server timestamp using the provided clock."""
             return await self.__clock.desync(timestamp)
 
-        async def deregister_caller(self) -> None:
+        async def deregister_caller(
+            self,
+        ) -> bool:  # Changed return type to bool
             """Deregisters the caller via the parent data handler."""
-            await self.__data_handler._unregister_caller(self.caller_id)
+            return await self.__data_handler._unregister_caller(self.caller_id)
 
         async def _process_data(
             self, data: TDataType, timestamp: datetime

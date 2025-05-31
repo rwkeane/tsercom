@@ -88,9 +88,15 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
             request: object, context: grpc.aio.ServicerContext
         ) -> Awaitable[object]:
             try:
-                return await method(request, context)
+                return await method(request, context)  # type: ignore[return-value]
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
+                raise  # Make it clear this path does not return normally
+            except (
+                Warning
+            ) as e:  # PEP 8: E722 do not use bare 'except' -> but this is 'except Warning'
+                await self._handle_exception(e, method_name, context)
+                raise  # Make it clear this path does not return normally
 
         return wrapper
 
@@ -115,6 +121,10 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                     yield response
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
+                raise  # Make it clear this path does not return normally
+            except Warning as e:  # PEP 8: E722 do not use bare 'except'
+                await self._handle_exception(e, method_name, context)
+                raise  # Make it clear this path does not return normally
 
         return wrapper
 
@@ -128,12 +138,18 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
     ) -> Callable[[object, grpc.aio.ServicerContext], Awaitable[object]]:
         """Wraps a stream-unary RPC method to provide exception handling."""
 
-        async def wrapper(request_iterator: object, context: grpc.aio.ServicerContext) -> Awaitable[object]:  # type: ignore
+        async def wrapper(
+            request_iterator: object, context: grpc.aio.ServicerContext
+        ) -> Awaitable[object]:  # Removed type: ignore from line 140
             try:
                 # The original method for stream-unary expects an async iterator.
-                return await method(request_iterator, context)
+                return await method(request_iterator, context)  # type: ignore[return-value]
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
+                raise  # Make it clear this path does not return normally
+            except Warning as e:  # PEP 8: E722 do not use bare 'except'
+                await self._handle_exception(e, method_name, context)
+                raise  # Make it clear this path does not return normally
 
         return wrapper
 
@@ -159,6 +175,10 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                     yield response
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
+                raise  # Make it clear this path does not return normally
+            except Warning as e:  # PEP 8: E722 do not use bare 'except'
+                await self._handle_exception(e, method_name, context)
+                raise  # Make it clear this path does not return normally
 
         return wrapper
 

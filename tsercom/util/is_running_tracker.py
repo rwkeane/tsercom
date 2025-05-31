@@ -131,7 +131,7 @@ class IsRunningTracker(Atomic[bool]):
         await self.__stopped_barrier.wait()
 
     async def task_or_stopped(
-        self, call: Coroutine[Any, Any, TReturnType]
+        self, call: Coroutine[Any, Any, TReturnType]  # Reverted to Coroutine
     ) -> TReturnType | None:
         """
         Runs |call| until completion, or until the current instance changes to
@@ -143,7 +143,9 @@ class IsRunningTracker(Atomic[bool]):
         # gets cancelled while holding the lock, resulting in a deadlock. This
         # isn't ideal and might lead to issues later, but for now its the best
         # solution I can come up with.
-        call_task = asyncio.shield(asyncio.create_task(call))
+        call_task: asyncio.Future[TReturnType] = asyncio.shield(
+            asyncio.create_task(call)
+        )
 
         # This SHOULD get around the issue where |call_task| gets dropped
         # resulting in an error.
@@ -171,11 +173,13 @@ class IsRunningTracker(Atomic[bool]):
         # set when the tracker's state changes to `False` (stopped).
 
         stop_check_task = asyncio.create_task(self.__stopped_barrier.wait())
-        # The type checker has difficulty with asyncio.wait()'s dynamic return type.
-        # We know `done` will contain tasks of type asyncio.Task[TReturnType] or asyncio.Task[None]
-        # and `pending` will contain the other tasks.
+
+        # Explicitly type the list of tasks for asyncio.wait
+        # Future[Any] because call_task is Future[TReturnType] (from shield) and stop_check_task is Task[Any] (Task is a Future)
+        tasks_to_wait: list[asyncio.Future[Any]] = [call_task, stop_check_task]
+
         done, pending = await asyncio.wait(
-            [call_task, stop_check_task], return_when=asyncio.FIRST_COMPLETED
+            tasks_to_wait, return_when=asyncio.FIRST_COMPLETED
         )
 
         # Once `asyncio.wait` returns, one of the tasks has completed.
@@ -306,7 +310,9 @@ class IsRunningTracker(Atomic[bool]):
             # We are confident `anext(self.__iterator)` returns a Coroutine.
             next_item_coro = anext(self.__iterator)
 
-            result = await self.__tracker.task_or_stopped(next_item_coro)
+            # anext() should return a Coroutine, which matches task_or_stopped's expectation.
+            # If mypy still complains about Awaitable vs Coroutine, this ignore might be needed.
+            result = await self.__tracker.task_or_stopped(next_item_coro)  # type: ignore[arg-type]
 
             if result is None or not self.__tracker.get():
                 # If task_or_stopped returned None (meaning the tracker stopped)

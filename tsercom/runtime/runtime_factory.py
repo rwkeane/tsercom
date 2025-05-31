@@ -8,10 +8,11 @@ from tsercom.data.event_instance import EventInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
+from tsercom.data.exposed_data import ExposedData  # Import ExposedData
 
 
 TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType")
+TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
 
 
 class RuntimeFactory(
@@ -73,12 +74,7 @@ class RuntimeFactory(
         """
         pass
 
-    def _stop() -> None:
-        # TODO(developer): Clarify the purpose and signature of this _stop() method.
-        # It is currently a static method (no self) with a 'pass' body,
-        # but its docstring implies instance-specific cleanup ('associated with this instance').
-        # If it's for instance cleanup, it should take 'self' and likely be abstract.
-        # If static, its purpose and docstring need revision. If unused, consider removal.
+    def _stop(self) -> None:
         """
         Stops any underlying calls and executions associated with this instance.
         """

@@ -22,7 +22,7 @@ class ProcessCreator:
     """Wraps `multiprocessing.Process` instantiation to provide a centralized point for process creation logic, error handling, and to facilitate testing."""
 
     def create_process(
-        self, target: Callable, args: Tuple[Any, ...], daemon: bool
+        self, target: Callable[..., Any], args: Tuple[Any, ...], daemon: bool
     ) -> Optional[Process]:
         """Creates and returns a multiprocessing.Process instance.
 

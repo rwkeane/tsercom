@@ -1508,7 +1508,7 @@ async def test_client_auth_no_server_validation_by_client(
         client_cert_pem=client_cert_pem,
         client_key_pem=client_key_pem,
         root_ca_cert_pem=None,
-        server_hostname_override=server_cn,
+        server_hostname_override=None,
     )
 
     channel_info: Optional[ChannelInfo] = None

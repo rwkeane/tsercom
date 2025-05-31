@@ -9,7 +9,7 @@ inter-process communication by providing distinct interfaces for sending (sink)
 and receiving (source) data.
 """
 
-import multiprocessing
+from multiprocessing import Queue as MpQueue
 from typing import TypeVar
 
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
@@ -40,7 +40,7 @@ def create_multiprocess_queues() -> (
             A tuple containing the sink (for putting items) and the source
             (for getting items) for the created multiprocess queue.
     """
-    queue: multiprocessing.Queue[TQueueType] = multiprocessing.Queue()
+    queue: "MpQueue[TQueueType]" = MpQueue()
 
     sink = MultiprocessQueueSink[TQueueType](queue)
     source = MultiprocessQueueSource[TQueueType](queue)

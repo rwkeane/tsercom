@@ -39,12 +39,21 @@ class FakeThreadPoolExecutor:
 class FakeRuntimeInitializer:
     def __init__(
         self,
-        service_type="Server",
+        service_type_str="Server",  # Changed parameter name for clarity
         data_aggregator_client=None,
         timeout_seconds=60,
     ):
-        # Attributes needed by RuntimeConfig logic
-        self._RuntimeConfig__service_type = service_type
+        # Store the string, but also prepare the enum
+        if service_type_str == "Server":
+            self.__service_type_enum_val = ServiceType.kServer
+        elif service_type_str == "Client":
+            self.__service_type_enum_val = ServiceType.kClient
+        else:
+            raise ValueError(f"Invalid service_type_str: {service_type_str}")
+
+        # This is what RuntimeConfig would store if initialized directly with an enum
+        self._RuntimeConfig__service_type = self.__service_type_enum_val
+
         self.data_aggregator_client = data_aggregator_client
         self.timeout_seconds = timeout_seconds
 
@@ -57,6 +66,10 @@ class FakeRuntimeInitializer:
         self.create_args = (thread_watcher, data_handler, grpc_channel_factory)
         # Return a dummy runtime object if needed by the actual create() chain
         return object()
+
+    @property
+    def service_type_enum(self):
+        return self.__service_type_enum_val
 
 
 @pytest.fixture
@@ -271,13 +284,12 @@ def test_create_factory_calls_create_pair(
     # LocalRuntimeFactory's __init__ calls super().__init__(other_config=initializer)
     # This sets up RuntimeConfig attributes on the LocalRuntimeFactory instance itself.
     # Compare with the actual enum value
-    if fake_initializer._RuntimeConfig__service_type == "Server":
-        expected_service_type = ServiceType.kServer
-    elif fake_initializer._RuntimeConfig__service_type == "Client":
-        expected_service_type = ServiceType.kClient
-    else:
-        raise ValueError("Invalid service type in fake_initializer for test")
-    assert factory._RuntimeConfig__service_type == expected_service_type
+    # factory._RuntimeConfig__service_type is already the enum set by RuntimeConfig.__init__
+    # fake_initializer.service_type_enum provides the enum from the fake
+    assert (
+        factory._RuntimeConfig__service_type
+        == fake_initializer.service_type_enum
+    )
     assert (
         factory.data_aggregator_client
         == fake_initializer.data_aggregator_client

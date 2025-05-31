@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-from zeroconf import IPVersion, ServiceInfo, Zeroconf
+from zeroconf import IPVersion, ServiceInfo, Zeroconf  # type: ignore[import-not-found]
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.util.ip import get_all_addresses
@@ -60,9 +60,7 @@ class RecordPublisher(MdnsPublisher):
         service_info = ServiceInfo(
             type_=self.__ptr,  # The service type (e.g., "_myservice._tcp.local.")
             name=self.__srv,  # The full service name (e.g., "MyDevice._myservice._tcp.local.")
-            addresses=get_all_addresses(
-                ip_version=IPVersion.V4Only
-            ),  # Get IPv4 addresses
+            addresses=get_all_addresses(),  # Get IPv4 addresses
             port=self.__port,
             properties=self.__txt,
             # Optional: server name can be set here if needed, e.g., f"{socket.gethostname()}.local."

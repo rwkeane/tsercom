@@ -34,10 +34,11 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
                                       does not match the target address (e.g., for IP addresses
                                       or localhost testing).
         """
+        self.root_ca_cert_pem: bytes  # Declare type once
         if isinstance(root_ca_cert_pem, str):
-            self.root_ca_cert_pem: bytes = root_ca_cert_pem.encode("utf-8")
+            self.root_ca_cert_pem = root_ca_cert_pem.encode("utf-8")
         else:
-            self.root_ca_cert_pem: bytes = root_ca_cert_pem
+            self.root_ca_cert_pem = root_ca_cert_pem
 
         self.server_hostname_override: Optional[str] = server_hostname_override
         super().__init__()  # GrpcChannelFactory might not have __init__, but good practice

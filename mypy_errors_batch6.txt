@@ -1,0 +1,575 @@
+tsercom/runtime/id_tracker.py:29: error: Overloaded function implementation
+does not accept all possible arguments of signature 2  [misc]
+        def try_get(
+        ^
+tsercom/runtime/id_tracker.py:80: error: Overloaded function implementation
+does not accept all possible arguments of signature 2  [misc]
+        def get(
+        ^
+tsercom/threading/thread_watcher.py:88: error: "ThrowingThreadPoolExecutor"
+gets multiple values for keyword argument "error_cb"  [misc]
+            return ThrowingThreadPoolExecutor(
+                   ^
+tsercom/runtime/runtime_data_handler.py:65: error: Overloaded function
+implementation does not accept all possible arguments of signature 2  [misc]
+        @abstractmethod
+         ^
+tsercom/util/is_running_tracker.py:313: error: Function does not return a value
+(it only ever returns None)  [func-returns-value]
+                result = await self.__tracker.task_or_stopped(next_item_co...
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/util/is_running_tracker.py:313: note: Error code "func-returns-value" not covered by "type: ignore" comment
+tsercom/runtime/runtime_config.py:131: error: Unused "type: ignore" comment
+[unused-ignore]
+            return self.__service_type # type: ignore[no-any-return] # __s...
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/rpc/connection/client_disconnection_retrier.py:194: error: Signature of
+"_on_disconnect" incompatible with supertype "ClientReconnectionManager"
+[override]
+        async def _on_disconnect(self, error: Optional[Exception]) -> None...
+        ^
+tsercom/rpc/connection/client_disconnection_retrier.py:194: note:      Superclass:
+tsercom/rpc/connection/client_disconnection_retrier.py:194: note:          def _on_disconnect(self, error: Exception | None = ...) -> Coroutine[Any, Any, None]
+tsercom/rpc/connection/client_disconnection_retrier.py:194: note:      Subclass:
+tsercom/rpc/connection/client_disconnection_retrier.py:194: note:          def _on_disconnect(self, error: Exception | None) -> Coroutine[Any, Any, None]
+tsercom/runtime/runtime_data_handler_base.py:28: error: Type argument
+"TDataType" of "RuntimeDataHandler" must be a subtype of "ExposedData"
+[type-var]
+    ...neric[TDataType, TEventType], RuntimeDataHandler[TDataType, TEventType...
+                                                        ^
+tsercom/runtime/runtime_data_handler_base.py:52: error: Signature of
+"register_caller" incompatible with supertype "RuntimeDataHandler"  [override]
+        def register_caller(
+        ^
+tsercom/runtime/runtime_data_handler_base.py:52: note:      Superclass:
+tsercom/runtime/runtime_data_handler_base.py:52: note:          @overload
+tsercom/runtime/runtime_data_handler_base.py:52: note:          def register_caller(self, caller_id: CallerIdentifier, endpoint: str, port: int) -> EndpointDataProcessor[TDataType]
+tsercom/runtime/runtime_data_handler_base.py:52: note:          @overload
+tsercom/runtime/runtime_data_handler_base.py:52: note:          def register_caller(self, caller_id: CallerIdentifier, context: Any) -> EndpointDataProcessor[TDataType] | None
+tsercom/runtime/runtime_data_handler_base.py:52: note:      Subclass:
+tsercom/runtime/runtime_data_handler_base.py:52: note:          def register_caller(self, caller_id: CallerIdentifier, endpoint: str | None = ..., port: int | None = ..., context: Any | None = ...) -> EndpointDataProcessor[TDataType] | None
+tsercom/runtime/runtime_data_handler_base.py:126: error: Return type
+"AsyncIterator[dict[CallerIdentifier, list[SerializableAnnotatedInstance[TEventType]]]]"
+of "get_data_iterator" incompatible with return type
+"AsyncIterator[list[SerializableAnnotatedInstance[TEventType]]]" in supertype
+"RuntimeDataHandler"  [override]
+        def get_data_iterator(
+        ^
+tsercom/runtime/runtime_data_handler_base.py:214: error: Incompatible return
+value type (got "list[SerializableAnnotatedInstance[TEventType]]", expected
+"dict[CallerIdentifier, list[SerializableAnnotatedInstance[TEventType]]]")
+[return-value]
+            return await self.__event_source.__anext__()
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/runtime/runtime_data_handler_base.py:269: error: Returning Any from
+function declared to return "datetime"  [no-any-return]
+                return await self.__clock.desync(timestamp)  # Added await
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/runtime/runtime_data_handler_base.py:269: error: Incompatible types in
+"await" (actual type "datetime", expected type "Awaitable[Any]")  [misc]
+                return await self.__clock.desync(timestamp)  # Added await
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/runtime/runtime_data_handler_base.py:273: error: Incompatible types in
+"await" (actual type "bool", expected type "Awaitable[Any]")  [misc]
+                await self.__data_handler._unregister_caller(
+                ^
+tsercom/discovery/discovery_host.py:17: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+        InstanceListener.Client[
+        ^
+tsercom/discovery/discovery_host.py:30: error: Free type variable expected in
+Generic[...]  [misc]
+        class Client(ABC, Generic[TServiceInfo]):
+                          ^
+tsercom/discovery/discovery_host.py:60: error: Invalid type comment or
+annotation  [valid-type]
+            instance_listener_factory: Callable[
+                 ^
+tsercom/discovery/discovery_host.py:72: error: Invalid type comment or
+annotation  [valid-type]
+            instance_listener_factory: Optional[
+                     ^
+tsercom/discovery/discovery_host.py:107: error: Invalid type comment or
+annotation  [valid-type]
+            self.__instance_listener_factory: Optional[
+                     ^
+tsercom/discovery/discovery_host.py:116: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            self.__client: Optional[DiscoveryHost.Client[TServiceInfo]] = ...
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/discovery/discovery_host.py:122: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            self, client: "DiscoveryHost.Client[TServiceInfo]"
+     ^
+tsercom/discovery/discovery_host.py:139: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            client: "DiscoveryHost.Client[TServiceInfo]",  # Added generic...
+     ^
+tsercom/discovery/discovery_host.py:180: error: Argument 1 of
+"_on_service_added" is incompatible with supertype "Client"; supertype defines
+the argument type as "TServiceInfo"  [override]
+        async def _on_service_added(self, connection_info: TServiceInfo) -...
+                                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/discovery/discovery_host.py:180: note: This violates the Liskov substitution principle
+tsercom/discovery/discovery_host.py:180: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+tsercom/runtime/runtime_factory.py:19: error: Type argument "TDataType" of
+"RuntimeInitializer" must be a subtype of "ExposedData"  [type-var]
+        RuntimeInitializer[TDataType, TEventType],
+                           ^
+tsercom/runtime/runtime_factory.py:76: error: Method must have at least one
+argument. Did you forget the "self" argument?  [misc]
+        def _stop() -> None:
+        ^
+tsercom/runtime/server/server_runtime_data_handler.py:68: error: Incompatible
+types in assignment (expression has type "SynchronizedClock", variable has type
+"FakeSynchronizedClock")  [assignment]
+            self.__clock = self.__server.get_synchronized_clock()
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/runtime/server/server_runtime_data_handler.py:89: error: Return type
+"None" of "_unregister_caller" incompatible with return type "bool" in supertype
+"RuntimeDataHandlerBase"  [override]
+        def _unregister_caller(self, caller_id: CallerIdentifier) -> None:
+        ^
+tsercom/runtime/client/timesync_tracker.py:50: error: Incompatible types in
+assignment (expression has type "TimeSyncClient", variable has type
+"FakeTimeSyncClient")  [assignment]
+                    new_client = TimeSyncClient(self.__thread_watcher, ip)
+                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/runtime/client/timesync_tracker.py:54: error: Incompatible types in
+assignment (expression has type "tuple[int, FakeTimeSyncClient]", target has
+type "tuple[int, TimeSyncClient]")  [assignment]
+                self.__map[ip] = (1, new_client)
+                                 ^~~~~~~~~~~~~~~
+tsercom/runtime/client/timesync_tracker.py:64: error: Function is missing a
+return type annotation  [no-untyped-def]
+        def on_disconnect(self, ip: str):
+        ^
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector.py:26: error:
+"Client" expects no type arguments, but 1 given  [type-arg]
+        Generic[TServiceInfo], DiscoveryHost.Client[TServiceInfo]
+                               ^
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector.py:62: error:
+"Client" expects no type arguments, but 1 given  [type-arg]
+            client: "DiscoverableGrpcEndpointConnector.Client[TServiceInfo...
+     ^
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector.py:76: error:
+"Client" expects no type arguments, but 1 given  [type-arg]
+            self.__client: DiscoverableGrpcEndpointConnector.Client[
+                           ^
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector.py:96: error:
+"start_discovery" of "DiscoveryHost" does not return a value (it only ever
+returns None)  [func-returns-value]
+            await self.__discovery_host.start_discovery(self)
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector.py:146: error:
+Argument 1 of "_on_service_added" is incompatible with supertype "Client";
+supertype defines the argument type as "TServiceInfo"  [override]
+            connection_info: TServiceInfo,
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector.py:146: note: This violates the Liskov substitution principle
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector.py:146: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+tsercom/data/remote_data_organizer.py:54: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            client: Optional["RemoteDataOrganizer.Client[TDataType]"] = No...
+     ^
+tsercom/data/remote_data_organizer.py:68: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            self.__client: Optional[RemoteDataOrganizer.Client[TDataType]]...
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/runtime_manager_helpers.py:25: error: Missing type parameters for
+generic type "Callable"  [type-arg]
+            self, target: Callable, args: Tuple[Any, ...], daemon: bool
+                          ^
+tsercom/api/runtime_manager_helpers.py:57: error: Missing type parameters for
+generic type "Queue"  [type-arg]
+            error_source_queue: MultiprocessQueue,
+                                ^
+tsercom/api/runtime_manager_helpers.py:69: error: Argument 2 to
+"SplitProcessErrorWatcherSource" has incompatible type "Queue[Any]"; expected
+"MultiprocessQueueSource[Exception]"  [arg-type]
+                thread_watcher, error_source_queue
+                                ^~~~~~~~~~~~~~~~~~
+tsercom/runtime/client/client_runtime_data_handler.py:65: error: Missing type
+parameters for generic type "EndpointDataProcessor"  [type-arg]
+        ) -> EndpointDataProcessor:
+             ^
+tsercom/data/remote_data_aggregator_impl.py:43: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            client: Optional[RemoteDataAggregator.Client[TDataType]] = Non...
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/data/remote_data_aggregator_impl.py:50: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            client: Optional[RemoteDataAggregator.Client[TDataType]] = Non...
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/data/remote_data_aggregator_impl.py:59: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            client: Optional[RemoteDataAggregator.Client[TDataType]] = Non...
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/data/remote_data_aggregator_impl.py:67: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            client: Optional[RemoteDataAggregator.Client[TDataType]] = Non...
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/data/remote_data_aggregator_impl.py:102: error: "Client" expects no
+type arguments, but 1 given  [type-arg]
+            self.__client: Optional[RemoteDataAggregator.Client[TDataType]...
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/data/remote_data_aggregator_impl.py:138: error: Signature of
+"has_new_data" incompatible with supertype "RemoteDataAggregator"  [override]
+        def has_new_data(
+        ^
+tsercom/data/remote_data_aggregator_impl.py:138: note:      Superclass:
+tsercom/data/remote_data_aggregator_impl.py:138: note:          @overload
+tsercom/data/remote_data_aggregator_impl.py:138: note:          def has_new_data(self) -> dict[CallerIdentifier, bool]
+tsercom/data/remote_data_aggregator_impl.py:138: note:          @overload
+tsercom/data/remote_data_aggregator_impl.py:138: note:          def has_new_data(self, id: CallerIdentifier) -> bool
+tsercom/data/remote_data_aggregator_impl.py:138: note:      Subclass:
+tsercom/data/remote_data_aggregator_impl.py:138: note:          def has_new_data(self, id: CallerIdentifier | None = ...) -> dict[CallerIdentifier, bool] | bool
+tsercom/data/remote_data_aggregator_impl.py:165: error: Signature of
+"get_new_data" incompatible with supertype "RemoteDataAggregator"  [override]
+        def get_new_data(
+        ^
+tsercom/data/remote_data_aggregator_impl.py:165: note:      Superclass:
+tsercom/data/remote_data_aggregator_impl.py:165: note:          @overload
+tsercom/data/remote_data_aggregator_impl.py:165: note:          def get_new_data(self) -> dict[CallerIdentifier, list[TDataType]]
+tsercom/data/remote_data_aggregator_impl.py:165: note:          @overload
+tsercom/data/remote_data_aggregator_impl.py:165: note:          def get_new_data(self, id: CallerIdentifier) -> list[TDataType]
+tsercom/data/remote_data_aggregator_impl.py:165: note:      Subclass:
+tsercom/data/remote_data_aggregator_impl.py:165: note:          def get_new_data(self, id: CallerIdentifier | None = ...) -> dict[CallerIdentifier, list[TDataType]] | list[TDataType]
+tsercom/data/remote_data_aggregator_impl.py:196: error: Signature of
+"get_most_recent_data" incompatible with supertype "RemoteDataAggregator"
+[override]
+        def get_most_recent_data(
+        ^
+tsercom/data/remote_data_aggregator_impl.py:196: note:      Superclass:
+tsercom/data/remote_data_aggregator_impl.py:196: note:          @overload
+tsercom/data/remote_data_aggregator_impl.py:196: note:          def get_most_recent_data(self) -> dict[CallerIdentifier, TDataType | None]
+tsercom/data/remote_data_aggregator_impl.py:196: note:          @overload
+tsercom/data/remote_data_aggregator_impl.py:196: note:          def get_most_recent_data(self, id: CallerIdentifier) -> TDataType | None
+tsercom/data/remote_data_aggregator_impl.py:196: note:      Subclass:
+tsercom/data/remote_data_aggregator_impl.py:196: note:          def get_most_recent_data(self, id: CallerIdentifier | None = ...) -> dict[CallerIdentifier, TDataType | None] | TDataType | None
+tsercom/data/remote_data_aggregator_impl.py:228: error: Signature of
+"get_data_for_timestamp" incompatible with supertype "RemoteDataAggregator"
+[override]
+        def get_data_for_timestamp(
+        ^
+tsercom/data/remote_data_aggregator_impl.py:228: note:      Superclass:
+tsercom/data/remote_data_aggregator_impl.py:228: note:          @overload
+tsercom/data/remote_data_aggregator_impl.py:228: note:          def get_data_for_timestamp(self, timestamp: datetime) -> dict[CallerIdentifier, TDataType | None]
+tsercom/data/remote_data_aggregator_impl.py:228: note:          @overload
+tsercom/data/remote_data_aggregator_impl.py:228: note:          def get_data_for_timestamp(self, timestamp: datetime, id: CallerIdentifier) -> TDataType | None
+tsercom/data/remote_data_aggregator_impl.py:228: note:      Subclass:
+tsercom/data/remote_data_aggregator_impl.py:228: note:          def get_data_for_timestamp(self, timestamp: datetime, id: CallerIdentifier | None = ...) -> dict[CallerIdentifier, TDataType | None] | TDataType | None
+tsercom/data/remote_data_aggregator_impl.py:267: error: Argument 1 of
+"_on_data_available" is incompatible with supertype "Client"; supertype defines
+the argument type as "RemoteDataOrganizer[TDataType]"  [override]
+            self, data_organizer: RemoteDataOrganizer[TDataType]
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/data/remote_data_aggregator_impl.py:267: note: This violates the Liskov substitution principle
+tsercom/data/remote_data_aggregator_impl.py:267: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+tsercom/api/local_process/local_runtime_factory.py:36: error: Type argument
+"TDataType" of "RuntimeInitializer" must be a subtype of "ExposedData"
+[type-var]
+            initializer: RuntimeInitializer[TDataType, TEventType],
+                                            ^
+tsercom/api/local_process/local_runtime_factory.py:50: error: Type argument
+"TDataType" of "RuntimeInitializer" must be a subtype of "ExposedData"
+[type-var]
+            self.__initializer: RuntimeInitializer[TDataType, TEventType] ...
+                                                   ^
+tsercom/api/local_process/local_runtime_factory.py:66: error: Type argument
+"TDataType" of "RuntimeDataHandler" must be a subtype of "ExposedData"
+[type-var]
+            data_handler: RuntimeDataHandler[TDataType, TEventType],
+                                             ^
+tsercom/runtime/runtime_main.py:59: error: Need type annotation for
+"data_handler"  [var-annotated]
+                data_handler = ClientRuntimeDataHandler(
+                               ^
+tsercom/runtime/runtime_main.py:62: error: Argument 3 to
+"ClientRuntimeDataHandler" has incompatible type
+"AsyncPoller[EventInstance[Any]]"; expected
+"AsyncPoller[SerializableAnnotatedInstance[Never]]"  [arg-type]
+                    event_poller,
+                    ^~~~~~~~~~~~
+tsercom/runtime/runtime_main.py:66: error: Incompatible types in assignment
+(expression has type "ServerRuntimeDataHandler[Any, Never]", variable has type
+"ClientRuntimeDataHandler[Any, Any]")  [assignment]
+                data_handler = ServerRuntimeDataHandler(
+                               ^
+tsercom/runtime/runtime_main.py:68: error: Argument 2 to
+"ServerRuntimeDataHandler" has incompatible type
+"AsyncPoller[EventInstance[Any]]"; expected
+"AsyncPoller[SerializableAnnotatedInstance[Never]]"  [arg-type]
+                    event_poller,
+                    ^~~~~~~~~~~~
+tsercom/runtime/runtime_main.py:85: error: Function is missing a return type
+annotation  [no-untyped-def]
+            def _runtime_start_done_callback(
+            ^
+tsercom/runtime/runtime_main.py:86: error: Missing type parameters for generic
+type "Future"  [type-arg]
+                f: concurrent.futures.Future,
+                   ^
+tsercom/runtime/runtime_main.py:93: error: Argument 1 to "on_exception_seen" of
+"ThreadWatcher" has incompatible type "BaseException"; expected "Exception"
+[arg-type]
+                            thread_watcher.on_exception_seen(exc)
+                                                             ^~~
+tsercom/runtime/runtime_main.py:148: error: Attribute function "_stop" with
+type "Callable[[], None]" does not accept self argument  [misc]
+                factory._stop()
+                ^~~~~~~~~~~~~
+tsercom/data/data_host_base.py:30: error: Invalid type comment or annotation
+[valid-type]
+            aggregation_client: Optional[
+                ^
+tsercom/data/data_host_base.py:61: error: No overload variant of
+"RemoteDataAggregatorImpl" matches argument types "ThrowingThreadPoolExecutor",
+"Any | None", "DataTimeoutTracker | None"  [call-overload]
+                RemoteDataAggregatorImpl[TDataType](
+                ^
+tsercom/data/data_host_base.py:61: note: Possible overload variants:
+tsercom/data/data_host_base.py:61: note:     def __init__(self, thread_pool: ThreadPoolExecutor, client: Client | None = ...) -> RemoteDataAggregatorImpl[TDataType]
+tsercom/data/data_host_base.py:61: note:     def __init__(self, thread_pool: ThreadPoolExecutor, client: Client | None = ..., *, tracker: DataTimeoutTracker) -> RemoteDataAggregatorImpl[TDataType]
+tsercom/data/data_host_base.py:61: note:     def __init__(self, thread_pool: ThreadPoolExecutor, client: Client | None = ..., *, timeout: int) -> RemoteDataAggregatorImpl[TDataType]
+tsercom/api/runtime_factory_factory.py:24: error: Free type variable expected
+in Generic[...]  [misc]
+        class Client(Generic[TDataType, TEventType]):
+                     ^
+tsercom/api/runtime_factory_factory.py:33: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+                self, handle: RuntimeHandle[TDataType, TEventType]
+                                            ^
+tsercom/api/runtime_factory_factory.py:49: error: Type argument "TDataType" of
+"RuntimeInitializer" must be a subtype of "ExposedData"  [type-var]
+            self, initializer: RuntimeInitializer[TDataType, TEventType]
+                                                  ^
+tsercom/api/runtime_factory_factory.py:50: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+        ) -> Tuple[
+                   ^
+tsercom/api/runtime_factory_factory.py:69: error: "Client" expects no type
+arguments, but 2 given  [type-arg]
+            client: "RuntimeFactoryFactory.Client[TDataType, TEventType]",
+     ^
+tsercom/api/runtime_factory_factory.py:70: error: Type argument "TDataType" of
+"RuntimeInitializer" must be a subtype of "ExposedData"  [type-var]
+            initializer: RuntimeInitializer[TDataType, TEventType],
+                                            ^
+tsercom/api/initialization_pair.py:23: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+            handle_future: Future[RuntimeHandle[TDataType, TEventType]],
+                                                ^
+tsercom/api/initialization_pair.py:24: error: Type argument "TDataType" of
+"RuntimeInitializer" must be a subtype of "ExposedData"  [type-var]
+            initializer: RuntimeInitializer[TDataType, TEventType],
+                                            ^
+tsercom/api/initialization_pair.py:32: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+    ...      self.__handle_future: Future[RuntimeHandle[TDataType, TEventType...
+                                                        ^
+tsercom/api/initialization_pair.py:35: error: Type argument "TDataType" of
+"RuntimeInitializer" must be a subtype of "ExposedData"  [type-var]
+            self.__initializer: RuntimeInitializer[TDataType, TEventType] ...
+                                                   ^
+tsercom/api/initialization_pair.py:40: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+    ... def handle_future(self) -> Future[RuntimeHandle[TDataType, TEventType...
+                                                        ^
+tsercom/api/initialization_pair.py:50: error: Type argument "TDataType" of
+"RuntimeInitializer" must be a subtype of "ExposedData"  [type-var]
+        def initializer(self) -> RuntimeInitializer[TDataType, TEventType]...
+                                                    ^
+tsercom/api/split_process/shim_runtime_handle.py:154: error: Return type
+"RemoteDataAggregator[TDataType]" of "_get_remote_data_aggregator" incompatible
+with return type "RemoteDataAggregator[AnnotatedInstance[TDataType]]" in
+supertype "RuntimeHandle"  [override]
+        def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDat...
+        ^
+tsercom/api/split_process/shim_runtime_handle.py:166: error: Unused
+"type: ignore" comment  [unused-ignore]
+        ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:  # type: ...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/api/split_process/shim_runtime_handle.py:182: error: Incompatible
+return value type (got "RemoteDataAggregator[TDataType]", expected
+"RemoteDataAggregator[AnnotatedInstance[TDataType]]")  [return-value]
+            return self._get_remote_data_aggregator()
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/split_process/remote_runtime_factory.py:141: error: Argument
+"grpc_channel_factory" to "create" of "RuntimeInitializer" has incompatible type
+"GrpcChannelFactory | None"; expected "GrpcChannelFactory"  [arg-type]
+                grpc_channel_factory=grpc_channel_factory,
+                                     ^~~~~~~~~~~~~~~~~~~~
+tsercom/api/local_process/runtime_wrapper.py:97: error: Return type
+"RemoteDataAggregator[TDataType]" of "_get_remote_data_aggregator" incompatible
+with return type "RemoteDataAggregator[AnnotatedInstance[TDataType]]" in
+supertype "RuntimeHandle"  [override]
+        def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDat...
+        ^
+tsercom/api/split_process/split_runtime_factory_factory.py:50: error: Type
+argument "TDataType" of "RuntimeInitializer" must be a subtype of "ExposedData"
+[type-var]
+            self, initializer: RuntimeInitializer[TDataType, TEventType]
+                                                  ^
+tsercom/api/split_process/split_runtime_factory_factory.py:51: error: Type
+argument "TDataType" of "RuntimeHandle" must be a subtype of "ExposedData"
+[type-var]
+        ) -> Tuple[
+                   ^
+tsercom/api/split_process/split_runtime_factory_factory.py:73: error: Need type
+annotation for "event_sink"  [var-annotated]
+            event_sink, event_source = create_multiprocess_queues()
+                                       ^
+tsercom/api/split_process/split_runtime_factory_factory.py:73: error: Need type
+annotation for "event_source"  [var-annotated]
+            event_sink, event_source = create_multiprocess_queues()
+                                       ^
+tsercom/api/split_process/split_runtime_factory_factory.py:74: error: Need type
+annotation for "data_sink"  [var-annotated]
+            data_sink, data_source = create_multiprocess_queues()
+                                     ^
+tsercom/api/split_process/split_runtime_factory_factory.py:74: error: Need type
+annotation for "data_source"  [var-annotated]
+            data_sink, data_source = create_multiprocess_queues()
+                                     ^
+tsercom/api/split_process/split_runtime_factory_factory.py:76: error: Need type
+annotation for "runtime_command_sink"  [var-annotated]
+                create_multiprocess_queues()
+                ^
+tsercom/api/split_process/split_runtime_factory_factory.py:76: error: Need type
+annotation for "runtime_command_source"  [var-annotated]
+                create_multiprocess_queues()
+                ^
+tsercom/api/split_process/split_runtime_factory_factory.py:80: error: Value of
+type variable "TDataType" of "RemoteRuntimeFactory" cannot be "TDataType"
+[type-var]
+            factory = RemoteRuntimeFactory[TDataType, TEventType](
+                      ^
+tsercom/api/split_process/split_runtime_factory_factory.py:84: error: Value of
+type variable "TDataType" of "RemoteDataAggregatorImpl" cannot be "TDataType"
+[type-var]
+            aggregator = RemoteDataAggregatorImpl[TDataType](
+                         ^
+tsercom/api/split_process/split_runtime_factory_factory.py:86: error: Argument
+"client" to "RemoteDataAggregatorImpl" has incompatible type
+"RemoteDataAggregator[TDataType] | None"; expected "Client | None"  [arg-type]
+                client=initializer.data_aggregator_client,  # Client to co...
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/split_process/split_runtime_factory_factory.py:87: error: Argument
+"timeout" to "RemoteDataAggregatorImpl" has incompatible type "int | None";
+expected "int"  [arg-type]
+                timeout=initializer.timeout_seconds,
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/split_process/split_runtime_factory_factory.py:91: error: Value of
+type variable "TDataType" of "ShimRuntimeHandle" cannot be "TDataType"
+[type-var]
+            runtime_handle = ShimRuntimeHandle[TDataType, TEventType](
+                             ^
+tsercom/api/local_process/local_runtime_factory_factory.py:24: error: Missing
+type parameters for generic type "RuntimeFactoryFactory"  [type-arg]
+    class LocalRuntimeFactoryFactory(RuntimeFactoryFactory):
+                                     ^
+tsercom/api/local_process/local_runtime_factory_factory.py:40: error: Type
+argument "TDataType" of "RuntimeInitializer" must be a subtype of "ExposedData"
+[type-var]
+            self, initializer: RuntimeInitializer[TDataType, TEventType]
+                                                  ^
+tsercom/api/local_process/local_runtime_factory_factory.py:41: error: Type
+argument "TDataType" of "RuntimeHandle" must be a subtype of "ExposedData"
+[type-var]
+        ) -> Tuple[
+                   ^
+tsercom/api/local_process/local_runtime_factory_factory.py:56: error: Value of
+type variable "TDataType" of "RemoteDataAggregatorImpl" cannot be "TDataType"
+[type-var]
+            data_aggregator = RemoteDataAggregatorImpl[TDataType](
+                              ^
+tsercom/api/local_process/local_runtime_factory_factory.py:58: error: Argument
+"client" to "RemoteDataAggregatorImpl" has incompatible type
+"RemoteDataAggregator[TDataType] | None"; expected "Client | None"  [arg-type]
+                client=initializer.data_aggregator_client,
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/local_process/local_runtime_factory_factory.py:59: error: Argument
+"timeout" to "RemoteDataAggregatorImpl" has incompatible type "int | None";
+expected "int"  [arg-type]
+                timeout=initializer.timeout_seconds,
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/local_process/local_runtime_factory_factory.py:65: error: Argument
+2 to "LocalRuntimeFactory" has incompatible type
+"RemoteDataAggregatorImpl[TDataType]"; expected
+"RemoteDataReader[AnnotatedInstance[TDataType]]"  [arg-type]
+                initializer, data_aggregator, event_poller, bridge
+                             ^~~~~~~~~~~~~~~
+tsercom/api/local_process/local_runtime_factory_factory.py:67: error: Value of
+type variable "TDataType" of "RuntimeWrapper" cannot be "TDataType"  [type-var]
+            handle = RuntimeWrapper(event_poller, data_aggregator, bridge)
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/runtime_manager.py:70: error: Missing type parameters for generic
+type "SplitRuntimeFactoryFactory"  [type-arg]
+            split_runtime_factory_factory: Optional[
+                ^
+tsercom/api/runtime_manager.py:118: error: Attribute
+"__local_runtime_factory_factory" already defined on line 109  [no-redef]
+                self.__local_runtime_factory_factory: (
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/runtime_manager.py:123: error: Missing type parameters for generic
+type "SplitRuntimeFactoryFactory"  [type-arg]
+                self.__split_runtime_factory_factory: (
+                    ^
+tsercom/api/runtime_manager.py:132: error: Attribute
+"__split_runtime_factory_factory" already defined on line 123  [no-redef]
+                self.__split_runtime_factory_factory: (
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/runtime_manager.py:132: error: Missing type parameters for generic
+type "SplitRuntimeFactoryFactory"  [type-arg]
+                self.__split_runtime_factory_factory: (
+                    ^
+tsercom/api/runtime_manager.py:155: error: Type argument "TDataType" of
+"RuntimeInitializer" must be a subtype of "ExposedData"  [type-var]
+    ...   self, runtime_initializer: RuntimeInitializer[TDataType, TEventType...
+                                                        ^
+tsercom/api/runtime_manager.py:156: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+        ) -> Future[RuntimeHandle[TDataType, TEventType]]:
+                                  ^
+tsercom/api/runtime_manager.py:178: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+            handle_future = Future[RuntimeHandle[TDataType, TEventType]]()
+                                                 ^
+tsercom/api/runtime_manager.py:287: error: Need type annotation for
+"error_sink"  [var-annotated]
+            error_sink, error_source = create_multiprocess_queues()
+                                       ^
+tsercom/api/runtime_manager.py:287: error: Need type annotation for
+"error_source"  [var-annotated]
+            error_sink, error_source = create_multiprocess_queues()
+                                       ^
+tsercom/api/runtime_manager.py:291: error: Argument 2 to "create" of
+"SplitErrorWatcherSourceFactory" has incompatible type
+"MultiprocessQueueSource[Any]"; expected "Queue[Any]"  [arg-type]
+                    self.__thread_watcher, error_source
+                                           ^~~~~~~~~~~~
+tsercom/api/runtime_manager.py:429: error: "Client" expects no type arguments,
+but 2 given  [type-arg]
+        RuntimeFactoryFactory.Client[TDataType, TEventType],
+        ^
+tsercom/api/runtime_manager.py:440: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+            self, future: Future[RuntimeHandle[TDataType, TEventType]]
+                                               ^
+tsercom/api/runtime_manager.py:448: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+            self.__future: Future[RuntimeHandle[TDataType, TEventType]] = ...
+                                                ^
+tsercom/api/runtime_manager.py:451: error: Argument 1 of "_on_handle_ready" is
+incompatible with supertype "Client"; supertype defines the argument type as
+"RuntimeHandle[TDataType, TEventType]"  [override]
+            self, handle: RuntimeHandle[TDataType, TEventType]
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/runtime_manager.py:451: note: This violates the Liskov substitution principle
+tsercom/api/runtime_manager.py:451: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+tsercom/api/runtime_manager.py:451: error: Type argument "TDataType" of
+"RuntimeHandle" must be a subtype of "ExposedData"  [type-var]
+            self, handle: RuntimeHandle[TDataType, TEventType]
+                                        ^
+Found 118 errors in 27 files (checked 128 source files)

@@ -82,7 +82,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
         # isinstance is used here, which is generally preferred for ABCs.
         if not isinstance(
             client, InstanceListener.Client
-        ):  # isinstance is usually preferred for ABCs
+        ):  # Check against the non-generic Client still works due to MRO
             raise TypeError(
                 f"Client must be an instance of InstanceListener.Client, got {type(client).__name__}."
             )
@@ -94,6 +94,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
         self.__client: InstanceListener.Client[TServiceInfo] = client
         # This InstanceListener acts as the client to the MdnsListener.
 
+        self.__listener: MdnsListener  # Declare type once for __listener
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
             def default_mdns_listener_factory(
@@ -102,14 +103,10 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
                 # RecordListener is already imported at the top of the file.
                 return RecordListener(listener_client, s_type)
 
-            self.__listener: MdnsListener = default_mdns_listener_factory(
-                self, service_type
-            )
+            self.__listener = default_mdns_listener_factory(self, service_type)
         else:
             # Use provided factory
-            self.__listener: MdnsListener = mdns_listener_factory(
-                self, service_type
-            )
+            self.__listener = mdns_listener_factory(self, service_type)
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)

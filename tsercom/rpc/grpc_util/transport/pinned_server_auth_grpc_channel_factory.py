@@ -34,12 +34,13 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
                                       any name in the server certificate's SANs or CN,
                                       but you still want to validate the certificate content.
         """
+        self.expected_server_cert_pem: bytes  # Declare type once
         if isinstance(expected_server_cert_pem, str):
-            self.expected_server_cert_pem: bytes = (
-                expected_server_cert_pem.encode("utf-8")
+            self.expected_server_cert_pem = expected_server_cert_pem.encode(
+                "utf-8"
             )
         else:
-            self.expected_server_cert_pem: bytes = expected_server_cert_pem
+            self.expected_server_cert_pem = expected_server_cert_pem
 
         self.server_hostname_override: Optional[str] = server_hostname_override
         super().__init__()  # GrpcChannelFactory has no __init__, but good practice

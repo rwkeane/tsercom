@@ -62,7 +62,7 @@ def get_global_event_loop() -> AbstractEventLoop:
     return __g_global_event_loop
 
 
-def clear_tsercom_event_loop(try_stop_loop=True) -> None:
+def clear_tsercom_event_loop(try_stop_loop: bool = True) -> None:
     global __g_global_event_loop
     global __g_event_loop_factory
     global __g_global_event_loop_lock

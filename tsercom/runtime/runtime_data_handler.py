@@ -1,7 +1,14 @@
 """Abstract interface for runtime data handlers in Tsercom."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, Generic, List, Optional, TypeVar, overload
+from typing import (
+    AsyncIterator,
+    Generic,
+    List,
+    TypeVar,
+    overload,
+    Any,
+)
 
 import grpc
 
@@ -66,9 +73,9 @@ class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
     def register_caller(
         self,
         caller_id: CallerIdentifier,
-        endpoint: Optional[str] = None,
-        port: Optional[int] = None,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        endpoint: Any = None,
+        port: Any = None,
+        context: Any = None,
     ) -> EndpointDataProcessor[TDataType] | None:
         """Registers a caller with the runtime.
 

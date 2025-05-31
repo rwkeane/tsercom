@@ -76,6 +76,15 @@ class ThreadWatcher(ErrorWatcher):
         Returns:
             ThrowingThreadPoolExecutor: The created thread pool executor.
         """
+        # If 'error_cb' is in kwargs, it would conflict with the explicitly passed 'error_cb'.
+        # We remove it to ensure self.on_exception_seen is used.
+        # Optionally, log a warning if a user-provided 'error_cb' is being discarded.
+        if "error_cb" in kwargs:
+            # import logging # Add this import if logging is used
+            # logging.warning("User-provided 'error_cb' in create_tracked_thread_pool_executor "
+            #                 "is being overridden by ThreadWatcher's internal callback.")
+            del kwargs["error_cb"]
+
         return ThrowingThreadPoolExecutor(
             error_cb=self.on_exception_seen, *args, **kwargs
         )

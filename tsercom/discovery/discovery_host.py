@@ -12,11 +12,11 @@ from tsercom.threading.aio.aio_utils import run_on_event_loop
 # Generic type for service information, bound by the base ServiceInfo class.
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
+# Removed module-level type aliases that caused issues with TServiceInfo binding.
+
 
 class DiscoveryHost(
-    InstanceListener.Client[
-        TServiceInfo
-    ]  # InstanceListener.Client is now Generic[TServiceInfo]
+    Generic[TServiceInfo], InstanceListener.Client[TServiceInfo]
 ):
     """Manages service discovery using mDNS and CallerIdentifier association.
 
@@ -57,7 +57,7 @@ class DiscoveryHost(
     def __init__(
         self,
         *,
-        instance_listener_factory: Callable[
+        instance_listener_factory: Callable[  # Reverted to full type hint
             [InstanceListener[TServiceInfo].Client],
             InstanceListener[TServiceInfo],
         ],
@@ -71,7 +71,7 @@ class DiscoveryHost(
         service_type: Optional[str] = None,
         instance_listener_factory: Optional[
             Callable[
-                [InstanceListener[TServiceInfo].Client],
+                [InstanceListener.Client[TServiceInfo]],
                 InstanceListener[TServiceInfo],
             ]
         ] = None,
@@ -106,7 +106,7 @@ class DiscoveryHost(
         self.__service_type: Optional[str] = service_type
         self.__instance_listener_factory: Optional[
             Callable[
-                [InstanceListener[TServiceInfo].Client],
+                [InstanceListener.Client[TServiceInfo]],
                 InstanceListener[TServiceInfo],
             ]
         ] = instance_listener_factory
@@ -136,7 +136,7 @@ class DiscoveryHost(
 
     async def __start_discovery_impl(
         self,
-        client: "DiscoveryHost.Client[TServiceInfo]",  # Added generic type
+        client: "DiscoveryHost.Client[TServiceInfo]",
     ) -> None:
         """Internal implementation for starting discovery; runs on the event loop.
 

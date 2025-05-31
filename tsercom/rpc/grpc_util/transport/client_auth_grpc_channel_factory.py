@@ -36,25 +36,28 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             server_hostname_override: If provided, this hostname will be used
                                       for SSL target name override.
         """
+        self.client_cert_pem_bytes: bytes  # Declare type once
         if isinstance(client_cert_pem, str):
-            self.client_cert_pem_bytes: bytes = client_cert_pem.encode("utf-8")
+            self.client_cert_pem_bytes = client_cert_pem.encode("utf-8")
         else:
-            self.client_cert_pem_bytes: bytes = client_cert_pem
+            self.client_cert_pem_bytes = client_cert_pem
 
+        self.client_key_pem_bytes: bytes  # Declare type once
         if isinstance(client_key_pem, str):
-            self.client_key_pem_bytes: bytes = client_key_pem.encode("utf-8")
+            self.client_key_pem_bytes = client_key_pem.encode("utf-8")
         else:
-            self.client_key_pem_bytes: bytes = client_key_pem
+            self.client_key_pem_bytes = client_key_pem
 
+        self.root_ca_cert_pem_bytes: Optional[bytes]  # Declare type once
         if root_ca_cert_pem:
             if isinstance(root_ca_cert_pem, str):
-                self.root_ca_cert_pem_bytes: Optional[bytes] = (
+                self.root_ca_cert_pem_bytes = (  # Corrected variable name
                     root_ca_cert_pem.encode("utf-8")
                 )
             else:
-                self.root_ca_cert_pem_bytes: Optional[bytes] = root_ca_cert_pem
+                self.root_ca_cert_pem_bytes = root_ca_cert_pem
         else:
-            self.root_ca_cert_pem_bytes: Optional[bytes] = None
+            self.root_ca_cert_pem_bytes = None
 
         self.server_hostname_override: Optional[str] = server_hostname_override
         super().__init__()  # GrpcChannelFactory has no __init__, but good practice

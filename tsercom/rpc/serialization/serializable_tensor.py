@@ -6,7 +6,7 @@ It depends on PyTorch (`torch`) for tensor operations.
 """
 
 from typing import Optional
-import torch
+import torch  # type: ignore[import-not-found]
 import logging
 
 from tsercom.rpc.proto import Tensor as GrpcTensor

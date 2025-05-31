@@ -1,7 +1,7 @@
 from collections.abc import Callable
 import threading
 import logging
-from typing import Any  # For *args, **kwargs
+from typing import Any, Optional  # For *args, **kwargs
 
 
 # A custom thread class that catches exceptions in the target function and reports them.
@@ -17,8 +17,10 @@ class ThrowingThread(threading.Thread):
         self,
         target: Callable[..., Any],
         on_error_cb: Callable[[Exception], None],
-        args: tuple = (),  # Explicit 'args' for target
-        kwargs: dict = None,  # Explicit 'kwargs' for target
+        args: tuple[Any, ...] = (),  # Explicit 'args' for target
+        kwargs: Optional[
+            dict[str, Any]
+        ] = None,  # Explicit 'kwargs' for target
         # Allow other threading.Thread parameters too
         group: None = None,
         name: None = None,
@@ -56,8 +58,8 @@ class ThrowingThread(threading.Thread):
         and reported via the `on_error_cb`.
         """
         try:
-            if self._actual_target:
-                self._actual_target(*self._actual_args, **self._actual_kwargs)
+            # self._actual_target is guaranteed to be set by __init__ and is not Optional.
+            self._actual_target(*self._actual_args, **self._actual_kwargs)
         except Exception as e:
             logging.error(
                 f"ThrowingThread._wrapped_target: Exception caught in thread {self.name} ({threading.get_ident()}): {e!r}",

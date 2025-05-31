@@ -101,6 +101,7 @@ class InstancePublisher:
                 "_make_txt_record failed to produce a TXT record."
             )
 
+        self.__record_publisher: MdnsPublisher  # Declare type once
         if mdns_publisher_factory is None:
             # Default factory creates RecordPublisher
             def default_mdns_publisher_factory(
@@ -112,14 +113,12 @@ class InstancePublisher:
                 # RecordPublisher is already imported at the top of the file.
                 return RecordPublisher(eff_inst_name, s_type, p, txt)
 
-            self.__record_publisher: MdnsPublisher = (
-                default_mdns_publisher_factory(
-                    effective_instance_name, service_type, port, txt_record
-                )
+            self.__record_publisher = default_mdns_publisher_factory(
+                effective_instance_name, service_type, port, txt_record
             )
         else:
             # Use provided factory
-            self.__record_publisher: MdnsPublisher = mdns_publisher_factory(
+            self.__record_publisher = mdns_publisher_factory(
                 effective_instance_name, service_type, port, txt_record
             )
 

@@ -8,13 +8,16 @@ from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_config import RuntimeConfig
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.threading.thread_watcher import ThreadWatcher
+from tsercom.data.exposed_data import ExposedData  # Import ExposedData
 
 
-TDataType = TypeVar("TDataType")
+TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
 TEventType = TypeVar("TEventType")
 
 
-class RuntimeInitializer(ABC, Generic[TDataType, TEventType], RuntimeConfig):
+class RuntimeInitializer(
+    ABC, Generic[TDataType, TEventType], RuntimeConfig[TDataType]
+):
     """
     This class is to be implemented to specify creation of user-defined
     Runtime instances.
