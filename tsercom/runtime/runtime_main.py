@@ -4,6 +4,7 @@ from typing import Any, List
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.channel_factory_selector import ChannelFactorySelector
+from tsercom.rpc.grpc_util.channel_auth_config import ChannelAuthConfig
 from tsercom.runtime.client.client_runtime_data_handler import (
     ClientRuntimeDataHandler,
 )
@@ -46,8 +47,12 @@ def initialize_runtimes(
     """
     assert is_global_event_loop_set()
 
+    # TODO: This function should ideally receive ChannelAuthConfig from its caller
+    # For now, defaulting to insecure configuration.
+    default_auth_config = ChannelAuthConfig(security_type="insecure")
+
     channel_factory_selector = ChannelFactorySelector()
-    channel_factory = channel_factory_selector.get_instance()
+    channel_factory = channel_factory_selector.create_factory(default_auth_config)
 
     runtimes: List[Runtime] = []
     for factory_idx, initializer_factory in enumerate(initializers):

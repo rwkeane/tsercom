@@ -7,8 +7,11 @@ from .grpc_caller import (
 )
 from .grpc_channel_factory import GrpcChannelFactory
 from .grpc_service_publisher import GrpcServicePublisher
+from .channel_auth_config import ChannelAuthConfig, ChannelSecurityType
 
 __all__ = [
+    "ChannelAuthConfig",
+    "ChannelSecurityType",
     "GrpcChannelFactory",
     "GrpcServicePublisher",
     "get_client_ip",
