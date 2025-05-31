@@ -138,9 +138,7 @@ def generate_signed_certificate(
     ca_cert_pem: bytes,
     ca_key_pem: bytes,
     common_name: str,
-    sans: Optional[
-        list[str]
-    ] = None,
+    sans: Optional[list[str]] = None,
     is_server: bool = True,
     key_size: int = 2048,
 ) -> tuple[bytes, bytes]:
@@ -176,8 +174,7 @@ def generate_signed_certificate(
         .serial_number(x509.random_serial_number())
         .not_valid_before(datetime.datetime.utcnow())
         .not_valid_after(
-            datetime.datetime.utcnow()
-            + datetime.timedelta(days=30)
+            datetime.datetime.utcnow() + datetime.timedelta(days=30)
         )
         .add_extension(
             x509.BasicConstraints(ca=False, path_length=None), critical=True
@@ -188,9 +185,7 @@ def generate_signed_certificate(
                 content_commitment=False,
                 key_encipherment=True,
                 data_encipherment=False,
-                key_agreement=(
-                    True if not is_server else False
-                ),
+                key_agreement=(True if not is_server else False),
                 key_cert_sign=False,
                 crl_sign=False,
                 encipher_only=False,
@@ -258,9 +253,7 @@ class TestGrpcServicePublisher(GrpcServicePublisher):
         self,
         watcher: ThreadWatcher,
         port: int,
-        addresses: Union[
-            str, list[str], None
-        ] = None,
+        addresses: Union[str, list[str], None] = None,
     ):
         super().__init__(watcher, port, addresses)
         self._chosen_port: int | None = None
@@ -280,8 +273,10 @@ class TestGrpcServicePublisher(GrpcServicePublisher):
 
         for address in addresses_to_bind:
             try:
-                port_out = self._GrpcServicePublisher__server.add_insecure_port(
-                    f"{address}:{self._GrpcServicePublisher__port}"
+                port_out = (
+                    self._GrpcServicePublisher__server.add_insecure_port(
+                        f"{address}:{self._GrpcServicePublisher__port}"
+                    )
                 )
                 if self._chosen_port is None:
                     self._chosen_port = port_out
@@ -334,9 +329,7 @@ async def async_test_server():
         )
         generic_handler = grpc.method_handlers_generic_handler(
             TEST_SERVICE_NAME,
-            {
-                TEST_METHOD_NAME: rpc_method_handler
-            },
+            {TEST_METHOD_NAME: rpc_method_handler},
         )
         server.add_generic_rpc_handlers((generic_handler,))
         logger.info(
@@ -584,11 +577,11 @@ async def error_timeout_test_server():
         if is_tsercom_loop_managed:
             try:
                 clear_tsercom_event_loop()
-            except (ImportError):
+            except ImportError:
                 logger.error(
                     "Failed to import clear_tsercom_event_loop for cleanup when expected."
                 )
-            except (RuntimeError) as e:
+            except RuntimeError as e:
                 logger.warning(f"Issue clearing tsercom event loop: {e}")
 
         logger.info(
@@ -698,9 +691,7 @@ async def test_client_handles_timeout(error_timeout_test_server):
                 request_serializer=TestConnectionCall.SerializeToString,
                 response_deserializer=TestConnectionResponse.FromString,
             )
-            await method_callable(
-                request, timeout=client_timeout_seconds
-            )
+            await method_callable(request, timeout=client_timeout_seconds)
 
         assert (
             e_info.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
@@ -1421,14 +1412,12 @@ async def test_pinned_server_auth_server_changes_cert_fails(
     )
     server_cn = "localhost"
 
-    old_server_cert_pem, _ = (
-        generate_signed_certificate(
-            ca_cert_pem,
-            ca_key_pem,
-            common_name=server_cn,
-            sans=["DNS:localhost", "IP:127.0.0.1", "DNS:old.server.com"],
-            is_server=True,
-        )
+    old_server_cert_pem, _ = generate_signed_certificate(
+        ca_cert_pem,
+        ca_key_pem,
+        common_name=server_cn,
+        sans=["DNS:localhost", "IP:127.0.0.1", "DNS:old.server.com"],
+        is_server=True,
     )
 
     new_server_cert_pem, new_server_key_pem = generate_signed_certificate(

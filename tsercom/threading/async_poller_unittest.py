@@ -16,6 +16,7 @@ K_MAX_RESPONSES = 30
 @pytest_asyncio.fixture
 async def mock_aio_utils(mocker):
     """Mocks aio_utils used by AsyncPoller, patching them in the SUT's import scope."""
+
     def new_run_on_event_loop_side_effect(
         func_or_partial, loop_param, *args, **kwargs
     ):

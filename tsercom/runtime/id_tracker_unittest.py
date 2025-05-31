@@ -31,9 +31,7 @@ class TestIdTracker:
         assert tracker.try_get(address=ip_address, port=port) == caller_id
         assert tracker.try_get(id=caller_id) == (ip_address, port)
         assert tracker.try_get(address="nonexistent", port=123) is None
-        assert (
-            tracker.try_get(id=CallerIdentifier.random()) is None
-        )
+        assert tracker.try_get(id=CallerIdentifier.random()) is None
 
     def test_get_non_existing(self):
         """Test get method for non-existing entries."""

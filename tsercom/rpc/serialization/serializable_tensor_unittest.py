@@ -48,9 +48,7 @@ def create_tensor_and_list(
     elif dtype == torch.bfloat16:
         list_representation = tensor.to(torch.float32).reshape(-1).tolist()
     elif dtype.is_complex:
-        list_representation = (
-            tensor.view(torch.float32).reshape(-1).tolist()
-        )
+        list_representation = tensor.view(torch.float32).reshape(-1).tolist()
     else:
         list_representation = tensor.reshape(-1).tolist()
     return tensor, list_representation
@@ -156,9 +154,7 @@ class TestSerializableTensor:
             == FIXED_DATETIME_NOW
         )
 
-        assert torch.equal(
-            parsed_st.tensor, original_tensor.to(torch.float32)
-        )
+        assert torch.equal(parsed_st.tensor, original_tensor.to(torch.float32))
 
     def test_try_parse_failure_bad_timestamp(self, mocker):
         mock_ts_try_parse = mocker.patch.object(

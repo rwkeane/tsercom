@@ -1,5 +1,6 @@
 import datetime
-from typing import TypeAlias, Union
+from typing import TypeAlias, Union, Optional
+import logging  # Added for logging
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from tsercom.timesync.common.proto import ServerTimestamp
@@ -41,7 +42,7 @@ class SynchronizedTimestamp:
     @classmethod
     def try_parse(
         cls, other: Timestamp | ServerTimestamp
-    ) -> "SynchronizedTimestamp":
+    ) -> Optional["SynchronizedTimestamp"]:
         """
         Attempts to parse a gRPC Timestamp or a ServerTimestamp into a
         SynchronizedTimestamp.
@@ -58,6 +59,9 @@ class SynchronizedTimestamp:
             AssertionError: If `other` is not of the expected protobuf types
                             after potential unwrapping.
         """
+        if other is None:
+            return None
+
         if isinstance(other, ServerTimestamp):
             other = other.timestamp
 
@@ -67,9 +71,13 @@ class SynchronizedTimestamp:
             other, Timestamp
         ), "Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one."
 
-        # The ToDatetime() method handles the conversion from seconds/nanos.
-        dt_object = other.ToDatetime()
-        return cls(dt_object)
+        try:
+            # The ToDatetime() method handles the conversion from seconds/nanos.
+            dt_object = other.ToDatetime()
+            return cls(dt_object)
+        except ValueError as e:
+            logging.warning(f"Failed to parse gRPC Timestamp to datetime: {e}")
+            return None
 
     def as_datetime(self) -> datetime.datetime:
         """

@@ -96,7 +96,9 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         )
 
         options: list[tuple[str, Any]] = []
-        if self.server_hostname_override: # Revert to always adding if provided
+        if (
+            self.server_hostname_override
+        ):  # Revert to always adding if provided
             options.append(
                 (
                     "grpc.ssl_target_name_override",
@@ -130,9 +132,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 active_channel = (
                     None  # Detach from variable so it's not closed in finally
                 )
-                return ChannelInfo(
-                    channel_to_return, current_address, port
-                )
+                return ChannelInfo(channel_to_return, current_address, port)
 
             except grpc.aio.AioRpcError as e:
                 logger.warning(

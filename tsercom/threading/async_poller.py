@@ -43,9 +43,7 @@ class AsyncPoller(Generic[TResultType], ABC):
         """
         self.__responses: Deque[TResultType] = Deque[TResultType]()
         self.__barrier = asyncio.Event()
-        self.__lock = (
-            threading.Lock()
-        )
+        self.__lock = threading.Lock()
 
         self.__is_loop_running = Atomic[bool](False)
 

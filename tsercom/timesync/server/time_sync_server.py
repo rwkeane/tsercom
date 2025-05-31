@@ -157,9 +157,11 @@ class TimeSyncServer:
         uses `self.__is_running.task_or_stopped` to gracefully handle shutdown
         during blocking socket operations.
         """
-        # NTP packet format (version 4, mode 3 for server)
+        # NTP packet format
         NTP_PACKET_FORMAT = "!B B B b 11I"
-        NTP_MODE = 3  # Server
+        # NTP constants
+        NTP_CLIENT_MODE = 3
+        NTP_SERVER_MODE = 4
         # Seconds between Unix epoch (1970) and NTP epoch (1900)
         NTP_DELTA = 2208988800
 
@@ -191,6 +193,30 @@ class TimeSyncServer:
 
                 data, addr = pair
                 if data:
+                    try:
+                        unpacked_data = struct.unpack(NTP_PACKET_FORMAT, data)
+                    except struct.error as se:
+                        logging.warning(
+                            f"Received malformed NTP packet from {addr}: {se}. Data (hex): {data.hex()}"
+                        )
+                        continue
+
+                    li_vn_mode = unpacked_data[0]
+                    request_version = (li_vn_mode >> 3) & 0x07
+                    request_mode = li_vn_mode & 0x07
+
+                    if request_version != kNtpVersion:
+                        logging.warning(
+                            f"Received NTP packet from {addr} with invalid version {request_version}."
+                        )
+                        continue
+
+                    if request_mode != NTP_CLIENT_MODE:
+                        logging.warning(
+                            f"Received NTP packet from {addr} with invalid mode {request_mode}."
+                        )
+                        continue
+
                     current_time_ns = time.time_ns()
 
                     server_timestamp_sec = (
@@ -202,13 +228,12 @@ class TimeSyncServer:
                         // 1_000_000_000
                     )
 
-                    unpacked_data = struct.unpack(NTP_PACKET_FORMAT, data)
                     client_timestamp_sec = unpacked_data[10]
                     client_timestamp_frac = unpacked_data[11]
 
                     response_packet = struct.pack(
                         NTP_PACKET_FORMAT,
-                        (kNtpVersion << 3) | NTP_MODE,  # Version, Mode
+                        (kNtpVersion << 3) | NTP_SERVER_MODE,  # Version, Mode
                         1,  # Stratum (secondary server)
                         0,  # Poll interval
                         0,  # Precision

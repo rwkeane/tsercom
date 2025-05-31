@@ -10,6 +10,8 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 
 TCallType = TypeVar("TCallType")
 
+MAX_CALLER_ID_STRING_LENGTH = 256
+
 
 async def extract_id_from_first_call(
     iterator: AsyncIterator[TCallType],
@@ -116,12 +118,8 @@ async def extract_id_from_call(
         return None
 
     # If the id is malformed, return.
-    extracted = extractor(
-        call
-    )
-    if (
-        extracted is None or not hasattr(extracted, "id") or not extracted.id
-    ):
+    extracted = extractor(call)
+    if extracted is None or not hasattr(extracted, "id") or not extracted.id:
         logging.error(
             f"CallerID string missing or empty in extracted message: {extracted}"
         )
@@ -132,9 +130,18 @@ async def extract_id_from_call(
             )
         return None
 
-    caller_id = CallerIdentifier.try_parse(
-        extracted.id
-    )
+    if len(extracted.id) > MAX_CALLER_ID_STRING_LENGTH:
+        logging.error(
+            f"CallerID string exceeds maximum length. Length: {len(extracted.id)}, Max: {MAX_CALLER_ID_STRING_LENGTH}"
+        )
+        if context is not None:
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                f"CallerID string exceeds maximum length of {MAX_CALLER_ID_STRING_LENGTH}.",
+            )
+        return None
+
+    caller_id = CallerIdentifier.try_parse(extracted.id)
     if caller_id is None:
         logging.error(f"Invalid CallerID format received: {extracted.id}")
         if context is not None:
