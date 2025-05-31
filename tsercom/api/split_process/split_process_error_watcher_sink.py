@@ -47,5 +47,17 @@ class SplitProcessErrorWatcherSink(ErrorWatcher):
         try:
             self.__thread_watcher.run_until_exception()
         except Exception as e:
-            self.__queue.put_nowait(e)
+            try:
+                self.__queue.put_nowait(e)
+                # Attempt to ensure the item is flushed before the process potentially terminates.
+                # This is important because put_nowait() might return before the item is actually
+                # transmitted by the queue's feeder thread.
+                self.__queue.close()
+                self.__queue.join_thread()
+            except Exception:
+                # Log or handle queueing error if necessary. For now, prioritize raising original error.
+                # In a real scenario, you might log `q_err` here.
+                # import logging
+                # logging.getLogger(__name__).error(f"Failed to queue exception to parent: {q_err}", exc_info=True)
+                pass  # Original error 'e' will be raised regardless.
             raise e

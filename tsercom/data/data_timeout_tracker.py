@@ -89,12 +89,18 @@ class DataTimeoutTracker:
         run_on_event_loop(self.__execute_periodically)
 
     def stop(self) -> None:
-        """Signals the periodic timeout execution to stop.
-
-        This method is thread-safe; the stop signal is scheduled on the event loop.
         """
-        if self.__is_running.get():  # Check if running before trying to stop
-            run_on_event_loop(self.__signal_stop_impl)
+        Signals the periodic timeout execution to stop.
+        This method is thread-safe.
+        """
+        # Directly set the running state to False.
+        # The __execute_periodically loop will check this flag.
+        # Task cancellation for __execute_periodically is handled by external
+        # loop cleanup (e.g., EventLoopFactory.shutdown).
+        logger.debug(
+            f"DataTimeoutTracker {id(self)}: stop() called. Setting __is_running to False."
+        )
+        self.__is_running.stop()  # This is equivalent to self.__is_running.set(False)
 
     async def __signal_stop_impl(self) -> None:
         """Internal implementation to signal stop on the event loop."""
@@ -118,8 +124,22 @@ class DataTimeoutTracker:
         """
         logger.info("DataTimeoutTracker: Starting periodic execution.")
         while self.__is_running.get():
-            await asyncio.sleep(self.__timeout_seconds)
-            if not self.__is_running.get():
+            try:
+                await asyncio.sleep(self.__timeout_seconds)
+            except asyncio.CancelledError:
+                logger.debug(
+                    "DataTimeoutTracker task __execute_periodically was cancelled during sleep."
+                )
+                # Perform any necessary internal cleanup for DataTimeoutTracker if needed upon cancellation
+                # For now, just re-raising is sufficient to stop the task.
+                raise
+
+            if (
+                not self.__is_running.get()
+            ):  # Check again after sleep/potential cancellation point
+                logger.debug(
+                    "DataTimeoutTracker: Exiting __execute_periodically due to stop signal after sleep."
+                )
                 break
             for tracked_item in list(self.__tracked_list):  # Iterate a copy
                 try:
@@ -129,6 +149,12 @@ class DataTimeoutTracker:
                         f"Exception in DataTimeoutTracker._on_triggered for {tracked_item}: {e}",
                         exc_info=True,
                     )
+            # Add an additional check after processing all callbacks
+            if not self.__is_running.get():
+                logger.debug(
+                    "DataTimeoutTracker: Exiting __execute_periodically due to stop signal after processing callbacks."
+                )
+                break
         logger.info("DataTimeoutTracker: Stopped periodic execution.")
 
     def unregister(self, tracked: Tracked) -> None:

@@ -393,8 +393,7 @@ async def async_test_server():
     set_tsercom_event_loop(current_loop)
     try:
         # Start the server. GrpcServicePublisher.start_async schedules the server start.
-        # It's not an async def function itself, so we don't await it here.
-        service_publisher.start_async(connect_call)
+        await service_publisher.start_async(connect_call)
 
         # Ensure the chosen port is available by polling briefly.
         # __start_async_impl (called by start_async) will set the port.
@@ -648,8 +647,8 @@ async def error_timeout_test_server():
         # is_tsercom_loop_managed remains False
 
     try:
-        # Start the server (start_async is not an async def function)
-        service_publisher.start_async(connect_call)
+        # Start the server (start_async is now an async def function)
+        await service_publisher.start_async(connect_call)
 
         port = service_publisher.chosen_port
         if port is None:

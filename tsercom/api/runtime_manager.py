@@ -243,7 +243,13 @@ class RuntimeManager(ErrorWatcher):
             raise RuntimeError("RuntimeManager has already been started.")
         self.__has_started.start()
 
-        set_tsercom_event_loop(runtime_event_loop)
+        # The aggressive_async_cleanup fixture will have already set the pytest-asyncio loop
+        # as the tsercom global loop, with replace_policy=True.
+        # This call ensures that the specific runtime_event_loop provided to start_in_process
+        # (which should be the same pytest-asyncio loop in tests) is affirmed.
+        # Using replace_policy=True here is important for consistency if this method
+        # were called in other contexts or if the fixture's setting was somehow different.
+        set_tsercom_event_loop(runtime_event_loop, replace_policy=True)
 
         # Use the injected or default-created local_runtime_factory_factory
         factories = self.__create_factories(
@@ -281,7 +287,9 @@ class RuntimeManager(ErrorWatcher):
 
         self.__has_started.start()
 
-        # Set up a minimal local Tsercom event loop, primarily for utilities.
+        # Restore: Set up a minimal local Tsercom event loop, primarily for utilities.
+        # This is needed by components like DataTimeoutTracker used by RemoteDataAggregatorImpl
+        # in the parent process during the setup of out-of-process runtimes.
         create_tsercom_event_loop_from_watcher(self.__thread_watcher)
 
         error_sink, error_source = create_multiprocess_queues()
