@@ -13,10 +13,12 @@ class TestTimeSyncTracker:
 
     @pytest.fixture
     def mock_thread_watcher(self, mocker):
+        """Provides a mock ThreadWatcher instance."""
         return mocker.MagicMock(spec=ThreadWatcher)
 
     @pytest.fixture
     def mock_time_sync_client_class(self, mocker):
+        """Patches TimeSyncClient and provides the mock class and its instance."""
         mock_class = mocker.patch(
             "tsercom.runtime.client.timesync_tracker.TimeSyncClient",
             autospec=True,
@@ -67,42 +69,32 @@ class TestTimeSyncTracker:
             original_client_instance.get_synchronized_clock.return_value
         )
 
-        # First connection
         tracker.on_connect(test_ip)
 
-        # Assertions after first call
         mock_time_sync_client_class.assert_called_once_with(
             mock_thread_watcher, test_ip
         )
         original_client_instance.start_async.assert_called_once()
         original_client_instance.get_synchronized_clock.assert_called_once()
 
-        # Second connection to the same IP
         returned_clock_second = tracker.on_connect(test_ip)
 
-        # Assertions after second call:
-        # 1. Constructor TimeSyncClient() should still have been called only once (from the first connect).
         mock_time_sync_client_class.assert_called_once_with(
             mock_thread_watcher, test_ip
         )
-
-        # 2. start_async on the original client instance should still only have been called once.
         original_client_instance.start_async.assert_called_once()
-
-        # 3. Check map content and count
         assert (
             tracker._TimeSyncTracker__map[test_ip][1]
             == original_client_instance
         )
         assert tracker._TimeSyncTracker__map[test_ip][0] == 2
-
-        # 4. get_synchronized_clock on the original client instance should have been called twice now.
         assert original_client_instance.get_synchronized_clock.call_count == 2
         assert returned_clock_second == mock_synchronized_clock
 
     def test_on_disconnect_count_greater_than_one(
         self, mock_thread_watcher, mock_time_sync_client_class, mocker
     ):
+        """Tests on_disconnect when ref count > 1; client should not be stopped."""
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.102"
         client_instance = mock_time_sync_client_class.return_value
@@ -120,6 +112,7 @@ class TestTimeSyncTracker:
     def test_on_disconnect_count_equals_one(
         self, mock_thread_watcher, mock_time_sync_client_class, mocker
     ):
+        """Tests on_disconnect when ref count is 1; client should be stopped."""
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.103"
         client_instance = mock_time_sync_client_class.return_value
@@ -133,6 +126,7 @@ class TestTimeSyncTracker:
         client_instance.stop.assert_called_once()
 
     def test_on_disconnect_non_existent_ip(self, mock_thread_watcher, mocker):
+        """Test on_disconnect with a non-existent IP address.""" # Existing docstring
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.104"
 
@@ -144,6 +138,7 @@ class TestTimeSyncTracker:
     def test_on_connect_different_ips(
         self, mock_thread_watcher, mock_time_sync_client_class, mocker
     ):
+        """Tests that different IPs result in different TimeSyncClient instances."""
         tracker = TimeSyncTracker(mock_thread_watcher)
         ip1 = "192.168.1.1"
         ip2 = "192.168.1.2"
@@ -177,6 +172,3 @@ class TestTimeSyncTracker:
 
         assert len(tracker._TimeSyncTracker__map) == 2
         assert mock_time_sync_client_class.call_count == 2
-
-
-# Removed final syntax error.
