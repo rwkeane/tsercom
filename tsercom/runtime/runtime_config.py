@@ -1,11 +1,18 @@
 """Configuration for Tsercom runtimes, specifying service type and data handling."""
 
 from enum import Enum
-from typing import Literal, Optional, overload # Removed TypeVar import
+from typing import Literal, Optional, overload  # Removed TypeVar import
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
 # TDataType = TypeVar("TDataType") # Removed
 # TEventType = TypeVar("TEventType") # Removed
+
+
+class ServiceType(Enum):
+    """Enumerates the operational roles for a Tsercom runtime."""
+
+    kClient = 1
+    kServer = 2
 
 
 class RuntimeConfig:
@@ -39,7 +46,9 @@ class RuntimeConfig:
 
     def __init__(
         self,
-        service_type: Optional[Literal["Client", "Server"] | ServiceType] = None,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
         *,
         other_config: Optional["RuntimeConfig"] = None,
         data_aggregator_client: Optional[RemoteDataAggregator] = None,
@@ -132,10 +141,3 @@ class RuntimeConfig:
         time out.
         """
         return self.__timeout_seconds
-
-
-class ServiceType(Enum):
-    """Enumerates the operational roles for a Tsercom runtime."""
-
-    kClient = 1
-    kServer = 2
