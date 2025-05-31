@@ -119,9 +119,7 @@ class RuntimeDataHandlerBase(
 
     def get_data_iterator(
         self,
-    ) -> AsyncIterator[
-        List[SerializableAnnotatedInstance[TEventType]]
-    ]:
+    ) -> AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]]:
         """Returns an async iterator for event data, grouped by CallerIdentifier.
 
         This implementation returns `self` as it implements `__aiter__` and `__anext__`.
