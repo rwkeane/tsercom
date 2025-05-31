@@ -51,11 +51,15 @@ class TestInitializeRuntimes:
             MockChannelFactorySelector.return_value
         )
         mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
-        mock_channel_factory_selector_instance.get_instance.return_value = (
+        # Changed from get_instance to create_factory
+        mock_channel_factory_selector_instance.create_factory.return_value = (
             mock_grpc_channel_factory
         )
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
+        mock_client_factory.auth_config = (
+            None  # ADDED: Provide auth_config for the factory
+        )
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         mock_client_data_reader_actual_instance = mocker.Mock(
@@ -94,7 +98,10 @@ class TestInitializeRuntimes:
         mock_is_global_event_loop_set.assert_called_once()
         mock_get_global_event_loop.assert_called_once()
         MockChannelFactorySelector.assert_called_once_with()
-        mock_channel_factory_selector_instance.get_instance.assert_called_once_with()
+        # Changed to assert create_factory was called with the factory's auth_config
+        mock_channel_factory_selector_instance.create_factory.assert_called_once_with(
+            mock_client_factory.auth_config
+        )
 
         MockClientRuntimeDataHandler.assert_called_once_with(
             mock_thread_watcher,
@@ -141,11 +148,15 @@ class TestInitializeRuntimes:
             MockChannelFactorySelector.return_value
         )
         mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
-        mock_channel_factory_selector_instance.get_instance.return_value = (
+        # Changed from get_instance to create_factory
+        mock_channel_factory_selector_instance.create_factory.return_value = (
             mock_grpc_channel_factory
         )
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
+        mock_server_factory.auth_config = (
+            None  # ADDED: Provide auth_config for the factory
+        )
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
         mock_server_data_reader_actual_instance = mocker.Mock(
@@ -184,7 +195,10 @@ class TestInitializeRuntimes:
         mock_is_global_event_loop_set.assert_called_once()
         mock_get_global_event_loop.assert_called_once()
         MockChannelFactorySelector.assert_called_once_with()
-        mock_channel_factory_selector_instance.get_instance.assert_called_once_with()
+        # Changed to assert create_factory was called with the factory's auth_config
+        mock_channel_factory_selector_instance.create_factory.assert_called_once_with(
+            mock_server_factory.auth_config
+        )
 
         MockServerRuntimeDataHandler.assert_called_once_with(
             mock_server_data_reader_actual_instance,
@@ -230,11 +244,13 @@ class TestInitializeRuntimes:
             MockChannelFactorySelector.return_value
         )
         mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
-        mock_channel_factory_selector_instance.get_instance.return_value = (
+        # Changed from get_instance to create_factory
+        mock_channel_factory_selector_instance.create_factory.return_value = (
             mock_grpc_channel_factory
         )
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
+        mock_client_factory.auth_config = None  # ADDED: Provide auth_config
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         mock_client_data_reader_actual_instance_multi = mocker.Mock(
@@ -256,6 +272,7 @@ class TestInitializeRuntimes:
         mock_client_factory.create.return_value = mock_client_runtime
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
+        mock_server_factory.auth_config = None  # ADDED: Provide auth_config
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
         mock_server_data_reader_actual_instance_multi = mocker.Mock(
@@ -292,7 +309,17 @@ class TestInitializeRuntimes:
 
         mock_get_global_event_loop.assert_called()
         MockChannelFactorySelector.assert_called_once_with()
-        mock_channel_factory_selector_instance.get_instance.assert_called_once_with()
+        # Changed to assert create_factory was called for each factory's auth_config
+        mock_channel_factory_selector_instance.create_factory.assert_any_call(
+            mock_client_factory.auth_config
+        )
+        mock_channel_factory_selector_instance.create_factory.assert_any_call(
+            mock_server_factory.auth_config
+        )
+        assert (
+            mock_channel_factory_selector_instance.create_factory.call_count
+            == 2
+        )
 
         assert MockClientRuntimeDataHandler.call_count == 1
         MockClientRuntimeDataHandler.assert_any_call(

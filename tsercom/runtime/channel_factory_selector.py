@@ -1,6 +1,13 @@
 # tsercom/runtime/channel_factory_selector.py
 import logging
-from tsercom.rpc.grpc_util.channel_auth_config import ChannelAuthConfig
+from typing import Optional
+from tsercom.rpc.grpc_util.channel_auth_config import (
+    BaseChannelAuthConfig,
+    InsecureChannelConfig,
+    ServerCAChannelConfig,
+    PinnedServerChannelConfig,
+    ClientAuthChannelConfig,
+)
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory import (
     InsecureGrpcChannelFactory,
@@ -33,41 +40,41 @@ class ChannelFactorySelector:
             raise  # Re-raise the exception to be handled by the caller
 
     def create_factory(
-        self, auth_config: ChannelAuthConfig
+        self, auth_config: Optional[BaseChannelAuthConfig]
     ) -> GrpcChannelFactory:
         """
         Creates an instance of a GrpcChannelFactory based on the provided
         ChannelAuthConfig.
 
         Args:
-            auth_config: The ChannelAuthConfig object specifying the desired
-                         channel security and parameters.
+            auth_config: The channel authentication configuration object,
+                         or None for an insecure channel.
 
         Returns:
             An instance of a GrpcChannelFactory subclass.
 
         Raises:
-            ValueError: If an unknown security_type is provided in auth_config
-                        or if required file paths are not accessible.
+            ValueError: If a BaseChannelAuthConfig subclass is provided but
+                        is not recognized, or if required file paths are
+                        not accessible.
         """
-        logger.info(
-            f"Creating GrpcChannelFactory for security_type: {auth_config.security_type}"
-        )
-
-        if auth_config.security_type == "insecure":
+        if auth_config is None or isinstance(
+            auth_config, InsecureChannelConfig
+        ):
+            logger.info(
+                "Creating GrpcChannelFactory for insecure configuration."
+            )
             return InsecureGrpcChannelFactory()
 
-        elif auth_config.security_type == "tls_server_ca":
-            if not auth_config.server_ca_cert_path:
-                # This should ideally be caught by ChannelAuthConfig's __post_init__
-                # but defensive check here is good.
-                raise ValueError(
-                    "server_ca_cert_path is required for tls_server_ca"
-                )
+        elif isinstance(auth_config, ServerCAChannelConfig):
+            logger.info(
+                "Creating GrpcChannelFactory for Server CA configuration."
+            )
             ca_cert_pem = self._read_file_content(
                 auth_config.server_ca_cert_path
             )
             if not ca_cert_pem:
+                # This check is important if _read_file_content can return None on error
                 raise ValueError(
                     f"Failed to read server_ca_cert_path: {auth_config.server_ca_cert_path}"
                 )
@@ -76,11 +83,10 @@ class ChannelFactorySelector:
                 server_hostname_override=auth_config.server_hostname_override,
             )
 
-        elif auth_config.security_type == "tls_pinned_server":
-            if not auth_config.pinned_server_cert_path:
-                raise ValueError(
-                    "pinned_server_cert_path is required for tls_pinned_server"
-                )
+        elif isinstance(auth_config, PinnedServerChannelConfig):
+            logger.info(
+                "Creating GrpcChannelFactory for Pinned Server configuration."
+            )
             pinned_cert_pem = self._read_file_content(
                 auth_config.pinned_server_cert_path
             )
@@ -93,14 +99,10 @@ class ChannelFactorySelector:
                 server_hostname_override=auth_config.server_hostname_override,
             )
 
-        elif auth_config.security_type == "tls_client_auth":
-            if (
-                not auth_config.client_cert_path
-                or not auth_config.client_key_path
-            ):
-                raise ValueError(
-                    "client_cert_path and client_key_path are required for tls_client_auth"
-                )
+        elif isinstance(auth_config, ClientAuthChannelConfig):
+            logger.info(
+                "Creating GrpcChannelFactory for Client Auth configuration."
+            )
             client_cert_pem = self._read_file_content(
                 auth_config.client_cert_path
             )
@@ -112,18 +114,16 @@ class ChannelFactorySelector:
                     "Failed to read client_cert_path or client_key_path for tls_client_auth"
                 )
 
-            # Per issue: "client cert for encryption with no server validation by client"
-            # So, root_ca_cert_pem is explicitly None for ClientAuthGrpcChannelFactory.
-            # ChannelAuthConfig's __post_init__ should also enforce that
-            # server_ca_cert_path and pinned_server_cert_path are None for this type.
+            # For ClientAuthChannelConfig, client does not validate server.
+            # So, root_ca_cert_pem for ServerAuthGrpcChannelFactory is None.
             return ClientAuthGrpcChannelFactory(
                 client_cert_pem=client_cert_pem,
                 client_key_pem=client_key_pem,
-                root_ca_cert_pem=None, # Explicitly None for this security type
+                root_ca_cert_pem=None,
                 server_hostname_override=auth_config.server_hostname_override,
             )
         else:
-            # This case should ideally not be reached if ChannelSecurityType is used correctly
+            # This case handles unknown subclasses of BaseChannelAuthConfig
             raise ValueError(
-                f"Unknown security_type: {auth_config.security_type}"
+                f"Unknown or unsupported ChannelAuthConfig type: {type(auth_config)}"
             )

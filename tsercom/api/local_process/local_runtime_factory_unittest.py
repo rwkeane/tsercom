@@ -17,6 +17,7 @@ class FakeRuntimeInitializer:
         service_type_str="Server",
         data_aggregator_client=None,
         timeout_seconds=60,
+        auth_config=None,  # ADDED
     ):  # Added params
         if service_type_str == "Server":
             self.__service_type_enum_val = ServiceType.kServer
@@ -28,6 +29,7 @@ class FakeRuntimeInitializer:
         self._RuntimeConfig__service_type = self.__service_type_enum_val
         self.data_aggregator_client = data_aggregator_client
         self.timeout_seconds = timeout_seconds
+        self.auth_config = auth_config  # ADDED
         self.create_called = False
         self.create_args = None
         self.runtime_to_return = FakeRuntime()

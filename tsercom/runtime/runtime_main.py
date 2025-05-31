@@ -4,7 +4,7 @@ from typing import Any, List
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.channel_factory_selector import ChannelFactorySelector
-from tsercom.rpc.grpc_util.channel_auth_config import ChannelAuthConfig
+
 from tsercom.runtime.client.client_runtime_data_handler import (
     ClientRuntimeDataHandler,
 )
@@ -47,17 +47,18 @@ def initialize_runtimes(
     """
     assert is_global_event_loop_set()
 
-    # TODO: This function should ideally receive ChannelAuthConfig from its caller
-    # For now, defaulting to insecure configuration.
-    default_auth_config = ChannelAuthConfig(security_type="insecure")
-
-    channel_factory_selector = ChannelFactorySelector()
-    channel_factory = channel_factory_selector.create_factory(default_auth_config)
+    channel_factory_selector = (
+        ChannelFactorySelector()
+    )  # Instantiate selector once
 
     runtimes: List[Runtime] = []
     for factory_idx, initializer_factory in enumerate(initializers):
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
+
+        # Create channel factory based on this runtime's specific auth_config.
+        auth_config = initializer_factory.auth_config
+        channel_factory = channel_factory_selector.create_factory(auth_config)
 
         if initializer_factory.is_client():
             data_handler = ClientRuntimeDataHandler(
@@ -76,7 +77,9 @@ def initialize_runtimes(
             raise ValueError("Invalid endpoint type!")
 
         runtime_instance = initializer_factory.create(
-            thread_watcher, data_handler, channel_factory
+            thread_watcher,
+            data_handler,
+            channel_factory,  # Pass specific factory
         )
         runtimes.append(runtime_instance)
 
