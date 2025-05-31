@@ -1,3 +1,4 @@
+from typing import overload
 """Provides RemoteDataAggregatorImpl, a concrete implementation of the RemoteDataAggregator interface.
 
 This class manages RemoteDataOrganizer instances for each data source (identified by
@@ -135,6 +136,10 @@ class RemoteDataAggregatorImpl(
             for organizer in self.__organizers.values():
                 organizer.stop()
 
+    @overload
+    def has_new_data(self) -> Dict[CallerIdentifier, bool]: ...
+    @overload
+    def has_new_data(self, id: CallerIdentifier) -> bool: ...
     def has_new_data(
         self, id: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, bool] | bool:
@@ -162,6 +167,10 @@ class RemoteDataAggregatorImpl(
                 results[key] = org_item.has_new_data()
             return results
 
+    @overload
+    def get_new_data(self) -> Dict[CallerIdentifier, List[TDataType]]: ...
+    @overload
+    def get_new_data(self, id: CallerIdentifier) -> List[TDataType]: ...
     def get_new_data(
         self, id: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, List[TDataType]] | List[TDataType]:
@@ -193,6 +202,10 @@ class RemoteDataAggregatorImpl(
                 results[key] = organizer.get_new_data()
             return results
 
+    @overload
+    def get_most_recent_data(self) -> Dict[CallerIdentifier, Optional[TDataType]]: ...
+    @overload
+    def get_most_recent_data(self, id: CallerIdentifier) -> Optional[TDataType]: ...
     def get_most_recent_data(
         self, id: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
@@ -225,6 +238,10 @@ class RemoteDataAggregatorImpl(
                 results[key] = organizer.get_most_recent_data()
             return results
 
+    @overload
+    def get_data_for_timestamp(self, timestamp: datetime.datetime) -> Dict[CallerIdentifier, Optional[TDataType]]: ...
+    @overload
+    def get_data_for_timestamp(self, timestamp: datetime.datetime, id: CallerIdentifier) -> Optional[TDataType]: ...
     def get_data_for_timestamp(
         self,
         timestamp: datetime.datetime,
@@ -264,7 +281,7 @@ class RemoteDataAggregatorImpl(
             return results
 
     def _on_data_available(
-        self, data_organizer: RemoteDataOrganizer[TDataType]
+        self, data_organizer: RemoteDataOrganizer[TDataType],  # type: ignore[override]
     ) -> None:
         """Callback from a `RemoteDataOrganizer` when it has new data.
 

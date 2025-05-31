@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Generic, List, TypeVar, Any, overload # Added Any, overload
+from typing import Generic, List, TypeVar, Any, overload  # Added Any, overload
 
 import grpc
 
@@ -92,7 +92,11 @@ class RuntimeDataHandlerBase(
 
         if len(args) == 1 and isinstance(args[0], grpc.aio.ServicerContext):
             _context = args[0]
-        elif len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], int):
+        elif (
+            len(args) == 2
+            and isinstance(args[0], str)
+            and isinstance(args[1], int)
+        ):
             _endpoint = args[0]
             _port = args[1]
         elif args:
@@ -102,18 +106,30 @@ class RuntimeDataHandlerBase(
 
         if "endpoint" in kwargs:
             if _endpoint is not None or _context is not None:
-                raise ValueError("Cannot specify endpoint via both args and kwargs, or with context.")
+                raise ValueError(
+                    "Cannot specify endpoint via both args and kwargs, or with context."
+                )
             _endpoint = kwargs.pop("endpoint")
         if "port" in kwargs:
-            if _port is not None or _context is not None: # Checking _context ensures port isn't mixed with context kwarg
-                raise ValueError("Cannot specify port via both args and kwargs, or with context.")
+            if (
+                _port is not None or _context is not None
+            ):  # Checking _context ensures port isn't mixed with context kwarg
+                raise ValueError(
+                    "Cannot specify port via both args and kwargs, or with context."
+                )
             _port = kwargs.pop("port")
         if "context" in kwargs:
-            if _context is not None or _endpoint is not None or _port is not None:
-                raise ValueError("Cannot specify context via both args and kwargs, or with endpoint/port.")
+            if (
+                _context is not None
+                or _endpoint is not None
+                or _port is not None
+            ):
+                raise ValueError(
+                    "Cannot specify context via both args and kwargs, or with endpoint/port."
+                )
             _context = kwargs.pop("context")
 
-        if kwargs: # Any remaining kwargs
+        if kwargs:  # Any remaining kwargs
             raise ValueError(f"Unexpected keyword arguments: {kwargs.keys()}")
 
         if (_endpoint is None and _port is None) == (_context is None):
@@ -144,7 +160,9 @@ class RuntimeDataHandlerBase(
                 )
             actual_endpoint = extracted_endpoint
             actual_port = extracted_port
-        elif _endpoint is not None and _port is not None: # This condition is now guaranteed if _context is None
+        elif (
+            _endpoint is not None and _port is not None
+        ):  # This condition is now guaranteed if _context is None
             actual_endpoint = _endpoint
             actual_port = _port
         else:
@@ -305,7 +323,7 @@ class RuntimeDataHandlerBase(
             # The actual return value of _unregister_caller (a bool) is ignored here
             # to match the supertype's None return.
             await self.__data_handler._unregister_caller(self.caller_id)
-            return None # Explicitly return None
+            return None  # Explicitly return None
 
         async def _process_data(
             self, data: TDataType, timestamp: datetime

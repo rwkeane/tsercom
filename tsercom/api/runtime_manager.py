@@ -36,13 +36,17 @@ from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
 )
 from tsercom.threading.error_watcher import ErrorWatcher
+
 # Removed incorrect import: from tsercom.system.multiprocess_queue import MultiprocessQueueSink, MultiprocessQueueSource
-from typing import Any # Added by script - this is okay, might be used
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     create_multiprocess_queues,
 )
-from tsercom.threading.multiprocess.multiprocess_queue_sink import MultiprocessQueueSink
-from tsercom.threading.multiprocess.multiprocess_queue_source import MultiprocessQueueSource
+from tsercom.threading.multiprocess.multiprocess_queue_sink import (
+    MultiprocessQueueSink,
+)
+from tsercom.threading.multiprocess.multiprocess_queue_source import (
+    MultiprocessQueueSource,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 

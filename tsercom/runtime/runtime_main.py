@@ -26,6 +26,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 import concurrent.futures
+from .runtime_data_handler import RuntimeDataHandler
 
 
 def initialize_runtimes(

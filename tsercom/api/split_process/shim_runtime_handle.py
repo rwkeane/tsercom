@@ -8,7 +8,7 @@ from tsercom.caller_id.caller_identifier import (
 )  # For on_event overload
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.event_instance import EventInstance # Added
+from tsercom.data.event_instance import EventInstance  # Added
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -67,7 +67,9 @@ class ShimRuntimeHandle(
         """
         super().__init__()
 
-        self.__event_queue: MultiprocessQueueSink[EventInstance[TEventType]] = event_queue
+        self.__event_queue: MultiprocessQueueSink[
+            EventInstance[TEventType]
+        ] = event_queue
         self.__runtime_command_queue: MultiprocessQueueSink[RuntimeCommand] = (
             runtime_command_queue
         )
@@ -120,14 +122,18 @@ class ShimRuntimeHandle(
         """
         # `caller_id` and `timestamp` are part of the RuntimeHandle interface,
         # but this shim implementation does not use them when sending to the queue.
-        _ = caller_id # Preserved for clarity that it's intentionally not used directly for queue type
-        _ = timestamp # Preserved for clarity
+        _ = caller_id  # Preserved for clarity that it's intentionally not used directly for queue type
+        _ = timestamp  # Preserved for clarity
 
         # Wrap the raw event in an EventInstance before putting it on the queue.
         # The original caller_id and timestamp from the on_event signature are used here.
 
         # Use datetime.now() if timestamp is None, ensuring timezone awareness.
-        effective_timestamp = timestamp if timestamp is not None else datetime.datetime.now(tz=datetime.timezone.utc)
+        effective_timestamp = (
+            timestamp
+            if timestamp is not None
+            else datetime.datetime.now(tz=datetime.timezone.utc)
+        )
 
         event_instance = EventInstance(
             data=event, caller_id=caller_id, timestamp=effective_timestamp

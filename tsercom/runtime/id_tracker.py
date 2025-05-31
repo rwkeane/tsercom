@@ -26,7 +26,9 @@ class IdTracker:
     def try_get(self, address: str, port: int) -> Optional[CallerIdentifier]:
         pass
 
-    def try_get(self, *args: Any, **kwargs: Any) -> Optional[tuple[str, int] | CallerIdentifier]:
+    def try_get(
+        self, *args: Any, **kwargs: Any
+    ) -> Optional[tuple[str, int] | CallerIdentifier]:
         """Attempts to retrieve a value from the tracker.
 
         Can be called either with a `CallerIdentifier` (to get address/port)
@@ -52,10 +54,14 @@ class IdTracker:
         if args:
             if len(args) == 1 and isinstance(args[0], CallerIdentifier):
                 _id = args[0]
-            elif len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], int):
+            elif (
+                len(args) == 2
+                and isinstance(args[0], str)
+                and isinstance(args[1], int)
+            ):
                 _address = args[0]
                 _port = args[1]
-            elif len(args) > 0: # Incorrect positional arguments
+            elif len(args) > 0:  # Incorrect positional arguments
                 raise ValueError(
                     f"Invalid positional arguments. Provide a CallerIdentifier OR (address, port). Got: {args}"
                 )
@@ -63,36 +69,52 @@ class IdTracker:
         # Process kwargs, potentially overriding positional if they were also passed (though that's unusual)
         # or providing them if no positional args were given.
         if "id" in kwargs:
-            if _id is not None or _address is not None or _port is not None: # id kwarg with other args
-                 raise ValueError("Cannot mix 'id' keyword argument with positional arguments or other keyword arguments for address/port.")
+            if (
+                _id is not None or _address is not None or _port is not None
+            ):  # id kwarg with other args
+                raise ValueError(
+                    "Cannot mix 'id' keyword argument with positional arguments or other keyword arguments for address/port."
+                )
             kw_id = kwargs.pop("id")
             if not isinstance(kw_id, CallerIdentifier):
-                raise ValueError(f"'id' keyword argument must be a CallerIdentifier. Got {type(kw_id)}")
+                raise ValueError(
+                    f"'id' keyword argument must be a CallerIdentifier. Got {type(kw_id)}"
+                )
             _id = kw_id
 
         if "address" in kwargs or "port" in kwargs:
-            if _id is not None: # address/port kwargs with id arg
-                raise ValueError("Cannot mix 'address'/'port' keyword arguments with 'id' argument.")
+            if _id is not None:  # address/port kwargs with id arg
+                raise ValueError(
+                    "Cannot mix 'address'/'port' keyword arguments with 'id' argument."
+                )
             if "address" in kwargs:
                 kw_address = kwargs.pop("address")
                 if not isinstance(kw_address, str):
-                    raise ValueError(f"'address' keyword argument must be a string. Got {type(kw_address)}")
+                    raise ValueError(
+                        f"'address' keyword argument must be a string. Got {type(kw_address)}"
+                    )
                 _address = kw_address
             if "port" in kwargs:
                 kw_port = kwargs.pop("port")
                 if not isinstance(kw_port, int):
-                    raise ValueError(f"'port' keyword argument must be an int. Got {type(kw_port)}")
+                    raise ValueError(
+                        f"'port' keyword argument must be an int. Got {type(kw_port)}"
+                    )
                 _port = kw_port
 
-        if kwargs: # Any remaining kwargs are unexpected
+        if kwargs:  # Any remaining kwargs are unexpected
             raise ValueError(f"Unexpected keyword arguments: {kwargs.keys()}")
 
         # Validation based on processed arguments
-        if (_id is None) == (_address is None and _port is None): # XOR logic: one group must be present
+        if (_id is None) == (
+            _address is None and _port is None
+        ):  # XOR logic: one group must be present
             raise ValueError(
                 "Exactly one of (CallerIdentifier) or (address and port) must be provided."
             )
-        if (_address is None) != (_port is None): # If one of address/port is provided, the other must be too
+        if (_address is None) != (
+            _port is None
+        ):  # If one of address/port is provided, the other must be too
             raise ValueError(
                 "If 'address' is provided, 'port' must also be provided, and vice-versa."
             )
@@ -103,7 +125,7 @@ class IdTracker:
             # By this point, if _id is None, then _address and _port must be not None due to validation
             elif _address is not None and _port is not None:
                 return self.__address_to_id.get((_address, _port))
-        return None # Should be unreachable due to validation ensuring one path is taken
+        return None  # Should be unreachable due to validation ensuring one path is taken
 
     @overload
     def get(self, id: CallerIdentifier) -> tuple[str, int]:
@@ -113,7 +135,9 @@ class IdTracker:
     def get(self, address: str, port: int) -> CallerIdentifier:
         pass
 
-    def get(self, *args: Any, **kwargs: Any) -> tuple[str, int] | CallerIdentifier:
+    def get(
+        self, *args: Any, **kwargs: Any
+    ) -> tuple[str, int] | CallerIdentifier:
         """Retrieves a value from the tracker, raising KeyError if not found.
 
         Can be called either with a `CallerIdentifier` (to get address/port)
@@ -146,9 +170,7 @@ class IdTracker:
             if kwargs:
                 query_repr += f"{', ' if args else ''}kwargs={kwargs}"
 
-            raise KeyError(
-                f"Key not found for query: {query_repr}"
-            )
+            raise KeyError(f"Key not found for query: {query_repr}")
 
         # Type of resolved_result is Optional[tuple[str, int] | CallerIdentifier].
         # Since we've checked for None, it's now tuple[str, int] | CallerIdentifier.

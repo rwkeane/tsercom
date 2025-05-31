@@ -15,12 +15,16 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     create_multiprocess_queues,
 )
-from tsercom.threading.multiprocess.multiprocess_queue_sink import MultiprocessQueueSink
-from tsercom.threading.multiprocess.multiprocess_queue_source import MultiprocessQueueSource
+from tsercom.threading.multiprocess.multiprocess_queue_sink import (
+    MultiprocessQueueSink,
+)
+from tsercom.threading.multiprocess.multiprocess_queue_source import (
+    MultiprocessQueueSource,
+)
 from tsercom.threading.thread_watcher import ThreadWatcher
-from tsercom.api.runtime_command import RuntimeCommand # Added
-from typing import Any # Added for data_sink/source
-from tsercom.data.event_instance import EventInstance # Attempting this path
+from tsercom.api.runtime_command import RuntimeCommand  # Added
+from typing import Any  # Added for data_sink/source
+from tsercom.data.event_instance import EventInstance  # Attempting this path
 
 
 TDataType = TypeVar("TDataType")  # Generic type for data.
@@ -77,17 +81,25 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
         # Each returns a (sink, source) pair.
         event_sink: MultiprocessQueueSink[EventInstance[TEventType]]
         event_source: MultiprocessQueueSource[EventInstance[TEventType]]
-        event_sink, event_source = create_multiprocess_queues() # Removed explicit type application
+        event_sink, event_source = (
+            create_multiprocess_queues()
+        )  # Removed explicit type application
 
-        data_sink: MultiprocessQueueSink[Any]
-        data_source: MultiprocessQueueSource[Any]
         # TODO: Resolve type mismatch for data_sink (expects AnnotatedInstance[TDataType])
         # and data_source (expects TDataType) with single-type queue factory.
+        data_sink: MultiprocessQueueSink[Any]  # auto-annotated
+        data_source: MultiprocessQueueSource[Any]  # auto-annotated
         data_sink, data_source = create_multiprocess_queues()
 
-        runtime_command_sink: MultiprocessQueueSink[RuntimeCommand]
-        runtime_command_source: MultiprocessQueueSource[RuntimeCommand]
-        runtime_command_sink, runtime_command_source = create_multiprocess_queues() # Removed [RuntimeCommand]
+        runtime_command_sink: MultiprocessQueueSink[
+            RuntimeCommand
+        ]  # auto-annotated
+        runtime_command_source: MultiprocessQueueSource[
+            RuntimeCommand
+        ]  # auto-annotated
+        runtime_command_sink, runtime_command_source = (
+            create_multiprocess_queues()
+        )  # Removed [RuntimeCommand]
 
         # It gets the source end of event/command queues and sink end of data queue.
         factory = RemoteRuntimeFactory[TDataType, TEventType](
