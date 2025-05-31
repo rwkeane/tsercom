@@ -37,7 +37,14 @@ def generate_proto_file(
         str(absolute_proto_path),  # The .proto file to compile.
     ]
     print(f"Running command: {' '.join(command)}")
-    result = subprocess.run(command, capture_output=True, text=True)
+
+    # Ensure plugins are in PATH
+    env = os.environ.copy()
+    local_bin_path = os.path.expanduser("~/.local/bin")
+    if local_bin_path not in env["PATH"]:
+        env["PATH"] = f"{local_bin_path}:{env['PATH']}"
+
+    result = subprocess.run(command, capture_output=True, text=True, env=env)
 
     if result.returncode != 0:
         print(f"Error compiling {proto_file_path}:")

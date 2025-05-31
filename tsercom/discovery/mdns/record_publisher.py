@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-from zeroconf import IPVersion, ServiceInfo, Zeroconf  # type: ignore[import-not-found]
+from zeroconf import IPVersion, ServiceInfo, Zeroconf
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.util.ip import get_all_addresses

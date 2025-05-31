@@ -191,7 +191,7 @@ class ClientDisconnectionRetrier(
             self.__instance = None
         logging.info("ClientDisconnectionRetrier stopped.")
 
-    async def _on_disconnect(self, error: Optional[Exception]) -> None:
+    async def _on_disconnect(self, error: Optional[Exception] = None) -> None:
         """Handles disconnection events and attempts reconnection if appropriate.
 
         This method is typically called when an operation on the managed instance

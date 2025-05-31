@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Generic, List, TypeVar, Any  # Added Any
+from typing import Generic, List, TypeVar, Any, overload # Added Any, overload
 
 import grpc
 
@@ -50,12 +50,23 @@ class RuntimeDataHandlerBase(
         self.__data_reader = data_reader
         self.__event_source = event_source
 
+    @overload
+    def register_caller(
+        self, caller_id: CallerIdentifier, endpoint: str, port: int
+    ) -> EndpointDataProcessor[TDataType]:
+        pass
+
+    @overload
+    def register_caller(
+        self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
+    ) -> EndpointDataProcessor[TDataType] | None:
+        pass
+
     def register_caller(
         self,
         caller_id: CallerIdentifier,
-        endpoint: Any = None,  # Changed to Any
-        port: Any = None,  # Changed to Any
-        context: Any = None,  # Changed to Any
+        *args: Any,
+        **kwargs: Any,
     ) -> EndpointDataProcessor[TDataType] | None:
         """Registers a caller using either endpoint/port or gRPC context.
 
@@ -65,39 +76,65 @@ class RuntimeDataHandlerBase(
 
         Args:
             caller_id: The `CallerIdentifier` of the caller.
-            endpoint: The IP address or hostname.
-            port: The port number.
-            context: The gRPC servicer context.
+            *args: Can contain (endpoint, port) or (context,).
+            **kwargs: Can contain endpoint="...", port=123 or context=ctx.
 
         Returns:
             An `EndpointDataProcessor` for the caller, or `None` if registration fails.
 
         Raises:
-            ValueError: If arguments are inconsistent (e.g., endpoint without port,
-                        or both/neither endpoint and context are provided).
+            ValueError: If arguments are inconsistent.
             TypeError: If context is not of the expected type.
         """
-        if (endpoint is None) == (context is None):
+        _endpoint: str | None = None
+        _port: int | None = None
+        _context: grpc.aio.ServicerContext | None = None
+
+        if len(args) == 1 and isinstance(args[0], grpc.aio.ServicerContext):
+            _context = args[0]
+        elif len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], int):
+            _endpoint = args[0]
+            _port = args[1]
+        elif args:
             raise ValueError(
-                "Exactly one of 'endpoint'/'port' combination or 'context' must be provided to register_caller. "
-                f"Got endpoint={endpoint}, context={'<Provided>' if context is not None else None}."
+                f"Unexpected positional arguments: {args}. Provide (endpoint, port) or (context,)."
             )
-        if (port is None) != (endpoint is None):
+
+        if "endpoint" in kwargs:
+            if _endpoint is not None or _context is not None:
+                raise ValueError("Cannot specify endpoint via both args and kwargs, or with context.")
+            _endpoint = kwargs.pop("endpoint")
+        if "port" in kwargs:
+            if _port is not None or _context is not None: # Checking _context ensures port isn't mixed with context kwarg
+                raise ValueError("Cannot specify port via both args and kwargs, or with context.")
+            _port = kwargs.pop("port")
+        if "context" in kwargs:
+            if _context is not None or _endpoint is not None or _port is not None:
+                raise ValueError("Cannot specify context via both args and kwargs, or with endpoint/port.")
+            _context = kwargs.pop("context")
+
+        if kwargs: # Any remaining kwargs
+            raise ValueError(f"Unexpected keyword arguments: {kwargs.keys()}")
+
+        if (_endpoint is None and _port is None) == (_context is None):
             raise ValueError(
-                "If 'endpoint' is provided, 'port' must also be provided. If 'endpoint' is None, 'port' must also be None. "
-                f"Got endpoint={endpoint}, port={port}."
+                "Exactly one of ('endpoint'/'port' combination) or 'context' must be provided."
+            )
+        if (_port is None) != (_endpoint is None):
+            raise ValueError(
+                "If 'endpoint' is provided, 'port' must also be provided, and vice-versa."
             )
 
         actual_endpoint: str
         actual_port: int
 
-        if context is not None:
-            if not isinstance(context, grpc.aio.ServicerContext):
+        if _context is not None:
+            if not isinstance(_context, grpc.aio.ServicerContext):
                 raise TypeError(
-                    f"Expected context to be an instance of grpc.aio.ServicerContext, but got {type(context).__name__}."
+                    f"Expected context to be an instance of grpc.aio.ServicerContext, but got {type(_context).__name__}."
                 )
-            extracted_endpoint = get_client_ip(context)
-            extracted_port = get_client_port(context)
+            extracted_endpoint = get_client_ip(_context)
+            extracted_port = get_client_port(_context)
 
             if extracted_endpoint is None:
                 return None
@@ -107,12 +144,13 @@ class RuntimeDataHandlerBase(
                 )
             actual_endpoint = extracted_endpoint
             actual_port = extracted_port
-        elif endpoint is not None and port is not None:
-            actual_endpoint = endpoint
-            actual_port = port
+        elif _endpoint is not None and _port is not None: # This condition is now guaranteed if _context is None
+            actual_endpoint = _endpoint
+            actual_port = _port
         else:
+            # This state should ideally be prevented by the initial checks.
             raise ValueError(
-                "Internal error: Inconsistent endpoint/port/context state."
+                "Internal error: Inconsistent endpoint/port/context state after argument parsing."
             )
 
         return self._register_caller(caller_id, actual_endpoint, actual_port)
@@ -262,9 +300,12 @@ class RuntimeDataHandlerBase(
 
         async def deregister_caller(
             self,
-        ) -> bool:  # Changed return type to bool
+        ) -> None:  # Changed return type from bool to None
             """Deregisters the caller via the parent data handler."""
-            return await self.__data_handler._unregister_caller(self.caller_id)
+            # The actual return value of _unregister_caller (a bool) is ignored here
+            # to match the supertype's None return.
+            await self.__data_handler._unregister_caller(self.caller_id)
+            return None # Explicitly return None
 
         async def _process_data(
             self, data: TDataType, timestamp: datetime

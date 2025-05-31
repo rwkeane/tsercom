@@ -1,4 +1,4 @@
-from zeroconf import ServiceBrowser, Zeroconf  # type: ignore[import-not-found]
+from zeroconf import ServiceBrowser, Zeroconf
 import logging
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener

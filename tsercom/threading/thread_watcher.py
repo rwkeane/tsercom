@@ -86,7 +86,7 @@ class ThreadWatcher(ErrorWatcher):
             del kwargs["error_cb"]
 
         return ThrowingThreadPoolExecutor(
-            error_cb=self.on_exception_seen, *args, **kwargs
+            self.on_exception_seen, *args, **kwargs
         )
 
     def run_until_exception(self) -> None:

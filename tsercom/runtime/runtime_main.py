@@ -50,6 +50,7 @@ def initialize_runtimes(
     channel_factory = channel_factory_selector.get_instance()
 
     runtimes: List[Runtime] = []
+    data_handler: RuntimeDataHandler[Any, Any]  # Annotation added here
     for factory_idx, initializer_factory in enumerate(initializers):
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()

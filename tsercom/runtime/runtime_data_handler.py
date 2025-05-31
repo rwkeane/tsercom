@@ -73,9 +73,8 @@ class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
     def register_caller(
         self,
         caller_id: CallerIdentifier,
-        endpoint: Any = None,
-        port: Any = None,
-        context: Any = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> EndpointDataProcessor[TDataType] | None:
         """Registers a caller with the runtime.
 

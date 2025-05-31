@@ -36,9 +36,13 @@ from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
 )
 from tsercom.threading.error_watcher import ErrorWatcher
+# Removed incorrect import: from tsercom.system.multiprocess_queue import MultiprocessQueueSink, MultiprocessQueueSource
+from typing import Any # Added by script - this is okay, might be used
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     create_multiprocess_queues,
 )
+from tsercom.threading.multiprocess.multiprocess_queue_sink import MultiprocessQueueSink
+from tsercom.threading.multiprocess.multiprocess_queue_source import MultiprocessQueueSource
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
@@ -284,6 +288,8 @@ class RuntimeManager(ErrorWatcher):
         # Set up a minimal local Tsercom event loop, primarily for utilities.
         create_tsercom_event_loop_from_watcher(self.__thread_watcher)
 
+        error_sink: MultiprocessQueueSink[Exception]
+        error_source: MultiprocessQueueSource[Exception]
         error_sink, error_source = create_multiprocess_queues()
         # Use the factory to create the SplitProcessErrorWatcherSource
         self.__error_watcher = (
