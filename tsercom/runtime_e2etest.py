@@ -51,6 +51,7 @@ from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory imp
 )  # New
 from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
+    set_tsercom_event_loop,  # Added set_tsercom_event_loop here
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
@@ -334,12 +335,84 @@ class FaultyCreateRuntimeInitializer(RuntimeInitializer):
         raise self.error_type(self.error_message)
 
 
-@pytest.fixture
-def clear_loop_fixture():
-    clear_tsercom_event_loop()
-    yield
-    print("STOPPING LOOP")
-    clear_tsercom_event_loop()
+# Misplaced imports removed from here. They will be ensured at the top.
+
+
+@pytest.fixture(autouse=True, scope="function")
+async def aggressive_async_cleanup():
+    # === SETUP ===
+    # 1. Clear any previous tsercom global state forcefully.
+    #    Don't try to stop the loop here (try_stop_loop=False), as pytest-asyncio is managing it.
+    #    This call primarily nullifies tsercom's global variables.
+    print(
+        "aggressive_async_cleanup: Pre-test: Clearing tsercom global event loop vars (no stop)."
+    )
+    clear_tsercom_event_loop(try_stop_loop=False)
+
+    # 2. Get the event loop for this test (managed by pytest-asyncio).
+    current_loop = asyncio.get_event_loop_policy().get_event_loop()
+    print(
+        f"aggressive_async_cleanup: Pre-test: pytest-asyncio loop is {id(current_loop)}."
+    )
+
+    # 3. Set this pytest-asyncio managed loop as TSerCom's global loop for this test.
+    #    replace_policy=True is crucial to overwrite any stale global state.
+    print(
+        f"aggressive_async_cleanup: Pre-test: Setting pytest-asyncio loop {id(current_loop)} as tsercom global loop (replace=True)."
+    )
+    set_tsercom_event_loop(current_loop, replace_policy=True)
+
+    yield  # Test runs here
+
+    # === TEARDOWN ===
+    print(
+        f"aggressive_async_cleanup: Post-test: Starting teardown for loop {id(current_loop)}..."
+    )
+
+    # 1. Perform task cancellation on the current (pytest-asyncio managed) loop.
+    #    This loop was also TSerCom's global loop during the test.
+    tasks_to_await = []
+    # Ensure we are operating on the loop that was active for the test.
+    # It should be the same as current_loop from setup in function scope.
+    loop_after_test = asyncio.get_event_loop_policy().get_event_loop()
+    if (
+        loop_after_test is not current_loop
+    ):  # Should not happen in function scope normally
+        print(
+            f"aggressive_async_cleanup: WARNING - Loop changed from {id(current_loop)} to {id(loop_after_test)} during test!"
+        )
+
+    current_fixture_task = asyncio.current_task(loop_after_test)
+    for task in asyncio.all_tasks(loop=loop_after_test):
+        if task is not current_fixture_task:
+            if not task.done():
+                print(
+                    f"aggressive_async_cleanup: Post-test: Cancelling task: {task.get_name() if hasattr(task, 'get_name') else task}"
+                )
+                task.cancel()
+            tasks_to_await.append(task)
+
+    if tasks_to_await:
+        print(
+            f"aggressive_async_cleanup: Post-test: Awaiting {len(tasks_to_await)} tasks on loop {id(loop_after_test)}."
+        )
+        await asyncio.gather(*tasks_to_await, return_exceptions=True)
+        print(
+            f"aggressive_async_cleanup: Post-test: Finished awaiting tasks for loop {id(loop_after_test)}."
+        )
+    else:
+        print(
+            f"aggressive_async_cleanup: Post-test: No outstanding tasks on loop {id(loop_after_test)} to await."
+        )
+
+    # 2. Clear TSerCom's global references again.
+    #    Pass try_stop_loop=False because pytest-asyncio is managing this loop.
+    #    The goal is just to nullify tsercom's globals. Tasks on this loop were just processed.
+    print(
+        f"aggressive_async_cleanup: Post-test: Clearing tsercom global event loop vars (no stop) for loop {id(loop_after_test)}."
+    )
+    clear_tsercom_event_loop(try_stop_loop=False)
+    print("aggressive_async_cleanup: Teardown complete.")
 
 
 def __check_initialization(init_call: Callable[[RuntimeManager], None]):
@@ -512,11 +585,11 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_manager.shutdown()
 
 
-def test_out_of_process_init(clear_loop_fixture):
+def test_out_of_process_init():
     __check_initialization(RuntimeManager.start_out_of_process)
 
 
-def test_in_process_init(clear_loop_fixture):
+def test_in_process_init():
     loop_future = Future()
 
     def _thread_loop_runner(fut: Future):
@@ -549,7 +622,7 @@ def test_in_process_init(clear_loop_fixture):
 
 
 # New Test Cases
-def test_out_of_process_error_check_for_exception(clear_loop_fixture):
+def test_out_of_process_error_check_for_exception():
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "RemoteFailureOops"
 
@@ -633,7 +706,7 @@ def test_out_of_process_error_check_for_exception(clear_loop_fixture):
     )
 
 
-def test_out_of_process_error_run_until_exception(clear_loop_fixture):
+def test_out_of_process_error_run_until_exception():
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "RemoteRunUntilFailure"
     runtime_manager.register_runtime_initializer(
@@ -653,7 +726,7 @@ def test_out_of_process_error_run_until_exception(clear_loop_fixture):
             runtime_manager.check_for_exception()
 
 
-def test_in_process_error_check_for_exception(clear_loop_fixture):
+def test_in_process_error_check_for_exception():
     loop_future = Future()
 
     def _thread_loop_runner(fut: Future):
@@ -716,7 +789,7 @@ def test_in_process_error_check_for_exception(clear_loop_fixture):
     event_thread.join(timeout=1)
 
 
-def test_out_of_process_initializer_create_error(clear_loop_fixture):
+def test_out_of_process_initializer_create_error():
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "CreateOops"
     runtime_manager.register_runtime_initializer(
@@ -735,7 +808,7 @@ def test_out_of_process_initializer_create_error(clear_loop_fixture):
 
 
 @pytest.mark.asyncio
-async def test_e2e_server_auth_secure_connection(clear_loop_fixture):
+async def test_e2e_server_auth_secure_connection():
     # Define paths to certs (assuming pytest runs from repo root)
     certs_dir = "tsercom/test_utils/test_certs"
     server_key_file = os.path.join(certs_dir, "server.key")
@@ -828,7 +901,7 @@ async def test_e2e_server_auth_secure_connection(clear_loop_fixture):
 
 
 @pytest.mark.asyncio
-async def test_e2e_client_auth_mtls_secure_connection(clear_loop_fixture):
+async def test_e2e_client_auth_mtls_secure_connection():
     # Define paths to certs
     certs_dir = "tsercom/test_utils/test_certs"
     server_key_file = os.path.join(certs_dir, "server.key")
@@ -921,7 +994,7 @@ async def test_e2e_client_auth_mtls_secure_connection(clear_loop_fixture):
 
 
 @pytest.mark.asyncio
-async def test_e2e_pinned_server_auth_secure_connection(clear_loop_fixture):
+async def test_e2e_pinned_server_auth_secure_connection():
     # Define paths to certs
     certs_dir = "tsercom/test_utils/test_certs"
     server_key_file = os.path.join(certs_dir, "server.key")

@@ -233,7 +233,9 @@ class TestRuntimeManager:
 
         manager_with_mocks.start_in_process(loop)
 
-        mock_set_tsercom_event_loop.assert_called_once_with(loop)
+        mock_set_tsercom_event_loop.assert_called_once_with(
+            loop, replace_policy=True
+        )
         # For start_in_process, __error_watcher is not set; errors are handled by __thread_watcher.
         assert manager_with_mocks._RuntimeManager__error_watcher is None
         assert (
