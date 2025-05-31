@@ -206,5 +206,6 @@ omit = [
     "*/.venv/*",
     # Exclude generated protobuf files explicitly
     "tsercom/*/*_pb2.py",
-    "tsercom/*/*_pb2_grpc.py"
+    "tsercom/*/*_pb2_grpc.py",
+    "tsercom/*/proto/*",
 ]
