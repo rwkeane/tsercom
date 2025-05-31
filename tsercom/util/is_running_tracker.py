@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Coroutine, Awaitable
+from collections.abc import Coroutine
 from functools import partial
 import threading
 from typing import Any, AsyncIterator, TypeVar
@@ -131,7 +131,7 @@ class IsRunningTracker(Atomic[bool]):
         await self.__stopped_barrier.wait()
 
     async def task_or_stopped(
-        self, call: Coroutine[Any, Any, TReturnType] # Reverted to Coroutine
+        self, call: Coroutine[Any, Any, TReturnType]  # Reverted to Coroutine
     ) -> TReturnType | None:
         """
         Runs |call| until completion, or until the current instance changes to
@@ -143,7 +143,9 @@ class IsRunningTracker(Atomic[bool]):
         # gets cancelled while holding the lock, resulting in a deadlock. This
         # isn't ideal and might lead to issues later, but for now its the best
         # solution I can come up with.
-        call_task: asyncio.Future[TReturnType] = asyncio.shield(asyncio.create_task(call))
+        call_task: asyncio.Future[TReturnType] = asyncio.shield(
+            asyncio.create_task(call)
+        )
 
         # This SHOULD get around the issue where |call_task| gets dropped
         # resulting in an error.
@@ -310,7 +312,7 @@ class IsRunningTracker(Atomic[bool]):
 
             # anext() should return a Coroutine, which matches task_or_stopped's expectation.
             # If mypy still complains about Awaitable vs Coroutine, this ignore might be needed.
-            result = await self.__tracker.task_or_stopped(next_item_coro) # type: ignore[arg-type]
+            result = await self.__tracker.task_or_stopped(next_item_coro)  # type: ignore[arg-type]
 
             if result is None or not self.__tracker.get():
                 # If task_or_stopped returned None (meaning the tracker stopped)

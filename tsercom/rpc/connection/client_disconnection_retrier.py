@@ -216,7 +216,9 @@ class ClientDisconnectionRetrier(
             # If error is None, it might mean a clean disconnect signal without an error.
             # However, the original logic implies error is usually an Exception.
             # We'll proceed assuming if error is None, it's a no-op for error reporting/handling.
-            if error is not None: # Ensure error is an exception before reporting
+            if (
+                error is not None
+            ):  # Ensure error is an exception before reporting
                 self.__watcher.on_exception_seen(error)
             return
 
@@ -230,7 +232,9 @@ class ClientDisconnectionRetrier(
         # or handle it as a non-error disconnect.
         # For now, let's assume if error is None, we don't proceed with error-specific logic.
         if error is None:
-            logging.info("_on_disconnect called with error=None. No action taken for error processing.")
+            logging.info(
+                "_on_disconnect called with error=None. No action taken for error processing."
+            )
             return
 
         # Critical errors like AssertionError should always propagate.
@@ -240,7 +244,7 @@ class ClientDisconnectionRetrier(
             # Depending on policy, might re-raise or stop retrying.
             # For now, it will be caught by the general "not server unavailable" case later if not re-raised here.
             # Re-raising immediately for critical assertion failures.
-            raise error # Re-raise to ensure it's handled as critical
+            raise error  # Re-raise to ensure it's handled as critical
 
         # If the instance was already stopped/cleared (e.g., by a concurrent stop call), do nothing.
         if self.__instance is None:
@@ -250,11 +254,11 @@ class ClientDisconnectionRetrier(
         logging.warning(
             f"Disconnect detected for instance. Error: {error}. Attempting to stop current instance."
         )
-        await self.__instance.stop() # Ensure self.__instance is not None before calling stop
+        await self.__instance.stop()  # Ensure self.__instance is not None before calling stop
         self.__instance = None
 
         if self.__is_grpc_error_func(
-            error # error is now confirmed not None
+            error  # error is now confirmed not None
         ) and not self.__is_server_unavailable_error_func(error):
             logging.warning(
                 f"Non-retriable gRPC session error: {error}. Notifying disconnection handler if available."
@@ -269,7 +273,9 @@ class ClientDisconnectionRetrier(
                     self.__safe_disconnection_handler()  # mypy issue with callable check
             return
 
-        if not self.__is_server_unavailable_error_func(error): # error is not None here
+        if not self.__is_server_unavailable_error_func(
+            error
+        ):  # error is not None here
             logging.error(
                 f"Local error or non-server-unavailable gRPC error: {error}. Reporting to ThreadWatcher."
             )
@@ -279,7 +285,7 @@ class ClientDisconnectionRetrier(
 
         # If it IS a server unavailable error, attempt to reconnect.
         logging.info(
-            f"Server unavailable error: {error}. Initiating reconnection attempts." # error is not None here
+            f"Server unavailable error: {error}. Initiating reconnection attempts."  # error is not None here
         )
 
         retry_count = 0

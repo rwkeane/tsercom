@@ -42,7 +42,7 @@ class TimeSyncTracker:
         Returns:
             A `SynchronizedClock` instance associated with the endpoint.
         """
-        new_client: TimeSyncClient # Explicitly type new_client
+        new_client: TimeSyncClient  # Explicitly type new_client
         if ip not in self.__map:
             # If this is the first connection to this IP, create a new TimeSyncClient.
             if self.__is_test_run:
@@ -62,7 +62,7 @@ class TimeSyncTracker:
             self.__map[ip] = (current_count, client_instance)
             return client_instance.get_synchronized_clock()
 
-    def on_disconnect(self, ip: str) -> None: # Added return type hint
+    def on_disconnect(self, ip: str) -> None:  # Added return type hint
         """Handles a disconnection from an IP endpoint.
 
         Decrements the reference count for the IP. If the count reaches zero,

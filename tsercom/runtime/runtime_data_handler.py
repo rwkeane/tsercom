@@ -1,7 +1,14 @@
 """Abstract interface for runtime data handlers in Tsercom."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, Generic, List, Optional, TypeVar, overload, Any
+from typing import (
+    AsyncIterator,
+    Generic,
+    List,
+    TypeVar,
+    overload,
+    Any,
+)
 
 import grpc
 

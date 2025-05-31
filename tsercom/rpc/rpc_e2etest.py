@@ -62,10 +62,8 @@ from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory imp
 from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
     ClientAuthGrpcChannelFactory,
 )  # Added
+
 # Removed duplicated import of ClientAuthGrpcChannelFactory by ensuring only one import line exists
-from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
-    ClientAuthGrpcChannelFactory,
-)
 from tsercom.rpc.common.channel_info import (
     ChannelInfo,
 )  # Expected by InsecureGrpcChannelFactory
@@ -1741,7 +1739,7 @@ async def test_client_auth_no_server_validation_by_client(
         server_key_pem=server_key_pem,
         server_cert_pem=server_cert_pem,
         client_ca_cert_pem=ca_cert_pem,  # Server needs this to validate the client cert
-        require_client_auth=server_requires_client_auth, # Corrected: use the parameterized value
+        require_client_auth=server_requires_client_auth,  # Corrected: use the parameterized value
         server_cn=server_cn,
     )
     assert returned_server_cn == server_cn
@@ -1774,7 +1772,9 @@ async def test_client_auth_no_server_validation_by_client(
         )
 
     finally:
-        if channel_info and channel_info.channel: # Should not be reached if assert above holds
+        if (
+            channel_info and channel_info.channel
+        ):  # Should not be reached if assert above holds
             await channel_info.channel.close()
 
 
@@ -1923,222 +1923,3 @@ async def test_client_auth_with_server_validation_untrusted_server_ca_fails(
             await channel_info.channel.close()
 
 
-# --- Tests for ClientAuthGrpcChannelFactory (Scenario 3) ---
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("server_requires_client_auth", [False, True])
-async def test_client_auth_no_server_validation_by_client(
-    secure_async_test_server_factory, server_requires_client_auth
-):
-    """
-    Tests Scenario 3: Client uses its cert, client does NOT validate server.
-    Server is configured to either optionally or require client certs.
-    """
-    ca_cert_pem, ca_key_pem = generate_ca_certificate(
-        common_name="Test Root CA S3 NoServerValidation"
-    )
-    server_cn = "localhost"
-    # Server cert (client won't validate it, but server needs one)
-    server_cert_pem, server_key_pem = generate_signed_certificate(
-        ca_cert_pem,
-        ca_key_pem,
-        common_name=server_cn,
-        sans=["DNS:localhost", "IP:127.0.0.1"],
-        is_server=True,
-    )
-    # Client cert (signed by the same CA for simplicity for server to verify)
-    client_cert_pem, client_key_pem = generate_signed_certificate(
-        ca_cert_pem,
-        ca_key_pem,
-        common_name="client.example.com",
-        sans=["DNS:client.example.com"],
-        is_server=False,
-    )
-
-    host, port, returned_server_cn = await secure_async_test_server_factory(
-        server_key_pem=server_key_pem,
-        server_cert_pem=server_cert_pem,
-            # Server should always be given the CA that signed the client cert,
-            # if it's expected to potentially verify it.
-            # require_client_auth will determine if it's enforced.
-            client_ca_cert_pem=ca_cert_pem,
-        require_client_auth=server_requires_client_auth,
-        server_cn=server_cn,
-    )
-    assert returned_server_cn == server_cn
-
-    # Client factory: provides client certs, but no root_ca_cert_pem for server validation.
-    factory = ClientAuthGrpcChannelFactory(
-        client_cert_pem=client_cert_pem,
-        client_key_pem=client_key_pem,
-        root_ca_cert_pem=None,  # Explicitly None: client does not validate server cert
-            # Reverting to server_cn for override, as None did not help and might be less standard.
-            server_hostname_override=server_cn,
-    )
-
-    channel_info: Optional[ChannelInfo] = None
-    try:
-        channel_info = await factory.find_async_channel(host, port)
-        # Expect connection failure in both cases (server_requires_client_auth=True/False)
-        # because the client is presenting a certificate, and the server is failing to verify it
-        # when the client itself is not performing server validation (root_ca_cert_pem=None).
-        # This seems to be a consistent behavior observed.
-        assert channel_info is None, (
-            f"ClientAuth with NoServerValidation by client unexpectedly connected. "
-            f"server_requires_client_auth={server_requires_client_auth}. "
-            f"This scenario consistently fails handshake (server can't verify client cert)."
-        )
-        logger.info(
-            f"Connection correctly failed as expected (ClientAuth, NoServerValidation, "
-            f"server_requires_client_auth={server_requires_client_auth}). Handshake issue."
-        )
-
-    finally:
-        if channel_info and channel_info.channel: # Should not be reached if assert above holds
-            await channel_info.channel.close()
-
-
-@pytest.mark.asyncio
-async def test_client_auth_with_server_validation_mtls(
-    secure_async_test_server_factory,
-):
-    """
-    Tests Scenario 3: Client uses its cert, client DOES validate server (mTLS).
-    Server must require client certs and validate them.
-    """
-    ca_cert_pem, ca_key_pem = generate_ca_certificate(
-        common_name="Test Root CA S3 mTLS"
-    )
-    server_cn = "localhost"
-    # Server cert signed by CA
-    server_cert_pem, server_key_pem = generate_signed_certificate(
-        ca_cert_pem,
-        ca_key_pem,
-        common_name=server_cn,
-        sans=["DNS:localhost", "IP:127.0.0.1"],
-        is_server=True,
-    )
-    # Client cert signed by the same CA
-    client_cert_pem, client_key_pem = generate_signed_certificate(
-        ca_cert_pem,
-        ca_key_pem,
-        common_name="mtls.client.example.com",
-        sans=["DNS:mtls.client.example.com"],
-        is_server=False,
-    )
-
-    host, port, returned_server_cn = await secure_async_test_server_factory(
-        server_key_pem=server_key_pem,
-        server_cert_pem=server_cert_pem,
-        client_ca_cert_pem=ca_cert_pem,  # Server uses this CA to verify client
-        require_client_auth=True,  # Server requires client cert
-        server_cn=server_cn,
-    )
-    assert returned_server_cn == server_cn
-
-    # Client factory: provides client certs AND the root_ca_cert_pem for server validation.
-    factory = ClientAuthGrpcChannelFactory(
-        client_cert_pem=client_cert_pem,
-        client_key_pem=client_key_pem,
-        root_ca_cert_pem=ca_cert_pem,  # Client trusts the CA that signed server's cert
-        server_hostname_override=server_cn,
-    )
-
-    channel_info: Optional[ChannelInfo] = None
-    try:
-        channel_info = await factory.find_async_channel(host, port)
-        assert (
-            channel_info is not None
-        ), "Client failed to connect (ClientAuth, mTLS)"
-        assert (
-            channel_info.channel is not None
-        ), "ChannelInfo has no channel object"
-        # assert channel_info.is_secure, "Channel should be secure" # Removed
-
-        request = TestConnectionCall()
-        response = await channel_info.channel.unary_unary(
-            FULL_METHOD_PATH,
-            request_serializer=TestConnectionCall.SerializeToString,
-            response_deserializer=TestConnectionResponse.FromString,
-        )(request)
-        assert isinstance(
-            response, TestConnectionResponse
-        ), "Unexpected RPC response type"
-        logger.info("RPC successful (ClientAuth, mTLS).")
-
-    finally:
-        if channel_info and channel_info.channel:
-            await channel_info.channel.close()
-
-
-@pytest.mark.asyncio
-async def test_client_auth_with_server_validation_untrusted_server_ca_fails(
-    secure_async_test_server_factory,
-):
-    """
-    Tests Scenario 3: Client uses its cert, tries to validate server, but server's CA is untrusted by client.
-    """
-    # CA that signs server's and client's actual certificates
-    actual_ca_cert_pem, actual_ca_key_pem = generate_ca_certificate(
-        common_name="Actual CA S3 UntrustedServer"
-    )
-    # Different CA that the client will (wrongly) use to try and verify the server
-    clients_false_trusted_ca_pem, _ = generate_ca_certificate(
-        common_name="Client's False Trust CA S3"
-    )
-
-    server_cn = "localhost"
-    server_cert_pem, server_key_pem = generate_signed_certificate(
-        actual_ca_cert_pem,
-        actual_ca_key_pem,
-        common_name=server_cn,
-        sans=["DNS:localhost", "IP:127.0.0.1"],
-        is_server=True,
-    )
-    client_cert_pem, client_key_pem = generate_signed_certificate(
-        actual_ca_cert_pem,
-        actual_ca_key_pem,
-        common_name="untrustedtest.client.example.com",
-        is_server=False,
-    )
-
-    host, port, _ = await secure_async_test_server_factory(
-        server_key_pem=server_key_pem,
-        server_cert_pem=server_cert_pem,
-        client_ca_cert_pem=actual_ca_cert_pem,  # Server configured to verify client against actual CA
-        require_client_auth=True,
-        server_cn=server_cn,
-    )
-
-    # Client factory: provides client certs, but trusts the WRONG CA for server validation.
-    factory = ClientAuthGrpcChannelFactory(
-        client_cert_pem=client_cert_pem,
-        client_key_pem=client_key_pem,
-        root_ca_cert_pem=clients_false_trusted_ca_pem,  # Client trusts the wrong CA
-        server_hostname_override=server_cn,
-    )
-
-    channel_info: Optional[ChannelInfo] = None
-    try:
-        channel_info = await factory.find_async_channel(host, port)
-        assert (
-            channel_info is None
-        ), "Client should have failed to connect (ClientAuth, untrusted server CA)"
-        logger.info(
-            "Client correctly failed to connect (returned None) due to untrusted server CA (ClientAuth)."
-        )
-    except grpc.aio.AioRpcError as e:
-        # This path should ideally not be hit if find_async_channel correctly returns None on handshake failure.
-        logger.error(
-            f"Connection unexpectedly raised gRPC error (untrusted server CA): {e.code()} - {e.details()}"
-        )
-        pytest.fail(
-            f"Expected find_async_channel to return None for untrusted server CA, but it raised {type(e).__name__}: {e}"
-        )
-    finally:
-        if channel_info and channel_info.channel:
-            logger.warning(
-                "Closing channel that should not have been successfully created in untrusted server CA test."
-            )
-            await channel_info.channel.close()

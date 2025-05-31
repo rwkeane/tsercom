@@ -102,9 +102,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
                 logger.info(
                     f"Successfully connected securely to {target} (Server Auth)."
                 )
-                return ChannelInfo(
-                    channel, current_address, port
-                )
+                return ChannelInfo(channel, current_address, port)
 
             except grpc.aio.AioRpcError as e:
                 # This specifically catches gRPC errors, e.g., connection failure, handshake failure

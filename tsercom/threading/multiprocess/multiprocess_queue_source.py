@@ -8,11 +8,11 @@ from a queue that is shared between processes, abstracting the underlying queue
 and focusing solely on the "get" operations.
 """
 
-import multiprocessing
+from multiprocessing import Queue as MpQueue
 from queue import (
     Empty,
 )  # Exception raised when a non-blocking get is called on an empty queue.
-from typing import Generic, TypeVar, cast
+from typing import Generic, TypeVar
 
 
 # Type variable for the generic type of items in the queue.
@@ -27,15 +27,15 @@ class MultiprocessQueueSource(Generic[TQueueType]):
     and can handle queues of any specific type.
     """
 
-    def __init__(self, queue: multiprocessing.Queue[TQueueType]) -> None:
+    def __init__(self, queue: "MpQueue[TQueueType]") -> None:
         """
         Initializes the MultiprocessQueueSource with a given multiprocessing queue.
 
         Args:
-            queue (multiprocessing.Queue[TQueueType]): The multiprocessing queue
+            queue ("MpQueue[TQueueType]"): The multiprocessing queue
                 to be used as the source.
         """
-        self.__queue: multiprocessing.Queue[TQueueType] = queue
+        self.__queue: "MpQueue[TQueueType]" = queue
 
     def get_blocking(self, timeout: float | None = None) -> TQueueType | None:
         """
