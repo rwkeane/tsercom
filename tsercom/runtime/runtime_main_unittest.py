@@ -1,7 +1,7 @@
 """Tests for tsercom.runtime.runtime_main."""
 
 import pytest
-from functools import partial  # Import partial
+from functools import partial
 
 from tsercom.runtime.runtime_main import (
     initialize_runtimes,
@@ -25,9 +25,9 @@ class TestInitializeRuntimes:
 
     def test_initialize_runtimes_client(
         self,
-        mocker,  # Added mocker
+        mocker,
     ):
-        # Class-level patches converted to method-level mocker.patch
+        """Tests runtime initialization for a client-type factory."""
         mock_is_global_event_loop_set = mocker.patch(
             "tsercom.runtime.runtime_main.is_global_event_loop_set",
             return_value=True,
@@ -58,7 +58,6 @@ class TestInitializeRuntimes:
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
-        # Configure the return values for the internal calls that initialize_runtimes will make
         mock_client_data_reader_actual_instance = mocker.Mock(
             spec=RemoteDataReader, name="client_data_reader_instance"
         )
@@ -99,8 +98,8 @@ class TestInitializeRuntimes:
 
         MockClientRuntimeDataHandler.assert_called_once_with(
             mock_thread_watcher,
-            mock_client_data_reader_actual_instance,  # Assert with the instance that was returned by _remote_data_reader()
-            mock_client_event_poller_actual_instance,  # Assert with the instance that was returned by _event_poller()
+            mock_client_data_reader_actual_instance,
+            mock_client_event_poller_actual_instance,
             is_testing=False,
         )
         MockServerRuntimeDataHandler.assert_not_called()
@@ -117,9 +116,9 @@ class TestInitializeRuntimes:
 
     def test_initialize_runtimes_server(
         self,
-        mocker,  # Added mocker
+        mocker,
     ):
-        # Class-level patches converted to method-level mocker.patch
+        """Tests runtime initialization for a server-type factory."""
         mock_is_global_event_loop_set = mocker.patch(
             "tsercom.runtime.runtime_main.is_global_event_loop_set",
             return_value=True,
@@ -149,7 +148,6 @@ class TestInitializeRuntimes:
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
-        # Configure the return values for the internal calls that initialize_runtimes will make
         mock_server_data_reader_actual_instance = mocker.Mock(
             spec=RemoteDataReader, name="server_data_reader_instance"
         )
@@ -189,8 +187,8 @@ class TestInitializeRuntimes:
         mock_channel_factory_selector_instance.get_instance.assert_called_once_with()
 
         MockServerRuntimeDataHandler.assert_called_once_with(
-            mock_server_data_reader_actual_instance,  # Assert with the instance that was returned by _remote_data_reader()
-            mock_server_event_poller_actual_instance,  # Assert with the instance that was returned by _event_poller()
+            mock_server_data_reader_actual_instance,
+            mock_server_event_poller_actual_instance,
             is_testing=False,
         )
         MockClientRuntimeDataHandler.assert_not_called()
@@ -207,9 +205,9 @@ class TestInitializeRuntimes:
 
     def test_initialize_runtimes_multiple(
         self,
-        mocker,  # Added mocker
+        mocker,
     ):
-        # Class-level patches converted to method-level mocker.patch
+        """Tests initialization with multiple factories (client and server)."""
         mock_is_global_event_loop_set = mocker.patch(
             "tsercom.runtime.runtime_main.is_global_event_loop_set",
             return_value=True,
@@ -239,7 +237,6 @@ class TestInitializeRuntimes:
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
-        # Configure the return values for the client factory's internal calls
         mock_client_data_reader_actual_instance_multi = mocker.Mock(
             spec=RemoteDataReader, name="client_data_reader_instance_multi"
         )
@@ -261,7 +258,6 @@ class TestInitializeRuntimes:
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
-        # Configure the return values for the server factory's internal calls
         mock_server_data_reader_actual_instance_multi = mocker.Mock(
             spec=RemoteDataReader, name="server_data_reader_instance_multi"
         )
@@ -294,21 +290,21 @@ class TestInitializeRuntimes:
             mock_thread_watcher, initializers
         )
 
-        mock_get_global_event_loop.assert_called()  # Or assert_called_once() if appropriate for single runtime
+        mock_get_global_event_loop.assert_called()
         MockChannelFactorySelector.assert_called_once_with()
         mock_channel_factory_selector_instance.get_instance.assert_called_once_with()
 
         assert MockClientRuntimeDataHandler.call_count == 1
         MockClientRuntimeDataHandler.assert_any_call(
             mock_thread_watcher,
-            mock_client_data_reader_actual_instance_multi,  # Assert with the instance
-            mock_client_event_poller_actual_instance_multi,  # Assert with the instance
+            mock_client_data_reader_actual_instance_multi,
+            mock_client_event_poller_actual_instance_multi,
             is_testing=False,
         )
         assert MockServerRuntimeDataHandler.call_count == 1
         MockServerRuntimeDataHandler.assert_any_call(
-            mock_server_data_reader_actual_instance_multi,  # Assert with the instance
-            mock_server_event_poller_actual_instance_multi,  # Assert with the instance
+            mock_server_data_reader_actual_instance_multi,
+            mock_server_event_poller_actual_instance_multi,
             is_testing=False,
         )
 
@@ -323,7 +319,6 @@ class TestInitializeRuntimes:
             mock_server_runtime.start_async,
             event_loop=mock_event_loop_instance,
         )
-        # Ensure call_count is still 2
         assert mock_run_on_event_loop.call_count == 2
 
         assert created_runtimes == [mock_client_runtime, mock_server_runtime]
@@ -334,9 +329,9 @@ class TestRemoteProcessMain:
 
     def test_normal_execution(
         self,
-        mocker,  # Added mocker
+        mocker,
     ):
-        # Class-level patches converted to method-level mocker.patch
+        """Tests the normal execution path of remote_process_main."""
         mock_clear_event_loop = mocker.patch(
             "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
         )
@@ -384,29 +379,20 @@ class TestRemoteProcessMain:
         mock_sink_instance.run_until_exception.assert_called_once()
 
         assert mock_run_on_event_loop.call_count == 2
-        # Check the calls to run_on_event_loop more carefully for partials
         expected_stop_funcs = {mock_runtime1.stop, mock_runtime2.stop}
         actual_called_stop_funcs = set()
         for call_args in mock_run_on_event_loop.call_args_list:
-            partial_obj = call_args.args[
-                0
-            ]  # run_on_event_loop(callable, ...) -> callable is args[0]
-            assert isinstance(
-                partial_obj, partial
-            ), "Argument should be a functools.partial object"
+            partial_obj = call_args.args[0]
+            assert isinstance(partial_obj, partial)
             actual_called_stop_funcs.add(partial_obj.func)
-            assert partial_obj.args == (
-                None,
-            ), "Partial should have been called with (None,)"
-        assert (
-            actual_called_stop_funcs == expected_stop_funcs
-        ), f"Expected stop functions {expected_stop_funcs} to be called via partial, got {actual_called_stop_funcs}"
+            assert partial_obj.args == (None,)
+        assert actual_called_stop_funcs == expected_stop_funcs
 
     def test_exception_in_run_until_exception(
         self,
-        mocker,  # Added mocker
+        mocker,
     ):
-        # Class-level patches converted to method-level mocker.patch
+        """Tests error handling when run_until_exception raises an error."""
         mock_clear_event_loop = mocker.patch(
             "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
         )
@@ -443,24 +429,13 @@ class TestRemoteProcessMain:
         with pytest.raises(RuntimeError, match="Test error from sink"):
             remote_process_main(mock_factories, mock_error_queue)
 
-        mock_error_queue.put_nowait.assert_called_once_with(
-            test_exception
-        )  # Added this line
+        mock_error_queue.put_nowait.assert_called_once_with(test_exception)
         assert mock_run_on_event_loop.call_count == 2
-        # Check the calls to run_on_event_loop more carefully for partials
         expected_stop_funcs = {mock_runtime1.stop, mock_runtime2.stop}
         actual_called_stop_funcs = set()
         for call_args in mock_run_on_event_loop.call_args_list:
-            partial_obj = call_args.args[
-                0
-            ]  # run_on_event_loop(callable, ...) -> callable is args[0]
-            assert isinstance(
-                partial_obj, partial
-            ), "Argument should be a functools.partial object"
+            partial_obj = call_args.args[0]
+            assert isinstance(partial_obj, partial)
             actual_called_stop_funcs.add(partial_obj.func)
-            assert partial_obj.args == (
-                None,
-            ), "Partial should have been called with (None,)"
-        assert (
-            actual_called_stop_funcs == expected_stop_funcs
-        ), f"Expected stop functions {expected_stop_funcs} to be called via partial, got {actual_called_stop_funcs}"
+            assert partial_obj.args == (None,)
+        assert actual_called_stop_funcs == expected_stop_funcs

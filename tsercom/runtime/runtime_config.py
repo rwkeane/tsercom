@@ -45,8 +45,7 @@ class RuntimeConfig(Generic[TDataType]):
     def __init__(
         self,
         service_type: Optional[
-            Literal["Client", "Server"]
-            | "ServiceType"  # Actually ServiceType enum
+            Literal["Client", "Server"] | ServiceType
         ] = None,
         *,
         other_config: Optional["RuntimeConfig[TDataType]"] = None,
@@ -77,17 +76,11 @@ class RuntimeConfig(Generic[TDataType]):
             )
 
         if other_config is not None:
-            # Call __init__ directly to bypass overload resolution issues with self-recursion
-            # and to correctly set private attributes of the new instance.
-            # This is a common pattern for implementing copy constructors in Python.
-            # The type: ignore for service_type might still be needed if __service_type is considered private by mypy
-            # depending on its exact rules for __mangled_names from another instance.
-            # For data_aggregator_client and timeout_seconds, direct access to properties of other_config is fine.
             RuntimeConfig.__init__(
                 self,
-                service_type=other_config.service_type_enum,  # Use new property
-                data_aggregator_client=other_config.data_aggregator_client,  # This will use the property
-                timeout_seconds=other_config.timeout_seconds,  # This will use the property
+                service_type=other_config.__service_type,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
             )
             return
 
@@ -98,8 +91,7 @@ class RuntimeConfig(Generic[TDataType]):
                 self.__service_type = ServiceType.kServer
             else:
                 raise ValueError(f"Invalid service type: {service_type}")
-        else:
-            self.__service_type = service_type  # type: ignore[assignment] # service_type can be ServiceType enum or string here
+            self.__service_type = service_type
 
         self.__data_aggregator_client: Optional[
             RemoteDataAggregator[TDataType]
@@ -157,10 +149,3 @@ class RuntimeConfig(Generic[TDataType]):
         time out.
         """
         return self.__timeout_seconds
-
-
-class ServiceType(Enum):
-    """Enumerates the operational roles for a Tsercom runtime."""
-
-    kClient = 1
-    kServer = 2

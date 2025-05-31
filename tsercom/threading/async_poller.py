@@ -45,11 +45,9 @@ class AsyncPoller(Generic[TResultType], ABC):
         self.__barrier = asyncio.Event()
         self.__lock = (
             threading.Lock()
-        )  # Lock for thread-safe access to __responses
+        )
 
-        self.__is_loop_running = Atomic[bool](
-            False
-        )  # Atomic flag for loop state
+        self.__is_loop_running = Atomic[bool](False)
 
         self.__event_loop: asyncio.AbstractEventLoop | None = None
 
@@ -74,11 +72,10 @@ class AsyncPoller(Generic[TResultType], ABC):
         """
         with self.__lock:
             # Limit queue size
-            if len(self.__responses) >= kMaxResponses:  # Changed > to >=
+            if len(self.__responses) >= kMaxResponses:
                 self.__responses.popleft()
             self.__responses.append(new_instance)
 
-        # If the poller's event loop is running, signal that new data is available.
         if not self.__is_loop_running.get():
             return
 
@@ -111,30 +108,17 @@ class AsyncPoller(Generic[TResultType], ABC):
             RuntimeError: If the poller is stopped, not running on the correct event loop,
                           or if it's stopped while waiting for an instance (e.g., during timeout).
         """
-        # Initialize or validate the event loop for this poller instance.
-        # This block is crucial: on the first call to wait_instance, or if the
-        # poller was previously stopped and is now being awaited again, this
-        # code captures the currently running asyncio event loop.
-        # It effectively associates the poller instance with the event loop
-        # of its first active caller (or the first caller after a stop/restart).
-        # `self.__is_loop_running` is set to True here, indicating the poller
-        # is now active and tied to this specific event loop.
         if self.__event_loop is None:
-            # First call or called after a loop shutdown.
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
                 raise RuntimeError(
                     "AsyncPoller.wait_instance called without a running event loop."
                 )
-            self.__is_loop_running.set(
-                True
-            )  # Mark as running ONLY when we have a loop
+            self.__is_loop_running.set(True)
         elif not self.__is_loop_running.get():
-            # Poller was explicitly stopped.
             raise RuntimeError("AsyncPoller is stopped")
 
-        # Ensure we are running on the poller's designated event loop.
-        assert self.__event_loop is not None  # Should be set by now
+        assert self.__event_loop is not None
         if not is_running_on_event_loop(self.__event_loop):
             raise RuntimeError(
                 "AsyncPoller.wait_instance called from a different event loop "
@@ -146,35 +130,25 @@ class AsyncPoller(Generic[TResultType], ABC):
             with self.__lock:
                 if len(self.__responses) > 0:
                     queue_snapshot = self.__responses
-                    self.__responses = Deque[
-                        TResultType
-                    ]()  # Reset queue after taking snapshot
+                    self.__responses = Deque[TResultType]()
 
             if queue_snapshot is not None:
                 responses: List[TResultType] = []
                 while len(queue_snapshot) > 0:
                     responses.append(queue_snapshot.popleft())
-                return (
-                    responses  # Returns non-empty list due to len check above
-                )
+                return responses
 
             self.__barrier.clear()
             try:
-                # Wait for new items or a timeout to re-check running state.
                 await asyncio.wait_for(self.__barrier.wait(), timeout=0.1)
             except asyncio.TimeoutError:
-                # Timeout is expected, continue to check __is_loop_running.
                 pass
 
-            # If poller was stopped while waiting, raise error.
             if not self.__is_loop_running.get():
                 raise RuntimeError(
                     "AsyncPoller is stopped while waiting for instance."
                 )
 
-            # If barrier was set (new items arrived), loop again to retrieve them.
-
-        # If loop terminates, it means the poller was stopped.
         raise RuntimeError("AsyncPoller is stopped")
 
     def __aiter__(self) -> AsyncIterator[List[TResultType]]:
@@ -201,8 +175,6 @@ class AsyncPoller(Generic[TResultType], ABC):
         try:
             return await self.wait_instance()
         except RuntimeError as e:
-            # Convert RuntimeError from wait_instance (e.g., "AsyncPoller is stopped")
-            # into StopAsyncIteration for the async iterator protocol.
             raise StopAsyncIteration from e
 
     def __len__(self) -> int:
@@ -214,3 +186,9 @@ class AsyncPoller(Generic[TResultType], ABC):
         """
         with self.__lock:
             return len(self.__responses)
+
+    # TODO(developer): Consider adding a public stop() method.
+    # This method would set self.__is_loop_running.set(False)
+    # and potentially self.__barrier.set() to ensure any waiters
+    # in wait_instance() can wake up promptly and observe the stop.
+    # This would provide more explicit lifecycle control for the poller.

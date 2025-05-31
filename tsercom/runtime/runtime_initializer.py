@@ -1,3 +1,5 @@
+"""Defines the abstract base class for Tsercom runtime initializers."""
+
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 

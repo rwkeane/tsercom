@@ -27,7 +27,7 @@ class RuntimeFactory(
     """
 
     @property
-    @abstractmethod  # Properties that must be implemented by subclasses
+    @abstractmethod
     def remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
@@ -38,7 +38,7 @@ class RuntimeFactory(
         pass
 
     @property
-    @abstractmethod  # Properties that must be implemented by subclasses
+    @abstractmethod
     def event_poller(
         self,
     ) -> AsyncPoller[EventInstance[TEventType]]:
@@ -74,7 +74,7 @@ class RuntimeFactory(
         """
         pass
 
-    def _stop(self) -> None:  # Added self
+    def _stop(self) -> None:
         """
         Stops any underlying calls and executions associated with this instance.
         """
