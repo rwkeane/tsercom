@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Literal, Optional, TypeVar, overload, Generic
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.exposed_data import ExposedData  # Import ExposedData
+from tsercom.rpc.grpc_util.channel_auth_config import BaseChannelAuthConfig
 
 TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
 TEventType = TypeVar("TEventType")
@@ -33,6 +34,7 @@ class RuntimeConfig(Generic[TDataType]):
             RemoteDataAggregator[TDataType]
         ] = None,
         timeout_seconds: Optional[int] = 60,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
     ): ...
 
     @overload
@@ -44,6 +46,7 @@ class RuntimeConfig(Generic[TDataType]):
             RemoteDataAggregator[TDataType]
         ] = None,
         timeout_seconds: Optional[int] = 60,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
     ): ...
 
     @overload
@@ -60,6 +63,7 @@ class RuntimeConfig(Generic[TDataType]):
             RemoteDataAggregator[TDataType]
         ] = None,
         timeout_seconds: Optional[int] = 60,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
     ):
         """Initializes the RuntimeConfig.
 
@@ -83,11 +87,14 @@ class RuntimeConfig(Generic[TDataType]):
             )
 
         if other_config is not None:
+            # Call __init__ again, but this time without 'other_config',
+            # effectively using the primary constructor logic with values from other_config.
             RuntimeConfig.__init__(
                 self,
-                service_type=other_config.__service_type,
+                service_type=other_config.service_type_enum,
                 data_aggregator_client=other_config.data_aggregator_client,
                 timeout_seconds=other_config.timeout_seconds,
+                auth_config=other_config.auth_config,
             )
             return
 
@@ -108,6 +115,7 @@ class RuntimeConfig(Generic[TDataType]):
             RemoteDataAggregator[TDataType]
         ] = data_aggregator_client
         self.__timeout_seconds: Optional[int] = timeout_seconds
+        self.__auth_config: Optional[BaseChannelAuthConfig] = auth_config
 
     def is_client(self) -> bool:
         """Checks if the runtime is configured as a client.
@@ -170,3 +178,11 @@ class RuntimeConfig(Generic[TDataType]):
         time out.
         """
         return self.__timeout_seconds
+
+    @property
+    def auth_config(self) -> Optional[BaseChannelAuthConfig]:
+        """
+        Returns the channel authentication configuration, or None if not set
+        (implying insecure channel).
+        """
+        return self.__auth_config
