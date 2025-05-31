@@ -15,7 +15,7 @@ AddServicerCB = Callable[["grpc.Server"], None]
 
 class GrpcServicePublisher:
     """
-    This class Is a helper to publish a gRPC Service/
+    Helper class to publish gRPC services.
     """
 
     def __init__(
@@ -25,8 +25,8 @@ class GrpcServicePublisher:
         addresses: str | Iterable[str] | None = None,
     ):
         """
-        Creates a new gRPC Service hosted on a given |port| and network
-        interfaces assocaited with |addresses|.
+        Creates a new gRPC Service hosted on a given ``port`` and network
+        interfaces assocaited with ``addresses``.
         """
         if addresses is None:
             addresses = get_all_address_strings()
@@ -75,7 +75,6 @@ class GrpcServicePublisher:
             maximum_concurrent_rpcs=None,
         )
         connect_call(self.__server)
-        self.__server
         self._connect()
         await self.__server.start()
 
@@ -118,6 +117,9 @@ class GrpcServicePublisher:
         """
         Stops the server.
         """
+        # TODO(review): The current synchronous stop() may not correctly handle
+        # graceful shutdown for an asyncio gRPC server (if __server is grpc.aio.Server).
+        # Consider making this method async or adding a separate stop_async().
         if self.__server is None:
             raise RuntimeError("Server not started")
         self.__server.stop()  # This is a blocking call for non-async server

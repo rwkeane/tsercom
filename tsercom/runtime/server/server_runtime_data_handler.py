@@ -86,7 +86,7 @@ class ServerRuntimeDataHandler(
         self.__id_tracker.add(caller_id, endpoint, port)
         return self._create_data_processor(caller_id, self.__clock)
 
-    def _unregister_caller(self, caller_id: CallerIdentifier) -> None:
+    def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
         """Handles unregistration of a caller.
 
         In this server implementation, this method is currently a no-op.
@@ -97,7 +97,8 @@ class ServerRuntimeDataHandler(
         """
         # Keep all CallerID instances around, so a connection can be
         # re-established with the same id (if reconnection possible).
-        pass
+        # Return true if the ID was known, false otherwise, but do not remove from id_tracker.
+        return self.__id_tracker.has_id(caller_id)
 
     def _try_get_caller_id(
         self, endpoint: str, port: int

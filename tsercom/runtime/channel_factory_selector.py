@@ -18,14 +18,11 @@ class ChannelFactorySelector:
     The selection logic may be expanded in the future.
     """
 
-    # TODO: Implement switching.
-    # This will require a more significant refactor to allow different channel factory implementations.
+    # TODO(developer): Implement switching logic for channel factories. This will require a more significant refactor to allow selection of different channel factory implementations (e.g., secure, insecure) based on configuration or other criteria.
     def get_instance(self) -> GrpcChannelFactory:
         """Gets an instance of a GrpcChannelFactory.
 
         Currently, this method returns an `InsecureGrpcChannelFactory` by default.
-        The `# TODO` comment in the original code indicates plans for more
-        sophisticated selection logic.
 
         Returns:
             An instance of `InsecureGrpcChannelFactory`.
