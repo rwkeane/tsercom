@@ -21,6 +21,7 @@ from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
+from tsercom.timesync.common.synchronized_clock import SynchronizedClock # Import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 

@@ -12,14 +12,10 @@ from tsercom.threading.aio.aio_utils import run_on_event_loop
 # Generic type for service information, bound by the base ServiceInfo class.
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
-# Type Aliases for complex types
-_InstanceListenerClient = InstanceListener[TServiceInfo].Client
-_InstanceListenerFactory = Callable[[_InstanceListenerClient], InstanceListener[TServiceInfo]]
-_OptionalInstanceListenerFactory = Optional[_InstanceListenerFactory]
-
+# Removed module-level type aliases that caused issues with TServiceInfo binding.
 
 class DiscoveryHost(
-    Generic[TServiceInfo], InstanceListener[TServiceInfo].Client
+    Generic[TServiceInfo], InstanceListener[TServiceInfo].Client # type: ignore[misc] # Addressing "Invalid base class"
 ):
     """Manages service discovery using mDNS and CallerIdentifier association.
 
@@ -60,7 +56,10 @@ class DiscoveryHost(
     def __init__(
         self,
         *,
-        instance_listener_factory: _InstanceListenerFactory, # Use type alias
+        instance_listener_factory: Callable[ # Reverted to full type hint
+            [InstanceListener[TServiceInfo].Client],
+            InstanceListener[TServiceInfo],
+        ],
     ):
         """Initializes DiscoveryHost with a factory for creating an InstanceListener."""
         ...
@@ -69,7 +68,12 @@ class DiscoveryHost(
         self,
         *,
         service_type: Optional[str] = None,
-        instance_listener_factory: _OptionalInstanceListenerFactory = None, # Use type alias
+        instance_listener_factory: Optional[ # Reverted to full type hint
+            Callable[
+                [InstanceListener[TServiceInfo].Client],
+                InstanceListener[TServiceInfo],
+            ]
+        ] = None,
     ) -> None:
         """Initializes the DiscoveryHost.
 
@@ -99,7 +103,12 @@ class DiscoveryHost(
             )
 
         self.__service_type: Optional[str] = service_type
-        self.__instance_listener_factory: _OptionalInstanceListenerFactory = instance_listener_factory # Use type alias
+        self.__instance_listener_factory: Optional[ # Reverted to full type hint
+            Callable[
+                [InstanceListener[TServiceInfo].Client],
+                InstanceListener[TServiceInfo],
+            ]
+        ] = instance_listener_factory
 
         # The actual mDNS instance listener; initialized in start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
