@@ -51,15 +51,12 @@ class TestInitializeRuntimes:
             MockChannelFactorySelector.return_value
         )
         mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
-        # Changed from get_instance to create_factory
         mock_channel_factory_selector_instance.create_factory.return_value = (
             mock_grpc_channel_factory
         )
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_client_factory.auth_config = (
-            None  # ADDED: Provide auth_config for the factory
-        )
+        mock_client_factory.auth_config = None
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         mock_client_data_reader_actual_instance = mocker.Mock(
@@ -154,9 +151,7 @@ class TestInitializeRuntimes:
         )
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_server_factory.auth_config = (
-            None  # ADDED: Provide auth_config for the factory
-        )
+        mock_server_factory.auth_config = None
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
         mock_server_data_reader_actual_instance = mocker.Mock(
@@ -250,7 +245,7 @@ class TestInitializeRuntimes:
         )
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_client_factory.auth_config = None  # ADDED: Provide auth_config
+        mock_client_factory.auth_config = None
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         mock_client_data_reader_actual_instance_multi = mocker.Mock(
@@ -272,7 +267,7 @@ class TestInitializeRuntimes:
         mock_client_factory.create.return_value = mock_client_runtime
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_server_factory.auth_config = None  # ADDED: Provide auth_config
+        mock_server_factory.auth_config = None
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
         mock_server_data_reader_actual_instance_multi = mocker.Mock(

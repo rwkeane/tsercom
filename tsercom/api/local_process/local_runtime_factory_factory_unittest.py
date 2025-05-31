@@ -42,7 +42,7 @@ class FakeRuntimeInitializer:
         service_type_str="Server",  # Changed parameter name for clarity
         data_aggregator_client=None,
         timeout_seconds=60,
-        auth_config=None,  # ADDED
+        auth_config=None,
     ):
         # Store the string, but also prepare the enum
         if service_type_str == "Server":
@@ -57,7 +57,7 @@ class FakeRuntimeInitializer:
 
         self.data_aggregator_client = data_aggregator_client
         self.timeout_seconds = timeout_seconds
-        self.auth_config = auth_config  # ADDED
+        self.auth_config = auth_config
 
         # Attributes/methods that might be called by the class under test or its collaborators
         self.create_called = False

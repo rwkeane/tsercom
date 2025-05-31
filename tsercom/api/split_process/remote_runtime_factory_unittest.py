@@ -30,7 +30,7 @@ class FakeRuntimeInitializer:
         service_type_str="Server",  # Changed parameter name for clarity
         data_aggregator_client=None,
         timeout_seconds=60,
-        auth_config=None,  # ADDED for compatibility
+        auth_config=None,
     ):
         # Store the string, but also prepare the enum
         if service_type_str == "Server":
@@ -45,7 +45,7 @@ class FakeRuntimeInitializer:
 
         self.data_aggregator_client = data_aggregator_client
         self.timeout_seconds = timeout_seconds
-        self.auth_config = auth_config  # ADDED
+        self.auth_config = auth_config
 
         self.create_called_with = None
         self.create_call_count = 0
