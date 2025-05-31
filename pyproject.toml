@@ -188,3 +188,23 @@ ignore = [
 
 [tool.pylint.format]
 max-line-length = 79  # Must match Black's and Ruff's line-length
+
+[tool.coverage.run]
+source = ["tsercom"]
+omit = [
+    # Pytest discovery patterns
+    "*_test.py",
+    "*_tests.py",
+    "*_unittest.py",
+    "*_unittests.py",
+    "*_e2etest.py",
+    "*_e2etests.py",
+    # Common test directory patterns
+    "tsercom/tests/*",
+    "tests/*",
+    # Virtual environment
+    "*/.venv/*",
+    # Exclude generated protobuf files explicitly
+    "tsercom/*/*_pb2.py",
+    "tsercom/*/*_pb2_grpc.py"
+]
