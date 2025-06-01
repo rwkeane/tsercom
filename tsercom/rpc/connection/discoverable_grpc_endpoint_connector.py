@@ -23,7 +23,7 @@ TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
 class DiscoverableGrpcEndpointConnector(
-    Generic[TServiceInfo], DiscoveryHost.Client[TServiceInfo]
+    Generic[TServiceInfo], DiscoveryHost.Client  # Removed [TServiceInfo]
 ):
     """Connects to gRPC endpoints discovered via `DiscoveryHost`.
 
@@ -59,7 +59,7 @@ class DiscoverableGrpcEndpointConnector(
 
     def __init__(
         self,
-        client: "DiscoverableGrpcEndpointConnector.Client[TServiceInfo]",
+        client: "DiscoverableGrpcEndpointConnector.Client",  # Removed [TServiceInfo]
         channel_factory: "GrpcChannelFactory",
         discovery_host: DiscoveryHost[TServiceInfo],
     ) -> None:
@@ -73,9 +73,9 @@ class DiscoverableGrpcEndpointConnector(
             discovery_host: The `DiscoveryHost` instance that will provide
                             discovered service information.
         """
-        self.__client: DiscoverableGrpcEndpointConnector.Client[
-            TServiceInfo
-        ] = client
+        self.__client: DiscoverableGrpcEndpointConnector.Client = (
+            client  # Removed [TServiceInfo]
+        )
         self.__discovery_host: DiscoveryHost[TServiceInfo] = discovery_host
         self.__channel_factory: "GrpcChannelFactory" = channel_factory
 
