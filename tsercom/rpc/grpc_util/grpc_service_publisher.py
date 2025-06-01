@@ -1,5 +1,6 @@
 """Provides GrpcServicePublisher for hosting gRPC services."""
 
+import asyncio
 from functools import partial
 from typing import Callable, Iterable
 import grpc
@@ -49,11 +50,14 @@ class GrpcServicePublisher:
         self._connect()
         self.__server.start()
 
-    def start_async(self, connect_call: AddServicerCB) -> None:
+    async def start_async(self, connect_call: AddServicerCB) -> None:
         """
-        Starts an asynchronous server.
+        Starts an asynchronous server and waits for it to be serving.
         """
-        run_on_event_loop(partial(self.__start_async_impl, connect_call))
+        cf_future = run_on_event_loop(
+            partial(self.__start_async_impl, connect_call)
+        )
+        await asyncio.wrap_future(cf_future)
 
     async def __start_async_impl(self, connect_call: AddServicerCB) -> None:
         """Internal implementation to start the asynchronous gRPC server.

@@ -172,7 +172,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                 if isinstance(e, AssertionError):
                     logging.error(f"AssertionError during NTP sync: {e}")
                     self.__watcher.on_exception_seen(e)
-                    raise  # Re-raise AssertionError to halt the sync loop.
+                    return  # Terminate loop gracefully after reporting.
                 logging.error(f"Error during NTP sync: {e}")
 
             # The __start_barrier is used to signal that the TimeSyncClient has

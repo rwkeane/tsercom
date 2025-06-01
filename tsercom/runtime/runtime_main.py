@@ -27,6 +27,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 import concurrent.futures
+from .runtime_data_handler import RuntimeDataHandler
 
 
 def initialize_runtimes(
@@ -50,6 +51,7 @@ def initialize_runtimes(
     channel_factory_selector = ChannelFactorySelector()
 
     runtimes: List[Runtime] = []
+    data_handler: RuntimeDataHandler[Any, Any]  # Annotation added here
     for factory_idx, initializer_factory in enumerate(initializers):
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()

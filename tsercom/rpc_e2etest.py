@@ -246,7 +246,7 @@ FULL_METHOD_PATH = f"/{TEST_SERVICE_NAME}/{TEST_METHOD_NAME}"
 pytestmark = pytest.mark.asyncio
 
 
-class TestGrpcServicePublisher(GrpcServicePublisher):
+class CustomServicePublisherRpcE2E(GrpcServicePublisher):
     """Subclass of GrpcServicePublisher to capture the assigned port."""
 
     def __init__(
@@ -314,7 +314,7 @@ class TestGrpcServicePublisher(GrpcServicePublisher):
 async def async_test_server():
     """Pytest fixture to start and stop the AsyncTestConnectionServer."""
     watcher = ThreadWatcher()
-    service_publisher = TestGrpcServicePublisher(
+    service_publisher = CustomServicePublisherRpcE2E(
         watcher, port=0, addresses="127.0.0.1"
     )
 
@@ -339,7 +339,7 @@ async def async_test_server():
     current_loop = asyncio.get_event_loop()
     set_tsercom_event_loop(current_loop)
     try:
-        service_publisher.start_async(connect_call)
+        await service_publisher.start_async(connect_call)
 
         port = service_publisher.chosen_port
         if port is None:
@@ -490,7 +490,7 @@ async def error_timeout_test_server():
     Pytest fixture to start and stop the ErrorAndTimeoutTestServiceServer.
     """
     watcher = ThreadWatcher()
-    service_publisher = TestGrpcServicePublisher(
+    service_publisher = CustomServicePublisherRpcE2E(
         watcher, port=0, addresses="127.0.0.1"
     )
 
@@ -538,7 +538,7 @@ async def error_timeout_test_server():
         )
 
     try:
-        service_publisher.start_async(connect_call)
+        await service_publisher.start_async(connect_call)
 
         port = service_publisher.chosen_port
         if port is None:
@@ -859,7 +859,7 @@ class StopableChannelWrapper(Stopable):
         return self._active
 
 
-class TestableDisconnectionRetrier(
+class CustomDisconnectionRetrierRpcE2E(
     ClientDisconnectionRetrier[StopableChannelWrapper]
 ):
     """
@@ -896,7 +896,7 @@ class TestableDisconnectionRetrier(
         """Connects to the server and returns a StopableChannelWrapper."""
         current_port = self._get_server_port()
         logger.info(
-            f"TestableDisconnectionRetrier: Attempting to connect to {self._server_host}:{current_port}..."
+            f"CustomDisconnectionRetrierRpcE2E: Attempting to connect to {self._server_host}:{current_port}..."
         )
 
         channel_info = await self._channel_factory.find_async_channel(
@@ -905,7 +905,7 @@ class TestableDisconnectionRetrier(
 
         if channel_info is None or channel_info.channel is None:
             logger.warning(
-                f"TestableDisconnectionRetrier: Connection failed to {self._server_host}:{current_port}."
+                f"CustomDisconnectionRetrierRpcE2E: Connection failed to {self._server_host}:{current_port}."
             )
             raise grpc.aio.AioRpcError(
                 grpc.StatusCode.UNAVAILABLE,
@@ -915,7 +915,7 @@ class TestableDisconnectionRetrier(
             )
 
         logger.info(
-            f"TestableDisconnectionRetrier: Connected to {self._server_host}:{current_port}. Wrapping channel."
+            f"CustomDisconnectionRetrierRpcE2E: Connected to {self._server_host}:{current_port}. Wrapping channel."
         )
         self._managed_instance_wrapper = StopableChannelWrapper(
             channel_info.channel
@@ -944,7 +944,7 @@ async def test_client_retrier_reconnects(retrier_server_controller):
     watcher = ThreadWatcher()
 
     current_event_loop = asyncio.get_event_loop()
-    retrier = TestableDisconnectionRetrier(
+    retrier = CustomDisconnectionRetrierRpcE2E(
         watcher,
         server_ctrl,
         event_loop=current_event_loop,
