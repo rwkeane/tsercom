@@ -87,14 +87,25 @@ class TestRuntimeManager:
         mock_tw = mocker.patch(
             "tsercom.api.runtime_manager.ThreadWatcher", autospec=True
         )
-        mock_lff_constructor = mocker.patch(
-            "tsercom.api.runtime_manager.LocalRuntimeFactoryFactory",
-            autospec=True,
+
+        # Patch LocalRuntimeFactoryFactory for subscripting behavior
+        mock_lff_class = mocker.patch(
+            "tsercom.api.runtime_manager.LocalRuntimeFactoryFactory"  # Removed autospec
         )
-        mock_sff_constructor = mocker.patch(
-            "tsercom.api.runtime_manager.SplitRuntimeFactoryFactory",
-            autospec=True,
+        mock_lff_constructor_callable = mocker.MagicMock(
+            name="LFF_ConstructorProxy"
         )
+        mock_lff_class.__getitem__.return_value = mock_lff_constructor_callable
+
+        # Patch SplitRuntimeFactoryFactory for subscripting behavior
+        mock_sff_class = mocker.patch(
+            "tsercom.api.runtime_manager.SplitRuntimeFactoryFactory"  # Removed autospec
+        )
+        mock_sff_constructor_callable = mocker.MagicMock(
+            name="SFF_ConstructorProxy"
+        )
+        mock_sff_class.__getitem__.return_value = mock_sff_constructor_callable
+
         mock_pc_constructor = mocker.patch(
             "tsercom.api.runtime_manager.ProcessCreator", autospec=True
         )
@@ -115,8 +126,8 @@ class TestRuntimeManager:
 
         mock_tw.assert_called_once()
         # Check that factories are initialized with a thread pool from the created ThreadWatcher
-        mock_lff_constructor.assert_called_once_with(mock_thread_pool)
-        mock_sff_constructor.assert_called_once_with(
+        mock_lff_constructor_callable.assert_called_once_with(mock_thread_pool)
+        mock_sff_constructor_callable.assert_called_once_with(
             mock_thread_pool, mock_thread_watcher_instance
         )
         mock_pc_constructor.assert_called_once()
@@ -129,11 +140,11 @@ class TestRuntimeManager:
         )
         assert (
             manager._RuntimeManager__local_runtime_factory_factory
-            is mock_lff_constructor.return_value
+            is mock_lff_constructor_callable.return_value
         )
         assert (
             manager._RuntimeManager__split_runtime_factory_factory
-            is mock_sff_constructor.return_value
+            is mock_sff_constructor_callable.return_value
         )
         assert (
             manager._RuntimeManager__process_creator

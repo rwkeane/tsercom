@@ -63,7 +63,7 @@ class ClientRuntimeDataHandler(
 
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor:
+    ) -> EndpointDataProcessor[TDataType]:
         """Registers a new caller and its endpoint, returning a data processor.
 
         Adds the caller to the ID tracker and initializes time synchronization

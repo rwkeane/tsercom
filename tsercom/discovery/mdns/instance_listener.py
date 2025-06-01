@@ -8,15 +8,16 @@ upon the discovery of a complete service instance.
 from abc import ABC, abstractmethod
 from functools import partial
 import socket
-from typing import Callable, Dict, Generic, List, TypeVar, Optional
+from typing import Callable, Dict, Generic, List, Optional  # Removed TypeVar
 import logging
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
-from tsercom.discovery.service_info import ServiceInfo
+from tsercom.discovery.service_info import (
+    ServiceInfo,
+    TServiceInfo,
+)  # Import TServiceInfo
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.threading.aio.aio_utils import run_on_event_loop
-
-TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
 class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):

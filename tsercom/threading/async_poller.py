@@ -7,18 +7,10 @@ It manages an internal queue, synchronization primitives, and association with
 an asyncio event loop.
 """
 
+from abc import ABC
 import asyncio
 import threading
-from collections import (
-    deque,
-)
-from typing import (
-    Generic,
-    List,
-    TypeVar,
-    AsyncIterator,
-    Deque,
-)
+from typing import Deque, Generic, List, TypeVar, AsyncIterator
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -35,7 +27,7 @@ TResultType = TypeVar("TResultType")
 
 
 # Provides an asynchronous queueing mechanism for subscribers to await new instances.
-class AsyncPoller(Generic[TResultType]):
+class AsyncPoller(Generic[TResultType], ABC):
     """
     This class provides an asynchronous queueing mechanism, to allow for
     subscribers to request the next available instance, and asynchronously
@@ -49,7 +41,7 @@ class AsyncPoller(Generic[TResultType]):
         Sets up the internal response queue, synchronization primitives,
         and state variables.
         """
-        self.__responses: Deque[TResultType] = deque[TResultType]()
+        self.__responses: Deque[TResultType] = Deque[TResultType]()
         self.__barrier = asyncio.Event()
         self.__lock = threading.Lock()
 
@@ -132,11 +124,11 @@ class AsyncPoller(Generic[TResultType]):
             )
 
         while self.__is_loop_running.get():
-            queue_snapshot: deque[TResultType] | None = None
+            queue_snapshot: Deque[TResultType] | None = None
             with self.__lock:
                 if len(self.__responses) > 0:
                     queue_snapshot = self.__responses
-                    self.__responses = deque[TResultType]()
+                    self.__responses = Deque[TResultType]()
 
             if queue_snapshot is not None:
                 responses: List[TResultType] = []
@@ -193,7 +185,7 @@ class AsyncPoller(Generic[TResultType]):
         with self.__lock:
             return len(self.__responses)
 
-    # TODO(tsercom/feature-request): Consider adding a public stop() method.
+    # TODO(developer): Consider adding a public stop() method.
     # This method would set self.__is_loop_running.set(False)
     # and potentially self.__barrier.set() to ensure any waiters
     # in wait_instance() can wake up promptly and observe the stop.

@@ -27,12 +27,10 @@ class DataHostBase(
     def __init__(
         self,
         watcher: ThreadWatcher,
-        aggregation_client: Optional[
-            RemoteDataAggregator[TDataType].Client
-        ] = None,
+        aggregation_client: Optional[RemoteDataAggregator.Client] = None,
         timeout_seconds: int = 60,
-        *args: Any,  # Pass through additional arguments to superclass
-        **kwargs: Any,  # Pass through additional keyword arguments to superclass
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         """Initializes the DataHostBase.
 
@@ -57,11 +55,17 @@ class DataHostBase(
             tracker = DataTimeoutTracker(timeout_seconds)
             tracker.start()
 
-        self.__aggregator: RemoteDataAggregatorImpl[TDataType] = (
-            RemoteDataAggregatorImpl[TDataType](
-                thread_pool, aggregation_client, tracker
+        # Assign to a local variable first, then to self.__aggregator to avoid redefinition error.
+        aggregator_instance: RemoteDataAggregatorImpl[TDataType]
+        if tracker is not None:
+            aggregator_instance = RemoteDataAggregatorImpl[TDataType](
+                thread_pool, aggregation_client, tracker=tracker
             )
-        )
+        else:
+            aggregator_instance = RemoteDataAggregatorImpl[TDataType](
+                thread_pool, aggregation_client
+            )
+        self.__aggregator = aggregator_instance
 
         super().__init__(*args, **kwargs)
 

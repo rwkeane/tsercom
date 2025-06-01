@@ -21,8 +21,7 @@ def mock_watcher(mocker) -> ThreadWatcher:
 def client(mock_watcher: ThreadWatcher) -> FakeTimeSyncClient:
     """Fixture for a FakeTimeSyncClient instance."""
     # Use dummy values for server_ip and ntp_port as they are not used by FakeTimeSyncClient
-    # watcher argument removed from FakeTimeSyncClient constructor
-    return FakeTimeSyncClient("127.0.0.1", 123)
+    return FakeTimeSyncClient(mock_watcher, "127.0.0.1", 123)
 
 
 def test_init(client: FakeTimeSyncClient):

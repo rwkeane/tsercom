@@ -22,7 +22,7 @@ TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
 class DiscoverableGrpcEndpointConnector(
-    Generic[TServiceInfo], DiscoveryHost.Client  # Removed [TServiceInfo]
+    Generic[TServiceInfo], DiscoveryHost.Client
 ):
     """Connects to gRPC endpoints discovered via `DiscoveryHost`.
 
@@ -43,9 +43,9 @@ class DiscoverableGrpcEndpointConnector(
         @abstractmethod
         async def _on_channel_connected(
             self,
-            connection_info: TServiceInfo,  # Detailed service information.
-            caller_id: CallerIdentifier,  # Unique ID for the service instance.
-            channel: "grpc.Channel",  # The established gRPC channel.
+            connection_info: TServiceInfo,
+            caller_id: CallerIdentifier,
+            channel: "grpc.Channel",
         ) -> None:
             """Callback invoked when a gRPC channel to a discovered service is connected.
 
@@ -58,7 +58,7 @@ class DiscoverableGrpcEndpointConnector(
 
     def __init__(
         self,
-        client: "DiscoverableGrpcEndpointConnector.Client",  # Removed [TServiceInfo]
+        client: "DiscoverableGrpcEndpointConnector.Client",
         channel_factory: "GrpcChannelFactory",
         discovery_host: DiscoveryHost[TServiceInfo],
     ) -> None:
@@ -72,18 +72,16 @@ class DiscoverableGrpcEndpointConnector(
             discovery_host: The `DiscoveryHost` instance that will provide
                             discovered service information.
         """
-        self.__client: DiscoverableGrpcEndpointConnector.Client = (
-            client  # Removed [TServiceInfo]
-        )
-        self.__discovery_host: DiscoveryHost[TServiceInfo] = discovery_host
-        self.__channel_factory: "GrpcChannelFactory" = channel_factory
+        self.__client = client
+        self.__discovery_host = discovery_host
+        self.__channel_factory = channel_factory
 
         self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
 
         # Event loop captured during the first relevant async operation (_on_service_added).
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
-        super().__init__()  # Calls __init__ of DiscoveryHost.Client
+        super().__init__()
 
     async def start(self) -> None:
         """Starts the service discovery process.
@@ -92,7 +90,7 @@ class DiscoverableGrpcEndpointConnector(
         `DiscoveryHost`. This instance (`self`) is passed as the client to
         receive `_on_service_added` callbacks from the `DiscoveryHost`.
         """
-        await self.__discovery_host.start_discovery(self)
+        self.__discovery_host.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
         """Marks a client associated with a `CallerIdentifier` as failed or unhealthy.
@@ -130,7 +128,6 @@ class DiscoverableGrpcEndpointConnector(
     async def _mark_client_failed_impl(
         self, caller_id: CallerIdentifier
     ) -> None:
-        # Assert that the caller_id was indeed being tracked.
         assert (
             caller_id in self.__callers
         ), f"Attempted to mark unknown caller_id {caller_id} as failed."
@@ -140,7 +137,7 @@ class DiscoverableGrpcEndpointConnector(
             f"Marked client with caller_id {caller_id} as failed. It can now be re-discovered."
         )
 
-    async def _on_service_added(
+    async def _on_service_added(  # type: ignore[override]
         self,
         connection_info: TServiceInfo,
         caller_id: CallerIdentifier,
@@ -158,7 +155,7 @@ class DiscoverableGrpcEndpointConnector(
         # Capture or verify the event loop on the first call.
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
-            if self.__event_loop is None:
+            if self.__event_loop is None:  # pragma: no cover
                 logging.error(
                     "Failed to get event loop in _on_service_added. Cannot proceed with channel connection."
                 )
@@ -180,7 +177,6 @@ class DiscoverableGrpcEndpointConnector(
             f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
         )
 
-        # ChannelInfo was a typo, should be grpc.Channel from find_async_channel
         channel: Optional["grpc.Channel"] = (
             await self.__channel_factory.find_async_channel(
                 connection_info.addresses, connection_info.port

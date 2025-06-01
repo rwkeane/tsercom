@@ -5,6 +5,8 @@ from typing import Generic, TypeVar
 
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
+
+# SerializableAnnotatedInstance might become unused in this file
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
@@ -41,7 +43,7 @@ class RuntimeFactory(
     @abstractmethod
     def event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:
+    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted to EventInstance
         """Provides an `AsyncPoller` for receiving event instances.
 
         Subclasses must implement this property.
@@ -64,8 +66,8 @@ class RuntimeFactory(
     @abstractmethod
     def _event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:
-        """Internal abstract method to be implemented by subclasses to provide the event poller.
+    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted to EventInstance
+        """Internal abstract method to be implemented by subclasses to provide the event poller
 
         This method is typically called by the `event_poller` property.
 
