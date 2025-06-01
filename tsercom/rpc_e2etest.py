@@ -1127,7 +1127,7 @@ async def secure_async_test_server_factory():
                 f"Stopping secure server instance {i+1}/{len(created_servers)} (CN: {log_cn}) at {log_host}:{log_port}..."
             )
             try:
-                await server_instance.stop(grace=1.0)
+                await server_instance.stop(None)
                 logger.info(
                     f"Secure server instance {i+1} (CN: {log_cn}) stopped."
                 )

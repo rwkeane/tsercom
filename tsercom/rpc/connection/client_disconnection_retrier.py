@@ -76,6 +76,7 @@ class ClientDisconnectionRetrier(
             safe_disconnection_handler
         )
         self.__provided_event_loop = event_loop
+        self._stop_retrying_event = asyncio.Event()
         self.__delay_before_retry_func = (
             delay_before_retry_func or default_delay_before_retry
         )
@@ -126,6 +127,7 @@ class ClientDisconnectionRetrier(
             Exception: Any non-server-unavailable error raised by `_connect`.
         """
         try:
+            self._stop_retrying_event.clear()
             if self.__provided_event_loop:
                 self.__event_loop = self.__provided_event_loop
             else:
@@ -176,7 +178,10 @@ class ClientDisconnectionRetrier(
             logging.warning(
                 "ClientDisconnectionRetrier.stop called before start or without a valid event loop."
             )
+            # Set the event even if the loop is not available, as other parts might check it.
+            self._stop_retrying_event.set()
             return
+        self._stop_retrying_event.set()
 
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(self.stop, self.__event_loop)
@@ -291,6 +296,11 @@ class ClientDisconnectionRetrier(
         while (
             True
         ):  # Loop indefinitely until reconnected or a non-retriable error occurs.
+            if self._stop_retrying_event.is_set():
+                logging.info(
+                    "ClientDisconnectionRetrier: Stop retrying event is set. Breaking from retry loop."
+                )
+                break
             try:
                 if (
                     self.__max_retries is not None
