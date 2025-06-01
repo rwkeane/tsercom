@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Coroutine
+from collections.abc import Awaitable  # Added Awaitable
 from functools import partial
 import threading
 from typing import Any, AsyncIterator, TypeVar, Optional, Callable, cast
@@ -129,7 +129,8 @@ class IsRunningTracker(Atomic[bool]):
         await self.__stopped_barrier.wait()
 
     async def task_or_stopped(
-        self, call: Coroutine[Any, Any, TReturnType]  # Reverted to Coroutine
+        self,
+        call: Awaitable[TReturnType],  # Changed from Coroutine to Awaitable
     ) -> TReturnType | None:
         """
         Runs |call| until completion, or until the current instance changes to
@@ -273,8 +274,6 @@ class IsRunningTracker(Atomic[bool]):
                                    iterator is exhausted.
             """
             next_item_coro = anext(self.__iterator)
-            # Explicitly cast to Coroutine to satisfy mypy, though an Awaitable should be fine.
-            # This might indicate a deeper issue or a mypy quirk.
             result = await self.__tracker.task_or_stopped(
                 cast(Coroutine[Any, Any, TReturnType], next_item_coro)
             )

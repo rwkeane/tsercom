@@ -40,7 +40,7 @@ def create_multiprocess_queues() -> (
             A tuple containing the sink (for putting items) and the source
             (for getting items) for the created multiprocess queue.
     """
-    queue: "MpQueue[TQueueType]" = MpQueue()
+    queue: MpQueue[TQueueType] = MpQueue()
 
     sink = MultiprocessQueueSink[TQueueType](queue)
     source = MultiprocessQueueSource[TQueueType](queue)

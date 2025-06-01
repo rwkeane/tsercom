@@ -33,8 +33,8 @@ class ThreadSafeQueue(Generic[T]):
         """
         Initializes a new thread-safe queue.
         """
-        self._queue: queue.Queue[T] = queue.Queue()
-        self._lock = (
+        self.__queue: queue.Queue[T] = queue.Queue()
+        self.__lock = (
             threading.Lock()
         )  # Lock to ensure thread safety for queue operations
 
@@ -54,8 +54,8 @@ class ThreadSafeQueue(Generic[T]):
         Raises:
             queue.Full: If the queue is full and `block` is False or `timeout` is reached.
         """
-        with self._lock:
-            self._queue.put(item, block, timeout)
+        with self.__lock:
+            self.__queue.put(item, block, timeout)
 
     def pop(self, block: bool = True, timeout: float | None = None) -> T:
         """
@@ -72,8 +72,8 @@ class ThreadSafeQueue(Generic[T]):
         Raises:
             queue.Empty: If the queue is empty and `block` is False or `timeout` is reached.
         """
-        with self._lock:
-            return self._queue.get(block, timeout)
+        with self.__lock:
+            return self.__queue.get(block, timeout)
 
     def size(self) -> int:
         """
@@ -86,8 +86,8 @@ class ThreadSafeQueue(Generic[T]):
         Returns:
             int: The approximate number of items in the queue.
         """
-        with self._lock:
-            return self._queue.qsize()
+        with self.__lock:
+            return self.__queue.qsize()
 
     def empty(self) -> bool:
         """
@@ -99,5 +99,5 @@ class ThreadSafeQueue(Generic[T]):
         Returns:
             bool: True if the queue is empty, False otherwise.
         """
-        with self._lock:
-            return self._queue.empty()
+        with self.__lock:
+            return self.__queue.empty()

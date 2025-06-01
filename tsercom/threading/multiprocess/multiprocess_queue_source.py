@@ -32,10 +32,10 @@ class MultiprocessQueueSource(Generic[TQueueType]):
         Initializes the MultiprocessQueueSource with a given multiprocessing queue.
 
         Args:
-            queue ("MpQueue[TQueueType]"): The multiprocessing queue
+            queue (MpQueue[TQueueType]): The multiprocessing queue
                 to be used as the source.
         """
-        self.__queue: "MpQueue[TQueueType]" = queue
+        self.__queue: MpQueue[TQueueType] = queue
 
     def get_blocking(self, timeout: float | None = None) -> TQueueType | None:
         """
@@ -54,7 +54,6 @@ class MultiprocessQueueSource(Generic[TQueueType]):
                                   It can also raise `EOFError` or `OSError` if the queue is broken.
         """
         try:
-            # Cast is no longer needed if __queue is correctly typed.
             return self.__queue.get(block=True, timeout=timeout)
         except (
             Empty
@@ -75,7 +74,6 @@ class MultiprocessQueueSource(Generic[TQueueType]):
                                   It can also raise `EOFError` or `OSError` if the queue is broken.
         """
         try:
-            # Cast is no longer needed if __queue is correctly typed.
             return self.__queue.get_nowait()
         except Empty:
             # This exception is raised if the queue is empty.
