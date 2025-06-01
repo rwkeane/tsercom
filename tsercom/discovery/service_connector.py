@@ -1,12 +1,17 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, TypeVar, Optional
+from typing import (
+    TypeVar,
+    Optional,
+)  # Generic removed, Optional already present
 import asyncio
 import typing
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.discovery.discovery_host import DiscoveryHost
 from tsercom.discovery.service_info import ServiceInfo
+from tsercom.discovery.service_source import (
+    ServiceSource,
+)  # Added ServiceSource
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
     is_running_on_event_loop,
@@ -21,20 +26,18 @@ if typing.TYPE_CHECKING:
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
-class DiscoverableGrpcEndpointConnector(
-    Generic[TServiceInfo], DiscoveryHost.Client  # Removed [TServiceInfo]
-):
-    """Connects to gRPC endpoints discovered via `DiscoveryHost`.
+class ServiceConnector(ServiceSource.Client):  # Removed [TServiceInfo]
+    """Connects to gRPC endpoints discovered via a `ServiceSource`.
 
-    This class acts as a client to `DiscoveryHost`. When a service is discovered,
+    This class acts as a client to a `ServiceSource`. When a service is discovered,
     it attempts to establish a gRPC channel to that service using a provided
     `GrpcChannelFactory`. Successful connections (channel established) are then
     reported to its own registered `Client`. It also tracks active connections
     to avoid redundant connection attempts.
     """
 
-    class Client(ABC):
-        """Interface for clients of `DiscoverableGrpcEndpointConnector`.
+    class Client(ABC):  # This inner Client remains the same
+        """Interface for clients of `ServiceConnector`.
 
         Implementers are notified when a gRPC channel to a discovered service
         has been successfully established.
@@ -58,24 +61,24 @@ class DiscoverableGrpcEndpointConnector(
 
     def __init__(
         self,
-        client: "DiscoverableGrpcEndpointConnector.Client",  # Removed [TServiceInfo]
+        client: "ServiceConnector.Client",
         channel_factory: "GrpcChannelFactory",
-        discovery_host: DiscoveryHost[TServiceInfo],
+        service_source: ServiceSource[TServiceInfo],  # Changed parameter
     ) -> None:
-        """Initializes the DiscoverableGrpcEndpointConnector.
+        """Initializes the ServiceConnector.
 
         Args:
             client: The client object that will receive notifications about
                     successfully connected channels.
             channel_factory: A `GrpcChannelFactory` used to create gRPC channels
                              to discovered services.
-            discovery_host: The `DiscoveryHost` instance that will provide
+            service_source: The `ServiceSource` instance that will provide
                             discovered service information.
         """
-        self.__client: DiscoverableGrpcEndpointConnector.Client = (
-            client  # Removed [TServiceInfo]
+        self.__client: ServiceConnector.Client = client
+        self.__service_source: ServiceSource[TServiceInfo] = (
+            service_source  # Renamed attribute
         )
-        self.__discovery_host: DiscoveryHost[TServiceInfo] = discovery_host
         self.__channel_factory: "GrpcChannelFactory" = channel_factory
 
         self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
@@ -83,16 +86,18 @@ class DiscoverableGrpcEndpointConnector(
         # Event loop captured during the first relevant async operation (_on_service_added).
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
-        super().__init__()  # Calls __init__ of DiscoveryHost.Client
+        # No super().__init__() needed as ServiceSource.Client is an ABC without __init__
 
     async def start(self) -> None:
         """Starts the service discovery process.
 
         This initiates discovery by calling `start_discovery` on the configured
-        `DiscoveryHost`. This instance (`self`) is passed as the client to
-        receive `_on_service_added` callbacks from the `DiscoveryHost`.
+        `ServiceSource`. This instance (`self`) is passed as the client to
+        receive `_on_service_added` callbacks from the `ServiceSource`.
         """
-        await self.__discovery_host.start_discovery(self)
+        await self.__service_source.start_discovery(
+            self
+        )  # Use __service_source
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
         """Marks a client associated with a `CallerIdentifier` as failed or unhealthy.
@@ -145,7 +150,7 @@ class DiscoverableGrpcEndpointConnector(
         connection_info: TServiceInfo,
         caller_id: CallerIdentifier,
     ) -> None:
-        """Callback from `DiscoveryHost` when a new service is discovered.
+        """Callback from `ServiceSource` when a new service is discovered.
 
         This method attempts to establish a gRPC channel to the discovered service.
         If successful, it notifies its own client via `_on_channel_connected`.

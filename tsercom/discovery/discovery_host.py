@@ -1,13 +1,13 @@
 """Manages discovery of network services using mDNS. It utilizes an InstanceListener and notifies a client upon discovering services, associating them with CallerIdentifiers."""
 
-from abc import ABC, abstractmethod
-from functools import partial
-from typing import Callable, Dict, Generic, Optional, TypeVar, overload
+from typing import Callable, Dict, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.service_info import ServiceInfo
-from tsercom.threading.aio.aio_utils import run_on_event_loop
+from tsercom.discovery.service_source import ServiceSource
+
+# Removed run_on_event_loop as start_discovery will become async
 
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
@@ -15,7 +15,8 @@ TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
 class DiscoveryHost(
-    Generic[TServiceInfo], InstanceListener.Client  # Removed [TServiceInfo]
+    ServiceSource[TServiceInfo],
+    InstanceListener.Client,  # Implements ServiceSource
 ):
     """Manages service discovery using mDNS and CallerIdentifier association.
 
@@ -24,28 +25,10 @@ class DiscoveryHost(
     manages `CallerIdentifier` instances for discovered services to facilitate
     reconnection and consistent identification. It acts as a client to an
     `InstanceListener` to receive raw service discovery events.
+    It implements the `ServiceSource` interface.
     """
 
-    class Client(ABC):  # Removed Generic[TServiceInfo]
-        """Interface for clients wishing to receive discovery notifications from `DiscoveryHost`.
-
-        Implementers of this interface are notified when new services, relevant
-        to the `DiscoveryHost`'s configuration, are discovered.
-        """
-
-        @abstractmethod
-        async def _on_service_added(
-            self, connection_info: TServiceInfo, caller_id: CallerIdentifier
-        ) -> None:
-            """Callback invoked when a new service instance is discovered and processed.
-
-            Args:
-                connection_info: Detailed information about the discovered service,
-                                 of type `TServiceInfo`.
-                caller_id: The unique `CallerIdentifier` assigned or retrieved
-                           for this service instance.
-            """
-            pass
+    # DiscoveryHost.Client is removed as ServiceSource.Client has an identical signature.
 
     @overload
     def __init__(self, *, service_type: str):
@@ -112,32 +95,30 @@ class DiscoveryHost(
 
         # The actual mDNS instance listener; initialized in start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
-        self.__client: Optional[DiscoveryHost.Client] = (
-            None  # Removed [TServiceInfo]
-        )
+        self.__client: Optional[ServiceSource.Client] = None  # Removed [TServiceInfo]
 
         # Maps mDNS instance names to their assigned CallerIdentifiers.
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
-    def start_discovery(
-        self, client: "DiscoveryHost.Client"  # Removed [TServiceInfo]
+    async def start_discovery(
+        self, client: ServiceSource.Client  # Removed [TServiceInfo]
     ) -> None:
         """Starts the service discovery process.
 
-        This method schedules the actual discovery startup (`__start_discovery_impl`)
-        on the event loop. Discovered services will be reported to the provided
-        `client` object via its `_on_service_added` method.
+        This method now directly calls the asynchronous `__start_discovery_impl`.
+        Discovered services will be reported to the provided `client` object
+        via its `_on_service_added` method. This method fulfills the
+        `ServiceSource.start_discovery` interface.
 
         Args:
-            client: An object implementing the `DiscoveryHost.Client` interface
+            client: An object implementing the `ServiceSource.Client` interface
                     that will receive notifications about discovered services.
         """
-        # The actual startup logic, including client validation, is on the event loop.
-        run_on_event_loop(partial(self.__start_discovery_impl, client))
+        await self.__start_discovery_impl(client)
 
     async def __start_discovery_impl(
         self,
-        client: "DiscoveryHost.Client",  # Removed [TServiceInfo]
+        client: ServiceSource.Client,  # Removed [TServiceInfo]
     ) -> None:
         """Internal implementation for starting discovery; runs on the event loop.
 
@@ -178,7 +159,7 @@ class DiscoveryHost(
         #     # self.__discoverer.start() # If sync
         #     pass # Actual call depends on InstanceListener's API
 
-    async def _on_service_added(self, connection_info: TServiceInfo) -> None:
+    async def _on_service_added(self, connection_info: TServiceInfo) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
 
         This method implements the `InstanceListener.Client` interface. It assigns
