@@ -24,11 +24,11 @@ if typing.TYPE_CHECKING:
     pass
 
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
-T_ChannelType = TypeVar("T_ChannelType")
+TChannelType = TypeVar("TChannelType")
 
 
 class ServiceConnector(
-    Generic[TServiceInfo, T_ChannelType], ServiceSource.Client
+    Generic[TServiceInfo, TChannelType], ServiceSource.Client
 ):
     """Connects to gRPC endpoints discovered via a `ServiceSource`.
 
@@ -51,7 +51,7 @@ class ServiceConnector(
             self,
             connection_info: TServiceInfo,
             caller_id: CallerIdentifier,
-            channel: T_ChannelType,
+            channel: TChannelType,
         ) -> None:
             """Callback invoked when a gRPC channel to a discovered service is connected.
 
@@ -64,8 +64,8 @@ class ServiceConnector(
 
     def __init__(
         self,
-        client: "ServiceConnector.Client",  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[T_ChannelType]
-        connection_factory: ConnectionFactory[T_ChannelType],
+        client: "ServiceConnector.Client",  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[TChannelType]
+        connection_factory: ConnectionFactory[TChannelType],
         service_source: ServiceSource[TServiceInfo],
     ) -> None:
         """Initializes the ServiceConnector.
@@ -79,10 +79,10 @@ class ServiceConnector(
                             discovered service information.
         """
         self.__client: ServiceConnector.Client = (
-            client  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[T_ChannelType]
+            client  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[TChannelType]
         )
         self.__service_source: ServiceSource[TServiceInfo] = service_source
-        self.__connection_factory: ConnectionFactory[T_ChannelType] = (
+        self.__connection_factory: ConnectionFactory[TChannelType] = (
             connection_factory
         )
 
@@ -187,7 +187,7 @@ class ServiceConnector(
             f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
         )
 
-        channel: Optional[T_ChannelType] = (
+        channel: Optional[TChannelType] = (
             await self.__connection_factory.connect(
                 connection_info.addresses, connection_info.port
             )
@@ -208,5 +208,5 @@ class ServiceConnector(
         await self.__client._on_channel_connected(
             connection_info,
             caller_id,
-            channel,  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Fix this
+            channel,  # TODO: Fix this
         )
