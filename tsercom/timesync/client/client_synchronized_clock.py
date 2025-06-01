@@ -10,7 +10,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 class ClientSynchronizedClock(SynchronizedClock):
     """
     This class defines a clock that is synchronized with the server-side clock
-    as defined by the `client`.
+    as defined by |client|.
     """
 
     class Client(ABC):
@@ -69,16 +69,6 @@ class ClientSynchronizedClock(SynchronizedClock):
         super().__init__()
 
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
-        """
-        Converts a synchronized timestamp (server time) back to the client's
-        local datetime.
-
-        Args:
-            time (SynchronizedTimestamp): The server-side timestamp to desynchronize.
-
-        Returns:
-            datetime.datetime: The corresponding datetime in the client's local time zone.
-        """
         # A positive offset means the client is ahead of the server.
         # A negative offset means the client is behind the server.
         offset_seconds = self.__client.get_offset_seconds()
@@ -97,15 +87,6 @@ class ClientSynchronizedClock(SynchronizedClock):
         return timestamp_dt - offset_timedelta
 
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
-        """
-        Converts a client's local datetime to a synchronized timestamp (server time).
-
-        Args:
-            timestamp (datetime.datetime): The client's local datetime to synchronize.
-
-        Returns:
-            SynchronizedTimestamp: The corresponding timestamp from the server's perspective.
-        """
         # A positive offset means the client is ahead of the server.
         # A negative offset means the client is behind the server.
         offset_seconds = self.__client.get_offset_seconds()
@@ -120,5 +101,9 @@ class ClientSynchronizedClock(SynchronizedClock):
         # If client is 5s behind (offset_seconds = -5):
         #   Client local time (timestamp) = 12:00:00
         #   Server time = 12:00:00 + (-5s) = 11:59:55
+        #
+        # Note: The variable name `delta_future` in the original code was
+        # a bit misleading. It's simply the offset. The operation here
+        # adjusts the local timestamp to the server's perspective.
         synchronized_dt = timestamp + offset_timedelta
         return SynchronizedTimestamp(synchronized_dt)

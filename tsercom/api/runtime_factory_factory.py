@@ -8,9 +8,7 @@ from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
-# Type variable for data, typically bound by some base data class.
 TDataType = TypeVar("TDataType", bound=ExposedData)
-# Type variable for events.
 TEventType = TypeVar("TEventType")
 
 
@@ -22,7 +20,7 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
     It uses a client callback mechanism to notify when a handle is ready.
     """
 
-    class Client:  # Removed Generic[TDataType, TEventType]
+    class Client(ABC):
         """Interface for clients of RuntimeFactoryFactory.
 
         Clients implement this interface to receive notifications when a
@@ -42,7 +40,6 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
 
     def __init__(self) -> None:
         """Initializes the RuntimeFactoryFactory."""
-        # The ABCMeta.__init__ is called implicitly.
         super().__init__()
 
     @abstractmethod
@@ -67,7 +64,7 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
 
     def create_factory(
         self,
-        client: "RuntimeFactoryFactory.Client",  # Removed [TDataType, TEventType]
+        client: "RuntimeFactoryFactory.Client",
         initializer: RuntimeInitializer[TDataType, TEventType],
     ) -> RuntimeFactory[TDataType, TEventType]:
         """Creates a RuntimeFactory and notifies the client when its handle is ready.
@@ -87,7 +84,6 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
             ValueError: If the client argument is None.
             TypeError: If the client is not an instance of RuntimeFactoryFactory.Client.
         """
-        # Ensure the client is valid before proceeding.
         if client is None:
             raise ValueError(
                 "Client argument cannot be None for create_factory."

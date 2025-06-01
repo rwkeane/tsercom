@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Generic, List, TypeVar, Any, overload  # Added Any, overload
+from typing import Generic, List, TypeVar, Any, overload
 
 import grpc
 
@@ -11,22 +11,18 @@ from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-
-# EventInstance import might become unused if SerializableAnnotatedInstance is used consistently.
-# For now, keep it if other parts of the file (not touched by this diff) use it.
-# If it becomes unused after all changes, it can be removed later.
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.data.exposed_data import ExposedData  # Import ExposedData
+from tsercom.data.exposed_data import ExposedData
 from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
+TDataType = TypeVar("TDataType", bound=ExposedData)
 
 
 class RuntimeDataHandlerBase(
@@ -42,9 +38,7 @@ class RuntimeDataHandlerBase(
     def __init__(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-        event_source: AsyncPoller[
-            SerializableAnnotatedInstance[TEventType]
-        ],  # Reverted to SerializableAnnotatedInstance
+        event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
     ):
         """Initializes RuntimeDataHandlerBase.
 
@@ -119,7 +113,7 @@ class RuntimeDataHandlerBase(
         if "port" in kwargs:
             if (
                 _port is not None or _context is not None
-            ):  # Checking _context ensures port isn't mixed with context kwarg
+            ):  # Ensure port isn't mixed with context kwarg
                 raise ValueError(
                     "Cannot specify port via both args and kwargs, or with context."
                 )
@@ -135,7 +129,7 @@ class RuntimeDataHandlerBase(
                 )
             _context = kwargs.pop("context")
 
-        if kwargs:  # Any remaining kwargs
+        if kwargs:
             raise ValueError(f"Unexpected keyword arguments: {kwargs.keys()}")
 
         if (_endpoint is None and _port is None) == (_context is None):
@@ -166,13 +160,12 @@ class RuntimeDataHandlerBase(
                 )
             actual_endpoint = extracted_endpoint
             actual_port = extracted_port
-        elif (
-            _endpoint is not None and _port is not None
-        ):  # This condition is now guaranteed if _context is None
+        elif _endpoint is not None and _port is not None:
+            # This path is taken if context is None and endpoint/port are provided.
             actual_endpoint = _endpoint
             actual_port = _port
         else:
-            # This state should ideally be prevented by the initial checks.
+            # This state should ideally be prevented by the initial validation logic.
             raise ValueError(
                 "Internal error: Inconsistent endpoint/port/context state after argument parsing."
             )
@@ -258,9 +251,7 @@ class RuntimeDataHandlerBase(
 
     async def __anext__(
         self,
-    ) -> List[
-        SerializableAnnotatedInstance[TEventType]  # Reverted
-    ]:  # Match what get_data_iterator implies
+    ) -> List[SerializableAnnotatedInstance[TEventType]]:
         """Retrieves the next batch of events from the event source.
 
         Implements the async iterator protocol.
@@ -269,9 +260,7 @@ class RuntimeDataHandlerBase(
 
     def __aiter__(
         self,
-    ) -> AsyncIterator[
-        List[SerializableAnnotatedInstance[TEventType]]  # Reverted
-    ]:  # Match what get_data_iterator implies
+    ) -> AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]]:
         """Returns self as the async iterator for events.
 
         Implements the async iterator protocol.

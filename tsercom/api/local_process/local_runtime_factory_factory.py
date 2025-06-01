@@ -14,15 +14,11 @@ from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.local_process.local_runtime_factory import LocalRuntimeFactory
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.data.event_instance import EventInstance
-
-# SerializableAnnotatedInstance will be removed
-# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
 
-# Type variables for generic typing
 TDataType = TypeVar("TDataType", bound=ExposedData)
 TEventType = TypeVar("TEventType")
 
@@ -41,8 +37,7 @@ class LocalRuntimeFactoryFactory(
             thread_pool: A ThreadPoolExecutor for managing asynchronous tasks.
         """
         super().__init__()
-        # Store the thread pool for use in creating data aggregators.
-        self.__thread_pool: ThreadPoolExecutor = thread_pool
+        self.__thread_pool = thread_pool
 
     def _create_pair(
         self, initializer: RuntimeInitializer[TDataType, TEventType]
@@ -64,7 +59,7 @@ class LocalRuntimeFactoryFactory(
         if initializer.timeout_seconds is not None:
             data_aggregator = RemoteDataAggregatorImpl[
                 AnnotatedInstance[TDataType]
-            ](  # Changed TDataType
+            ](
                 self.__thread_pool,
                 client=initializer.data_aggregator_client,  # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[TDataType], gets [AnnotatedInstance[TDataType]]
                 timeout=initializer.timeout_seconds,
@@ -72,13 +67,11 @@ class LocalRuntimeFactoryFactory(
         else:
             data_aggregator = RemoteDataAggregatorImpl[
                 AnnotatedInstance[TDataType]
-            ](  # Changed TDataType
+            ](
                 self.__thread_pool,
                 client=initializer.data_aggregator_client,  # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[TDataType], gets [AnnotatedInstance[TDataType]]
             )
-        event_poller = AsyncPoller[
-            EventInstance[TEventType]
-        ]()  # Reverted type
+        event_poller = AsyncPoller[EventInstance[TEventType]]()
         bridge = RuntimeCommandBridge()
 
         factory = LocalRuntimeFactory[TDataType, TEventType](

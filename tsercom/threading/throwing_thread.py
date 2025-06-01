@@ -1,7 +1,7 @@
 from collections.abc import Callable
 import threading
 import logging
-from typing import Any, Optional
+from typing import Any, Optional  # For *args, **kwargs
 
 
 # A custom thread class that catches exceptions in the target function and reports them.
@@ -17,8 +17,11 @@ class ThrowingThread(threading.Thread):
         self,
         target: Callable[..., Any],
         on_error_cb: Callable[[Exception], None],
-        args: tuple[Any, ...] = (),
-        kwargs: Optional[dict[str, Any]] = None,
+        args: tuple[Any, ...] = (),  # Explicit 'args' for target
+        kwargs: Optional[
+            dict[str, Any]
+        ] = None,  # Explicit 'kwargs' for target
+        # Allow other threading.Thread parameters too
         group: None = None,
         name: None = None,
         daemon: bool = True,
@@ -40,6 +43,8 @@ class ThrowingThread(threading.Thread):
         self._actual_args = args
         self._actual_kwargs = kwargs if kwargs is not None else {}
 
+        # The target for the base threading.Thread is _wrapped_target
+        # _wrapped_target itself takes no arguments from the Thread's calling mechanism
         super().__init__(
             group=group, target=self._wrapped_target, name=name, daemon=daemon
         )
@@ -53,15 +58,22 @@ class ThrowingThread(threading.Thread):
         and reported via the `on_error_cb`.
         """
         try:
+            # self._actual_target is guaranteed to be set by __init__ and is not Optional.
             self._actual_target(*self._actual_args, **self._actual_kwargs)
         except Exception as e:
             logging.error(
                 f"ThrowingThread._wrapped_target: Exception caught in thread {self.name} ({threading.get_ident()}): {e!r}",
                 exc_info=True,
             )
-            self.__on_error_cb(e)
+            if self.__on_error_cb is not None:
+                self.__on_error_cb(e)
             # Optionally re-raise or handle as per application needs,
             # but for a ThreadWatcher, reporting via callback is primary.
+
+    # We need to override run() to call _wrapped_target,
+    # because super().__init__ was called with target=self._wrapped_target
+    def run(self) -> None:
+        self._wrapped_target()
 
     def start(self) -> None:
         """
@@ -78,9 +90,12 @@ class ThrowingThread(threading.Thread):
         try:
             super().start()
         except Exception as e_start:
-            logging.error(
+            # This log captures exceptions from the thread starting mechanism itself.
+            logging.error(  # This logging.error is part of the original logic
                 f"ThrowingThread.start() EXCEPTION during super().start() for {self.name}: {e_start!r}",
                 exc_info=True,
             )
-            self.__on_error_cb(e_start)
+            if self.__on_error_cb is not None:
+                self.__on_error_cb(e_start)  # Report error if start fails
+            # Re-raise the exception that occurred during thread start-up.
             raise e_start

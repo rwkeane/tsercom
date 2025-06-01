@@ -32,10 +32,10 @@ class MultiprocessQueueSink(Generic[TQueueType]):
         Initializes the MultiprocessQueueSink with a given multiprocessing queue.
 
         Args:
-            queue (MpQueue[TQueueType]): The multiprocessing queue
+            queue ("MpQueue[TQueueType]"): The multiprocessing queue
                 to be used as the sink.
         """
-        self.__queue: MpQueue[TQueueType] = queue
+        self.__queue: "MpQueue[TQueueType]" = queue
 
     def put_blocking(
         self, obj: TQueueType, timeout: float | None = None

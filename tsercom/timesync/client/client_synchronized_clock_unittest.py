@@ -6,16 +6,11 @@ import pytest
 from tsercom.timesync.client.client_synchronized_clock import (
     ClientSynchronizedClock,
 )
-from tsercom.timesync.common.synchronized_clock import (
-    SynchronizedClock,
-)  # Import SynchronizedClock
+from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
-from unittest.mock import Mock  # For mock return in GoodClientImpl
-
-
-# --- Tests for ClientSynchronizedClock.Client ABC ---
+from unittest.mock import Mock
 
 
 class GoodClientImpl(ClientSynchronizedClock.Client):
@@ -25,23 +20,18 @@ class GoodClientImpl(ClientSynchronizedClock.Client):
         return 0.0
 
     def get_synchronized_clock(self) -> SynchronizedClock:
-        # Return a basic mock or a simple fake implementation
         return Mock(spec=SynchronizedClock)
 
     def start_async(self) -> None:
-        pass  # Minimal implementation for abstract method
+        pass
 
     def stop(self) -> None:
-        pass  # Minimal implementation for abstract method
+        pass
 
 
 class BadClientImpl(ClientSynchronizedClock.Client):
     """Implementation missing get_offset_seconds and other new abstract methods."""
 
-    # Missing get_offset_seconds
-    # Missing get_synchronized_clock
-    # Missing start_async
-    # Missing stop
     pass
 
 
@@ -63,9 +53,6 @@ def test_bad_client_impl_instantiation():
         match="Can't instantiate abstract class BadClientImpl with abstract methods get_offset_seconds, get_synchronized_clock, start_async, stop",
     ):
         BadClientImpl()
-
-
-# --- Tests for ClientSynchronizedClock ---
 
 
 @pytest.fixture
@@ -90,11 +77,10 @@ def test_init_with_client(mock_client: ClientSynchronizedClock.Client):
         assert (
             csc._ClientSynchronizedClock__client is mock_client
         )  # pyright: ignore[reportPrivateUsage]
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         pytest.fail(f"ClientSynchronizedClock instantiation failed: {e}")
 
 
-# Base datetime for sync/desync tests
 BASE_DT = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
 
@@ -132,9 +118,7 @@ def test_desync_positive_offset(
 ):
     """Tests desync with a positive offset (client ahead of server)."""
     mock_client.get_offset_seconds.return_value = 10.0
-    server_dt = BASE_DT + datetime.timedelta(
-        seconds=10.0
-    )  # Synchronized time is ahead
+    server_dt = BASE_DT + datetime.timedelta(seconds=10.0)
     synced_ts = SynchronizedTimestamp(server_dt)
     local_dt = clock.desync(synced_ts)
     assert local_dt == BASE_DT
@@ -145,9 +129,7 @@ def test_desync_negative_offset(
 ):
     """Tests desync with a negative offset (client behind server)."""
     mock_client.get_offset_seconds.return_value = -5.0
-    server_dt = BASE_DT - datetime.timedelta(
-        seconds=5.0
-    )  # Synchronized time is behind
+    server_dt = BASE_DT - datetime.timedelta(seconds=5.0)
     synced_ts = SynchronizedTimestamp(server_dt)
     local_dt = clock.desync(synced_ts)
     assert local_dt == BASE_DT
@@ -171,7 +153,6 @@ def test_now_property(
     offset_seconds = 15.0
     mock_client.get_offset_seconds.return_value = offset_seconds
 
-    # Approximate expected synchronized time
     time_before_sync = datetime.datetime.now() + datetime.timedelta(
         seconds=offset_seconds
     )
@@ -189,8 +170,8 @@ def test_now_property(
     # The comparison should be between naive datetimes.
     assert synced_dt >= time_before_sync - datetime.timedelta(
         microseconds=10000
-    )  # Allow 10ms before
+    )
     assert synced_dt <= time_after_sync + datetime.timedelta(
         microseconds=10000
-    )  # Allow 10ms after
-    assert synced_dt.tzinfo is None  # Should be naive
+    )
+    assert synced_dt.tzinfo is None

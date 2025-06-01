@@ -8,7 +8,7 @@ and uses its local clock as the source of truth for time synchronization.
 
 from typing import Generic, TypeVar
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.exposed_data import ExposedData  # Import ExposedData
+from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
@@ -21,14 +21,12 @@ from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
-from tsercom.timesync.common.synchronized_clock import (
-    SynchronizedClock,
-)  # Import SynchronizedClock
+from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
 TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
+TDataType = TypeVar("TDataType", bound=ExposedData)
 
 
 class ServerRuntimeDataHandler(
@@ -61,7 +59,7 @@ class ServerRuntimeDataHandler(
         super().__init__(data_reader, event_source)
 
         self.__id_tracker = IdTracker()
-        self.__clock: SynchronizedClock  # Explicitly annotate __clock
+        self.__clock: SynchronizedClock
 
         if is_testing:
             self.__clock = FakeSynchronizedClock()

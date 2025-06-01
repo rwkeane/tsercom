@@ -1,12 +1,9 @@
 """Defines EventSource for polling events from a multiprocess queue."""
 
-import threading  # Added for Optional[threading.Thread]
-from typing import Generic, TypeVar, Optional  # Added for Optional
+import threading
+from typing import Generic, TypeVar, Optional
 
 from tsercom.data.event_instance import EventInstance
-
-# SerializableAnnotatedInstance will be removed
-# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
@@ -18,9 +15,7 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 TEventType = TypeVar("TEventType")
 
 
-class EventSource(
-    Generic[TEventType], AsyncPoller[EventInstance[TEventType]]
-):  # Reverted type
+class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
     """Polls events from a MultiprocessQueueSource and notifies listeners.
 
     This class extends `AsyncPoller` and runs a dedicated thread to
@@ -32,9 +27,7 @@ class EventSource(
 
     def __init__(
         self,
-        event_source: MultiprocessQueueSource[
-            EventInstance[TEventType]
-        ],  # Reverted type
+        event_source: MultiprocessQueueSource[EventInstance[TEventType]],
     ) -> None:
         """Initializes the EventSource.
 
@@ -70,13 +63,12 @@ class EventSource(
         def loop_until_exception() -> None:
             """Polls events from queue and calls on_available until stopped."""
             while self.__is_running.get():
-                # Poll the queue with a timeout to allow checking is_running periodically.
                 remote_instance = self.__event_source.get_blocking(timeout=1)
                 if remote_instance is not None:
                     try:
                         self.on_available(remote_instance)
                     except Exception as e:
-                        if self.__thread_watcher:  # Check if watcher is set
+                        if self.__thread_watcher:
                             self.__thread_watcher.on_exception_seen(e)
                         # Re-raise to terminate the loop, consistent with DataReaderSource
                         raise e
@@ -93,7 +85,7 @@ class EventSource(
         """
         self.__is_running.stop()
         if self.__thread and self.__thread.is_alive():
-            self.__thread.join(timeout=5)  # 5 seconds timeout
+            self.__thread.join(timeout=5)
             if self.__thread.is_alive():
                 # Consider logging this error instead of raising.
                 # For now, raising RuntimeError for consistency.

@@ -1,14 +1,12 @@
 """Defines ShimRuntimeHandle for interacting with a runtime in a separate process."""
 
-import datetime  # Required for on_event overload, though not used in current simple form
+import datetime
 from typing import TypeVar, Optional
 
-from tsercom.caller_id.caller_identifier import (
-    CallerIdentifier,
-)  # For on_event overload
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.event_instance import EventInstance  # Added
+from tsercom.data.event_instance import EventInstance
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -24,17 +22,13 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-TDataType = TypeVar(
-    "TDataType", bound=ExposedData
-)  # Type for data handled by the runtime.
-TEventType = TypeVar("TEventType")  # Type for events handled by the runtime.
+TDataType = TypeVar("TDataType", bound=ExposedData)
+TEventType = TypeVar("TEventType")
 
 
 class ShimRuntimeHandle(
-    RuntimeHandle[
-        TDataType, TEventType
-    ],  # Implements the abstract RuntimeHandle
-    RemoteDataReader[AnnotatedInstance[TDataType]],  # Changed TDataType
+    RuntimeHandle[TDataType, TEventType],
+    RemoteDataReader[AnnotatedInstance[TDataType]],
 ):
     """A handle for a runtime operating in a separate process.
 
@@ -47,13 +41,11 @@ class ShimRuntimeHandle(
         self,
         thread_watcher: ThreadWatcher,
         event_queue: MultiprocessQueueSink[EventInstance[TEventType]],
-        data_queue: MultiprocessQueueSource[
-            AnnotatedInstance[TDataType]
-        ],  # Changed TDataType
+        data_queue: MultiprocessQueueSource[AnnotatedInstance[TDataType]],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
         data_aggregator: RemoteDataAggregatorImpl[
             AnnotatedInstance[TDataType]
-        ],  # Changed TDataType
+        ],
         block: bool = False,
     ) -> None:
         """Initializes the ShimRuntimeHandle.
@@ -79,16 +71,15 @@ class ShimRuntimeHandle(
         )
         self.__data_aggregator: RemoteDataAggregatorImpl[
             AnnotatedInstance[TDataType]
-        ] = data_aggregator  # Changed TDataType
+        ] = data_aggregator
         self.__block: bool = block
 
-        # DataReaderSource is initialized with the same data_queue
         self.__data_reader_source: DataReaderSource[
             AnnotatedInstance[TDataType]
-        ] = DataReaderSource(  # Changed TDataType
+        ] = DataReaderSource(
             thread_watcher,
-            data_queue,  # Now a queue of AnnotatedInstance[TDataType]
-            self.__data_aggregator,  # Aggregator is now RemoteDataAggregatorImpl[AnnotatedInstance[TDataType]]
+            data_queue,
+            self.__data_aggregator,
         )
 
     def start(self) -> None:
@@ -129,10 +120,6 @@ class ShimRuntimeHandle(
         _ = caller_id  # Preserved for clarity that it's intentionally not used directly for queue type
         _ = timestamp  # Preserved for clarity
 
-        # Wrap the raw event in an EventInstance before putting it on the queue.
-        # The original caller_id and timestamp from the on_event signature are used here.
-
-        # Use datetime.now() if timestamp is None, ensuring timezone awareness.
         effective_timestamp = (
             timestamp
             if timestamp is not None
@@ -156,9 +143,7 @@ class ShimRuntimeHandle(
         self.__runtime_command_queue.put_blocking(RuntimeCommand.kStop)
         self.__data_reader_source.stop()
 
-    def _on_data_ready(
-        self, new_data: AnnotatedInstance[TDataType]
-    ) -> None:  # Changed TDataType
+    def _on_data_ready(self, new_data: AnnotatedInstance[TDataType]) -> None:
         """Callback for when new data is ready from the `DataReaderSource`.
 
         This method is part of the `RemoteDataReader` interface. In this setup,
@@ -172,15 +157,11 @@ class ShimRuntimeHandle(
         # Data is received from data_queue via DataReaderSource.
         # This ShimRuntimeHandle (as a RemoteDataReader) gets it from DataReaderSource
         # and then forwards it to the __data_aggregator that was provided during init.
-        self.__data_aggregator._on_data_ready(
-            new_data
-        )  # Aggregator now expects AnnotatedInstance
+        self.__data_aggregator._on_data_ready(new_data)
 
     def _get_remote_data_aggregator(
         self,
-    ) -> RemoteDataAggregator[
-        AnnotatedInstance[TDataType]
-    ]:  # Changed TDataType
+    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         """Provides the remote data aggregator associated with this handle.
 
         Returns:
@@ -193,22 +174,5 @@ class ShimRuntimeHandle(
     def data_aggregator(
         self,
     ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
-        # TODO(developer/bug_id): This property currently returns self._get_remote_data_aggregator(),
-        # which is of type RemoteDataAggregator[TDataType]. This may not match the
-        # RuntimeHandle base class's expected return type of
-        # RemoteDataAggregator[AnnotatedInstance[TDataType]] if TDataType itself
-        # is not an AnnotatedInstance. This type mismatch is currently suppressed
-        # with type: ignore[override] and needs to be resolved.
-        # This should now align with the base class if _get_remote_data_aggregator is corrected.
-        """Provides the remote data aggregator.
-
-        Note: There is a potential type mismatch with the base `RuntimeHandle` class
-        if `TDataType` for this handle is not already an `AnnotatedInstance`.
-        See TODO comment in source code for details.
-
-        Returns:
-            The `RemoteDataAggregator` instance.
-        """
-        return (
-            self._get_remote_data_aggregator()
-        )  # This now returns RemoteDataAggregator[AnnotatedInstance[TDataType]]
+        """Provides the remote data aggregator."""
+        return self._get_remote_data_aggregator()

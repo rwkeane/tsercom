@@ -27,12 +27,10 @@ class DataHostBase(
     def __init__(
         self,
         watcher: ThreadWatcher,
-        aggregation_client: Optional[
-            RemoteDataAggregator.Client  # Corrected type hint
-        ] = None,
+        aggregation_client: Optional[RemoteDataAggregator.Client] = None,
         timeout_seconds: int = 60,
-        *args: Any,  # Pass through additional arguments to superclass
-        **kwargs: Any,  # Pass through additional keyword arguments to superclass
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         """Initializes the DataHostBase.
 

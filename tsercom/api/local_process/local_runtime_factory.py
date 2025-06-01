@@ -8,7 +8,6 @@ from tsercom.api.local_process.runtime_command_bridge import (
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
 
-# SerializableAnnotatedInstance might become unused
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
@@ -38,7 +37,7 @@ class LocalRuntimeFactory(
         self,
         initializer: RuntimeInitializer[TDataType, TEventType],
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-        event_poller: AsyncPoller[EventInstance[TEventType]],  # Reverted type
+        event_poller: AsyncPoller[EventInstance[TEventType]],
         bridge: RuntimeCommandBridge,
     ) -> None:
         """Initializes a LocalRuntimeFactory.
@@ -49,17 +48,10 @@ class LocalRuntimeFactory(
             event_poller: The poller for incoming event instances.
             bridge: The bridge for command communication with the runtime.
         """
-        # Essential components for runtime creation.
-        self.__initializer: RuntimeInitializer[TDataType, TEventType] = (
-            initializer
-        )
-        self.__data_reader: RemoteDataReader[AnnotatedInstance[TDataType]] = (
-            data_reader
-        )
-        self.__event_poller: AsyncPoller[EventInstance[TEventType]] = (
-            event_poller  # Reverted type
-        )
-        self.__bridge: RuntimeCommandBridge = bridge
+        self.__initializer = initializer
+        self.__data_reader = data_reader
+        self.__event_poller = event_poller
+        self.__bridge = bridge
 
         super().__init__(other_config=self.__initializer)
 
@@ -99,12 +91,11 @@ class LocalRuntimeFactory(
         Returns:
             The `RemoteDataReader` instance configured for this factory.
         """
-        # Provides the RemoteDataReader (part of RuntimeFactory contract).
         return self.__data_reader
 
     def _event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted type
+    ) -> AsyncPoller[EventInstance[TEventType]]:
         """Provides the event poller for the runtime.
 
         This method is part of the `RuntimeFactory`'s contract to make
@@ -113,7 +104,6 @@ class LocalRuntimeFactory(
         Returns:
             The `AsyncPoller` instance for events, configured for this factory.
         """
-        # Provides the AsyncPoller for events (part of RuntimeFactory contract).
         return self.__event_poller
 
     @property
@@ -126,6 +116,6 @@ class LocalRuntimeFactory(
     @property
     def event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted type
+    ) -> AsyncPoller[EventInstance[TEventType]]:
         """Gets the AsyncPoller used by runtimes created by this factory. This poller handles incoming event instances."""
         return self._event_poller()

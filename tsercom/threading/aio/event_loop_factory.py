@@ -8,6 +8,7 @@ import logging
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
+# Class responsible for creating and managing an asyncio event loop in a separate thread.
 class EventLoopFactory:
     """
     Factory class for creating and managing an asyncio event loop.
@@ -36,6 +37,8 @@ class EventLoopFactory:
             )
         self.__watcher = watcher
 
+        # These attributes are initialized in the start_asyncio_loop method.
+        # They are typed as Optional because they are None until that method is called.
         self.__event_loop_thread: Optional[threading.Thread] = None
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
@@ -93,13 +96,17 @@ class EventLoopFactory:
 
                 local_event_loop.set_exception_handler(handle_exception)
 
-                asyncio.set_event_loop(local_event_loop)
+                asyncio.set_event_loop(
+                    local_event_loop
+                )  # Associates loop with this thread's context
 
                 self.__event_loop = local_event_loop
 
-                barrier.set()
+                barrier.set()  # Notifies waiting thread that loop is ready
 
-                local_event_loop.run_forever()
+                local_event_loop.run_forever()  # Starts the event loop
+            except Exception:
+                raise
             finally:
                 if (
                     "local_event_loop" in locals()
@@ -111,12 +118,15 @@ class EventLoopFactory:
                     local_event_loop.close()
 
         self.__event_loop_thread = self.__watcher.create_tracked_thread(
-            target=start_event_loop
+            target=start_event_loop  # Pass the function to be executed
         )
         self.__event_loop_thread.start()
 
+        # Wait until the event loop is set up and running.
         barrier.wait()
 
+        # At this point, self.__event_loop should have been set by start_event_loop.
+        # If it's not, something went wrong in thread initialization.
         assert (
             self.__event_loop is not None
         ), "Event loop was not initialized in the thread."

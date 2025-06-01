@@ -8,22 +8,15 @@ from typing import (
     Generic,
     Optional,
     overload,
-)  # Removed TypeVar
+)
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.mdns.instance_listener import InstanceListener
-from tsercom.discovery.service_info import (
-    TServiceInfo,
-)  # Import TServiceInfo
+from tsercom.discovery.service_info import TServiceInfo
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 
 
-# Removed module-level type aliases that caused issues with TServiceInfo binding.
-
-
-class DiscoveryHost(
-    Generic[TServiceInfo], InstanceListener.Client  # Removed [TServiceInfo]
-):
+class DiscoveryHost(Generic[TServiceInfo], InstanceListener.Client):
     """Manages service discovery using mDNS and CallerIdentifier association.
 
     This class listens for service instances of a specified type (or using a
@@ -33,7 +26,7 @@ class DiscoveryHost(
     `InstanceListener` to receive raw service discovery events.
     """
 
-    class Client(ABC):  # Removed Generic[TServiceInfo]
+    class Client(ABC):
         """Interface for clients wishing to receive discovery notifications from `DiscoveryHost`.
 
         Implementers of this interface are notified when new services, relevant
@@ -63,8 +56,8 @@ class DiscoveryHost(
     def __init__(
         self,
         *,
-        instance_listener_factory: Callable[  # Reverted to full type hint
-            [InstanceListener.Client],  # Removed [TServiceInfo]
+        instance_listener_factory: Callable[
+            [InstanceListener.Client],
             InstanceListener[TServiceInfo],
         ],
     ):
@@ -77,7 +70,7 @@ class DiscoveryHost(
         service_type: Optional[str] = None,
         instance_listener_factory: Optional[
             Callable[
-                [InstanceListener.Client],  # Removed [TServiceInfo]
+                [InstanceListener.Client],
                 InstanceListener[TServiceInfo],
             ]
         ] = None,
@@ -100,35 +93,19 @@ class DiscoveryHost(
             ValueError: If neither or both `service_type` and
                         `instance_listener_factory` are provided.
         """
-        # Ensure exclusive provision of either service_type or instance_listener_factory.
-        if not (
-            (service_type is not None)
-            ^ (instance_listener_factory is not None)
-        ):
+        # Ensure exclusive provision of either service_type or instance_listener_factory
+        if (service_type is None) == (instance_listener_factory is None):
             raise ValueError(
                 "Exactly one of 'service_type' or 'instance_listener_factory' must be provided."
             )
 
-        self.__service_type: Optional[str] = service_type
-        self.__instance_listener_factory: Optional[
-            Callable[
-                [InstanceListener.Client],  # Removed [TServiceInfo]
-                InstanceListener[TServiceInfo],
-            ]
-        ] = instance_listener_factory
-
-        # The actual mDNS instance listener; initialized in start_discovery_impl.
+        self.__service_type = service_type
+        self.__instance_listener_factory = instance_listener_factory
         self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
-        self.__client: Optional[DiscoveryHost.Client] = (
-            None  # Removed [TServiceInfo]
-        )
-
-        # Maps mDNS instance names to their assigned CallerIdentifiers.
+        self.__client: Optional[DiscoveryHost.Client] = None
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
-    def start_discovery(
-        self, client: "DiscoveryHost.Client"  # Removed [TServiceInfo]
-    ) -> None:
+    def start_discovery(self, client: "DiscoveryHost.Client") -> None:
         """Starts the service discovery process.
 
         This method schedules the actual discovery startup (`__start_discovery_impl`)
@@ -139,12 +116,12 @@ class DiscoveryHost(
             client: An object implementing the `DiscoveryHost.Client` interface
                     that will receive notifications about discovered services.
         """
-        # The actual startup logic, including client validation, is on the event loop.
+        # The actual startup logic is scheduled on the event loop.
         run_on_event_loop(partial(self.__start_discovery_impl, client))
 
     async def __start_discovery_impl(
         self,
-        client: "DiscoveryHost.Client",  # Removed [TServiceInfo]
+        client: "DiscoveryHost.Client",
     ) -> None:
         """Internal implementation for starting discovery; runs on the event loop.
 
@@ -207,14 +184,14 @@ class DiscoveryHost(
                 "DiscoveryHost client not set; discovery may not have been started correctly."
             )
 
-        # Use the mDNS name as a key to uniquely identify service instances for CallerId mapping.
+        # Use the mDNS instance name as a key to uniquely identify service instances for CallerId mapping.
         service_mdns_name = connection_info.mdns_name
 
         caller_id: CallerIdentifier
         if service_mdns_name in self.__caller_id_map:
             caller_id = self.__caller_id_map[service_mdns_name]
         else:
-            caller_id = CallerIdentifier.random()  # Use random() for new IDs
+            caller_id = CallerIdentifier.random()
             self.__caller_id_map[service_mdns_name] = caller_id
 
         await self.__client._on_service_added(connection_info, caller_id)

@@ -13,18 +13,18 @@ import asyncio
 from collections.abc import Callable
 from typing import Any, Coroutine, Optional, ParamSpec, TypeVar
 
-from concurrent.futures import Future
+import concurrent  # Changed import for Future
 from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
 
-# TODO(tsercom/core-team): Pull get_running_loop_or_none into cpython repo.
+# TODO: Pull this into cpython repo.
 def get_running_loop_or_none() -> AbstractEventLoop | None:
     """
     Returns the EventLoop from which this function was called, or None if it was
     not called from an EventLoop.
 
     Returns:
-        AbstractEventLoop | None: The current event loop or None.
+        Optional[AbstractEventLoop]: The current event loop or None.
     """
     try:
         current_loop = asyncio.get_running_loop()
@@ -33,7 +33,7 @@ def get_running_loop_or_none() -> AbstractEventLoop | None:
         return None
 
 
-# TODO(tsercom/core-team): Pull is_running_on_event_loop into cpython repo.
+# TODO: Pull this into cpython repo.
 def is_running_on_event_loop(
     event_loop: Optional[AbstractEventLoop] = None,
 ) -> bool:
@@ -64,7 +64,7 @@ def run_on_event_loop(
     event_loop: Optional[AbstractEventLoop] = None,
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Future[T]:
+) -> concurrent.futures.Future[T]:
     """
     Runs a coroutine on the specified event loop.
 
