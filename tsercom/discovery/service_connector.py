@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, TypeVar, Optional, TYPE_CHECKING
+from typing import Generic, TypeVar, Optional
 import asyncio
-import typing
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_info import ServiceInfo
@@ -15,13 +14,8 @@ from tsercom.threading.aio.aio_utils import (
 import logging
 
 # Local application imports
-from tsercom.util.connection_factory import ConnectionFactory  # Added import
+from tsercom.util.connection_factory import ConnectionFactory
 
-if typing.TYPE_CHECKING:
-    # Removed GrpcChannelFactory, ConnectionFactory is globally imported now for type hints.
-    if TYPE_CHECKING:
-        pass  # Keep for type hints if grpc.Channel is used as a concrete type argument
-    pass
 
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 TChannelType = TypeVar("TChannelType")

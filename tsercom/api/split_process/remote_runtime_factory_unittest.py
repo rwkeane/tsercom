@@ -1,7 +1,7 @@
 import pytest
 
-from typing import Optional, List, Union  # Added imports
-import grpc  # Added import
+from typing import Optional, List, Union
+import grpc
 
 # Import the module to be tested and whose attributes will be patched
 import tsercom.api.split_process.remote_runtime_factory as remote_runtime_factory_module
@@ -11,7 +11,7 @@ from tsercom.api.split_process.remote_runtime_factory import (
 from tsercom.runtime.runtime_config import ServiceType
 from tsercom.rpc.grpc_util.grpc_channel_factory import (
     GrpcChannelFactory,
-)  # Added import
+)
 
 # --- Fake Classes for Dependencies ---
 

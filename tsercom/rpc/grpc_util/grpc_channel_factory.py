@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional, List, Union  # Added Optional, List, Union
-import grpc  # Added grpc
+from typing import Optional, List, Union
+import grpc
 
-from tsercom.util.connection_factory import (
-    ConnectionFactory,
-)  # Added ConnectionFactory
+from tsercom.util.connection_factory import ConnectionFactory
 
 
 class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
@@ -21,8 +19,8 @@ class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
     async def find_async_channel(
         self,
         addresses: Union[List[str], str],
-        port: int,  # Union for addresses
-    ) -> Optional[grpc.Channel]:  # Changed return type
+        port: int,
+    ) -> Optional[grpc.Channel]:
         """Finds an asynchronous gRPC channel to the specified address(es) and port.
 
         Implementations should attempt to establish a connection and return

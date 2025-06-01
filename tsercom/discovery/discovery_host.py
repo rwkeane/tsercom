@@ -7,6 +7,7 @@ from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.service_info import TServiceInfo
 from tsercom.discovery.service_source import ServiceSource
 
+
 class DiscoveryHost(
     Generic[TServiceInfo],
     ServiceSource[TServiceInfo],

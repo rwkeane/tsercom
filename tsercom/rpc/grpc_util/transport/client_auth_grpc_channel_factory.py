@@ -9,9 +9,8 @@ from typing import (
     Optional,
     List,
     Union,
-)  # Added List, Union for find_async_channel signature
+)
 
-# ChannelInfo is no longer returned by find_async_channel
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
 logger = logging.getLogger(__name__)
@@ -41,13 +40,13 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             server_hostname_override: If provided, this hostname will be used
                                       for SSL target name override.
         """
-        self.client_cert_pem_bytes: bytes  # Declare type once
+        self.client_cert_pem_bytes: bytes
         if isinstance(client_cert_pem, str):
             self.client_cert_pem_bytes = client_cert_pem.encode("utf-8")
         else:
             self.client_cert_pem_bytes = client_cert_pem
 
-        self.client_key_pem_bytes: bytes  # Declare type once
+        self.client_key_pem_bytes: bytes
         if isinstance(client_key_pem, str):
             self.client_key_pem_bytes = client_key_pem.encode("utf-8")
         else:
@@ -65,11 +64,11 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             self.root_ca_cert_pem_bytes = None
 
         self.server_hostname_override: Optional[str] = server_hostname_override
-        super().__init__()  # GrpcChannelFactory has no __init__, but good practice
+        super().__init__()
 
     async def find_async_channel(
-        self, addresses: Union[List[str], str], port: int  # Updated signature
-    ) -> Optional[grpc.Channel]:  # Updated return type
+        self, addresses: Union[List[str], str], port: int
+    ) -> Optional[grpc.Channel]:
         """
         Attempts to establish a secure gRPC channel using client credentials.
 
@@ -81,7 +80,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
         """
-        address_list: List[str]  # Use List from typing
+        address_list: List[str]
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
@@ -100,13 +99,11 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         credentials = grpc.ssl_channel_credentials(
             certificate_chain=self.client_cert_pem_bytes,
             private_key=self.client_key_pem_bytes,
-            root_certificates=self.root_ca_cert_pem_bytes,  # Can be None
+            root_certificates=self.root_ca_cert_pem_bytes,
         )
 
         options: list[tuple[str, Any]] = []
-        if (
-            self.server_hostname_override
-        ):  # Revert to always adding if provided
+        if self.server_hostname_override:
             options.append(
                 (
                     "grpc.ssl_target_name_override",
@@ -114,9 +111,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 )
             )
 
-        active_channel: Optional[grpc.aio.Channel] = (
-            None  # Define for broader scope in error handling
-        )
+        active_channel: Optional[grpc.aio.Channel] = None
 
         for current_address in address_list:
             target = f"{current_address}:{port}"

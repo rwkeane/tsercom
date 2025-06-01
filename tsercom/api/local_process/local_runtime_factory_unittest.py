@@ -1,13 +1,11 @@
 import pytest
 
-from typing import Optional, List, Union  # Added imports
-import grpc  # Added import
+from typing import Optional, List, Union
+import grpc
 
 from tsercom.api.local_process.local_runtime_factory import LocalRuntimeFactory
 from tsercom.runtime.runtime_config import ServiceType
-from tsercom.rpc.grpc_util.grpc_channel_factory import (
-    GrpcChannelFactory,
-)  # Added import
+from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
 
 class FakeRuntime:

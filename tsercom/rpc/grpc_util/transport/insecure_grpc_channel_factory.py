@@ -3,9 +3,8 @@
 import asyncio
 import grpc
 import logging
-from typing import Optional, List, Union  # Added imports
+from typing import Optional, List, Union
 
-# ChannelInfo is no longer returned by find_async_channel
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
 
@@ -18,8 +17,8 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
     """
 
     async def find_async_channel(
-        self, addresses: Union[List[str], str], port: int  # Updated signature
-    ) -> Optional[grpc.Channel]:  # Updated return type
+        self, addresses: Union[List[str], str], port: int
+    ) -> Optional[grpc.Channel]:
         """Attempts to establish an insecure gRPC channel.
 
         Iterates through the provided addresses, attempting to connect to each
@@ -35,7 +34,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
             otherwise `None`.
         """
         assert addresses is not None
-        address_list: List[str]  # Use List from typing
+        address_list: List[str]
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
@@ -59,9 +58,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
                     f"{current_address}:{port}"
                 )
                 # Wait for the channel to be ready, with a timeout.
-                await asyncio.wait_for(
-                    channel.channel_ready(), timeout=5.0
-                )  # Use float for timeout
+                await asyncio.wait_for(channel.channel_ready(), timeout=5.0)
                 logging.info(
                     f"Successfully connected to {current_address}:{port}"
                 )
@@ -71,7 +68,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
                 logging.warning(
                     f"Address {current_address}:{port} unreachable. Error: {e}"
                 )
-                if isinstance(e, AssertionError):  # Re-raise assertion errors
+                if isinstance(e, AssertionError):
                     raise
                 # For other exceptions, continue to the next address.
 

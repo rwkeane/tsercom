@@ -53,6 +53,7 @@ from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory imp
 from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
     ClientAuthGrpcChannelFactory,
 )
+
 # ChannelInfo import removed as it's no longer used
 
 logging.basicConfig(level=logging.INFO)
@@ -906,9 +907,7 @@ class CustomDisconnectionRetrierRpcE2E(
         logger.info(
             f"CustomDisconnectionRetrierRpcE2E: Connected to {self._server_host}:{current_port}. Wrapping channel."
         )
-        self._managed_instance_wrapper = StopableChannelWrapper(
-            grpc_channel
-        )
+        self._managed_instance_wrapper = StopableChannelWrapper(grpc_channel)
         return self._managed_instance_wrapper
 
     def get_current_channel_from_managed_instance(
