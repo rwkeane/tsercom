@@ -28,7 +28,7 @@ class RuntimeInitializer(
         self,
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[TDataType, TEventType],
-        grpc_channel_factory: GrpcChannelFactory,
+        grpc_channel_factory: GrpcChannelFactory | None,
     ) -> Runtime:
         """
         Creates a new Runtime instance. This method will only be called once
@@ -40,6 +40,6 @@ class RuntimeInitializer(
         the RuntimeHandle, as well as providing a path to send data back to that
         instance.
         |grpc_channel_factory| is a factory used to create gRPC Channels, per
-        user specification.
+        user specification. It can be None if the runtime does not require gRPC channels.
         """
         pass

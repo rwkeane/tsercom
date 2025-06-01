@@ -40,18 +40,14 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[
-            RemoteDataAggregator.Client
-        ] = None,  # Removed [TDataType]
+        client: Optional[RemoteDataAggregator.Client] = None,
     ): ...
 
     @overload
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[
-            RemoteDataAggregator.Client
-        ] = None,  # Removed [TDataType]
+        client: Optional[RemoteDataAggregator.Client] = None,
         *,
         tracker: DataTimeoutTracker,
     ): ...
@@ -60,9 +56,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[
-            RemoteDataAggregator.Client
-        ] = None,  # Removed [TDataType]
+        client: Optional[RemoteDataAggregator.Client] = None,
         *,
         timeout: int,
     ): ...
@@ -70,9 +64,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[
-            RemoteDataAggregator.Client
-        ] = None,  # Removed [TDataType]
+        client: Optional[RemoteDataAggregator.Client] = None,
         *,
         tracker: Optional[DataTimeoutTracker] = None,
         timeout: Optional[int] = None,
@@ -106,13 +98,10 @@ class RemoteDataAggregatorImpl(
             tracker = DataTimeoutTracker(timeout)
             tracker.start()
 
-        self.__thread_pool: ThreadPoolExecutor = thread_pool
-        self.__client: Optional[RemoteDataAggregator.Client] = (
-            client  # Removed [TDataType]
-        )
-        self.__tracker: Optional[DataTimeoutTracker] = tracker
+        self.__thread_pool = thread_pool
+        self.__client = client
+        self.__tracker = tracker
 
-        # Organizers keyed by CallerIdentifier, lock-protected.
         self.__organizers: Dict[
             CallerIdentifier, RemoteDataOrganizer[TDataType]
         ] = {}
@@ -169,7 +158,6 @@ class RemoteDataAggregatorImpl(
                 return organizer.has_new_data()
 
             results = {}
-            # Changed loop variable to org_item to avoid potential shadowing
             for key, org_item in self.__organizers.items():
                 results[key] = org_item.has_new_data()
             return results
@@ -285,7 +273,6 @@ class RemoteDataAggregatorImpl(
                     raise KeyError(
                         f"Caller ID '{id}' not found for get_data_for_timestamp."
                     )
-                # The organizer's method only takes timestamp, as it's specific to an ID
                 return organizer.get_data_for_timestamp(timestamp)
 
             results = {}
@@ -338,13 +325,13 @@ class RemoteDataAggregatorImpl(
                 data_organizer = RemoteDataOrganizer(
                     self.__thread_pool,
                     new_data.caller_id,
-                    self,  # self is RemoteDataAggregatorImpl (RemoteDataOrganizer.Client)
+                    self,
                 )
 
                 if self.__tracker is not None:
                     self.__tracker.register(data_organizer)
 
-                data_organizer.start()  # Start the organizer
+                data_organizer.start()
                 self.__organizers[new_data.caller_id] = data_organizer
                 is_new_organizer = True
 

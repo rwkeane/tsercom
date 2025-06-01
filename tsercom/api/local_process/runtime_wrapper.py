@@ -16,16 +16,14 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.threading.async_poller import AsyncPoller
 
-# Type variable for data, bound by ExposedData.
 TDataType = TypeVar("TDataType", bound=ExposedData)
-# Type variable for events.
 TEventType = TypeVar("TEventType")
 
 
 class RuntimeWrapper(
     Generic[TDataType, TEventType],
     RuntimeHandle[TDataType, TEventType],
-    RemoteDataReader[TDataType],
+    RemoteDataReader[AnnotatedInstance[TDataType]],
 ):
     """A wrapper that acts as a RuntimeHandle for local process runtimes.
 
@@ -37,7 +35,9 @@ class RuntimeWrapper(
     def __init__(
         self,
         event_poller: AsyncPoller[EventInstance[TEventType]],
-        data_aggregator: RemoteDataAggregatorImpl[TDataType],
+        data_aggregator: RemoteDataAggregatorImpl[
+            AnnotatedInstance[TDataType]
+        ],  # Changed TDataType
         bridge: RuntimeCommandBridge,
     ) -> None:
         """Initializes the RuntimeWrapper.
@@ -50,9 +50,9 @@ class RuntimeWrapper(
         self.__event_poller: AsyncPoller[EventInstance[TEventType]] = (
             event_poller
         )
-        self.__aggregator: RemoteDataAggregatorImpl[TDataType] = (
-            data_aggregator
-        )
+        self.__aggregator: RemoteDataAggregatorImpl[
+            AnnotatedInstance[TDataType]
+        ] = data_aggregator
         self.__bridge: RuntimeCommandBridge = bridge
 
     def start(self) -> None:
@@ -77,14 +77,13 @@ class RuntimeWrapper(
             caller_id: Optional identifier of the caller that generated the event.
             timestamp: Optional timestamp for the event. If None, defaults to now.
         """
-        # Ensure a timestamp for the event.
         if timestamp is None:
             timestamp = datetime.now()
 
         wrapped_event = EventInstance(event, caller_id, timestamp)
         self.__event_poller.on_available(wrapped_event)
 
-    def _on_data_ready(self, new_data: TDataType) -> None:
+    def _on_data_ready(self, new_data: AnnotatedInstance[TDataType]) -> None:
         """Callback method invoked when new data is ready from the runtime.
 
         This method is part of the `RemoteDataReader` interface.
@@ -94,7 +93,9 @@ class RuntimeWrapper(
         """
         self.__aggregator._on_data_ready(new_data)
 
-    def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
+    def _get_remote_data_aggregator(
+        self,
+    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         """Provides access to the remote data aggregator.
 
         This method is part of the `RemoteDataReader` interface.
@@ -108,7 +109,5 @@ class RuntimeWrapper(
     def data_aggregator(
         self,
     ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
-        # TODO: Address potential type mismatch if _get_remote_data_aggregator
-        # returns RemoteDataAggregator[TDataType] instead of AnnotatedInstance[TDataType].
-        # For now, assume it's compatible or will be cast/handled.
-        return self._get_remote_data_aggregator()  # type: ignore
+        """Provides the remote data aggregator."""
+        return self._get_remote_data_aggregator()

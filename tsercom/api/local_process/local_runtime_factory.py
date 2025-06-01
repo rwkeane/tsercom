@@ -7,6 +7,7 @@ from tsercom.api.local_process.runtime_command_bridge import (
 )
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
+
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
@@ -47,17 +48,10 @@ class LocalRuntimeFactory(
             event_poller: The poller for incoming event instances.
             bridge: The bridge for command communication with the runtime.
         """
-        # Essential components for runtime creation.
-        self.__initializer: RuntimeInitializer[TDataType, TEventType] = (
-            initializer
-        )
-        self.__data_reader: RemoteDataReader[AnnotatedInstance[TDataType]] = (
-            data_reader
-        )
-        self.__event_poller: AsyncPoller[EventInstance[TEventType]] = (
-            event_poller
-        )
-        self.__bridge: RuntimeCommandBridge = bridge
+        self.__initializer = initializer
+        self.__data_reader = data_reader
+        self.__event_poller = event_poller
+        self.__bridge = bridge
 
         super().__init__(other_config=self.__initializer)
 
@@ -65,7 +59,7 @@ class LocalRuntimeFactory(
         self,
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[TDataType, TEventType],
-        grpc_channel_factory: GrpcChannelFactory,
+        grpc_channel_factory: GrpcChannelFactory | None,
     ) -> Runtime:
         """Creates a new Runtime instance.
 
@@ -97,7 +91,6 @@ class LocalRuntimeFactory(
         Returns:
             The `RemoteDataReader` instance configured for this factory.
         """
-        # Provides the RemoteDataReader (part of RuntimeFactory contract).
         return self.__data_reader
 
     def _event_poller(
@@ -111,7 +104,6 @@ class LocalRuntimeFactory(
         Returns:
             The `AsyncPoller` instance for events, configured for this factory.
         """
-        # Provides the AsyncPoller for events (part of RuntimeFactory contract).
         return self.__event_poller
 
     @property

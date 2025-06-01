@@ -50,9 +50,7 @@ class RemoteDataOrganizer(
         self,
         thread_pool: ThreadPoolExecutor,
         caller_id: CallerIdentifier,
-        client: Optional[
-            "RemoteDataOrganizer.Client"
-        ] = None,  # Removed [TDataType]
+        client: Optional["RemoteDataOrganizer.Client"] = None,
     ) -> None:
         """Initializes a RemoteDataOrganizer.
 
@@ -66,9 +64,7 @@ class RemoteDataOrganizer(
         """
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__caller_id: CallerIdentifier = caller_id
-        self.__client: Optional[RemoteDataOrganizer.Client] = (
-            client  # Removed [TDataType]
-        )
+        self.__client: Optional[RemoteDataOrganizer.Client] = client
 
         # Thread lock to protect access to __data and __last_access.
         self.__data_lock: threading.Lock = threading.Lock()

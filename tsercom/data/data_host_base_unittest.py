@@ -1,20 +1,14 @@
 import pytest
 import datetime
 
-# Attempt to import CallerIdentifier, if it exists and is simple.
-# If not, we'll purely mock it.
 try:
     from tsercom.caller_id.caller_identifier import CallerIdentifier
 except ImportError:
-    CallerIdentifier = (
-        None  # Will use mocker.MagicMock(spec=CallerIdentifier) later
-    )
+    CallerIdentifier = None
 
 from tsercom.data.data_host_base import DataHostBase
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
-from tsercom.data.data_timeout_tracker import (
-    DataTimeoutTracker,
-)  # Original class for patch.object
+from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.data.exposed_data import ExposedData
 
@@ -23,7 +17,6 @@ class DummyExposedData(ExposedData):
     """A dummy implementation of ExposedData for type hinting and instantiation."""
 
     def __init__(self, mocker, caller_id_mock, timestamp_mock):
-        # Comply with ExposedData constructor by passing mocks
         super().__init__(caller_id_mock, timestamp_mock)
 
 
@@ -58,7 +51,6 @@ def mock_remote_data_aggregator_fixture(mocker):
     Mocks RemoteDataAggregatorImpl class as used in DataHostBase and handles its generic nature.
     Returns a dictionary with 'mock_class', 'mock_constructor_proxy', and 'mock_instance'.
     """
-    # Patching RemoteDataAggregatorImpl where it's looked up by DataHostBase
     mock_class = mocker.patch(
         "tsercom.data.data_host_base.RemoteDataAggregatorImpl"
     )
@@ -86,7 +78,6 @@ def mock_data_timeout_tracker_fixture(mocker):
     Mocks the DataTimeoutTracker class as used in DataHostBase and its start method.
     Returns the mocked class.
     """
-    # Patch DataTimeoutTracker where it's looked up by DataHostBase
     mock_tracker_class = mocker.patch(
         "tsercom.data.data_host_base.DataTimeoutTracker"
     )
@@ -126,9 +117,6 @@ def test_data_host_base_initialization_creates_remote_data_aggregator(
     mock_aggregator_instance = mock_remote_data_aggregator_fixture[
         "mock_instance"
     ]
-
-    # mock_data_timeout_tracker_fixture is the mocked class.
-    # Its return_value is the mock_tracker_instance.
     mock_tracker_instance = mock_data_timeout_tracker_fixture.return_value
 
     data_host = DataHostBase[DummyExposedData](
@@ -142,7 +130,7 @@ def test_data_host_base_initialization_creates_remote_data_aggregator(
     mock_constructor_proxy.assert_called_once_with(
         expected_thread_pool,
         None,
-        mock_tracker_instance,  # Expecting the instance returned by the mocked DataTimeoutTracker class
+        tracker=mock_tracker_instance,
     )
     assert data_host._DataHostBase__aggregator is mock_aggregator_instance
     assert data_host._remote_data_aggregator() is mock_aggregator_instance
@@ -153,19 +141,14 @@ def test_data_host_base_initialization_with_timeout_creates_and_starts_timeout_t
     mock_remote_data_aggregator_fixture,
     mock_data_timeout_tracker_fixture,
 ):
-    # mock_data_timeout_tracker_fixture is the mocked class.
     mock_tracker_class = mock_data_timeout_tracker_fixture
-    # mock_tracker_instance is the instance that mock_tracker_class will return.
-    # This instance has its .start method individually mocked.
     mock_tracker_instance = mock_tracker_class.return_value
 
     DataHostBase[DummyExposedData](
         watcher=mock_thread_watcher, timeout_seconds=10
     )
 
-    # Assert the mocked DataTimeoutTracker class was instantiated.
     mock_tracker_class.assert_called_once_with(10)
-    # Assert the start method on the instance returned by the mocked class was called.
     mock_tracker_instance.start.assert_called_once()
 
 
@@ -177,20 +160,16 @@ def test_data_host_base_initialization_without_timeout_does_not_create_timeout_t
     mock_constructor_proxy = mock_remote_data_aggregator_fixture[
         "mock_constructor_proxy"
     ]
-    mock_tracker_class = (
-        mock_data_timeout_tracker_fixture  # This is the mocked class
-    )
+    mock_tracker_class = mock_data_timeout_tracker_fixture
 
     DataHostBase[DummyExposedData](
         watcher=mock_thread_watcher, timeout_seconds=0
     )
-    mock_tracker_class.assert_not_called()  # Assert the class was not instantiated
+    mock_tracker_class.assert_not_called()
     expected_thread_pool = (
         mock_thread_watcher.create_tracked_thread_pool_executor.return_value
     )
-    mock_constructor_proxy.assert_called_once_with(
-        expected_thread_pool, None, None
-    )
+    mock_constructor_proxy.assert_called_once_with(expected_thread_pool, None)
 
     mock_constructor_proxy.reset_mock()
 
@@ -198,9 +177,7 @@ def test_data_host_base_initialization_without_timeout_does_not_create_timeout_t
         watcher=mock_thread_watcher, timeout_seconds=-1
     )
     mock_tracker_class.assert_not_called()
-    mock_constructor_proxy.assert_called_once_with(
-        expected_thread_pool, None, None
-    )
+    mock_constructor_proxy.assert_called_once_with(expected_thread_pool, None)
 
 
 def test_data_host_base_on_data_ready_calls_aggregator_on_data_ready(

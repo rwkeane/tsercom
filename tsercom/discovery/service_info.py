@@ -2,6 +2,9 @@ import dataclasses
 from typing import List
 
 
+from typing import TypeVar  # Add TypeVar
+
+
 @dataclasses.dataclass
 class ServiceInfo:
     """Represents information about a discovered service instance.
@@ -15,3 +18,7 @@ class ServiceInfo:
     port: int
     addresses: List[str]
     mdns_name: str
+
+
+# Define TServiceInfo here for common use
+TServiceInfo = TypeVar("TServiceInfo", bound="ServiceInfo")

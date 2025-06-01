@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import TypeVar, Optional
+from typing import Generic, TypeVar, Optional
 import asyncio
 import typing
 
@@ -25,7 +25,7 @@ if typing.TYPE_CHECKING:
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
-class ServiceConnector(ServiceSource.Client):
+class ServiceConnector(Generic[TServiceInfo], ServiceSource.Client):
     """Connects to gRPC endpoints discovered via a `ServiceSource`.
 
     This class acts as a client to a `ServiceSource`. When a service is discovered,
@@ -45,9 +45,9 @@ class ServiceConnector(ServiceSource.Client):
         @abstractmethod
         async def _on_channel_connected(
             self,
-            connection_info: TServiceInfo,  # Detailed service information.
-            caller_id: CallerIdentifier,  # Unique ID for the service instance.
-            channel: "grpc.Channel",  # The established gRPC channel.
+            connection_info: TServiceInfo,
+            caller_id: CallerIdentifier,
+            channel: "grpc.Channel",
         ) -> None:
             """Callback invoked when a gRPC channel to a discovered service is connected.
 
@@ -61,9 +61,7 @@ class ServiceConnector(ServiceSource.Client):
     def __init__(
         self,
         client: "ServiceConnector.Client",
-        connection_factory: ConnectionFactory[
-            grpc.Channel
-        ],  # Changed parameter name and type
+        connection_factory: ConnectionFactory[grpc.Channel],
         service_source: ServiceSource[TServiceInfo],
     ) -> None:
         """Initializes the ServiceConnector.
@@ -87,7 +85,7 @@ class ServiceConnector(ServiceSource.Client):
         # Event loop captured during the first relevant async operation (_on_service_added).
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
-        # No super().__init__() needed as ServiceSource.Client is an ABC without __init__
+        super().__init__()
 
     async def start(self) -> None:
         """Starts the service discovery process.
@@ -143,7 +141,7 @@ class ServiceConnector(ServiceSource.Client):
             f"Marked client with caller_id {caller_id} as failed. It can now be re-discovered."
         )
 
-    async def _on_service_added(
+    async def _on_service_added(  # type: ignore[override]
         self,
         connection_info: TServiceInfo,
         caller_id: CallerIdentifier,
@@ -161,7 +159,7 @@ class ServiceConnector(ServiceSource.Client):
         # Capture or verify the event loop on the first call.
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
-            if self.__event_loop is None:
+            if self.__event_loop is None:  # pragma: no cover
                 logging.error(
                     "Failed to get event loop in _on_service_added. Cannot proceed with channel connection."
                 )
@@ -183,7 +181,6 @@ class ServiceConnector(ServiceSource.Client):
             f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
         )
 
-        # Use the connection_factory to establish a connection.
         channel: Optional["grpc.Channel"] = (
             await self.__connection_factory.connect(  # Use connect method
                 connection_info.addresses, connection_info.port

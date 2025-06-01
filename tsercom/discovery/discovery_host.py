@@ -1,17 +1,14 @@
 """Manages discovery of network services using mDNS. It utilizes an InstanceListener and notifies a client upon discovering services, associating them with CallerIdentifiers."""
 
-from typing import Callable, Dict, Optional, TypeVar, overload
+from typing import Callable, Dict, Generic, Optional, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.mdns.instance_listener import InstanceListener
-from tsercom.discovery.service_info import ServiceInfo
+from tsercom.discovery.service_info import TServiceInfo
 from tsercom.discovery.service_source import ServiceSource
 
-
-TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
-
-
 class DiscoveryHost(
+    Generic[TServiceInfo],
     ServiceSource[TServiceInfo],
     InstanceListener.Client,
 ):
@@ -71,11 +68,8 @@ class DiscoveryHost(
             ValueError: If neither or both `service_type` and
                         `instance_listener_factory` are provided.
         """
-        # Ensure exclusive provision of either service_type or instance_listener_factory.
-        if not (
-            (service_type is not None)
-            ^ (instance_listener_factory is not None)
-        ):
+        # Ensure exclusive provision of either service_type or instance_listener_factory
+        if (service_type is None) == (instance_listener_factory is None):
             raise ValueError(
                 "Exactly one of 'service_type' or 'instance_listener_factory' must be provided."
             )
