@@ -144,7 +144,9 @@ exclude = [
     ".*/.*_unittest\\.py$",
     ".*/.*_unittests\\.py$",
     ".*/.*_e2etest\\.py$",
-    ".*/.*_e2etests\\.py$"
+    ".*/.*_e2etests\\.py$",
+    "tests/",
+    "tsercom/test/"
 ]
 
 [[tool.mypy.overrides]]

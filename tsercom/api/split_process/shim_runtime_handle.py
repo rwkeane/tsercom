@@ -8,6 +8,7 @@ from tsercom.caller_id.caller_identifier import (
 )  # For on_event overload
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.event_instance import EventInstance  # Added
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -45,7 +46,7 @@ class ShimRuntimeHandle(
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
-        event_queue: MultiprocessQueueSink[TEventType],
+        event_queue: MultiprocessQueueSink[EventInstance[TEventType]],
         data_queue: MultiprocessQueueSource[TDataType],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
         data_aggregator: RemoteDataAggregatorImpl[TDataType],
@@ -66,7 +67,9 @@ class ShimRuntimeHandle(
         """
         super().__init__()
 
-        self.__event_queue: MultiprocessQueueSink[TEventType] = event_queue
+        self.__event_queue: MultiprocessQueueSink[
+            EventInstance[TEventType]
+        ] = event_queue
         self.__runtime_command_queue: MultiprocessQueueSink[RuntimeCommand] = (
             runtime_command_queue
         )
@@ -119,12 +122,26 @@ class ShimRuntimeHandle(
         """
         # `caller_id` and `timestamp` are part of the RuntimeHandle interface,
         # but this shim implementation does not use them when sending to the queue.
-        _ = caller_id
-        _ = timestamp
+        _ = caller_id  # Preserved for clarity that it's intentionally not used directly for queue type
+        _ = timestamp  # Preserved for clarity
+
+        # Wrap the raw event in an EventInstance before putting it on the queue.
+        # The original caller_id and timestamp from the on_event signature are used here.
+
+        # Use datetime.now() if timestamp is None, ensuring timezone awareness.
+        effective_timestamp = (
+            timestamp
+            if timestamp is not None
+            else datetime.datetime.now(tz=datetime.timezone.utc)
+        )
+
+        event_instance = EventInstance(
+            data=event, caller_id=caller_id, timestamp=effective_timestamp
+        )
         if self.__block:
-            self.__event_queue.put_blocking(event)
+            self.__event_queue.put_blocking(event_instance)
         else:
-            self.__event_queue.put_nowait(event)
+            self.__event_queue.put_nowait(event_instance)
 
     def stop(self) -> None:
         """Stops the remote runtime interaction.
@@ -163,7 +180,7 @@ class ShimRuntimeHandle(
     @property
     def data_aggregator(
         self,
-    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:  # type: ignore[override]
+    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
         # TODO(developer/bug_id): This property currently returns self._get_remote_data_aggregator(),
         # which is of type RemoteDataAggregator[TDataType]. This may not match the
         # RuntimeHandle base class's expected return type of

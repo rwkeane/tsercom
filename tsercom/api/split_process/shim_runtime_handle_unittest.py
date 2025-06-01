@@ -1,10 +1,13 @@
 import pytest
 import importlib
 
+import datetime  # Ensure datetime is imported
+
 # Module to be tested & whose attributes will be patched
 import tsercom.api.split_process.shim_runtime_handle as shim_module
 from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
 from tsercom.api.runtime_command import RuntimeCommand  # Actual enum
+from tsercom.data.event_instance import EventInstance  # Added import
 
 # --- Fake Classes for Dependencies ---
 
@@ -264,7 +267,16 @@ def test_on_event_block_true(
     handle_block_true.on_event(test_event_data)
 
     assert fake_event_q_sink.put_blocking_call_count == 1
-    assert fake_event_q_sink.put_blocking_called_with == test_event_data
+    # assert fake_event_q_sink.put_blocking_called_with == test_event_data # Old assertion
+    called_event_instance = fake_event_q_sink.put_blocking_called_with
+    assert isinstance(called_event_instance, EventInstance)
+    assert called_event_instance.data == test_event_data
+    assert (
+        called_event_instance.caller_id is None
+    )  # As on_event was called with default caller_id
+    assert isinstance(
+        called_event_instance.timestamp, datetime.datetime
+    )  # Check type of timestamp
     assert fake_event_q_sink.put_nowait_call_count == 0
 
 
@@ -276,7 +288,12 @@ def test_on_event_block_false(
     handle_block_false.on_event(test_event_data)
 
     assert fake_event_q_sink.put_nowait_call_count == 1
-    assert fake_event_q_sink.put_nowait_called_with == test_event_data
+    # assert fake_event_q_sink.put_nowait_called_with == test_event_data # Old assertion
+    called_event_instance = fake_event_q_sink.put_nowait_called_with
+    assert isinstance(called_event_instance, EventInstance)
+    assert called_event_instance.data == test_event_data
+    assert called_event_instance.caller_id is None
+    assert isinstance(called_event_instance.timestamp, datetime.datetime)
     assert fake_event_q_sink.put_blocking_call_count == 0
 
 
@@ -292,7 +309,12 @@ def test_on_event_block_false_queue_full(
     handle_block_false.on_event(test_event_data)
 
     assert fake_event_q_sink.put_nowait_call_count == 1
-    assert fake_event_q_sink.put_nowait_called_with == test_event_data
+    # assert fake_event_q_sink.put_nowait_called_with == test_event_data # Old assertion
+    called_event_instance = fake_event_q_sink.put_nowait_called_with
+    assert isinstance(called_event_instance, EventInstance)
+    assert called_event_instance.data == test_event_data
+    assert called_event_instance.caller_id is None
+    assert isinstance(called_event_instance.timestamp, datetime.datetime)
     assert fake_event_q_sink.put_blocking_call_count == 0
 
 

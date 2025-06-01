@@ -76,3 +76,4 @@ class AsyncGetIdServer:
                 grpc.StatusCode.INTERNAL,
                 "An internal error occurred while generating an ID.",
             )
+            raise e

@@ -643,7 +643,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 context=mock_context_fixture,
             )
         assert (
-            "Exactly one of 'endpoint'/'port' combination or 'context' must be provided"
+            "Cannot specify context via both args and kwargs, or with endpoint/port."
             in str(excinfo.value)
         )
 
@@ -655,7 +655,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id
             )  # No endpoint, port or context
         assert (
-            "Exactly one of 'endpoint'/'port' combination or 'context' must be provided"
+            "Exactly one of ('endpoint'/'port' combination) or 'context' must be provided."
             in str(excinfo.value)
         )
 
@@ -667,7 +667,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, endpoint="1.2.3.4"
             )  # Port is None
         assert (
-            "If 'endpoint' is provided, 'port' must also be provided"
+            "If 'endpoint' is provided, 'port' must also be provided"  # Keep this as is, it's a different test
             in str(excinfo.value)
         )
 
@@ -679,7 +679,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, port=1234
             )  # Endpoint is None
         assert (
-            "Exactly one of 'endpoint'/'port' combination or 'context' must be provided"  # Updated error message
+            "If 'endpoint' is provided, 'port' must also be provided, and vice-versa."
             in str(excinfo.value)
         )
 

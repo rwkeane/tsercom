@@ -22,7 +22,7 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
     if isinstance(error, grpc.aio.AioRpcError):
         return error.code()  # type: ignore
 
-    if not isinstance(error, grpc.RpcError):
+    if not issubclass(type(error), grpc.RpcError):
         return None
 
     # Retrieve status for general RpcError

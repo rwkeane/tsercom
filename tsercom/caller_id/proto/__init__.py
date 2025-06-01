@@ -11,19 +11,24 @@ if not TYPE_CHECKING:
         subprocess.CalledProcessError,
         FileNotFoundError,
     ) as e:
-        # If grpc.__version__ is missing or other errors occur, default to a known version
-        # This is a workaround for potential issues where grpc module might be altered during pytest collection
         print(
-            f"Warning: Failed to get grpc.__version__ ({e}), defaulting to 1.62 for proto loading."
+            f"Warning: Failed to get grpc.__version__ ({e}), defaulting to 1.71 for proto loading."
         )
         major_minor_version = (
-            "1.62"  # Default to a version used in TYPE_CHECKING
+            "1.71"  # Default to a version used in TYPE_CHECKING
         )
 
     version_string = f"v{major_minor_version.replace('.', '_')}"
 
     if False:
         pass
+
+    elif version_string == "v1_62":
+        from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
+            CallerId,
+            GetIdRequest,
+            GetIdResponse,
+        )
 
     elif version_string == "v1_71":
         from tsercom.caller_id.proto.generated.v1_71.caller_id_pb2 import (
@@ -39,27 +44,22 @@ if not TYPE_CHECKING:
             GetIdResponse,
         )
 
-    elif version_string == "v1_62":
-        from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
-            CallerId,
-            GetIdRequest,
-            GetIdResponse,
-        )
-
     else:
         raise ImportError(
             f"No pre-generated protobuf code found for grpcio version: {version}.\n"
             f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
         )
 
+# This part handles type hinting for static analysis (e.g., mypy).
+# It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
         CallerId as CallerId,
     )
-    from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
         GetIdRequest as GetIdRequest,
     )
-    from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
         GetIdResponse as GetIdResponse,
     )
