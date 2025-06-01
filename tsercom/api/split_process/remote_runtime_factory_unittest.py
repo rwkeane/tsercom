@@ -5,7 +5,7 @@ import tsercom.api.split_process.remote_runtime_factory as remote_runtime_factor
 from tsercom.api.split_process.remote_runtime_factory import (
     RemoteRuntimeFactory,
 )
-from tsercom.runtime.runtime_config import ServiceType  # Added import
+from tsercom.runtime.runtime_config import ServiceType
 
 # --- Fake Classes for Dependencies ---
 

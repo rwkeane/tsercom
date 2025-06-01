@@ -20,7 +20,6 @@ from tsercom.threading.aio.aio_utils import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.stopable import Stopable
 
-# Generic type for the instance being managed, which must be Stopable.
 TInstanceType = TypeVar("TInstanceType", bound=Stopable)
 
 

@@ -6,7 +6,6 @@ from typing import Generic, TypeVar
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
-# Generic type for the data handled by the DataHost, bound by ExposedData.
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 

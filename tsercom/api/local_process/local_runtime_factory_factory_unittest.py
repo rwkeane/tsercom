@@ -11,7 +11,7 @@ from tsercom.api.local_process.runtime_command_bridge import (
 )
 from tsercom.threading.async_poller import AsyncPoller  # Corrected path
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
-from tsercom.runtime.runtime_config import ServiceType  # Added import
+from tsercom.runtime.runtime_config import ServiceType
 
 
 class FakeThreadPoolExecutor:

@@ -30,15 +30,15 @@ def test_init_valid():
 
 
 def test_init_none():
-    """Tests that an AssertionError is raised if None is passed to __init__."""
-    with pytest.raises(AssertionError, match="Timestamp cannot be None."):
+    """Tests that an TypeError is raised if None is passed to __init__."""
+    with pytest.raises(TypeError, match="Timestamp cannot be None."):
         SynchronizedTimestamp(None)  # pytype: disable=wrong-arg-types
 
 
 def test_init_invalid_type():
-    """Tests that an AssertionError is raised if an invalid type is passed to __init__."""
+    """Tests that an TypeError is raised if an invalid type is passed to __init__."""
     with pytest.raises(
-        AssertionError, match="Timestamp must be a datetime.datetime object."
+        TypeError, match="Timestamp must be a datetime.datetime object."
     ):
         SynchronizedTimestamp(12345)  # pytype: disable=wrong-arg-types
 
@@ -124,11 +124,11 @@ def test_try_parse_grpc_timestamp_todatetime_value_error(mocker, caplog):
 
 def test_try_parse_invalid_type_raises_assertion_error():
     """
-    Tests that try_parse raises an AssertionError if an unexpected type
+    Tests that try_parse raises an TypeError if an unexpected type
     (that is not None, Timestamp, or ServerTimestamp) is passed.
     """
     with pytest.raises(
-        AssertionError,
+        TypeError,
         match="Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one.",
     ):
         SynchronizedTimestamp.try_parse(
@@ -221,14 +221,14 @@ def test_equality_with_other_types():
 def test_comparison_invalid_type_raises_assertion_error():
     """
     Tests that comparison with an unsupported type in >, >=, <, <=
-    raises an AssertionError.
+    raises an TypeError.
     """
     err_match = "Comparison is only supported with SynchronizedTimestamp or datetime.datetime."
-    with pytest.raises(AssertionError, match=err_match):
+    with pytest.raises(TypeError, match=err_match):
         _ = ST_FIXED > "invalid_type"  # type: ignore
-    with pytest.raises(AssertionError, match=err_match):
+    with pytest.raises(TypeError, match=err_match):
         _ = ST_FIXED >= "invalid_type"  # type: ignore
-    with pytest.raises(AssertionError, match=err_match):
+    with pytest.raises(TypeError, match=err_match):
         _ = ST_FIXED < "invalid_type"  # type: ignore
-    with pytest.raises(AssertionError, match=err_match):
+    with pytest.raises(TypeError, match=err_match):
         _ = ST_FIXED <= "invalid_type"  # type: ignore

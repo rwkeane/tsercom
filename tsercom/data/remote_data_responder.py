@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-# Generic type for the response data that the responder will handle.
 TResponseType = TypeVar("TResponseType")
 
 

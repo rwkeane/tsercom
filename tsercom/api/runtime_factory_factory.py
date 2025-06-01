@@ -3,13 +3,13 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Tuple, Generic
 
-from tsercom.data.exposed_data import ExposedData  # Added import
+from tsercom.data.exposed_data import ExposedData
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
 # Type variable for data, typically bound by some base data class.
-TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrained TDataType
+TDataType = TypeVar("TDataType", bound=ExposedData)
 # Type variable for events.
 TEventType = TypeVar("TEventType")
 

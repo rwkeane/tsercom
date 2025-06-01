@@ -7,7 +7,6 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_responder import RemoteDataResponder
 
-# Generic type for the response that can be sent back via the responder.
 TResponseType = TypeVar("TResponseType")
 
 

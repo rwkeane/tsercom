@@ -16,8 +16,6 @@ from tsercom.discovery.service_info import ServiceInfo
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 
-# Generic type for service information, bound by the base ServiceInfo class.
-# This allows subclasses to define more specific service info types.
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 

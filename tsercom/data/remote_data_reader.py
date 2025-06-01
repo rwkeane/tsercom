@@ -5,7 +5,6 @@ from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 
-# Generic type for the data that the reader will handle, bound by ExposedData.
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 

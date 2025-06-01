@@ -7,7 +7,6 @@ from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
 
-# Generic type for the data payload of the instance.
 TDataType = TypeVar("TDataType")
 
 

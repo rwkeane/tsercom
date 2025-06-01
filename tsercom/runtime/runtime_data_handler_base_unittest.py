@@ -30,7 +30,7 @@ from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )  # For type hints
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-from tsercom.timesync.common.proto import ServerTimestamp  # Added import
+from tsercom.timesync.common.proto import ServerTimestamp
 
 # For gRPC context testing
 import grpc  # For grpc.StatusCode, if testable - not directly used in DataProcessorImpl tests

@@ -1,7 +1,7 @@
 import pytest
 
 from tsercom.api.local_process.local_runtime_factory import LocalRuntimeFactory
-from tsercom.runtime.runtime_config import ServiceType  # Added import
+from tsercom.runtime.runtime_config import ServiceType
 
 
 class FakeRuntime:

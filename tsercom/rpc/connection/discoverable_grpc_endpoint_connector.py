@@ -18,7 +18,6 @@ import grpc
 if typing.TYPE_CHECKING:
     from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
-# Generic type for service information, bound by the base ServiceInfo class.
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 

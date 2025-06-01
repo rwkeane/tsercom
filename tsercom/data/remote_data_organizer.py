@@ -14,7 +14,6 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.util.is_running_tracker import IsRunningTracker
 
-# Generic type for the data being organized, bound by ExposedData.
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 logger = logging.getLogger(__name__)  # Initialize logger

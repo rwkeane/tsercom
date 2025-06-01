@@ -32,11 +32,9 @@ class SynchronizedTimestamp:
     def __post_init__(self) -> None:
         """Post-initialization checks."""
         if self.timestamp is None:
-            raise AssertionError("Timestamp cannot be None.")
+            raise TypeError("Timestamp cannot be None.")
         if not isinstance(self.timestamp, datetime.datetime):
-            raise AssertionError(
-                "Timestamp must be a datetime.datetime object."
-            )
+            raise TypeError("Timestamp must be a datetime.datetime object.")
 
     @classmethod
     def try_parse(
@@ -49,9 +47,10 @@ class SynchronizedTimestamp:
             other = other.timestamp
 
         # This assertion is a useful precondition check.
-        assert isinstance(
-            other, Timestamp
-        ), "Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one."
+        if not isinstance(other, Timestamp):
+            raise TypeError(
+                "Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one."
+            )
 
         try:
             dt_object = other.ToDatetime()
@@ -75,7 +74,7 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise AssertionError(
+            raise TypeError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )
         return self.as_datetime() > other_dt
@@ -86,7 +85,7 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise AssertionError(
+            raise TypeError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )
         return self.as_datetime() >= other_dt
@@ -97,7 +96,7 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise AssertionError(
+            raise TypeError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )
         return self.as_datetime() < other_dt
@@ -108,7 +107,7 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise AssertionError(
+            raise TypeError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )
         return self.as_datetime() <= other_dt

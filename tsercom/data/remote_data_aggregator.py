@@ -7,7 +7,6 @@ from typing import Dict, Generic, List, Optional, TypeVar, overload
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 
-# Generic type for the data being aggregated, bound by ExposedData.
 TDataType = TypeVar("TDataType", bound=ExposedData)
 
 
