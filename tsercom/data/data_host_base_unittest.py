@@ -142,7 +142,7 @@ def test_data_host_base_initialization_creates_remote_data_aggregator(
     mock_constructor_proxy.assert_called_once_with(
         expected_thread_pool,
         None,
-        mock_tracker_instance,  # Expecting the instance returned by the mocked DataTimeoutTracker class
+        tracker=mock_tracker_instance,  # Expecting keyword argument
     )
     assert data_host._DataHostBase__aggregator is mock_aggregator_instance
     assert data_host._remote_data_aggregator() is mock_aggregator_instance
@@ -189,7 +189,7 @@ def test_data_host_base_initialization_without_timeout_does_not_create_timeout_t
         mock_thread_watcher.create_tracked_thread_pool_executor.return_value
     )
     mock_constructor_proxy.assert_called_once_with(
-        expected_thread_pool, None, None
+        expected_thread_pool, None  # No tracker/timeout arg if tracker is None
     )
 
     mock_constructor_proxy.reset_mock()
@@ -199,7 +199,7 @@ def test_data_host_base_initialization_without_timeout_does_not_create_timeout_t
     )
     mock_tracker_class.assert_not_called()
     mock_constructor_proxy.assert_called_once_with(
-        expected_thread_pool, None, None
+        expected_thread_pool, None  # No tracker/timeout arg if tracker is None
     )
 
 

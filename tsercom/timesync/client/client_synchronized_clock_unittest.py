@@ -6,9 +6,13 @@ import pytest
 from tsercom.timesync.client.client_synchronized_clock import (
     ClientSynchronizedClock,
 )
+from tsercom.timesync.common.synchronized_clock import (
+    SynchronizedClock,
+)  # Import SynchronizedClock
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
+from unittest.mock import Mock  # For mock return in GoodClientImpl
 
 
 # --- Tests for ClientSynchronizedClock.Client ABC ---
@@ -20,10 +24,24 @@ class GoodClientImpl(ClientSynchronizedClock.Client):
     def get_offset_seconds(self) -> float:
         return 0.0
 
+    def get_synchronized_clock(self) -> SynchronizedClock:
+        # Return a basic mock or a simple fake implementation
+        return Mock(spec=SynchronizedClock)
+
+    def start_async(self) -> None:
+        pass  # Minimal implementation for abstract method
+
+    def stop(self) -> None:
+        pass  # Minimal implementation for abstract method
+
 
 class BadClientImpl(ClientSynchronizedClock.Client):
-    """Implementation missing get_offset_seconds."""
+    """Implementation missing get_offset_seconds and other new abstract methods."""
 
+    # Missing get_offset_seconds
+    # Missing get_synchronized_clock
+    # Missing start_async
+    # Missing stop
     pass
 
 
@@ -42,7 +60,7 @@ def test_bad_client_impl_instantiation():
     """Tests that a class missing get_offset_seconds cannot be instantiated."""
     with pytest.raises(
         TypeError,
-        match="Can't instantiate abstract class BadClientImpl with abstract method get_offset_seconds",
+        match="Can't instantiate abstract class BadClientImpl with abstract methods get_offset_seconds, get_synchronized_clock, start_async, stop",
     ):
         BadClientImpl()
 

@@ -24,13 +24,14 @@ from tsercom.data.annotated_instance import AnnotatedInstance
 
 # ServerTimestamp removed, SerializableAnnotatedInstance will be used for spec if appropriate, or no spec.
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
-from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
+
+# from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase # Duplicate
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )  # For type hints
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-from tsercom.timesync.common.proto import ServerTimestamp
+from tsercom.timesync.common.proto import ServerTimestamp  # Keep this for spec
 
 # For gRPC context testing
 import grpc  # For grpc.StatusCode, if testable - not directly used in DataProcessorImpl tests
@@ -60,12 +61,12 @@ class TestableRuntimeDataHandler(
         super().__init__(data_reader, event_source)
         # Mocks as per prompt's specification
         self.mock_register_caller = mocker.AsyncMock()
-        self.mock_unregister_caller = mocker.AsyncMock(
+        self.mock_unregister_caller = mocker.MagicMock(  # Changed to MagicMock
             return_value=True
-        )  # Ensure it returns bool
+        )
         self.mock_wait_for_data = mocker.MagicMock(
             return_value=mocker.AsyncMock()
-        )  # Using AsyncMock for async_stub
+        )
         self.mock_get_data = mocker.MagicMock(
             return_value=mocker.AsyncMock()
         )  # Using AsyncMock for async_stub
@@ -87,11 +88,11 @@ class TestableRuntimeDataHandler(
         # print(f"TestableRuntimeDataHandler._register_caller called with: {caller_id}, {endpoint}, {port}") # Reduced verbosity
         return await self.mock_register_caller(caller_id, endpoint, port)
 
-    async def _unregister_caller(
+    def _unregister_caller(  # Changed to sync
         self, caller_id: CallerIdentifier
-    ) -> bool:  # Signature changed to bool
+    ) -> bool:
         # print(f"TestableRuntimeDataHandler._unregister_caller called with: {caller_id}") # Reduced verbosity
-        return await self.mock_unregister_caller(caller_id)  # Added return
+        return self.mock_unregister_caller(caller_id)  # Removed await
 
     def _try_get_caller_id(
         self, endpoint: str, port: int
@@ -160,9 +161,9 @@ class TestRuntimeDataHandlerBaseBehavior:  # Removed @pytest.mark.asyncio from c
     @pytest.fixture
     def mock_sync_clock(self, mocker):
         clock = mocker.MagicMock(spec=SynchronizedClock)
-        clock.desync = mocker.AsyncMock(
+        clock.desync = mocker.MagicMock(
             name="sync_clock_desync"
-        )  # desync is async
+        )  # Changed to MagicMock
         return clock
 
     @pytest.fixture
@@ -324,8 +325,8 @@ class TestRuntimeDataHandlerBaseBehavior:  # Removed @pytest.mark.asyncio from c
     ):
         print("\n--- Test: test_processor_desynchronize ---")
         mock_server_ts = mocker.MagicMock(
-            spec=SerializableAnnotatedInstance
-        )  # Changed spec
+            spec=ServerTimestamp
+        )  # Corrected spec
         expected_datetime = datetime.datetime.now(datetime.timezone.utc)
         mock_sync_clock.desync.return_value = expected_datetime
 

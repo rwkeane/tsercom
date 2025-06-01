@@ -134,10 +134,10 @@ class RuntimeManager(
                     max_workers=1
                 )
             )
-            # Assuming LocalRuntimeFactoryFactory() needs type args if it's used for specific TDataType/TEventType
-            # However, the default here is created without specific types, implying it handles Any, Any or TDataType, TEventType from RuntimeManager
+            # Default factories are [Any, Any] because TDataType/TEventType are not known
+            # if RuntimeManager is instantiated as RuntimeManager() without specific types.
             self.__local_runtime_factory_factory = LocalRuntimeFactoryFactory[
-                TDataType, TEventType
+                Any, Any
             ](default_local_factory_thread_pool)
 
         if split_runtime_factory_factory is not None:
@@ -151,10 +151,13 @@ class RuntimeManager(
                 )
             )
             self.__split_runtime_factory_factory = SplitRuntimeFactoryFactory[
-                TDataType, TEventType
+                Any, Any
             ](default_split_factory_thread_pool, self.__thread_watcher)
 
-        self.__initializers: list[InitializationPair[Any, Any]] = []
+        # If RuntimeManager is Generic[TDataType, TEventType], initializers should store these specific types.
+        self.__initializers: list[
+            InitializationPair[TDataType, TEventType]
+        ] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
         self.__process: Optional[Process] = None
@@ -434,13 +437,19 @@ class RuntimeManager(
         Returns:
             A list of created `RuntimeFactory` instances.
         """
-        results: List[RuntimeFactory[Any, Any]] = []
-        for pair in self.__initializers:
+        results: List[RuntimeFactory[TDataType, TEventType]] = []
+        for (
+            pair
+        ) in (
+            self.__initializers
+        ):  # pair is InitializationPair[TDataType, TEventType]
             # The RuntimeFuturePopulator acts as the client to receive the handle.
-            client = RuntimeFuturePopulator[Any, Any](pair.handle_future)
+            client = RuntimeFuturePopulator[TDataType, TEventType](
+                pair.handle_future
+            )  # Use TDataType, TEventType from pair
             factory = factory_factory.create_factory(
-                client,
-                pair.initializer,
+                client,  # client is Populator[TDataType, TEventType]
+                pair.initializer,  # initializer is RuntimeInitializer[TDataType, TEventType]
             )
             results.append(factory)
         return results

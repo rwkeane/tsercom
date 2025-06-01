@@ -18,6 +18,9 @@ import asyncio
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
+from tsercom.runtime.event_poller_adapter import (
+    EventToSerializableAnnInstancePollerAdapter,
+)  # Import the adapter
 
 
 class TestInitializeRuntimes:
@@ -100,12 +103,15 @@ class TestInitializeRuntimes:
             mock_client_factory.auth_config
         )
 
-        MockClientRuntimeDataHandler.assert_called_once_with(
-            mock_thread_watcher,
-            mock_client_data_reader_actual_instance,
-            mock_client_event_poller_actual_instance,
-            is_testing=False,
+        MockClientRuntimeDataHandler.assert_called_once()
+        args, kwargs = MockClientRuntimeDataHandler.call_args
+        assert args[0] is mock_thread_watcher
+        assert args[1] is mock_client_data_reader_actual_instance
+        assert isinstance(args[2], EventToSerializableAnnInstancePollerAdapter)
+        assert (
+            args[2]._source_poller is mock_client_event_poller_actual_instance
         )
+        assert kwargs["is_testing"] is False
         MockServerRuntimeDataHandler.assert_not_called()
         mock_client_factory.create.assert_called_once_with(
             mock_thread_watcher,
@@ -195,11 +201,14 @@ class TestInitializeRuntimes:
             mock_server_factory.auth_config
         )
 
-        MockServerRuntimeDataHandler.assert_called_once_with(
-            mock_server_data_reader_actual_instance,
-            mock_server_event_poller_actual_instance,
-            is_testing=False,
+        MockServerRuntimeDataHandler.assert_called_once()
+        args, kwargs = MockServerRuntimeDataHandler.call_args
+        assert args[0] is mock_server_data_reader_actual_instance
+        assert isinstance(args[1], EventToSerializableAnnInstancePollerAdapter)
+        assert (
+            args[1]._source_poller is mock_server_event_poller_actual_instance
         )
+        assert kwargs["is_testing"] is False
         MockClientRuntimeDataHandler.assert_not_called()
         mock_server_factory.create.assert_called_once_with(
             mock_thread_watcher,
@@ -317,18 +326,33 @@ class TestInitializeRuntimes:
         )
 
         assert MockClientRuntimeDataHandler.call_count == 1
-        MockClientRuntimeDataHandler.assert_any_call(
-            mock_thread_watcher,
-            mock_client_data_reader_actual_instance_multi,
-            mock_client_event_poller_actual_instance_multi,
-            is_testing=False,
+        client_args, client_kwargs = (
+            MockClientRuntimeDataHandler.call_args
+        )  # Assuming only one call in this test
+        assert client_args[0] is mock_thread_watcher
+        assert client_args[1] is mock_client_data_reader_actual_instance_multi
+        assert isinstance(
+            client_args[2], EventToSerializableAnnInstancePollerAdapter
         )
+        assert (
+            client_args[2]._source_poller
+            is mock_client_event_poller_actual_instance_multi
+        )
+        assert client_kwargs["is_testing"] is False
+
         assert MockServerRuntimeDataHandler.call_count == 1
-        MockServerRuntimeDataHandler.assert_any_call(
-            mock_server_data_reader_actual_instance_multi,
-            mock_server_event_poller_actual_instance_multi,
-            is_testing=False,
+        server_args, server_kwargs = (
+            MockServerRuntimeDataHandler.call_args
+        )  # Assuming only one call
+        assert server_args[0] is mock_server_data_reader_actual_instance_multi
+        assert isinstance(
+            server_args[1], EventToSerializableAnnInstancePollerAdapter
         )
+        assert (
+            server_args[1]._source_poller
+            is mock_server_event_poller_actual_instance_multi
+        )
+        assert server_kwargs["is_testing"] is False
 
         mock_client_factory.create.assert_called_once()
         mock_server_factory.create.assert_called_once()
