@@ -20,7 +20,7 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
     from grpc_status import rpc_status
 
     if isinstance(error, grpc.aio.AioRpcError):
-        return error.code()  # type: ignore # AioRpcError provides .code() directly.
+        return error.code()  # type: ignore
 
     if not isinstance(error, grpc.RpcError):
         return None
