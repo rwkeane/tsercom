@@ -17,7 +17,7 @@ class ServiceSource(Generic[TServiceInfo], ABC):
     and notifying its client when new services are discovered.
     """
 
-    class Client(ABC):  # Removed Generic[TServiceInfo]
+    class Client(ABC):
         """
         Interface for clients of a `ServiceSource`.
 
@@ -40,7 +40,7 @@ class ServiceSource(Generic[TServiceInfo], ABC):
             pass
 
     @abstractmethod
-    async def start_discovery(self, client: "ServiceSource.Client") -> None:  # Updated type hint for client
+    async def start_discovery(self, client: "ServiceSource.Client") -> None:
         """
         Starts the service discovery process.
 

@@ -1,17 +1,12 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import (
-    TypeVar,
-    Optional,
-)  # Generic removed, Optional already present
+from typing import TypeVar, Optional
 import asyncio
 import typing
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_info import ServiceInfo
-from tsercom.discovery.service_source import (
-    ServiceSource,
-)  # Added ServiceSource
+from tsercom.discovery.service_source import ServiceSource
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
     is_running_on_event_loop,
@@ -26,7 +21,7 @@ if typing.TYPE_CHECKING:
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
-class ServiceConnector(ServiceSource.Client):  # Removed [TServiceInfo]
+class ServiceConnector(ServiceSource.Client):
     """Connects to gRPC endpoints discovered via a `ServiceSource`.
 
     This class acts as a client to a `ServiceSource`. When a service is discovered,
@@ -36,7 +31,7 @@ class ServiceConnector(ServiceSource.Client):  # Removed [TServiceInfo]
     to avoid redundant connection attempts.
     """
 
-    class Client(ABC):  # This inner Client remains the same
+    class Client(ABC):
         """Interface for clients of `ServiceConnector`.
 
         Implementers are notified when a gRPC channel to a discovered service
@@ -63,7 +58,7 @@ class ServiceConnector(ServiceSource.Client):  # Removed [TServiceInfo]
         self,
         client: "ServiceConnector.Client",
         channel_factory: "GrpcChannelFactory",
-        service_source: ServiceSource[TServiceInfo],  # Changed parameter
+        service_source: ServiceSource[TServiceInfo],
     ) -> None:
         """Initializes the ServiceConnector.
 
@@ -76,9 +71,7 @@ class ServiceConnector(ServiceSource.Client):  # Removed [TServiceInfo]
                             discovered service information.
         """
         self.__client: ServiceConnector.Client = client
-        self.__service_source: ServiceSource[TServiceInfo] = (
-            service_source  # Renamed attribute
-        )
+        self.__service_source: ServiceSource[TServiceInfo] = service_source
         self.__channel_factory: "GrpcChannelFactory" = channel_factory
 
         self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
@@ -95,9 +88,7 @@ class ServiceConnector(ServiceSource.Client):  # Removed [TServiceInfo]
         `ServiceSource`. This instance (`self`) is passed as the client to
         receive `_on_service_added` callbacks from the `ServiceSource`.
         """
-        await self.__service_source.start_discovery(
-            self
-        )  # Use __service_source
+        await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
         """Marks a client associated with a `CallerIdentifier` as failed or unhealthy.
@@ -135,11 +126,10 @@ class ServiceConnector(ServiceSource.Client):  # Removed [TServiceInfo]
     async def _mark_client_failed_impl(
         self, caller_id: CallerIdentifier
     ) -> None:
-        # Assert that the caller_id was indeed being tracked.
         assert (
             caller_id in self.__callers
         ), f"Attempted to mark unknown caller_id {caller_id} as failed."
-        # Remove the caller_id, allowing new connections if the service is re-discovered.
+        # Removing the caller_id allows new connections if the service is re-discovered.
         self.__callers.remove(caller_id)
         logging.info(
             f"Marked client with caller_id {caller_id} as failed. It can now be re-discovered."

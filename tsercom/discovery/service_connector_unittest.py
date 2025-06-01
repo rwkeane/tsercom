@@ -9,7 +9,7 @@ import functools
 from tsercom.discovery.service_connector import ServiceConnector
 
 # Dependencies for mocking/typing
-from tsercom.discovery.service_source import ServiceSource  # Changed
+from tsercom.discovery.service_source import ServiceSource
 from tsercom.rpc.grpc_util.grpc_channel_factory import (
     GrpcChannelFactory,
 )
@@ -114,10 +114,10 @@ class TestServiceConnector:
         return factory
 
     @pytest.fixture
-    def mock_service_source(self, mocker):  # Renamed fixture
-        source = mocker.MagicMock(spec=ServiceSource)  # Use ServiceSource spec
+    def mock_service_source(self, mocker):
+        source = mocker.MagicMock(spec=ServiceSource)
         source.start_discovery = mocker.AsyncMock(
-            name="service_source_start_discovery"  # Renamed mock attribute for clarity
+            name="service_source_start_discovery"
         )
         return source
 
@@ -144,7 +144,7 @@ class TestServiceConnector:
         connector = ServiceConnector(
             client=mock_client,
             channel_factory=mock_channel_factory,
-            service_source=mock_service_source,  # Updated parameter
+            service_source=mock_service_source,
         )
         assert connector._ServiceConnector__client is mock_client
         assert (
@@ -152,38 +152,31 @@ class TestServiceConnector:
             is mock_channel_factory
         )
         assert (
-            connector._ServiceConnector__service_source
-            is mock_service_source  # Updated assert
+            connector._ServiceConnector__service_source is mock_service_source
         )
         assert connector._ServiceConnector__callers == set()
         assert connector._ServiceConnector__event_loop is None
 
-    async def test_start_calls_service_source_start_discovery(  # Renamed test
+    async def test_start_calls_service_source_start_discovery(
         self, mock_client, mock_channel_factory, mock_service_source
     ):
         connector = ServiceConnector(
-            mock_client,
-            mock_channel_factory,
-            mock_service_source,  # Updated parameter
+            mock_client, mock_channel_factory, mock_service_source
         )
         await connector.start()
-        mock_service_source.start_discovery.assert_called_once_with(
-            connector
-        )  # Updated assert
+        mock_service_source.start_discovery.assert_called_once_with(connector)
 
     async def test_on_service_added_successful_connection(
         self,
         mock_client,
         mock_channel_factory,
-        mock_service_source,  # Updated parameter
+        mock_service_source,
         test_service_info,
         test_caller_id,
         mock_channel_info,
     ):
         connector = ServiceConnector(
-            mock_client,
-            mock_channel_factory,
-            mock_service_source,  # Updated parameter
+            mock_client, mock_channel_factory, mock_service_source
         )
         connector._ServiceConnector__event_loop = asyncio.get_running_loop()
         mock_channel_factory.find_async_channel.return_value = (
@@ -202,14 +195,12 @@ class TestServiceConnector:
         self,
         mock_client,
         mock_channel_factory,
-        mock_service_source,  # Updated parameter
+        mock_service_source,
         test_service_info,
         test_caller_id,
     ):
         connector = ServiceConnector(
-            mock_client,
-            mock_channel_factory,
-            mock_service_source,  # Updated parameter
+            mock_client, mock_channel_factory, mock_service_source
         )
         connector._ServiceConnector__event_loop = asyncio.get_running_loop()
         mock_channel_factory.find_async_channel.return_value = None
@@ -224,14 +215,12 @@ class TestServiceConnector:
         self,
         mock_client,
         mock_channel_factory,
-        mock_service_source,  # Updated parameter
+        mock_service_source,
         test_service_info,
         test_caller_id,
     ):
         connector = ServiceConnector(
-            mock_client,
-            mock_channel_factory,
-            mock_service_source,  # Updated parameter
+            mock_client, mock_channel_factory, mock_service_source
         )
         connector._ServiceConnector__event_loop = asyncio.get_running_loop()
         connector._ServiceConnector__callers.add(test_caller_id)
@@ -244,14 +233,12 @@ class TestServiceConnector:
         mock_aio_utils_fixture,
         mock_client,
         mock_channel_factory,
-        mock_service_source,  # Updated parameter
+        mock_service_source,
         test_caller_id,
     ):
         self.mocked_aio_utils = mock_aio_utils_fixture
         connector = ServiceConnector(
-            mock_client,
-            mock_channel_factory,
-            mock_service_source,  # Updated parameter
+            mock_client, mock_channel_factory, mock_service_source
         )
         current_loop = asyncio.get_running_loop()
         connector._ServiceConnector__event_loop = current_loop
@@ -267,14 +254,12 @@ class TestServiceConnector:
         mock_aio_utils_fixture,
         mock_client,
         mock_channel_factory,
-        mock_service_source,  # Updated parameter
+        mock_service_source,
         test_caller_id,
     ):
         self.mocked_aio_utils = mock_aio_utils_fixture
         connector = ServiceConnector(
-            mock_client,
-            mock_channel_factory,
-            mock_service_source,  # Updated parameter
+            mock_client, mock_channel_factory, mock_service_source
         )
         mock_target_loop = asyncio.get_running_loop()
         connector._ServiceConnector__event_loop = mock_target_loop
@@ -303,7 +288,7 @@ class TestServiceConnector:
         mock_aio_utils_fixture,
         mock_client,
         mock_channel_factory,
-        mock_service_source,  # Use new fixture
+        mock_service_source,
         test_service_info,
         test_caller_id,
         mock_channel_info,
@@ -325,18 +310,14 @@ class TestServiceConnector:
             test_service_info, test_caller_id, mock_channel_info
         )
         assert test_caller_id in connector._ServiceConnector__callers
-        mock_channel_factory.find_async_channel.reset_mock()  # Reset for next call
+        mock_channel_factory.find_async_channel.reset_mock()
         mock_client._on_channel_connected.reset_mock()
 
         # Mark client as failed
-        self.mocked_aio_utils["is_running_on_event_loop"].return_value = (
-            True  # Simulate on loop
-        )
+        self.mocked_aio_utils["is_running_on_event_loop"].return_value = True
         await connector.mark_client_failed(test_caller_id)
         assert test_caller_id not in connector._ServiceConnector__callers
-        self.mocked_aio_utils[
-            "run_on_event_loop"
-        ].assert_not_called()  # Should not be called if already on loop
+        self.mocked_aio_utils["run_on_event_loop"].assert_not_called()
 
         # Second connection attempt for the same service
         await connector._on_service_added(test_service_info, test_caller_id)

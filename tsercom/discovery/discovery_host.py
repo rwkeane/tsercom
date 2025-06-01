@@ -7,16 +7,13 @@ from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.discovery.service_source import ServiceSource
 
-# Removed run_on_event_loop as start_discovery will become async
 
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
-
-# Removed module-level type aliases that caused issues with TServiceInfo binding.
 
 
 class DiscoveryHost(
     ServiceSource[TServiceInfo],
-    InstanceListener.Client,  # Implements ServiceSource
+    InstanceListener.Client,
 ):
     """Manages service discovery using mDNS and CallerIdentifier association.
 
@@ -28,8 +25,6 @@ class DiscoveryHost(
     It implements the `ServiceSource` interface.
     """
 
-    # DiscoveryHost.Client is removed as ServiceSource.Client has an identical signature.
-
     @overload
     def __init__(self, *, service_type: str):
         """Initializes DiscoveryHost with a specific mDNS service type."""
@@ -39,8 +34,8 @@ class DiscoveryHost(
     def __init__(
         self,
         *,
-        instance_listener_factory: Callable[  # Reverted to full type hint
-            [InstanceListener.Client],  # Removed [TServiceInfo]
+        instance_listener_factory: Callable[
+            [InstanceListener.Client],
             InstanceListener[TServiceInfo],
         ],
     ):
@@ -53,7 +48,7 @@ class DiscoveryHost(
         service_type: Optional[str] = None,
         instance_listener_factory: Optional[
             Callable[
-                [InstanceListener.Client],  # Removed [TServiceInfo]
+                [InstanceListener.Client],
                 InstanceListener[TServiceInfo],
             ]
         ] = None,
@@ -88,21 +83,19 @@ class DiscoveryHost(
         self.__service_type: Optional[str] = service_type
         self.__instance_listener_factory: Optional[
             Callable[
-                [InstanceListener.Client],  # Removed [TServiceInfo]
+                [InstanceListener.Client],
                 InstanceListener[TServiceInfo],
             ]
         ] = instance_listener_factory
 
-        # The actual mDNS instance listener; initialized in start_discovery_impl.
+        # The actual mDNS instance listener; initialized in __start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
-        self.__client: Optional[ServiceSource.Client] = None  # Removed [TServiceInfo]
+        self.__client: Optional[ServiceSource.Client] = None
 
         # Maps mDNS instance names to their assigned CallerIdentifiers.
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
-    async def start_discovery(
-        self, client: ServiceSource.Client  # Removed [TServiceInfo]
-    ) -> None:
+    async def start_discovery(self, client: ServiceSource.Client) -> None:
         """Starts the service discovery process.
 
         This method now directly calls the asynchronous `__start_discovery_impl`.
@@ -118,9 +111,9 @@ class DiscoveryHost(
 
     async def __start_discovery_impl(
         self,
-        client: ServiceSource.Client,  # Removed [TServiceInfo]
+        client: ServiceSource.Client,
     ) -> None:
-        """Internal implementation for starting discovery; runs on the event loop.
+        """Internal implementation for starting discovery.
 
         Initializes and starts the `InstanceListener` using either the provided
         `service_type` or `instance_listener_factory`.
@@ -157,7 +150,7 @@ class DiscoveryHost(
         # if hasattr(self.__discoverer, "start") and callable(self.__discoverer.start):
         #     # await self.__discoverer.start() # If async
         #     # self.__discoverer.start() # If sync
-        #     pass # Actual call depends on InstanceListener's API
+        #     pass  # Actual call depends on InstanceListener's API
 
     async def _on_service_added(self, connection_info: TServiceInfo) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
@@ -165,7 +158,7 @@ class DiscoveryHost(
         This method implements the `InstanceListener.Client` interface. It assigns
         a `CallerIdentifier` to the newly discovered service (or retrieves an existing
         one if the service was seen before) and then notifies this `DiscoveryHost`'s
-        client via its `_on_service_added` method.
+        client (which is a `ServiceSource.Client`) via its `_on_service_added` method.
 
         Args:
             connection_info: Information about the discovered service instance,
@@ -176,19 +169,19 @@ class DiscoveryHost(
                           if `start_discovery` was not called or failed).
         """
         if self.__client is None:
-            # This indicates a programming error, discovery should be started with a client.
+            # This indicates a programming error, discovery should have been started with a client.
             raise RuntimeError(
                 "DiscoveryHost client not set; discovery may not have been started correctly."
             )
 
-        # Use the mDNS name as a key to uniquely identify service instances for CallerId mapping.
+        # Use the mDNS instance name as a key to uniquely identify service instances for CallerId mapping.
         service_mdns_name = connection_info.mdns_name
 
         caller_id: CallerIdentifier
         if service_mdns_name in self.__caller_id_map:
             caller_id = self.__caller_id_map[service_mdns_name]
         else:
-            caller_id = CallerIdentifier.random()  # Use random() for new IDs
+            caller_id = CallerIdentifier.random()
             self.__caller_id_map[service_mdns_name] = caller_id
 
         await self.__client._on_service_added(connection_info, caller_id)
