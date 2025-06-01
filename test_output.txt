@@ -1,0 +1,430 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+collected 519 items
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py .... [  0%]
+...                                                                      [  1%]
+tsercom/api/local_process/local_runtime_factory_unittest.py ....         [  2%]
+tsercom/api/local_process/runtime_command_bridge_unittest.py ........... [  4%]
+......                                                                   [  5%]
+tsercom/api/local_process/runtime_wrapper_unittest.py .........          [  7%]
+tsercom/api/runtime_manager_unittest.py .................                [ 10%]
+tsercom/api/split_process/data_reader_sink_unittest.py ......            [ 11%]
+tsercom/api/split_process/data_reader_source_unittest.py ..........      [ 13%]
+tsercom/api/split_process/event_source_unittest.py .......               [ 14%]
+tsercom/api/split_process/remote_runtime_factory_unittest.py ....        [ 15%]
+tsercom/api/split_process/runtime_command_source_unittest.py .........   [ 17%]
+tsercom/api/split_process/shim_runtime_handle_unittest.py ........       [ 18%]
+tsercom/api/split_process/split_process_error_watcher_sink_unittest.py . [ 19%]
+..                                                                       [ 19%]
+tsercom/api/split_process/split_process_error_watcher_source_unittest.py . [ 19%]
+......                                                                   [ 20%]
+tsercom/api/split_process/split_runtime_factory_factory_unittest.py ..   [ 21%]
+tsercom/caller_id/caller_id_map_unittest.py .....                        [ 22%]
+tsercom/caller_id/caller_identifier_unittest.py ..............           [ 24%]
+tsercom/caller_id/caller_identifier_waiter_unittest.py ....              [ 25%]
+tsercom/caller_id/client_id_fetcher_unittest.py .......                  [ 26%]
+tsercom/data/data_host_base_unittest.py .....                            [ 27%]
+tsercom/data/data_timeout_tracker_unittest.py ..........                 [ 29%]
+tsercom/data/exposed_data_with_responder_unittest.py .....               [ 30%]
+tsercom/data/remote_data_aggregator_impl_unittest.py ................... [ 34%]
+.                                                                        [ 34%]
+tsercom/data/remote_data_organizer_unittest.py ......................... [ 39%]
+.                                                                        [ 39%]
+tsercom/discovery/discovery_host_unittest.py .......                     [ 41%]
+tsercom/discovery/mdns/instance_listener_unittest.py ...........         [ 43%]
+tsercom/discovery/mdns/instance_publisher_unittest.py .................. [ 46%]
+.                                                                        [ 46%]
+tsercom/discovery_e2etest.py ....F.                                      [ 47%]
+tsercom/rpc/connection/client_disconnection_retrier_unittest.py .......  [ 49%]
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector_unittest.py . [ 49%]
+......                                                                   [ 50%]
+tsercom/rpc/serialization/caller_id_extraction_unittest.py ............  [ 52%]
+tsercom/rpc_e2etest.py .............                                     [ 55%]
+tsercom/runtime/client/client_runtime_data_handler_unittest.py ......    [ 56%]
+tsercom/runtime/client/timesync_tracker_unittest.py ......               [ 57%]
+tsercom/runtime/id_tracker_unittest.py ...............                   [ 60%]
+tsercom/runtime/runtime_config_unittest.py ...............               [ 63%]
+tsercom/runtime/runtime_data_handler_base_unittest.py .................. [ 67%]
+....                                                                     [ 67%]
+tsercom/runtime/runtime_main_unittest.py .....                           [ 68%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py .....     [ 69%]
+tsercom/runtime_e2etest.py ......                                        [ 70%]
+tsercom/threading/aio/aio_utils_unittest.py .......                      [ 72%]
+tsercom/threading/aio/event_loop_factory_unittest.py .                   [ 72%]
+tsercom/threading/aio/global_event_loop_unittest.py .........            [ 74%]
+tsercom/threading/async_poller_unittest.py ...............               [ 77%]
+tsercom/threading/atomic_unittest.py ......                              [ 78%]
+tsercom/threading/multiprocess/multiprocess_queue_sink_unittest.py ....  [ 78%]
+tsercom/threading/thread_safe_queue_unittest.py .......                  [ 80%]
+tsercom/threading/thread_watcher_unittest.py ............                [ 82%]
+tsercom/threading/throwing_thread_pool_executor_unittest.py ........     [ 84%]
+tsercom/threading/throwing_thread_unittest.py .....s                     [ 85%]
+tsercom/timesync/client/client_synchronized_clock_unittest.py .......... [ 87%]
+                                                                         [ 87%]
+tsercom/timesync/client/fake_time_sync_client_unittest.py ........       [ 88%]
+tsercom/timesync/client/time_sync_client_unittest.py ..............      [ 91%]
+tsercom/timesync/common/fake_synchronized_clock_unittest.py ...          [ 92%]
+tsercom/timesync/common/synchronized_clock_unittest.py .....             [ 93%]
+tsercom/timesync/common/synchronized_timestamp_unittest.py ............. [ 95%]
+..                                                                       [ 95%]
+tsercom/timesync/server/server_synchronized_clock_unittest.py ...        [ 96%]
+tsercom/util/ip_unittest.py ........                                     [ 98%]
+tsercom/util/is_running_tracker_unittest.py ........                     [ 99%]
+tsercom/util/stopable_unittest.py ..                                     [100%]
+
+=================================== FAILURES ===================================
+____________________ test_one_publisher_multiple_listeners _____________________
+
+self = <asyncio.locks.Event object at 0x7f0f1443f8e0 [unset]>
+
+    async def wait(self):
+        """Block until the internal flag is true.
+
+        If the internal flag is true on entry, return True
+        immediately.  Otherwise, block until another coroutine calls
+        set() to set the flag to true, then return True.
+        """
+        if self._value:
+            return True
+
+        fut = self._get_loop().create_future()
+        self._waiters.append(fut)
+        try:
+>           await fut
+E           asyncio.exceptions.CancelledError
+
+/usr/lib/python3.10/asyncio/locks.py:214: CancelledError
+
+During handling of the above exception, another exception occurred:
+
+fut = <Task cancelled name='Task-169' coro=<Event.wait() done, defined at /usr/lib/python3.10/asyncio/locks.py:201>>
+timeout = 10.0
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+
+        Coroutine will be wrapped in Task.
+
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+
+        If the wait is cancelled, the task is also cancelled.
+
+        This function is a coroutine.
+        """
+        loop = events.get_running_loop()
+
+        if timeout is None:
+            return await fut
+
+        if timeout <= 0:
+            fut = ensure_future(fut, loop=loop)
+
+            if fut.done():
+                return fut.result()
+
+            await _cancel_and_wait(fut, loop=loop)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise exceptions.TimeoutError() from exc
+
+        waiter = loop.create_future()
+        timeout_handle = loop.call_later(timeout, _release_waiter, waiter)
+        cb = functools.partial(_release_waiter, waiter)
+
+        fut = ensure_future(fut, loop=loop)
+        fut.add_done_callback(cb)
+
+        try:
+            # wait until the future completes or the timeout
+            try:
+                await waiter
+            except exceptions.CancelledError:
+                if fut.done():
+                    return fut.result()
+                else:
+                    fut.remove_done_callback(cb)
+                    # We must ensure that the task is not running
+                    # after wait_for() returns.
+                    # See https://bugs.python.org/issue32751
+                    await _cancel_and_wait(fut, loop=loop)
+                    raise
+
+            if fut.done():
+                return fut.result()
+            else:
+                fut.remove_done_callback(cb)
+                # We must ensure that the task is not running
+                # after wait_for() returns.
+                # See https://bugs.python.org/issue32751
+                await _cancel_and_wait(fut, loop=loop)
+                # In case task cancellation failed with some
+                # exception, we should re-raise it
+                # See https://bugs.python.org/issue40607
+                try:
+>                   return fut.result()
+E                   asyncio.exceptions.CancelledError
+
+/usr/lib/python3.10/asyncio/tasks.py:456: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+    @pytest.mark.asyncio
+    async def test_one_publisher_multiple_listeners():
+        service_type_suffix = uuid.uuid4().hex[:8]
+        service_type = f"_mlis-{service_type_suffix}._tcp.local." # Hyphenated
+        service_port = 50007
+        readable_name = f"MultiListenService_{service_type_suffix}"
+        instance_name = f"MultiListenInstance_{service_type_suffix}"
+
+        publisher = InstancePublisher(
+            port=service_port,
+            service_type=service_type,
+            readable_name=readable_name,
+            instance_name=instance_name,
+        )
+
+        listeners_data = []
+        tasks = []
+
+        try:
+            await publisher.publish() # Added await
+            # Give publisher a moment to ensure it's up before listeners start
+            # This is important as mDNS registration can take a moment.
+            await asyncio.sleep(1.0)
+
+            # Listener 1
+            listener1_event = asyncio.Event()
+            listener1_services = []
+            client1 = MultiDiscoveryTestClient(
+                listener1_services,
+                expected_discoveries=1,
+                all_discovered_event=listener1_event,
+            )
+            listener1 = InstanceListener(client=client1, service_type=service_type)
+            listeners_data.append(
+                {
+                    "event": listener1_event,
+                    "services": listener1_services,
+                    "listener_obj": listener1,
+                }
+            )
+            tasks.append(asyncio.wait_for(listener1_event.wait(), timeout=10.0))
+
+            await asyncio.sleep(3.0) # Increased delay before starting the next listener
+
+            # Listener 2
+            listener2_event = asyncio.Event()
+            listener2_services = []
+            client2 = MultiDiscoveryTestClient(
+                listener2_services,
+                expected_discoveries=1,
+                all_discovered_event=listener2_event,
+            )
+            listener2 = InstanceListener(client=client2, service_type=service_type)
+            listeners_data.append(
+                {
+                    "event": listener2_event,
+                    "services": listener2_services,
+                    "listener_obj": listener2,
+                }
+            )
+            tasks.append(asyncio.wait_for(listener2_event.wait(), timeout=10.0))
+
+>           await asyncio.gather(*tasks)
+
+tsercom/discovery_e2etest.py:535:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fut = <Task cancelled name='Task-169' coro=<Event.wait() done, defined at /usr/lib/python3.10/asyncio/locks.py:201>>
+timeout = 10.0
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+
+        Coroutine will be wrapped in Task.
+
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+
+        If the wait is cancelled, the task is also cancelled.
+
+        This function is a coroutine.
+        """
+        loop = events.get_running_loop()
+
+        if timeout is None:
+            return await fut
+
+        if timeout <= 0:
+            fut = ensure_future(fut, loop=loop)
+
+            if fut.done():
+                return fut.result()
+
+            await _cancel_and_wait(fut, loop=loop)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise exceptions.TimeoutError() from exc
+
+        waiter = loop.create_future()
+        timeout_handle = loop.call_later(timeout, _release_waiter, waiter)
+        cb = functools.partial(_release_waiter, waiter)
+
+        fut = ensure_future(fut, loop=loop)
+        fut.add_done_callback(cb)
+
+        try:
+            # wait until the future completes or the timeout
+            try:
+                await waiter
+            except exceptions.CancelledError:
+                if fut.done():
+                    return fut.result()
+                else:
+                    fut.remove_done_callback(cb)
+                    # We must ensure that the task is not running
+                    # after wait_for() returns.
+                    # See https://bugs.python.org/issue32751
+                    await _cancel_and_wait(fut, loop=loop)
+                    raise
+
+            if fut.done():
+                return fut.result()
+            else:
+                fut.remove_done_callback(cb)
+                # We must ensure that the task is not running
+                # after wait_for() returns.
+                # See https://bugs.python.org/issue32751
+                await _cancel_and_wait(fut, loop=loop)
+                # In case task cancellation failed with some
+                # exception, we should re-raise it
+                # See https://bugs.python.org/issue40607
+                try:
+                    return fut.result()
+                except exceptions.CancelledError as exc:
+>                   raise exceptions.TimeoutError() from exc
+E                   asyncio.exceptions.TimeoutError
+
+/usr/lib/python3.10/asyncio/tasks.py:458: TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+    @pytest.mark.asyncio
+    async def test_one_publisher_multiple_listeners():
+        service_type_suffix = uuid.uuid4().hex[:8]
+        service_type = f"_mlis-{service_type_suffix}._tcp.local." # Hyphenated
+        service_port = 50007
+        readable_name = f"MultiListenService_{service_type_suffix}"
+        instance_name = f"MultiListenInstance_{service_type_suffix}"
+
+        publisher = InstancePublisher(
+            port=service_port,
+            service_type=service_type,
+            readable_name=readable_name,
+            instance_name=instance_name,
+        )
+
+        listeners_data = []
+        tasks = []
+
+        try:
+            await publisher.publish() # Added await
+            # Give publisher a moment to ensure it's up before listeners start
+            # This is important as mDNS registration can take a moment.
+            await asyncio.sleep(1.0)
+
+            # Listener 1
+            listener1_event = asyncio.Event()
+            listener1_services = []
+            client1 = MultiDiscoveryTestClient(
+                listener1_services,
+                expected_discoveries=1,
+                all_discovered_event=listener1_event,
+            )
+            listener1 = InstanceListener(client=client1, service_type=service_type)
+            listeners_data.append(
+                {
+                    "event": listener1_event,
+                    "services": listener1_services,
+                    "listener_obj": listener1,
+                }
+            )
+            tasks.append(asyncio.wait_for(listener1_event.wait(), timeout=10.0))
+
+            await asyncio.sleep(3.0) # Increased delay before starting the next listener
+
+            # Listener 2
+            listener2_event = asyncio.Event()
+            listener2_services = []
+            client2 = MultiDiscoveryTestClient(
+                listener2_services,
+                expected_discoveries=1,
+                all_discovered_event=listener2_event,
+            )
+            listener2 = InstanceListener(client=client2, service_type=service_type)
+            listeners_data.append(
+                {
+                    "event": listener2_event,
+                    "services": listener2_services,
+                    "listener_obj": listener2,
+                }
+            )
+            tasks.append(asyncio.wait_for(listener2_event.wait(), timeout=10.0))
+
+            await asyncio.gather(*tasks)
+
+        except asyncio.TimeoutError:
+            for i, data in enumerate(listeners_data):
+                if not data["event"].is_set():
+>                   pytest.fail(
+                        f"Listener {i+1} did not discover the service within timeout."
+                    )
+E                   Failed: Listener 1 did not discover the service within timeout.
+
+tsercom/discovery_e2etest.py:540: Failed
+=============================== warnings summary ===============================
+tsercom/discovery_e2etest.py:19
+  /app/tsercom/discovery_e2etest.py:19: PytestCollectionWarning: cannot collect test class 'DiscoveryTestClient' because it has a __init__ constructor (from: tsercom/discovery_e2etest.py)
+    class DiscoveryTestClient(InstanceListener.Client):
+
+tsercom/discovery_e2etest.py:117
+  /app/tsercom/discovery_e2etest.py:117: PytestCollectionWarning: cannot collect test class 'UpdateTestClient' because it has a __init__ constructor (from: tsercom/discovery_e2etest.py)
+    class UpdateTestClient(InstanceListener.Client):
+
+tsercom/discovery_e2etest.py:347
+  /app/tsercom/discovery_e2etest.py:347: PytestCollectionWarning: cannot collect test class 'MultiDiscoveryTestClient' because it has a __init__ constructor (from: tsercom/discovery_e2etest.py)
+    class MultiDiscoveryTestClient(InstanceListener.Client):
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionCall' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionResponse' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+tsercom/rpc/connection/discoverable_grpc_endpoint_connector_unittest.py::TestDiscoverableGrpcEndpointConnector::test_start_calls_discovery_host_start_discovery
+  /app/tsercom/rpc/connection/discoverable_grpc_endpoint_connector.py:93: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    self.__discovery_host.start_discovery(self)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/rpc_e2etest.py: 13 warnings
+  /home/swebot/.local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:880: RuntimeWarning: Error cleaning up asyncio loop: Event loop stopped before Future completed.
+    warnings.warn(f"Error cleaning up asyncio loop: {e}", RuntimeWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/discovery_e2etest.py::test_one_publisher_multiple_listeners - ...
+======= 1 failed, 517 passed, 1 skipped, 19 warnings in 85.92s (0:01:25) =======

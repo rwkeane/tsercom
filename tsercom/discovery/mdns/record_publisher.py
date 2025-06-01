@@ -55,7 +55,7 @@ class RecordPublisher(MdnsPublisher):
         # Logging the service being published for traceability.
         # Replacing print with logging for better practice, assuming logger is configured elsewhere.
 
-    def publish(self) -> None:
+    async def publish(self) -> None: # Changed to async
         # `addresses` are fetched dynamically to get all current IPv4 addresses of the host.
         service_info = ServiceInfo(
             type_=self.__ptr,  # The service type (e.g., "_myservice._tcp.local.")
@@ -66,7 +66,17 @@ class RecordPublisher(MdnsPublisher):
             # Optional: server name can be set here if needed, e.g., f"{socket.gethostname()}.local."
         )
 
-        zeroconf = Zeroconf(ip_version=IPVersion.V4Only)
-        zeroconf.register_service(service_info)
+        import asyncio
+        loop = asyncio.get_running_loop()
+
+        # Run blocking zeroconf operations in a thread pool executor
+        # Note: This Zeroconf instance is created and used per call.
+        # For unregistering, a similar approach or a shared instance would be needed.
+        zc = Zeroconf(ip_version=IPVersion.V4Only)
+        await loop.run_in_executor(None, zc.register_service, service_info)
+        # According to zeroconf docs, close() should be called to release resources.
+        # Running close in executor as well, though its blocking nature might be less critical.
+        await loop.run_in_executor(None, zc.close)
+
 
         # Logging successful publication.

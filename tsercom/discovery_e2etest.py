@@ -4,8 +4,13 @@ import ipaddress
 import gc  # Moved import gc to top level
 
 import pytest
+import pytest_asyncio # Import pytest_asyncio
 
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
+from tsercom.threading.aio.global_event_loop import (
+    set_tsercom_event_loop, # Corrected name
+    clear_tsercom_event_loop, # Corrected name
+)
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.mdns.instance_listener import InstanceListener
@@ -24,10 +29,21 @@ class DiscoveryTestClient(InstanceListener.Client):
         self._discovery_event.set()
 
 
+@pytest_asyncio.fixture(scope="function", autouse=True) # Changed to pytest_asyncio.fixture
+async def manage_tsercom_global_event_loop():
+    """Ensures tsercom's global event loop is set for asyncio tests."""
+    try:
+        loop = asyncio.get_running_loop()
+        set_tsercom_event_loop(loop) # Corrected name
+        yield
+    finally:
+        clear_tsercom_event_loop() # Corrected name
+
+
 @pytest.mark.asyncio
 async def test_successful_registration_and_discovery():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_e2e_{service_type_suffix}._tcp.local."
+    service_type = f"_e2e-{service_type_suffix}._tcp.local." # Hyphenated
     service_port = 50001
     readable_name = f"TestService_{service_type_suffix}"
     instance_name = f"TestInstance_{service_type_suffix}"
@@ -50,7 +66,7 @@ async def test_successful_registration_and_discovery():
         )
         # Start listening - happens in InstanceListener constructor
         # Publish the service
-        publisher_obj.publish()
+        await publisher_obj.publish() # Added await
 
         await asyncio.wait_for(discovery_event.wait(), timeout=10.0)
     except asyncio.TimeoutError:
@@ -123,7 +139,7 @@ class UpdateTestClient(InstanceListener.Client):
 @pytest.mark.asyncio
 async def test_instance_update_reflects_changes():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_update_{service_type_suffix}._tcp.local."
+    service_type = f"_upd-{service_type_suffix}._tcp.local." # Hyphenated
     instance_name = f"UpdateInstance_{service_type_suffix}"  # Critical: This stays the same
 
     service_port1 = 50002
@@ -150,7 +166,7 @@ async def test_instance_update_reflects_changes():
             readable_name=readable_name1,
             instance_name=instance_name,
         )
-        publisher1_obj.publish()
+        await publisher1_obj.publish() # Added await
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
 
         assert discovery_event1.is_set(), "Initial discovery event was not set"
@@ -177,7 +193,7 @@ async def test_instance_update_reflects_changes():
             readable_name=readable_name2,
             instance_name=instance_name,  # SAME instance_name
         )
-        publisher2_obj.publish()
+        await publisher2_obj.publish() # Added await
         await asyncio.wait_for(discovery_event2.wait(), timeout=10.0)
 
     except asyncio.TimeoutError as e:
@@ -234,7 +250,7 @@ async def test_instance_update_reflects_changes():
 @pytest.mark.asyncio
 async def test_instance_unpublishing():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_unpublish_{service_type_suffix}._tcp.local."
+    service_type = f"_unpub-{service_type_suffix}._tcp.local." # Hyphenated
     service_port = 50004
     readable_name = f"UnpublishTestService_{service_type_suffix}"
     instance_name = f"UnpublishInstance_{service_type_suffix}"
@@ -254,7 +270,7 @@ async def test_instance_unpublishing():
     )
 
     try:
-        publisher.publish()
+        await publisher.publish() # Added await
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
     except asyncio.TimeoutError:
         pytest.fail(
@@ -357,7 +373,7 @@ class MultiDiscoveryTestClient(InstanceListener.Client):
 @pytest.mark.asyncio
 async def test_multiple_publishers_one_listener():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_multi_pub_{service_type_suffix}._tcp.local."
+    service_type = f"_mpub-{service_type_suffix}._tcp.local." # Hyphenated
 
     all_discovered_event = asyncio.Event()
     discovered_services = []
@@ -414,7 +430,7 @@ async def test_multiple_publishers_one_listener():
 
     try:
         for p in publishers:
-            p.publish()
+            await p.publish() # Added await
 
         await asyncio.wait_for(all_discovered_event.wait(), timeout=15.0)
     except asyncio.TimeoutError:
@@ -457,7 +473,7 @@ async def test_multiple_publishers_one_listener():
 @pytest.mark.asyncio
 async def test_one_publisher_multiple_listeners():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_multi_listen_{service_type_suffix}._tcp.local."
+    service_type = f"_mlis-{service_type_suffix}._tcp.local." # Hyphenated
     service_port = 50007
     readable_name = f"MultiListenService_{service_type_suffix}"
     instance_name = f"MultiListenInstance_{service_type_suffix}"
@@ -473,7 +489,7 @@ async def test_one_publisher_multiple_listeners():
     tasks = []
 
     try:
-        publisher.publish()
+        await publisher.publish() # Added await
         # Give publisher a moment to ensure it's up before listeners start
         # This is important as mDNS registration can take a moment.
         await asyncio.sleep(1.0)
@@ -495,6 +511,8 @@ async def test_one_publisher_multiple_listeners():
             }
         )
         tasks.append(asyncio.wait_for(listener1_event.wait(), timeout=10.0))
+
+        await asyncio.sleep(3.0) # Increased delay before starting the next listener
 
         # Listener 2
         listener2_event = asyncio.Event()
@@ -555,7 +573,7 @@ async def test_one_publisher_multiple_listeners():
 @pytest.mark.asyncio
 async def test_publisher_starts_after_listener():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_resilience_{service_type_suffix}._tcp.local."
+    service_type = f"_res-{service_type_suffix}._tcp.local." # Hyphenated
     service_port = 50008
     readable_name = f"ResilienceTestService_{service_type_suffix}"
     instance_name = f"ResilienceInstance_{service_type_suffix}"
@@ -585,7 +603,7 @@ async def test_publisher_starts_after_listener():
             readable_name=readable_name,
             instance_name=instance_name,
         )
-        publisher.publish()
+        await publisher.publish() # Added await
 
         # Wait for discovery
         await asyncio.wait_for(discovery_event.wait(), timeout=10.0)

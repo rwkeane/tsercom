@@ -35,7 +35,7 @@ class FakeMdnsPublisher(MdnsPublisher):
         self.publish_called: bool = False
         self.publish_call_count: int = 0
 
-    def publish(self) -> None:
+    async def publish(self) -> None: # Changed to async def
         self.publish_called = True
         self.publish_call_count += 1
 
@@ -96,7 +96,10 @@ class TestInstancePublisher:
         ), "Factory was not called or did not capture publisher"
 
         assert captured_pub.instance_name == self.INSTANCE_NAME
-        assert captured_pub.service_type == self.SERVICE_TYPE
+        # self.SERVICE_TYPE is "_test_service._tcp.local."
+        # The InstancePublisher should extract the base "_test_service"
+        base_service_type = self.SERVICE_TYPE.replace("._tcp.local.", "")
+        assert captured_pub.service_type == base_service_type
         assert captured_pub.port == self.PORT
 
         assert captured_pub.txt_record is not None
@@ -258,7 +261,8 @@ class TestInstancePublisher:
                 instance_name=invalid_instance_name,
             )
 
-    def test_publish_method(self):
+    @pytest.mark.asyncio # Make test async
+    async def test_publish_method(self): # Make test async
         """Test that calling publish() on InstancePublisher calls publish() on its MdnsPublisher."""
         factory = self._get_fake_mdns_publisher_factory()
         publisher = InstancePublisher(
@@ -272,12 +276,12 @@ class TestInstancePublisher:
         assert not captured_pub.publish_called
         assert captured_pub.publish_call_count == 0
 
-        publisher.publish()  # Call the method under test
+        await publisher.publish()  # Call the method under test (with await)
 
         assert captured_pub.publish_called
         assert captured_pub.publish_call_count == 1
 
-        publisher.publish()  # Call again
+        await publisher.publish()  # Call again (with await)
         assert captured_pub.publish_call_count == 2
 
     def test_make_txt_record_name_absent(self):
