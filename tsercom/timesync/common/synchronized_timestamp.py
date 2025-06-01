@@ -1,7 +1,7 @@
 import dataclasses
 import datetime
 from typing import TypeAlias, Union, Optional
-import logging  # Preserved as it's used by try_parse
+import logging
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from tsercom.timesync.common.proto import ServerTimestamp
@@ -9,9 +9,7 @@ from tsercom.timesync.common.proto import ServerTimestamp
 TimestampType: TypeAlias = Union["SynchronizedTimestamp", datetime.datetime]
 
 
-@dataclasses.dataclass(
-    eq=False, order=False, unsafe_hash=False
-)  # Retaining custom eq/order
+@dataclasses.dataclass(eq=False, order=False, unsafe_hash=False)
 class SynchronizedTimestamp:
     """
     A wrapper around a `datetime.datetime` object to represent a timestamp
@@ -62,7 +60,6 @@ class SynchronizedTimestamp:
         if isinstance(other, ServerTimestamp):
             other = other.timestamp
 
-        # This assertion is a useful precondition check.
         if not isinstance(other, Timestamp):
             raise TypeError(
                 "Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one."
@@ -72,7 +69,6 @@ class SynchronizedTimestamp:
             dt_object = other.ToDatetime()
             return cls(dt_object)
         except ValueError as e:
-            # Logging here is important for debugging potential data issues.
             logging.warning(f"Failed to parse gRPC Timestamp to datetime: {e}")
             return None
 

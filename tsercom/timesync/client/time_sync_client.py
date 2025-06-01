@@ -1,4 +1,4 @@
-from collections import deque  # Changed from typing.Deque
+from collections import deque
 import ntplib  # type: ignore  # ntplib may not have type stubs available
 import time
 import threading
@@ -49,9 +49,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
 
         # __time_offsets: A deque to store a running list of recent time offset
         # values obtained from the NTP server. Used to calculate an averaged offset.
-        self.__time_offsets: deque[float] = (
-            deque()
-        )  # Changed type hint and instantiation
+        self.__time_offsets: deque[float] = deque()
 
         # __is_running: An IsRunningTracker instance to manage the running state
         # of the client. Controls the synchronization loop and signals stopping.
