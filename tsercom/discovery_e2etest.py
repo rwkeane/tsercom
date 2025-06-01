@@ -4,7 +4,7 @@ import ipaddress
 import gc  # Moved import gc to top level
 
 import pytest
-import pytest_asyncio # Import pytest_asyncio
+import pytest_asyncio  # Import pytest_asyncio
 
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
 from tsercom.threading.aio.global_event_loop import (
@@ -77,7 +77,7 @@ async def test_successful_registration_and_discovery():
         # Explicitly delete to manage lifecycle and satisfy linters,
         # relying on __del__ in publisher for unpublishing.
         if publisher_obj:
-            await publisher_obj.close() # Explicitly close
+            await publisher_obj.close()  # Explicitly close
         if (
             listener_obj
         ):  # listener_obj is always created if this block is reached
@@ -152,9 +152,7 @@ async def test_instance_update_reflects_changes():
     client = UpdateTestClient(
         [discovery_event1, discovery_event2], discovered_services
     )
-    listener_obj = InstanceListener(
-        client=client, service_type=service_type
-    )
+    listener_obj = InstanceListener(client=client, service_type=service_type)
 
     publisher1_obj = None  # Initialize for finally block
     publisher2_obj = None  # Initialize for finally block
@@ -187,6 +185,13 @@ async def test_instance_update_reflects_changes():
         service_port2 = 50003
         readable_name2 = f"UpdateTestService_V2_{service_type_suffix}"
 
+        # Explicitly close the first publisher to unregister its service
+        # so the second publisher can register the same instance name.
+        if publisher1_obj:
+            await publisher1_obj.close()
+            # Allow a brief moment for the unregistration to propagate.
+            await asyncio.sleep(0.2)
+
         publisher2_obj = InstancePublisher(
             port=service_port2,
             service_type=service_type,
@@ -209,9 +214,9 @@ async def test_instance_update_reflects_changes():
             pytest.fail(f"A timeout error occurred: {e}")
     finally:
         if publisher1_obj:
-            await publisher1_obj.close() # Explicitly close
+            await publisher1_obj.close()  # Explicitly close
         if publisher2_obj:
-            await publisher2_obj.close() # Explicitly close
+            await publisher2_obj.close()  # Explicitly close
         if listener_obj:  # listener_obj is always created
             del listener_obj
         gc.collect()  # Encourage faster cleanup
@@ -297,7 +302,7 @@ async def test_instance_unpublishing():
 
     # Phase 2: "Unpublish" the service
     # Explicitly close the publisher to unregister the service.
-    if publisher: # Ensure publisher was created
+    if publisher:  # Ensure publisher was created
         await publisher.close()
     # import gc # gc is now imported at top level
     gc.collect()  # GC still useful for other objects
@@ -438,7 +443,7 @@ async def test_multiple_publishers_one_listener():
             f"Not all services ({len(expected_service_details)}) discovered within timeout. Found {len(discovered_services)}."
         )
     finally:
-        for p in publishers: # Close all publishers
+        for p in publishers:  # Close all publishers
             if p:
                 await p.close()
         del listener
