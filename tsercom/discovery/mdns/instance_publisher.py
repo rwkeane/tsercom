@@ -164,7 +164,7 @@ class InstancePublisher:
         ):
             try:
                 # Assuming the close method of the publisher is async
-                await self.__record_publisher.close()  # type: ignore
+                await self.__record_publisher.close()
             except Exception as e:
                 _logger.error(
                     "Error while closing the record publisher: %s",
