@@ -1,6 +1,6 @@
-import logging # For _logger
+import logging  # For _logger
 from typing import Dict, Optional
-from asyncio import AbstractEventLoop # For type hinting
+from asyncio import AbstractEventLoop  # For type hinting
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
@@ -57,20 +57,24 @@ class RecordPublisher(MdnsPublisher):
         self.__txt: Dict[bytes, bytes | None] = properties
         self._zc: Zeroconf | None = None
         self._loop: AbstractEventLoop | None = None
-        self._service_info: ServiceInfo | None = None # To store for unregistering
+        self._service_info: ServiceInfo | None = (
+            None  # To store for unregistering
+        )
 
         # Logging the service being published for traceability.
         # Replacing print with logging for better practice, assuming logger is configured elsewhere.
 
     async def publish(self) -> None:
         if self._zc:
-            _logger.info("Service %s already published. Re-registering.", self.__srv)
+            _logger.info(
+                "Service %s already published. Re-registering.", self.__srv
+            )
             # Optionally, unregister first or update if supported,
             # for now, we assume re-registering is the desired behavior or that
             # Zeroconf handles re-registration of the same ServiceInfo correctly.
             # await self.close() # This would unregister and close before re-registering
 
-        self._service_info = ServiceInfo( # Store service_info
+        self._service_info = ServiceInfo(  # Store service_info
             type_=self.__ptr,
             name=self.__srv,
             addresses=get_all_addresses(),
@@ -79,27 +83,42 @@ class RecordPublisher(MdnsPublisher):
         )
 
         import asyncio
+
         self._loop = asyncio.get_running_loop()
 
         self._zc = Zeroconf(ip_version=IPVersion.V4Only)
-        await self._loop.run_in_executor(None, self._zc.register_service, self._service_info)
+        await self._loop.run_in_executor(
+            None, self._zc.register_service, self._service_info
+        )
         _logger.info("Service %s registered.", self.__srv)
 
     async def close(self) -> None:
         """Closes the Zeroconf instance and unregisters services."""
         if self._zc and self._loop:
-            _logger.debug("Closing Zeroconf instance for %s and unregistering service.", self.__srv)
+            _logger.debug(
+                "Closing Zeroconf instance for %s and unregistering service.",
+                self.__srv,
+            )
             try:
-                if self._service_info: # Ensure service was registered before trying to unregister
-                    await self._loop.run_in_executor(None, self._zc.unregister_service, self._service_info)
+                if (
+                    self._service_info
+                ):  # Ensure service was registered before trying to unregister
+                    await self._loop.run_in_executor(
+                        None, self._zc.unregister_service, self._service_info
+                    )
                     _logger.info("Service %s unregistered.", self.__srv)
                 await self._loop.run_in_executor(None, self._zc.close)
                 _logger.debug("Zeroconf instance for %s closed.", self.__srv)
             except Exception as e:
-                _logger.error("Error closing Zeroconf for %s: %s", self.__srv, e)
+                _logger.error(
+                    "Error closing Zeroconf for %s: %s", self.__srv, e
+                )
             finally:
                 self._zc = None
                 self._loop = None
                 self._service_info = None
         else:
-            _logger.debug("Zeroconf instance for %s already closed or not initialized.", self.__srv)
+            _logger.debug(
+                "Zeroconf instance for %s already closed or not initialized.",
+                self.__srv,
+            )

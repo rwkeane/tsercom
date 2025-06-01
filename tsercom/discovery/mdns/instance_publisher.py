@@ -1,8 +1,7 @@
 """Defines InstancePublisher for announcing service instances via mDNS, including TXT record preparation."""
 
-import asyncio # For event loop management in close (if needed)
 import datetime
-import logging # For logging
+import logging
 from typing import Callable, Dict, Optional
 from uuid import getnode as get_mac
 
@@ -165,10 +164,12 @@ class InstancePublisher:
         ):
             try:
                 # Assuming the close method of the publisher is async
-                await self.__record_publisher.close() # type: ignore
+                await self.__record_publisher.close()  # type: ignore
             except Exception as e:
                 _logger.error(
-                    "Error while closing the record publisher: %s", e, exc_info=True
+                    "Error while closing the record publisher: %s",
+                    e,
+                    exc_info=True,
                 )
         else:
             _logger.debug(
