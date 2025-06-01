@@ -4,8 +4,13 @@ import ipaddress
 import gc  # Moved import gc to top level
 
 import pytest
+import pytest_asyncio # Import pytest_asyncio
 
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
+from tsercom.threading.aio.global_event_loop import (
+    set_tsercom_event_loop,
+    clear_tsercom_event_loop,
+)
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.mdns.instance_listener import InstanceListener
@@ -24,10 +29,21 @@ class DiscoveryTestClient(InstanceListener.Client):
         self._discovery_event.set()
 
 
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def manage_tsercom_global_event_loop():
+    """Ensures tsercom's global event loop is set for asyncio tests."""
+    try:
+        loop = asyncio.get_running_loop()
+        set_tsercom_event_loop(loop)
+        yield
+    finally:
+        clear_tsercom_event_loop()
+
+
 @pytest.mark.asyncio
 async def test_successful_registration_and_discovery():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_e2e_{service_type_suffix}._tcp.local."
+    service_type = f"_e2e-{service_type_suffix}._tcp.local."
     service_port = 50001
     readable_name = f"TestService_{service_type_suffix}"
     instance_name = f"TestInstance_{service_type_suffix}"
@@ -50,7 +66,7 @@ async def test_successful_registration_and_discovery():
         )
         # Start listening - happens in InstanceListener constructor
         # Publish the service
-        publisher_obj.publish()
+        await publisher_obj.publish()
 
         await asyncio.wait_for(discovery_event.wait(), timeout=10.0)
     except asyncio.TimeoutError:
@@ -61,7 +77,7 @@ async def test_successful_registration_and_discovery():
         # Explicitly delete to manage lifecycle and satisfy linters,
         # relying on __del__ in publisher for unpublishing.
         if publisher_obj:
-            del publisher_obj
+            await publisher_obj.close() # Explicitly close
         if (
             listener_obj
         ):  # listener_obj is always created if this block is reached
@@ -123,7 +139,7 @@ class UpdateTestClient(InstanceListener.Client):
 @pytest.mark.asyncio
 async def test_instance_update_reflects_changes():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_update_{service_type_suffix}._tcp.local."
+    service_type = f"_upd-{service_type_suffix}._tcp.local."
     instance_name = f"UpdateInstance_{service_type_suffix}"  # Critical: This stays the same
 
     service_port1 = 50002
@@ -138,19 +154,19 @@ async def test_instance_update_reflects_changes():
     )
     listener_obj = InstanceListener(
         client=client, service_type=service_type
-    )  # Renamed
+    )
 
     publisher1_obj = None  # Initialize for finally block
     publisher2_obj = None  # Initialize for finally block
 
     try:
-        publisher1_obj = InstancePublisher(  # Renamed
+        publisher1_obj = InstancePublisher(
             port=service_port1,
             service_type=service_type,
             readable_name=readable_name1,
             instance_name=instance_name,
         )
-        publisher1_obj.publish()
+        await publisher1_obj.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
 
         assert discovery_event1.is_set(), "Initial discovery event was not set"
@@ -171,13 +187,13 @@ async def test_instance_update_reflects_changes():
         service_port2 = 50003
         readable_name2 = f"UpdateTestService_V2_{service_type_suffix}"
 
-        publisher2_obj = InstancePublisher(  # Renamed
+        publisher2_obj = InstancePublisher(
             port=service_port2,
             service_type=service_type,
             readable_name=readable_name2,
             instance_name=instance_name,  # SAME instance_name
         )
-        publisher2_obj.publish()
+        await publisher2_obj.publish()
         await asyncio.wait_for(discovery_event2.wait(), timeout=10.0)
 
     except asyncio.TimeoutError as e:
@@ -193,9 +209,9 @@ async def test_instance_update_reflects_changes():
             pytest.fail(f"A timeout error occurred: {e}")
     finally:
         if publisher1_obj:
-            del publisher1_obj
+            await publisher1_obj.close() # Explicitly close
         if publisher2_obj:
-            del publisher2_obj
+            await publisher2_obj.close() # Explicitly close
         if listener_obj:  # listener_obj is always created
             del listener_obj
         gc.collect()  # Encourage faster cleanup
@@ -234,7 +250,7 @@ async def test_instance_update_reflects_changes():
 @pytest.mark.asyncio
 async def test_instance_unpublishing():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_unpublish_{service_type_suffix}._tcp.local."
+    service_type = f"_unpub-{service_type_suffix}._tcp.local."
     service_port = 50004
     readable_name = f"UnpublishTestService_{service_type_suffix}"
     instance_name = f"UnpublishInstance_{service_type_suffix}"
@@ -254,7 +270,7 @@ async def test_instance_unpublishing():
     )
 
     try:
-        publisher.publish()
+        await publisher.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
     except asyncio.TimeoutError:
         pytest.fail(
@@ -263,6 +279,7 @@ async def test_instance_unpublishing():
     finally:
         # No explicit stop for listener1 as per instructions, rely on GC
         # No explicit unpublish for publisher yet.
+        # Publisher is closed in the new finally block below.
         pass
 
     assert discovery_event1.is_set(), "Initial discovery event was not set."
@@ -279,12 +296,11 @@ async def test_instance_unpublishing():
     # For this test, we assume client1 is simple and listener1 going out of scope is enough for its mDNS parts.
 
     # Phase 2: "Unpublish" the service
-    # Unpublishing by deleting the publisher and relying on its __del__ to unregister the service.
-    # InstancePublisher's __del__ calls self.__record_publisher.unpublish_all()
-    # which in turn calls self.__mdns.unregister_service(self.__service_info) and self.__mdns.close().
-    del publisher
+    # Explicitly close the publisher to unregister the service.
+    if publisher: # Ensure publisher was created
+        await publisher.close()
     # import gc # gc is now imported at top level
-    gc.collect()  # Try to expedite __del__ for publisher's RecordPublisher
+    gc.collect()  # GC still useful for other objects
 
     # Allow time for mDNS "goodbye" packets to propagate and network state to settle.
     # This duration is heuristic. Zeroconf's default TTL for records is often 60 or 120 seconds.
@@ -357,7 +373,7 @@ class MultiDiscoveryTestClient(InstanceListener.Client):
 @pytest.mark.asyncio
 async def test_multiple_publishers_one_listener():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_multi_pub_{service_type_suffix}._tcp.local."
+    service_type = f"_mpub-{service_type_suffix}._tcp.local."
 
     all_discovered_event = asyncio.Event()
     discovered_services = []
@@ -414,7 +430,7 @@ async def test_multiple_publishers_one_listener():
 
     try:
         for p in publishers:
-            p.publish()
+            await p.publish()
 
         await asyncio.wait_for(all_discovered_event.wait(), timeout=15.0)
     except asyncio.TimeoutError:
@@ -422,9 +438,10 @@ async def test_multiple_publishers_one_listener():
             f"Not all services ({len(expected_service_details)}) discovered within timeout. Found {len(discovered_services)}."
         )
     finally:
-        # Rely on GC for publishers and listener by letting them go out of scope
+        for p in publishers: # Close all publishers
+            if p:
+                await p.close()
         del listener
-        del publishers  # This will delete publisher1, publisher2 references
         # import gc # gc is now imported at top level
         gc.collect()
 
@@ -457,7 +474,7 @@ async def test_multiple_publishers_one_listener():
 @pytest.mark.asyncio
 async def test_one_publisher_multiple_listeners():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_multi_listen_{service_type_suffix}._tcp.local."
+    service_type = f"_mlis-{service_type_suffix}._tcp.local."
     service_port = 50007
     readable_name = f"MultiListenService_{service_type_suffix}"
     instance_name = f"MultiListenInstance_{service_type_suffix}"
@@ -473,7 +490,7 @@ async def test_one_publisher_multiple_listeners():
     tasks = []
 
     try:
-        publisher.publish()
+        await publisher.publish()
         # Give publisher a moment to ensure it's up before listeners start
         # This is important as mDNS registration can take a moment.
         await asyncio.sleep(1.0)
@@ -495,6 +512,8 @@ async def test_one_publisher_multiple_listeners():
             }
         )
         tasks.append(asyncio.wait_for(listener1_event.wait(), timeout=10.0))
+
+        await asyncio.sleep(3.0)
 
         # Listener 2
         listener2_event = asyncio.Event()
@@ -525,7 +544,8 @@ async def test_one_publisher_multiple_listeners():
         # If gather fails due to timeout, this part might not be reached directly,
         # but individual timeouts in tasks will raise TimeoutError.
     finally:
-        del publisher
+        if publisher:
+            await publisher.close()
         for data in listeners_data:
             del data["listener_obj"]  # Remove reference to listener
         # import gc # gc is now imported at top level
@@ -555,7 +575,7 @@ async def test_one_publisher_multiple_listeners():
 @pytest.mark.asyncio
 async def test_publisher_starts_after_listener():
     service_type_suffix = uuid.uuid4().hex[:8]
-    service_type = f"_test_resilience_{service_type_suffix}._tcp.local."
+    service_type = f"_res-{service_type_suffix}._tcp.local."
     service_port = 50008
     readable_name = f"ResilienceTestService_{service_type_suffix}"
     instance_name = f"ResilienceInstance_{service_type_suffix}"
@@ -585,7 +605,7 @@ async def test_publisher_starts_after_listener():
             readable_name=readable_name,
             instance_name=instance_name,
         )
-        publisher.publish()
+        await publisher.publish()
 
         # Wait for discovery
         await asyncio.wait_for(discovery_event.wait(), timeout=10.0)
@@ -595,8 +615,8 @@ async def test_publisher_starts_after_listener():
             f"Service {readable_name} not discovered when publisher started after listener."
         )
     finally:
-        # Rely on GC for publisher and listener cleanup
-        del publisher
+        if publisher:
+            await publisher.close()
         del listener
         # import gc # gc is now imported at top level
         gc.collect()

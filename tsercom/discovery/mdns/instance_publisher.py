@@ -1,11 +1,15 @@
 """Defines InstancePublisher for announcing service instances via mDNS, including TXT record preparation."""
 
+import asyncio # For event loop management in close (if needed)
 import datetime
+import logging # For logging
 from typing import Callable, Dict, Optional
 from uuid import getnode as get_mac
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
+
+_logger = logging.getLogger(__name__)
 
 
 class InstancePublisher:
@@ -66,6 +70,12 @@ class InstancePublisher:
                 f"service_type must be a string, got {type(service_type).__name__}."
             )
 
+        # Ensure service_type is the base type (e.g., "_myservice") for RecordPublisher
+        base_service_type = service_type
+        suffix_to_remove = "._tcp.local."
+        if base_service_type.endswith(suffix_to_remove):
+            base_service_type = base_service_type[: -len(suffix_to_remove)]
+
         if readable_name is not None and not isinstance(readable_name, str):
             raise TypeError(
                 f"readable_name must be a string or None, got {type(readable_name).__name__}."
@@ -114,12 +124,12 @@ class InstancePublisher:
                 return RecordPublisher(eff_inst_name, s_type, p, txt)
 
             self.__record_publisher = default_mdns_publisher_factory(
-                effective_instance_name, service_type, port, txt_record
+                effective_instance_name, base_service_type, port, txt_record
             )
         else:
             # Use provided factory
             self.__record_publisher = mdns_publisher_factory(
-                effective_instance_name, service_type, port, txt_record
+                effective_instance_name, base_service_type, port, txt_record
             )
 
     def _make_txt_record(self) -> dict[bytes, bytes | None]:
@@ -140,13 +150,30 @@ class InstancePublisher:
 
         return properties
 
-    def publish(self) -> None:
+    async def publish(self) -> None:
         """Publishes the service instance using mDNS.
 
         This method delegates to the underlying `RecordPublisher` to make the
         service visible on the network.
         """
-        self.__record_publisher.publish()
+        await self.__record_publisher.publish()
+
+    async def close(self) -> None:
+        """Closes the underlying record publisher if it supports closing."""
+        if hasattr(self.__record_publisher, "close") and callable(
+            getattr(self.__record_publisher, "close")
+        ):
+            try:
+                # Assuming the close method of the publisher is async
+                await self.__record_publisher.close() # type: ignore
+            except Exception as e:
+                _logger.error(
+                    "Error while closing the record publisher: %s", e, exc_info=True
+                )
+        else:
+            _logger.debug(
+                "Record publisher does not have a close method or it's not callable."
+            )
 
     def __get_current_date_time_bytes(self) -> bytes:
         """Gets the current date and time formatted as a UTF-8 encoded string.
