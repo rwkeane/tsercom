@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import Coroutine
 from functools import partial
 import threading
-from typing import Any, AsyncIterator, TypeVar, Optional, Callable
+from typing import Any, AsyncIterator, TypeVar, Optional, Callable, cast
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none as default_get_running_loop_or_none,
@@ -273,7 +273,11 @@ class IsRunningTracker(Atomic[bool]):
                                    iterator is exhausted.
             """
             next_item_coro = anext(self.__iterator)
-            result = await self.__tracker.task_or_stopped(next_item_coro)  # type: ignore[arg-type]
+            # Explicitly cast to Coroutine to satisfy mypy, though an Awaitable should be fine.
+            # This might indicate a deeper issue or a mypy quirk.
+            result = await self.__tracker.task_or_stopped(
+                cast(Coroutine[Any, Any, TReturnType], next_item_coro)
+            )
 
             if result is None or not self.__tracker.get():
                 raise StopAsyncIteration()

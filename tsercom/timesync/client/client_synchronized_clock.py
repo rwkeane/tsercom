@@ -35,6 +35,28 @@ class ClientSynchronizedClock(SynchronizedClock):
             """
             pass
 
+        @abstractmethod
+        def get_synchronized_clock(self) -> SynchronizedClock:
+            """
+            Returns a SynchronizedClock instance that uses this client for offset
+            information.
+            """
+            pass
+
+        @abstractmethod
+        def start_async(self) -> None:
+            """
+            Starts the time synchronization client asynchronously.
+            """
+            pass
+
+        @abstractmethod
+        def stop(self) -> None:
+            """
+            Stops the time synchronization client.
+            """
+            pass
+
     def __init__(self, client: "ClientSynchronizedClock.Client") -> None:
         """
         Initializes the ClientSynchronizedClock.

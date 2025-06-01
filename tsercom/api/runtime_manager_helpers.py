@@ -7,13 +7,13 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
+from tsercom.threading.multiprocess.multiprocess_queue_source import (
+    MultiprocessQueueSource,
+)
 
 # You might need to import the specific queue type from 'create_multiprocess_queues' if available,
 # otherwise, use 'Any' or a generic 'multiprocessing.Queue'.
 # from tsercom.threading.multiprocess.multiprocess_queue_factory import SomeQueueType
-from multiprocessing import (
-    Queue as MultiprocessQueue,
-)  # Using standard multiprocessing.Queue as placeholder
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class SplitErrorWatcherSourceFactory:
     def create(
         self,
         thread_watcher: ThreadWatcher,
-        error_source_queue: MultiprocessQueue,
+        error_source_queue: MultiprocessQueueSource[Exception],
     ) -> SplitProcessErrorWatcherSource:
         """Creates a new SplitProcessErrorWatcherSource instance.
 

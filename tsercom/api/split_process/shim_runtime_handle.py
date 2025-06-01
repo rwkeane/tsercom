@@ -34,7 +34,7 @@ class ShimRuntimeHandle(
     RuntimeHandle[
         TDataType, TEventType
     ],  # Implements the abstract RuntimeHandle
-    RemoteDataReader[TDataType],  # Also acts as a RemoteDataReader
+    RemoteDataReader[AnnotatedInstance[TDataType]],  # Changed TDataType
 ):
     """A handle for a runtime operating in a separate process.
 
@@ -47,9 +47,13 @@ class ShimRuntimeHandle(
         self,
         thread_watcher: ThreadWatcher,
         event_queue: MultiprocessQueueSink[EventInstance[TEventType]],
-        data_queue: MultiprocessQueueSource[TDataType],
+        data_queue: MultiprocessQueueSource[
+            AnnotatedInstance[TDataType]
+        ],  # Changed TDataType
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
-        data_aggregator: RemoteDataAggregatorImpl[TDataType],
+        data_aggregator: RemoteDataAggregatorImpl[
+            AnnotatedInstance[TDataType]
+        ],  # Changed TDataType
         block: bool = False,
     ) -> None:
         """Initializes the ShimRuntimeHandle.
@@ -73,18 +77,18 @@ class ShimRuntimeHandle(
         self.__runtime_command_queue: MultiprocessQueueSink[RuntimeCommand] = (
             runtime_command_queue
         )
-        self.__data_aggregator: RemoteDataAggregatorImpl[TDataType] = (
-            data_aggregator
-        )
+        self.__data_aggregator: RemoteDataAggregatorImpl[
+            AnnotatedInstance[TDataType]
+        ] = data_aggregator  # Changed TDataType
         self.__block: bool = block
 
         # DataReaderSource is initialized with the same data_queue
-        self.__data_reader_source: DataReaderSource[TDataType] = (
-            DataReaderSource(
-                thread_watcher,
-                data_queue,
-                self.__data_aggregator,  # Pass data_aggregator as the data_reader for the DataReaderSource
-            )
+        self.__data_reader_source: DataReaderSource[
+            AnnotatedInstance[TDataType]
+        ] = DataReaderSource(  # Changed TDataType
+            thread_watcher,
+            data_queue,  # Now a queue of AnnotatedInstance[TDataType]
+            self.__data_aggregator,  # Aggregator is now RemoteDataAggregatorImpl[AnnotatedInstance[TDataType]]
         )
 
     def start(self) -> None:
@@ -152,7 +156,9 @@ class ShimRuntimeHandle(
         self.__runtime_command_queue.put_blocking(RuntimeCommand.kStop)
         self.__data_reader_source.stop()
 
-    def _on_data_ready(self, new_data: TDataType) -> None:
+    def _on_data_ready(
+        self, new_data: AnnotatedInstance[TDataType]
+    ) -> None:  # Changed TDataType
         """Callback for when new data is ready from the `DataReaderSource`.
 
         This method is part of the `RemoteDataReader` interface. In this setup,
@@ -166,9 +172,15 @@ class ShimRuntimeHandle(
         # Data is received from data_queue via DataReaderSource.
         # This ShimRuntimeHandle (as a RemoteDataReader) gets it from DataReaderSource
         # and then forwards it to the __data_aggregator that was provided during init.
-        self.__data_aggregator._on_data_ready(new_data)
+        self.__data_aggregator._on_data_ready(
+            new_data
+        )  # Aggregator now expects AnnotatedInstance
 
-    def _get_remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
+    def _get_remote_data_aggregator(
+        self,
+    ) -> RemoteDataAggregator[
+        AnnotatedInstance[TDataType]
+    ]:  # Changed TDataType
         """Provides the remote data aggregator associated with this handle.
 
         Returns:
@@ -187,6 +199,7 @@ class ShimRuntimeHandle(
         # RemoteDataAggregator[AnnotatedInstance[TDataType]] if TDataType itself
         # is not an AnnotatedInstance. This type mismatch is currently suppressed
         # with type: ignore[override] and needs to be resolved.
+        # This should now align with the base class if _get_remote_data_aggregator is corrected.
         """Provides the remote data aggregator.
 
         Note: There is a potential type mismatch with the base `RuntimeHandle` class
@@ -196,4 +209,6 @@ class ShimRuntimeHandle(
         Returns:
             The `RemoteDataAggregator` instance.
         """
-        return self._get_remote_data_aggregator()
+        return (
+            self._get_remote_data_aggregator()
+        )  # This now returns RemoteDataAggregator[AnnotatedInstance[TDataType]]

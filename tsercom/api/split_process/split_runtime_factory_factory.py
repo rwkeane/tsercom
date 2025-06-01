@@ -2,9 +2,15 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar, Tuple
+from tsercom.data.annotated_instance import (
+    AnnotatedInstance,
+)  # Import AnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.runtime_handle import RuntimeHandle
+
+# SerializableAnnotatedInstance may become unused
+from tsercom.data.event_instance import EventInstance  # Import EventInstance
 from tsercom.api.split_process.remote_runtime_factory import (
     RemoteRuntimeFactory,
 )
@@ -23,8 +29,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.api.runtime_command import RuntimeCommand  # Added
-from typing import Any  # Added for data_sink/source
-from tsercom.data.event_instance import EventInstance  # Attempting this path
 
 
 TDataType = TypeVar("TDataType", bound=ExposedData)
@@ -79,46 +83,58 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
                                         remote process.
         """
         # Each returns a (sink, source) pair.
-        event_sink: MultiprocessQueueSink[EventInstance[TEventType]]
-        event_source: MultiprocessQueueSource[EventInstance[TEventType]]
+        # Event queue now handles EventInstance[TEventType]
+        event_sink: MultiprocessQueueSink[
+            EventInstance[TEventType]
+        ]  # Reverted type
+        event_source: MultiprocessQueueSource[
+            EventInstance[TEventType]
+        ]  # Reverted type
         event_sink, event_source = (
             create_multiprocess_queues()
-        )  # Removed explicit type application
+        )  # Type inferred
 
-        # TODO: Resolve type mismatch for data_sink (expects AnnotatedInstance[TDataType])
-        # and data_source (expects TDataType) with single-type queue factory.
-        data_sink: MultiprocessQueueSink[Any]  # auto-annotated
-        data_source: MultiprocessQueueSource[Any]  # auto-annotated
-        data_sink, data_source = create_multiprocess_queues()
+        # Data queue now handles AnnotatedInstance[TDataType]
+        data_sink: MultiprocessQueueSink[AnnotatedInstance[TDataType]]
+        data_source: MultiprocessQueueSource[AnnotatedInstance[TDataType]]
+        data_sink, data_source = create_multiprocess_queues()  # Type inferred
 
-        runtime_command_sink: MultiprocessQueueSink[
-            RuntimeCommand
-        ]  # auto-annotated
-        runtime_command_source: MultiprocessQueueSource[
-            RuntimeCommand
-        ]  # auto-annotated
+        runtime_command_sink: MultiprocessQueueSink[RuntimeCommand]
+        runtime_command_source: MultiprocessQueueSource[RuntimeCommand]
         runtime_command_sink, runtime_command_source = (
             create_multiprocess_queues()
-        )  # Removed [RuntimeCommand]
+        )  # Type inferred
 
         # It gets the source end of event/command queues and sink end of data queue.
+        # RemoteRuntimeFactory's data_sink is now MultiprocessQueueSink[AnnotatedInstance[TDataType]]
         factory = RemoteRuntimeFactory[TDataType, TEventType](
             initializer, event_source, data_sink, runtime_command_source
         )
 
-        aggregator = RemoteDataAggregatorImpl[TDataType](
-            self.__thread_pool,
-            client=initializer.data_aggregator_client,  # Client to consume aggregated data.
-            timeout=initializer.timeout_seconds,
-        )
+        # Aggregator now aggregates AnnotatedInstance[TDataType]
+        if initializer.timeout_seconds is not None:
+            aggregator = RemoteDataAggregatorImpl[
+                AnnotatedInstance[TDataType]
+            ](
+                self.__thread_pool,
+                client=initializer.data_aggregator_client,  # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[TDataType], gets [AnnotatedInstance[TDataType]]
+                timeout=initializer.timeout_seconds,
+            )
+        else:
+            aggregator = RemoteDataAggregatorImpl[
+                AnnotatedInstance[TDataType]
+            ](
+                self.__thread_pool,
+                client=initializer.data_aggregator_client,  # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[TDataType], gets [AnnotatedInstance[TDataType]]
+            )
 
-        # It gets the sink end of event/command queues and source end of data queue.
+        # ShimRuntimeHandle now expects data_source and aggregator for AnnotatedInstance[TDataType]
         runtime_handle = ShimRuntimeHandle[TDataType, TEventType](
             self.__thread_watcher,
-            event_sink,  # Sink for events to the remote runtime.
-            data_source,  # Source for data from the remote runtime.
-            runtime_command_sink,  # Sink for commands to the remote runtime.
-            aggregator,  # The local aggregator for data.
+            event_sink,
+            data_source,
+            runtime_command_sink,
+            aggregator,
         )
 
         return runtime_handle, factory

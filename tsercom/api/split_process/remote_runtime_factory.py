@@ -13,6 +13,9 @@ from tsercom.api.split_process.runtime_command_source import (
 )
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
+
+# SerializableAnnotatedInstance will be removed
+# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.runtime import Runtime
@@ -49,7 +52,9 @@ class RemoteRuntimeFactory(
     def __init__(
         self,
         initializer: RuntimeInitializer[TDataType, TEventType],
-        event_source_queue: MultiprocessQueueSource[EventInstance[TEventType]],
+        event_source_queue: MultiprocessQueueSource[
+            EventInstance[TEventType]
+        ],  # Reverted type
         data_reader_queue: MultiprocessQueueSink[AnnotatedInstance[TDataType]],
         command_source_queue: MultiprocessQueueSource[RuntimeCommand],
     ) -> None:
@@ -57,13 +62,13 @@ class RemoteRuntimeFactory(
 
         Args:
             initializer: The RuntimeInitializer for the runtime to be created.
-            event_source_queue: Queue source for receiving `EventInstance` objects from the remote runtime.
+            event_source_queue: Queue source for receiving `EventInstance` objects from the remote runtime. # Reverted comment
             data_reader_queue: Queue sink for sending `AnnotatedInstance` data to the remote runtime.
             command_source_queue: Queue source for receiving `RuntimeCommand` objects from the handle.
         """
         super().__init__(other_config=initializer)
         self._initializer_instance = initializer
-        self.__event_source_queue = event_source_queue
+        self.__event_source_queue = event_source_queue  # Type updated
         self.__data_reader_queue = data_reader_queue
         self.__command_source_queue = command_source_queue
 
@@ -83,7 +88,7 @@ class RemoteRuntimeFactory(
     @property
     def event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:
+    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted type
         """Gets the `EventSource` used for polling events from the remote runtime."""
         return self._event_poller()
 
@@ -103,7 +108,9 @@ class RemoteRuntimeFactory(
             self.__data_reader_sink = DataReaderSink(self.__data_reader_queue)
         return self.__data_reader_sink
 
-    def _event_poller(self) -> AsyncPoller[EventInstance[TEventType]]:
+    def _event_poller(
+        self,
+    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted type
         """Provides the event poller for events from the remote runtime.
 
         Lazily initializes and returns an `EventSource`.

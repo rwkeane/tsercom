@@ -11,6 +11,10 @@ from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
+
+# EventInstance import might become unused if SerializableAnnotatedInstance is used consistently.
+# For now, keep it if other parts of the file (not touched by this diff) use it.
+# If it becomes unused after all changes, it can be removed later.
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
@@ -38,7 +42,9 @@ class RuntimeDataHandlerBase(
     def __init__(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-        event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
+        event_source: AsyncPoller[
+            SerializableAnnotatedInstance[TEventType]
+        ],  # Reverted to SerializableAnnotatedInstance
     ):
         """Initializes RuntimeDataHandlerBase.
 
@@ -253,7 +259,7 @@ class RuntimeDataHandlerBase(
     async def __anext__(
         self,
     ) -> List[
-        SerializableAnnotatedInstance[TEventType]
+        SerializableAnnotatedInstance[TEventType]  # Reverted
     ]:  # Match what get_data_iterator implies
         """Retrieves the next batch of events from the event source.
 
@@ -264,7 +270,7 @@ class RuntimeDataHandlerBase(
     def __aiter__(
         self,
     ) -> AsyncIterator[
-        List[SerializableAnnotatedInstance[TEventType]]
+        List[SerializableAnnotatedInstance[TEventType]]  # Reverted
     ]:  # Match what get_data_iterator implies
         """Returns self as the async iterator for events.
 
@@ -314,7 +320,7 @@ class RuntimeDataHandlerBase(
 
         async def desynchronize(self, timestamp: ServerTimestamp) -> datetime:
             """Desynchronizes a server timestamp using the provided clock."""
-            return await self.__clock.desync(timestamp)
+            return self.__clock.desync(timestamp)
 
         async def deregister_caller(
             self,
@@ -322,7 +328,7 @@ class RuntimeDataHandlerBase(
             """Deregisters the caller via the parent data handler."""
             # The actual return value of _unregister_caller (a bool) is ignored here
             # to match the supertype's None return.
-            await self.__data_handler._unregister_caller(self.caller_id)
+            self.__data_handler._unregister_caller(self.caller_id)
             return None  # Explicitly return None
 
         async def _process_data(

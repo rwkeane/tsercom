@@ -7,6 +7,9 @@ from functools import partial
 from multiprocessing import Process  # Keep for type hinting if necessary
 from typing import Any, Generic, List, TypeVar, Optional
 
+# Make RuntimeManager Generic by importing TypeVar if not already (it is, for TDataType, TEventType)
+# from typing import TypeVar # Already imported for TDataType, TEventType
+
 from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
     LocalRuntimeFactoryFactory,
@@ -59,7 +62,9 @@ TEventType = TypeVar("TEventType")
 logger = logging.getLogger(__name__)
 
 
-class RuntimeManager(ErrorWatcher):
+class RuntimeManager(
+    ErrorWatcher, Generic[TDataType, TEventType]
+):  # Made Generic
     """Manages the lifecycle of Tsercom runtimes.
 
     This class is responsible for creating runtimes from `RuntimeInitializer`
@@ -74,10 +79,10 @@ class RuntimeManager(ErrorWatcher):
         is_testing: bool = False,
         thread_watcher: Optional[ThreadWatcher] = None,
         local_runtime_factory_factory: Optional[
-            LocalRuntimeFactoryFactory
+            LocalRuntimeFactoryFactory[TDataType, TEventType]  # Parameterized
         ] = None,
         split_runtime_factory_factory: Optional[
-            SplitRuntimeFactoryFactory
+            SplitRuntimeFactoryFactory[TDataType, TEventType]  # Parameterized
         ] = None,
         process_creator: Optional[ProcessCreator] = None,
         split_error_watcher_source_factory: Optional[
@@ -114,35 +119,40 @@ class RuntimeManager(ErrorWatcher):
             else SplitErrorWatcherSourceFactory()
         )
 
+        # Field types will be correctly inferred if constructor params are typed
+        # However, explicit annotation is good practice if they are complex.
+        # For now, let's ensure constructor params are typed and see if mypy infers fields.
+        # If redefinition errors persist, we'll explicitly type fields.
+
         if local_runtime_factory_factory is not None:
-            self.__local_runtime_factory_factory: (
-                LocalRuntimeFactoryFactory
-            ) = local_runtime_factory_factory
+            self.__local_runtime_factory_factory = (
+                local_runtime_factory_factory
+            )
         else:
             default_local_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
                     max_workers=1
                 )
             )
-            self.__local_runtime_factory_factory: (
-                LocalRuntimeFactoryFactory
-            ) = LocalRuntimeFactoryFactory(default_local_factory_thread_pool)
+            # Assuming LocalRuntimeFactoryFactory() needs type args if it's used for specific TDataType/TEventType
+            # However, the default here is created without specific types, implying it handles Any, Any or TDataType, TEventType from RuntimeManager
+            self.__local_runtime_factory_factory = LocalRuntimeFactoryFactory[
+                TDataType, TEventType
+            ](default_local_factory_thread_pool)
 
         if split_runtime_factory_factory is not None:
-            self.__split_runtime_factory_factory: (
-                SplitRuntimeFactoryFactory
-            ) = split_runtime_factory_factory
+            self.__split_runtime_factory_factory = (
+                split_runtime_factory_factory
+            )
         else:
             default_split_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
                     max_workers=1
                 )
             )
-            self.__split_runtime_factory_factory: (
-                SplitRuntimeFactoryFactory
-            ) = SplitRuntimeFactoryFactory(
-                default_split_factory_thread_pool, self.__thread_watcher
-            )
+            self.__split_runtime_factory_factory = SplitRuntimeFactoryFactory[
+                TDataType, TEventType
+            ](default_split_factory_thread_pool, self.__thread_watcher)
 
         self.__initializers: list[InitializationPair[Any, Any]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
@@ -407,9 +417,9 @@ class RuntimeManager(ErrorWatcher):
 
         clear_tsercom_event_loop()
 
-    def __create_factories(
-        self, factory_factory: RuntimeFactoryFactory[Any, Any]
-    ) -> List[RuntimeFactory[Any, Any]]:
+    def __create_factories(  # This method now needs to use TDataType, TEventType from self
+        self, factory_factory: RuntimeFactoryFactory[TDataType, TEventType]
+    ) -> List[RuntimeFactory[TDataType, TEventType]]:
         """Creates runtime factories using the provided factory_factory.
 
         Iterates through all registered `InitializationPair`s and uses the
@@ -437,8 +447,8 @@ class RuntimeManager(ErrorWatcher):
 
 
 class RuntimeFuturePopulator(
-    RuntimeFactoryFactory.Client,  # Removed [TDataType, TEventType]
-    Generic[TDataType, TEventType],
+    RuntimeFactoryFactory.Client,
+    Generic[TDataType, TEventType],  # Make it generic again
 ):
     """A client that populates a Future with a RuntimeHandle when ready.
 
@@ -458,7 +468,7 @@ class RuntimeFuturePopulator(
         """
         self.__future: Future[RuntimeHandle[TDataType, TEventType]] = future
 
-    def _on_handle_ready(
+    def _on_handle_ready(  # type: ignore[override]
         self, handle: RuntimeHandle[TDataType, TEventType]
     ) -> None:
         """Callback invoked when the RuntimeHandle is ready.

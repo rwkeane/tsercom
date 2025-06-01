@@ -2,14 +2,21 @@
 
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Callable, Dict, Generic, Optional, TypeVar, overload
+from typing import (
+    Callable,
+    Dict,
+    Generic,
+    Optional,
+    overload,
+)  # Removed TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.mdns.instance_listener import InstanceListener
-from tsercom.discovery.service_info import ServiceInfo
+from tsercom.discovery.service_info import (
+    TServiceInfo,
+)  # Import TServiceInfo
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 
-TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 # Removed module-level type aliases that caused issues with TServiceInfo binding.
 
@@ -178,7 +185,7 @@ class DiscoveryHost(
         #     # self.__discoverer.start() # If sync
         #     pass # Actual call depends on InstanceListener's API
 
-    async def _on_service_added(self, connection_info: TServiceInfo) -> None:
+    async def _on_service_added(self, connection_info: TServiceInfo) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
 
         This method implements the `InstanceListener.Client` interface. It assigns

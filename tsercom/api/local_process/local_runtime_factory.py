@@ -7,6 +7,8 @@ from tsercom.api.local_process.runtime_command_bridge import (
 )
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
+
+# SerializableAnnotatedInstance might become unused
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
@@ -36,7 +38,7 @@ class LocalRuntimeFactory(
         self,
         initializer: RuntimeInitializer[TDataType, TEventType],
         data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-        event_poller: AsyncPoller[EventInstance[TEventType]],
+        event_poller: AsyncPoller[EventInstance[TEventType]],  # Reverted type
         bridge: RuntimeCommandBridge,
     ) -> None:
         """Initializes a LocalRuntimeFactory.
@@ -55,7 +57,7 @@ class LocalRuntimeFactory(
             data_reader
         )
         self.__event_poller: AsyncPoller[EventInstance[TEventType]] = (
-            event_poller
+            event_poller  # Reverted type
         )
         self.__bridge: RuntimeCommandBridge = bridge
 
@@ -65,7 +67,7 @@ class LocalRuntimeFactory(
         self,
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[TDataType, TEventType],
-        grpc_channel_factory: GrpcChannelFactory,
+        grpc_channel_factory: GrpcChannelFactory | None,
     ) -> Runtime:
         """Creates a new Runtime instance.
 
@@ -102,7 +104,7 @@ class LocalRuntimeFactory(
 
     def _event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:
+    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted type
         """Provides the event poller for the runtime.
 
         This method is part of the `RuntimeFactory`'s contract to make
@@ -124,6 +126,6 @@ class LocalRuntimeFactory(
     @property
     def event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:
+    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted type
         """Gets the AsyncPoller used by runtimes created by this factory. This poller handles incoming event instances."""
         return self._event_poller()

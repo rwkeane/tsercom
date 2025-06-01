@@ -4,6 +4,9 @@ import threading  # Added for Optional[threading.Thread]
 from typing import Generic, TypeVar, Optional  # Added for Optional
 
 from tsercom.data.event_instance import EventInstance
+
+# SerializableAnnotatedInstance will be removed
+# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
@@ -15,7 +18,9 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 TEventType = TypeVar("TEventType")
 
 
-class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
+class EventSource(
+    Generic[TEventType], AsyncPoller[EventInstance[TEventType]]
+):  # Reverted type
     """Polls events from a MultiprocessQueueSource and notifies listeners.
 
     This class extends `AsyncPoller` and runs a dedicated thread to
@@ -26,7 +31,10 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
     """
 
     def __init__(
-        self, event_source: MultiprocessQueueSource[EventInstance[TEventType]]
+        self,
+        event_source: MultiprocessQueueSource[
+            EventInstance[TEventType]
+        ],  # Reverted type
     ) -> None:
         """Initializes the EventSource.
 
