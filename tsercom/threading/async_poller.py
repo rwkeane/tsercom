@@ -9,8 +9,16 @@ an asyncio event loop.
 
 import asyncio
 import threading
-from collections import deque # Changed from collections.abc.Deque for instantiation
-from typing import Generic, List, TypeVar, AsyncIterator, Deque # Deque for type hinting only
+from collections import (
+    deque,
+)  # Changed from collections.abc.Deque for instantiation
+from typing import (
+    Generic,
+    List,
+    TypeVar,
+    AsyncIterator,
+    Deque,
+)  # Deque for type hinting only
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -41,7 +49,9 @@ class AsyncPoller(Generic[TResultType]):  # Removed ABC
         Sets up the internal response queue, synchronization primitives,
         and state variables.
         """
-        self.__responses: Deque[TResultType] = deque[TResultType]() # Use concrete deque for instantiation
+        self.__responses: Deque[TResultType] = deque[
+            TResultType
+        ]()  # Use concrete deque for instantiation
         self.__barrier = asyncio.Event()
         self.__lock = threading.Lock()
 
@@ -124,11 +134,15 @@ class AsyncPoller(Generic[TResultType]):  # Removed ABC
             )
 
         while self.__is_loop_running.get():
-            queue_snapshot: deque[TResultType] | None = None # Use concrete deque here too if assigning
+            queue_snapshot: deque[TResultType] | None = (
+                None  # Use concrete deque here too if assigning
+            )
             with self.__lock:
                 if len(self.__responses) > 0:
                     queue_snapshot = self.__responses
-                    self.__responses = deque[TResultType]() # Use concrete deque for instantiation
+                    self.__responses = deque[
+                        TResultType
+                    ]()  # Use concrete deque for instantiation
 
             if queue_snapshot is not None:
                 responses: List[TResultType] = []
