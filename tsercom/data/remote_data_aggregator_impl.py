@@ -1,4 +1,3 @@
-from typing import overload
 """Provides RemoteDataAggregatorImpl, a concrete implementation of the RemoteDataAggregator interface.
 
 This class manages RemoteDataOrganizer instances for each data source (identified by
@@ -203,9 +202,13 @@ class RemoteDataAggregatorImpl(
             return results
 
     @overload
-    def get_most_recent_data(self) -> Dict[CallerIdentifier, Optional[TDataType]]: ...
+    def get_most_recent_data(
+        self,
+    ) -> Dict[CallerIdentifier, Optional[TDataType]]: ...
     @overload
-    def get_most_recent_data(self, id: CallerIdentifier) -> Optional[TDataType]: ...
+    def get_most_recent_data(
+        self, id: CallerIdentifier
+    ) -> Optional[TDataType]: ...
     def get_most_recent_data(
         self, id: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
@@ -239,9 +242,13 @@ class RemoteDataAggregatorImpl(
             return results
 
     @overload
-    def get_data_for_timestamp(self, timestamp: datetime.datetime) -> Dict[CallerIdentifier, Optional[TDataType]]: ...
+    def get_data_for_timestamp(
+        self, timestamp: datetime.datetime
+    ) -> Dict[CallerIdentifier, Optional[TDataType]]: ...
     @overload
-    def get_data_for_timestamp(self, timestamp: datetime.datetime, id: CallerIdentifier) -> Optional[TDataType]: ...
+    def get_data_for_timestamp(
+        self, timestamp: datetime.datetime, id: CallerIdentifier
+    ) -> Optional[TDataType]: ...
     def get_data_for_timestamp(
         self,
         timestamp: datetime.datetime,
@@ -281,7 +288,8 @@ class RemoteDataAggregatorImpl(
             return results
 
     def _on_data_available(
-        self, data_organizer: RemoteDataOrganizer[TDataType],  # type: ignore[override]
+        self,
+        data_organizer: RemoteDataOrganizer[TDataType],  # type: ignore[override]
     ) -> None:
         """Callback from a `RemoteDataOrganizer` when it has new data.
 

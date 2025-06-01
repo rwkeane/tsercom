@@ -1,5 +1,6 @@
 """Defines the RuntimeCommandBridge for relaying commands to a Runtime instance."""
 
+import concurrent.futures
 from functools import partial
 from threading import Lock
 from typing import Optional
@@ -54,7 +55,13 @@ class RuntimeCommandBridge:
             elif pending_command == RuntimeCommand.kStart:
                 run_on_event_loop(runtime.start_async)
             elif pending_command == RuntimeCommand.kStop:
-                run_on_event_loop(runtime.stop)
+                # Execute stop and wait for it to complete.
+                future = run_on_event_loop(partial(runtime.stop, None))
+                try:
+                    future.result(timeout=5.0)
+                except concurrent.futures.TimeoutError:
+                    # Log or handle timeout if necessary
+                    pass  # Or raise an error, log, etc.
 
             self.__state.set(None)
 
@@ -84,4 +91,10 @@ class RuntimeCommandBridge:
                 # Runtime not yet available, store the command.
                 self.__state.set(RuntimeCommand.kStop)
             else:
-                run_on_event_loop(partial(self.__runtime.stop, None))
+                # Execute stop and wait for it to complete.
+                future = run_on_event_loop(partial(self.__runtime.stop, None))
+                try:
+                    future.result(timeout=5.0)
+                except concurrent.futures.TimeoutError:
+                    # Log or handle timeout if necessary
+                    pass  # Or raise an error, log, etc.
