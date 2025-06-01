@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar, Optional, TYPE_CHECKING
 import asyncio
 import typing
 
@@ -13,19 +13,23 @@ from tsercom.threading.aio.aio_utils import (
     run_on_event_loop,
 )
 import logging
-import grpc
 
 # Local application imports
 from tsercom.util.connection_factory import ConnectionFactory  # Added import
 
 if typing.TYPE_CHECKING:
     # Removed GrpcChannelFactory, ConnectionFactory is globally imported now for type hints.
+    if TYPE_CHECKING:
+        pass  # Keep for type hints if grpc.Channel is used as a concrete type argument
     pass
 
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
+T_ChannelType = TypeVar("T_ChannelType")
 
 
-class ServiceConnector(Generic[TServiceInfo], ServiceSource.Client):
+class ServiceConnector(
+    Generic[TServiceInfo, T_ChannelType], ServiceSource.Client
+):
     """Connects to gRPC endpoints discovered via a `ServiceSource`.
 
     This class acts as a client to a `ServiceSource`. When a service is discovered,
@@ -47,7 +51,7 @@ class ServiceConnector(Generic[TServiceInfo], ServiceSource.Client):
             self,
             connection_info: TServiceInfo,
             caller_id: CallerIdentifier,
-            channel: "grpc.Channel",
+            channel: T_ChannelType,
         ) -> None:
             """Callback invoked when a gRPC channel to a discovered service is connected.
 
@@ -60,8 +64,8 @@ class ServiceConnector(Generic[TServiceInfo], ServiceSource.Client):
 
     def __init__(
         self,
-        client: "ServiceConnector.Client",
-        connection_factory: ConnectionFactory[grpc.Channel],
+        client: "ServiceConnector.Client",  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[T_ChannelType]
+        connection_factory: ConnectionFactory[T_ChannelType],
         service_source: ServiceSource[TServiceInfo],
     ) -> None:
         """Initializes the ServiceConnector.
@@ -74,10 +78,12 @@ class ServiceConnector(Generic[TServiceInfo], ServiceSource.Client):
             service_source: The `ServiceSource` instance that will provide
                             discovered service information.
         """
-        self.__client: ServiceConnector.Client = client
+        self.__client: ServiceConnector.Client = (
+            client  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[T_ChannelType]
+        )
         self.__service_source: ServiceSource[TServiceInfo] = service_source
-        self.__connection_factory: ConnectionFactory[grpc.Channel] = (
-            connection_factory  # Renamed attribute and updated type
+        self.__connection_factory: ConnectionFactory[T_ChannelType] = (
+            connection_factory
         )
 
         self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
@@ -181,8 +187,8 @@ class ServiceConnector(Generic[TServiceInfo], ServiceSource.Client):
             f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
         )
 
-        channel: Optional["grpc.Channel"] = (
-            await self.__connection_factory.connect(  # Use connect method
+        channel: Optional[T_ChannelType] = (
+            await self.__connection_factory.connect(
                 connection_info.addresses, connection_info.port
             )
         )
@@ -198,7 +204,9 @@ class ServiceConnector(Generic[TServiceInfo], ServiceSource.Client):
         )
 
         self.__callers.add(caller_id)
-        # The client expects a grpc.Channel, not ChannelInfo wrapper here.
+        # The client expects a T_ChannelType, not ChannelInfo wrapper here.
         await self.__client._on_channel_connected(
-            connection_info, caller_id, channel
+            connection_info,
+            caller_id,
+            channel,  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Fix this
         )
