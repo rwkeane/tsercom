@@ -16,7 +16,7 @@ TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
 
 class DiscoveryHost(
-    Generic[TServiceInfo], InstanceListener.Client[TServiceInfo]
+    Generic[TServiceInfo], InstanceListener.Client  # Removed [TServiceInfo]
 ):
     """Manages service discovery using mDNS and CallerIdentifier association.
 
@@ -27,7 +27,7 @@ class DiscoveryHost(
     `InstanceListener` to receive raw service discovery events.
     """
 
-    class Client(ABC, Generic[TServiceInfo]):
+    class Client(ABC):  # Removed Generic[TServiceInfo]
         """Interface for clients wishing to receive discovery notifications from `DiscoveryHost`.
 
         Implementers of this interface are notified when new services, relevant
@@ -58,7 +58,7 @@ class DiscoveryHost(
         self,
         *,
         instance_listener_factory: Callable[  # Reverted to full type hint
-            [InstanceListener[TServiceInfo].Client],
+            [InstanceListener.Client],  # Removed [TServiceInfo]
             InstanceListener[TServiceInfo],
         ],
     ):
@@ -71,7 +71,7 @@ class DiscoveryHost(
         service_type: Optional[str] = None,
         instance_listener_factory: Optional[
             Callable[
-                [InstanceListener.Client[TServiceInfo]],
+                [InstanceListener.Client],  # Removed [TServiceInfo]
                 InstanceListener[TServiceInfo],
             ]
         ] = None,
@@ -106,20 +106,22 @@ class DiscoveryHost(
         self.__service_type: Optional[str] = service_type
         self.__instance_listener_factory: Optional[
             Callable[
-                [InstanceListener.Client[TServiceInfo]],
+                [InstanceListener.Client],  # Removed [TServiceInfo]
                 InstanceListener[TServiceInfo],
             ]
         ] = instance_listener_factory
 
         # The actual mDNS instance listener; initialized in start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
-        self.__client: Optional[DiscoveryHost.Client[TServiceInfo]] = None
+        self.__client: Optional[DiscoveryHost.Client] = (
+            None  # Removed [TServiceInfo]
+        )
 
         # Maps mDNS instance names to their assigned CallerIdentifiers.
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
     def start_discovery(
-        self, client: "DiscoveryHost.Client[TServiceInfo]"
+        self, client: "DiscoveryHost.Client"  # Removed [TServiceInfo]
     ) -> None:
         """Starts the service discovery process.
 
@@ -136,7 +138,7 @@ class DiscoveryHost(
 
     async def __start_discovery_impl(
         self,
-        client: "DiscoveryHost.Client[TServiceInfo]",
+        client: "DiscoveryHost.Client",  # Removed [TServiceInfo]
     ) -> None:
         """Internal implementation for starting discovery; runs on the event loop.
 
