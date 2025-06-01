@@ -146,7 +146,9 @@ class TestServiceConnector:
         mock_connection_factory,
         mock_service_source,  # Renamed parameter
     ):
-        connector = ServiceConnector(
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
             client=mock_client,
             connection_factory=mock_connection_factory,  # Updated argument
             service_source=mock_service_source,
@@ -168,7 +170,9 @@ class TestServiceConnector:
         mock_connection_factory,
         mock_service_source,  # Renamed parameter
     ):
-        connector = ServiceConnector(
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
             mock_client,
             mock_connection_factory,
             mock_service_source,  # Updated argument
@@ -185,7 +189,9 @@ class TestServiceConnector:
         test_caller_id,
         mock_grpc_channel,  # Renamed parameter
     ):
-        connector = ServiceConnector(
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
             mock_client,
             mock_connection_factory,
             mock_service_source,  # Updated argument
@@ -215,7 +221,9 @@ class TestServiceConnector:
         test_service_info,
         test_caller_id,
     ):
-        connector = ServiceConnector(
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
             mock_client,
             mock_connection_factory,
             mock_service_source,  # Updated argument
@@ -239,7 +247,9 @@ class TestServiceConnector:
         test_service_info,
         test_caller_id,
     ):
-        connector = ServiceConnector(
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
             mock_client,
             mock_connection_factory,
             mock_service_source,  # Updated argument
@@ -259,7 +269,9 @@ class TestServiceConnector:
         test_caller_id,
     ):
         self.mocked_aio_utils = mock_aio_utils_fixture
-        connector = ServiceConnector(
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
             mock_client,
             mock_connection_factory,
             mock_service_source,  # Updated argument
@@ -282,7 +294,9 @@ class TestServiceConnector:
         test_caller_id,
     ):
         self.mocked_aio_utils = mock_aio_utils_fixture
-        connector = ServiceConnector(
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
             mock_client,
             mock_connection_factory,
             mock_service_source,  # Updated argument
@@ -321,7 +335,9 @@ class TestServiceConnector:
     ):
         """Tests that after mark_client_failed, a service can be re-added and reconnected."""
         self.mocked_aio_utils = mock_aio_utils_fixture
-        connector = ServiceConnector(
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
             mock_client,
             mock_connection_factory,
             mock_service_source,  # Updated argument
