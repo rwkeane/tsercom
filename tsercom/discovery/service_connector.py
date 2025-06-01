@@ -15,8 +15,12 @@ from tsercom.threading.aio.aio_utils import (
 import logging
 import grpc
 
+# Local application imports
+from tsercom.util.connection_factory import ConnectionFactory  # Added import
+
 if typing.TYPE_CHECKING:
-    from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
+    # Removed GrpcChannelFactory, ConnectionFactory is globally imported now for type hints.
+    pass
 
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
 
@@ -26,7 +30,7 @@ class ServiceConnector(ServiceSource.Client):
 
     This class acts as a client to a `ServiceSource`. When a service is discovered,
     it attempts to establish a gRPC channel to that service using a provided
-    `GrpcChannelFactory`. Successful connections (channel established) are then
+    `ConnectionFactory[grpc.Channel]`. Successful connections (channel established) are then
     reported to its own registered `Client`. It also tracks active connections
     to avoid redundant connection attempts.
     """
@@ -57,7 +61,9 @@ class ServiceConnector(ServiceSource.Client):
     def __init__(
         self,
         client: "ServiceConnector.Client",
-        channel_factory: "GrpcChannelFactory",
+        connection_factory: ConnectionFactory[
+            grpc.Channel
+        ],  # Changed parameter name and type
         service_source: ServiceSource[TServiceInfo],
     ) -> None:
         """Initializes the ServiceConnector.
@@ -65,14 +71,16 @@ class ServiceConnector(ServiceSource.Client):
         Args:
             client: The client object that will receive notifications about
                     successfully connected channels.
-            channel_factory: A `GrpcChannelFactory` used to create gRPC channels
-                             to discovered services.
+            connection_factory: A `ConnectionFactory[grpc.Channel]` used to create
+                                gRPC channels to discovered services.
             service_source: The `ServiceSource` instance that will provide
                             discovered service information.
         """
         self.__client: ServiceConnector.Client = client
         self.__service_source: ServiceSource[TServiceInfo] = service_source
-        self.__channel_factory: "GrpcChannelFactory" = channel_factory
+        self.__connection_factory: ConnectionFactory[grpc.Channel] = (
+            connection_factory  # Renamed attribute and updated type
+        )
 
         self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
 
@@ -175,9 +183,9 @@ class ServiceConnector(ServiceSource.Client):
             f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
         )
 
-        # ChannelInfo was a typo, should be grpc.Channel from find_async_channel
+        # Use the connection_factory to establish a connection.
         channel: Optional["grpc.Channel"] = (
-            await self.__channel_factory.find_async_channel(
+            await self.__connection_factory.connect(  # Use connect method
                 connection_info.addresses, connection_info.port
             )
         )

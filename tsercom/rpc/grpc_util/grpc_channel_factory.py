@@ -2,35 +2,56 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import typing  # Ensure typing is imported
+from typing import Optional, List, Union  # Added Optional, List, Union
+import grpc  # Added grpc
 
-if typing.TYPE_CHECKING:
-    from tsercom.rpc.common.channel_info import (
-        ChannelInfo,
-    )
+from tsercom.util.connection_factory import (
+    ConnectionFactory,
+)  # Added ConnectionFactory
 
 
-class GrpcChannelFactory(ABC):
+class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
     """
-    This class is responsible for finding channels to use for a gRPC Stub
-    definition, by testing against various |addresses| and a given |port|.
+    Abstract factory for creating gRPC channels.
+    It implements the `ConnectionFactory` interface for `grpc.Channel` type.
+    Concrete implementations are responsible for the actual channel creation logic.
     """
 
     @abstractmethod
     async def find_async_channel(
-        self, addresses: list[str] | str, port: int
-    ) -> ChannelInfo | None:
+        self,
+        addresses: Union[List[str], str],
+        port: int,  # Union for addresses
+    ) -> Optional[grpc.Channel]:  # Changed return type
         """Finds an asynchronous gRPC channel to the specified address(es) and port.
 
         Implementations should attempt to establish a connection and return
-        information about the channel if successful.
+        the gRPC channel if successful.
 
         Args:
             addresses: A single address string or a list of address strings to try.
             port: The port number to connect to.
 
         Returns:
-            A `ChannelInfo` object if a channel is successfully established,
+            A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
         """
         pass
+
+    async def connect(
+        self, addresses: Union[List[str], str], port: int
+    ) -> Optional[grpc.Channel]:
+        """Establishes a gRPC channel to the specified address(es) and port.
+
+        This method implements the `ConnectionFactory.connect` interface by
+        delegating to the `find_async_channel` method.
+
+        Args:
+            addresses: A single address string or a list of address strings to try.
+            port: The port number to connect to.
+
+        Returns:
+            An instance of `grpc.Channel` if connection is successful,
+            otherwise `None`.
+        """
+        return await self.find_async_channel(addresses, port)

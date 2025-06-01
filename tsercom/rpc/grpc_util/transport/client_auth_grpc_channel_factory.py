@@ -4,9 +4,14 @@ from __future__ import annotations
 import asyncio
 import grpc
 import logging
-from typing import Any, Optional
+from typing import (
+    Any,
+    Optional,
+    List,
+    Union,
+)  # Added List, Union for find_async_channel signature
 
-from tsercom.rpc.common.channel_info import ChannelInfo
+# ChannelInfo is no longer returned by find_async_channel
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
 logger = logging.getLogger(__name__)
@@ -63,8 +68,8 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         super().__init__()  # GrpcChannelFactory has no __init__, but good practice
 
     async def find_async_channel(
-        self, addresses: list[str] | str, port: int
-    ) -> ChannelInfo | None:
+        self, addresses: Union[List[str], str], port: int  # Updated signature
+    ) -> Optional[grpc.Channel]:  # Updated return type
         """
         Attempts to establish a secure gRPC channel using client credentials.
 
@@ -73,14 +78,14 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             port: The port number to connect to.
 
         Returns:
-            A `ChannelInfo` object if a channel is successfully established,
+            A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
         """
-        address_list: list[str]
+        address_list: List[str]  # Use List from typing
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
-            address_list = list(addresses)  # Ensure it's a list copy
+            address_list = list(addresses)
 
         auth_type = "Client Auth"
         if self.root_ca_cert_pem_bytes:
@@ -135,7 +140,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 active_channel = (
                     None  # Detach from variable so it's not closed in finally
                 )
-                return ChannelInfo(channel_to_return, current_address, port)
+                return channel_to_return  # Return the channel directly
 
             except grpc.aio.AioRpcError as e:
                 logger.warning(

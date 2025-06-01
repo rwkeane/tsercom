@@ -1,7 +1,13 @@
 import pytest
 
+from typing import Optional, List, Union  # Added imports
+import grpc  # Added import
+
 from tsercom.api.local_process.local_runtime_factory import LocalRuntimeFactory
 from tsercom.runtime.runtime_config import ServiceType
+from tsercom.rpc.grpc_util.grpc_channel_factory import (
+    GrpcChannelFactory,
+)  # Added import
 
 
 class FakeRuntime:
@@ -70,8 +76,14 @@ class FakeRuntimeDataHandler:
     pass
 
 
-class FakeGrpcChannelFactory:
-    pass
+class FakeGrpcChannelFactory(GrpcChannelFactory):  # Inherit and implement
+    async def find_async_channel(
+        self, addresses: Union[List[str], str], port: int
+    ) -> Optional[grpc.Channel]:
+        # For testing purposes, this fake can just return None or a mock channel
+        # if specific tests require a successful channel.
+        # Defaulting to None as current tests seem to only check for pass-through.
+        return None
 
 
 @pytest.fixture

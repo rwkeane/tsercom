@@ -2,9 +2,10 @@
 
 import asyncio
 import grpc
-import logging  # Added for logging
+import logging
+from typing import Optional, List, Union  # Added imports
 
-from tsercom.rpc.common.channel_info import ChannelInfo  # Updated import path
+# ChannelInfo is no longer returned by find_async_channel
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
 
@@ -17,8 +18,8 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
     """
 
     async def find_async_channel(
-        self, addresses: list[str] | str, port: int
-    ) -> ChannelInfo | None:
+        self, addresses: Union[List[str], str], port: int  # Updated signature
+    ) -> Optional[grpc.Channel]:  # Updated return type
         """Attempts to establish an insecure gRPC channel.
 
         Iterates through the provided addresses, attempting to connect to each
@@ -30,12 +31,11 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
             port: The target port number.
 
         Returns:
-            A `ChannelInfo` instance if a connection is successful,
+            A `grpc.Channel` instance if a connection is successful,
             otherwise `None`.
         """
-        # Parse the address
         assert addresses is not None
-        address_list: list[str]
+        address_list: List[str]  # Use List from typing
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
@@ -65,7 +65,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
                 logging.info(
                     f"Successfully connected to {current_address}:{port}"
                 )
-                return ChannelInfo(channel, current_address, port)
+                return channel  # Return the channel directly
 
             except Exception as e:
                 logging.warning(
