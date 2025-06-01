@@ -3,13 +3,13 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Tuple, Generic
 
-from tsercom.data.exposed_data import ExposedData # Added import
+from tsercom.data.exposed_data import ExposedData  # Added import
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
 # Type variable for data, typically bound by some base data class.
-TDataType = TypeVar("TDataType", bound=ExposedData) # Constrained TDataType
+TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrained TDataType
 # Type variable for events.
 TEventType = TypeVar("TEventType")
 
@@ -22,7 +22,7 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
     It uses a client callback mechanism to notify when a handle is ready.
     """
 
-    class Client: # Removed Generic[TDataType, TEventType]
+    class Client:  # Removed Generic[TDataType, TEventType]
         """Interface for clients of RuntimeFactoryFactory.
 
         Clients implement this interface to receive notifications when a
@@ -67,7 +67,7 @@ class RuntimeFactoryFactory(ABC, Generic[TDataType, TEventType]):
 
     def create_factory(
         self,
-        client: "RuntimeFactoryFactory.Client", # Removed [TDataType, TEventType]
+        client: "RuntimeFactoryFactory.Client",  # Removed [TDataType, TEventType]
         initializer: RuntimeInitializer[TDataType, TEventType],
     ) -> RuntimeFactory[TDataType, TEventType]:
         """Creates a RuntimeFactory and notifies the client when its handle is ready.
