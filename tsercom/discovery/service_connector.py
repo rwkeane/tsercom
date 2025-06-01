@@ -2,39 +2,39 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import Generic, TypeVar, Optional
 import asyncio
-import typing
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.discovery.discovery_host import DiscoveryHost
 from tsercom.discovery.service_info import ServiceInfo
+from tsercom.discovery.service_source import ServiceSource
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
     is_running_on_event_loop,
     run_on_event_loop,
 )
 import logging
-import grpc
 
-if typing.TYPE_CHECKING:
-    from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
+# Local application imports
+from tsercom.util.connection_factory import ConnectionFactory
+
 
 TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
+TChannelType = TypeVar("TChannelType")
 
 
-class DiscoverableGrpcEndpointConnector(
-    Generic[TServiceInfo], DiscoveryHost.Client
+class ServiceConnector(
+    Generic[TServiceInfo, TChannelType], ServiceSource.Client
 ):
-    """Connects to gRPC endpoints discovered via `DiscoveryHost`.
+    """Connects to gRPC endpoints discovered via a `ServiceSource`.
 
-    This class acts as a client to `DiscoveryHost`. When a service is discovered,
+    This class acts as a client to a `ServiceSource`. When a service is discovered,
     it attempts to establish a gRPC channel to that service using a provided
-    `GrpcChannelFactory`. Successful connections (channel established) are then
+    `ConnectionFactory[grpc.Channel]`. Successful connections (channel established) are then
     reported to its own registered `Client`. It also tracks active connections
     to avoid redundant connection attempts.
     """
 
     class Client(ABC):
-        """Interface for clients of `DiscoverableGrpcEndpointConnector`.
+        """Interface for clients of `ServiceConnector`.
 
         Implementers are notified when a gRPC channel to a discovered service
         has been successfully established.
@@ -45,7 +45,7 @@ class DiscoverableGrpcEndpointConnector(
             self,
             connection_info: TServiceInfo,
             caller_id: CallerIdentifier,
-            channel: "grpc.Channel",
+            channel: TChannelType,
         ) -> None:
             """Callback invoked when a gRPC channel to a discovered service is connected.
 
@@ -58,23 +58,27 @@ class DiscoverableGrpcEndpointConnector(
 
     def __init__(
         self,
-        client: "DiscoverableGrpcEndpointConnector.Client",
-        channel_factory: "GrpcChannelFactory",
-        discovery_host: DiscoveryHost[TServiceInfo],
+        client: "ServiceConnector.Client",  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[TChannelType]
+        connection_factory: ConnectionFactory[TChannelType],
+        service_source: ServiceSource[TServiceInfo],
     ) -> None:
-        """Initializes the DiscoverableGrpcEndpointConnector.
+        """Initializes the ServiceConnector.
 
         Args:
             client: The client object that will receive notifications about
                     successfully connected channels.
-            channel_factory: A `GrpcChannelFactory` used to create gRPC channels
-                             to discovered services.
-            discovery_host: The `DiscoveryHost` instance that will provide
+            connection_factory: A `ConnectionFactory[grpc.Channel]` used to create
+                                gRPC channels to discovered services.
+            service_source: The `ServiceSource` instance that will provide
                             discovered service information.
         """
-        self.__client = client
-        self.__discovery_host = discovery_host
-        self.__channel_factory = channel_factory
+        self.__client: ServiceConnector.Client = (
+            client  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[TChannelType]
+        )
+        self.__service_source: ServiceSource[TServiceInfo] = service_source
+        self.__connection_factory: ConnectionFactory[TChannelType] = (
+            connection_factory
+        )
 
         self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
 
@@ -87,10 +91,10 @@ class DiscoverableGrpcEndpointConnector(
         """Starts the service discovery process.
 
         This initiates discovery by calling `start_discovery` on the configured
-        `DiscoveryHost`. This instance (`self`) is passed as the client to
-        receive `_on_service_added` callbacks from the `DiscoveryHost`.
+        `ServiceSource`. This instance (`self`) is passed as the client to
+        receive `_on_service_added` callbacks from the `ServiceSource`.
         """
-        self.__discovery_host.start_discovery(self)
+        await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
         """Marks a client associated with a `CallerIdentifier` as failed or unhealthy.
@@ -131,7 +135,7 @@ class DiscoverableGrpcEndpointConnector(
         assert (
             caller_id in self.__callers
         ), f"Attempted to mark unknown caller_id {caller_id} as failed."
-        # Remove the caller_id, allowing new connections if the service is re-discovered.
+        # Removing the caller_id allows new connections if the service is re-discovered.
         self.__callers.remove(caller_id)
         logging.info(
             f"Marked client with caller_id {caller_id} as failed. It can now be re-discovered."
@@ -142,7 +146,7 @@ class DiscoverableGrpcEndpointConnector(
         connection_info: TServiceInfo,
         caller_id: CallerIdentifier,
     ) -> None:
-        """Callback from `DiscoveryHost` when a new service is discovered.
+        """Callback from `ServiceSource` when a new service is discovered.
 
         This method attempts to establish a gRPC channel to the discovered service.
         If successful, it notifies its own client via `_on_channel_connected`.
@@ -177,8 +181,8 @@ class DiscoverableGrpcEndpointConnector(
             f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
         )
 
-        channel: Optional["grpc.Channel"] = (
-            await self.__channel_factory.find_async_channel(
+        channel: Optional[TChannelType] = (
+            await self.__connection_factory.connect(
                 connection_info.addresses, connection_info.port
             )
         )
@@ -194,7 +198,9 @@ class DiscoverableGrpcEndpointConnector(
         )
 
         self.__callers.add(caller_id)
-        # The client expects a grpc.Channel, not ChannelInfo wrapper here.
+        # The client expects a T_ChannelType, not ChannelInfo wrapper here.
         await self.__client._on_channel_connected(
-            connection_info, caller_id, channel
+            connection_info,
+            caller_id,
+            channel,  # TODO: Fix this
         )

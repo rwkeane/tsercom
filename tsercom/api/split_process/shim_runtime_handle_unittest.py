@@ -6,8 +6,8 @@ import datetime  # Ensure datetime is imported
 # Module to be tested & whose attributes will be patched
 import tsercom.api.split_process.shim_runtime_handle as shim_module
 from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
-from tsercom.api.runtime_command import RuntimeCommand  # Actual enum
-from tsercom.data.event_instance import EventInstance  # Added import
+from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.data.event_instance import EventInstance
 
 # --- Fake Classes for Dependencies ---
 

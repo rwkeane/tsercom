@@ -53,9 +53,8 @@ from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory imp
 from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
     ClientAuthGrpcChannelFactory,
 )
-from tsercom.rpc.common.channel_info import (
-    ChannelInfo,
-)
+
+# ChannelInfo import removed as it's no longer used
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -392,21 +391,18 @@ async def test_grpc_connection_e2e(async_test_server):
     logger.info(f"Test client connecting to server at {host}:{port}")
 
     channel_factory = InsecureGrpcChannelFactory()
-    channel_info: ChannelInfo | None = None
+    grpc_channel: Optional[grpc.Channel] = None
 
     try:
-        channel_info = await channel_factory.find_async_channel(host, port)
-        assert channel_info is not None, "Failed to create client channel"
-        assert (
-            channel_info.channel is not None
-        ), "ChannelInfo has no channel object"
+        grpc_channel = await channel_factory.find_async_channel(host, port)
+        assert grpc_channel is not None, "Failed to create client channel"
 
         logger.info(f"Client channel created to {host}:{port}")
 
         request = TestConnectionCall()
         logger.info(f"Sending request to {FULL_METHOD_PATH}")
 
-        response = await channel_info.channel.unary_unary(
+        response = await grpc_channel.unary_unary(
             FULL_METHOD_PATH,
             request_serializer=TestConnectionCall.SerializeToString,
             response_deserializer=TestConnectionResponse.FromString,
@@ -427,9 +423,9 @@ async def test_grpc_connection_e2e(async_test_server):
         logger.error(f"An unexpected error occurred during the test: {e}")
         pytest.fail(f"An unexpected error occurred: {e}")
     finally:
-        if channel_info and channel_info.channel:
+        if grpc_channel:
             logger.info("Closing client channel.")
-            await channel_info.channel.close()
+            await grpc_channel.close()
             logger.info("Client channel closed.")
 
 
@@ -601,16 +597,13 @@ async def test_server_returns_grpc_error(error_timeout_test_server):
     )
 
     channel_factory = InsecureGrpcChannelFactory()
-    channel_info: ChannelInfo | None = None
+    grpc_channel: Optional[grpc.Channel] = None
 
     try:
-        channel_info = await channel_factory.find_async_channel(host, port)
+        grpc_channel = await channel_factory.find_async_channel(host, port)
         assert (
-            channel_info is not None
+            grpc_channel is not None
         ), "Failed to create client channel for error test"
-        assert (
-            channel_info.channel is not None
-        ), "ChannelInfo has no channel object for error test"
 
         logger.info(f"Client channel created to {host}:{port} for error test.")
 
@@ -619,7 +612,7 @@ async def test_server_returns_grpc_error(error_timeout_test_server):
         logger.info(f"Client calling {FULL_TRIGGER_ERROR_METHOD_PATH}")
 
         with pytest.raises(grpc.aio.AioRpcError) as e_info:
-            await channel_info.channel.unary_unary(
+            await grpc_channel.unary_unary(
                 FULL_TRIGGER_ERROR_METHOD_PATH,
                 request_serializer=TestConnectionCall.SerializeToString,
                 response_deserializer=TestConnectionResponse.FromString,
@@ -644,9 +637,9 @@ async def test_server_returns_grpc_error(error_timeout_test_server):
             f"An unexpected error occurred in test_server_returns_grpc_error: {e}"
         )
     finally:
-        if channel_info and channel_info.channel:
+        if grpc_channel:
             logger.info("Closing client channel in error test.")
-            await channel_info.channel.close()
+            await grpc_channel.close()
             logger.info("Client channel closed in error test.")
 
 
@@ -662,18 +655,15 @@ async def test_client_handles_timeout(error_timeout_test_server):
     )
 
     channel_factory = InsecureGrpcChannelFactory()
-    channel_info: ChannelInfo | None = None
+    grpc_channel: Optional[grpc.Channel] = None
 
     client_timeout_seconds = 0.5
 
     try:
-        channel_info = await channel_factory.find_async_channel(host, port)
+        grpc_channel = await channel_factory.find_async_channel(host, port)
         assert (
-            channel_info is not None
+            grpc_channel is not None
         ), "Failed to create client channel for timeout test"
-        assert (
-            channel_info.channel is not None
-        ), "ChannelInfo has no channel object for timeout test"
 
         logger.info(
             f"Client channel created to {host}:{port} for timeout test."
@@ -686,7 +676,7 @@ async def test_client_handles_timeout(error_timeout_test_server):
         )
 
         with pytest.raises(grpc.aio.AioRpcError) as e_info:
-            method_callable = channel_info.channel.unary_unary(
+            method_callable = grpc_channel.unary_unary(
                 FULL_DELAYED_RESPONSE_METHOD_PATH,
                 request_serializer=TestConnectionCall.SerializeToString,
                 response_deserializer=TestConnectionResponse.FromString,
@@ -709,9 +699,9 @@ async def test_client_handles_timeout(error_timeout_test_server):
             f"An unexpected error occurred in test_client_handles_timeout: {e}"
         )
     finally:
-        if channel_info and channel_info.channel:
+        if grpc_channel:
             logger.info("Closing client channel in timeout test.")
-            await channel_info.channel.close()
+            await grpc_channel.close()
             logger.info("Client channel closed in timeout test.")
 
 
@@ -899,11 +889,11 @@ class CustomDisconnectionRetrierRpcE2E(
             f"CustomDisconnectionRetrierRpcE2E: Attempting to connect to {self._server_host}:{current_port}..."
         )
 
-        channel_info = await self._channel_factory.find_async_channel(
+        grpc_channel = await self._channel_factory.find_async_channel(
             self._server_host, current_port
         )
 
-        if channel_info is None or channel_info.channel is None:
+        if grpc_channel is None:
             logger.warning(
                 f"CustomDisconnectionRetrierRpcE2E: Connection failed to {self._server_host}:{current_port}."
             )
@@ -917,9 +907,7 @@ class CustomDisconnectionRetrierRpcE2E(
         logger.info(
             f"CustomDisconnectionRetrierRpcE2E: Connected to {self._server_host}:{current_port}. Wrapping channel."
         )
-        self._managed_instance_wrapper = StopableChannelWrapper(
-            channel_info.channel
-        )
+        self._managed_instance_wrapper = StopableChannelWrapper(grpc_channel)
         return self._managed_instance_wrapper
 
     def get_current_channel_from_managed_instance(
@@ -1188,18 +1176,15 @@ async def test_server_auth_successful_connection(
         server_hostname_override=server_cn,
     )
 
-    channel_info: Optional[ChannelInfo] = None
+    grpc_channel: Optional[grpc.Channel] = None
     try:
-        channel_info = await factory.find_async_channel(host, port)
+        grpc_channel = await factory.find_async_channel(host, port)
         assert (
-            channel_info is not None
+            grpc_channel is not None
         ), "Client failed to connect (ServerAuth - trusted CA)"
-        assert (
-            channel_info.channel is not None
-        ), "ChannelInfo has no channel object"
 
         request = TestConnectionCall()
-        response = await channel_info.channel.unary_unary(
+        response = await grpc_channel.unary_unary(
             FULL_METHOD_PATH,
             request_serializer=TestConnectionCall.SerializeToString,
             response_deserializer=TestConnectionResponse.FromString,
@@ -1212,8 +1197,8 @@ async def test_server_auth_successful_connection(
         )
 
     finally:
-        if channel_info and channel_info.channel:
-            await channel_info.channel.close()
+        if grpc_channel:
+            await grpc_channel.close()
 
 
 @pytest.mark.asyncio
@@ -1250,11 +1235,11 @@ async def test_server_auth_untrusted_ca_fails(
         server_hostname_override=server_cn,
     )
 
-    channel_info: Optional[ChannelInfo] = None
+    grpc_channel: Optional[grpc.Channel] = None
     try:
-        channel_info = await factory.find_async_channel(host, port)
+        grpc_channel = await factory.find_async_channel(host, port)
         assert (
-            channel_info is None
+            grpc_channel is None
         ), "Client should have failed to connect with untrusted CA (ServerAuth)"
         logger.info(
             "Client correctly failed to connect (returned None) with untrusted CA (ServerAuth)."
@@ -1268,11 +1253,11 @@ async def test_server_auth_untrusted_ca_fails(
             f"Expected find_async_channel to return None, but it raised {type(e).__name__}: {e}"
         )
     finally:
-        if channel_info and channel_info.channel:
+        if grpc_channel:
             logger.warning(
                 "Closing channel that should not have been successfully created in untrusted CA test."
             )
-            await channel_info.channel.close()
+            await grpc_channel.close()
 
 
 @pytest.mark.asyncio
@@ -1306,18 +1291,15 @@ async def test_pinned_server_auth_successful_connection(
         server_hostname_override=server_cn,
     )
 
-    channel_info: Optional[ChannelInfo] = None
+    grpc_channel: Optional[grpc.Channel] = None
     try:
-        channel_info = await factory.find_async_channel(host, port)
+        grpc_channel = await factory.find_async_channel(host, port)
         assert (
-            channel_info is not None
+            grpc_channel is not None
         ), "Client failed to connect (PinnedServerAuth - correct pin)"
-        assert (
-            channel_info.channel is not None
-        ), "ChannelInfo has no channel object"
 
         request = TestConnectionCall()
-        response = await channel_info.channel.unary_unary(
+        response = await grpc_channel.unary_unary(
             FULL_METHOD_PATH,
             request_serializer=TestConnectionCall.SerializeToString,
             response_deserializer=TestConnectionResponse.FromString,
@@ -1330,8 +1312,8 @@ async def test_pinned_server_auth_successful_connection(
         )
 
     finally:
-        if channel_info and channel_info.channel:
-            await channel_info.channel.close()
+        if grpc_channel:
+            await grpc_channel.close()
 
 
 @pytest.mark.asyncio
@@ -1376,11 +1358,11 @@ async def test_pinned_server_auth_incorrect_pinned_cert_fails(
         server_hostname_override=server_cn,
     )
 
-    channel_info: Optional[ChannelInfo] = None
+    grpc_channel: Optional[grpc.Channel] = None
     try:
-        channel_info = await factory.find_async_channel(host, port)
+        grpc_channel = await factory.find_async_channel(host, port)
         assert (
-            channel_info is None
+            grpc_channel is None
         ), "Client should have failed to connect with incorrect pinned cert (PinnedServerAuth)"
         logger.info(
             "Client correctly failed to connect (returned None) with incorrect pinned cert (PinnedServerAuth)."
@@ -1393,11 +1375,11 @@ async def test_pinned_server_auth_incorrect_pinned_cert_fails(
             f"Expected find_async_channel to return None for incorrect pin, but it raised {type(e).__name__}: {e}"
         )
     finally:
-        if channel_info and channel_info.channel:
+        if grpc_channel:
             logger.warning(
                 "Closing channel that should not have been successfully created in incorrect pin test."
             )
-            await channel_info.channel.close()
+            await grpc_channel.close()
 
 
 @pytest.mark.asyncio
@@ -1440,11 +1422,11 @@ async def test_pinned_server_auth_server_changes_cert_fails(
         server_hostname_override=server_cn,
     )
 
-    channel_info: Optional[ChannelInfo] = None
+    grpc_channel: Optional[grpc.Channel] = None
     try:
-        channel_info = await factory.find_async_channel(host, port)
+        grpc_channel = await factory.find_async_channel(host, port)
         assert (
-            channel_info is None
+            grpc_channel is None
         ), "Client should have failed to connect when server changed cert and client pinned old one (PinnedServerAuth)"
         logger.info(
             "Client correctly failed to connect (returned None) when server changed cert (PinnedServerAuth)."
@@ -1457,11 +1439,11 @@ async def test_pinned_server_auth_server_changes_cert_fails(
             f"Expected find_async_channel to return None for server cert change, but it raised {type(e).__name__}: {e}"
         )
     finally:
-        if channel_info and channel_info.channel:
+        if grpc_channel:
             logger.warning(
                 "Closing channel that should not have been successfully created when server changed cert."
             )
-            await channel_info.channel.close()
+            await grpc_channel.close()
 
 
 # --- Tests for ClientAuthGrpcChannelFactory (Scenario 3) ---
@@ -1511,10 +1493,10 @@ async def test_client_auth_no_server_validation_by_client(
         server_hostname_override=None,
     )
 
-    channel_info: Optional[ChannelInfo] = None
+    grpc_channel: Optional[grpc.Channel] = None
     try:
-        channel_info = await factory.find_async_channel(host, port)
-        assert channel_info is None, (
+        grpc_channel = await factory.find_async_channel(host, port)
+        assert grpc_channel is None, (
             f"ClientAuth with NoServerValidation by client unexpectedly connected. "
             f"server_requires_client_auth={server_requires_client_auth}. "
             f"This scenario consistently fails handshake (server can't verify client cert)."
@@ -1525,8 +1507,8 @@ async def test_client_auth_no_server_validation_by_client(
         )
 
     finally:
-        if channel_info and channel_info.channel:
-            await channel_info.channel.close()
+        if grpc_channel:
+            await grpc_channel.close()
 
 
 @pytest.mark.asyncio
@@ -1572,18 +1554,15 @@ async def test_client_auth_with_server_validation_mtls(
         server_hostname_override=server_cn,
     )
 
-    channel_info: Optional[ChannelInfo] = None
+    grpc_channel: Optional[grpc.Channel] = None
     try:
-        channel_info = await factory.find_async_channel(host, port)
+        grpc_channel = await factory.find_async_channel(host, port)
         assert (
-            channel_info is not None
+            grpc_channel is not None
         ), "Client failed to connect (ClientAuth, mTLS)"
-        assert (
-            channel_info.channel is not None
-        ), "ChannelInfo has no channel object"
 
         request = TestConnectionCall()
-        response = await channel_info.channel.unary_unary(
+        response = await grpc_channel.unary_unary(
             FULL_METHOD_PATH,
             request_serializer=TestConnectionCall.SerializeToString,
             response_deserializer=TestConnectionResponse.FromString,
@@ -1594,8 +1573,8 @@ async def test_client_auth_with_server_validation_mtls(
         logger.info("RPC successful (ClientAuth, mTLS).")
 
     finally:
-        if channel_info and channel_info.channel:
-            await channel_info.channel.close()
+        if grpc_channel:
+            await grpc_channel.close()
 
 
 @pytest.mark.asyncio
@@ -1642,11 +1621,11 @@ async def test_client_auth_with_server_validation_untrusted_server_ca_fails(
         server_hostname_override=server_cn,
     )
 
-    channel_info: Optional[ChannelInfo] = None
+    grpc_channel: Optional[grpc.Channel] = None
     try:
-        channel_info = await factory.find_async_channel(host, port)
+        grpc_channel = await factory.find_async_channel(host, port)
         assert (
-            channel_info is None
+            grpc_channel is None
         ), "Client should have failed to connect (ClientAuth, untrusted server CA)"
         logger.info(
             "Client correctly failed to connect (returned None) due to untrusted server CA (ClientAuth)."
@@ -1659,8 +1638,8 @@ async def test_client_auth_with_server_validation_untrusted_server_ca_fails(
             f"Expected find_async_channel to return None for untrusted server CA, but it raised {type(e).__name__}: {e}"
         )
     finally:
-        if channel_info and channel_info.channel:
+        if grpc_channel:
             logger.warning(
                 "Closing channel that should not have been successfully created in untrusted server CA test."
             )
-            await channel_info.channel.close()
+            await grpc_channel.close()

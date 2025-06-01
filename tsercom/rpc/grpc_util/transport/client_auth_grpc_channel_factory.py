@@ -4,9 +4,13 @@ from __future__ import annotations
 import asyncio
 import grpc
 import logging
-from typing import Any, Optional
+from typing import (
+    Any,
+    Optional,
+    List,
+    Union,
+)
 
-from tsercom.rpc.common.channel_info import ChannelInfo
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
 logger = logging.getLogger(__name__)
@@ -36,13 +40,13 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             server_hostname_override: If provided, this hostname will be used
                                       for SSL target name override.
         """
-        self.client_cert_pem_bytes: bytes  # Declare type once
+        self.client_cert_pem_bytes: bytes
         if isinstance(client_cert_pem, str):
             self.client_cert_pem_bytes = client_cert_pem.encode("utf-8")
         else:
             self.client_cert_pem_bytes = client_cert_pem
 
-        self.client_key_pem_bytes: bytes  # Declare type once
+        self.client_key_pem_bytes: bytes
         if isinstance(client_key_pem, str):
             self.client_key_pem_bytes = client_key_pem.encode("utf-8")
         else:
@@ -60,11 +64,11 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             self.root_ca_cert_pem_bytes = None
 
         self.server_hostname_override: Optional[str] = server_hostname_override
-        super().__init__()  # GrpcChannelFactory has no __init__, but good practice
+        super().__init__()
 
     async def find_async_channel(
-        self, addresses: list[str] | str, port: int
-    ) -> ChannelInfo | None:
+        self, addresses: Union[List[str], str], port: int
+    ) -> Optional[grpc.Channel]:
         """
         Attempts to establish a secure gRPC channel using client credentials.
 
@@ -73,14 +77,14 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             port: The port number to connect to.
 
         Returns:
-            A `ChannelInfo` object if a channel is successfully established,
+            A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
         """
-        address_list: list[str]
+        address_list: List[str]
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
-            address_list = list(addresses)  # Ensure it's a list copy
+            address_list = list(addresses)
 
         auth_type = "Client Auth"
         if self.root_ca_cert_pem_bytes:
@@ -95,13 +99,11 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         credentials = grpc.ssl_channel_credentials(
             certificate_chain=self.client_cert_pem_bytes,
             private_key=self.client_key_pem_bytes,
-            root_certificates=self.root_ca_cert_pem_bytes,  # Can be None
+            root_certificates=self.root_ca_cert_pem_bytes,
         )
 
         options: list[tuple[str, Any]] = []
-        if (
-            self.server_hostname_override
-        ):  # Revert to always adding if provided
+        if self.server_hostname_override:
             options.append(
                 (
                     "grpc.ssl_target_name_override",
@@ -109,9 +111,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 )
             )
 
-        active_channel: Optional[grpc.aio.Channel] = (
-            None  # Define for broader scope in error handling
-        )
+        active_channel: Optional[grpc.aio.Channel] = None
 
         for current_address in address_list:
             target = f"{current_address}:{port}"
@@ -135,7 +135,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 active_channel = (
                     None  # Detach from variable so it's not closed in finally
                 )
-                return ChannelInfo(channel_to_return, current_address, port)
+                return channel_to_return  # Return the channel directly
 
             except grpc.aio.AioRpcError as e:
                 logger.warning(
