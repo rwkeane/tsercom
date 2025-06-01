@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Coroutine
+from collections.abc import Awaitable  # Added Awaitable
 from functools import partial
 import threading
 from typing import Any, AsyncIterator, TypeVar, Optional, Callable
@@ -129,7 +129,8 @@ class IsRunningTracker(Atomic[bool]):
         await self.__stopped_barrier.wait()
 
     async def task_or_stopped(
-        self, call: Coroutine[Any, Any, TReturnType]  # Reverted to Coroutine
+        self,
+        call: Awaitable[TReturnType],  # Changed from Coroutine to Awaitable
     ) -> TReturnType | None:
         """
         Runs |call| until completion, or until the current instance changes to
@@ -272,8 +273,10 @@ class IsRunningTracker(Atomic[bool]):
                 StopAsyncIteration: If the tracker is stopped or the underlying
                                    iterator is exhausted.
             """
-            next_item_coro = anext(self.__iterator)
-            result = await self.__tracker.task_or_stopped(next_item_coro)  # type: ignore[arg-type]
+            next_item_coro = anext(self.__iterator)  # anext returns Awaitable
+            result = await self.__tracker.task_or_stopped(
+                next_item_coro
+            )  # No longer type: ignore
 
             if result is None or not self.__tracker.get():
                 raise StopAsyncIteration()

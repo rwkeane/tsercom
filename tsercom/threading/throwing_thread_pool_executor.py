@@ -39,11 +39,16 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
                             `ThreadPoolExecutor` constructor.
         """
         assert error_cb is not None, "error_cb cannot be None"
-        self.__error_cb = error_cb
+        self.__error_cb = (
+            error_cb  # Renamed from _error_cb to __error_cb for consistency
+        )
         super().__init__(*args, **kwargs)
 
     def submit(
-        self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs
+        self,
+        fn: Callable[P, T],
+        *args: P.args,
+        **kwargs: P.kwargs,  # Removed /
     ) -> Future[T]:
         """
         Submits a callable to be executed asynchronously.
@@ -81,12 +86,14 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
             try:
                 return fn(*args2, **kwargs2)
             except Warning as w:  # Catch warnings specifically
-                if self.__error_cb is not None:
-                    self.__error_cb(w)
+                self.__error_cb(
+                    w
+                )  # __error_cb is asserted non-None in __init__
                 raise w  # Re-raise the warning
             except Exception as e:  # Catch all other exceptions
-                if self.__error_cb is not None:
-                    self.__error_cb(e)
+                self.__error_cb(
+                    e
+                )  # __error_cb is asserted non-None in __init__
                 raise e  # Re-raise the exception
 
         return super().submit(wrapper, *args, **kwargs)

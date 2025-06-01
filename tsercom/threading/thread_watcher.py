@@ -8,6 +8,7 @@ and for catching and surfacing exceptions that occur within them. This allows
 for a centralized way to monitor errors from various background tasks.
 """
 
+import logging  # Added for warning
 import threading
 from typing import List, Any
 from collections.abc import Callable
@@ -41,9 +42,9 @@ class ThreadWatcher(ErrorWatcher):
 
     def create_tracked_thread(
         self, target: Callable[[], None], is_daemon: bool = True
-    ) -> threading.Thread:
+    ) -> ThrowingThread:  # Changed return type hint
         """
-        Creates a `ThrowingThread` instance that is tracked by this watcher. # Changed in docstring
+        Creates a `ThrowingThread` instance that is tracked by this watcher.
 
         Exceptions occurring on this thread will be caught and reported via
         `on_exception_seen`.
@@ -51,6 +52,8 @@ class ThreadWatcher(ErrorWatcher):
         Args:
             target (Callable[[], None]): The callable object to be invoked when
                                          the thread starts.
+            is_daemon (bool): Whether the thread should be a daemon thread.
+                              Defaults to True.
 
         Returns:
             ThrowingThread: The created thread object.
@@ -80,9 +83,10 @@ class ThreadWatcher(ErrorWatcher):
         # We remove it to ensure self.on_exception_seen is used.
         # Optionally, log a warning if a user-provided 'error_cb' is being discarded.
         if "error_cb" in kwargs:
-            # import logging # Add this import if logging is used
-            # logging.warning("User-provided 'error_cb' in create_tracked_thread_pool_executor "
-            #                 "is being overridden by ThreadWatcher's internal callback.")
+            logging.warning(
+                "User-provided 'error_cb' in create_tracked_thread_pool_executor "
+                "is being overridden by ThreadWatcher's internal callback."
+            )
             del kwargs["error_cb"]
 
         return ThrowingThreadPoolExecutor(
@@ -108,7 +112,7 @@ class ThreadWatcher(ErrorWatcher):
                     self.__barrier.clear()
                     continue
 
-                # TODO: Change to ExceptionGroup.
+                # TODO(tsercom/enhancement): Change to ExceptionGroup once Python 3.11+ is the minimum target.
                 # Requires Python 3.11+. For now, raising the first exception.
 
                 raise self.__exceptions[0]
@@ -132,7 +136,7 @@ class ThreadWatcher(ErrorWatcher):
             if not self.__exceptions:
                 return
 
-            # TODO: Change to ExceptionGroup.
+            # TODO(tsercom/enhancement): Change to ExceptionGroup once Python 3.11+ is the minimum target.
             # Requires Python 3.11+. For now, raising the first exception.
 
             raise self.__exceptions[0]
