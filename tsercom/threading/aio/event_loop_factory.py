@@ -31,7 +31,7 @@ class EventLoopFactory:
             raise ValueError(
                 "Watcher argument cannot be None for EventLoopFactory."
             )
-        if not issubclass(type(watcher), ThreadWatcher):
+        if not isinstance(watcher, ThreadWatcher):
             raise TypeError(
                 f"Watcher must be a subclass of ThreadWatcher, got {type(watcher).__name__}."
             )
@@ -91,6 +91,8 @@ class EventLoopFactory:
             sets it as the current event loop for the thread, signals that
             the loop is ready, and then runs the loop forever.
             """
+            # No need for a try/except Exception here that just re-raises.
+            # The finally block will handle cleanup regardless.
             try:
                 local_event_loop = asyncio.new_event_loop()
 
@@ -105,8 +107,6 @@ class EventLoopFactory:
                 barrier.set()  # Notifies waiting thread that loop is ready
 
                 local_event_loop.run_forever()  # Starts the event loop
-            except Exception:
-                raise
             finally:
                 if (
                     "local_event_loop" in locals()

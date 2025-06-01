@@ -40,14 +40,17 @@ def is_global_event_loop_set() -> bool:
         bool: True if the global event loop is set, False otherwise.
     """
     global __g_global_event_loop
-    return __g_global_event_loop is not None
+    global __g_global_event_loop_lock
+    with __g_global_event_loop_lock:
+        return __g_global_event_loop is not None
 
 
 def get_global_event_loop() -> AbstractEventLoop:
     """
     Retrieves the global event loop used by tsercom.
 
-    Asserts that the event loop has been set before calling.
+    Asserts that the event loop has been set before calling. This check and the
+    retrieval are performed under a lock to ensure thread safety.
 
     Returns:
         AbstractEventLoop: The global asyncio event loop.
@@ -56,13 +59,25 @@ def get_global_event_loop() -> AbstractEventLoop:
         AssertionError: If the global event loop has not been set.
     """
     global __g_global_event_loop
-    assert (
-        __g_global_event_loop is not None
-    ), "Global event loop accessed before being set."
-    return __g_global_event_loop
+    global __g_global_event_loop_lock
+    with __g_global_event_loop_lock:
+        assert (
+            __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+        return __g_global_event_loop
 
 
 def clear_tsercom_event_loop(try_stop_loop: bool = True) -> None:
+    """
+    Clears the global event loop for tsercom.
+
+    If `try_stop_loop` is True (the default), it attempts to stop the
+    event loop if it is running. This operation is thread-safe.
+
+    Args:
+        try_stop_loop (bool): If True, attempts to stop the event loop
+                              if it's running.
+    """
     global __g_global_event_loop
     global __g_event_loop_factory
     global __g_global_event_loop_lock
@@ -103,6 +118,9 @@ def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
         factory = EventLoopFactory(watcher)
         __g_global_event_loop = factory.start_asyncio_loop()
         __g_event_loop_factory = factory
+        # Note: The factory itself is not explicitly "closed" here,
+        # but the loop it manages is stopped if clear_tsercom_event_loop is called.
+        # The thread created by the factory is managed by the ThreadWatcher.
 
 
 def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
@@ -131,6 +149,19 @@ def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
 
 
 def set_tsercom_event_loop_to_current_thread() -> None:
+    """
+    Sets the tsercom global event loop to the asyncio event loop of the
+    current thread.
+
+    If no event loop is set for the current thread, or if the existing one is
+    closed, a new event loop is created and set for the current thread, then
+    used as the tsercom global event loop.
+
+    This operation is thread-safe.
+
+    Raises:
+        RuntimeError: If the global event loop has already been set.
+    """
     global __g_global_event_loop
     global __g_global_event_loop_lock
 

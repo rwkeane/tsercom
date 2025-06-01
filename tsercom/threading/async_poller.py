@@ -7,10 +7,10 @@ It manages an internal queue, synchronization primitives, and association with
 an asyncio event loop.
 """
 
-from abc import ABC
 import asyncio
 import threading
-from typing import Deque, Generic, List, TypeVar, AsyncIterator
+from collections.abc import Deque  # Changed from typing.Deque
+from typing import Generic, List, TypeVar, AsyncIterator
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -27,7 +27,7 @@ TResultType = TypeVar("TResultType")
 
 
 # Provides an asynchronous queueing mechanism for subscribers to await new instances.
-class AsyncPoller(Generic[TResultType], ABC):
+class AsyncPoller(Generic[TResultType]):  # Removed ABC
     """
     This class provides an asynchronous queueing mechanism, to allow for
     subscribers to request the next available instance, and asynchronously
@@ -185,7 +185,7 @@ class AsyncPoller(Generic[TResultType], ABC):
         with self.__lock:
             return len(self.__responses)
 
-    # TODO(developer): Consider adding a public stop() method.
+    # TODO(tsercom/feature-request): Consider adding a public stop() method.
     # This method would set self.__is_loop_running.set(False)
     # and potentially self.__barrier.set() to ensure any waiters
     # in wait_instance() can wake up promptly and observe the stop.
