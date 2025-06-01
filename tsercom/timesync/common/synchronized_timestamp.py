@@ -75,7 +75,7 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise TypeError(
+            raise AssertionError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )
         return self.as_datetime() > other_dt
@@ -86,7 +86,7 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise TypeError(
+            raise AssertionError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )
         return self.as_datetime() >= other_dt
@@ -97,7 +97,7 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise TypeError(
+            raise AssertionError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )
         return self.as_datetime() < other_dt
@@ -108,7 +108,7 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise TypeError(
+            raise AssertionError(
                 f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
             )
         return self.as_datetime() <= other_dt

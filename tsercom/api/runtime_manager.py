@@ -23,7 +23,7 @@ from tsercom.api.runtime_manager_helpers import (
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,  # Keep for type hinting if necessary
 )
-from tsercom.data.exposed_data import ExposedData # Added import
+from tsercom.data.exposed_data import ExposedData  # Added import
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
@@ -44,7 +44,7 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 # Type variables for generic RuntimeHandle and related classes.
-TDataType = TypeVar("TDataType", bound=ExposedData) # Constrained TDataType
+TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrained TDataType
 TEventType = TypeVar("TEventType")
 
 
@@ -427,7 +427,7 @@ class RuntimeManager(ErrorWatcher):
 
 
 class RuntimeFuturePopulator(
-    RuntimeFactoryFactory.Client, # Removed [TDataType, TEventType]
+    RuntimeFactoryFactory.Client,  # Removed [TDataType, TEventType]
     Generic[TDataType, TEventType],
 ):
     """A client that populates a Future with a RuntimeHandle when ready.
