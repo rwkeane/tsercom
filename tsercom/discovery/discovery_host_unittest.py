@@ -1,10 +1,11 @@
 import asyncio
 import pytest
-from unittest.mock import MagicMock, AsyncMock  # Import AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 
 from tsercom.discovery.discovery_host import DiscoveryHost
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_info import ServiceInfo
+from tsercom.discovery.service_source import ServiceSource
 from tsercom.discovery.mdns.instance_listener import (
     InstanceListener as ActualInstanceListener,
 )
@@ -28,15 +29,14 @@ def manage_tsercom_global_event_loop_fixture(request):
         clear_tsercom_event_loop()
 
 
-# 2. Mock for DiscoveryHost.Client
+# 2. Mock for ServiceSource.Client (formerly DiscoveryHost.Client)
 @pytest.fixture
-def mock_discovery_host_client_fixture(
+def mock_service_source_client_fixture(
     mocker,
-):  # mocker is a built-in pytest-mock fixture
+):
     client = mocker.create_autospec(
-        DiscoveryHost.Client, instance=True, name="MockDiscoveryHostClient"
+        ServiceSource.Client, instance=True, name="MockServiceSourceClient"
     )
-    # _on_service_added is an async method, so it should be an AsyncMock
     client._on_service_added = AsyncMock(name="client_on_service_added_method")
     return client
 
@@ -78,30 +78,26 @@ def test_discovery_host_initialization(mocker):
     # Test with service_type only
     host_st = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)
     assert host_st._DiscoveryHost__service_type == SERVICE_TYPE_DEFAULT
-    assert (
-        host_st._DiscoveryHost__instance_listener_factory is None
-    )  # Typo fixed
+    assert host_st._DiscoveryHost__instance_listener_factory is None
 
     # Test with instance_listener_factory only
     mock_factory = mocker.Mock(name="MockListenerFactory")
     host_lf = DiscoveryHost(instance_listener_factory=mock_factory)
     assert host_lf._DiscoveryHost__service_type is None
-    assert (
-        host_lf._DiscoveryHost__instance_listener_factory is mock_factory
-    )  # Typo fixed
+    assert host_lf._DiscoveryHost__instance_listener_factory is mock_factory
 
     # Test with neither (should raise ValueError)
     with pytest.raises(
         ValueError,
         match="Exactly one of 'service_type' or 'instance_listener_factory' must be provided.",
-    ):  # Message updated
+    ):
         DiscoveryHost()
 
     # Test with both (should raise ValueError)
     with pytest.raises(
         ValueError,
         match="Exactly one of 'service_type' or 'instance_listener_factory' must be provided.",
-    ):  # Message updated
+    ):
         DiscoveryHost(
             service_type=SERVICE_TYPE_DEFAULT,
             instance_listener_factory=mock_factory,
@@ -110,38 +106,30 @@ def test_discovery_host_initialization(mocker):
 
 @pytest.mark.asyncio
 async def test_start_discovery_successfully(
-    mock_discovery_host_client_fixture,
+    mock_service_source_client_fixture,
     mock_actual_instance_listener_fixture,
     mocker,
 ):
     """Test successful start of discovery."""
     host = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)
-    mock_dh_client = mock_discovery_host_client_fixture
+    mock_ss_client = mock_service_source_client_fixture
     MockListenerClass, mock_listener_instance = (
         mock_actual_instance_listener_fixture
     )
 
-    # Expect TypeError due to the InstanceListener[TServiceInfo] instantiation issue
+    # Expect TypeError due to the InstanceListener[TServiceInfo] instantiation issue.
+    # This error originates from within the InstanceListener's own __init__ or
+    # generic type handling when TServiceInfo is not a concrete type.
     with pytest.raises(TypeError) as excinfo:
-        await host._DiscoveryHost__start_discovery_impl(mock_dh_client)
+        await host.start_discovery(mock_ss_client)
 
-    # Verify the exception message
     assert "isinstance() arg 2 must be a type" in str(excinfo.value)
-
-    # Verify that the client was set, as this happens before the failing call
-    assert host._DiscoveryHost__client is mock_dh_client
-
-    # MockListenerClass.assert_called_once_with is removed as per final instructions,
-    # acknowledging that the TypeError from the original __init__ means the mock class
-    # isn't considered "called" for instantiation in this specific scenario.
-
-    # host._DiscoveryHost__discoverer is not set due to the error, so no assertion for it.
-    # The RuntimeError check for a second call is removed as it's not valid in this failure scenario.
+    assert host._DiscoveryHost__client is mock_ss_client
 
 
 @pytest.mark.asyncio
 async def test_start_discovery_with_listener_factory(
-    mock_discovery_host_client_fixture, mocker
+    mock_service_source_client_fixture, mocker
 ):
     """Test start of discovery using a listener factory."""
     mock_listener_from_factory = mocker.create_autospec(
@@ -152,13 +140,13 @@ async def test_start_discovery_with_listener_factory(
     )
 
     host = DiscoveryHost(instance_listener_factory=mock_factory)
-    mock_dh_client = mock_discovery_host_client_fixture
+    mock_ss_client = mock_service_source_client_fixture
 
-    await host._DiscoveryHost__start_discovery_impl(mock_dh_client)
+    await host.start_discovery(mock_ss_client)
 
     mock_factory.assert_called_once_with(host)
     assert host._DiscoveryHost__discoverer is mock_listener_from_factory
-    assert host._DiscoveryHost__client is mock_dh_client
+    assert host._DiscoveryHost__client is mock_ss_client
 
 
 @pytest.mark.asyncio
@@ -167,23 +155,22 @@ async def test_start_discovery_client_none():
     host = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)
     with pytest.raises(
         ValueError, match="Client argument cannot be None for start_discovery."
-    ):  # Message updated
-        await host._DiscoveryHost__start_discovery_impl(None)
+    ):
+        await host.start_discovery(None)
 
 
 @pytest.mark.asyncio
 async def test_on_service_added_new_service(
-    mock_discovery_host_client_fixture,
+    mock_service_source_client_fixture,
     mock_caller_identifier_random_fixture,
     mocker,
 ):
     """Test _on_service_added for a new service."""
-    host = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)  # Needs init
-    mock_dh_client = mock_discovery_host_client_fixture
+    host = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)
+    mock_ss_client = mock_service_source_client_fixture
 
-    # Manually set client for this unit test, as __start_discovery_impl is not the focus.
-    host._DiscoveryHost__client = mock_dh_client
-    # Also need to initialize __caller_id_map
+    # Manually set client for this unit test, as start_discovery is not the primary focus here.
+    host._DiscoveryHost__client = mock_ss_client
     host._DiscoveryHost__caller_id_map = {}
 
     service_info = ServiceInfo(
@@ -193,14 +180,13 @@ async def test_on_service_added_new_service(
         mdns_name="NewService._test_service._tcp.local.",
     )
 
-    # mock_random_caller_id_gen is mock_caller_identifier_random_fixture
     # Create a specific mock instance that CallerIdentifier.random() will return
     expected_random_id_instance = MagicMock(
         spec=CallerIdentifier, name="ExpectedRandomID"
     )
-    mock_caller_identifier_random_fixture.side_effect = (
-        None  # Clear side_effect for return_value to work
-    )
+    # Configure the mock_caller_identifier_random_fixture to return this specific instance
+    # Clear side_effect first, then set return_value
+    mock_caller_identifier_random_fixture.side_effect = None
     mock_caller_identifier_random_fixture.return_value = (
         expected_random_id_instance
     )
@@ -208,8 +194,8 @@ async def test_on_service_added_new_service(
     await host._on_service_added(service_info)
 
     mock_caller_identifier_random_fixture.assert_called_once()
-    mock_dh_client._on_service_added.assert_awaited_once_with(
-        service_info, expected_random_id_instance  # Use the specific instance
+    mock_ss_client._on_service_added.assert_awaited_once_with(
+        service_info, expected_random_id_instance
     )
     assert (
         host._DiscoveryHost__caller_id_map[service_info.mdns_name]
@@ -219,31 +205,31 @@ async def test_on_service_added_new_service(
 
 @pytest.mark.asyncio
 async def test_on_service_added_existing_service(
-    mock_discovery_host_client_fixture,
+    mock_service_source_client_fixture,
     mock_caller_identifier_random_fixture,
     mocker,
 ):
-    """Test _on_service_added for an existing service."""
-    host = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)  # Needs init
-    mock_dh_client = mock_discovery_host_client_fixture
-    host._DiscoveryHost__client = mock_dh_client  # Manual setup
+    """Test _on_service_added for an existing service (CallerIdentifier should be reused)."""
+    host = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)
+    mock_ss_client = mock_service_source_client_fixture
+    host._DiscoveryHost__client = mock_ss_client  # Manual setup
 
     existing_mdns_name = "ExistingService._test_service._tcp.local."
     pre_existing_id = MagicMock(spec=CallerIdentifier, name="PreExistingID")
     host._DiscoveryHost__caller_id_map = {existing_mdns_name: pre_existing_id}
 
     service_info_updated = ServiceInfo(
-        name="ExistingServiceUpdatedName",  # Name might change
-        port=1235,  # Port might change
-        addresses=["192.168.1.101"],  # Address might change
-        mdns_name=existing_mdns_name,  # mdns_name is the key
+        name="ExistingServiceUpdatedName",  # Name or other details might change
+        port=1235,
+        addresses=["192.168.1.101"],
+        mdns_name=existing_mdns_name,  # Key for identity remains the same
     )
 
     await host._on_service_added(service_info_updated)
 
-    mock_caller_identifier_random_fixture.assert_not_called()
-    mock_dh_client._on_service_added.assert_awaited_once_with(
-        service_info_updated, pre_existing_id
+    mock_caller_identifier_random_fixture.assert_not_called()  # Should not generate a new ID
+    mock_ss_client._on_service_added.assert_awaited_once_with(
+        service_info_updated, pre_existing_id  # Should use the existing ID
     )
     assert (
         host._DiscoveryHost__caller_id_map[existing_mdns_name]
@@ -253,14 +239,13 @@ async def test_on_service_added_existing_service(
 
 @pytest.mark.asyncio
 async def test_on_service_added_no_client():
-    """Test _on_service_added when the internal client is None."""
+    """Test _on_service_added when the internal client is None (e.g., discovery not started)."""
     host = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)
-    # Ensure client is None (default after init, before start_discovery_impl)
-    assert host._DiscoveryHost__client is None
-    host._DiscoveryHost__caller_id_map = {}  # Initialize map
+    assert host._DiscoveryHost__client is None  # Verify precondition
+    host._DiscoveryHost__caller_id_map = {}
 
     service_info = ServiceInfo(
-        name="SomeService",
+        name="SomeService",  # Added missing 'name' argument
         port=1234,
         addresses=["192.168.1.100"],
         mdns_name="SomeService._test_service._tcp.local.",
