@@ -1,11 +1,15 @@
 """Defines InstancePublisher for announcing service instances via mDNS, including TXT record preparation."""
 
+import asyncio # For event loop management in close (if needed)
 import datetime
+import logging # For logging
 from typing import Callable, Dict, Optional
 from uuid import getnode as get_mac
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
+
+_logger = logging.getLogger(__name__)
 
 
 class InstancePublisher:
@@ -146,13 +150,30 @@ class InstancePublisher:
 
         return properties
 
-    async def publish(self) -> None: # Changed to async def
+    async def publish(self) -> None:
         """Publishes the service instance using mDNS.
 
         This method delegates to the underlying `RecordPublisher` to make the
         service visible on the network.
         """
-        await self.__record_publisher.publish() # Added await
+        await self.__record_publisher.publish()
+
+    async def close(self) -> None:
+        """Closes the underlying record publisher if it supports closing."""
+        if hasattr(self.__record_publisher, "close") and callable(
+            getattr(self.__record_publisher, "close")
+        ):
+            try:
+                # Assuming the close method of the publisher is async
+                await self.__record_publisher.close() # type: ignore
+            except Exception as e:
+                _logger.error(
+                    "Error while closing the record publisher: %s", e, exc_info=True
+                )
+        else:
+            _logger.debug(
+                "Record publisher does not have a close method or it's not callable."
+            )
 
     def __get_current_date_time_bytes(self) -> bytes:
         """Gets the current date and time formatted as a UTF-8 encoded string.

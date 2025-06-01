@@ -35,7 +35,7 @@ class FakeMdnsPublisher(MdnsPublisher):
         self.publish_called: bool = False
         self.publish_call_count: int = 0
 
-    async def publish(self) -> None: # Changed to async def
+    async def publish(self) -> None:
         self.publish_called = True
         self.publish_call_count += 1
 
@@ -261,8 +261,8 @@ class TestInstancePublisher:
                 instance_name=invalid_instance_name,
             )
 
-    @pytest.mark.asyncio # Make test async
-    async def test_publish_method(self): # Make test async
+    @pytest.mark.asyncio
+    async def test_publish_method(self):
         """Test that calling publish() on InstancePublisher calls publish() on its MdnsPublisher."""
         factory = self._get_fake_mdns_publisher_factory()
         publisher = InstancePublisher(
@@ -276,12 +276,12 @@ class TestInstancePublisher:
         assert not captured_pub.publish_called
         assert captured_pub.publish_call_count == 0
 
-        await publisher.publish()  # Call the method under test (with await)
+        await publisher.publish()
 
         assert captured_pub.publish_called
         assert captured_pub.publish_call_count == 1
 
-        await publisher.publish()  # Call again (with await)
+        await publisher.publish()
         assert captured_pub.publish_call_count == 2
 
     def test_make_txt_record_name_absent(self):

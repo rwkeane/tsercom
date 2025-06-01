@@ -1,7 +1,0 @@
-Defaulting to user installation because normal site-packages is not writeable
-Collecting zeroconf
-  Using cached zeroconf-0.147.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.2 kB)
-Requirement already satisfied: ifaddr>=0.1.7 in /home/jules/.local/lib/python3.10/site-packages (from zeroconf) (0.2.0)
-Using cached zeroconf-0.147.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.4 MB)
-Installing collected packages: zeroconf
-Successfully installed zeroconf-0.147.0
