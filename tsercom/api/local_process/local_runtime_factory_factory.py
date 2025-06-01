@@ -2,7 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar, Tuple
-
+from tsercom.data.exposed_data import ExposedData # Added import
 from tsercom.api.local_process.runtime_command_bridge import (
     RuntimeCommandBridge,
 )
@@ -17,7 +17,7 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
 
 # Type variables for generic typing
-TDataType = TypeVar("TDataType")
+TDataType = TypeVar("TDataType", bound=ExposedData) # Constrained TDataType
 TEventType = TypeVar("TEventType")
 
 
