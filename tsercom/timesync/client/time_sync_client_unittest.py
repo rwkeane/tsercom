@@ -295,7 +295,7 @@ class TestTimeSyncClientOperations:
             mock_thread_watcher_fixture.on_exception_seen.call_count == 0
             and cycles < max_wait_cycles
         ):
-            time.sleep(0.01)
+            time.sleep(0.1)
             cycles += 1
         mock_thread_watcher_fixture.on_exception_seen.assert_called_once_with(
             test_exception
