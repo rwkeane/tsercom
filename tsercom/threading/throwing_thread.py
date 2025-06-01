@@ -65,15 +65,15 @@ class ThrowingThread(threading.Thread):
                 f"ThrowingThread._wrapped_target: Exception caught in thread {self.name} ({threading.get_ident()}): {e!r}",
                 exc_info=True,
             )
-            if self.__on_error_cb is not None:
-                self.__on_error_cb(e)
+            self.__on_error_cb(
+                e
+            )  # __on_error_cb is asserted to be non-None in __init__
             # Optionally re-raise or handle as per application needs,
             # but for a ThreadWatcher, reporting via callback is primary.
 
-    # We need to override run() to call _wrapped_target,
-    # because super().__init__ was called with target=self._wrapped_target
-    def run(self) -> None:
-        self._wrapped_target()
+    # The run() method is inherited from threading.Thread.
+    # It will call self._wrapped_target because self._wrapped_target was passed
+    # as the target in super().__init__(). No need to override run().
 
     def start(self) -> None:
         """
@@ -91,11 +91,12 @@ class ThrowingThread(threading.Thread):
             super().start()
         except Exception as e_start:
             # This log captures exceptions from the thread starting mechanism itself.
-            logging.error(  # This logging.error is part of the original logic
+            logging.error(
                 f"ThrowingThread.start() EXCEPTION during super().start() for {self.name}: {e_start!r}",
                 exc_info=True,
             )
-            if self.__on_error_cb is not None:
-                self.__on_error_cb(e_start)  # Report error if start fails
+            self.__on_error_cb(
+                e_start
+            )  # Report error if start fails, __on_error_cb asserted non-None
             # Re-raise the exception that occurred during thread start-up.
             raise e_start

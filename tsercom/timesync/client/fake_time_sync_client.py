@@ -1,7 +1,7 @@
-from typing import Deque
+from collections import deque  # Changed from typing.Deque
 import threading
 
-from tsercom.threading.thread_watcher import ThreadWatcher
+# ThreadWatcher import removed as self.__watcher is unused
 from tsercom.timesync.client.client_synchronized_clock import (
     ClientSynchronizedClock,
 )
@@ -24,19 +24,20 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
     """
 
     def __init__(
-        self, watcher: ThreadWatcher, server_ip: str, ntp_port: int = kNtpPort
+        self,
+        server_ip: str,
+        ntp_port: int = kNtpPort,  # watcher parameter removed
     ) -> None:
         """
         Initializes the FakeTimeSyncClient.
 
         Args:
-            watcher: A ThreadWatcher instance to monitor threads created by this client.
             server_ip: The IP address of the time synchronization server.
                        (Note: Not used in the current fake implementation).
             ntp_port: The port for NTP communication.
                       (Note: Not used in the current fake implementation).
         """
-        self.__watcher = watcher
+        # self.__watcher = watcher # Removed
         self.__server_ip = (
             server_ip  # IP of the server to sync with (unused in fake).
         )
@@ -55,7 +56,9 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         # __time_offsets: A deque to store time offset samples. In a real client,
         # this would hold multiple measurements from an NTP server. In this fake
         # version, it's initialized with a single 0.0 offset by start_async.
-        self.__time_offsets = Deque[float]()
+        self.__time_offsets: deque[float] = (
+            deque()
+        )  # Changed type hint and instantiation
 
         # __is_running: An IsRunningTracker instance to manage and signal the
         # running state of this client (e.g., started/stopped).

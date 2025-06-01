@@ -1,4 +1,4 @@
-from typing import Deque
+from collections import deque  # Changed from typing.Deque
 import ntplib  # type: ignore  # ntplib may not have type stubs available
 import time
 import threading
@@ -49,7 +49,9 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
 
         # __time_offsets: A deque to store a running list of recent time offset
         # values obtained from the NTP server. Used to calculate an averaged offset.
-        self.__time_offsets = Deque[float]()
+        self.__time_offsets: deque[float] = (
+            deque()
+        )  # Changed type hint and instantiation
 
         # __is_running: An IsRunningTracker instance to manage the running state
         # of the client. Controls the synchronization loop and signals stopping.
@@ -162,17 +164,15 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                 logging.info(f"New NTP Offset: {response.offset:.6f} seconds")
             except ntplib.NTPException as e:
                 logging.error(f"NTP error: {e}")
-            except Exception as e:
-                # Special handling for AssertionError:
-                # This is intended to catch critical assertion failures within the sync loop.
-                # The behavior is to log the error, notify the ThreadWatcher
-                # (which might have specific logic for such failures, e.g., system health),
-                # and then re-raise the AssertionError to halt the sync loop thread,
+            except AssertionError as e:
+                # Critical assertion failures within the sync loop.
+                # Log, notify watcher, and terminate the sync loop thread,
                 # as assertion failures typically indicate an unrecoverable state or bug.
-                if isinstance(e, AssertionError):
-                    logging.error(f"AssertionError during NTP sync: {e}")
-                    self.__watcher.on_exception_seen(e)
-                    return  # Terminate loop gracefully after reporting.
+                logging.error(f"AssertionError during NTP sync: {e}")
+                self.__watcher.on_exception_seen(e)
+                return  # Terminate loop gracefully after reporting.
+            except Exception as e:
+                # For other general exceptions, log them and continue the loop.
                 logging.error(f"Error during NTP sync: {e}")
 
             # The __start_barrier is used to signal that the TimeSyncClient has
