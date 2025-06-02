@@ -1,10 +1,11 @@
-"""Defines EventSource for polling events from a multiprocess queue."""
+"""EventSource for polling events from a multiprocess queue."""
 
 import threading
 from typing import Generic, TypeVar, Optional
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.threading.async_poller import AsyncPoller
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -12,27 +13,25 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 
-TEventType = TypeVar("TEventType")
+EventTypeT = TypeVar("EventTypeT")
 
 
-class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
-    """Polls events from a MultiprocessQueueSource and notifies listeners.
+class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
+    """Polls events from MultiprocessQueueSource, notifies listeners.
 
-    This class extends `AsyncPoller` and runs a dedicated thread to
-    continuously poll a multiprocess queue for incoming events. When an event
-    is retrieved, it uses the `on_available` method (from `AsyncPoller`)
-    to notify registered listeners. It manages the lifecycle (start/stop)
-    of the polling thread.
+    Extends `AsyncPoller`, runs a thread to poll a queue for events.
+    Received events trigger `on_available` (from `AsyncPoller`) for listeners.
+    Manages polling thread lifecycle (start/stop).
     """
 
     def __init__(
         self,
-        event_source: MultiprocessQueueSource[EventInstance[TEventType]],
+        event_source: MultiprocessQueueSource[EventInstance[EventTypeT]],
     ) -> None:
         """Initializes the EventSource.
 
         Args:
-            event_source: The multiprocess queue source from which events will be polled.
+            event_source: Multiprocess queue source for polling events.
         """
         self.__event_source = event_source
         self.__is_running = IsRunningTracker()
@@ -49,13 +48,11 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
     def start(self, thread_watcher: ThreadWatcher) -> None:
         """Starts the event polling thread.
 
-        A new thread is created and started to continuously poll for events
-        from the queue. The nested `loop_until_exception` function contains
-        the polling logic.
-        This method should be called to begin event processing.
+        New thread polls for events. `loop_until_exception` has polling logic.
+        Call this to begin event processing.
 
         Args:
-            thread_watcher: A ThreadWatcher instance to monitor the polling thread.
+            thread_watcher: ThreadWatcher to monitor the polling thread.
         """
         self.__is_running.start()
         self.__thread_watcher = thread_watcher
@@ -70,28 +67,27 @@ class EventSource(Generic[TEventType], AsyncPoller[EventInstance[TEventType]]):
                     except Exception as e:
                         if self.__thread_watcher:
                             self.__thread_watcher.on_exception_seen(e)
-                        # Re-raise to terminate the loop, consistent with DataReaderSource
+                        # Re-raise to terminate loop, consistent with DataReaderSource
                         raise e
 
+        # pylint: disable=C0301 # Black-formatted
         self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception
         )
         self.__thread.start()
 
     def stop(self) -> None:
-        """Stops the event polling thread.
-
-        Signals the polling thread to terminate and waits for it to join.
-        """
+        """Stops event polling thread, signals termination, and waits for join."""
         self.__is_running.stop()
         if self.__thread and self.__thread.is_alive():
             self.__thread.join(timeout=5)
             if self.__thread.is_alive():
                 # Consider logging this error instead of raising.
                 # For now, raising RuntimeError for consistency.
+                # pylint: disable=C0301 # Long error message
                 raise RuntimeError(
                     f"ERROR: EventSource thread for {self.__event_source} did not "
                     f"terminate within 5 seconds."
                 )
         self.__thread = None
-        # self.__thread_watcher = None # Optional: clear watcher if appropriate for lifecycle
+        # self.__thread_watcher = None # Optional: clear watcher

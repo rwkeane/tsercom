@@ -1,4 +1,4 @@
-"""Defines a factory for creating runtime factories and handles for split-process runtimes."""
+"""Factory for creating split-process runtime factories and handles."""
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar, Tuple
@@ -29,28 +29,27 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.api.runtime_command import RuntimeCommand
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
 
 
-class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
-    """Creates factories and handles for runtimes operating in separate processes.
+# pylint: disable=R0903 # Concrete factory implementation
+class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
+    """Creates factories and handles for split-process runtimes.
 
-    This factory specializes in setting up the necessary inter-process communication
-    mechanisms (queues) and instantiating `RemoteRuntimeFactory` and
-    `ShimRuntimeHandle` to manage a runtime in a child process.
+    Sets up IPC queues and instantiates `RemoteRuntimeFactory` and
+    `ShimRuntimeHandle` for managing a runtime in a child process.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=C0301 # Black-formatted
         self, thread_pool: ThreadPoolExecutor, thread_watcher: ThreadWatcher
     ) -> None:
         """Initializes the SplitRuntimeFactoryFactory.
 
         Args:
-            thread_pool: A ThreadPoolExecutor for asynchronous tasks, primarily
-                         used by the data aggregator.
-            thread_watcher: A ThreadWatcher to monitor threads created by
-                            components like ShimRuntimeHandle.
+            thread_pool: ThreadPoolExecutor for async tasks (e.g. data aggregator).
+            thread_watcher: ThreadWatcher to monitor threads from components
+                            like ShimRuntimeHandle.
         """
         super().__init__()
 
@@ -58,63 +57,65 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[TDataType, TEventType]):
         self.__thread_watcher: ThreadWatcher = thread_watcher
 
     def _create_pair(
-        self, initializer: RuntimeInitializer[TDataType, TEventType]
+        self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
     ) -> Tuple[
-        RuntimeHandle[TDataType, TEventType],
-        RuntimeFactory[TDataType, TEventType],
+        RuntimeHandle[DataTypeT, EventTypeT],
+        RuntimeFactory[DataTypeT, EventTypeT],
     ]:
         """Creates a handle and factory for a split-process runtime.
 
-        This method sets up three pairs of multiprocess queues for events,
-        data, and runtime commands. It then creates a `RemoteRuntimeFactory`
-        (intended for the child process) and a `ShimRuntimeHandle` (for the
-        parent process) that use these queues to communicate.
+        Sets up 3 pairs of multiprocess queues (events, data, commands).
+        Creates `RemoteRuntimeFactory` (for child process) and
+        `ShimRuntimeHandle` (for parent) using these queues.
 
         Args:
-            initializer: The RuntimeInitializer containing configuration for
-                         the runtime to be created.
+            initializer: Configuration for the runtime.
 
         Returns:
-            A tuple containing:
-                - ShimRuntimeHandle: The handle to interact with the remote runtime.
-                - RemoteRuntimeFactory: The factory to create the runtime in the
-                                        remote process.
+            A tuple: (ShimRuntimeHandle, RemoteRuntimeFactory).
         """
-        event_sink: MultiprocessQueueSink[EventInstance[TEventType]]
-        event_source: MultiprocessQueueSource[EventInstance[TEventType]]
+        event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]
+        event_source: MultiprocessQueueSource[EventInstance[EventTypeT]]
         event_sink, event_source = create_multiprocess_queues()
 
-        data_sink: MultiprocessQueueSink[AnnotatedInstance[TDataType]]
-        data_source: MultiprocessQueueSource[AnnotatedInstance[TDataType]]
+        data_sink: MultiprocessQueueSink[AnnotatedInstance[DataTypeT]]
+        data_source: MultiprocessQueueSource[AnnotatedInstance[DataTypeT]]
         data_sink, data_source = create_multiprocess_queues()
 
         runtime_command_sink: MultiprocessQueueSink[RuntimeCommand]
         runtime_command_source: MultiprocessQueueSource[RuntimeCommand]
+        # pylint: disable=C0301 # Black-formatted
         runtime_command_sink, runtime_command_source = (
             create_multiprocess_queues()
         )
 
-        factory = RemoteRuntimeFactory[TDataType, TEventType](
+        # pylint: disable=C0301 # Black-formatted
+        factory = RemoteRuntimeFactory[DataTypeT, EventTypeT](
             initializer, event_source, data_sink, runtime_command_source
         )
 
         if initializer.timeout_seconds is not None:
+            # pylint: disable=C0301 # Black-formatted
             aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[TDataType]
+                AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                client=initializer.data_aggregator_client,  # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[TDataType], gets [AnnotatedInstance[TDataType]]
+                # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
+                client=initializer.data_aggregator_client,
                 timeout=initializer.timeout_seconds,
             )
         else:
+            # pylint: disable=C0301 # Black-formatted
             aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[TDataType]
+                AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                client=initializer.data_aggregator_client,  # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[TDataType], gets [AnnotatedInstance[TDataType]]
+                # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
+                client=initializer.data_aggregator_client,
             )
 
-        runtime_handle = ShimRuntimeHandle[TDataType, TEventType](
+        # pylint: disable=C0301 # Black-formatted
+        runtime_handle = ShimRuntimeHandle[DataTypeT, EventTypeT](
             self.__thread_watcher,
             event_sink,
             data_source,

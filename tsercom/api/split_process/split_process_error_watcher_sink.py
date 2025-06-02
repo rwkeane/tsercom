@@ -7,6 +7,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
+# pylint: disable=R0903 # Abstract interface/protocol class
 class SplitProcessErrorWatcherSink(ErrorWatcher):
     """An ErrorWatcher that forwards caught exceptions to a multiprocess queue.
 
@@ -34,12 +35,11 @@ class SplitProcessErrorWatcherSink(ErrorWatcher):
         self.__queue: MultiprocessQueueSink[Exception] = exception_queue
 
     def run_until_exception(self) -> None:
-        """Runs until an exception is caught by the ThreadWatcher, then forwards it.
+        """Runs until ThreadWatcher catches an exception, then forwards it.
 
-        This method blocks until the underlying `ThreadWatcher` detects an
-        exception in one of its monitored threads. The caught exception is
-        then put onto the `exception_queue` for another process to consume,
-        and finally, the exception is re-raised in the current thread.
+        Blocks until `ThreadWatcher` detects an exception in a monitored
+        thread. The caught exception is put onto `exception_queue`
+        for another process, then re-raised in the current thread.
 
         Raises:
             Exception: Re-raises any exception caught by the `ThreadWatcher`.

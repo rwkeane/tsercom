@@ -16,14 +16,14 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.threading.async_poller import AsyncPoller
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
 
 
 class RuntimeWrapper(
-    Generic[TDataType, TEventType],
-    RuntimeHandle[TDataType, TEventType],
-    RemoteDataReader[AnnotatedInstance[TDataType]],
+    Generic[DataTypeT, EventTypeT],
+    RuntimeHandle[DataTypeT, EventTypeT],
+    RemoteDataReader[AnnotatedInstance[DataTypeT]],
 ):
     """A wrapper that acts as a RuntimeHandle for local process runtimes.
 
@@ -34,10 +34,10 @@ class RuntimeWrapper(
 
     def __init__(
         self,
-        event_poller: AsyncPoller[EventInstance[TEventType]],
+        event_poller: AsyncPoller[EventInstance[EventTypeT]],
         data_aggregator: RemoteDataAggregatorImpl[
-            AnnotatedInstance[TDataType]
-        ],  # Changed TDataType
+            AnnotatedInstance[DataTypeT]
+        ],  # Changed DataTypeT
         bridge: RuntimeCommandBridge,
     ) -> None:
         """Initializes the RuntimeWrapper.
@@ -47,11 +47,11 @@ class RuntimeWrapper(
             data_aggregator: A RemoteDataAggregatorImpl to manage data.
             bridge: A RuntimeCommandBridge to send commands to the runtime.
         """
-        self.__event_poller: AsyncPoller[EventInstance[TEventType]] = (
+        self.__event_poller: AsyncPoller[EventInstance[EventTypeT]] = (
             event_poller
         )
         self.__aggregator: RemoteDataAggregatorImpl[
-            AnnotatedInstance[TDataType]
+            AnnotatedInstance[DataTypeT]
         ] = data_aggregator
         self.__bridge: RuntimeCommandBridge = bridge
 
@@ -65,17 +65,17 @@ class RuntimeWrapper(
 
     def on_event(
         self,
-        event: TEventType,
+        event: EventTypeT,
         caller_id: Optional[CallerIdentifier] = None,
         *,
         timestamp: Optional[datetime] = None,
     ) -> None:
-        """Handles an incoming event by wrapping it and passing it to the poller.
+        """Wraps an incoming event and passes it to the event poller.
 
         Args:
             event: The event data to process.
-            caller_id: Optional identifier of the caller that generated the event.
-            timestamp: Optional timestamp for the event. If None, defaults to now.
+            caller_id: Optional ID of the caller generating the event.
+            timestamp: Optional event timestamp. Defaults to `datetime.now()`.
         """
         if timestamp is None:
             timestamp = datetime.now()
@@ -83,7 +83,7 @@ class RuntimeWrapper(
         wrapped_event = EventInstance(event, caller_id, timestamp)
         self.__event_poller.on_available(wrapped_event)
 
-    def _on_data_ready(self, new_data: AnnotatedInstance[TDataType]) -> None:
+    def _on_data_ready(self, new_data: AnnotatedInstance[DataTypeT]) -> None:
         """Callback method invoked when new data is ready from the runtime.
 
         This method is part of the `RemoteDataReader` interface.
@@ -91,11 +91,12 @@ class RuntimeWrapper(
         Args:
             new_data: The new data instance that has become available.
         """
+        # pylint: disable=W0212 # Internal callback for client data readiness
         self.__aggregator._on_data_ready(new_data)
 
     def _get_remote_data_aggregator(
         self,
-    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+    ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Provides access to the remote data aggregator.
 
         This method is part of the `RemoteDataReader` interface.
@@ -108,6 +109,6 @@ class RuntimeWrapper(
     @property
     def data_aggregator(
         self,
-    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+    ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Provides the remote data aggregator."""
         return self._get_remote_data_aggregator()

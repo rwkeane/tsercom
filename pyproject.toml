@@ -190,6 +190,7 @@ ignore-paths = [
     '.*_unittests.py',
     '.*_e2etest.py',
     '.*_e2etests.py',
+    '^tsercom/_version\.py$',
 ]
 
 [tool.pylint.format]

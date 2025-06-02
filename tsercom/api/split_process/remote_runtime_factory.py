@@ -1,13 +1,17 @@
-"""Defines RemoteRuntimeFactory for creating Runtime instances intended for separate processes."""
+"""RemoteRuntimeFactory for creating Runtimes for separate processes."""
 
 from typing import Generic, TypeVar
 
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime_factory import RuntimeFactory
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
 from tsercom.api.split_process.event_source import EventSource
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.api.split_process.runtime_command_source import (
     RuntimeCommandSource,
 )
@@ -15,56 +19,57 @@ from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
 
 # SerializableAnnotatedInstance will be removed
-# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
+# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance # pylint: disable=C0301
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.runtime import Runtime
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.async_poller import AsyncPoller
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
 
 
 class RemoteRuntimeFactory(
-    Generic[TDataType, TEventType],
+    Generic[DataTypeT, EventTypeT],
     RuntimeFactory[
-        TDataType,
-        TEventType,
+        DataTypeT,
+        EventTypeT,
     ],
 ):
-    """Factory for creating Runtimes that operate in a separate process.
+    """Factory for Runtimes that operate in a separate process.
 
-    This factory sets up communication channels (queues) for events, data,
-    and commands to interact with a runtime that is presumably running in
-    a different process. It initializes and uses `DataReaderSink`,
-    `EventSource`, and `RuntimeCommandSource` for these interactions.
+    Sets up communication channels (queues) for events, data, and commands
+    to interact with a runtime in a different process. Uses DataReaderSink,
+    EventSource, and RuntimeCommandSource.
     """
 
     def __init__(
         self,
-        initializer: RuntimeInitializer[TDataType, TEventType],
-        event_source_queue: MultiprocessQueueSource[
-            EventInstance[TEventType]
-        ],  # Reverted type
-        data_reader_queue: MultiprocessQueueSink[AnnotatedInstance[TDataType]],
+        initializer: RuntimeInitializer[DataTypeT, EventTypeT], # pylint: disable=C0301
+        event_source_queue: MultiprocessQueueSource[ # pylint: disable=C0301
+            EventInstance[EventTypeT]
+        ],
+        data_reader_queue: MultiprocessQueueSink[AnnotatedInstance[DataTypeT]], # pylint: disable=C0301
         command_source_queue: MultiprocessQueueSource[RuntimeCommand],
     ) -> None:
         """Initializes the RemoteRuntimeFactory.
 
         Args:
-            initializer: The RuntimeInitializer for the runtime to be created.
-            event_source_queue: Queue source for receiving `EventInstance` objects from the remote runtime. # Reverted comment
-            data_reader_queue: Queue sink for sending `AnnotatedInstance` data to the remote runtime.
-            command_source_queue: Queue source for receiving `RuntimeCommand` objects from the handle.
+            initializer: Initializer for the runtime.
+            event_source_queue: Queue source for receiving EventInstances.
+            data_reader_queue: Queue sink for sending AnnotatedInstances.
+            command_source_queue: Queue source for receiving RuntimeCommands.
         """
         super().__init__(other_config=initializer)
         self._initializer_instance = initializer
@@ -73,28 +78,28 @@ class RemoteRuntimeFactory(
         self.__command_source_queue = command_source_queue
 
         self.__data_reader_sink: (
-            DataReaderSink[AnnotatedInstance[TDataType]] | None
+            DataReaderSink[AnnotatedInstance[DataTypeT]] | None
         ) = None
-        self.__event_source: EventSource[TEventType] | None = None
+        self.__event_source: EventSource[EventTypeT] | None = None
         self.__command_source: RuntimeCommandSource | None = None
 
     @property
     def remote_data_reader(
         self,
-    ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
-        """Gets the `DataReaderSink` used for sending data to the remote runtime."""
+    ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
+        """Gets the `DataReaderSink` for sending data to remote runtime."""
         return self._remote_data_reader()
 
     @property
-    def event_poller(
+    def event_poller( # pylint: disable=C0301
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted type
-        """Gets the `EventSource` used for polling events from the remote runtime."""
+    ) -> AsyncPoller[EventInstance[EventTypeT]]:
+        """Gets the `EventSource` for polling events from remote runtime."""
         return self._event_poller()
 
-    def _remote_data_reader(
+    def _remote_data_reader( # pylint: disable=C0301
         self,
-    ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
+    ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
         """Provides the data reader sink for the remote runtime.
 
         Lazily initializes and returns a `DataReaderSink`.
@@ -102,16 +107,16 @@ class RemoteRuntimeFactory(
         Returns:
             A `DataReaderSink` instance.
         """
-        # Note: The base `RuntimeFactory` expects `RemoteDataReader[AnnotatedInstance[TDataType]]`.
-        # DataReaderSink is designed to be compatible with this expectation.
+        # Note: Base `RuntimeFactory` expects RemoteDataReader[AnnotatedInstance[DataTypeT]]. # pylint: disable=C0301
+        # DataReaderSink is compatible.
         if self.__data_reader_sink is None:
             self.__data_reader_sink = DataReaderSink(self.__data_reader_queue)
         return self.__data_reader_sink
 
-    def _event_poller(
+    def _event_poller( # pylint: disable=C0301
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted type
-        """Provides the event poller for events from the remote runtime.
+    ) -> AsyncPoller[EventInstance[EventTypeT]]:
+        """Provides the event poller for events from remote runtime.
 
         Lazily initializes and returns an `EventSource`.
 
@@ -125,22 +130,21 @@ class RemoteRuntimeFactory(
     def create(
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[TDataType, TEventType],
+        data_handler: RuntimeDataHandler[DataTypeT, EventTypeT], # pylint: disable=C0301
         grpc_channel_factory: GrpcChannelFactory | None,
     ) -> Runtime:
-        """Creates the remote Runtime instance and sets up command handling.
+        """Creates remote Runtime instance and sets up command handling.
 
-        This method initializes the core runtime using the provided initializer.
-        It also starts the event source (if previously initialized by a call to `_event_poller`)
-        and sets up the command source to relay commands to the newly created runtime.
+        Initializes core runtime. Starts event source (if initialized via
+        `_event_poller`). Sets up command source to relay to new runtime.
 
         Args:
-            thread_watcher: A ThreadWatcher to monitor threads created by components.
-            data_handler: The data handler for the runtime.
-            grpc_channel_factory: Factory for gRPC channels if needed by the runtime.
+            thread_watcher: ThreadWatcher to monitor component threads.
+            data_handler: Data handler for the runtime.
+            grpc_channel_factory: gRPC channel factory if needed.
 
         Returns:
-            The created Runtime instance, configured for remote operation.
+            Created Runtime instance, configured for remote operation.
         """
         runtime = self._initializer_instance.create(
             thread_watcher=thread_watcher,
@@ -148,6 +152,7 @@ class RemoteRuntimeFactory(
             grpc_channel_factory=grpc_channel_factory,
         )
 
+        # pylint: disable=C0301 # Black-formatted
         current_event_poller = (
             self._event_poller()
         )  # This will initialize EventSource if None
@@ -155,9 +160,9 @@ class RemoteRuntimeFactory(
             if not current_event_poller.is_running:
                 current_event_poller.start(thread_watcher)
         else:
-            # This case should ideally not happen if _event_poller always returns EventSource
-            # or raises an error. Consider logging an error if it's None or wrong type.
-            pass  # Or logger.error("Event poller is not an EventSource instance after creation")
+            # This case should not happen if _event_poller always returns EventSource
+            # or raises. Consider logging if None/wrong type.
+            pass  # Or logger.error("Event poller not EventSource post-creation")
 
         self.__command_source = RuntimeCommandSource(
             self.__command_source_queue
@@ -166,9 +171,10 @@ class RemoteRuntimeFactory(
         return runtime
 
     def _stop(self) -> None:
-        """Stops associated components like the command source and event source."""
+        """Stops command source and event source."""
         if self.__command_source is not None:
             self.__command_source.stop_async()
+        # pylint: disable=C0301 # Black-formatted
         if (
             self.__event_source is not None
             and hasattr(self.__event_source, "is_running")

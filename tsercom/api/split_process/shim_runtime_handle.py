@@ -1,4 +1,4 @@
-"""Defines ShimRuntimeHandle for interacting with a runtime in a separate process."""
+"""ShimRuntimeHandle for interacting with a separate process runtime."""
 
 import datetime
 from typing import TypeVar, Optional
@@ -22,60 +22,58 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
 
 
 class ShimRuntimeHandle(
-    RuntimeHandle[TDataType, TEventType],
-    RemoteDataReader[AnnotatedInstance[TDataType]],
+    RuntimeHandle[DataTypeT, EventTypeT],
+    RemoteDataReader[AnnotatedInstance[DataTypeT]],
 ):
-    """A handle for a runtime operating in a separate process.
+    """Handle for a runtime in a separate process.
 
-    This class provides the mechanisms to start, stop, and send events to a
-    runtime that is managed in a different process. It uses multiprocess queues
-    for communication (events, commands, data).
+    Provides mechanisms to start, stop, and send events to a runtime
+    in a different process, using multiprocess queues for communication.
     """
 
+    # pylint: disable=R0913,R0917 # Many parameters needed for full handle setup
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
-        event_queue: MultiprocessQueueSink[EventInstance[TEventType]],
-        data_queue: MultiprocessQueueSource[AnnotatedInstance[TDataType]],
+        event_queue: MultiprocessQueueSink[EventInstance[EventTypeT]],
+        data_queue: MultiprocessQueueSource[AnnotatedInstance[DataTypeT]],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
         data_aggregator: RemoteDataAggregatorImpl[
-            AnnotatedInstance[TDataType]
+            AnnotatedInstance[DataTypeT]
         ],
         block: bool = False,
     ) -> None:
         """Initializes the ShimRuntimeHandle.
 
         Args:
-            thread_watcher: A ThreadWatcher to monitor helper threads.
-            event_queue: Queue sink for sending events to the remote runtime.
-            data_queue: Queue source for receiving data from the remote runtime.
-            runtime_command_queue: Queue sink for sending commands (start/stop)
-                                   to the remote runtime.
-            data_aggregator: The aggregator that will receive data from the
-                             remote runtime via the data_queue.
-            block: If True, sending events via `on_event` will block until the
-                   event is placed in the queue. If False, it's non-blocking.
+            thread_watcher: ThreadWatcher to monitor helper threads.
+            event_queue: Sink for sending events to the remote runtime.
+            data_queue: Source for receiving data from the remote runtime.
+            runtime_command_queue: Sink for sending commands (start/stop).
+            data_aggregator: Aggregator for data from remote via data_queue.
+            block: If True, `on_event` blocks until event is queued.
+                   If False, it's non-blocking.
         """
         super().__init__()
 
         self.__event_queue: MultiprocessQueueSink[
-            EventInstance[TEventType]
+            EventInstance[EventTypeT]
         ] = event_queue
         self.__runtime_command_queue: MultiprocessQueueSink[RuntimeCommand] = (
             runtime_command_queue
         )
         self.__data_aggregator: RemoteDataAggregatorImpl[
-            AnnotatedInstance[TDataType]
+            AnnotatedInstance[DataTypeT]
         ] = data_aggregator
         self.__block: bool = block
 
         self.__data_reader_source: DataReaderSource[
-            AnnotatedInstance[TDataType]
+            AnnotatedInstance[DataTypeT]
         ] = DataReaderSource(
             thread_watcher,
             data_queue,
@@ -85,16 +83,15 @@ class ShimRuntimeHandle(
     def start(self) -> None:
         """Starts the remote runtime interaction.
 
-        This starts the local data reader source to begin polling for data from
-        the remote runtime, and then sends a 'start' command to the remote
-        runtime via the command queue.
+        Starts local data reader source to poll for data, then sends 'start'
+        command to remote runtime via command queue.
         """
         self.__data_reader_source.start()
-        self.__runtime_command_queue.put_blocking(RuntimeCommand.kStart)
+        self.__runtime_command_queue.put_blocking(RuntimeCommand.START)
 
     def on_event(
         self,
-        event: TEventType,
+        event: EventTypeT,
         caller_id: Optional[
             CallerIdentifier
         ] = None,  # Added for RuntimeHandle compatibility
@@ -105,27 +102,27 @@ class ShimRuntimeHandle(
     ) -> None:
         """Sends an event to the remote runtime.
 
-        The event is placed onto the event queue. Behavior (blocking or
-        non-blocking) depends on the `block` flag set during initialization.
-        `caller_id` and `timestamp` are ignored by this shim but included for
-        compatibility with the `RuntimeHandle` interface.
+        Event is placed on event queue. Behavior (blocking/non-blocking)
+        depends on `block` flag from init. `caller_id` and `timestamp` are
+        ignored by shim but included for RuntimeHandle interface compatibility.
 
         Args:
             event: The event to send.
-            caller_id: Optional identifier of the caller (ignored by this implementation).
-            timestamp: Optional timestamp for the event (ignored by this implementation).
+            caller_id: Optional caller ID (ignored).
+            timestamp: Optional event timestamp (ignored).
         """
-        # `caller_id` and `timestamp` are part of the RuntimeHandle interface,
-        # but this shim implementation does not use them when sending to the queue.
-        _ = caller_id  # Preserved for clarity that it's intentionally not used directly for queue type
+        # `caller_id` and `timestamp` are part of RuntimeHandle interface,
+        # but shim doesn't use them when sending to queue.
+        _ = caller_id  # Preserved for clarity, not used for queue type
         _ = timestamp  # Preserved for clarity
 
-        effective_timestamp = (
+        effective_timestamp = ( # pylint: disable=C0301 # Black-formatted
             timestamp
             if timestamp is not None
             else datetime.datetime.now(tz=datetime.timezone.utc)
         )
 
+        # pylint: disable=C0301 # Black-formatted
         event_instance = EventInstance(
             data=event, caller_id=caller_id, timestamp=effective_timestamp
         )
@@ -137,42 +134,41 @@ class ShimRuntimeHandle(
     def stop(self) -> None:
         """Stops the remote runtime interaction.
 
-        Sends a 'stop' command to the remote runtime via the command queue,
-        and then stops the local data reader source.
+        Sends 'stop' command to remote runtime via command queue,
+        then stops local data reader source.
         """
-        self.__runtime_command_queue.put_blocking(RuntimeCommand.kStop)
+        self.__runtime_command_queue.put_blocking(RuntimeCommand.STOP)
         self.__data_reader_source.stop()
 
-    def _on_data_ready(self, new_data: AnnotatedInstance[TDataType]) -> None:
+    def _on_data_ready(self, new_data: AnnotatedInstance[DataTypeT]) -> None:
         """Callback for when new data is ready from the `DataReaderSource`.
 
-        This method is part of the `RemoteDataReader` interface. In this setup,
-        the `DataReaderSource` (which polls the actual data queue from the remote
-        process) calls this method. This implementation then forwards the data
+        This is part of `RemoteDataReader` interface. `DataReaderSource`
+        (polling data queue from remote) calls this. This forwards data
         to the main `data_aggregator`.
 
         Args:
-            new_data: The new data item received from the remote runtime.
+            new_data: New data item from remote runtime.
         """
-        # Data is received from data_queue via DataReaderSource.
-        # This ShimRuntimeHandle (as a RemoteDataReader) gets it from DataReaderSource
-        # and then forwards it to the __data_aggregator that was provided during init.
+        # Data from DataReaderSource (from data_queue).
+        # This handle (as RemoteDataReader) gets data from DataReaderSource
+        # and forwards to the __data_aggregator from init.
+        # pylint: disable=W0212 # Internal callback for client data readiness
         self.__data_aggregator._on_data_ready(new_data)
 
-    def _get_remote_data_aggregator(
+    def _get_remote_data_aggregator( # pylint: disable=C0301 # Black-formatted
         self,
-    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
-        """Provides the remote data aggregator associated with this handle.
+    ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
+        """Provides the remote data aggregator for this handle.
 
         Returns:
-            The `RemoteDataAggregator` instance that processes data received
-            from the remote runtime.
+            The `RemoteDataAggregator` that processes data from remote.
         """
         return self.__data_aggregator
 
     @property
     def data_aggregator(
         self,
-    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+    ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Provides the remote data aggregator."""
         return self._get_remote_data_aggregator()

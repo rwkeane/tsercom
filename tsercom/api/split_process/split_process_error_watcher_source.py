@@ -1,7 +1,8 @@
-"""Defines an error watcher source that reads exceptions from a multiprocess queue."""
+"""Error watcher source that reads exceptions from a multiprocess queue."""
 
-import logging  # Add logging import
+import logging
 import threading
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -12,12 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 class SplitProcessErrorWatcherSource:
-    """Monitors a queue for exceptions from another process and reports them locally.
+    """Monitors a queue for exceptions from another process; reports locally.
 
-    This class runs a dedicated thread to poll a `MultiprocessQueueSource`
-    for `Exception` objects. When an exception is received (presumably from a
-    different process that put it onto the queue via a corresponding sink),
-    it's passed to a local `ThreadWatcher` instance.
+    Runs a thread to poll a `MultiprocessQueueSource` for `Exception` objects.
+    Received exceptions (likely from another process via a sink) are passed
+    to a local `ThreadWatcher`.
     """
 
     def __init__(
@@ -28,10 +28,8 @@ class SplitProcessErrorWatcherSource:
         """Initializes the SplitProcessErrorWatcherSource.
 
         Args:
-            thread_watcher: The local ThreadWatcher to which exceptions
-                            received from the queue will be reported.
-            exception_queue: The multiprocess queue source from which
-                             exceptions are read.
+            thread_watcher: Local ThreadWatcher to report exceptions from queue to.
+            exception_queue: Multiprocess queue source to read exceptions from.
         """
         self.__thread_watcher: ThreadWatcher = thread_watcher
         self.__queue: MultiprocessQueueSource[Exception] = exception_queue
@@ -41,32 +39,37 @@ class SplitProcessErrorWatcherSource:
     def start(self) -> None:
         """Starts the thread that polls the exception queue.
 
-        A new thread is created that continuously monitors the exception queue.
-        If an exception is retrieved, it's reported to the local `ThreadWatcher`.
+        New thread continuously monitors the exception queue. If an exception
+        is retrieved, it's reported to the local `ThreadWatcher`.
 
         Raises:
-            RuntimeError: If `start` is called when the source is already running.
+            RuntimeError: If `start` is called when already running.
         """
         self.__is_running.start()  # Will raise RuntimeError if already running.
 
         def loop_until_exception() -> None:
-            """Polls the exception queue and reports exceptions until stopped."""
+            """Polls exception queue, reports exceptions until stopped."""
             while self.__is_running.get():
-                # Poll the queue with a timeout to allow checking is_running periodically.
+                # Poll queue with timeout to allow checking is_running.
                 remote_exception = self.__queue.get_blocking(timeout=1)
                 if remote_exception is not None:
                     try:
                         self.__thread_watcher.on_exception_seen(
                             remote_exception
                         )
+                    # pylint: disable=W0718 # Catch any error from queue processing to keep watcher alive
                     except Exception as e_seen:
+                        # pylint: disable=C0301 # Long but readable error log
                         logger.error(
-                            f"Exception occurred within ThreadWatcher.on_exception_seen() "
-                            f"while handling {type(remote_exception).__name__}: {e_seen}",
+                            "Exception occurred within ThreadWatcher.on_exception_seen() "
+                            "while handling %s: %s",
+                            type(remote_exception).__name__,
+                            e_seen,
                             exc_info=True,
                         )
                         # Loop should continue to report further exceptions.
 
+        # pylint: disable=C0301 # Black-formatted
         self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception  # Pass target for clarity
         )
@@ -75,27 +78,27 @@ class SplitProcessErrorWatcherSource:
     def stop(self) -> None:
         """Stops the exception polling thread.
 
-        Signals the polling thread to terminate. The thread will exit after its
-        current polling attempt (with timeout) completes and it observes the
-        changed `is_running` state.
+        Signals polling thread to terminate. Thread exits after current poll
+        (with timeout) and observing `is_running` state change.
 
         Raises:
-            RuntimeError: If `stop` is called when the source is not currently running.
+            RuntimeError: If `stop` called when source not currently running.
         """
         self.__is_running.stop()  # Will raise RuntimeError if not running.
         if self.__thread is not None:  # Check if thread exists
             self.__thread.join(timeout=2.0)  # Join with a timeout
             if self.__thread.is_alive():
+                # pylint: disable=C0301 # Long warning message
                 logger.warning(
-                    f"SplitProcessErrorWatcherSource: Polling thread {self.__thread.name} "
-                    f"did not join in 2.0s."
+                    "SplitProcessErrorWatcherSource: Polling thread %s did not join in 2.0s.",
+                    self.__thread.name
                 )
 
     @property
     def is_running(self) -> bool:
-        """Checks if the error watcher source is currently polling for exceptions.
+        """Checks if error watcher source is currently polling for exceptions.
 
         Returns:
-            True if the polling thread is active, False otherwise.
+            True if polling thread is active, False otherwise.
         """
         return self.__is_running.get()
