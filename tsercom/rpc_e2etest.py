@@ -36,7 +36,7 @@ from tsercom.util.stopable import Stopable  # Required for TInstanceType
 from tsercom.rpc.endpoints.test_connection_server import (
     AsyncTestConnectionServer,
 )
-from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
+from tsercom.rpc.proto import (
     TestConnectionCall,
     TestConnectionResponse,
 )

@@ -12,7 +12,7 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 # Assuming GetIdResponse is generated from a proto file.
 # The actual import path might differ based on the project structure.
 # Corrected import path based on file structure and grpc version
-from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
+from tsercom.caller_id.proto import (
     GetIdResponse,
     CallerId,
 )

@@ -3,7 +3,7 @@
 from typing import Optional, Union
 import uuid
 
-from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import CallerId
+from tsercom.caller_id.proto import CallerId
 
 
 class CallerIdentifier:

@@ -20,12 +20,9 @@ class MockGrpcCallerIdMessagePlaceholder:
         self.id = id
 
 
-try:
-    from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
-        CallerId as GrpcCallerIdMessage,
-    )
-except ImportError:  # pragma: no cover
-    GrpcCallerIdMessage = MockGrpcCallerIdMessagePlaceholder  # type: ignore
+from tsercom.caller_id.proto import (
+    CallerId as GrpcCallerIdMessage,
+)
 
 
 async def async_iterator_from_list(items):
