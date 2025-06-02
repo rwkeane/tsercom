@@ -21,6 +21,7 @@ setting or clearing the loop are atomic and prevent race conditions.
 from asyncio import AbstractEventLoop
 import asyncio
 import threading
+import logging
 
 from tsercom.threading.aio.event_loop_factory import EventLoopFactory
 from tsercom.threading.thread_watcher import ThreadWatcher
@@ -68,12 +69,22 @@ def clear_tsercom_event_loop(try_stop_loop: bool = True) -> None:
     global __g_global_event_loop_lock
 
     with __g_global_event_loop_lock:
-        if __g_global_event_loop is not None:
-            if try_stop_loop and __g_global_event_loop.is_running():
-                __g_global_event_loop.stop()
+        if __g_global_event_loop is None:
+            return
 
-            __g_global_event_loop = None
-            __g_event_loop_factory = None
+        if try_stop_loop and __g_global_event_loop.is_running():
+            if __g_event_loop_factory is not None:
+                logging.debug(
+                    "clear_tsercom_event_loop: Stopping loop created by tsercom factory."
+                )
+                __g_global_event_loop.stop()
+            else:  # __g_event_loop_factory is None
+                logging.debug(
+                    "clear_tsercom_event_loop: Loop was set externally (e.g., by pytest-asyncio), not stopping it from tsercom."
+                )
+
+        __g_global_event_loop = None
+        __g_event_loop_factory = None
 
 
 def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:

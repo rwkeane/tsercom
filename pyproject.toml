@@ -112,6 +112,10 @@ markers = [
     "asyncio: mark a test as asynchronous (run by pytest-asyncio)",
 ]
 asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore:cannot collect test class 'TestConnectionCall'.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
+    "ignore:cannot collect test class 'TestConnectionResponse'.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
+]
 
 [tool.mypy]
 strict = true

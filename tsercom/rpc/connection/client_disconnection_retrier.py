@@ -1,7 +1,14 @@
 from abc import abstractmethod
 import asyncio
 from functools import partial
-from typing import Callable, Generic, Optional, TypeVar, Awaitable
+from typing import (
+    Callable,
+    Generic,
+    Optional,
+    TypeVar,
+    Coroutine,
+    Any,
+)
 import logging
 
 from tsercom.rpc.connection.client_reconnection_handler import (
@@ -40,7 +47,7 @@ class ClientDisconnectionRetrier(
         safe_disconnection_handler: Optional[Callable[[], None]] = None,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
         delay_before_retry_func: Optional[
-            Callable[[], Awaitable[None]]
+            Callable[[], Coroutine[Any, Any, None]]
         ] = None,
         is_grpc_error_func: Optional[Callable[[Exception], bool]] = None,
         is_server_unavailable_error_func: Optional[
@@ -76,6 +83,7 @@ class ClientDisconnectionRetrier(
             safe_disconnection_handler
         )
         self.__provided_event_loop = event_loop
+        self.__stop_retrying_event = asyncio.Event()
         self.__delay_before_retry_func = (
             delay_before_retry_func or default_delay_before_retry
         )
@@ -126,6 +134,7 @@ class ClientDisconnectionRetrier(
             Exception: Any non-server-unavailable error raised by `_connect`.
         """
         try:
+            self.__stop_retrying_event.clear()
             if self.__provided_event_loop:
                 self.__event_loop = self.__provided_event_loop
             else:
@@ -176,7 +185,10 @@ class ClientDisconnectionRetrier(
             logging.warning(
                 "ClientDisconnectionRetrier.stop called before start or without a valid event loop."
             )
+            # Set the event even if the loop is not available, as other parts might check it.
+            self.__stop_retrying_event.set()
             return
+        self.__stop_retrying_event.set()
 
         if not is_running_on_event_loop(self.__event_loop):
             run_on_event_loop(self.stop, self.__event_loop)
@@ -288,20 +300,59 @@ class ClientDisconnectionRetrier(
         )
 
         retry_count = 0
-        while (
-            True
-        ):  # Loop indefinitely until reconnected or a non-retriable error occurs.
-            try:
-                if (
-                    self.__max_retries is not None
-                    and retry_count >= self.__max_retries
-                ):
-                    logging.warning(
-                        f"Max retries ({self.__max_retries}) reached. Stopping reconnection attempts."
-                    )
-                    break
+        while True:
+            if (
+                self.__max_retries is not None
+                and retry_count >= self.__max_retries
+            ):
+                logging.warning(
+                    f"Max retries ({self.__max_retries}) reached. Stopping reconnection attempts."
+                )
+                break
 
-                await self.__delay_before_retry_func()
+            if self.__stop_retrying_event.is_set():
+                logging.info(
+                    "ClientDisconnectionRetrier: Stop retrying event was set before delay. Breaking from retry loop."
+                )
+                break
+
+            # Create tasks for the delay and for waiting on the stop event
+            # Ensure self.__delay_before_retry_func is awaited as it's a coroutine function
+            delay_coro: Coroutine[Any, Any, None] = (
+                self.__delay_before_retry_func()
+            )
+            delay_task: asyncio.Task[None] = self.__event_loop.create_task(
+                delay_coro
+            )
+            stop_event_wait_task: asyncio.Task[bool] = (
+                self.__event_loop.create_task(
+                    self.__stop_retrying_event.wait()
+                )
+            )
+
+            done, pending = await asyncio.wait(
+                [delay_task, stop_event_wait_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            if stop_event_wait_task in done:
+                logging.info(
+                    "ClientDisconnectionRetrier: Stop retrying event was set during delay period. Breaking from retry loop."
+                )
+                if not delay_task.done():
+                    delay_task.cancel()
+                # Clean up pending task if it was the one that finished
+                for task in pending:  # Should be at most one other task
+                    task.cancel()
+                break  # Exit the while True loop
+
+            # If delay_task is in done, it means the delay completed successfully.
+            # The stop_event_wait_task was not set, so cancel it.
+            if not stop_event_wait_task.done():
+                stop_event_wait_task.cancel()
+
+            try:
+                # Max retries check is now at the beginning of the loop, before delay.
                 logging.info(
                     f"Retrying connection... (Attempt {retry_count + 1})"
                 )

@@ -17,6 +17,8 @@ from tsercom.discovery.mdns.instance_listener import InstanceListener
 
 
 class DiscoveryTestClient(InstanceListener.Client):
+    __test__ = False
+
     def __init__(
         self, discovery_event: asyncio.Event, discovered_services: list
     ):
@@ -115,6 +117,8 @@ async def test_successful_registration_and_discovery():
 
 
 class UpdateTestClient(InstanceListener.Client):
+    __test__ = False
+
     def __init__(
         self, events: list[asyncio.Event], services_list: list[ServiceInfo]
     ):
@@ -350,6 +354,8 @@ async def test_instance_unpublishing():
 
 
 class MultiDiscoveryTestClient(InstanceListener.Client):
+    __test__ = False
+
     def __init__(
         self,
         services_list: list[ServiceInfo],
