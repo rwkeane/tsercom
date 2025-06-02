@@ -1,8 +1,9 @@
-"""Defines the Stopable abstract base class, an interface for objects that can be stopped."""
+"""Defines Stopable ABC, an interface for objects that can be stopped."""
 
 from abc import ABC, abstractmethod
 
 
+# pylint: disable=R0903 # Abstract interface for stopable components
 class Stopable(ABC):
     """Represents an object that has a defined stopping mechanism.
 
@@ -18,4 +19,3 @@ class Stopable(ABC):
         Subclasses must implement this method to define the specific actions
         required to stop the object's operation and clean up resources.
         """
-        pass

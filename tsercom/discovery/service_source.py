@@ -6,48 +6,38 @@ from typing import Generic, TypeVar
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_info import ServiceInfo
 
-TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
+ServiceInfoT = TypeVar("ServiceInfoT", bound=ServiceInfo)
 
 
-class ServiceSource(Generic[TServiceInfo], ABC):
-    """
-    Abstract base class for service discovery mechanisms.
+# pylint: disable=R0903 # Abstract service source interface
+class ServiceSource(Generic[ServiceInfoT], ABC):
+    """Abstract base for service discovery. Finds services, notifies client."""
 
-    A `ServiceSource` is responsible for finding services of a specific type
-    and notifying its client when new services are discovered.
-    """
-
+    # pylint: disable=R0903 # Abstract listener interface
     class Client(ABC):
-        """
-        Interface for clients of a `ServiceSource`.
-
-        Implementers of this interface are notified when new services are discovered.
-        """
+        """Interface for `ServiceSource` clients. Notified of new services."""
 
         @abstractmethod
         async def _on_service_added(
             self,
-            connection_info: TServiceInfo,
+            connection_info: ServiceInfoT,
             caller_id: CallerIdentifier,
         ) -> None:
-            """
-            Called when a new service instance is discovered.
+            """Called when a new service instance is discovered.
 
             Args:
-                connection_info: Detailed information about the discovered service.
-                caller_id: The unique identifier for the discovered service instance.
+                connection_info: Info about the discovered service.
+                caller_id: Unique ID for the discovered service instance.
             """
-            pass
+            # pass removed
 
     @abstractmethod
     async def start_discovery(self, client: "ServiceSource.Client") -> None:
-        """
-        Starts the service discovery process.
+        """Starts service discovery.
 
-        The `ServiceSource` will begin looking for services and will notify the
-        provided `client` when new services are found.
+        `ServiceSource` looks for services, notifies `client` of finds.
 
         Args:
-            client: The client object to be notified of discovered services.
+            client: Client to be notified of discovered services.
         """
-        pass
+        # pass removed

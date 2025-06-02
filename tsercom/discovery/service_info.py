@@ -1,6 +1,7 @@
+"""Defines the base ServiceInfo class and related types."""
+
 import dataclasses
 from typing import List
-
 
 from typing import TypeVar  # Add TypeVar
 
@@ -9,8 +10,8 @@ from typing import TypeVar  # Add TypeVar
 class ServiceInfo:
     """Represents information about a discovered service instance.
 
-    This class is typically used to store details obtained from mDNS (Multicast DNS)
-    queries, such as the service's name, port, IP addresses, and its unique
+    This class is typically used to store details obtained from mDNS
+    (Multicast DNS) queries, such as name, port, IP addresses, and unique
     mDNS instance name.
     """
 
@@ -20,5 +21,5 @@ class ServiceInfo:
     mdns_name: str
 
 
-# Define TServiceInfo here for common use
-TServiceInfo = TypeVar("TServiceInfo", bound="ServiceInfo")
+# Define ServiceInfoT here for common use
+ServiceInfoT = TypeVar("ServiceInfoT", bound="ServiceInfo")

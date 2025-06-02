@@ -1,16 +1,20 @@
+# pylint: disable=C0301
+"""Defines an abstract factory for creating connections."""
+
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, List, Union, Optional
 
-TConnectionType = TypeVar("TConnectionType")
+ConnectionTypeT = TypeVar("ConnectionTypeT")
 
 
-class ConnectionFactory(Generic[TConnectionType], ABC):
+# pylint: disable=R0903 # Abstract factory interface
+class ConnectionFactory(Generic[ConnectionTypeT], ABC):
     """An abstract factory for creating connections of a specific type."""
 
     @abstractmethod
     async def connect(
         self, addresses: Union[List[str], str], port: int
-    ) -> Optional[TConnectionType]:
+    ) -> Optional[ConnectionTypeT]:
         """Establishes a connection to a service.
 
         Args:
@@ -18,7 +22,5 @@ class ConnectionFactory(Generic[TConnectionType], ABC):
             port: The port number to connect to.
 
         Returns:
-            An instance of TConnectionType if connection is successful,
-            otherwise None.
+            An instance of ConnectionTypeT if successful, otherwise None.
         """
-        pass

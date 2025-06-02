@@ -1,54 +1,53 @@
+# pylint: disable=C0301
+"""Listener for mDNS service records using zeroconf."""
+
+import logging  # Moved up
 from zeroconf import ServiceBrowser, Zeroconf
-import logging
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 
 
 class RecordListener(MdnsListener):
-    """A low-level listener for mDNS service records using the `zeroconf` library.
+    """Low-level mDNS service listener using `zeroconf`.
 
-    This class implements the `zeroconf.ServiceListener` interface. It monitors
-    for mDNS records of a specified service type and notifies a registered `Client`
-    when services are added or updated, providing detailed record information.
+    Implements `zeroconf.ServiceListener`. Monitors for mDNS records of a
+    specified type, notifies client on add/update with record details.
     """
 
     def __init__(self, client: MdnsListener.Client, service_type: str) -> None:
         """Initializes the RecordListener.
 
         Args:
-            client: An object implementing the `MdnsListener.Client` interface.
-            service_type: The base mDNS service type to listen for (e.g., "_myservice").
-                          It will be appended with "._tcp.local." internally.
+            client: Implements `MdnsListener.Client` interface.
+            service_type: Base mDNS service type (e.g., "_myservice").
+                          Appended with "._tcp.local." internally.
 
         Raises:
-            ValueError: If `client` or `service_type` is None, or if `service_type`
-                        does not start with an underscore.
-            TypeError: If arguments are not of the expected types.
+            ValueError: If args invalid or service_type missing leading '_'.
+            TypeError: If args are not of expected types.
         """
         if client is None:
-            raise ValueError(
-                "Client argument cannot be None for RecordListener."
-            )
-        # Changed from isinstance to hasattr to check for method implementation (duck typing for ABC)
+            raise ValueError("Client cannot be None for RecordListener.")
+        # Check for method implementation (duck typing for ABC)
         if not hasattr(client, "_on_service_added") or not callable(
             getattr(client, "_on_service_added")
         ):
+            # pylint: disable=C0301 # Long error message
             raise TypeError(
-                f"Client must implement the MdnsListener.Client interface (e.g., _on_service_added method), got {type(client).__name__}."
+                f"Client must implement MdnsListener.Client interface (e.g., _on_service_added), got {type(client).__name__}."
             )
 
         if service_type is None:
-            raise ValueError(
-                "service_type argument cannot be None for RecordListener."
-            )
+            raise ValueError("service_type cannot be None for RecordListener.")
         if not isinstance(service_type, str):
             raise TypeError(
-                f"service_type must be a string, got {type(service_type).__name__}."
+                f"service_type must be str, got {type(service_type).__name__}."
             )
-        # mDNS service types conventionally start with an underscore.
+        # mDNS service types usually start with an underscore.
         if not service_type.startswith("_"):
+            # pylint: disable=C0301 # Long error message
             raise ValueError(
-                f"service_type must start with an underscore (e.g., '_my_service'), got '{service_type}'."
+                f"service_type must start with '_', got '{service_type}'."
             )
 
         self.__client: MdnsListener.Client = client
@@ -67,53 +66,54 @@ class RecordListener(MdnsListener):
 
         self.__mdns: Zeroconf = Zeroconf()
         logging.info(
-            f"Starting mDNS scan for services of type: {self.__expected_type}"
+            "Starting mDNS scan for services of type: %s", self.__expected_type
         )
+        # pylint: disable=W0238 # __browser is used by zeroconf for its lifecycle
         self.__browser: ServiceBrowser = ServiceBrowser(
             self.__mdns, self.__expected_type, self
         )
 
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called by `zeroconf` when a service's information (e.g., TXT record) is updated.
+        """Called by `zeroconf` when a service's info (e.g., TXT) is updated.
 
-        This method is part of the `zeroconf.ServiceListener` interface.
-        It retrieves the updated service information and notifies the client.
+        Part of `zeroconf.ServiceListener`. Retrieves updated service info
+        and notifies the client.
 
         Args:
-            zc: The `Zeroconf` instance.
-            type_: The type of the service that was updated.
-            name: The mDNS instance name of the service that was updated.
+            zc: `Zeroconf` instance.
+            type_: Service type updated.
+            name: mDNS name of updated service.
         """
         logging.info(
-            f"Service updated or added (via update_service): type='{type_}', name='{name}'"
+            "Service updated or added (via update_service): type='%s', name='%s'",
+            type_,
+            name,
         )
         if type_ != self.__expected_type:
             logging.debug(
-                f"Ignoring service update for '{name}' of unexpected type '{type_}'. Expected '{self.__expected_type}'."
+                "Ignoring update for '%s', type '%s'. Expected '%s'.",
+                name, type_, self.__expected_type,
             )
             return
 
         info = zc.get_service_info(type_, name)
         if info is None:
             logging.error(
-                f"Failed to get service info for updated service '{name}' of type '{type_}'."
+                "Failed to get info for updated service '%s' type '%s'.",
+                name, type_,
             )
             return
 
-        if info.port is None:  # Port is essential for service communication.
-            logging.error(
-                f"No port found for updated service '{name}' of type '{type_}'."
-            )
+        if info.port is None:  # Port is essential
+            logging.error("No port for updated service '%s' type '%s'.", name, type_)
             return
 
-        if not info.addresses:  # Addresses are essential.
-            logging.warning(
-                f"No addresses found for updated service '{name}' of type '{type_}'."
-            )
-            # Depending on requirements, might return here or proceed without addresses.
-            # For now, we proceed as `_on_service_added` handles address list.
+        if not info.addresses:  # Addresses are essential
+            logging.warning("No addresses for updated service '%s' type '%s'.", name, type_)
+            # Decide if to proceed; currently proceeds.
 
-        # info.name is the instance name, info.properties is the TXT record.
+        # info.name is instance name, info.properties is TXT.
+        # pylint: disable=W0212 # Calling listener's notification method
         self.__client._on_service_added(
             name,
             info.port,
@@ -132,52 +132,52 @@ class RecordListener(MdnsListener):
             type_: The type of the service that was removed.
             name: The mDNS instance name of the service that was removed.
         """
-        logging.info(f"Service removed: type='{type_}', name='{name}'")
-        # Placeholder for any client notification or cleanup logic for service removal.
+        logging.info("Service removed: type='%s', name='%s'", type_, name)
+        # Placeholder for client notification or cleanup for service removal.
         # For example, self.__client._on_service_removed(name, type_)
-        pass
+        # pass # Removed W0107
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a new service is discovered.
 
-        This method is part of the `zeroconf.ServiceListener` interface.
-        It retrieves the new service's information and notifies the client.
-        Note: `zeroconf` may also call `update_service` for new services. This
-        handler ensures services are processed if `add_service` is the first callback.
+        Part of `zeroconf.ServiceListener`. Retrieves new service info,
+        notifies client. `zeroconf` might also call `update_service` for new
+        services; this handles if `add_service` is the first callback.
 
         Args:
-            zc: The `Zeroconf` instance.
-            type_: The type of the service that was discovered.
-            name: The mDNS instance name of the service that was discovered.
+            zc: `Zeroconf` instance.
+            type_: Discovered service type.
+            name: mDNS name of discovered service.
         """
         logging.info(
-            f"Service added (via add_service): type='{type_}', name='{name}'"
+            "Service added (via add_service): type='%s', name='%s'",
+            type_,
+            name,
         )
         if type_ != self.__expected_type:
             logging.debug(
-                f"Ignoring added service '{name}' of unexpected type '{type_}'. Expected '{self.__expected_type}'."
+                "Ignoring added service '%s', type '%s'. Expected '%s'.",
+                name, type_, self.__expected_type,
             )
             return
 
         info = zc.get_service_info(type_, name)
         if info is None:
             logging.error(
-                f"Failed to get service info for added service '{name}' of type '{type_}'."
+                "Failed to get info for added service '%s' type '%s'.",
+                name, type_,
             )
             return
 
-        if info.port is None:  # Port is essential.
-            logging.error(
-                f"No port found for added service '{name}' of type '{type_}'."
-            )
+        if info.port is None:  # Port is essential
+            logging.error("No port for added service '%s' type '%s'.", name, type_)
             return
 
-        if not info.addresses:  # Addresses are essential.
-            logging.warning(
-                f"No addresses found for added service '{name}' of type '{type_}'."
-            )
-            # As with update_service, deciding whether to proceed or return.
+        if not info.addresses:  # Addresses are essential
+            logging.warning("No addresses for added service '%s' type '%s'.", name, type_)
+            # As with update_service, decide whether to proceed or return.
 
+        # pylint: disable=W0212 # Calling listener's notification method
         self.__client._on_service_added(
             name,
             info.port,

@@ -1,3 +1,6 @@
+# pylint: disable=C0301
+"""Publishes mDNS service records using zeroconf."""
+
 import logging  # For _logger
 from typing import Dict, Optional
 from asyncio import AbstractEventLoop  # For type hinting
@@ -10,12 +13,10 @@ _logger = logging.getLogger(__name__)
 
 
 class RecordPublisher(MdnsPublisher):
-    """Publishes a service instance to mDNS using specific record details.
+    """Publishes a service to mDNS with specific record details.
 
-    This class takes detailed service parameters (name, type, port, properties)
-    and uses the `zeroconf` library to construct and register a `ServiceInfo`
-    object, making the service discoverable on the local network. It specifically
-    publishes services using IPv4.
+    Uses `zeroconf` to construct/register `ServiceInfo`, making service
+    discoverable on LAN (IPv4).
     """
 
     def __init__(
@@ -28,22 +29,19 @@ class RecordPublisher(MdnsPublisher):
         """Initializes the RecordPublisher.
 
         Args:
-            name: The specific instance name for the service being published.
-                  This will be part of the full mDNS service name
-                  (e.g., "MyDevice._myservice._tcp.local.").
-            type_: The base type of the service (e.g., "_http", "_myservice").
-                   It must start with an underscore.
-            port: The network port on which the service is available.
-            properties: An optional dictionary for the TXT record, where keys
-                        are bytes and values are bytes or None. Defaults to an
-                        empty dictionary if None.
+            name: Instance name (e.g., "MyDevice"). Forms part of full mDNS name
+                  (e.g., "MyDevice._myservice._tcp.local").
+            type_: Base service type (e.g., "_http"). Must start with '_'.
+            port: Network port service is on.
+            properties: Optional dict for TXT record (bytes: bytes/None).
+                        Defaults to {}.
 
         Raises:
-            ValueError: If `type_` is None or does not start with an underscore.
-            TypeError: If arguments are not of the expected types (implicitly checked
-                       by zeroconf or Python, but good to be aware).
+            ValueError: If `type_` is None or not `startswith("_")`.
+            TypeError: If args are not of expected types (implicit check).
         """
         if type_ is None or not type_.startswith("_"):
+            # pylint: disable=C0301 # Long error message
             raise ValueError(
                 f"Service type_ must start with an underscore (e.g., '_myservice'), got '{type_}'."
             )
@@ -69,10 +67,9 @@ class RecordPublisher(MdnsPublisher):
             _logger.info(
                 "Service %s already published. Re-registering.", self.__srv
             )
-            # Optionally, unregister first or update if supported,
-            # for now, we assume re-registering is the desired behavior or that
-            # Zeroconf handles re-registration of the same ServiceInfo correctly.
-            # await self.close() # This would unregister and close before re-registering
+            # Optionally, unregister first or update. For now, assume
+            # re-registering is desired or Zeroconf handles it.
+            # await self.close() # Would unregister/close before re-registering
 
         self._service_info = ServiceInfo(  # Store service_info
             type_=self.__ptr,
@@ -82,6 +79,7 @@ class RecordPublisher(MdnsPublisher):
             properties=self.__txt,
         )
 
+        # pylint: disable=C0415 # Asyncio import for async method execution
         import asyncio
 
         self._loop = asyncio.get_running_loop()
@@ -96,29 +94,27 @@ class RecordPublisher(MdnsPublisher):
         """Closes the Zeroconf instance and unregisters services."""
         if self._zc and self._loop:
             _logger.debug(
-                "Closing Zeroconf instance for %s and unregistering service.",
-                self.__srv,
+                "Closing Zeroconf for %s and unregistering.", self.__srv
             )
             try:
-                if (
-                    self._service_info
-                ):  # Ensure service was registered before trying to unregister
+                if self._service_info:  # Ensure service was registered
+                    # pylint: disable=C0301 # Black-formatted
                     await self._loop.run_in_executor(
                         None, self._zc.unregister_service, self._service_info
                     )
                     _logger.info("Service %s unregistered.", self.__srv)
                 await self._loop.run_in_executor(None, self._zc.close)
                 _logger.debug("Zeroconf instance for %s closed.", self.__srv)
+            # pylint: disable=W0718 # Catch all exceptions to keep publish loop alive
             except Exception as e:
-                _logger.error(
-                    "Error closing Zeroconf for %s: %s", self.__srv, e
-                )
+                # pylint: disable=C0301 # Long log line
+                _logger.error("Error closing Zeroconf for %s: %s", self.__srv, e)
             finally:
                 self._zc = None
                 self._loop = None
                 self._service_info = None
         else:
+            # pylint: disable=C0301 # Long log line
             _logger.debug(
-                "Zeroconf instance for %s already closed or not initialized.",
-                self.__srv,
+                "Zeroconf for %s already closed or not initialized.", self.__srv
             )

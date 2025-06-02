@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """Utilities for network IP addresses."""
 
 import socket
@@ -11,8 +12,7 @@ def get_all_address_strings() -> list[str]:
     collects all assigned IPv4 addresses, and returns them as a list of strings.
 
     Returns:
-        A list of strings, where each string is an IPv4 address.
-        Returns an empty list if no IPv4 addresses are found.
+        A list of IPv4 address strings. Empty if no IPv4 addresses found.
     """
     addresses: list[str] = []
     for _, interface_addresses in psutil.net_if_addrs().items():

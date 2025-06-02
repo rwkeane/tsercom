@@ -1,9 +1,5 @@
-"""Defines InstanceListener, responsible for discovering mDNS service instances.
-
-It listens for mDNS records (SRV, A/AAAA, TXT) via a RecordListener,
-constructs ServiceInfo objects from these records, and notifies a client
-upon the discovery of a complete service instance.
-"""
+# pylint: disable=C0301
+"""mDNS instance listener, builds on RecordListener."""
 
 from abc import ABC, abstractmethod
 from functools import partial
@@ -14,47 +10,45 @@ import logging
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.service_info import (
     ServiceInfo,
-    TServiceInfo,
-)  # Import TServiceInfo
+    ServiceInfoT, # Changed TServiceInfo to ServiceInfoT
+)
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 
 
-class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
-    """Listens for mDNS service instances of a specified type and notifies a client.
+class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
+    """Listens for mDNS service instances and notifies a client.
 
-    This class uses a `RecordListener` to monitor for mDNS records. When
-    complete service information (SRV, A/AAAA, TXT records) is available,
-    it constructs a `ServiceInfo` object (or a subclass `TServiceInfo`),
-    and notifies its registered `Client` about the newly discovered service instance.
+    Uses `RecordListener` for mDNS records. When complete service info
+    (SRV, A/AAAA, TXT) is available, constructs `ServiceInfo` (or subclass)
+    and notifies its `Client`.
     """
 
+    # pylint: disable=R0903 # Abstract listener client interface
     class Client(ABC):  # Removed Generic[TServiceInfo]
-        """Interface for clients of `InstanceListener`.
+        """Interface for `InstanceListener` clients.
 
-        Implementers of this interface are notified when a complete service
-        instance, matching the type monitored by the `InstanceListener`,
-        is discovered.
+        Notified when a complete service instance, matching the type
+        monitored by `InstanceListener`, is discovered.
         """
 
         @abstractmethod
         async def _on_service_added(
-            self, connection_info: TServiceInfo
+            self, connection_info: ServiceInfoT
         ) -> None:
             """Callback invoked when a new service instance is discovered.
 
             Args:
-                connection_info: Detailed information about the discovered
-                                 service, of type `TServiceInfo`.
+                connection_info: Info about discovered service (`ServiceInfoT`).
             """
             # This method must be implemented by concrete client classes.
             raise NotImplementedError(
-                "InstanceListener.Client._on_service_added must be implemented by subclasses."
+                "Client._on_service_added must be implemented by subclasses."
             )
 
     def __init__(
         self,
-        client: "InstanceListener.Client",  # Removed [TServiceInfo]
+        client: "InstanceListener.Client",
         service_type: str,
         *,
         mdns_listener_factory: Optional[
@@ -64,44 +58,36 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
         """Initializes the InstanceListener.
 
         Args:
-            client: An object implementing the `InstanceListener.Client` interface.
-                    It will receive notifications about discovered services.
-            service_type: The mDNS service type string to listen for
-                          (e.g., "_my_service._tcp.local.").
+            client: `InstanceListener.Client` for service notifications.
+            service_type: mDNS service type (e.g., "_my_service._tcp.local.").
 
         Raises:
             ValueError: If `client` is None.
-            TypeError: If `client` is not a subclass of `InstanceListener.Client`,
-                       or if `service_type` is not a string.
+            TypeError: If client or service_type has an unexpected type.
         """
         if client is None:
-            raise ValueError(
-                "Client argument cannot be None for InstanceListener."
-            )
-        # isinstance is used here, which is generally preferred for ABCs.
-        if not isinstance(
-            client, InstanceListener.Client
-        ):  # Check against the non-generic Client still works due to MRO
+            raise ValueError("Client cannot be None for InstanceListener.")
+        if not isinstance(client, InstanceListener.Client):
+            # pylint: disable=C0301 # Long error message
             raise TypeError(
-                f"Client must be an instance of InstanceListener.Client, got {type(client).__name__}."
+                f"Client must be InstanceListener.Client, got {type(client).__name__}."
             )
         if not isinstance(service_type, str):
             raise TypeError(
-                f"service_type must be a string, got {type(service_type).__name__}."
+                f"service_type must be str, got {type(service_type).__name__}."
             )
 
-        self.__client: InstanceListener.Client = (
-            client  # Removed [TServiceInfo]
-        )
-        # This InstanceListener acts as the client to the MdnsListener.
+        self.__client: InstanceListener.Client = client
+        # This InstanceListener acts as client to MdnsListener.
 
-        self.__listener: MdnsListener  # Declare type once for __listener
+        # pylint: disable=W0238 # Listener managed by this class (its lifecycle)
+        self.__listener: MdnsListener
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
+            # pylint: disable=C0301 # Black-formatted line
             def default_mdns_listener_factory(
                 listener_client: MdnsListener.Client, s_type: str
             ) -> MdnsListener:
-                # RecordListener is already imported at the top of the file.
                 return RecordListener(listener_client, s_type)
 
             self.__listener = default_mdns_listener_factory(self, service_type)
@@ -109,7 +95,7 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
             # Use provided factory
             self.__listener = mdns_listener_factory(self, service_type)
 
-    def __populate_service_info(
+    def __populate_service_info( # pylint: disable=C0301
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
         # to build a cohesive ServiceInfo object representing a discovered service.
         self,
@@ -121,119 +107,108 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
         """Constructs a `ServiceInfo` object from raw mDNS record data.
 
         Args:
-            record_name: The mDNS instance name of the service.
-            port: The service port number.
-            addresses: A list of raw IP addresses (in binary format, e.g., from A/AAAA records).
-            txt_record: A dictionary representing the TXT record data.
+            record_name: mDNS instance name.
+            port: Service port number.
+            addresses: List of raw binary IP addresses (from A/AAAA records).
+            txt_record: Dict representing TXT record data.
 
         Returns:
-            A `ServiceInfo` object if successful, or `None` if essential information
-            (like convertible IP addresses) is missing.
+            `ServiceInfo` or `None` if essential info (e.g., IPs) missing.
         """
         if not addresses:
             logging.warning(
-                f"No IP addresses available for service '{record_name}' at port {port}. Cannot populate ServiceInfo."
+                "No IP addresses for service '%s' port %s. Cannot populate.",
+                record_name, port
             )
             return None
 
-        # TODO(developer/issue_id): Enhance IP address conversion to support IPv6.
-        # The current use of socket.inet_ntoa() is IPv4-specific.
-        # To handle IPv6, we would need to know the address family (AF_INET or AF_INET6)
-        # for each addr_bytes. This might require changes in how RecordListener
-        # provides these addresses (e.g., as tuples of (family, bytes), by
-        # attempting to guess based on length which is fragile, or by trying both
-        # inet_ntoa and inet_ntop).
-        # Example for IPv6: socket.inet_ntop(socket.AF_INET6, addr_bytes)
+        # TODO(dev): Enhance IP address conversion for IPv6.
+        # socket.inet_ntoa() is IPv4-specific. Need address family info.
+        # Example IPv6: socket.inet_ntop(socket.AF_INET6, addr_bytes)
         addresses_out: List[str] = []
         for addr_bytes in addresses:
             try:
-                # This assumes IPv4 addresses from `socket.inet_ntoa`.
-                # For IPv6, `socket.inet_ntop(socket.AF_INET6, addr_bytes)` would be needed.
-                # Current code implies IPv4 from `inet_ntoa`.
+                # Assumes IPv4 from `socket.inet_ntoa`.
                 address_str = socket.inet_ntoa(addr_bytes)
                 addresses_out.append(address_str)
             except (socket.error, TypeError, ValueError) as e:
                 logging.warning(
-                    f"Failed to convert address bytes to string for service '{record_name}': {e}"
+                    "Failed to convert address bytes for '%s': %s", record_name, e
                 )
-                continue  # Skip this address and try the next one.
+                continue  # Skip this address.
 
         if not addresses_out:
-            logging.warning(
-                f"Failed to convert any binary IP addresses to string format for service '{record_name}', port {port}."
+            logging.warning( # pylint: disable=C0301
+                "No binary IPs converted to string for '%s', port %s.",
+                record_name, port
             )
             return None
 
-        # The key 'name' is a common convention but not a strict standard.
+        # 'name' key is common convention, not strict standard.
         readable_name_str: str
-        name_key_bytes = b"name"  # Use bytes literal for dict key
+        name_key_bytes = b"name"
         txt_value_bytes = txt_record.get(name_key_bytes)
 
         if txt_value_bytes is not None:
             try:
                 readable_name_str = txt_value_bytes.decode("utf-8")
             except UnicodeDecodeError:
-                # If decoding fails, fall back to the record_name.
-                logging.warning(
-                    f"Failed to decode TXT record 'name' for '{record_name}'. Using record name as fallback."
+                logging.warning( # pylint: disable=C0301
+                    "Failed to decode TXT 'name' for '%s'. Using record name.",
+                    record_name
                 )
                 readable_name_str = record_name
         else:
-            # If 'name' key is not in TXT record, use the mDNS instance name.
+            # If 'name' not in TXT, use mDNS instance name.
             readable_name_str = record_name
 
-        # Subclasses might override _convert_service_info to create a TServiceInfo instance.
+        # Subclasses might override _convert_service_info.
         return ServiceInfo(readable_name_str, port, addresses_out, record_name)
 
-    def _convert_service_info(
-        self, service_info: ServiceInfo, txt_record: Dict[bytes, bytes | None]
-    ) -> TServiceInfo:
-        """Converts a base `ServiceInfo` object to the specific `TServiceInfo` type.
+    def _convert_service_info( # pylint: disable=C0301
+        self, service_info: ServiceInfo, _txt_record: Dict[bytes, bytes | None]
+    ) -> ServiceInfoT:
+        """Converts base `ServiceInfo` to specific `ServiceInfoT`.
 
-        This method is intended to be overridden by subclasses if `TServiceInfo`
-        is a more specific type than `ServiceInfo` and requires additional
-        parsing of the `txt_record` or other data to populate its fields.
-        The default implementation performs a passthrough, which is only safe
-        if `TServiceInfo` is `ServiceInfo` itself.
+        Override if `ServiceInfoT` is more specific and needs extra parsing
+        of `_txt_record`. Default is passthrough.
 
         Args:
-            service_info: The base `ServiceInfo` object created from common mDNS records.
-            txt_record: The raw TXT record data, which might contain additional
-                        information for populating `TServiceInfo`.
+            service_info: Base `ServiceInfo` from mDNS records.
+            _txt_record: Raw TXT data for populating `ServiceInfoT`. (Unused)
 
         Returns:
-            An instance of `TServiceInfo`. If `TServiceInfo` is more specific
-            than `ServiceInfo`, this method *must* be overridden.
+            Instance of `ServiceInfoT`. Must be overridden if `ServiceInfoT`
+            is a subclass of `ServiceInfo`.
         """
-        # This cast is safe if TServiceInfo is indeed ServiceInfo.
-        # If TServiceInfo is a subclass, this method MUST be overridden in the
-        # subclass of InstanceListener to correctly create and return TServiceInfo.
+        # This cast is safe if ServiceInfoT is indeed ServiceInfo.
+        # If ServiceInfoT is a subclass, this method MUST be overridden in the
+        # subclass of InstanceListener to correctly create and return ServiceInfoT.
         # The type: ignore is kept here because this method is a hook for subclasses
-        # and its "correctness" depends on how TServiceInfo is defined by the subclass.
+        # and its "correctness" depends on how ServiceInfoT is defined by the subclass.
         return service_info  # type: ignore[return-value]
 
-    def _on_service_added(
+    def _on_service_added( # Parameter 'name' now matches MdnsListener.Client
         self,
-        record_name: str,  # mDNS instance name
+        name: str,  # mDNS instance name
         port: int,  # Service port from SRV record
         addresses: List[bytes],  # IP addresses from A/AAAA records (binary)
         txt_record: Dict[bytes, bytes | None],  # Parsed TXT record
     ) -> None:
-        """Callback from `RecordListener` when all necessary mDNS records for a service are available.
+        """Callback from `RecordListener` with mDNS records for a service.
 
-        This method implements the `RecordListener.Client` interface. It populates
-        a `ServiceInfo` object, converts it to `TServiceInfo` (potentially via
-        subclass override), and then notifies its own client by scheduling the
-        `_on_service_added` call on the event loop.
+        Implements `MdnsListener.Client`. Populates `ServiceInfo`, converts
+        to `ServiceInfoT`, then notifies its own client via `_on_service_added`
+        on the event loop.
 
         Args:
-            record_name: The mDNS instance name of the service.
-            port: The port number of the service.
-            addresses: A list of raw binary IP addresses for the service.
-            txt_record: A dictionary representing the service's TXT record.
+            name: mDNS instance name.
+            port: Service port number.
+            addresses: List of raw binary IP addresses.
+            txt_record: Dict of the service's TXT record.
         """
         base_service_info = self.__populate_service_info(
-            record_name, port, addresses, txt_record
+            name, port, addresses, txt_record
         )
         if base_service_info is None:
             # If essential info couldn't be populated, do not proceed.
@@ -244,7 +219,8 @@ class InstanceListener(Generic[TServiceInfo], MdnsListener.Client):
             base_service_info, txt_record
         )
 
-        # The client's _on_service_added method is expected to be a coroutine.
+        # Client's _on_service_added is expected to be a coroutine.
+        # pylint: disable=W0212 # Calling client's notification method
         run_on_event_loop(
             partial(self.__client._on_service_added, typed_service_info)
         )

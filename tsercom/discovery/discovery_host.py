@@ -1,4 +1,5 @@
-"""Manages discovery of network services using mDNS. It utilizes an InstanceListener and notifies a client upon discovering services, associating them with CallerIdentifiers."""
+# pylint: disable=C0301
+"""Manages mDNS service discovery and notifies clients of services."""
 
 from typing import Callable, Dict, Generic, Optional, overload
 
@@ -8,25 +9,24 @@ from tsercom.discovery.service_info import TServiceInfo
 from tsercom.discovery.service_source import ServiceSource
 
 
+# pylint: disable=R0903 # Implements ServiceSource and InstanceListener.Client
 class DiscoveryHost(
     Generic[TServiceInfo],
     ServiceSource[TServiceInfo],
     InstanceListener.Client,
 ):
-    """Manages service discovery using mDNS and CallerIdentifier association.
+    """Manages mDNS service discovery and CallerIdentifier association.
 
-    This class listens for service instances of a specified type (or using a
-    custom listener factory) and notifies a client upon discovery. It also
-    manages `CallerIdentifier` instances for discovered services to facilitate
-    reconnection and consistent identification. It acts as a client to an
-    `InstanceListener` to receive raw service discovery events.
-    It implements the `ServiceSource` interface.
+    Listens for service instances (specified type or via custom factory)
+    and notifies a client. Manages `CallerIdentifier` for discovered services
+    for reconnection and ID. Acts as `InstanceListener.Client` for raw events.
+    Implements `ServiceSource`.
     """
 
     @overload
     def __init__(self, *, service_type: str):
         """Initializes DiscoveryHost with a specific mDNS service type."""
-        ...
+        ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
 
     @overload
     def __init__(
@@ -38,7 +38,7 @@ class DiscoveryHost(
         ],
     ):
         """Initializes DiscoveryHost with a factory for creating an InstanceListener."""
-        ...
+        ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
 
     def __init__(
         self,
@@ -51,26 +51,20 @@ class DiscoveryHost(
             ]
         ] = None,
     ) -> None:
-        """Initializes the DiscoveryHost.
-
-        This constructor is overloaded. It must be called with exactly one of the
-        keyword arguments `service_type` or `instance_listener_factory`.
+        """Initializes DiscoveryHost. Overloaded: use one keyword arg.
 
         Args:
-            service_type: The mDNS service type string to listen for (e.g.,
-                          "_my_service._tcp.local.").
-            instance_listener_factory: A callable that creates an `InstanceListener`.
-                                       This allows for more custom listener configurations,
-                                       such as using different mDNS libraries or settings.
-                                       The factory will be provided with `self` (this
-                                       `DiscoveryHost` instance) as the client for the listener.
+            service_type: mDNS service type (e.g., "_my_service._tcp.local.").
+            instance_listener_factory: Callable creating `InstanceListener`.
+                Allows custom listener configs (e.g., different mDNS libs).
+                Factory gets `self` as client for the listener.
 
         Raises:
-            ValueError: If neither or both `service_type` and
-                        `instance_listener_factory` are provided.
+            ValueError: If neither or both args provided.
         """
-        # Ensure exclusive provision of either service_type or instance_listener_factory
+        # Ensure exclusive provision of service_type or factory
         if (service_type is None) == (instance_listener_factory is None):
+            # pylint: disable=C0301 # Long error message
             raise ValueError(
                 "Exactly one of 'service_type' or 'instance_listener_factory' must be provided."
             )
@@ -83,24 +77,21 @@ class DiscoveryHost(
             ]
         ] = instance_listener_factory
 
-        # The actual mDNS instance listener; initialized in __start_discovery_impl.
+        # mDNS instance listener; initialized in __start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
         self.__client: Optional[ServiceSource.Client] = None
 
-        # Maps mDNS instance names to their assigned CallerIdentifiers.
+        # Maps mDNS instance names to CallerIdentifiers.
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
     async def start_discovery(self, client: ServiceSource.Client) -> None:
-        """Starts the service discovery process.
+        """Starts service discovery.
 
-        This method now directly calls the asynchronous `__start_discovery_impl`.
-        Discovered services will be reported to the provided `client` object
-        via its `_on_service_added` method. This method fulfills the
-        `ServiceSource.start_discovery` interface.
+        Calls async `__start_discovery_impl`. Discovered services reported
+        to `client` via `_on_service_added`. Fulfills `ServiceSource` interface.
 
         Args:
-            client: An object implementing the `ServiceSource.Client` interface
-                    that will receive notifications about discovered services.
+            client: `ServiceSource.Client` for discovery notifications.
         """
         await self.__start_discovery_impl(client)
 
@@ -110,11 +101,11 @@ class DiscoveryHost(
     ) -> None:
         """Internal implementation for starting discovery.
 
-        Initializes and starts the `InstanceListener` using either the provided
-        `service_type` or `instance_listener_factory`.
+        Initializes and starts `InstanceListener` using `service_type` or
+        `instance_listener_factory`.
 
         Args:
-            client: The client object that will receive discovery notifications.
+            client: Client for discovery notifications.
 
         Raises:
             ValueError: If the provided `client` is None.
@@ -133,16 +124,16 @@ class DiscoveryHost(
             self.__discoverer = self.__instance_listener_factory(self)
         else:
             # This assertion is safe due to the __init__ constructor logic.
-            assert (
+            assert ( # pylint: disable=C0301
                 self.__service_type is not None
             ), "Service type must be set if no factory is provided."
             self.__discoverer = InstanceListener[TServiceInfo](
                 self, self.__service_type
             )
-        # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener)
-        # requires an explicit start() method to be called after instantiation.
+        # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener) # pylint: disable=C0301
+        # requires an explicit start() method to be called after instantiation. # pylint: disable=C0301
         # If so, it should be called here. For example:
-        # if hasattr(self.__discoverer, "start") and callable(self.__discoverer.start):
+        # if hasattr(self.__discoverer, "start") and callable(self.__discoverer.start): # pylint: disable=C0301
         #     # await self.__discoverer.start() # If async
         #     # self.__discoverer.start() # If sync
         #     pass  # Actual call depends on InstanceListener's API
@@ -150,26 +141,24 @@ class DiscoveryHost(
     async def _on_service_added(self, connection_info: TServiceInfo) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
 
-        This method implements the `InstanceListener.Client` interface. It assigns
-        a `CallerIdentifier` to the newly discovered service (or retrieves an existing
-        one if the service was seen before) and then notifies this `DiscoveryHost`'s
-        client (which is a `ServiceSource.Client`) via its `_on_service_added` method.
+        Implements `InstanceListener.Client`. Assigns/retrieves `CallerIdentifier`
+        for the new service. Notifies `DiscoveryHost`'s client
+        (a `ServiceSource.Client`) via `_on_service_added`.
 
         Args:
-            connection_info: Information about the discovered service instance,
-                             of type `TServiceInfo`.
+            connection_info: Info about discovered service (`TServiceInfo`).
 
         Raises:
-            RuntimeError: If the `DiscoveryHost`'s client is not set (e.g.,
-                          if `start_discovery` was not called or failed).
+            RuntimeError: If `DiscoveryHost` client not set (start_discovery issue).
         """
         if self.__client is None:
-            # This indicates a programming error, discovery should have been started with a client.
+            # Programming error: discovery should have been started with a client.
+            # pylint: disable=C0301 # Long error message
             raise RuntimeError(
                 "DiscoveryHost client not set; discovery may not have been started correctly."
             )
 
-        # Use the mDNS instance name as a key to uniquely identify service instances for CallerId mapping.
+        # Use mDNS instance name as key for CallerId mapping.
         service_mdns_name = connection_info.mdns_name
 
         caller_id: CallerIdentifier
@@ -179,10 +168,10 @@ class DiscoveryHost(
             caller_id = CallerIdentifier.random()
             self.__caller_id_map[service_mdns_name] = caller_id
 
+        # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_service_added(connection_info, caller_id)
 
 
-# TODO(developer/issue_id): Implement a stop_discovery() method.
-# This method should handle stopping the self.__discoverer (InstanceListener)
-# if it has a stop() method, and potentially clear self.__client,
-# self.__discoverer, and self.__caller_id_map to allow for restart or cleanup.
+# TODO(developer/issue_id): Implement a stop_discovery() method. # pylint: disable=C0301
+# This method should handle stopping self.__discoverer (InstanceListener)
+# if it has stop(), and potentially clear client, discoverer, and map.
