@@ -23,8 +23,15 @@ if not TYPE_CHECKING:
     if False:
         pass
 
-    elif version_string == "v1_62":
-        from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
+    elif version_string == "v1_72":
+        from tsercom.caller_id.proto.generated.v1_72.caller_id_pb2 import (
+            CallerId,
+            GetIdRequest,
+            GetIdResponse,
+        )
+
+    elif version_string == "v1_70":
+        from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
             CallerId,
             GetIdRequest,
             GetIdResponse,
@@ -37,8 +44,8 @@ if not TYPE_CHECKING:
             GetIdResponse,
         )
 
-    elif version_string == "v1_70":
-        from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
+    elif version_string == "v1_62":
+        from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
             CallerId,
             GetIdRequest,
             GetIdResponse,
@@ -54,12 +61,12 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
         CallerId as CallerId,
     )
-    from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
         GetIdRequest as GetIdRequest,
     )
-    from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
         GetIdResponse as GetIdResponse,
     )

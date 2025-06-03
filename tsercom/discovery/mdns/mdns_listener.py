@@ -2,10 +2,10 @@
 
 from abc import ABC, abstractmethod
 from typing import Dict, List
-from zeroconf import ServiceListener
+from zeroconf import ServiceListener # type: ignore[import-not-found]
 
 
-class MdnsListener(ServiceListener):
+class MdnsListener(ServiceListener): # type: ignore[misc]
     """Abstract base class for mDNS service listeners.
 
     This class extends `zeroconf.ServiceListener` and defines a `Client`

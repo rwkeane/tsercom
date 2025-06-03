@@ -32,17 +32,6 @@ class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
     """
 
     @abstractmethod
-    def get_data_iterator(
-        self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]]:
-        """Returns an async iterator for lists of serializable annotated event instances.
-
-        Yields:
-            Lists of `SerializableAnnotatedInstance[TEventType]`.
-        """
-        pass
-
-    @abstractmethod
     def check_for_caller_id(
         self, endpoint: str, port: int
     ) -> CallerIdentifier | None:
@@ -60,13 +49,15 @@ class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType]:
+    ) -> EndpointDataProcessor[TDataType, TEventType]:  # Added TEventType
         pass
 
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> EndpointDataProcessor[TDataType] | None:
+    ) -> (
+        EndpointDataProcessor[TDataType, TEventType] | None
+    ):  # Added TEventType
         pass
 
     @abstractmethod
@@ -75,7 +66,9 @@ class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
         caller_id: CallerIdentifier,
         *args: Any,
         **kwargs: Any,
-    ) -> EndpointDataProcessor[TDataType] | None:
+    ) -> (
+        EndpointDataProcessor[TDataType, TEventType] | None
+    ):  # Added TEventType
         """Registers a caller with the runtime.
 
         This method is responsible for associating a `CallerIdentifier` with

@@ -1,18 +1,33 @@
 """Defines the abstract base class for endpoint data processors."""
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator  # Added
 from datetime import datetime
-from typing import Generic, TypeVar, overload
+from typing import (
+    Generic,
+    List,
+    TypeVar,
+    overload,
+)  # Removed Callable, Optional. Added List.
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.data.serializable_annotated_instance import (  # Will be used by new methods
+    SerializableAnnotatedInstance,
+)
+
+# Removed: from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 
 
 TDataType = TypeVar("TDataType")
+TEventType = TypeVar("TEventType")  # Defined for the async iterator interface
 
 
-class EndpointDataProcessor(ABC, Generic[TDataType]):
+class EndpointDataProcessor(
+    ABC, Generic[TDataType, TEventType]
+):  # Now generic on TEventType as well
     """ABC for processing data associated with a specific endpoint caller.
+    It also defines an asynchronous iterator interface for receiving event-like data.
 
     Attributes:
         caller_id: The `CallerIdentifier` of the endpoint this processor handles.
@@ -46,6 +61,23 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         pass
 
     @abstractmethod
+    def __aiter__(
+        self,
+    ) -> AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]]:
+        """Returns self as an asynchronous iterator."""
+        pass
+
+    @abstractmethod
+    async def __anext__(
+        self,
+    ) -> List[SerializableAnnotatedInstance[TEventType]]:
+        """Returns the next list of event instances.
+
+        Should raise StopAsyncIteration when there are no more items.
+        """
+        pass
+
+    @abstractmethod
     async def deregister_caller(self) -> None:
         """Performs cleanup when the associated caller is deregistered."""
         pass
@@ -65,16 +97,24 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         data: TDataType,
         timestamp: datetime | ServerTimestamp | None = None,  # Allow None
     ) -> None:
-        """Processes incoming data, converting timestamp if necessary.
+        """
+        Processes incoming data, converting timestamp if necessary.
+
+        This method is overloaded to accept `timestamp` as either a `datetime`
+        object or a `ServerTimestamp` instance.
 
         If the provided timestamp is a `ServerTimestamp`, it's first
-        desynchronized to a local `datetime` object. If timestamp is None,
-        current time is used. Then, `_process_data` is called.
+        desynchronized to a local `datetime` object using `self.desynchronize()`.
+        If `timestamp` is `None` (the default), the current UTC time is used.
+        The method then calls the abstract `_process_data` method with the
+        resolved `datetime` object.
 
         Args:
             data: The data item of type TDataType to process.
-            timestamp: The timestamp associated with the data, can be either
-                       a `datetime` object, a `ServerTimestamp`, or None.
+            timestamp: The timestamp associated with the data. Can be:
+                       - A `datetime` object (processed as is).
+                       - A `ServerTimestamp` (will be desynchronized).
+                       - `None` (current UTC time will be used).
         """
         actual_timestamp: datetime
         if timestamp is None:

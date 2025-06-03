@@ -1,7 +1,14 @@
 """Provides IdTracker for managing bidirectional mappings between CallerIdentifiers and network addresses."""
 
 import threading
-from typing import Dict, Optional, overload, Iterator, Any, cast
+from typing import (
+    Dict,
+    Optional,
+    overload,
+    Iterator,
+    Any,
+    cast,
+)  # Removed Callable
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
@@ -122,10 +129,9 @@ class IdTracker:
         with self.__lock:
             if _id is not None:
                 return self.__id_to_address.get(_id)
-            # By this point, if _id is None, then _address and _port must be not None due to validation
             elif _address is not None and _port is not None:
                 return self.__address_to_id.get((_address, _port))
-        return None  # Should be unreachable due to validation ensuring one path is taken
+        return None
 
     @overload
     def get(self, id: CallerIdentifier) -> tuple[str, int]:
@@ -174,9 +180,6 @@ class IdTracker:
 
         # Type of resolved_result is Optional[tuple[str, int] | CallerIdentifier].
         # Since we've checked for None, it's now tuple[str, int] | CallerIdentifier.
-
-        # Explicit assertion to help mypy with the type after the None check.
-        # assert resolved_result is not None # Keep this for runtime, but cast is for mypy
         return cast(tuple[str, int] | CallerIdentifier, resolved_result)
 
     def add(self, id: CallerIdentifier, address: str, port: int) -> None:
@@ -278,7 +281,4 @@ class IdTracker:
             del self.__id_to_address[id]
             if address_port_tuple in self.__address_to_id:
                 del self.__address_to_id[address_port_tuple]
-            # It's possible that the address_port_tuple is not in __address_to_id
-            # if there was some inconsistency, but we prioritize removing the id.
-            # Consider logging a warning here if such a state is unexpected.
             return True

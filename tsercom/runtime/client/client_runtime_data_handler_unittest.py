@@ -1,6 +1,7 @@
 """Tests for ClientRuntimeDataHandler."""
 
 import pytest
+from unittest.mock import patch, MagicMock, ANY
 
 from tsercom.runtime.client.client_runtime_data_handler import (
     ClientRuntimeDataHandler,
@@ -10,9 +11,12 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.id_tracker import IdTracker
+from tsercom.runtime.caller_processor_registry import CallerProcessorRegistry # Added
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
+# For mocking the nested __ConcreteDataProcessor
+from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 
 
 class TestClientRuntimeDataHandler:
@@ -36,12 +40,15 @@ class TestClientRuntimeDataHandler:
     @pytest.fixture
     def mock_time_sync_tracker_instance(self, mocker):
         """Provides a mock TimeSyncTracker instance."""
-        return mocker.MagicMock(spec=TimeSyncTracker)
+        tracker = mocker.MagicMock(spec=TimeSyncTracker)
+        # Mock the methods that will be called by SUT
+        tracker.on_connect = mocker.MagicMock()
+        tracker.on_disconnect = mocker.MagicMock()
+        tracker.get_clock_for_caller_id = mocker.MagicMock()
+        tracker.get_clock_for_endpoint = mocker.MagicMock()
+        return tracker
 
-    @pytest.fixture
-    def mock_id_tracker_instance(self, mocker):
-        """Provides a mock IdTracker instance."""
-        return mocker.MagicMock(spec=IdTracker)
+    # mock_id_tracker_instance is removed as IdTracker is created internally
 
     @pytest.fixture
     def mock_endpoint_data_processor(self, mocker):
@@ -49,204 +56,192 @@ class TestClientRuntimeDataHandler:
         return mocker.MagicMock(spec=EndpointDataProcessor)
 
     @pytest.fixture
-    def handler_and_class_mocks(
+    def handler_with_mocks( # Renamed from handler_and_class_mocks for consistency
         self,
         mock_thread_watcher,
         mock_data_reader,
         mock_event_source_poller,
-        mock_time_sync_tracker_instance,
-        mock_id_tracker_instance,
+        mock_time_sync_tracker_instance, # This specific instance will be returned by the patched class
         mocker,
     ):
-        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
-        mock_TimeSyncTracker_class = mocker.patch(
-            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
-            return_value=mock_time_sync_tracker_instance,
-            autospec=True,
-        )
+        """Sets up handler instance with mocked class dependencies."""
+
+        mock_id_tracker_instance = mocker.MagicMock(spec=IdTracker)
         mock_IdTracker_class = mocker.patch(
             "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
             return_value=mock_id_tracker_instance,
             autospec=True,
         )
 
-        handler_instance = ClientRuntimeDataHandler(
-            thread_watcher=mock_thread_watcher,
-            data_reader=mock_data_reader,
-            event_source=mock_event_source_poller,
+        mock_processor_registry_instance = mocker.MagicMock(spec=CallerProcessorRegistry)
+        mock_CallerProcessorRegistry_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.CallerProcessorRegistry",
+            return_value=mock_processor_registry_instance,
+            autospec=True
         )
-        handler_instance._mock_time_sync_tracker_instance = (
-            mock_time_sync_tracker_instance
+
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance, # Ensure the specific instance is returned
+            autospec=True,
         )
-        handler_instance._mock_id_tracker_instance = mock_id_tracker_instance
+
+        with patch("asyncio.create_task") as mock_async_create_task:
+            handler_instance = ClientRuntimeDataHandler(
+                thread_watcher=mock_thread_watcher,
+                data_reader=mock_data_reader,
+                event_source=mock_event_source_poller,
+                # id_tracker is no longer a constructor argument
+            )
+
+        # Store mocks for easy access in tests if needed, though patching classes is often cleaner
+        # handler_instance._mock_time_sync_tracker_instance = mock_time_sync_tracker_instance
+        # handler_instance._mock_id_tracker_instance = mock_id_tracker_instance
 
         yield {
             "handler": handler_instance,
             "TimeSyncTracker_class_mock": mock_TimeSyncTracker_class,
             "IdTracker_class_mock": mock_IdTracker_class,
-            "time_sync_tracker_instance_mock": mock_time_sync_tracker_instance,
-            "id_tracker_instance_mock": mock_id_tracker_instance,
+            "CallerProcessorRegistry_class_mock": mock_CallerProcessorRegistry_class,
+            "time_sync_tracker_instance_mock": mock_time_sync_tracker_instance, # Instance returned by TimeSyncTracker()
+            "id_tracker_instance_mock": mock_id_tracker_instance, # Instance returned by IdTracker()
+            "processor_registry_instance_mock": mock_processor_registry_instance,
+            "async_create_task_mock": mock_async_create_task
         }
 
-    def test_init(
+    def test_init_and_processor_factory( # Renamed and expanded
         self,
-        handler_and_class_mocks,
+        handler_with_mocks,
         mock_thread_watcher,
         mock_data_reader,
         mock_event_source_poller,
+        mocker,
     ):
-        """Tests the __init__ method for correct instantiation and dependency setup."""
-        handler = handler_and_class_mocks["handler"]
-        TimeSyncTracker_class_mock = handler_and_class_mocks[
-            "TimeSyncTracker_class_mock"
-        ]
-        IdTracker_class_mock = handler_and_class_mocks["IdTracker_class_mock"]
-        time_sync_tracker_instance_mock = handler_and_class_mocks[
-            "time_sync_tracker_instance_mock"
-        ]
-        id_tracker_instance_mock = handler_and_class_mocks[
-            "id_tracker_instance_mock"
-        ]
+        """Tests __init__ for correct instantiation, dependency setup, and processor_factory logic."""
+        handler = handler_with_mocks["handler"]
+        TimeSyncTracker_class_mock = handler_with_mocks["TimeSyncTracker_class_mock"]
+        IdTracker_class_mock = handler_with_mocks["IdTracker_class_mock"]
+        CallerProcessorRegistry_class_mock = handler_with_mocks["CallerProcessorRegistry_class_mock"]
+
+        time_sync_tracker_instance_mock = handler_with_mocks["time_sync_tracker_instance_mock"]
+        id_tracker_instance_mock = handler_with_mocks["id_tracker_instance_mock"]
+
 
         TimeSyncTracker_class_mock.assert_called_once_with(
-            mock_thread_watcher, is_testing=False
+            mock_thread_watcher, is_testing=False # Assuming default is_testing=False
         )
         IdTracker_class_mock.assert_called_once_with()
 
-        assert (
-            handler._ClientRuntimeDataHandler__clock_tracker
-            == time_sync_tracker_instance_mock
-        )
-        assert (
-            handler._ClientRuntimeDataHandler__id_tracker
-            == id_tracker_instance_mock
-        )
+        assert handler._ClientRuntimeDataHandler__clock_tracker == time_sync_tracker_instance_mock
+        assert handler._ClientRuntimeDataHandler__id_tracker == id_tracker_instance_mock
 
+        # Test CallerProcessorRegistry factory
+        CallerProcessorRegistry_class_mock.assert_called_once()
+        factory_arg = CallerProcessorRegistry_class_mock.call_args[1]['processor_factory']
+        assert callable(factory_arg)
+
+        mock_test_caller_id = CallerIdentifier.random()
+        mock_clock_for_factory = mocker.MagicMock(spec=SynchronizedClock)
+        time_sync_tracker_instance_mock.get_clock_for_caller_id.return_value = mock_clock_for_factory
+
+        mock_concrete_processor = mocker.MagicMock(spec=RuntimeDataHandlerBase._RuntimeDataHandlerBase__ConcreteDataProcessor)
+        mock_internal_poller = mocker.MagicMock(spec=AsyncPoller)
+        setattr(mock_concrete_processor, '_RuntimeDataHandlerBase__ConcreteDataProcessor__internal_poller', mock_internal_poller)
+        mocker.patch.object(handler, '_create_data_processor', return_value=mock_concrete_processor)
+
+        returned_poller = factory_arg(mock_test_caller_id)
+
+        time_sync_tracker_instance_mock.get_clock_for_caller_id.assert_called_once_with(mock_test_caller_id)
+        handler._create_data_processor.assert_called_once_with(mock_test_caller_id, mock_clock_for_factory)
+        assert returned_poller is mock_internal_poller
+
+        # Base class init checks
         assert handler._RuntimeDataHandlerBase__data_reader == mock_data_reader
-        assert (
-            handler._RuntimeDataHandlerBase__event_source
-            == mock_event_source_poller
-        )
+        assert handler._RuntimeDataHandlerBase__event_source == mock_event_source_poller
+        assert handler._id_tracker == id_tracker_instance_mock # Passed to base
+        assert handler._RuntimeDataHandlerBase__processor_registry == handler_with_mocks["processor_registry_instance_mock"]
+        handler_with_mocks["async_create_task_mock"].assert_called_once()
 
-    def test_register_caller(
-        self, handler_and_class_mocks, mock_endpoint_data_processor, mocker
+
+    def test_register_caller( # Updated test
+        self, handler_with_mocks, mocker
     ):
-        """Tests the _register_caller method for correct registration flow."""
-        handler = handler_and_class_mocks["handler"]
+        """Tests _register_caller for address mapping, clock setup, and returning ConcreteDataProcessor."""
+        handler = handler_with_mocks["handler"]
+        id_tracker_instance_mock = handler._ClientRuntimeDataHandler__id_tracker
+        time_sync_tracker_instance_mock = handler._ClientRuntimeDataHandler__clock_tracker
+
         mock_caller_id = CallerIdentifier.random()
         mock_endpoint = "192.168.1.100"
         mock_port = 12345
 
-        mock_synchronized_clock = mocker.MagicMock(spec=SynchronizedClock)
-        handler._mock_time_sync_tracker_instance.on_connect.return_value = (
-            mock_synchronized_clock
-        )
+        mock_clock_for_endpoint = mocker.MagicMock(spec=SynchronizedClock)
+        time_sync_tracker_instance_mock.get_clock_for_endpoint.return_value = mock_clock_for_endpoint
 
-        mock_create_dp_method = mocker.patch.object(
-            handler,
-            "_create_data_processor",
-            return_value=mock_endpoint_data_processor,
-        )
+        mock_created_concrete_processor = mocker.MagicMock(spec=RuntimeDataHandlerBase._RuntimeDataHandlerBase__ConcreteDataProcessor)
+        mocker.patch.object(handler, '_create_data_processor', return_value=mock_created_concrete_processor)
 
         returned_processor = handler._register_caller(
             mock_caller_id, mock_endpoint, mock_port
         )
 
-        handler._mock_id_tracker_instance.add.assert_called_once_with(
+        id_tracker_instance_mock.add.assert_called_once_with(
             mock_caller_id, mock_endpoint, mock_port
         )
-        handler._mock_time_sync_tracker_instance.on_connect.assert_called_once_with(
-            mock_endpoint
+        time_sync_tracker_instance_mock.on_connect.assert_called_once_with(
+            mock_endpoint, mock_caller_id # Ensure caller_id is passed
         )
-        mock_create_dp_method.assert_called_once_with(
-            mock_caller_id, mock_synchronized_clock
+        time_sync_tracker_instance_mock.get_clock_for_endpoint.assert_called_once_with(mock_endpoint)
+        handler._create_data_processor.assert_called_once_with(
+            mock_caller_id, mock_clock_for_endpoint
         )
-        assert returned_processor == mock_endpoint_data_processor
+        assert returned_processor is mock_created_concrete_processor
 
-    def test_unregister_caller_valid_id(self, handler_and_class_mocks):
+
+    def test_unregister_caller_valid_id(self, handler_with_mocks): # Updated to use correct mocks
         """Test _unregister_caller with a valid and existing caller_id."""
-        handler = handler_and_class_mocks["handler"]
+        handler = handler_with_mocks["handler"]
+        id_tracker_instance_mock = handler._ClientRuntimeDataHandler__id_tracker
+        time_sync_tracker_instance_mock = handler._ClientRuntimeDataHandler__clock_tracker
+
         mock_caller_id = CallerIdentifier.random()
         mock_address = "192.168.1.100"
         mock_port = 12345
 
-        handler._mock_id_tracker_instance.try_get.return_value = (
-            mock_address,
-            mock_port,
-        )
-        handler._mock_id_tracker_instance.remove.return_value = True
+        id_tracker_instance_mock.try_get.return_value = (mock_address, mock_port)
+        id_tracker_instance_mock.remove.return_value = True # Assume remove is successful
 
         result = handler._unregister_caller(mock_caller_id)
 
         assert result is True
-        handler._mock_id_tracker_instance.try_get.assert_called_once_with(
-            mock_caller_id
-        )
-        handler._mock_id_tracker_instance.remove.assert_called_once_with(
-            mock_caller_id
-        )
-        handler._mock_time_sync_tracker_instance.on_disconnect.assert_called_once_with(
-            mock_address
-        )
+        id_tracker_instance_mock.try_get.assert_called_once_with(mock_caller_id)
+        id_tracker_instance_mock.remove.assert_called_once_with(mock_caller_id)
+        time_sync_tracker_instance_mock.on_disconnect.assert_called_once_with(mock_address)
 
-    def test_unregister_caller_invalid_id_not_found(
-        self, handler_and_class_mocks, mocker
+
+    def test_unregister_caller_invalid_id_not_found( # Updated to use correct mocks
+        self, handler_with_mocks, mocker
     ):
         """Test _unregister_caller with a non-existent caller_id."""
-        handler = handler_and_class_mocks["handler"]
+        handler = handler_with_mocks["handler"]
+        id_tracker_instance_mock = handler._ClientRuntimeDataHandler__id_tracker
+        time_sync_tracker_instance_mock = handler._ClientRuntimeDataHandler__clock_tracker
         mock_caller_id = CallerIdentifier.random()
 
-        handler._mock_id_tracker_instance.try_get.return_value = None
+        id_tracker_instance_mock.try_get.return_value = None
 
-        mock_logging_module = mocker.patch(
-            "tsercom.runtime.client.client_runtime_data_handler.logging"
-        )
+        # Patch logging inside the SUT module
+        mock_logging_module = mocker.patch("tsercom.runtime.client.client_runtime_data_handler.logging")
 
         result = handler._unregister_caller(mock_caller_id)
 
         assert result is False
-        handler._mock_id_tracker_instance.try_get.assert_called_once_with(
-            mock_caller_id
-        )
-        handler._mock_id_tracker_instance.remove.assert_not_called()
-        handler._mock_time_sync_tracker_instance.on_disconnect.assert_not_called()
+        id_tracker_instance_mock.try_get.assert_called_once_with(mock_caller_id)
+        id_tracker_instance_mock.remove.assert_not_called()
+        time_sync_tracker_instance_mock.on_disconnect.assert_not_called()
         mock_logging_module.warning.assert_called_once_with(
             f"Attempted to unregister non-existent caller_id: {mock_caller_id}"
         )
 
-    def test_try_get_caller_id(self, handler_and_class_mocks):
-        """Tests _try_get_caller_id for a successfully found ID."""
-        handler = handler_and_class_mocks["handler"]
-        mock_endpoint = "10.0.0.1"
-        mock_port = 8080
-        expected_caller_id = CallerIdentifier.random()
 
-        handler._mock_id_tracker_instance.try_get.return_value = (
-            expected_caller_id
-        )
-
-        returned_caller_id = handler._try_get_caller_id(
-            mock_endpoint, mock_port
-        )
-
-        handler._mock_id_tracker_instance.try_get.assert_called_once_with(
-            mock_endpoint, mock_port
-        )
-        assert returned_caller_id == expected_caller_id
-
-    def test_try_get_caller_id_not_found(self, handler_and_class_mocks):
-        """Tests _try_get_caller_id when the ID is not found."""
-        handler = handler_and_class_mocks["handler"]
-        mock_endpoint = "10.0.0.2"
-        mock_port = 8081
-
-        handler._mock_id_tracker_instance.try_get.return_value = None
-
-        returned_caller_id = handler._try_get_caller_id(
-            mock_endpoint, mock_port
-        )
-
-        handler._mock_id_tracker_instance.try_get.assert_called_once_with(
-            mock_endpoint, mock_port
-        )
-        assert returned_caller_id is None
+    def test_try_get_caller_id(self, handler_with_mocks): # Updated to use correct mocks
