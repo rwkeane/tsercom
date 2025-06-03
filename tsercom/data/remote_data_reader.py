@@ -1,14 +1,15 @@
-"""Defines the RemoteDataReader abstract base class, an interface for components that process incoming remote data."""
+"""RemoteDataReader ABC: interface for components processing remote data."""
 
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
-class RemoteDataReader(ABC, Generic[TDataType]):
+# pylint: disable=R0903 # Abstract data reading interface
+class RemoteDataReader(ABC, Generic[DataTypeT]):
     """Abstract interface for classes that process incoming remote data.
 
     This interface defines a single method, `_on_data_ready`, which should be
@@ -18,13 +19,12 @@ class RemoteDataReader(ABC, Generic[TDataType]):
     """
 
     @abstractmethod
-    def _on_data_ready(self, new_data: TDataType) -> None:
+    def _on_data_ready(self, new_data: DataTypeT) -> None:
         """Callback method to process a new data item.
 
         Implementers should define the logic to handle the `new_data`
         when this method is invoked.
 
         Args:
-            new_data: The new data item of type `TDataType` that has been received.
+            new_data: The new data item of type `DataTypeT` received.
         """
-        pass

@@ -1,3 +1,5 @@
+"""Defines the EventInstance dataclass for timestamped events."""
+
 import dataclasses
 from datetime import datetime
 from typing import Generic, Optional, TypeVar
@@ -5,13 +7,13 @@ from typing import Generic, Optional, TypeVar
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
-TDataType = TypeVar("TDataType")
+DataTypeT = TypeVar("DataTypeT")
 
 
 @dataclasses.dataclass
-class EventInstance(Generic[TDataType]):
+class EventInstance(Generic[DataTypeT]):
     """Represents a single event instance with associated data and metadata."""
 
-    data: TDataType
+    data: DataTypeT
     caller_id: Optional[CallerIdentifier]
     timestamp: datetime

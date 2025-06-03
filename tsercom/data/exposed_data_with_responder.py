@@ -1,4 +1,4 @@
-"""Defines ExposedDataWithResponder, extending ExposedData to include response capabilities via a RemoteDataResponder."""
+"""ExposedData with response capabilities via RemoteDataResponder."""
 
 import datetime
 from typing import Generic, TypeVar
@@ -7,10 +7,11 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_responder import RemoteDataResponder
 
-TResponseType = TypeVar("TResponseType")
+ResponseTypeT = TypeVar("ResponseTypeT")
 
 
-class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
+# pylint: disable=R0903 # Data carrier with response mechanism
+class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
     """Extends `ExposedData` to include a mechanism for sending a response.
 
     This class is designed for scenarios where data exposed by a host also
@@ -22,24 +23,22 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
         self,
         caller_id: CallerIdentifier,
         timestamp: datetime.datetime,
-        responder: RemoteDataResponder[TResponseType],
+        responder: RemoteDataResponder[ResponseTypeT],
     ) -> None:
         """Initializes the ExposedDataWithResponder.
 
         Args:
-            caller_id: The `CallerIdentifier` of the entity associated
-                       with this data.
-            timestamp: A `datetime` object indicating when the data was
-                       created or recorded.
-            responder: A `RemoteDataResponder` instance used to send a
-                       response back. Must not be None and must be a
-                       subclass of `RemoteDataResponder`.
+            caller_id: `CallerIdentifier` for the data.
+            timestamp: `datetime` of data creation/record.
+            responder: `RemoteDataResponder` to send response. Must be
+                       subclass of `RemoteDataResponder` and not None.
 
         Raises:
             ValueError: If `responder` is None.
-            TypeError: If `responder` is not a subclass of `RemoteDataResponder`.
+            TypeError: If `responder` is not a `RemoteDataResponder` subclass.
         """
         if responder is None:
+            # pylint: disable=C0301 # Long error message
             raise ValueError(
                 "Responder argument cannot be None for ExposedDataWithResponder."
             )
@@ -47,18 +46,20 @@ class ExposedDataWithResponder(Generic[TResponseType], ExposedData):
         # This check is important for type safety and ensuring the responder
         # will have the expected `_on_response_ready` method.
         if not issubclass(type(responder), RemoteDataResponder):
+            # pylint: disable=C0301 # Long error message
             raise TypeError(
-                f"Responder must be a subclass of RemoteDataResponder, got {type(responder).__name__}."
+                f"Responder must be RemoteDataResponder subclass, got {type(responder).__name__}."
             )
 
-        self.__responder: RemoteDataResponder[TResponseType] = responder
+        self.__responder: RemoteDataResponder[ResponseTypeT] = responder
 
         super().__init__(caller_id, timestamp)
 
-    def _respond(self, response: TResponseType) -> None:
+    def _respond(self, response: ResponseTypeT) -> None:
         """Sends a response using the associated `RemoteDataResponder`.
 
         Args:
-            response: The response data of type `TResponseType` to send.
+            response: The response data of type `ResponseTypeT` to send.
         """
+        # pylint: disable=W0212 # Calling listener's response ready method
         self.__responder._on_response_ready(response)

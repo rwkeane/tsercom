@@ -1,4 +1,4 @@
-"""Defines SerializableAnnotatedInstance, a data wrapper with CallerIdentifier and SynchronizedTimestamp, suitable for serialization where time consistency is key."""
+"""SerializableAnnotatedInstance: data wrapper with ID and sync timestamp."""
 
 from typing import Generic, TypeVar
 
@@ -7,10 +7,10 @@ from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
 
-TDataType = TypeVar("TDataType")
+DataTypeT = TypeVar("DataTypeT")
 
 
-class SerializableAnnotatedInstance(Generic[TDataType]):
+class SerializableAnnotatedInstance(Generic[DataTypeT]):
     """Wraps a data instance with caller ID and a synchronized timestamp.
 
     This class is similar to `AnnotatedInstance` but specifically uses a
@@ -21,7 +21,7 @@ class SerializableAnnotatedInstance(Generic[TDataType]):
 
     def __init__(
         self,
-        data: TDataType,
+        data: DataTypeT,
         caller_id: CallerIdentifier,
         timestamp: SynchronizedTimestamp,
     ) -> None:
@@ -33,16 +33,16 @@ class SerializableAnnotatedInstance(Generic[TDataType]):
             timestamp: The `SynchronizedTimestamp` representing when this data
                        was created or received, ensuring time consistency.
         """
-        self.__data: TDataType = data
+        self.__data: DataTypeT = data
         self.__caller_id: CallerIdentifier = caller_id
         self.__timestamp: SynchronizedTimestamp = timestamp
 
     @property
-    def data(self) -> TDataType:
+    def data(self) -> DataTypeT:
         """Gets the wrapped data payload.
 
         Returns:
-            The underlying data of type `TDataType`.
+            The underlying data of type `DataTypeT`.
         """
         return self.__data
 
@@ -57,7 +57,7 @@ class SerializableAnnotatedInstance(Generic[TDataType]):
 
     @property
     def timestamp(self) -> SynchronizedTimestamp:
-        """Gets the synchronized timestamp of when this data was created or recorded.
+        """Gets the synchronized timestamp of data creation/recording.
 
         Returns:
             A `SynchronizedTimestamp` object.
