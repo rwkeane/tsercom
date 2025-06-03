@@ -78,23 +78,23 @@ class RuntimeDataHandlerBase(
         )  # Renamed
 
     @overload
-    def register_caller(
+    async def register_caller( # Changed to async
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType, TEventType]:  # Added TEventType
+    ) -> EndpointDataProcessor[TDataType, TEventType]:
         pass
 
     @overload
-    def register_caller(
+    async def register_caller( # Changed to async
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> EndpointDataProcessor[TDataType, TEventType] | None:  # Added TEventType
+    ) -> EndpointDataProcessor[TDataType, TEventType] | None:
         pass
 
-    def register_caller(
+    async def register_caller( # Changed to async
         self,
         caller_id: CallerIdentifier,
         *args: Any,
         **kwargs: Any,
-    ) -> EndpointDataProcessor[TDataType, TEventType] | None:  # Added TEventType
+    ) -> EndpointDataProcessor[TDataType, TEventType] | None:
         """Registers a caller using either endpoint/port or gRPC context.
 
         This concrete implementation of `RuntimeDataHandler.register_caller`
@@ -197,7 +197,7 @@ class RuntimeDataHandlerBase(
                 "Internal error: Inconsistent endpoint/port/context state after argument parsing."
             )
 
-        return self._register_caller(caller_id, actual_endpoint, actual_port)
+        return await self._register_caller(caller_id, actual_endpoint, actual_port) # Added await
 
     def check_for_caller_id(
         self, endpoint: str, port: int
@@ -305,9 +305,8 @@ class RuntimeDataHandlerBase(
         if (
             processor is not None
         ):  # get_or_create_processor should always return a processor or raise
-            await processor.push(
-                instance
-            )  # Assuming processor is an AsyncPoller
+            # processor is an AsyncPoller, use on_available (synchronous)
+            processor.on_available(instance)
         else:
             # This case should ideally not be reached if get_or_create_processor works as specified
             # (either returns a processor or the factory raises an error).

@@ -9,9 +9,14 @@ from tsercom.runtime.caller_processor_registry import CallerProcessorRegistry
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
+import uuid # Added for potential future use if making deterministic UUIDs from strings
+
 # Helper to create dummy CallerIdentifier instances
-def create_caller_id(id_str: str) -> CallerIdentifier:
-    return CallerIdentifier(id=id_str, client_id_fetcher=Mock())
+def create_caller_id(id_str: str) -> CallerIdentifier: # id_str is a label for test readability
+    # Using random() as the actual string value isn't used by CallerIdentifier's current __init__
+    # If tests needed to parse this string, it would have to be a valid UUID string for try_parse.
+    # For use as distinct keys, random instances are fine.
+    return CallerIdentifier.random()
 
 
 class TestCallerProcessorRegistry(unittest.TestCase):
@@ -110,20 +115,22 @@ class TestCallerProcessorRegistry(unittest.TestCase):
         processor1 = "proc1"
         processor2 = "proc2"
 
-        # Use a factory that returns specific instances for specific IDs
-        def factory_logic(caller_id_param):
-            if caller_id_param.id == "caller1":
+        # Create instances first to use them for comparison in the factory
+        # The string "caller1_label" is just for test readability, not used in CallerIdentifier's value.
+        caller_id1 = create_caller_id("caller1_label")
+        caller_id2 = create_caller_id("caller2_label")
+
+        def factory_logic(caller_id_param: CallerIdentifier): # caller_id_param is an instance
+            if caller_id_param == caller_id1: # Compare instances
                 return processor1
-            if caller_id_param.id == "caller2":
+            if caller_id_param == caller_id2: # Compare instances
                 return processor2
-            return Mock()  # Default for other IDs
+            return Mock() # Default for other IDs
 
         mock_factory = Mock(side_effect=factory_logic)
         registry = CallerProcessorRegistry(processor_factory=mock_factory)
 
-        caller_id1 = create_caller_id("caller1")
-        caller_id2 = create_caller_id("caller2")
-
+        # These calls will use the same caller_id1 and caller_id2 instances defined above
         registry.get_or_create_processor(caller_id1)
         registry.get_or_create_processor(caller_id2)
 
@@ -136,7 +143,9 @@ class TestCallerProcessorRegistry(unittest.TestCase):
         self.assertEqual(all_processors, expected_dict)
 
         # Test for shallow copy
-        all_processors.pop(caller_id1)  # Modify the returned dict
+        # Make sure to use a key that exists if popping
+        if caller_id1 in all_processors: # Check before popping
+            all_processors.pop(caller_id1)
         # Internal dict should remain unchanged
         self.assertIsNotNone(registry.get_processor(caller_id1))
         self.assertEqual(registry.get_processor(caller_id1), processor1)

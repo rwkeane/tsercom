@@ -6,6 +6,7 @@ from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.time_sync_client import TimeSyncClient
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
+from tsercom.caller_id.caller_identifier import CallerIdentifier # Added
 
 
 class TestTimeSyncTracker:
@@ -43,17 +44,18 @@ class TestTimeSyncTracker:
             actual_client_instance_created.get_synchronized_clock.return_value
         )
 
-        returned_clock = tracker.on_connect(test_ip)
+        mock_cid = mocker.MagicMock(spec=CallerIdentifier)
+        returned_clock = tracker.on_connect(test_ip, mock_cid)
 
         mock_time_sync_client_class.assert_called_once_with(
             mock_thread_watcher, test_ip
         )
         actual_client_instance_created.start_async.assert_called_once()
         assert (
-            tracker._TimeSyncTracker__map[test_ip][1]
+            tracker._TimeSyncTracker__ip_to_client_map[test_ip][1] # Corrected map name
             == actual_client_instance_created
         )
-        assert tracker._TimeSyncTracker__map[test_ip][0] == 1
+        assert tracker._TimeSyncTracker__ip_to_client_map[test_ip][0] == 1 # Corrected map name
         actual_client_instance_created.get_synchronized_clock.assert_called_once()
         assert returned_clock == mock_synchronized_clock
 
@@ -69,7 +71,8 @@ class TestTimeSyncTracker:
             original_client_instance.get_synchronized_clock.return_value
         )
 
-        tracker.on_connect(test_ip)
+        mock_cid1 = mocker.MagicMock(spec=CallerIdentifier)
+        tracker.on_connect(test_ip, mock_cid1)
 
         mock_time_sync_client_class.assert_called_once_with(
             mock_thread_watcher, test_ip
@@ -77,17 +80,18 @@ class TestTimeSyncTracker:
         original_client_instance.start_async.assert_called_once()
         original_client_instance.get_synchronized_clock.assert_called_once()
 
-        returned_clock_second = tracker.on_connect(test_ip)
+        mock_cid2 = mocker.MagicMock(spec=CallerIdentifier) # Can be same or different for this test's purpose
+        returned_clock_second = tracker.on_connect(test_ip, mock_cid2)
 
         mock_time_sync_client_class.assert_called_once_with(
             mock_thread_watcher, test_ip
         )
         original_client_instance.start_async.assert_called_once()
         assert (
-            tracker._TimeSyncTracker__map[test_ip][1]
+            tracker._TimeSyncTracker__ip_to_client_map[test_ip][1] # Corrected map name
             == original_client_instance
         )
-        assert tracker._TimeSyncTracker__map[test_ip][0] == 2
+        assert tracker._TimeSyncTracker__ip_to_client_map[test_ip][0] == 2 # Corrected map name
         assert original_client_instance.get_synchronized_clock.call_count == 2
         assert returned_clock_second == mock_synchronized_clock
 
@@ -98,16 +102,17 @@ class TestTimeSyncTracker:
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.102"
         client_instance = mock_time_sync_client_class.return_value
+        mock_cid = mocker.MagicMock(spec=CallerIdentifier)
 
-        tracker.on_connect(test_ip)
-        tracker.on_connect(test_ip)
-        assert tracker._TimeSyncTracker__map[test_ip][0] == 2
+        tracker.on_connect(test_ip, mock_cid)
+        tracker.on_connect(test_ip, mock_cid) # CallerId can be same for multiple connects from "same client logic"
+        assert tracker._TimeSyncTracker__ip_to_client_map[test_ip][0] == 2
 
         tracker.on_disconnect(test_ip)
 
-        assert tracker._TimeSyncTracker__map[test_ip][0] == 1
+        assert tracker._TimeSyncTracker__ip_to_client_map[test_ip][0] == 1 # Corrected map name
         client_instance.stop.assert_not_called()
-        assert test_ip in tracker._TimeSyncTracker__map
+        assert test_ip in tracker._TimeSyncTracker__ip_to_client_map # Corrected map name
 
     def test_on_disconnect_count_equals_one(
         self, mock_thread_watcher, mock_time_sync_client_class, mocker
@@ -116,13 +121,14 @@ class TestTimeSyncTracker:
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.103"
         client_instance = mock_time_sync_client_class.return_value
+        mock_cid = mocker.MagicMock(spec=CallerIdentifier)
 
-        tracker.on_connect(test_ip)
-        assert tracker._TimeSyncTracker__map[test_ip][0] == 1
+        tracker.on_connect(test_ip, mock_cid)
+        assert tracker._TimeSyncTracker__ip_to_client_map[test_ip][0] == 1 # Updated map name
 
         tracker.on_disconnect(test_ip)
 
-        assert test_ip not in tracker._TimeSyncTracker__map
+        assert test_ip not in tracker._TimeSyncTracker__ip_to_client_map # Updated map name
         client_instance.stop.assert_called_once()
 
     def test_on_disconnect_non_existent_ip(self, mock_thread_watcher, mocker):
@@ -155,20 +161,22 @@ class TestTimeSyncTracker:
             mock_client_instance1,
             mock_client_instance2,
         ]
+        mock_cid1 = mocker.MagicMock(spec=CallerIdentifier)
+        mock_cid2 = mocker.MagicMock(spec=CallerIdentifier)
 
-        returned_clock1 = tracker.on_connect(ip1)
+        returned_clock1 = tracker.on_connect(ip1, mock_cid1)
         mock_time_sync_client_class.assert_any_call(mock_thread_watcher, ip1)
         mock_client_instance1.start_async.assert_called_once()
-        assert tracker._TimeSyncTracker__map[ip1][1] == mock_client_instance1
-        assert tracker._TimeSyncTracker__map[ip1][0] == 1
+        assert tracker._TimeSyncTracker__ip_to_client_map[ip1][1] == mock_client_instance1 # Updated map name
+        assert tracker._TimeSyncTracker__ip_to_client_map[ip1][0] == 1 # Updated map name
         assert returned_clock1 == mock_clock1
 
-        returned_clock2 = tracker.on_connect(ip2)
+        returned_clock2 = tracker.on_connect(ip2, mock_cid2)
         mock_time_sync_client_class.assert_any_call(mock_thread_watcher, ip2)
         mock_client_instance2.start_async.assert_called_once()
-        assert tracker._TimeSyncTracker__map[ip2][1] == mock_client_instance2
-        assert tracker._TimeSyncTracker__map[ip2][0] == 1
+        assert tracker._TimeSyncTracker__ip_to_client_map[ip2][1] == mock_client_instance2 # Updated map name
+        assert tracker._TimeSyncTracker__ip_to_client_map[ip2][0] == 1 # Updated map name
         assert returned_clock2 == mock_clock2
 
-        assert len(tracker._TimeSyncTracker__map) == 2
+        assert len(tracker._TimeSyncTracker__ip_to_client_map) == 2 # Updated map name
         assert mock_time_sync_client_class.call_count == 2

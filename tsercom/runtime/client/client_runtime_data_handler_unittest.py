@@ -157,7 +157,7 @@ class TestClientRuntimeDataHandler:
 
         # Base class init checks
         assert handler._RuntimeDataHandlerBase__data_reader == mock_data_reader
-        assert handler._RuntimeDataHandlerBase__event_source == mock_event_source_poller
+        assert handler._event_source == mock_event_source_poller # Corrected attribute access
         assert handler._id_tracker == id_tracker_instance_mock # Passed to base
         assert handler._RuntimeDataHandlerBase__processor_registry == handler_with_mocks["processor_registry_instance_mock"]
         handler_with_mocks["async_create_task_mock"].assert_called_once()
@@ -245,3 +245,33 @@ class TestClientRuntimeDataHandler:
 
 
     def test_try_get_caller_id(self, handler_with_mocks): # Updated to use correct mocks
+        """Tests _try_get_caller_id for a successfully found ID."""
+        handler = handler_with_mocks["handler"]
+        # This is the IdTracker instance created by ClientRuntimeDataHandler
+        id_tracker_instance_mock = handler._ClientRuntimeDataHandler__id_tracker
+
+        mock_endpoint = "10.0.0.1"
+        mock_port = 8080
+        expected_caller_id = CallerIdentifier.random()
+
+        id_tracker_instance_mock.try_get.return_value = expected_caller_id
+
+        returned_caller_id = handler._try_get_caller_id(mock_endpoint, mock_port)
+
+        id_tracker_instance_mock.try_get.assert_called_once_with(mock_endpoint, mock_port)
+        assert returned_caller_id == expected_caller_id
+
+    def test_try_get_caller_id_not_found(self, handler_with_mocks): # Updated to use correct mocks
+        """Tests _try_get_caller_id when the ID is not found."""
+        handler = handler_with_mocks["handler"]
+        id_tracker_instance_mock = handler._ClientRuntimeDataHandler__id_tracker
+
+        mock_endpoint = "10.0.0.2"
+        mock_port = 8081
+
+        id_tracker_instance_mock.try_get.return_value = None
+
+        returned_caller_id = handler._try_get_caller_id(mock_endpoint, mock_port)
+
+        id_tracker_instance_mock.try_get.assert_called_once_with(mock_endpoint, mock_port)
+        assert returned_caller_id is None
