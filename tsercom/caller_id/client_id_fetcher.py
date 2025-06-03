@@ -8,6 +8,7 @@ from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
+# pylint: disable=too-few-public-methods
 class ClientIdFetcher:
     """Fetches and caches a client ID (CallerIdentifier) from a gRPC service.
 
@@ -23,13 +24,11 @@ class ClientIdFetcher:
         """Initializes the ClientIdFetcher.
 
         Args:
-            stub: The gRPC stub that provides the `GetId` method.
-                  Expected to have a method like `async def GetId(GetIdRequest) -> GetIdResponse`.
+            stub: The gRPC stub with `GetId(GetIdRequest) -> GetIdResponse` method.
         """
         self.__stub: Any = stub
         self.__id: Optional[CallerIdentifier] = None
-        # Lock to ensure thread-safe lazy initialization of the ID.
-        self.__lock = asyncio.Lock()
+        self.__lock = asyncio.Lock()  # Lock for thread-safe lazy ID init.
 
     async def get_id_async(self) -> Optional[CallerIdentifier]:
         """Lazily fetches and returns the client ID.
@@ -63,22 +62,23 @@ class ClientIdFetcher:
                         id_response, GetIdResponse
                     ), f"Expected GetIdResponse, got {type(id_response)}"
 
-                    # CallerIdentifier.try_parse can return None if the string is invalid.
-                    # id_response.id is the CallerId message, id_response.id.id is its string payload.
+                    # CallerIdentifier.try_parse can return None if invalid.
+                    # id_response.id is CallerId msg; id_response.id.id is its str payload.
                     parsed_id = CallerIdentifier.try_parse(id_response.id.id)
                     if parsed_id is None:
                         ClientIdFetcher.logger.warning(
-                            f"Failed to parse client ID string received from service. "
-                            f"Raw ID string: '{id_response.id.id}'"
+                            "Failed to parse client ID string from service. "
+                            "Raw ID string: '%s'",
+                            id_response.id.id,
                         )
                     self.__id = parsed_id
 
                 # This could be None if fetching or parsing failed.
                 return self.__id
         except Exception as e:  # pylint: disable=broad-except
-            # Broad exception catch for any issues during RPC call or processing.
-            # In a production system, more specific error handling and logging would be preferred.
+            # Broad exception catch for RPC/processing issues.
+            # Production systems might prefer more specific error handling.
             ClientIdFetcher.logger.error(
-                f"Error fetching client ID: {e}", exc_info=True
+                "Error fetching client ID: %s", e, exc_info=True
             )
             return None

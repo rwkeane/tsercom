@@ -1,3 +1,5 @@
+"""AsyncIO utilities for tsercom threading."""
+
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
     is_running_on_event_loop,

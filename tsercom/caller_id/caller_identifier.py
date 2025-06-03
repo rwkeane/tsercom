@@ -50,8 +50,8 @@ class CallerIdentifier:
         """Tries to parse a string or gRPC CallerId object into a CallerIdentifier.
 
         Args:
-            value: The value to parse. Can be a string representation of a UUID
-                   or an instance of the gRPC `CallerId` protobuf message.
+            value: The value to parse. Can be a string UUID
+                   or a gRPC `CallerId` message.
 
         Returns:
             A `CallerIdentifier` instance if parsing is successful,
@@ -65,9 +65,8 @@ class CallerIdentifier:
 
         elif isinstance(value, str):
             parsed_id_str = value
-        # If it's not a string or the specific CallerId type, it's an invalid input for this parsing logic.
-        # If it's some other object that happens to have an 'id' attribute, this function
-        # as designed should not parse it based on the original logic's intent.
+        # Not a string or CallerId? Invalid input for this parsing logic.
+        # Other objects with an 'id' attribute are not parsed by design.
 
         if not isinstance(
             parsed_id_str, str
@@ -81,10 +80,10 @@ class CallerIdentifier:
             return None
 
     def to_grpc_type(self) -> CallerId:
-        """Converts this CallerIdentifier to its gRPC `CallerId` representation.
+        """Converts this to its gRPC `CallerId` representation.
 
         Returns:
-            A gRPC `CallerId` protobuf message instance.
+            A gRPC `CallerId` protobuf message.
         """
         return CallerId(id=str(self.__id))
 
@@ -99,18 +98,18 @@ class CallerIdentifier:
     def __eq__(self, other: object) -> bool:
         """Checks equality with another CallerIdentifier.
 
-        Two `CallerIdentifier` instances are equal if their underlying UUIDs are equal.
+        Instances are equal if their underlying UUIDs are equal.
 
         Args:
             other: The object to compare with.
 
         Returns:
-            True if the other object is a `CallerIdentifier` and their UUIDs
-            are equal, False otherwise.
+            True if `other` is a `CallerIdentifier` and UUIDs are equal,
+            False otherwise.
         """
         if not isinstance(other, CallerIdentifier):
             return NotImplemented  # Use NotImplemented for type mismatches in comparison
-        return self.__id == other.__id
+        return self.__id == other.__id  # pylint: disable=protected-access
 
     def __ne__(self, other: object) -> bool:
         """Checks inequality with another CallerIdentifier.
@@ -144,8 +143,7 @@ class CallerIdentifier:
         """Formats the underlying UUID according to the given format specification.
 
         Args:
-            format_spec: The format specification string (e.g., 's' for simple,
-                         'n' for URN, 'h' for hex).
+            format_spec: Format spec string (e.g., 's', 'n', 'h').
 
         Returns:
             The formatted string representation of the UUID.

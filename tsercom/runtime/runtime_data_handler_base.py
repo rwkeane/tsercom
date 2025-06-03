@@ -64,9 +64,8 @@ class RuntimeDataHandlerBase(
     ) -> EndpointDataProcessor[DataTypeT] | None:
         pass
 
-    # pylint: disable=arguments-differ # Overrides with *args, **kwargs
     # pylint: disable=too-many-branches # Complex argument parsing logic
-    def register_caller(
+    def register_caller(  # pylint: disable=arguments-differ # Actual signature uses *args, **kwargs
         self,
         caller_id: CallerIdentifier,
         *args: Any,
@@ -141,8 +140,8 @@ class RuntimeDataHandlerBase(
             raise ValueError(msg)
 
         if (_endpoint is None and _port is None) == (_context is None):
-            raise ValueError(  # Line 116 (Pylint) - Shortened
-                "Exactly one of (endpoint/port) or context must be provided."
+            raise ValueError(
+                "Provide (endpoint/port) or context, not both/neither."
             )
         if (_port is None) != (_endpoint is None):
             raise ValueError(
@@ -170,7 +169,7 @@ class RuntimeDataHandlerBase(
                 msg = (
                     "Could not get client port from context for endpoint %s."
                     % extracted_endpoint
-                )  # Line 132 (Pylint) - Shortened
+                )
                 raise ValueError(msg)
             actual_endpoint = extracted_endpoint
             actual_port = extracted_port
