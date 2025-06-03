@@ -9,7 +9,7 @@ from typing import (
     TypeVar,
     Any,
     overload,
-    cast, # Added cast
+    cast,  # Added cast
 )
 
 import grpc
@@ -78,18 +78,18 @@ class RuntimeDataHandlerBase(
         )  # Renamed
 
     @overload
-    async def register_caller( # Changed to async
+    async def register_caller(  # Changed to async
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[TDataType, TEventType]:
         pass
 
     @overload
-    async def register_caller( # Changed to async
+    async def register_caller(  # Changed to async
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
     ) -> EndpointDataProcessor[TDataType, TEventType] | None:
         pass
 
-    async def register_caller( # Changed to async
+    async def register_caller(  # Changed to async
         self,
         caller_id: CallerIdentifier,
         *args: Any,
@@ -197,7 +197,9 @@ class RuntimeDataHandlerBase(
                 "Internal error: Inconsistent endpoint/port/context state after argument parsing."
             )
 
-        return await self._register_caller(caller_id, actual_endpoint, actual_port) # Added await
+        return await self._register_caller(
+            caller_id, actual_endpoint, actual_port
+        )  # Added await
 
     def check_for_caller_id(
         self, endpoint: str, port: int

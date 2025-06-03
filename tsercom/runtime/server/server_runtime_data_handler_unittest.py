@@ -193,7 +193,9 @@ class TestServerRuntimeDataHandler:
 
         # Assert super().__init__ was called correctly (indirectly via checking base class attributes)
         assert handler._RuntimeDataHandlerBase__data_reader == mock_data_reader
-        assert handler._event_source == mock_event_source_poller # Corrected attribute access
+        assert (
+            handler._event_source == mock_event_source_poller
+        )  # Corrected attribute access
         # Check that the IdTracker instance created by ServerRuntimeDataHandler was passed to base
         assert handler._id_tracker == IdTracker_class_mock.return_value
         # Check that the CallerProcessorRegistry instance was passed to base

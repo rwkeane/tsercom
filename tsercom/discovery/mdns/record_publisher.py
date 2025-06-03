@@ -1,7 +1,7 @@
 import logging  # For _logger
 from typing import Dict, Optional
 from asyncio import AbstractEventLoop  # For type hinting
-from zeroconf import IPVersion, ServiceInfo, Zeroconf # type: ignore[import-not-found]
+from zeroconf import IPVersion, ServiceInfo, Zeroconf  # type: ignore[import-not-found]
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.util.ip import get_all_addresses

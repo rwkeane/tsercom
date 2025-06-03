@@ -2,9 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import (
-    AsyncIterator,
     Generic,
-    List,
     TypeVar,
     overload,
     Any,
@@ -13,9 +11,6 @@ from typing import (
 import grpc
 
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-from tsercom.data.serializable_annotated_instance import (
-    SerializableAnnotatedInstance,
-)
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 

@@ -26,7 +26,7 @@ from tsercom.timesync.common.fake_synchronized_clock import (
 )
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
-from typing import cast # Added for factory return
+from typing import cast  # Added for factory return
 
 
 TEventType = TypeVar("TEventType")
