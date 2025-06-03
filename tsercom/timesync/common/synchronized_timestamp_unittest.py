@@ -129,7 +129,7 @@ def test_try_parse_invalid_type_raises_assertion_error():
     """
     with pytest.raises(
         TypeError,
-        match="Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one.",
+        match="Input must be a gRPC Timestamp or resolve to one.",
     ):
         SynchronizedTimestamp.try_parse(
             12345
@@ -223,7 +223,8 @@ def test_comparison_invalid_type_raises_assertion_error():
     Tests that comparison with an unsupported type in >, >=, <, <=
     raises an TypeError.
     """
-    err_match = "Comparison is only supported with SynchronizedTimestamp or datetime.datetime."
+    # Use regex to match the type name at the end of the error message
+    err_match = r"Compare error: SynchronizedTimestamp/datetime vs \w+"
     with pytest.raises(TypeError, match=err_match):
         _ = ST_FIXED > "invalid_type"  # type: ignore
     with pytest.raises(TypeError, match=err_match):

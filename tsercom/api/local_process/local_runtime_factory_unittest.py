@@ -24,9 +24,9 @@ class FakeRuntimeInitializer:
         auth_config=None,
     ):  # Added params
         if service_type_str == "Server":
-            self.__service_type_enum_val = ServiceType.kServer
+            self.__service_type_enum_val = ServiceType.SERVER
         elif service_type_str == "Client":
-            self.__service_type_enum_val = ServiceType.kClient
+            self.__service_type_enum_val = ServiceType.CLIENT
         else:
             raise ValueError(f"Invalid service_type_str: {service_type_str}")
 

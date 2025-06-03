@@ -256,7 +256,7 @@ def test_start(
     assert drs_instance.start_call_count == 1
     assert fake_command_q_sink.put_blocking_call_count == 1
     assert (
-        fake_command_q_sink.put_blocking_called_with == RuntimeCommand.kStart
+        fake_command_q_sink.put_blocking_called_with == RuntimeCommand.START
     )
 
 
@@ -328,7 +328,7 @@ def test_stop(
     handle_block_false.stop()
 
     assert fake_command_q_sink.put_blocking_call_count == 1
-    assert fake_command_q_sink.put_blocking_called_with == RuntimeCommand.kStop
+    assert fake_command_q_sink.put_blocking_called_with == RuntimeCommand.STOP
     assert drs_instance.stop_called
     assert drs_instance.stop_call_count == 1
 

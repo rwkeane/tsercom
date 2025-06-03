@@ -86,7 +86,7 @@ def test_exposed_data_with_responder_init_raises_assertion_error_if_responder_is
     # The application code raises TypeError if responder is not a subclass of RemoteDataResponder.
     with pytest.raises(
         TypeError,
-        match="Responder must be a subclass of RemoteDataResponder, got NotAResponder.",
+        match="Responder must be RemoteDataResponder subclass, got NotAResponder.", # Updated match
     ):
         ExposedDataWithResponder(
             caller_id=mock_caller_id,
@@ -140,7 +140,7 @@ def test_exposed_data_with_responder_init_with_autospec_mock_responder_fails_iss
     # The application code raises TypeError as type(autospec_mock_responder) is MagicMock.
     with pytest.raises(
         TypeError,
-        match="Responder must be a subclass of RemoteDataResponder, got NonCallableMagicMock.",
+        match="Responder must be RemoteDataResponder subclass, got NonCallableMagicMock.", # Updated match
     ):
         ExposedDataWithResponder(
             caller_id=mock_caller_id,

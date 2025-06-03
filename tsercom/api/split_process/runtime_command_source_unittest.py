@@ -291,7 +291,7 @@ def test_watch_commands_kstart(
     )
 
     fake_command_queue.set_return_values(
-        [RuntimeCommand.kStart, StopIteration]
+        [RuntimeCommand.START, StopIteration]
     )
     internal_fake_tracker.set_is_running(True)
 
@@ -315,7 +315,7 @@ def test_watch_commands_kstop(
         command_source, fake_thread_watcher, fake_runtime_instance
     )
 
-    fake_command_queue.set_return_values([RuntimeCommand.kStop, StopIteration])
+    fake_command_queue.set_return_values([RuntimeCommand.STOP, StopIteration])
     internal_fake_tracker.set_is_running(True)
 
     with pytest.raises(StopIteration):
@@ -381,7 +381,7 @@ def test_watch_commands_loop_termination(
     )
 
     fake_command_queue.set_return_values(
-        [RuntimeCommand.kStart, RuntimeCommand.kStart]
+        [RuntimeCommand.START, RuntimeCommand.START]
     )
 
     is_running_sequence = [True, True, False]

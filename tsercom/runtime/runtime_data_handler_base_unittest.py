@@ -594,10 +594,9 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, context=mock_context_fixture
             )
 
-        assert (
-            f"Could not determine client port from context for endpoint {expected_ip}"
-            in str(excinfo.value)
-        )
+        # The app code uses %-formatting, so we match the resulting string.
+        expected_msg_part = "Could not get client port from context for endpoint " + expected_ip
+        assert expected_msg_part in str(excinfo.value)
         mock_get_ip.assert_called_once_with(mock_context_fixture)
         mock_get_port.assert_called_once_with(mock_context_fixture)
         handler_fixture._register_caller_mock.assert_not_called()
@@ -616,7 +615,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 context=mock_context_fixture,
             )
         assert (
-            "Cannot specify context via both args and kwargs, or with endpoint/port."
+            "Cannot use context via args & kwargs, or with endpoint/port." # Updated message
             in str(excinfo.value)
         )
 
@@ -628,7 +627,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id
             )  # No endpoint, port or context
         assert (
-            "Exactly one of ('endpoint'/'port' combination) or 'context' must be provided."
+            "Provide (endpoint/port) or context, not both/neither." # Updated message
             in str(excinfo.value)
         )
 
@@ -640,7 +639,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, endpoint="1.2.3.4"
             )  # Port is None
         assert (
-            "If 'endpoint' is provided, 'port' must also be provided"  # Keep this as is, it's a different test
+            "If 'endpoint' provided, 'port' must be too, and vice-versa." # Updated message
             in str(excinfo.value)
         )
 
@@ -652,7 +651,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, port=1234
             )  # Endpoint is None
         assert (
-            "If 'endpoint' is provided, 'port' must also be provided, and vice-versa."
+            "If 'endpoint' provided, 'port' must be too, and vice-versa." # Updated message
             in str(excinfo.value)
         )
 
@@ -679,7 +678,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             )
 
         assert (
-            "Expected context to be an instance of grpc.aio.ServicerContext"
+            "Expected context: grpc.aio.ServicerContext, got object." # Exact string match
             in str(excinfo.value)
         )
         mock_get_ip.assert_not_called()  # Should fail before trying to use context
