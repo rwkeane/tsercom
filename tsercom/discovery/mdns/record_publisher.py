@@ -2,6 +2,7 @@
 """Publishes mDNS service records using zeroconf."""
 
 import logging  # For _logger
+import asyncio  # Added import
 from typing import Dict, Optional
 from asyncio import AbstractEventLoop  # For type hinting
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
@@ -79,9 +80,6 @@ class RecordPublisher(MdnsPublisher):
             properties=self.__txt,
         )
 
-        # pylint: disable=C0415 # Asyncio import for async method execution
-        import asyncio
-
         self._loop = asyncio.get_running_loop()
 
         self._zc = Zeroconf(ip_version=IPVersion.V4Only)
@@ -108,7 +106,9 @@ class RecordPublisher(MdnsPublisher):
             # pylint: disable=W0718 # Catch all exceptions to keep publish loop alive
             except Exception as e:
                 # pylint: disable=C0301 # Long log line
-                _logger.error("Error closing Zeroconf for %s: %s", self.__srv, e)
+                _logger.error(
+                    "Error closing Zeroconf for %s: %s", self.__srv, e
+                )
             finally:
                 self._zc = None
                 self._loop = None
@@ -116,5 +116,6 @@ class RecordPublisher(MdnsPublisher):
         else:
             # pylint: disable=C0301 # Long log line
             _logger.debug(
-                "Zeroconf for %s already closed or not initialized.", self.__srv
+                "Zeroconf for %s already closed or not initialized.",
+                self.__srv,
             )

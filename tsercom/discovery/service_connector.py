@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import Generic, TypeVar, Optional
 import asyncio
-import logging # Moved up
+import logging  # Moved up
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_info import ServiceInfo
@@ -57,7 +57,7 @@ class ServiceConnector(
             """
             # pass # W0107 (unnecessary-pass) will be fixed by removing this
 
-    def __init__( # pylint: disable=C0301
+    def __init__(  # pylint: disable=C0301
         self,
         client: "ServiceConnector.Client",  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[ChannelTypeT]
         connection_factory: ConnectionFactory[ChannelTypeT],
@@ -70,7 +70,9 @@ class ServiceConnector(
             connection_factory: `ConnectionFactory` to create gRPC channels.
             service_source: `ServiceSource` for discovered service info.
         """
-        self.__client: ServiceConnector.Client = client # type: ignore # pylint: disable=W0511 # TODO: fix type hint
+        self.__client: ServiceConnector.Client = (
+            client  # pylint: disable=W0511 # TODO: fix type hint
+        )
         self.__service_source: ServiceSource[ServiceInfoT] = service_source
         self.__connection_factory: ConnectionFactory[ChannelTypeT] = (
             connection_factory
@@ -105,11 +107,13 @@ class ServiceConnector(
         """
         if self.__event_loop is None:
             logging.warning(
-                "mark_client_failed called before event loop capture. Potential issue." # pylint: disable=C0301
+                "mark_client_failed called before event loop capture. Potential issue."  # pylint: disable=C0301
             )
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
-                logging.error("Failed to get event loop in mark_client_failed.")
+                logging.error(
+                    "Failed to get event loop in mark_client_failed."
+                )
                 return
 
         if not is_running_on_event_loop(self.__event_loop):
@@ -124,9 +128,7 @@ class ServiceConnector(
     async def _mark_client_failed_impl(
         self, caller_id: CallerIdentifier
     ) -> None:
-        assert (
-            caller_id in self.__callers
-        ), f"Unknown caller {caller_id}."
+        assert caller_id in self.__callers, f"Unknown caller {caller_id}."
         # Removing caller_id allows new connections if service re-discovered.
         self.__callers.remove(caller_id)
         logging.info(
@@ -159,7 +161,7 @@ class ServiceConnector(
                 return
         else:
             # Ensure subsequent calls are on the same captured event loop.
-            assert is_running_on_event_loop( # pylint: disable=C0301
+            assert is_running_on_event_loop(  # pylint: disable=C0301
                 self.__event_loop
             ), "Operations must run on the captured event loop."
 

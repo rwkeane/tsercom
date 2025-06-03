@@ -5,6 +5,7 @@ from typing import Generic, TypeVar, Optional
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.threading.async_poller import AsyncPoller
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,

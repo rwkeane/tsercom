@@ -11,21 +11,25 @@ from typing import Any, Generic, List, TypeVar, Optional
 # Make RuntimeManager Generic by importing TypeVar if not already (it is, for DataTypeT, EventTypeT)
 
 from tsercom.api.initialization_pair import InitializationPair
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.api.local_process.local_runtime_factory_factory import (
     LocalRuntimeFactoryFactory,
 )
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.api.split_process.split_runtime_factory_factory import (
     SplitRuntimeFactoryFactory,
 )
 from tsercom.api.runtime_handle import RuntimeHandle
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.api.runtime_manager_helpers import (
     ProcessCreator,
     SplitErrorWatcherSourceFactory,
 )
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,  # Keep for type hinting if necessary
@@ -38,6 +42,7 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 # Imports for runtime_main are moved into methods (start_in_process, start_out_of_process) # pylint: disable=C0301
 # to break potential circular dependencies between manager and main execution modules.
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.aio.global_event_loop import (
     create_tsercom_event_loop_from_watcher,
@@ -51,16 +56,20 @@ from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     create_multiprocess_queues,
 )
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.runtime.runtime_main import initialize_runtimes
+from tsercom.runtime.runtime_main import remote_process_main
 
 # Type variables for generic RuntimeHandle and related classes.
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
@@ -164,7 +173,7 @@ class RuntimeManager(
                 Any, Any
             ](default_split_factory_thread_pool, self.__thread_watcher)
 
-        # If RuntimeManager is Generic[TDataType, TEventType], initializers should store these specific types.
+        # If RuntimeManager is Generic[DataTypeT, EventTypeT], initializers should store these specific types.
         self.__initializers: list[
             InitializationPair[DataTypeT, EventTypeT]
         ] = []
@@ -280,9 +289,6 @@ class RuntimeManager(
 
         # Import is deferred to avoid circular dependencies.
         # pylint: disable=C0415 # Avoid circular import / late import
-        from tsercom.runtime.runtime_main import (
-            initialize_runtimes,
-        )
 
         initialize_runtimes(
             self.__thread_watcher, factories, is_testing=self.__is_testing
@@ -330,9 +336,6 @@ class RuntimeManager(
         # Import and prepare the main function for the remote process.
         # Import is deferred to avoid circular dependencies.
         # pylint: disable=C0415 # Avoid circular import / late import
-        from tsercom.runtime.runtime_main import (
-            remote_process_main,
-        )
 
         # Configure and start the new process using ProcessCreator.
         process_target = partial(

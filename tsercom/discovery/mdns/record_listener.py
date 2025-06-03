@@ -92,7 +92,9 @@ class RecordListener(MdnsListener):
         if type_ != self.__expected_type:
             logging.debug(
                 "Ignoring update for '%s', type '%s'. Expected '%s'.",
-                name, type_, self.__expected_type,
+                name,
+                type_,
+                self.__expected_type,
             )
             return
 
@@ -100,16 +102,21 @@ class RecordListener(MdnsListener):
         if info is None:
             logging.error(
                 "Failed to get info for updated service '%s' type '%s'.",
-                name, type_,
+                name,
+                type_,
             )
             return
 
         if info.port is None:  # Port is essential
-            logging.error("No port for updated service '%s' type '%s'.", name, type_)
+            logging.error(
+                "No port for updated service '%s' type '%s'.", name, type_
+            )
             return
 
         if not info.addresses:  # Addresses are essential
-            logging.warning("No addresses for updated service '%s' type '%s'.", name, type_)
+            logging.warning(
+                "No addresses for updated service '%s' type '%s'.", name, type_
+            )
             # Decide if to proceed; currently proceeds.
 
         # info.name is instance name, info.properties is TXT.
@@ -157,7 +164,9 @@ class RecordListener(MdnsListener):
         if type_ != self.__expected_type:
             logging.debug(
                 "Ignoring added service '%s', type '%s'. Expected '%s'.",
-                name, type_, self.__expected_type,
+                name,
+                type_,
+                self.__expected_type,
             )
             return
 
@@ -165,16 +174,21 @@ class RecordListener(MdnsListener):
         if info is None:
             logging.error(
                 "Failed to get info for added service '%s' type '%s'.",
-                name, type_,
+                name,
+                type_,
             )
             return
 
         if info.port is None:  # Port is essential
-            logging.error("No port for added service '%s' type '%s'.", name, type_)
+            logging.error(
+                "No port for added service '%s' type '%s'.", name, type_
+            )
             return
 
         if not info.addresses:  # Addresses are essential
-            logging.warning("No addresses for added service '%s' type '%s'.", name, type_)
+            logging.warning(
+                "No addresses for added service '%s' type '%s'.", name, type_
+            )
             # As with update_service, decide whether to proceed or return.
 
         # pylint: disable=W0212 # Calling listener's notification method

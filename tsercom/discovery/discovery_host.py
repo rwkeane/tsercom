@@ -5,14 +5,14 @@ from typing import Callable, Dict, Generic, Optional, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.mdns.instance_listener import InstanceListener
-from tsercom.discovery.service_info import TServiceInfo
+from tsercom.discovery.service_info import ServiceInfoT
 from tsercom.discovery.service_source import ServiceSource
 
 
 # pylint: disable=R0903 # Implements ServiceSource and InstanceListener.Client
 class DiscoveryHost(
-    Generic[TServiceInfo],
-    ServiceSource[TServiceInfo],
+    Generic[ServiceInfoT],
+    ServiceSource[ServiceInfoT],
     InstanceListener.Client,
 ):
     """Manages mDNS service discovery and CallerIdentifier association.
@@ -34,7 +34,7 @@ class DiscoveryHost(
         *,
         instance_listener_factory: Callable[
             [InstanceListener.Client],
-            InstanceListener[TServiceInfo],
+            InstanceListener[ServiceInfoT],
         ],
     ):
         """Initializes DiscoveryHost with a factory for creating an InstanceListener."""
@@ -47,7 +47,7 @@ class DiscoveryHost(
         instance_listener_factory: Optional[
             Callable[
                 [InstanceListener.Client],
-                InstanceListener[TServiceInfo],
+                InstanceListener[ServiceInfoT],
             ]
         ] = None,
     ) -> None:
@@ -73,12 +73,12 @@ class DiscoveryHost(
         self.__instance_listener_factory: Optional[
             Callable[
                 [InstanceListener.Client],
-                InstanceListener[TServiceInfo],
+                InstanceListener[ServiceInfoT],
             ]
         ] = instance_listener_factory
 
         # mDNS instance listener; initialized in __start_discovery_impl.
-        self.__discoverer: Optional[InstanceListener[TServiceInfo]] = None
+        self.__discoverer: Optional[InstanceListener[ServiceInfoT]] = None
         self.__client: Optional[ServiceSource.Client] = None
 
         # Maps mDNS instance names to CallerIdentifiers.
@@ -124,10 +124,10 @@ class DiscoveryHost(
             self.__discoverer = self.__instance_listener_factory(self)
         else:
             # This assertion is safe due to the __init__ constructor logic.
-            assert ( # pylint: disable=C0301
+            assert (  # pylint: disable=C0301
                 self.__service_type is not None
             ), "Service type must be set if no factory is provided."
-            self.__discoverer = InstanceListener[TServiceInfo](
+            self.__discoverer = InstanceListener[ServiceInfoT](
                 self, self.__service_type
             )
         # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener) # pylint: disable=C0301
@@ -138,7 +138,7 @@ class DiscoveryHost(
         #     # self.__discoverer.start() # If sync
         #     pass  # Actual call depends on InstanceListener's API
 
-    async def _on_service_added(self, connection_info: TServiceInfo) -> None:  # type: ignore[override]
+    async def _on_service_added(self, connection_info: ServiceInfoT) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
 
         Implements `InstanceListener.Client`. Assigns/retrieves `CallerIdentifier`
@@ -146,7 +146,7 @@ class DiscoveryHost(
         (a `ServiceSource.Client`) via `_on_service_added`.
 
         Args:
-            connection_info: Info about discovered service (`TServiceInfo`).
+            connection_info: Info about discovered service (`ServiceInfoT`).
 
         Raises:
             RuntimeError: If `DiscoveryHost` client not set (start_discovery issue).
@@ -168,6 +168,7 @@ class DiscoveryHost(
             caller_id = CallerIdentifier.random()
             self.__caller_id_map[service_mdns_name] = caller_id
 
+        # pylint: disable=protected-access # Internal callback to client
         # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_service_added(connection_info, caller_id)
 

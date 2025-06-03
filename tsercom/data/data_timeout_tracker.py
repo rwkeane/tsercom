@@ -135,12 +135,14 @@ class DataTimeoutTracker:
 
     async def __unregister_impl(self, tracked: Tracked) -> None:
         """Internal implementation to unregister a 'Tracked' object."""
-        assert is_running_on_event_loop(), "Unregistration must be on event loop."
+        assert (
+            is_running_on_event_loop()
+        ), "Unregistration must be on event loop."
         try:
             self.__tracked_list.remove(tracked)
             logger.info("Unregistered item: %s", tracked)
         except ValueError:
             logger.warning(
                 "Attempted to unregister a non-registered or already unregistered item: %s",
-                tracked
+                tracked,
             )

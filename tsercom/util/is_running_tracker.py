@@ -89,7 +89,7 @@ class IsRunningTracker(Atomic[bool]):
         )
 
         # To clear the event loop and similar.
-        def clear(_future: Any) -> None: # Renamed x to _future
+        def clear(_future: Any) -> None:  # Renamed x to _future
             with self.__event_loop_lock:
                 self.__running_barrier = asyncio.Event()
                 self.__stopped_barrier = asyncio.Event()
@@ -244,7 +244,9 @@ class IsRunningTracker(Atomic[bool]):
 
         def __aiter__(
             self,
-        ) -> "IsRunningTracker._IteratorWrapper[ReturnTypeT]": # Renamed __IteratorWrapper
+        ) -> (
+            "IsRunningTracker._IteratorWrapper[ReturnTypeT]"
+        ):  # Renamed __IteratorWrapper
             """
             Returns the iterator itself.
 
@@ -253,7 +255,7 @@ class IsRunningTracker(Atomic[bool]):
             """
             return self
 
-        async def __anext__(self) -> ReturnTypeT: # Renamed __IteratorWrapper
+        async def __anext__(self) -> ReturnTypeT:  # Renamed __IteratorWrapper
             """
             Retrieves the next item from the wrapped iterator.
 
@@ -270,8 +272,10 @@ class IsRunningTracker(Atomic[bool]):
             next_item_coro = anext(self.__iterator)
             # Explicitly cast to Coroutine for mypy; Awaitable should be fine.
             # May indicate deeper issue or mypy quirk.
-            result = await self.__tracker.task_or_stopped( # pylint: disable=C0301
-                cast(Coroutine[Any, Any, ReturnTypeT], next_item_coro)
+            result = (
+                await self.__tracker.task_or_stopped(  # pylint: disable=C0301
+                    cast(Coroutine[Any, Any, ReturnTypeT], next_item_coro)
+                )
             )
 
             if result is None or not self.__tracker.get():

@@ -2,6 +2,7 @@
 
 import logging
 import threading
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
@@ -91,7 +92,7 @@ class SplitProcessErrorWatcherSource:
                 # pylint: disable=C0301 # Long warning message
                 logger.warning(
                     "SplitProcessErrorWatcherSource: Polling thread %s did not join in 2.0s.",
-                    self.__thread.name
+                    self.__thread.name,
                 )
 
     @property

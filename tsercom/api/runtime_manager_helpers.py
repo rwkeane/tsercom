@@ -4,10 +4,12 @@ import logging
 from multiprocessing import Process
 from typing import Callable, Tuple, Any, Optional
 from tsercom.threading.thread_watcher import ThreadWatcher
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
@@ -44,7 +46,9 @@ class ProcessCreator:
             return Process(target=target, args=args, daemon=daemon)
         # pylint: disable=W0718 # Catching any Process creation error is intentional
         except Exception as e:
-            target_name = target.__name__ if hasattr(target, "__name__") else str(target)
+            target_name = (
+                target.__name__ if hasattr(target, "__name__") else str(target)
+            )
             # pylint: disable=C0301 # Long but readable error message
             logger.error(
                 "Failed to create process for target %s: %s",

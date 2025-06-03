@@ -55,7 +55,9 @@ class RuntimeCommandBridge:
                 return
             if pending_command == RuntimeCommand.START:
                 run_on_event_loop(runtime.start_async)
-            elif pending_command == RuntimeCommand.STOP:  # Still elif as it's mutually exclusive to START
+            elif (
+                pending_command == RuntimeCommand.STOP
+            ):  # Still elif as it's mutually exclusive to START
                 # Execute stop and wait for it to complete.
                 future = run_on_event_loop(partial(runtime.stop, None))
                 try:

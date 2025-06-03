@@ -8,6 +8,7 @@ from typing import Optional  # For Optional[ThreadWatcher]
 from tsercom.runtime.runtime import Runtime
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.aio.aio_utils import run_on_event_loop
+
 # pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
@@ -75,7 +76,7 @@ class RuntimeCommandSource:
 
         def watch_commands() -> None:
             """Polls for commands and executes them on the runtime."""
-            while ( # pylint: disable=C0301 # Long condition
+            while (  # pylint: disable=C0301 # Long condition
                 self.__is_running and self.__is_running.get()
             ):  # Check both instance and its value
                 # Poll queue with timeout to check is_running periodically.
@@ -100,7 +101,8 @@ class RuntimeCommandSource:
                         run_on_event_loop(partial(self.__runtime.stop, None))
                     else:
                         RuntimeCommandSource.logger.error(
-                            "Unknown command received by RuntimeCommandSource: %s", command
+                            "Unknown command received by RuntimeCommandSource: %s",
+                            command,
                         )
                         raise ValueError(f"Unknown command: {command}")
                 except Exception as e:

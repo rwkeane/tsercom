@@ -27,8 +27,7 @@ EventTypeT = TypeVar("EventTypeT")
 class LocalRuntimeFactoryFactory(
     RuntimeFactoryFactory[DataTypeT, EventTypeT]
 ):  # Added type parameters
-    """Creates LocalRuntimeFactory instances and associated RuntimeHandles.
-    """
+    """Creates LocalRuntimeFactory instances and associated RuntimeHandles."""
 
     def __init__(self, thread_pool: ThreadPoolExecutor) -> None:
         """Initializes the LocalRuntimeFactoryFactory.
