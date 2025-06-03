@@ -3,9 +3,9 @@ Utilities for working with asyncio event loops.
 
 This module provides helper functions to:
 - Safely get the current running event loop.
-- Check if the current context is running on a specific event loop or any event loop.
-- Schedule coroutines to run on a specified event loop (or a global default)
-  from a synchronous context, returning a future for the result.
+- Check if current context is on a specific event loop or any.
+- Schedule coroutines on specified/global loop (synchronous context),
+  returning a future for the result.
 """
 
 from asyncio import AbstractEventLoop
@@ -17,11 +17,11 @@ import concurrent  # Changed import for Future
 from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
 
-# TODO: Pull this into cpython repo.
+# Note: Similar utility exists in cpython or could be contributed.
 def get_running_loop_or_none() -> AbstractEventLoop | None:
     """
-    Returns the EventLoop from which this function was called, or None if it was
-    not called from an EventLoop.
+    Returns EventLoop this function was called from, or None if not
+    called from an EventLoop (returns None).
 
     Returns:
         Optional[AbstractEventLoop]: The current event loop or None.
@@ -33,20 +33,20 @@ def get_running_loop_or_none() -> AbstractEventLoop | None:
         return None
 
 
-# TODO: Pull this into cpython repo.
+# Note: Similar utility exists in cpython or could be contributed.
 def is_running_on_event_loop(
     event_loop: Optional[AbstractEventLoop] = None,
 ) -> bool:
     """
-    Returns true if the current function is being executed from SPECIFICALLY
-    the EventLoop |event_loop|, or from ANY event loop if |event_loop| is None.
+    Returns true if current function is on SPECIFIC |event_loop|,
+    or ANY event loop if |event_loop| is None.
 
     Args:
-        event_loop (Optional[AbstractEventLoop]): The specific event loop to check against.
-                                                  If None, checks if running on any event loop.
+        event_loop: Specific event loop to check against.
+                                                  (None checks any loop).
 
     Returns:
-        bool: True if running on the specified event loop (or any if None), False otherwise.
+        bool: True if on specified loop (or any if None), else False.
     """
     try:
         current_loop = asyncio.get_running_loop()
@@ -59,6 +59,7 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
+# pylint: disable=keyword-arg-before-vararg # event_loop is valid positional arg with default
 def run_on_event_loop(
     call: Callable[P, Coroutine[Any, Any, T]],
     event_loop: Optional[AbstractEventLoop] = None,
@@ -68,25 +69,24 @@ def run_on_event_loop(
     """
     Runs a coroutine on the specified event loop.
 
-    If no event_loop is provided, it uses the global event loop.
-    If the global event loop is not set, it raises a RuntimeError.
+    If no event_loop provided, uses global event loop.
+    Raises RuntimeError if global event loop is not set.
 
     Args:
-        call (Callable[P, Coroutine[Any, Any, T]]): The coroutine function to execute.
-        event_loop (Optional[AbstractEventLoop]): The event loop to run the coroutine on.
-                                                  Defaults to the global event loop.
-        *args (P.args): Positional arguments for the coroutine.
-        **kwargs (P.kwargs): Keyword arguments for the coroutine.
+        call: The coroutine function to execute.
+        event_loop: Event loop for coroutine (global default).
+        *args: Positional arguments for the coroutine.
+        **kwargs: Keyword arguments for the coroutine.
 
     Returns:
         Future[T]: A future representing the result of the coroutine.
 
     Raises:
-        RuntimeError: If no event_loop is provided and the global event loop is not set.
+        RuntimeError: If no event_loop given and global loop not set.
     """
     if event_loop is None:
         event_loop = get_global_event_loop()
-        if event_loop is None:
+        if event_loop is None:  # Check after trying to get global
             raise RuntimeError("ERROR: tsercom global event loop not set!")
 
     coro_obj = call(*args, **kwargs)

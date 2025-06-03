@@ -1,0 +1,9 @@
+************* Module tsercom.runtime.client.timesync_tracker
+tsercom/runtime/client/timesync_tracker.py:1:0: C0301: Line too long (89/79) (line-too-long)
+tsercom/runtime/client/timesync_tracker.py:29:0: C0301: Line too long (92/79) (line-too-long)
+tsercom/runtime/client/timesync_tracker.py:52:0: C0301: Line too long (86/79) (line-too-long)
+tsercom/runtime/client/timesync_tracker.py:84:0: C0301: Line too long (145/79) (line-too-long)
+tsercom/runtime/client/timesync_tracker.py:51:8: R1705: Unnecessary "else" after "return", remove the "else" and de-indent the code inside it (no-else-return)
+
+-----------------------------------
+Your code has been rated at 8.48/10

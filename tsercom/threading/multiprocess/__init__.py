@@ -1,3 +1,5 @@
+"""Multiprocessing utilities, primarily for inter-process queues."""
+
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     create_multiprocess_queues,
 )

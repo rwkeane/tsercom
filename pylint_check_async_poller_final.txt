@@ -1,0 +1,5 @@
+************* Module tsercom.threading.async_poller
+tsercom/threading/async_poller.py:29:0: C0301: Line too long (85/79) (line-too-long)
+
+------------------------------------------------------------------
+Your code has been rated at 9.86/10 (previous run: 9.58/10, +0.28)

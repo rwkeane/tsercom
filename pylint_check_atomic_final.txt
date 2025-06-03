@@ -1,0 +1,5 @@
+************* Module tsercom.threading.atomic
+tsercom/threading/atomic.py:5:0: C0301: Line too long (80/79) (line-too-long)
+
+------------------------------------------------------------------
+Your code has been rated at 9.23/10 (previous run: 8.46/10, +0.77)

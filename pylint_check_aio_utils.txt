@@ -1,0 +1,14 @@
+************* Module tsercom.threading.aio.aio_utils
+tsercom/threading/aio/aio_utils.py:6:0: C0301: Line too long (85/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:23:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:45:0: C0301: Line too long (91/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:46:0: C0301: Line too long (95/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:49:0: C0301: Line too long (92/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:75:0: C0301: Line too long (86/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:76:0: C0301: Line too long (89/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:77:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:85:0: C0301: Line too long (88/79) (line-too-long)
+tsercom/threading/aio/aio_utils.py:62:0: W1113: Keyword argument before variable positional arguments list in the definition of run_on_event_loop function (keyword-arg-before-vararg)
+
+-----------------------------------
+Your code has been rated at 6.43/10

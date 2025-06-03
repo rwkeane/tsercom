@@ -1,8 +1,11 @@
-from typing import Deque
-import ntplib  # type: ignore  # ntplib may not have type stubs available
-import time
-import threading
+"""TimeSyncClient implementation using NTP."""
+
 import logging
+import threading
+import time
+from typing import Deque
+
+import ntplib  # type: ignore
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.client_synchronized_clock import (
@@ -12,12 +15,16 @@ from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.util.is_running_tracker import IsRunningTracker
 
+logger = logging.getLogger(__name__)
 
+
+# pylint: disable=too-many-instance-attributes # State for time sync client.
 class TimeSyncClient(ClientSynchronizedClock.Client):
     """
-    This class is used to synchronize clocks with an endpoint running an
-    TimeSyncServer. Specifically, this class defines the client-side of an NTP
-    client-server handshake, receiving the offset from a call to the server.
+    Synchronizes clocks with an NTP server.
+
+    Defines client-side of NTP handshake.
+    NOTE: This is a real NTP client, unlike FakeTimeSyncClient.
     """
 
     def __init__(
@@ -27,168 +34,93 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         Initializes the TimeSyncClient.
 
         Args:
-            watcher: A ThreadWatcher instance to monitor the synchronization thread.
-            server_ip: The IP address of the NTP server.
-            ntp_port: The port of the NTP server.
+            watcher: ThreadWatcher to monitor the synchronization thread.
+            server_ip: IP address of the NTP server.
+            ntp_port: Port of the NTP server.
         """
-        self.__watcher = watcher  # ThreadWatcher to manage the lifecycle of the sync thread.
-        self.__server_ip = (
-            server_ip  # IP address of the NTP server to synchronize with.
-        )
-        self.__ntp_port = ntp_port  # Port number for the NTP server.
-
-        # __sync_loop_thread: Holds the reference to the thread that runs the
-        # NTP synchronization loop (__run_sync_loop). Initialized when
-        # start_async is called.
+        self.__watcher = watcher
+        self.__server_ip = server_ip
+        self.__ntp_port = ntp_port
         self.__sync_loop_thread: threading.Thread | None = None
-
-        # __time_offset_lock: A threading.Lock to ensure thread-safe access
-        # to the __time_offsets deque, which is shared between the sync loop
-        # thread and any thread calling get_offset_seconds.
         self.__time_offset_lock = threading.Lock()
-
-        # __time_offsets: A deque to store a running list of recent time offset
-        # values obtained from the NTP server. Used to calculate an averaged offset.
         self.__time_offsets = Deque[float]()
-
-        # __is_running: An IsRunningTracker instance to manage the running state
-        # of the client. Controls the synchronization loop and signals stopping.
         self.__is_running = IsRunningTracker()
-
-        # __start_barrier: A threading.Event that blocks calls to
-        # get_offset_seconds until at least one valid time offset has been
-        # received from the NTP server. This ensures the client doesn't return
-        # an offset before it's properly initialized.
         self.__start_barrier = threading.Event()
 
     def get_synchronized_clock(self) -> SynchronizedClock:
-        """
-        Returns a SynchronizedClock instance that uses this client for time offset
-        information.
-
-        Returns:
-            A ClientSynchronizedClock configured with this TimeSyncClient.
-        """
+        """Returns a SynchronizedClock using this client for offsets."""
         return ClientSynchronizedClock(self)
 
     def get_offset_seconds(self) -> float:
-        """
-        Retrieves the current averaged time offset in seconds from the NTP server.
+        """Retrieves current averaged time offset in seconds from NTP server.
 
-        This method waits until the `__start_barrier` is set, which occurs after
-        the first successful NTP synchronization. It then returns an average of
-        the most recently collected time offsets.
+        Waits for first successful sync. Returns average of recent offsets.
 
         Returns:
-            The averaged time offset in seconds.
-
+            Averaged time offset in seconds.
 
         Raises:
-            AssertionError: If called after the barrier is set but the offsets deque
-                            is unexpectedly empty.
+            AssertionError: If called after barrier set but offsets empty.
         """
         self.__start_barrier.wait()
-
         with self.__time_offset_lock:
             count = len(self.__time_offsets)
-            assert (
-                count > 0
-            ), "Time offsets deque should not be empty after start barrier."
+            assert count > 0, "Offsets deque empty after start barrier."
             return sum(self.__time_offsets) / count
 
     def is_running(self) -> bool:
-        """
-        Checks if the NTP time synchronization client is currently running.
-
-        Returns:
-            True if the client is running (i.e., the sync loop is active or starting),
-            False otherwise.
-        """
+        """Checks if NTP client is running (sync loop active/starting)."""
         return self.__is_running.get()
 
     def stop(self) -> None:
-        """
-        Stops the NTP synchronization thread.
-
-        Sets the internal running state to False, which will cause the
-        `__run_sync_loop` to terminate after its current iteration.
-        """
+        """Stops NTP sync thread, causing __run_sync_loop to terminate."""
         self.__is_running.set(False)
 
     def start_async(self) -> None:
-        """
-        Starts the NTP synchronization thread.
-
-        Sets the client to a running state and starts a new thread dedicated to
-        periodically synchronizing time with the NTP server via `__run_sync_loop`.
-        Does nothing if the client is already running.
-        """
-        assert (
-            not self.__is_running.get()
-        ), "TimeSyncClient is already running."
+        """Starts NTP sync thread. Does nothing if already running."""
+        assert not self.__is_running.get(), "TimeSyncClient already running."
         self.__is_running.set(True)
-
         self.__sync_loop_thread = self.__watcher.create_tracked_thread(
             self.__run_sync_loop
         )
         self.__sync_loop_thread.start()
 
     def __run_sync_loop(self) -> None:
-        """
-        The main loop for periodically synchronizing time with the NTP server.
+        """Main loop for periodically synchronizing time with NTP server.
 
-        This method runs in a separate thread (`self.__sync_loop_thread`). It
-        continuously queries the NTP server for the time offset, stores a
-        rolling average of these offsets, and handles exceptions during the
-        process. It also manages the `__start_barrier` to signal when the
-        first valid offset has been obtained.
+        Runs in `self.__sync_loop_thread`. Queries NTP server, stores
+        rolling average of offsets, handles exceptions, and manages
+        `__start_barrier` for initial offset availability.
         """
-        # Make the "real" offset the average of the returned values over the
-        # last 30 seconds.
-        kMaxOffsetCount = 10
-        kOffsetFrequencySeconds = 3
+        max_offset_count = 10  # Max samples for rolling average
+        offset_frequency_seconds = 3  # Sync frequency
 
         ntp_client = ntplib.NTPClient()
         while self.__is_running.get():
             try:
-                # NOTE: Blocking call.
                 response = ntp_client.request(
                     self.__server_ip, port=self.__ntp_port, version=kNtpVersion
                 )
                 with self.__time_offset_lock:
                     self.__time_offsets.append(response.offset)
-                    if len(self.__time_offsets) > kMaxOffsetCount:
+                    if len(self.__time_offsets) > max_offset_count:
                         self.__time_offsets.popleft()
-                logging.info(f"New NTP Offset: {response.offset:.6f} seconds")
+                logging.info("New NTP Offset: %.6f seconds", response.offset)
             except ntplib.NTPException as e:
-                logging.error(f"NTP error: {e}")
+                logging.error("NTP error: %s", e)
+            # pylint: disable=broad-exception-caught # Ensures loop continues
             except Exception as e:
-                # Special handling for AssertionError:
-                # This is intended to catch critical assertion failures within the sync loop.
-                # The behavior is to log the error, notify the ThreadWatcher
-                # (which might have specific logic for such failures, e.g., system health),
-                # and then re-raise the AssertionError to halt the sync loop thread,
-                # as assertion failures typically indicate an unrecoverable state or bug.
                 if isinstance(e, AssertionError):
-                    logging.error(f"AssertionError during NTP sync: {e}")
+                    logging.error("AssertionError during NTP sync: %s", e)
                     self.__watcher.on_exception_seen(e)
-                    return  # Terminate loop gracefully after reporting.
-                logging.error(f"Error during NTP sync: {e}")
+                    return  # Terminate loop after reporting.
+                logging.error("Error during NTP sync: %s", e)
 
-            # The __start_barrier is used to signal that the TimeSyncClient has
-            # successfully obtained at least one time offset from the server and
-            # is ready to provide synchronization information.
-            # It should only be set once. Once set, get_offset_seconds() can proceed.
             if not self.__start_barrier.is_set():
                 with self.__time_offset_lock:
-                    # Check if we have successfully populated __time_offsets.
                     if len(self.__time_offsets) > 0:
                         self.__start_barrier.set()
                         logging.info(
-                            "TimeSyncClient initialized: First valid NTP offset received."
+                            "TimeSyncClient: First valid NTP offset received."
                         )
-            # If len(self.__time_offsets) is still 0 (e.g., due to continuous NTP errors
-            # since startup), the barrier remains unset, and get_offset_seconds()
-            # will continue to block.
-
-            time.sleep(kOffsetFrequencySeconds)  # Resynchronize periodically.
+            time.sleep(offset_frequency_seconds)

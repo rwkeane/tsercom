@@ -1,0 +1,7 @@
+************* Module tsercom.threading.throwing_thread
+tsercom/threading/throwing_thread.py:1:0: C0301: Line too long (87/79) (line-too-long)
+tsercom/threading/throwing_thread.py:9:0: C0301: Line too long (88/79) (line-too-long)
+tsercom/threading/throwing_thread.py:15:0: C0301: Line too long (80/79) (line-too-long)
+
+-----------------------------------
+Your code has been rated at 8.97/10

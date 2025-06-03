@@ -1,0 +1,5 @@
+************* Module tsercom.timesync.client.client_synchronized_clock
+tsercom/timesync/client/client_synchronized_clock.py:43:0: C0301: Line too long (81/79) (line-too-long)
+
+------------------------------------------------------------------
+Your code has been rated at 9.57/10 (previous run: 9.13/10, +0.43)

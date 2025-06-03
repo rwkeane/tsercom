@@ -1,0 +1,125 @@
+************* Module tsercom.caller_id.__init__
+tsercom/caller_id/__init__.py:7:0: C0301: Line too long (81/79) (line-too-long)
+tsercom/caller_id/__init__.py:14:0: C0301: Line too long (80/79) (line-too-long)
+************* Module tsercom.caller_id.caller_identifier
+tsercom/caller_id/caller_identifier.py:50:0: C0301: Line too long (83/79) (line-too-long)
+tsercom/caller_id/caller_identifier.py:68:0: C0301: Line too long (107/79) (line-too-long)
+tsercom/caller_id/caller_identifier.py:69:0: C0301: Line too long (89/79) (line-too-long)
+tsercom/caller_id/caller_identifier.py:84:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/caller_id/caller_identifier.py:102:0: C0301: Line too long (87/79) (line-too-long)
+tsercom/caller_id/caller_identifier.py:112:0: C0301: Line too long (89/79) (line-too-long)
+tsercom/caller_id/caller_identifier.py:144:0: C0301: Line too long (83/79) (line-too-long)
+tsercom/caller_id/caller_identifier.py:113:28: W0212: Access to a protected member __id of a client class (protected-access)
+************* Module tsercom.caller_id.caller_identifier_waiter
+tsercom/caller_id/caller_identifier_waiter.py:20:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/caller_id/caller_identifier_waiter.py:32:0: C0301: Line too long (99/79) (line-too-long)
+tsercom/caller_id/caller_identifier_waiter.py:33:0: C0301: Line too long (123/79) (line-too-long)
+tsercom/caller_id/caller_identifier_waiter.py:58:0: C0301: Line too long (82/79) (line-too-long)
+************* Module tsercom.caller_id.caller_id_map
+tsercom/caller_id/caller_id_map.py:1:0: C0301: Line too long (88/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:12:0: C0301: Line too long (89/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:14:0: C0301: Line too long (83/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:27:0: C0301: Line too long (83/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:29:0: C0301: Line too long (81/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:30:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:31:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:42:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:46:0: C0301: Line too long (109/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:63:0: C0301: Line too long (86/79) (line-too-long)
+tsercom/caller_id/caller_id_map.py:8:0: C0103: Type variable name "TType" doesn't conform to predefined naming style (invalid-name)
+************* Module tsercom.caller_id.client_id_fetcher
+tsercom/caller_id/client_id_fetcher.py:14:0: C0301: Line too long (81/79) (line-too-long)
+tsercom/caller_id/client_id_fetcher.py:27:0: C0301: Line too long (98/79) (line-too-long)
+tsercom/caller_id/client_id_fetcher.py:66:0: C0301: Line too long (90/79) (line-too-long)
+tsercom/caller_id/client_id_fetcher.py:67:0: C0301: Line too long (102/79) (line-too-long)
+tsercom/caller_id/client_id_fetcher.py:71:0: C0301: Line too long (87/79) (line-too-long)
+tsercom/caller_id/client_id_fetcher.py:79:0: C0301: Line too long (81/79) (line-too-long)
+tsercom/caller_id/client_id_fetcher.py:80:0: C0301: Line too long (98/79) (line-too-long)
+tsercom/caller_id/client_id_fetcher.py:70:24: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/caller_id/client_id_fetcher.py:81:12: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/caller_id/client_id_fetcher.py:11:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module tsercom.timesync.client.client_synchronized_clock
+tsercom/timesync/client/client_synchronized_clock.py:43:0: C0301: Line too long (81/79) (line-too-long)
+************* Module tsercom.timesync.client.fake_time_sync_client
+tsercom/timesync/client/fake_time_sync_client.py:47:8: W0238: Unused private member `FakeTimeSyncClient.__sync_loop_thread` (unused-private-member)
+************* Module tsercom.timesync.server.time_sync_server
+tsercom/timesync/server/time_sync_server.py:99:0: C0301: Line too long (88/79) (line-too-long)
+************* Module tsercom.threading.async_poller
+tsercom/threading/async_poller.py:29:0: C0301: Line too long (85/79) (line-too-long)
+************* Module tsercom.threading.atomic
+tsercom/threading/atomic.py:5:0: C0301: Line too long (80/79) (line-too-long)
+************* Module tsercom.threading.throwing_thread_pool_executor
+tsercom/threading/throwing_thread_pool_executor.py:35:0: C0301: Line too long (81/79) (line-too-long)
+************* Module tsercom.threading.thread_watcher
+tsercom/threading/thread_watcher.py:101:0: C0301: Line too long (81/79) (line-too-long)
+************* Module tsercom.threading.multiprocess.multiprocess_queue_factory
+tsercom/threading/multiprocess/multiprocess_queue_factory.py:26:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/multiprocess/multiprocess_queue_factory.py:32:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/threading/multiprocess/multiprocess_queue_factory.py:38:0: C0301: Line too long (86/79) (line-too-long)
+************* Module tsercom.threading.aio
+tsercom/threading/aio/__init__.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+************* Module tsercom.threading.aio.event_loop_factory
+tsercom/threading/aio/event_loop_factory.py:106:0: C0301: Line too long (83/79) (line-too-long)
+************* Module tsercom.runtime.runtime_data_handler
+tsercom/runtime/runtime_data_handler.py:90:0: C0301: Line too long (80/79) (line-too-long)
+************* Module tsercom.runtime.runtime_factory
+tsercom/runtime/runtime_factory.py:36:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/runtime/runtime_factory.py:77:0: C0301: Line too long (80/79) (line-too-long)
+************* Module tsercom.runtime.runtime_data_handler_base
+tsercom/runtime/runtime_data_handler_base.py:118:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/runtime/runtime_data_handler_base.py:134:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/runtime/runtime_data_handler_base.py:62:4: W0221: Number of parameters was 4 in 'RuntimeDataHandler.register_caller' and is now 3 in overriding 'RuntimeDataHandlerBase.register_caller' method (arguments-differ)
+************* Module tsercom.runtime.runtime_main
+tsercom/runtime/runtime_main.py:52:0: C0301: Line too long (84/79) (line-too-long)
+************* Module tsercom.runtime.runtime_config
+tsercom/runtime/runtime_config.py:85:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/runtime/runtime_config.py:91:0: C0301: Line too long (85/79) (line-too-long)
+tsercom/runtime/runtime_config.py:143:0: C0301: Line too long (82/79) (line-too-long)
+************* Module tsercom.runtime.event_poller_adapter
+tsercom/runtime/event_poller_adapter.py:34:0: C0301: Line too long (83/79) (line-too-long)
+************* Module tsercom.runtime.id_tracker
+tsercom/runtime/id_tracker.py:69:0: C0301: Line too long (81/79) (line-too-long)
+************* Module tsercom.runtime.runtime_initializer
+tsercom/runtime/runtime_initializer.py:42:0: C0301: Line too long (80/79) (line-too-long)
+************* Module tsercom.runtime.server.server_runtime_data_handler
+tsercom/runtime/server/server_runtime_data_handler.py:82:0: C0301: Line too long (81/79) (line-too-long)
+tsercom/runtime/server/server_runtime_data_handler.py:1:0: R0801: Similar lines in 2 files
+==tsercom.timesync.client.fake_time_sync_client:[51:85]
+==tsercom.timesync.client.time_sync_client:[44:67]
+        self.__time_offset_lock = threading.Lock()
+        self.__time_offsets = Deque[float]()
+        self.__is_running = IsRunningTracker()
+        self.__start_barrier = threading.Event()
+
+    def get_synchronized_clock(self) -> SynchronizedClock:
+        """Returns a SynchronizedClock using this client for offsets."""
+        return ClientSynchronizedClock(self)
+
+    def get_offset_seconds(self) -> float:
+        """Retrieves current averaged time offset in seconds from NTP server.
+
+        Waits for first successful sync. Returns average of recent offsets.
+
+        Returns:
+            Averaged time offset in seconds.
+
+        Raises:
+            AssertionError: If called after barrier set but offsets empty.
+        """
+        self.__start_barrier.wait()
+        with self.__time_offset_lock:
+            count = len(self.__time_offsets) (duplicate-code)
+tsercom/runtime/server/server_runtime_data_handler.py:1:0: R0801: Similar lines in 2 files
+==tsercom.api.local_process.local_runtime_factory_factory:[59:67]
+==tsercom.api.split_process.split_runtime_factory_factory:[99:108]
+                AnnotatedInstance[DataTypeT]
+            ](
+                self.__thread_pool,
+                # pylint: disable=W0511,C0301 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
+                client=initializer.data_aggregator_client,
+                timeout=initializer.timeout_seconds,
+            )
+        else: (duplicate-code)
+
+------------------------------------------------------------------
+Your code has been rated at 9.78/10 (previous run: 8.38/10, +1.40)

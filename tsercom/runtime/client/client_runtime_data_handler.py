@@ -5,7 +5,10 @@ managing data flow, caller registration, and time synchronization aspects
 for Tsercom runtimes operating in a client role.
 """
 
+import logging  # Moved to top
 from typing import Generic, TypeVar
+
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
@@ -14,35 +17,32 @@ from tsercom.data.serializable_annotated_instance import (
 )
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-import logging
 from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
-from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
 class ClientRuntimeDataHandler(
-    Generic[TDataType, TEventType],
-    RuntimeDataHandlerBase[TDataType, TEventType],
+    Generic[DataTypeT, EventTypeT],
+    RuntimeDataHandlerBase[DataTypeT, EventTypeT],
 ):
     """Handles data, events, and caller management for client runtimes.
 
-    It integrates with a `TimeSyncTracker` for clock synchronization and
-    an `IdTracker` to manage associations between caller IDs and their
-    network endpoints. It processes incoming events and makes data
-    available via a `RemoteDataReader`.
+    Integrates `TimeSyncTracker` for clock sync and `IdTracker` for
+    managing caller ID and endpoint associations. It processes incoming
+    events and makes data available via a `RemoteDataReader`.
     """
 
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
-        data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-        event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
         *,
         is_testing: bool = False,
     ):
@@ -50,9 +50,10 @@ class ClientRuntimeDataHandler(
 
         Args:
             thread_watcher: For monitoring internal threads.
-            data_reader: The reader for incoming data instances.
-            event_source: The poller for incoming event instances.
-            is_testing: If True, enables testing-specific behaviors (e.g., fake time sync).
+            data_reader: Reader for incoming data instances.
+            event_source: Poller for incoming event instances.
+            is_testing: If True, enables testing-specific behaviors (e.g.,
+                        fake time sync).
         """
         super().__init__(data_reader, event_source)
 
@@ -63,16 +64,15 @@ class ClientRuntimeDataHandler(
 
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType]:
-        """Registers a new caller and its endpoint, returning a data processor.
+    ) -> EndpointDataProcessor[DataTypeT]:
+        """Registers new caller, returns data processor.
 
-        Adds the caller to the ID tracker and initializes time synchronization
-        for the endpoint.
+        Adds caller to ID tracker, inits time sync for the endpoint.
 
         Args:
             caller_id: The `CallerIdentifier` of the new caller.
-            endpoint: The network endpoint (e.g., IP address) of the caller.
-            port: The port number of the caller.
+            endpoint: Network endpoint (e.g., IP address) of the caller.
+            port: Port number of the caller.
 
         Returns:
             An `EndpointDataProcessor` configured for this caller.
@@ -82,34 +82,31 @@ class ClientRuntimeDataHandler(
         return self._create_data_processor(caller_id, clock)
 
     def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
-        """
-        Unregisters a caller.
+        """Unregisters a caller.
 
         Args:
             caller_id: The ID of the caller to unregister.
 
         Returns:
-            True if the caller was found and unregistered, False otherwise.
+            True if caller was found and unregistered, False otherwise.
         """
         address_port_tuple = self.__id_tracker.try_get(caller_id)
 
         if address_port_tuple is not None:
-            address, _ = (
-                address_port_tuple  # port is not needed for on_disconnect
-            )
+            address, _ = address_port_tuple
             self.__id_tracker.remove(caller_id)
             self.__clock_tracker.on_disconnect(address)
             return True
-        else:
-            logging.warning(
-                f"Attempted to unregister non-existent caller_id: {caller_id}"
-            )
-            return False
+        # Removed else, de-dented the following block for R1705
+        logging.warning(
+            "Attempted to unregister non-existent caller_id: %s", caller_id
+        )
+        return False
 
     def _try_get_caller_id(
         self, endpoint: str, port: int
     ) -> CallerIdentifier | None:
-        """Tries to retrieve the CallerIdentifier for a given endpoint and port.
+        """Tries to retrieve CallerIdentifier for a given endpoint and port.
 
         Args:
             endpoint: The network endpoint of the caller.

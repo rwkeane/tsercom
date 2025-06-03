@@ -1,0 +1,12 @@
+************* Module tsercom.threading.async_poller
+tsercom/threading/async_poller.py:29:0: C0301: Line too long (85/79) (line-too-long)
+tsercom/threading/async_poller.py:58:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/async_poller.py:64:0: C0301: Line too long (81/79) (line-too-long)
+tsercom/threading/async_poller.py:87:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/async_poller.py:106:0: C0301: Line too long (90/79) (line-too-long)
+tsercom/threading/async_poller.py:107:0: C0301: Line too long (98/79) (line-too-long)
+tsercom/threading/async_poller.py:113:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/async_poller.py:171:0: C0301: Line too long (109/79) (line-too-long)
+
+-----------------------------------
+Your code has been rated at 8.87/10

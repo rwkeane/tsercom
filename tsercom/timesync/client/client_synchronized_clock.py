@@ -1,3 +1,5 @@
+"""Client-side synchronized clock, uses a TimeSyncClient for offsets."""
+
 from abc import ABC, abstractmethod
 import datetime
 
@@ -33,7 +35,7 @@ class ClientSynchronizedClock(SynchronizedClock):
             Returns:
                 The time offset in seconds as a float.
             """
-            pass
+            # pass removed by overwrite
 
         @abstractmethod
         def get_synchronized_clock(self) -> SynchronizedClock:
@@ -41,30 +43,29 @@ class ClientSynchronizedClock(SynchronizedClock):
             Returns a SynchronizedClock instance that uses this client for offset
             information.
             """
-            pass
+            # pass removed by overwrite
 
         @abstractmethod
         def start_async(self) -> None:
             """
             Starts the time synchronization client asynchronously.
             """
-            pass
+            # pass removed by overwrite
 
         @abstractmethod
         def stop(self) -> None:
             """
             Stops the time synchronization client.
             """
-            pass
+            # pass removed by overwrite
 
     def __init__(self, client: "ClientSynchronizedClock.Client") -> None:
         """
         Initializes the ClientSynchronizedClock.
 
         Args:
-            client: An instance of ClientSynchronizedClock.Client, which will be
-                    used to obtain the time offset from the server.
-        """
+            client: ClientSynchronizedClock.Client instance for time offset.
+        """  # Shortened line
         self.__client = client
         super().__init__()
 
@@ -76,7 +77,7 @@ class ClientSynchronizedClock(SynchronizedClock):
         offset_timedelta = datetime.timedelta(seconds=offset_seconds)
 
         # To desynchronize a timestamp (i.e., convert it from server time
-        # back to client's local time), we need to subtract the offset.
+        # back to client's local time), subtract the offset.
         # For example:
         # If client is 5s ahead (offset_seconds = 5):
         #   Server time (timestamp_dt) = 12:00:05

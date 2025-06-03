@@ -1,4 +1,6 @@
-"""Provides EventLoopFactory for creating and managing asyncio event loops that run in separate threads, monitored by a ThreadWatcher."""
+"""Provides EventLoopFactory for creating and managing asyncio event loops
+that run in separate threads, monitored by a ThreadWatcher.
+"""
 
 import asyncio
 from typing import Any, Optional
@@ -8,12 +10,15 @@ import logging
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-# Class responsible for creating and managing an asyncio event loop in a separate thread.
+# Class responsible for creating and managing an asyncio event loop
+# in a separate thread.
+# pylint: disable=too-few-public-methods # Factory pattern, public method is start_asyncio_loop
 class EventLoopFactory:
     """
     Factory class for creating and managing an asyncio event loop.
 
-    The event loop runs in a separate thread and is monitored by a ThreadWatcher.
+    The event loop runs in a separate thread and is monitored by a
+    ThreadWatcher.
     """
 
     def __init__(self, watcher: "ThreadWatcher") -> None:
@@ -21,24 +26,23 @@ class EventLoopFactory:
         Initializes the EventLoopFactory.
 
         Args:
-            watcher (ThreadWatcher): The ThreadWatcher instance to monitor the event loop thread.
+            watcher: ThreadWatcher instance to monitor event loop thread.
 
         Raises:
             ValueError: If the watcher argument is None.
-            TypeError: If the watcher is not a subclass of ThreadWatcher.
+            TypeError: If watcher is not a subclass of ThreadWatcher.
         """
         if watcher is None:
             raise ValueError(
                 "Watcher argument cannot be None for EventLoopFactory."
             )
         if not issubclass(type(watcher), ThreadWatcher):
+            # pylint: disable=consider-using-f-string
             raise TypeError(
-                f"Watcher must be a subclass of ThreadWatcher, got {type(watcher).__name__}."
+                "Watcher must be a subclass of ThreadWatcher, got %s."
+                % type(watcher).__name__
             )
         self.__watcher = watcher
-
-        # These attributes are initialized in the start_asyncio_loop method.
-        # They are typed as Optional because they are None until that method is called.
         self.__event_loop_thread: Optional[threading.Thread] = None
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
@@ -46,16 +50,16 @@ class EventLoopFactory:
         """
         Starts an asyncio event loop in a new thread.
 
-        The loop is configured with an exception handler that logs unhandled
-        exceptions and notifies the ThreadWatcher.
+        The loop has an exception handler that logs unhandled exceptions
+        and notifies the ThreadWatcher.
 
         Returns:
-            asyncio.AbstractEventLoop: The created and running event loop.
+            The created and running event loop.
         """
         barrier = threading.Event()
 
         def handle_exception(
-            loop: asyncio.AbstractEventLoop, context: dict[str, Any]
+            _loop: asyncio.AbstractEventLoop, context: dict[str, Any]
         ) -> None:
             """
             Handles exceptions occurring in the event loop.
@@ -63,70 +67,55 @@ class EventLoopFactory:
             Logs the exception and notifies the ThreadWatcher.
 
             Args:
-                loop (asyncio.AbstractEventLoop): The event loop where the exception occurred.
-                context (dict[str, Any]): A dictionary containing exception details.
+                _loop: The event loop where the exception occurred (unused).
+                context: Dictionary containing exception details.
             """
             exception = context.get("exception")
             message = context.get("message")
             if exception:
                 if isinstance(exception, asyncio.CancelledError):
+                    # Common way to stop tasks. Re-raise to propagate.
                     raise exception
 
                 logging.error(
-                    f"Unhandled exception in event loop: {message}",
+                    "Unhandled exception in event loop: %s",
+                    message,
                     exc_info=exception,
                 )
                 self.__watcher.on_exception_seen(exception)
             else:
                 logging.critical(
-                    f"Event loop exception handler called without an exception. Context message: {message}"
+                    "Event loop handler called without exception. Context: %s",
+                    message,
                 )
 
         def start_event_loop() -> None:
             """
-            Initializes and runs the asyncio event loop.
+            Initializes and runs the asyncio event loop in this thread.
 
-            This function is intended to be run in a separate thread.
-            It sets up the new event loop, assigns the custom exception handler,
-            sets it as the current event loop for the thread, signals that
-            the loop is ready, and then runs the loop forever.
+            Sets up new loop, custom handler, makes it current for thread,
+            signals readiness, and runs loop forever.
             """
+            local_event_loop = asyncio.new_event_loop()
             try:
-                local_event_loop = asyncio.new_event_loop()
-
                 local_event_loop.set_exception_handler(handle_exception)
-
-                asyncio.set_event_loop(
-                    local_event_loop
-                )  # Associates loop with this thread's context
-
+                asyncio.set_event_loop(local_event_loop)
                 self.__event_loop = local_event_loop
-
-                barrier.set()  # Notifies waiting thread that loop is ready
-
-                local_event_loop.run_forever()  # Starts the event loop
-            except Exception:
-                raise
-            finally:
-                if (
-                    "local_event_loop" in locals()
-                    and hasattr(local_event_loop, "is_closed")
-                    and not local_event_loop.is_closed()
-                ):
+                barrier.set()  # Notify waiting thread that loop is ready
+                local_event_loop.run_forever()
+            finally:  # Removed try-except-raise for W0706, finally ensures cleanup
+                if not local_event_loop.is_closed():
                     if local_event_loop.is_running():
                         local_event_loop.stop()
                     local_event_loop.close()
 
         self.__event_loop_thread = self.__watcher.create_tracked_thread(
-            target=start_event_loop  # Pass the function to be executed
+            target=start_event_loop
         )
         self.__event_loop_thread.start()
 
-        # Wait until the event loop is set up and running.
-        barrier.wait()
+        barrier.wait()  # Wait for event loop to be set up
 
-        # At this point, self.__event_loop should have been set by start_event_loop.
-        # If it's not, something went wrong in thread initialization.
         assert (
             self.__event_loop is not None
         ), "Event loop was not initialized in the thread."

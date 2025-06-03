@@ -1,0 +1,19 @@
+************* Module tsercom.threading.aio.event_loop_factory
+tsercom/threading/aio/event_loop_factory.py:1:0: C0301: Line too long (137/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:11:0: C0301: Line too long (89/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:16:0: C0301: Line too long (81/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:24:0: C0301: Line too long (97/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:36:0: C0301: Line too long (93/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:41:0: C0301: Line too long (87/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:67:0: C0301: Line too long (94/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:68:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:83:0: C0301: Line too long (107/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:91:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:129:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/aio/event_loop_factory.py:76:16: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/threading/aio/event_loop_factory.py:82:16: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/threading/aio/event_loop_factory.py:109:12: W0706: The except handler raises immediately (try-except-raise)
+tsercom/threading/aio/event_loop_factory.py:12:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+
+-----------------------------------
+Your code has been rated at 6.59/10

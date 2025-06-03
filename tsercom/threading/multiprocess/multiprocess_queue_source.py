@@ -1,83 +1,73 @@
 """
-Defines the `MultiprocessQueueSource[TQueueType]` class.
+Defines the `MultiprocessQueueSource[QueueTypeT]` class.
 
-This module provides the `MultiprocessQueueSource` class, which serves as a
-generic, read-only (source) wrapper around a standard `multiprocessing.Queue`.
-It is designed to provide a clear and type-safe interface for receiving items
-from a queue that is shared between processes, abstracting the underlying queue
-and focusing solely on the "get" operations.
+This module provides `MultiprocessQueueSource`, a generic, read-only
+(source) wrapper around `multiprocessing.Queue`. It offers a clear,
+type-safe interface for receiving items from a shared queue between
+processes, focusing on "get" operations.
 """
 
 from multiprocessing import Queue as MpQueue
 from queue import (
     Empty,
-)  # Exception raised when a non-blocking get is called on an empty queue.
+)  # Exception for non-blocking get on empty queue.
 from typing import Generic, TypeVar
 
 
 # Type variable for the generic type of items in the queue.
-TQueueType = TypeVar("TQueueType")
+QueueTypeT = TypeVar("QueueTypeT")
 
 
 # Provides a source (read-only) interface for a multiprocessing queue.
-class MultiprocessQueueSource(Generic[TQueueType]):
+class MultiprocessQueueSource(Generic[QueueTypeT]):
     """
-    A wrapper around `multiprocessing.Queue` that provides a source-only
-    interface for getting items from the queue. This class is generic
-    and can handle queues of any specific type.
+    Wrapper around `multiprocessing.Queue` for a source-only interface.
+
+    Handles getting items; generic for queues of any specific type.
     """
 
-    def __init__(self, queue: "MpQueue[TQueueType]") -> None:
+    def __init__(self, queue: "MpQueue[QueueTypeT]") -> None:
         """
-        Initializes the MultiprocessQueueSource with a given multiprocessing queue.
+        Initializes with a given multiprocessing queue.
 
         Args:
-            queue ("MpQueue[TQueueType]"): The multiprocessing queue
-                to be used as the source.
+            queue: The multiprocessing queue to be used as source.
         """
-        self.__queue: "MpQueue[TQueueType]" = queue
+        self.__queue: "MpQueue[QueueTypeT]" = queue
 
-    def get_blocking(self, timeout: float | None = None) -> TQueueType | None:
+    def get_blocking(self, timeout: float | None = None) -> QueueTypeT | None:
         """
-        Retrieves an item from the queue, blocking if necessary until an item is available.
+        Retrieves item from queue, blocking if needed until item available.
 
         Args:
-            timeout (Optional[float]): The maximum time (in seconds) to wait for
-                an item if the queue is empty. If None, blocks indefinitely.
-                Defaults to None.
+            timeout: Max time (secs) to wait for item if queue empty.
+                     None means block indefinitely. Defaults to None.
 
         Returns:
-            Optional[TQueueType]: The item retrieved from the queue, or None if
-                                  a timeout occurred and the queue remained empty.
-                                  Note: `multiprocessing.Queue.get()` can raise `queue.Empty`
-                                  on timeout, which this method catches and converts to None.
-                                  It can also raise `EOFError` or `OSError` if the queue is broken.
+            Optional[QueueTypeT]: Item from queue, or None if timeout.
+                                  Note: `multiprocessing.Queue.get()` can
+                                  raise `queue.Empty` on timeout (caught),
+                                  or `EOFError`/`OSError` if queue broken.
         """
         try:
-            # Cast is no longer needed if __queue is correctly typed.
             return self.__queue.get(block=True, timeout=timeout)
-        except (
-            Empty
-        ):  # multiprocessing.Queue.get() raises queue.Empty on timeout.
+        except Empty:  # Catches timeout for multiprocessing.Queue.get().
             return None
-        # Other exceptions like EOFError or OSError are not caught here,
-        # as they indicate a more severe problem with the queue itself.
+        # Other exceptions (EOFError, OSError) indicate severe queue issues.
 
-    def get_or_none(self) -> TQueueType | None:
+    def get_or_none(self) -> QueueTypeT | None:
         """
         Retrieves an item from the queue without blocking.
 
         If the queue is empty, this method returns immediately.
 
         Returns:
-            Optional[TQueueType]: The item retrieved from the queue, or None if
-                                  the queue is currently empty.
-                                  It can also raise `EOFError` or `OSError` if the queue is broken.
+            Optional[QueueTypeT]: Item from queue, or None if empty.
+                                  Can also raise `EOFError`/`OSError`
+                                  if queue is broken.
         """
         try:
-            # Cast is no longer needed if __queue is correctly typed.
             return self.__queue.get_nowait()
-        except Empty:
-            # This exception is raised if the queue is empty.
+        except Empty:  # Queue is empty.
             return None
-        # Other exceptions like EOFError or OSError are not caught here.
+        # Other exceptions (EOFError, OSError) are not caught here.

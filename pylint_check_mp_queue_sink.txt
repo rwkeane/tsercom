@@ -1,0 +1,8 @@
+************* Module tsercom.threading.multiprocess.multiprocess_queue_sink
+tsercom/threading/multiprocess/multiprocess_queue_sink.py:32:0: C0301: Line too long (81/79) (line-too-long)
+tsercom/threading/multiprocess/multiprocess_queue_sink.py:44:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/multiprocess/multiprocess_queue_sink.py:48:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/threading/multiprocess/multiprocess_queue_sink.py:60:0: C0301: Line too long (89/79) (line-too-long)
+
+-----------------------------------
+Your code has been rated at 7.89/10

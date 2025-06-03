@@ -1,0 +1,5 @@
+************* Module tsercom.threading.error_watcher
+tsercom/threading/error_watcher.py:34:8: W0107: Unnecessary pass statement (unnecessary-pass)
+
+-----------------------------------
+Your code has been rated at 7.50/10

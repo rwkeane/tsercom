@@ -1,0 +1,7 @@
+************* Module tsercom.threading.multiprocess.multiprocess_queue_factory
+tsercom/threading/multiprocess/multiprocess_queue_factory.py:26:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/threading/multiprocess/multiprocess_queue_factory.py:33:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/threading/multiprocess/multiprocess_queue_factory.py:39:0: C0301: Line too long (86/79) (line-too-long)
+
+------------------------------------------------------------------
+Your code has been rated at 7.00/10 (previous run: 7.00/10, +0.00)
