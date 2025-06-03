@@ -1,21 +1,21 @@
 """Defines the abstract base class for endpoint data processors."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone  # Added timezone here
 from typing import Generic, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.timesync.common.proto import ServerTimestamp
 
 
-TDataType = TypeVar("TDataType")
+DataTypeT = TypeVar("DataTypeT")
 
 
-class EndpointDataProcessor(ABC, Generic[TDataType]):
+class EndpointDataProcessor(ABC, Generic[DataTypeT]):
     """ABC for processing data associated with a specific endpoint caller.
 
     Attributes:
-        caller_id: The `CallerIdentifier` of the endpoint this processor handles.
+        caller_id: The `CallerIdentifier` for this processor's endpoint.
     """
 
     def __init__(self, caller_id: CallerIdentifier):
@@ -41,28 +41,26 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
             timestamp: The `ServerTimestamp` from the remote endpoint.
 
         Returns:
-            A `datetime` object representing the timestamp in the local time context.
+            A local `datetime` object representing the server timestamp.
         """
-        pass
 
     @abstractmethod
     async def deregister_caller(self) -> None:
         """Performs cleanup when the associated caller is deregistered."""
-        pass
 
     @overload
-    async def process_data(self, data: TDataType, timestamp: datetime) -> None:
+    async def process_data(self, data: DataTypeT, timestamp: datetime) -> None:
         pass
 
     @overload
     async def process_data(
-        self, data: TDataType, timestamp: ServerTimestamp
+        self, data: DataTypeT, timestamp: ServerTimestamp
     ) -> None:
         pass
 
     async def process_data(
         self,
-        data: TDataType,
+        data: DataTypeT,
         timestamp: datetime | ServerTimestamp | None = None,  # Allow None
     ) -> None:
         """Processes incoming data, converting timestamp if necessary.
@@ -72,7 +70,7 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         current time is used. Then, `_process_data` is called.
 
         Args:
-            data: The data item of type TDataType to process.
+            data: The data item of type DataTypeT to process.
             timestamp: The timestamp associated with the data, can be either
                        a `datetime` object, a `ServerTimestamp`, or None.
         """
@@ -80,9 +78,7 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         if timestamp is None:
             # Ensure timezone is available if datetime.now needs it.
             # Assumes 'from datetime import datetime, timezone' in this file
-            from datetime import (
-                timezone,
-            )  # Ensure timezone is in scope for .now()
+            # Ensure timezone is in scope for .now() - import moved to top
 
             actual_timestamp = datetime.now(timezone.utc)
         elif isinstance(timestamp, ServerTimestamp):
@@ -91,13 +87,13 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
             actual_timestamp = timestamp
 
         # The problematic 'assert isinstance(timestamp, datetime)' was here.
-        # It's removed as the logic above ensures actual_timestamp is a datetime.
+        # The logic above ensures actual_timestamp is a datetime.
 
         await self._process_data(data, actual_timestamp)
 
     @abstractmethod
     async def _process_data(
-        self, data: TDataType, timestamp: datetime
+        self, data: DataTypeT, timestamp: datetime
     ) -> None:
         """Processes the data item with its synchronized datetime.
 
@@ -105,7 +101,6 @@ class EndpointDataProcessor(ABC, Generic[TDataType]):
         processing logic.
 
         Args:
-            data: The data item of type TDataType.
+            data: The data item of type DataTypeT.
             timestamp: The synchronized `datetime` object for the data.
         """
-        pass

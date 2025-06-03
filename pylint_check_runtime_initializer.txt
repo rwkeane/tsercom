@@ -1,0 +1,5 @@
+************* Module tsercom.runtime.runtime_initializer
+tsercom/runtime/runtime_initializer.py:42:0: C0301: Line too long (80/79) (line-too-long)
+
+------------------------------------------------------------------
+Your code has been rated at 9.17/10 (previous run: 7.69/10, +1.47)

@@ -22,7 +22,7 @@ DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
 class RemoteDataAggregatorImpl(
-# pylint: disable=C0301
+    # pylint: disable=C0301
     Generic[DataTypeT],
     RemoteDataAggregator[DataTypeT],
     RemoteDataOrganizer.Client,
@@ -109,7 +109,9 @@ class RemoteDataAggregatorImpl(
         ] = {}
         self.__lock: threading.Lock = threading.Lock()
 
-    def stop(self, identifier: Optional[CallerIdentifier] = None) -> None: # Renamed id to identifier
+    def stop(
+        self, identifier: Optional[CallerIdentifier] = None
+    ) -> None:  # Renamed id to identifier
         """Stops data processing for one or all callers.
 
         If an `identifier` is provided, stops the `RemoteDataOrganizer` for that specific
@@ -169,7 +171,9 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_new_data(self) -> Dict[CallerIdentifier, List[DataTypeT]]: ...
     @overload
-    def get_new_data(self, identifier: CallerIdentifier) -> List[DataTypeT]: ...
+    def get_new_data(
+        self, identifier: CallerIdentifier
+    ) -> List[DataTypeT]: ...
     def get_new_data(
         self, identifier: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, List[DataTypeT]] | List[DataTypeT]:
@@ -209,6 +213,7 @@ class RemoteDataAggregatorImpl(
     def get_most_recent_data(
         self, identifier: CallerIdentifier
     ) -> Optional[DataTypeT]: ...
+
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     def get_most_recent_data(
         self, identifier: Optional[CallerIdentifier] = None
@@ -250,6 +255,7 @@ class RemoteDataAggregatorImpl(
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier
     ) -> Optional[DataTypeT]: ...
+
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     def get_data_for_timestamp(
         self,

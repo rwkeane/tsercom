@@ -129,7 +129,7 @@ class RemoteDataOrganizer(
 
             return result
 
-    def get_new_data(self) -> List[DataTypeT]: # Corrected Python type hint
+    def get_new_data(self) -> List[DataTypeT]:  # Corrected Python type hint
         """Retrieves all data items received since the last call to this method.
 
         Updates the internal "last access" timestamp to the timestamp of the
@@ -140,11 +140,11 @@ class RemoteDataOrganizer(
             Returns an empty list if no new data is available.
         """
         with self.__data_lock:
-            results: List[DataTypeT] = [] # Corrected Python type hint
+            results: List[DataTypeT] = []  # Corrected Python type hint
             if not self.__data:
                 return results
 
-            for _item_idx, item in enumerate(self.__data): # Renamed item_idx
+            for _item_idx, item in enumerate(self.__data):  # Renamed item_idx
                 if item.timestamp > self.__last_access:
                     results.append(item)
                 else:
@@ -250,7 +250,9 @@ class RemoteDataOrganizer(
                 if new_data_time < current_most_recent_time:
                     logger.debug(
                         "CallerID %s: Discarding out-of-order older data (ts: %s, newest_is: %s).",
-                        self.caller_id, new_data_time, current_most_recent_time
+                        self.caller_id,
+                        new_data_time,
+                        current_most_recent_time,
                     )
                     # DESIGN NOTE: This implementation handles new data as follows:
                     # - If the deque is empty, the new data is added.

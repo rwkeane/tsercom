@@ -1,0 +1,20 @@
+************* Module tsercom.runtime.runtime_config
+tsercom/runtime/runtime_config.py:1:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/runtime/runtime_config.py:70:0: C0301: Line too long (84/79) (line-too-long)
+tsercom/runtime/runtime_config.py:74:0: C0301: Line too long (88/79) (line-too-long)
+tsercom/runtime/runtime_config.py:85:0: C0301: Line too long (101/79) (line-too-long)
+tsercom/runtime/runtime_config.py:86:0: C0301: Line too long (118/79) (line-too-long)
+tsercom/runtime/runtime_config.py:91:0: C0301: Line too long (92/79) (line-too-long)
+tsercom/runtime/runtime_config.py:111:0: C0301: Line too long (82/79) (line-too-long)
+tsercom/runtime/runtime_config.py:123:0: C0301: Line too long (83/79) (line-too-long)
+tsercom/runtime/runtime_config.py:133:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/runtime/runtime_config.py:135:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/runtime/runtime_config.py:139:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/runtime/runtime_config.py:149:0: C0301: Line too long (92/79) (line-too-long)
+tsercom/runtime/runtime_config.py:177:0: C0301: Line too long (80/79) (line-too-long)
+tsercom/runtime/runtime_config.py:92:12: W0233: __init__ method from a non direct base class 'RuntimeConfig' is called (non-parent-init-called)
+tsercom/runtime/runtime_config.py:55:4: R0913: Too many arguments (6/5) (too-many-arguments)
+tsercom/runtime/runtime_config.py:151:12: R1705: Unnecessary "elif" after "return", remove the leading "el" from "elif" (no-else-return)
+
+-----------------------------------
+Your code has been rated at 6.98/10

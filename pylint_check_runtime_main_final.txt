@@ -1,0 +1,5 @@
+************* Module tsercom.runtime.runtime_main
+tsercom/runtime/runtime_main.py:52:0: C0301: Line too long (84/79) (line-too-long)
+
+------------------------------------------------------------------
+Your code has been rated at 9.86/10 (previous run: 9.71/10, +0.14)

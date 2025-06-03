@@ -11,12 +11,14 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.data.exposed_data import ExposedData  # Import ExposedData
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)  # Constrain DataTypeT
+EventTypeT = TypeVar("EventTypeT")
 
 
 class RuntimeInitializer(
-    ABC, Generic[TDataType, TEventType], RuntimeConfig[TDataType]
+    ABC,
+    Generic[DataTypeT, EventTypeT],
+    RuntimeConfig[DataTypeT],
 ):
     """
     This class is to be implemented to specify creation of user-defined
@@ -27,7 +29,7 @@ class RuntimeInitializer(
     def create(
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[TDataType, TEventType],
+        data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
         grpc_channel_factory: GrpcChannelFactory | None,
     ) -> Runtime:
         """
@@ -40,6 +42,5 @@ class RuntimeInitializer(
         the RuntimeHandle, as well as providing a path to send data back to that
         instance.
         |grpc_channel_factory| is a factory used to create gRPC Channels, per
-        user specification. It can be None if the runtime does not require gRPC channels.
+        user specification. Can be None if runtime needs no gRPC channels.
         """
-        pass
