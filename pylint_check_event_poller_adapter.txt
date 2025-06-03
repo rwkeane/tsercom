@@ -1,5 +1,0 @@
-************* Module tsercom.runtime.event_poller_adapter
-tsercom/runtime/event_poller_adapter.py:34:0: C0301: Line too long (83/79) (line-too-long)
-
-------------------------------------------------------------------
-Your code has been rated at 9.55/10 (previous run: 9.55/10, +0.00)

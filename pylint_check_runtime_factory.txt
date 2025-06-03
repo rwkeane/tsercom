@@ -1,6 +1,0 @@
-************* Module tsercom.runtime.runtime_factory
-tsercom/runtime/runtime_factory.py:36:0: C0301: Line too long (80/79) (line-too-long)
-tsercom/runtime/runtime_factory.py:77:0: C0301: Line too long (80/79) (line-too-long)
-
-------------------------------------------------------------------
-Your code has been rated at 8.75/10 (previous run: 5.71/10, +3.04)

@@ -8,7 +8,7 @@ from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.instance_listener import (
     InstanceListener,
     ServiceInfo,
-    ServiceInfoT, # Changed TServiceInfo to ServiceInfoT
+    ServiceInfoT,  # Changed TServiceInfo to ServiceInfoT
 )
 from tsercom.discovery.mdns.record_listener import (
     RecordListener,

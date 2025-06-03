@@ -1,5 +1,0 @@
-************* Module tsercom.threading.__init__
-tsercom/threading/__init__.py:1:0: C0301: Line too long (82/79) (line-too-long)
-
------------------------------------
-Your code has been rated at 8.00/10
