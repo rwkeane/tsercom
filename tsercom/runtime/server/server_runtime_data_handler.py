@@ -79,7 +79,7 @@ class ServerRuntimeDataHandler(
         for the data processor.
 
         Args:
-            caller_id: New caller's `CallerIdentifier` (usually server-assigned).
+            caller_id: New caller's `CallerIdentifier` (server-assigned).
             endpoint: The network endpoint (e.g., IP address) of the caller.
             port: The port number of the caller.
 

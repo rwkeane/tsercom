@@ -167,7 +167,7 @@ class RuntimeDataHandlerBase(
             if extracted_port is None:
                 # pylint: disable=consider-using-f-string
                 msg = (
-                    "Could not get client port from context for endpoint %s."
+                    "Could not get client port from context for endpoint: %s."  # Shortened
                     % extracted_endpoint
                 )
                 raise ValueError(msg)
@@ -281,9 +281,7 @@ class RuntimeDataHandlerBase(
         Returns:
             An instance of `_DataProcessorImpl`.
         """
-        return RuntimeDataHandlerBase._DataProcessorImpl(
-            self, caller_id, clock
-        )
+        return RuntimeDataHandlerBase._DataProcessorImpl(self, caller_id, clock)
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.

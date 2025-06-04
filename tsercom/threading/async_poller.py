@@ -29,10 +29,9 @@ ResultTypeT = TypeVar("ResultTypeT")
 # Provides an asynchronous queueing mechanism for subscribers to await new instances.
 class AsyncPoller(Generic[ResultTypeT], ABC):
     """
-    This class provides an asynchronous queueing mechanism, to allow for
-    subscribers to request next available instance, and async await that
-    until a new instance(s) is published.
-    """  # Shortened line 29 target
+    Provides an async queue for subscribers to request the next available
+    instance and await new instances if the queue is empty.
+    """
 
     def __init__(self) -> None:
         """

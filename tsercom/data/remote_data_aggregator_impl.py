@@ -171,9 +171,7 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_new_data(self) -> Dict[CallerIdentifier, List[DataTypeT]]: ...
     @overload
-    def get_new_data(
-        self, identifier: CallerIdentifier
-    ) -> List[DataTypeT]: ...
+    def get_new_data(self, identifier: CallerIdentifier) -> List[DataTypeT]: ...
     def get_new_data(
         self, identifier: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, List[DataTypeT]] | List[DataTypeT]:

@@ -1,7 +1,0 @@
-************* Module tsercom.runtime.runtime_config
-tsercom/runtime/runtime_config.py:85:0: C0301: Line too long (82/79) (line-too-long)
-tsercom/runtime/runtime_config.py:91:0: C0301: Line too long (85/79) (line-too-long)
-tsercom/runtime/runtime_config.py:143:0: C0301: Line too long (82/79) (line-too-long)
-
-------------------------------------------------------------------
-Your code has been rated at 9.44/10 (previous run: 9.63/10, -0.19)

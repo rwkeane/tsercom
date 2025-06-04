@@ -21,9 +21,7 @@ class ThrowingThread(threading.Thread):
         target: Callable[..., Any],
         on_error_cb: Callable[[Exception], None],
         args: tuple[Any, ...] = (),  # Explicit 'args' for target
-        kwargs: Optional[
-            dict[str, Any]
-        ] = None,  # Explicit 'kwargs' for target
+        kwargs: Optional[dict[str, Any]] = None,  # Explicit 'kwargs' for target
         # Allow other threading.Thread parameters too
         group: None = None,
         name: None = None,

@@ -255,9 +255,7 @@ def test_start(
     assert drs_instance.start_called
     assert drs_instance.start_call_count == 1
     assert fake_command_q_sink.put_blocking_call_count == 1
-    assert (
-        fake_command_q_sink.put_blocking_called_with == RuntimeCommand.START
-    )
+    assert fake_command_q_sink.put_blocking_called_with == RuntimeCommand.START
 
 
 def test_on_event_block_true(

@@ -121,16 +121,13 @@ def create_data(caller_id, timestamp_input, value_id=0):
 def test_initialization(
     mock_thread_pool, mock_caller_id, mock_client, mock_is_running_tracker
 ):
-    organizer_instance = RemoteDataOrganizer[
-        DummyExposedDataForOrganizerTests
-    ](
+    organizer_instance = RemoteDataOrganizer[DummyExposedDataForOrganizerTests](
         thread_pool=mock_thread_pool,
         caller_id=mock_caller_id,
         client=mock_client,
     )
     assert (
-        organizer_instance._RemoteDataOrganizer__thread_pool
-        is mock_thread_pool
+        organizer_instance._RemoteDataOrganizer__thread_pool is mock_thread_pool
     )
     assert organizer_instance.caller_id is mock_caller_id
     assert organizer_instance._RemoteDataOrganizer__client is mock_client
@@ -149,9 +146,9 @@ def test_initialization(
 def test_initialization_no_client(
     mock_thread_pool, mock_caller_id, mock_is_running_tracker
 ):
-    organizer_instance = RemoteDataOrganizer[
-        DummyExposedDataForOrganizerTests
-    ](thread_pool=mock_thread_pool, caller_id=mock_caller_id, client=None)
+    organizer_instance = RemoteDataOrganizer[DummyExposedDataForOrganizerTests](
+        thread_pool=mock_thread_pool, caller_id=mock_caller_id, client=None
+    )
     assert organizer_instance._RemoteDataOrganizer__client is None
 
 
@@ -168,9 +165,7 @@ def test_start_asserts_if_already_running(organizer, mock_is_running_tracker):
     mock_is_running_tracker.start.side_effect = RuntimeError(
         "IsRunningTracker already started."
     )
-    with pytest.raises(
-        RuntimeError, match="IsRunningTracker already started."
-    ):
+    with pytest.raises(RuntimeError, match="IsRunningTracker already started."):
         organizer.start()
 
 

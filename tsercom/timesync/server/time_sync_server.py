@@ -96,7 +96,7 @@ class TimeSyncServer:
             self.__is_running.set(False)
             if e.errno == errno.EADDRINUSE:
                 logging.error(
-                    "Port %s on %s in use. NTP server conflict?",  # Shortened "address"
+                    "Port %s on %s in use. NTP server conflict?",
                     self.__port,
                     self.__address,
                 )
@@ -123,9 +123,7 @@ class TimeSyncServer:
                         logging.info("Socket closed, exiting server loop.")
                         break
                     receive_call = self.__receive(self.__socket)
-                    pair = await self.__is_running.task_or_stopped(
-                        receive_call
-                    )
+                    pair = await self.__is_running.task_or_stopped(receive_call)
 
                 if pair is None or not self.__is_running.get():
                     logging.info("Server stopping or task was cancelled.")

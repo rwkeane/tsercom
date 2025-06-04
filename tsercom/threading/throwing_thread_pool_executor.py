@@ -31,7 +31,7 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
 
         Args:
             error_cb: Callback for exceptions/warnings in a task.
-                      The exception object is passed to this callback.
+                      The exception object is passed to it.
             *args: Variable length arguments for `ThreadPoolExecutor` superclass.
             **kwargs: Keyword arguments for `ThreadPoolExecutor` superclass.
         """

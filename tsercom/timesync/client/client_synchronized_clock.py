@@ -40,8 +40,7 @@ class ClientSynchronizedClock(SynchronizedClock):
         @abstractmethod
         def get_synchronized_clock(self) -> SynchronizedClock:
             """
-            Returns a SynchronizedClock instance that uses this client for offset
-            information.
+            Returns a SynchronizedClock instance using this client for offsets.
             """
             # pass removed by overwrite
 

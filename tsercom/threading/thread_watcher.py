@@ -88,7 +88,7 @@ class ThreadWatcher(ErrorWatcher):
 
         Raises:
             Exception: First exception caught by the watcher.
-                       (Future: Python 3.11+ ExceptionGroup).
+                       (Future: Python 3.11+ `ExceptionGroup`).
         """
         while True:
             self.__barrier.wait()

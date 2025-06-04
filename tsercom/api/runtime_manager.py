@@ -126,9 +126,7 @@ class RuntimeManager(
             thread_watcher if thread_watcher is not None else ThreadWatcher()
         )
         self.__process_creator: ProcessCreator = (
-            process_creator
-            if process_creator is not None
-            else ProcessCreator()
+            process_creator if process_creator is not None else ProcessCreator()
         )
         self.__split_error_watcher_source_factory: (
             SplitErrorWatcherSourceFactory
@@ -144,9 +142,7 @@ class RuntimeManager(
         # If redefinition errors persist, we'll explicitly type fields.
 
         if local_runtime_factory_factory is not None:
-            self.__local_runtime_factory_factory = (
-                local_runtime_factory_factory
-            )
+            self.__local_runtime_factory_factory = local_runtime_factory_factory
         else:
             default_local_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
@@ -160,9 +156,7 @@ class RuntimeManager(
             ](default_local_factory_thread_pool)
 
         if split_runtime_factory_factory is not None:
-            self.__split_runtime_factory_factory = (
-                split_runtime_factory_factory
-            )
+            self.__split_runtime_factory_factory = split_runtime_factory_factory
         else:
             default_split_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
@@ -174,9 +168,9 @@ class RuntimeManager(
             ](default_split_factory_thread_pool, self.__thread_watcher)
 
         # If RuntimeManager is Generic[DataTypeT, EventTypeT], initializers should store these specific types.
-        self.__initializers: list[
-            InitializationPair[DataTypeT, EventTypeT]
-        ] = []
+        self.__initializers: list[InitializationPair[DataTypeT, EventTypeT]] = (
+            []
+        )
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
         self.__process: Optional[Process] = None
@@ -321,10 +315,8 @@ class RuntimeManager(
         error_source: MultiprocessQueueSource[Exception]
         error_sink, error_source = create_multiprocess_queues()
         # Use the factory to create the SplitProcessErrorWatcherSource
-        self.__error_watcher = (
-            self.__split_error_watcher_source_factory.create(
-                self.__thread_watcher, error_source
-            )
+        self.__error_watcher = self.__split_error_watcher_source_factory.create(
+            self.__thread_watcher, error_source
         )
         self.__error_watcher.start()
 

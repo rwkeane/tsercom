@@ -54,9 +54,7 @@ class TestRuntimeConfig:
 
         assert copied_config.is_client()
         assert not copied_config.is_server()
-        assert (
-            copied_config._RuntimeConfig__service_type == ServiceType.CLIENT
-        )
+        assert copied_config._RuntimeConfig__service_type == ServiceType.CLIENT
         assert copied_config.timeout_seconds == 30
         assert copied_config.data_aggregator_client == mock_aggregator
 
@@ -75,9 +73,7 @@ class TestRuntimeConfig:
 
         assert not copied_config.is_client()
         assert copied_config.is_server()
-        assert (
-            copied_config._RuntimeConfig__service_type == ServiceType.SERVER
-        )
+        assert copied_config._RuntimeConfig__service_type == ServiceType.SERVER
         assert copied_config.timeout_seconds == 45
         # Based on implementation, data_aggregator_client is copied regardless of service type
         assert copied_config.data_aggregator_client == mock_aggregator_server
@@ -138,9 +134,7 @@ class TestRuntimeConfig:
         config = RuntimeConfig(service_type="Client", timeout_seconds=90)
         assert config.timeout_seconds == 90
 
-        config_default = RuntimeConfig(
-            service_type="Server"
-        )  # Default timeout
+        config_default = RuntimeConfig(service_type="Server")  # Default timeout
         assert config_default.timeout_seconds == 60
 
     def test_is_client_is_server_methods(self):

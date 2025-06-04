@@ -31,12 +31,8 @@ def create_tensor_and_list(
             + low
         )
     elif dtype.is_complex:
-        real_part = (
-            torch.randn(shape, dtype=torch.float64) * (high - low) + low
-        )
-        imag_part = (
-            torch.randn(shape, dtype=torch.float64) * (high - low) + low
-        )
+        real_part = torch.randn(shape, dtype=torch.float64) * (high - low) + low
+        imag_part = torch.randn(shape, dtype=torch.float64) * (high - low) + low
         tensor = torch.complex(real_part, imag_part).to(dtype)
     else:
         tensor = torch.randint(
@@ -80,9 +76,7 @@ class TestSerializableTensor:
     def test_to_grpc_type_correct_conversion(
         self, shape: List[int], dtype: torch.dtype
     ):
-        input_tensor, expected_array_list = create_tensor_and_list(
-            shape, dtype
-        )
+        input_tensor, expected_array_list = create_tensor_and_list(shape, dtype)
         if dtype == torch.float16 or dtype == torch.bfloat16:
             expected_array_list = (
                 input_tensor.to(torch.float32).reshape(-1).tolist()

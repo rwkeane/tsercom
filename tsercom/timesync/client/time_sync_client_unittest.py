@@ -77,9 +77,7 @@ class TestTimeSyncClientNTPFailures:
         ), "Time offsets should be empty if NTP requests fail."
 
         client.stop()
-        sync_thread = getattr(
-            client, "_TimeSyncClient__sync_loop_thread", None
-        )
+        sync_thread = getattr(client, "_TimeSyncClient__sync_loop_thread", None)
         if sync_thread is not None and sync_thread.is_alive():
             sync_thread.join(timeout=0.5)
 
@@ -146,9 +144,7 @@ class TestTimeSyncClientNTPFailures:
         assert client._TimeSyncClient__time_offsets[0] == 0.123
         assert client.get_offset_seconds() == 0.123
         client.stop()
-        sync_thread = getattr(
-            client, "_TimeSyncClient__sync_loop_thread", None
-        )
+        sync_thread = getattr(client, "_TimeSyncClient__sync_loop_thread", None)
         if sync_thread is not None and sync_thread.is_alive():
             sync_thread.join(timeout=0.5)
 
@@ -343,12 +339,16 @@ class TestTimeSyncClientOperations:
             args, _kwargs = call_arg_tuple
             if len(args) >= 2 and args[0] == expected_format_string:
                 logged_exception = args[1]
-                if isinstance(logged_exception, ValueError) and str(logged_exception) == str_test_value_error:
+                if (
+                    isinstance(logged_exception, ValueError)
+                    and str(logged_exception) == str_test_value_error
+                ):
                     call_found_and_correct = True
                     break
 
-        assert call_found_and_correct, \
-            f"Specific ValueError log ('{expected_format_string}' with '{str_test_value_error}') not found or incorrect. Logs: {mock_logging_error.call_args_list}"
+        assert (
+            call_found_and_correct
+        ), f"Specific ValueError log ('{expected_format_string}' with '{str_test_value_error}') not found or incorrect. Logs: {mock_logging_error.call_args_list}"
 
         # Ensure only one such specific error was logged for this particular exception instance
         # This check can be complex if other errors are logged with the same format string.
@@ -448,6 +448,7 @@ class TestTimeSyncClientOperations:
         assert client.is_running()
         # Import re for re.escape
         import re
+
         with pytest.raises(
             AssertionError, match=re.escape("TimeSyncClient already running.")
         ):

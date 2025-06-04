@@ -1,5 +1,0 @@
-************* Module tsercom.runtime.server.server_runtime_data_handler
-tsercom/runtime/server/server_runtime_data_handler.py:82:0: C0301: Line too long (81/79) (line-too-long)
-
-------------------------------------------------------------------
-Your code has been rated at 9.70/10 (previous run: 9.70/10, +0.00)

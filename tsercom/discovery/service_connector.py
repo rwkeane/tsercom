@@ -111,9 +111,7 @@ class ServiceConnector(
             )
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
-                logging.error(
-                    "Failed to get event loop in mark_client_failed."
-                )
+                logging.error("Failed to get event loop in mark_client_failed.")
                 return
 
         if not is_running_on_event_loop(self.__event_loop):

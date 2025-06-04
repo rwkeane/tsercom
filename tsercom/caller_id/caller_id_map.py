@@ -27,7 +27,7 @@ class CallerIdMap(Generic[MapValueT]):
 
         If an instance for the given `caller_id` already exists, it's returned.
         Otherwise, the `factory` function is called to create a new instance,
-        which is stored in the map and returned. This operation is thread-safe.
+        which is stored and returned. This operation is thread-safe.
         """
         with self.__lock:
             if caller_id not in self.__map:

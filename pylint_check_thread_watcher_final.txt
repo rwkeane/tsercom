@@ -1,5 +1,0 @@
-************* Module tsercom.threading.thread_watcher
-tsercom/threading/thread_watcher.py:101:0: C0301: Line too long (81/79) (line-too-long)
-
-------------------------------------------------------------------
-Your code has been rated at 9.72/10 (previous run: 5.83/10, +3.89)

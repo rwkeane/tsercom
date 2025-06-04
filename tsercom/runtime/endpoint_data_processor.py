@@ -92,9 +92,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT]):
         await self._process_data(data, actual_timestamp)
 
     @abstractmethod
-    async def _process_data(
-        self, data: DataTypeT, timestamp: datetime
-    ) -> None:
+    async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
         """Processes the data item with its synchronized datetime.
 
         Subclasses must implement this method to define the actual data

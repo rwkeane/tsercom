@@ -1,5 +1,0 @@
-************* Module tsercom.timesync.client.fake_time_sync_client
-tsercom/timesync/client/fake_time_sync_client.py:47:8: W0238: Unused private member `FakeTimeSyncClient.__sync_loop_thread` (unused-private-member)
-
-------------------------------------------------------------------
-Your code has been rated at 9.73/10 (previous run: 9.46/10, +0.27)

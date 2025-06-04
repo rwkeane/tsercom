@@ -31,7 +31,7 @@ class EventToSerializableAnnInstancePollerAdapter(
         self, event_inst: EventInstance[EventTypeT]
     ) -> SerializableAnnotatedInstance[EventTypeT]:
         """
-        Placeholder conversion from EventInstance to SerializableAnnotatedInstance.
+        Placeholder: EventInstance to SerializableAnnotatedInstance conversion.
         Actual implementation would require proper serialization.
         """
         if event_inst.caller_id is None:

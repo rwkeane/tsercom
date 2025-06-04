@@ -1,5 +1,0 @@
-************* Module tsercom.threading.aio.event_loop_factory
-tsercom/threading/aio/event_loop_factory.py:106:0: C0301: Line too long (83/79) (line-too-long)
-
-------------------------------------------------------------------
-Your code has been rated at 9.76/10 (previous run: 9.29/10, +0.48)

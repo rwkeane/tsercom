@@ -35,9 +35,11 @@ def create_multiprocess_queues() -> tuple[
     and receiving data between processes.
 
     Returns:
-        tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
-            A tuple containing the sink (for putting items) and the source
-            (for getting items) for the created multiprocess queue.
+        tuple[
+            MultiprocessQueueSink[QueueTypeT],
+            MultiprocessQueueSource[QueueTypeT],
+        ]: A tuple with the sink (for putting) and source (for getting)
+           for the created multiprocess queue.
     """
     queue: "MpQueue[QueueTypeT]" = MpQueue()
 

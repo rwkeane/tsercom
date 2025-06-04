@@ -290,9 +290,7 @@ def test_watch_commands_kstart(
         command_source, fake_thread_watcher, fake_runtime_instance
     )
 
-    fake_command_queue.set_return_values(
-        [RuntimeCommand.START, StopIteration]
-    )
+    fake_command_queue.set_return_values([RuntimeCommand.START, StopIteration])
     internal_fake_tracker.set_is_running(True)
 
     with pytest.raises(StopIteration):

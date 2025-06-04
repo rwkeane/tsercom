@@ -1,5 +1,0 @@
-************* Module tsercom.threading.throwing_thread_pool_executor
-tsercom/threading/throwing_thread_pool_executor.py:35:0: C0301: Line too long (81/79) (line-too-long)
-
-------------------------------------------------------------------
-Your code has been rated at 9.57/10 (previous run: 9.13/10, +0.43)

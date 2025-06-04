@@ -29,8 +29,8 @@ class CallerIdentifierWaiter:
             The `CallerIdentifier` instance.
 
         Raises:
-            RuntimeError: If `set_caller_id` is not called before waiting,
-                          or if event set without `__caller_id` (should not happen).
+            RuntimeError: If `set_caller_id` not called before wait, or event set
+                          without `__caller_id` (should not happen).
         """
         await self.__barrier.wait()
         # At this point, __caller_id is guaranteed to be set by set_caller_id.

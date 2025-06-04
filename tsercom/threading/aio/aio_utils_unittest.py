@@ -161,9 +161,7 @@ def test_is_running_on_event_loop_outside_loop_specific(new_event_loop):
 
 
 # Helper to run a future and get its result in the current thread
-def await_future_in_thread(
-    future: asyncio.Future, timeout: float = 1.0
-) -> Any:
+def await_future_in_thread(future: asyncio.Future, timeout: float = 1.0) -> Any:
     # This is a simplified way to get future result from a different thread's loop.
     # More robust mechanisms might be needed for complex scenarios.
     # asyncio.Future.result() can block, but it needs the loop to be running.

@@ -1,5 +1,0 @@
-************* Module tsercom.timesync.server.time_sync_server
-tsercom/timesync/server/time_sync_server.py:99:0: C0301: Line too long (88/79) (line-too-long)
-
-------------------------------------------------------------------
-Your code has been rated at 9.91/10 (previous run: 9.91/10, +0.00)

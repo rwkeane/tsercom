@@ -52,18 +52,14 @@ class SynchronizedTimestamp:
 
         # This assertion is a useful precondition check.
         if not isinstance(other, Timestamp):
-            raise TypeError(
-                "Input must be a gRPC Timestamp or resolve to one."
-            )
+            raise TypeError("Input must be a gRPC Timestamp or resolve to one.")
 
         try:
             dt_object = other.ToDatetime()
             return cls(dt_object)
         except ValueError as e:
             # Logging here is important for debugging potential data issues.
-            logging.warning(
-                "Failed to parse gRPC Timestamp to datetime: %s", e
-            )
+            logging.warning("Failed to parse gRPC Timestamp to datetime: %s", e)
             return None
 
     def as_datetime(self) -> datetime.datetime:

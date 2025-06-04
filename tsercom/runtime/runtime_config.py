@@ -79,7 +79,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Raises:
             ValueError: If `service_type` and `other_config` are not mutually
-                        exclusive, or if `service_type` string is invalid.
+                        exclusive, or `service_type` string is invalid.
         """
         if (service_type is None) == (other_config is None):
             # Using f-string for ValueError as Pylint prefers it over %-style here
@@ -88,7 +88,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             )
             raise ValueError(
                 "Exactly one of 'service_type' or 'other_config' must be "
-                f"provided. Got service_type={service_type}, "  # Shortened this part
+                f"provided. Got service_type={service_type}, "
                 f"other_config={other_config_str}."
             )
 

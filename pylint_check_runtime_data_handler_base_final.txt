@@ -1,7 +1,0 @@
-************* Module tsercom.runtime.runtime_data_handler_base
-tsercom/runtime/runtime_data_handler_base.py:118:0: C0301: Line too long (82/79) (line-too-long)
-tsercom/runtime/runtime_data_handler_base.py:134:0: C0301: Line too long (82/79) (line-too-long)
-tsercom/runtime/runtime_data_handler_base.py:62:4: W0221: Number of parameters was 4 in 'RuntimeDataHandler.register_caller' and is now 3 in overriding 'RuntimeDataHandlerBase.register_caller' method (arguments-differ)
-
-------------------------------------------------------------------
-Your code has been rated at 9.72/10 (previous run: 9.35/10, +0.37)

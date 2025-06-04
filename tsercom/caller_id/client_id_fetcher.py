@@ -63,7 +63,8 @@ class ClientIdFetcher:
                     ), f"Expected GetIdResponse, got {type(id_response)}"
 
                     # CallerIdentifier.try_parse can return None if invalid.
-                    # id_response.id is CallerId msg; id_response.id.id is its str payload.
+                    # id_response.id is CallerId msg;
+                    # id_response.id.id is its str payload.
                     parsed_id = CallerIdentifier.try_parse(id_response.id.id)
                     if parsed_id is None:
                         ClientIdFetcher.logger.warning(

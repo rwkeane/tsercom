@@ -49,7 +49,7 @@ def initialize_runtimes(
 
     Args:
         thread_watcher: Monitors threads for the runtimes.
-        initializers: List of `RuntimeFactory` instances to create & start runtimes.
+        initializers: List of `RuntimeFactory` to create & start runtimes.
         is_testing: Boolean flag for testing mode.
 
     Returns:
@@ -126,9 +126,7 @@ def initialize_runtimes(
                 # Removed unnecessary pass
 
         future.add_done_callback(
-            partial(
-                _runtime_start_done_callback, thread_watcher=thread_watcher
-            )
+            partial(_runtime_start_done_callback, thread_watcher=thread_watcher)
         )
 
     return runtimes

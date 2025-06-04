@@ -66,7 +66,7 @@ class IdTracker:
             elif len(args) > 0:
                 # pylint: disable=consider-using-f-string
                 raise ValueError(
-                    "Invalid positional args. Provide CallerID or (addr, port). "
+                    "Invalid positional args. Use CallerID or (addr, port). "
                     "Got: %s" % (args,)
                 )
 
@@ -94,8 +94,7 @@ class IdTracker:
                 if not isinstance(kw_address, str):
                     # pylint: disable=consider-using-f-string
                     raise ValueError(
-                        "'address' kwarg must be str. Got %s"
-                        % type(kw_address)
+                        "'address' kwarg must be str. Got %s" % type(kw_address)
                     )
                 _address = kw_address
             if "port" in kwargs:

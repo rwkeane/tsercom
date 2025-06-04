@@ -62,9 +62,7 @@ def mock_actual_instance_listener_fixture(mocker):
 # 4. Mock for CallerIdentifier.random
 @pytest.fixture
 def mock_caller_identifier_random_fixture(mocker):
-    mock_random = mocker.patch.object(
-        CallerIdentifier, "random", autospec=True
-    )
+    mock_random = mocker.patch.object(CallerIdentifier, "random", autospec=True)
     mock_random.side_effect = lambda: MagicMock(
         spec=CallerIdentifier,
         name=f"RandomCallerIdInstance_{mock_random.call_count}",

@@ -175,9 +175,7 @@ class TestRuntimeDataHandlerBaseBehavior:  # Removed @pytest.mark.asyncio from c
         )  # Assuming CallerIdentifier has a factory or suitable constructor
 
     @pytest.fixture
-    def data_processor(
-        self, handler, test_caller_id_instance, mock_sync_clock
-    ):
+    def data_processor(self, handler, test_caller_id_instance, mock_sync_clock):
         # Create an instance of the inner class for testing
         # The _create_data_processor method is part of RuntimeDataHandlerBase
         return handler._create_data_processor(
@@ -595,8 +593,14 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             )
 
         # The app code uses %-formatting, so we match the resulting string.
-        expected_msg_part = "Could not get client port from context for endpoint " + expected_ip
-        assert expected_msg_part in str(excinfo.value)
+        expected_msg_part = (
+            "Could not get client port from context for endpoint: " + expected_ip # Added colon
+        )
+        # We also need to ensure the trailing period from the app's message is handled.
+        # The original app message is "Could not get client port from context for endpoint: %s."
+        # So, the full string to check for (if not using regex) would be expected_msg_part + "."
+        assert (expected_msg_part + ".") == str(excinfo.value)
+
         mock_get_ip.assert_called_once_with(mock_context_fixture)
         mock_get_port.assert_called_once_with(mock_context_fixture)
         handler_fixture._register_caller_mock.assert_not_called()
@@ -615,7 +619,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 context=mock_context_fixture,
             )
         assert (
-            "Cannot use context via args & kwargs, or with endpoint/port." # Updated message
+            "Cannot use context via args & kwargs, or with endpoint/port."  # Updated message
             in str(excinfo.value)
         )
 
@@ -627,7 +631,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id
             )  # No endpoint, port or context
         assert (
-            "Provide (endpoint/port) or context, not both/neither." # Updated message
+            "Provide (endpoint/port) or context, not both/neither."  # Updated message
             in str(excinfo.value)
         )
 
@@ -639,7 +643,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, endpoint="1.2.3.4"
             )  # Port is None
         assert (
-            "If 'endpoint' provided, 'port' must be too, and vice-versa." # Updated message
+            "If 'endpoint' provided, 'port' must be too, and vice-versa."  # Updated message
             in str(excinfo.value)
         )
 
@@ -651,7 +655,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, port=1234
             )  # Endpoint is None
         assert (
-            "If 'endpoint' provided, 'port' must be too, and vice-versa." # Updated message
+            "If 'endpoint' provided, 'port' must be too, and vice-versa."  # Updated message
             in str(excinfo.value)
         )
 
@@ -678,7 +682,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             )
 
         assert (
-            "Expected context: grpc.aio.ServicerContext, got object." # Exact string match
+            "Expected context: grpc.aio.ServicerContext, got object."  # Exact string match
             in str(excinfo.value)
         )
         mock_get_ip.assert_not_called()  # Should fail before trying to use context
