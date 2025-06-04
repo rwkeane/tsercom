@@ -74,8 +74,6 @@ class LocalRuntimeFactoryFactory(
             )
         event_poller = AsyncPoller[EventInstance[EventTypeT]]()
         bridge = RuntimeCommandBridge()
-
-        # pylint: disable=C0301 # Black-formatted
         factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
             initializer, data_aggregator, event_poller, bridge
         )

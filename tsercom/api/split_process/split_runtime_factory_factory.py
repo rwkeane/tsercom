@@ -41,7 +41,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
     `ShimRuntimeHandle` for managing a runtime in a child process.
     """
 
-    def __init__(  # pylint: disable=C0301 # Black-formatted
+    def __init__(
         self, thread_pool: ThreadPoolExecutor, thread_watcher: ThreadWatcher
     ) -> None:
         """Initializes the SplitRuntimeFactoryFactory.
@@ -84,18 +84,14 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
         runtime_command_sink: MultiprocessQueueSink[RuntimeCommand]
         runtime_command_source: MultiprocessQueueSource[RuntimeCommand]
-        # pylint: disable=C0301 # Black-formatted
         runtime_command_sink, runtime_command_source = (
             create_multiprocess_queues()
         )
-
-        # pylint: disable=C0301 # Black-formatted
         factory = RemoteRuntimeFactory[DataTypeT, EventTypeT](
             initializer, event_source, data_sink, runtime_command_source
         )
 
         if initializer.timeout_seconds is not None:
-            # pylint: disable=C0301 # Black-formatted
             aggregator = RemoteDataAggregatorImpl[
                 AnnotatedInstance[DataTypeT]
             ](
@@ -105,7 +101,6 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                 timeout=initializer.timeout_seconds,
             )
         else:
-            # pylint: disable=C0301 # Black-formatted
             aggregator = RemoteDataAggregatorImpl[
                 AnnotatedInstance[DataTypeT]
             ](
@@ -113,8 +108,6 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                 # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
             )
-
-        # pylint: disable=C0301 # Black-formatted
         runtime_handle = ShimRuntimeHandle[DataTypeT, EventTypeT](
             self.__thread_watcher,
             event_sink,

@@ -5,8 +5,6 @@ from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
-
-# pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -77,7 +75,7 @@ class DataReaderSource(Generic[DataTypeT]):
         if self.__thread:
             self.__thread.join(timeout=5)
             if self.__thread.is_alive():
-                # pylint: disable=C0301 # Long error message
+                # Long error message
                 raise RuntimeError(
                     f"ERROR: DataReaderSource thread for queue {self.__queue} did not terminate within 5 seconds."
                 )

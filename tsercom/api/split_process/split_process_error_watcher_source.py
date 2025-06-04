@@ -2,8 +2,6 @@
 
 import logging
 import threading
-
-# pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -60,7 +58,7 @@ class SplitProcessErrorWatcherSource:
                         )
                     # pylint: disable=W0718 # Catch any error from queue processing to keep watcher alive
                     except Exception as e_seen:
-                        # pylint: disable=C0301 # Long but readable error log
+                        # Long but readable error log
                         logger.error(
                             "Exception occurred within ThreadWatcher.on_exception_seen() "
                             "while handling %s: %s",
@@ -70,7 +68,6 @@ class SplitProcessErrorWatcherSource:
                         )
                         # Loop should continue to report further exceptions.
 
-        # pylint: disable=C0301 # Black-formatted
         self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception  # Pass target for clarity
         )
@@ -89,7 +86,7 @@ class SplitProcessErrorWatcherSource:
         if self.__thread is not None:  # Check if thread exists
             self.__thread.join(timeout=2.0)  # Join with a timeout
             if self.__thread.is_alive():
-                # pylint: disable=C0301 # Long warning message
+                # Long warning message
                 logger.warning(
                     "SplitProcessErrorWatcherSource: Polling thread %s did not join in 2.0s.",
                     self.__thread.name,

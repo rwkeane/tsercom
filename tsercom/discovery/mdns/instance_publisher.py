@@ -26,7 +26,6 @@ class InstancePublisher:
         readable_name: str | None = None,
         instance_name: str | None = None,
         *,
-        # pylint: disable=C0301 # Black-formatted type hint
         mdns_publisher_factory: Optional[
             Callable[
                 [str, str, int, Optional[Dict[bytes, bytes | None]]],
@@ -69,12 +68,12 @@ class InstancePublisher:
             base_service_type = base_service_type[: -len(suffix_to_remove)]
 
         if readable_name is not None and not isinstance(readable_name, str):
-            raise TypeError(  # pylint: disable=C0301
+            raise TypeError(
                 f"readable_name must be str or None, got {type(readable_name).__name__}."
             )
 
         if instance_name is not None and not isinstance(instance_name, str):
-            raise TypeError(  # pylint: disable=C0301
+            raise TypeError(
                 f"instance_name must be str or None, got {type(instance_name).__name__}."
             )
 
@@ -104,7 +103,6 @@ class InstancePublisher:
         self.__record_publisher: MdnsPublisher  # Declare type once
         if mdns_publisher_factory is None:
             # Default factory creates RecordPublisher
-            # pylint: disable=C0301 # Black-formatted signature
             def default_mdns_publisher_factory(
                 eff_inst_name: str,
                 s_type: str,
@@ -113,13 +111,11 @@ class InstancePublisher:
             ) -> MdnsPublisher:
                 return RecordPublisher(eff_inst_name, s_type, p, txt)
 
-            # pylint: disable=C0301 # Black-formatted call
             self.__record_publisher = default_mdns_publisher_factory(
                 effective_instance_name, base_service_type, port, txt_record
             )
         else:
             # Use provided factory
-            # pylint: disable=C0301 # Black-formatted call
             self.__record_publisher = mdns_publisher_factory(
                 effective_instance_name, base_service_type, port, txt_record
             )
@@ -163,7 +159,7 @@ class InstancePublisher:
                     exc_info=True,
                 )
         else:
-            # pylint: disable=C0301 # Long but readable debug message
+            # Long but readable debug message
             _logger.debug(
                 "Record publisher does not have a close method or it's not callable."
             )

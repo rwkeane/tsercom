@@ -1,4 +1,3 @@
-# pylint: disable=C0301
 """RuntimeCommandBridge for relaying commands to a Runtime instance."""
 
 import concurrent.futures

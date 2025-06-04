@@ -1,4 +1,3 @@
-# pylint: disable=C0301
 """Listener for mDNS service records using zeroconf."""
 
 import logging  # Moved up
@@ -32,7 +31,7 @@ class RecordListener(MdnsListener):
         if not hasattr(client, "_on_service_added") or not callable(
             getattr(client, "_on_service_added")
         ):
-            # pylint: disable=C0301 # Long error message
+            # Long error message
             raise TypeError(
                 f"Client must implement MdnsListener.Client interface (e.g., _on_service_added), got {type(client).__name__}."
             )
@@ -45,7 +44,7 @@ class RecordListener(MdnsListener):
             )
         # mDNS service types usually start with an underscore.
         if not service_type.startswith("_"):
-            # pylint: disable=C0301 # Long error message
+            # Long error message
             raise ValueError(
                 f"service_type must start with '_', got '{service_type}'."
             )

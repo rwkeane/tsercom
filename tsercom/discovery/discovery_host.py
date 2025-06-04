@@ -1,4 +1,3 @@
-# pylint: disable=C0301
 """Manages mDNS service discovery and notifies clients of services."""
 
 from typing import Callable, Dict, Generic, Optional, overload
@@ -64,7 +63,7 @@ class DiscoveryHost(
         """
         # Ensure exclusive provision of service_type or factory
         if (service_type is None) == (instance_listener_factory is None):
-            # pylint: disable=C0301 # Long error message
+            # Long error message
             raise ValueError(
                 "Exactly one of 'service_type' or 'instance_listener_factory' must be provided."
             )
@@ -124,16 +123,16 @@ class DiscoveryHost(
             self.__discoverer = self.__instance_listener_factory(self)
         else:
             # This assertion is safe due to the __init__ constructor logic.
-            assert (  # pylint: disable=C0301
+            assert (
                 self.__service_type is not None
             ), "Service type must be set if no factory is provided."
             self.__discoverer = InstanceListener[ServiceInfoT](
                 self, self.__service_type
             )
-        # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener) # pylint: disable=C0301
-        # requires an explicit start() method to be called after instantiation. # pylint: disable=C0301
+        # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener)
+        # requires an explicit start() method to be called after instantiation.
         # If so, it should be called here. For example:
-        # if hasattr(self.__discoverer, "start") and callable(self.__discoverer.start): # pylint: disable=C0301
+        # if hasattr(self.__discoverer, "start") and callable(self.__discoverer.start):
         #     # await self.__discoverer.start() # If async
         #     # self.__discoverer.start() # If sync
         #     pass  # Actual call depends on InstanceListener's API
@@ -153,7 +152,7 @@ class DiscoveryHost(
         """
         if self.__client is None:
             # Programming error: discovery should have been started with a client.
-            # pylint: disable=C0301 # Long error message
+            # Long error message
             raise RuntimeError(
                 "DiscoveryHost client not set; discovery may not have been started correctly."
             )
@@ -173,6 +172,6 @@ class DiscoveryHost(
         await self.__client._on_service_added(connection_info, caller_id)
 
 
-# TODO(developer/issue_id): Implement a stop_discovery() method. # pylint: disable=C0301
+# TODO(developer/issue_id): Implement a stop_discovery() method.
 # This method should handle stopping self.__discoverer (InstanceListener)
 # if it has stop(), and potentially clear client, discoverer, and map.
