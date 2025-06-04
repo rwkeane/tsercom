@@ -24,6 +24,9 @@ from tsercom.data.annotated_instance import AnnotatedInstance
 
 # ServerTimestamp removed, SerializableAnnotatedInstance will be used for spec if appropriate, or no spec.
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)  # Added import
 from google.protobuf.timestamp_pb2 import (
     Timestamp as GrpcTimestamp,
 )  # Added import
@@ -367,7 +370,13 @@ class TestRuntimeDataHandlerBaseBehavior:  # Removed @pytest.mark.asyncio from c
 
         result_dt = await data_processor.desynchronize(mock_server_ts)
 
-        mock_sync_clock.desync.assert_called_once_with(mock_server_ts)
+        mock_sync_clock.desync.assert_called_once()
+        args, _ = mock_sync_clock.desync.call_args
+        assert isinstance(args[0], SynchronizedTimestamp)
+        assert (
+            args[0].timestamp
+            == mock_server_ts.timestamp.ToDatetime.return_value
+        )
         assert result_dt is expected_datetime
 
     @pytest.mark.asyncio
@@ -425,7 +434,13 @@ class TestRuntimeDataHandlerBaseBehavior:  # Removed @pytest.mark.asyncio from c
 
         await data_processor.process_data(test_payload, mock_server_ts)
 
-        mock_sync_clock.desync.assert_called_once_with(mock_server_ts)
+        mock_sync_clock.desync.assert_called_once()
+        args, _ = mock_sync_clock.desync.call_args
+        assert isinstance(args[0], SynchronizedTimestamp)
+        assert (
+            args[0].timestamp
+            == mock_server_ts.timestamp.ToDatetime.return_value
+        )
         handler._on_data_ready.assert_called_once()
         args, _ = handler._on_data_ready.call_args
         annotated_instance: AnnotatedInstance = args[0]

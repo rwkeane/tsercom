@@ -17,8 +17,8 @@ class TestIdTracker:
         port = 8080
         tracker.add(caller_id, ip_address, port)
 
-        assert tracker.get(address=ip_address, port=port) == caller_id
-        assert tracker.get(id=caller_id) == (ip_address, port)
+        assert tracker.get(address=ip_address, port=port) == (caller_id, None)
+        assert tracker.get(id=caller_id) == (ip_address, port, None)
 
     def test_try_get_id(self):
         """Test try_get method."""
@@ -28,8 +28,11 @@ class TestIdTracker:
         port = 8080
         tracker.add(caller_id, ip_address, port)
 
-        assert tracker.try_get(address=ip_address, port=port) == caller_id
-        assert tracker.try_get(id=caller_id) == (ip_address, port)
+        assert tracker.try_get(address=ip_address, port=port) == (
+            caller_id,
+            None,
+        )
+        assert tracker.try_get(id=caller_id) == (ip_address, port, None)
         assert tracker.try_get(address="nonexistent", port=123) is None
         assert tracker.try_get(id=CallerIdentifier.random()) is None
 
@@ -65,7 +68,7 @@ class TestIdTracker:
         tracker.add(caller_id1, ip_address1, port1)
         tracker.add(caller_id1, ip_address2, port2)
         val = tracker.get(id=caller_id1)
-        assert val == (ip_address2, port2)
+        assert val == (ip_address2, port2, None)
 
     def test_add_duplicate_address_raises_key_error(self):
         """Test adding a duplicate address/port pair raises KeyError."""
@@ -180,20 +183,20 @@ class TestIdTracker:
         tracker.remove(caller_id)
         tracker.add(caller_id, ip_address, port)
         assert len(tracker) == 1
-        assert tracker.get(id=caller_id) == (ip_address, port)
+        assert tracker.get(id=caller_id) == (ip_address, port, None)
 
         tracker.remove(caller_id)
         ip_address2 = "127.0.0.2"
         tracker.add(caller_id, ip_address2, port)
         assert len(tracker) == 1
-        assert tracker.get(id=caller_id) == (ip_address2, port)
+        assert tracker.get(id=caller_id) == (ip_address2, port, None)
         assert not tracker.has_address(ip_address, port)
 
         tracker.remove(caller_id)
         caller_id2 = CallerIdentifier.random()
         tracker.add(caller_id2, ip_address, port)
         assert len(tracker) == 1
-        assert tracker.get(id=caller_id2) == (ip_address, port)
+        assert tracker.get(id=caller_id2) == (ip_address, port, None)
         assert not tracker.has_id(caller_id)
 
     def test_remove_maintains_other_ids(self):
@@ -222,11 +225,11 @@ class TestIdTracker:
             tracker.get(id=caller_id2)
 
         assert tracker.has_id(caller_id1)
-        assert tracker.get(id=caller_id1) == (ip1, port1)
+        assert tracker.get(id=caller_id1) == (ip1, port1, None)
         assert tracker.has_address(ip1, port1)
 
         assert tracker.has_id(caller_id3)
-        assert tracker.get(id=caller_id3) == (ip3, port3)
+        assert tracker.get(id=caller_id3) == (ip3, port3, None)
         assert tracker.has_address(ip3, port3)
 
     def test_integration_add_get_has_len(self):
@@ -246,8 +249,8 @@ class TestIdTracker:
         assert tracker.has_id(caller1)
         assert not tracker.has_id(random_id_init)
         assert tracker.has_address(addr1[0], addr1[1])
-        assert tracker.get(id=caller1) == addr1
-        assert tracker.get(address=addr1[0], port=addr1[1]) == caller1
+        assert tracker.get(id=caller1) == (addr1[0], addr1[1], None)
+        assert tracker.get(address=addr1[0], port=addr1[1]) == (caller1, None)
 
         caller2 = CallerIdentifier.random()
         addr2 = ("10.0.0.2", 1002)
@@ -256,14 +259,14 @@ class TestIdTracker:
         assert len(tracker) == 2
         assert tracker.has_id(caller2)
         assert tracker.has_address(addr2[0], addr2[1])
-        assert tracker.get(id=caller2) == addr2
-        assert tracker.get(address=addr2[0], port=addr2[1]) == caller2
+        assert tracker.get(id=caller2) == (addr2[0], addr2[1], None)
+        assert tracker.get(address=addr2[0], port=addr2[1]) == (caller2, None)
 
         assert tracker.has_id(caller1)
         assert tracker.has_address(addr1[0], addr1[1])
-        assert tracker.get(id=caller1) == addr1
+        assert tracker.get(id=caller1) == (addr1[0], addr1[1], None)
 
-        assert tracker.try_get(id=caller1) == addr1
+        assert tracker.try_get(id=caller1) == (addr1[0], addr1[1], None)
         non_existing_caller = CallerIdentifier.random()
         assert tracker.try_get(id=non_existing_caller) is None
         assert tracker.try_get(address="10.0.0.3", port=1003) is None

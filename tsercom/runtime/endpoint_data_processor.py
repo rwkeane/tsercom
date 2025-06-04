@@ -128,7 +128,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
                     )
                 return
 
-            timestamp = maybe_timestamp
+            actual_timestamp = (
+                maybe_timestamp  # Changed 'timestamp' to 'actual_timestamp'
+            )
         else:  # Is already a datetime object
             actual_timestamp = timestamp
 

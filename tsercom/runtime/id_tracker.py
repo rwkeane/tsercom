@@ -293,7 +293,8 @@ class IdTracker(Generic[TrackedDataT]):
             if caller_id_obj not in self.__id_to_address:
                 return False
             address_port_tuple = self.__id_to_address.pop(caller_id_obj)
-            del self.__data_map[caller_id_obj]
+            if caller_id_obj in self.__data_map:  # Added conditional deletion
+                del self.__data_map[caller_id_obj]
             if address_port_tuple in self.__address_to_id:
                 # Ensure we only delete if mapped to the ID we are removing
                 if self.__address_to_id[address_port_tuple] == caller_id_obj:
