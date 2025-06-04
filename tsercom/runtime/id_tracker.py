@@ -143,29 +143,30 @@ class IdTracker(Generic[TrackedDataT]):
         with self.__lock:
             if _id is not None:
                 data = self.__id_to_address.get(_id)
-                if data is None:
+                data_tuple = self.__id_to_address.get(_id)
+                if data_tuple is None:
                     return None
-
-                value = None
                 if self.__data_factory is not None:
                     value = self.__data_map.get(_id)
-                    assert value is not None
+                    # Ensure value exists if factory is defined, critical for consistency
+                    assert value is not None, f"Data not found for ID {_id} when factory is present."
+                    return data_tuple[0], data_tuple[1], value
+                return data_tuple # Return (address, port) only
 
-                return tuple(list(data) + [value])  # type: ignore
-
-            if _address is not None and _port is not None:
+            if _address is not None and _port is not None: # _address and _port are not None
                 fetched_id = self.__address_to_id.get((_address, _port))
                 if fetched_id is None:
                     return None
-
-                value = None
                 if self.__data_factory is not None:
                     value = self.__data_map.get(fetched_id)
-                    assert value is not None
+                     # Ensure value exists if factory is defined
+                    assert value is not None, f"Data not found for ID {fetched_id} when factory is present."
+                    return fetched_id, value
+                return fetched_id # Return CallerIdentifier only
 
-                return fetched_id, value  # type: ignore
-
-        return None  # Should be unreachable
+        # This path should ideally not be reached if logic is correct.
+        # Adding explicit None return for clarity, though try_get is Optional anyway.
+        return None
 
     @overload
     def get(
@@ -293,7 +294,10 @@ class IdTracker(Generic[TrackedDataT]):
             if caller_id_obj not in self.__id_to_address:
                 return False
             address_port_tuple = self.__id_to_address.pop(caller_id_obj)
-            del self.__data_map[caller_id_obj]
+            # Only attempt to delete from __data_map if it was expected to be there
+            if caller_id_obj in self.__data_map:
+                del self.__data_map[caller_id_obj]
+
             if address_port_tuple in self.__address_to_id:
                 # Ensure we only delete if mapped to the ID we are removing
                 if self.__address_to_id[address_port_tuple] == caller_id_obj:

@@ -1,3 +1,5 @@
+from concurrent.futures import Future  # Added by Jules
+
 """Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
 
 import logging  # Add logging import
@@ -198,7 +200,9 @@ class RemoteDataOrganizer(
         # but as a fallback or if logic changes, return None.
         return None
 
-    def _on_data_ready(self, new_data: DataTypeT) -> None:
+    def _on_data_ready(
+        self, new_data: DataTypeT
+    ) -> Future:  # Modified by Jules
         """Handles an incoming data item.
 
         Validates the data, ensures it matches the organizer's `caller_id`,
@@ -221,7 +225,9 @@ class RemoteDataOrganizer(
         assert (
             new_data.caller_id == self.caller_id
         ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
-        self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
+        return self.__thread_pool.submit(
+            self.__on_data_ready_impl, new_data
+        )  # Modified by Jules
 
     def __on_data_ready_impl(self, new_data: DataTypeT) -> None:
         """Internal implementation to process and store new data.

@@ -1,0 +1,3733 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: mock-3.14.1, timeout-2.4.0, asyncio-1.0.0, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 520 items
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py FFFF [  0%]
+F.F                                                                      [  1%]
+tsercom/api/local_process/local_runtime_factory_unittest.py FFFF         [  2%]
+tsercom/api/local_process/runtime_command_bridge_unittest.py ........... [  4%]
+......                                                                   [  5%]
+tsercom/api/local_process/runtime_wrapper_unittest.py .........          [  7%]
+tsercom/api/runtime_manager_unittest.py .................                [ 10%]
+tsercom/api/split_process/data_reader_sink_unittest.py ......            [ 11%]
+tsercom/api/split_process/data_reader_source_unittest.py ..........      [ 13%]
+tsercom/api/split_process/event_source_unittest.py .......               [ 14%]
+tsercom/api/split_process/remote_runtime_factory_unittest.py EEEE        [ 15%]
+tsercom/api/split_process/runtime_command_source_unittest.py .........   [ 17%]
+tsercom/api/split_process/shim_runtime_handle_unittest.py ........       [ 18%]
+tsercom/api/split_process/split_process_error_watcher_sink_unittest.py . [ 19%]
+..                                                                       [ 19%]
+tsercom/api/split_process/split_process_error_watcher_source_unittest.py . [ 19%]
+......                                                                   [ 20%]
+tsercom/api/split_process/split_runtime_factory_factory_unittest.py ..   [ 21%]
+tsercom/caller_id/caller_id_map_unittest.py .....                        [ 22%]
+tsercom/caller_id/caller_identifier_unittest.py ......F.......           [ 24%]
+tsercom/caller_id/caller_identifier_waiter_unittest.py ....              [ 25%]
+tsercom/caller_id/client_id_fetcher_unittest.py .......                  [ 26%]
+tsercom/data/data_host_base_unittest.py .....                            [ 27%]
+tsercom/data/data_timeout_tracker_unittest.py ..........                 [ 29%]
+tsercom/data/exposed_data_with_responder_unittest.py .....               [ 30%]
+tsercom/data/remote_data_aggregator_impl_unittest.py ................... [ 34%]
+.                                                                        [ 34%]
+tsercom/data/remote_data_organizer_unittest.py ......................... [ 39%]
+.                                                                        [ 39%]
+tsercom/discovery/discovery_host_unittest.py .......                     [ 40%]
+tsercom/discovery/mdns/instance_listener_unittest.py ...........         [ 43%]
+tsercom/discovery/mdns/instance_publisher_unittest.py .................. [ 46%]
+.                                                                        [ 46%]
+tsercom/discovery/service_connector_unittest.py ........                 [ 48%]
+tsercom/discovery_e2etest.py ......                                      [ 49%]
+tsercom/rpc/connection/client_disconnection_retrier_unittest.py .......  [ 50%]
+tsercom/rpc/serialization/caller_id_extraction_unittest.py ............  [ 53%]
+tsercom/rpc_e2etest.py .............                                     [ 55%]
+tsercom/runtime/client/client_runtime_data_handler_unittest.py EEEEEE    [ 56%]
+tsercom/runtime/client/timesync_tracker_unittest.py ......               [ 57%]
+tsercom/runtime/id_tracker_unittest.py FF..F...F..FFFF                   [ 60%]
+tsercom/runtime/runtime_config_unittest.py ...............               [ 63%]
+tsercom/runtime/runtime_data_handler_base_unittest.py EEEEEEEEEEEEEEEEEE [ 67%]
+EEEE                                                                     [ 67%]
+tsercom/runtime/runtime_main_unittest.py FFF..                           [ 68%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py EEEEE     [ 69%]
+tsercom/runtime_e2etest.py FF....                                        [ 70%]
+tsercom/threading/aio/aio_utils_unittest.py .......                      [ 72%]
+tsercom/threading/aio/event_loop_factory_unittest.py .                   [ 72%]
+tsercom/threading/aio/global_event_loop_unittest.py .........            [ 74%]
+tsercom/threading/async_poller_unittest.py ...............               [ 77%]
+tsercom/threading/atomic_unittest.py ......                              [ 78%]
+tsercom/threading/multiprocess/multiprocess_queue_sink_unittest.py ....  [ 79%]
+tsercom/threading/thread_safe_queue_unittest.py .......                  [ 80%]
+tsercom/threading/thread_watcher_unittest.py ............                [ 82%]
+tsercom/threading/throwing_thread_pool_executor_unittest.py ........     [ 84%]
+tsercom/threading/throwing_thread_unittest.py .....s                     [ 85%]
+tsercom/timesync/client/client_synchronized_clock_unittest.py .......... [ 87%]
+                                                                         [ 87%]
+tsercom/timesync/client/fake_time_sync_client_unittest.py ........       [ 88%]
+tsercom/timesync/client/time_sync_client_unittest.py ..............      [ 91%]
+tsercom/timesync/common/fake_synchronized_clock_unittest.py ...          [ 92%]
+tsercom/timesync/common/synchronized_clock_unittest.py .....             [ 93%]
+tsercom/timesync/common/synchronized_timestamp_unittest.py ............. [ 95%]
+..                                                                       [ 95%]
+tsercom/timesync/server/server_synchronized_clock_unittest.py ...        [ 96%]
+tsercom/util/ip_unittest.py ........                                     [ 98%]
+tsercom/util/is_running_tracker_unittest.py ........                     [ 99%]
+tsercom/util/stopable_unittest.py ..                                     [100%]
+
+==================================== ERRORS ====================================
+_________________________ ERROR at setup of test_init __________________________
+
+fake_initializer = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeRuntimeInitializer object at 0x7f3de0696bf0>
+fake_event_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSource object at 0x7f3de0a0add0>
+fake_data_sink_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSink object at 0x7f3de0a0aec0>
+fake_command_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSource object at 0x7f3de0a093c0>
+patch_dependencies_in_module = None
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0a08550>
+
+    @pytest.fixture
+    def factory(
+        fake_initializer,
+        fake_event_queue,
+        fake_data_sink_queue,
+        fake_command_queue,
+        patch_dependencies_in_module,
+        mocker,  # Add mocker fixture
+    ):
+        # patch_dependencies_in_module ensures that when RemoteRuntimeFactory is created,
+        # it will use the FakeEventSource, FakeDataReaderSink, etc., if it resolves them dynamically
+        # or if the create() method resolves them from the module scope.
+        # The prompt implies RemoteRuntimeFactory uses these classes internally in create(), so patching the module is key.
+
+        # Make RemoteRuntimeFactory concrete for this test
+        mocker.patch.multiple(RemoteRuntimeFactory, __abstractmethods__=set())
+
+>       return RemoteRuntimeFactory(
+            initializer=fake_initializer,
+            event_source_queue=fake_event_queue,  # Changed to event_source_queue
+            data_reader_queue=fake_data_sink_queue,  # Changed to data_reader_queue
+            command_source_queue=fake_command_queue,  # Changed to command_source_queue
+        )
+
+tsercom/api/split_process/remote_runtime_factory_unittest.py:299:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/split_process/remote_runtime_factory.py:65: in __init__
+    super().__init__(other_config=initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.split_process.remote_runtime_factory.RemoteRuntimeFactory object at 0x7f3de0a0bb50>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+_____________________ ERROR at setup of test_create_method _____________________
+
+fake_initializer = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeRuntimeInitializer object at 0x7f3de3ab59f0>
+fake_event_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSource object at 0x7f3de3ab4e20>
+fake_data_sink_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSink object at 0x7f3de134c190>
+fake_command_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSource object at 0x7f3de134f910>
+patch_dependencies_in_module = None
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de134d660>
+
+    @pytest.fixture
+    def factory(
+        fake_initializer,
+        fake_event_queue,
+        fake_data_sink_queue,
+        fake_command_queue,
+        patch_dependencies_in_module,
+        mocker,  # Add mocker fixture
+    ):
+        # patch_dependencies_in_module ensures that when RemoteRuntimeFactory is created,
+        # it will use the FakeEventSource, FakeDataReaderSink, etc., if it resolves them dynamically
+        # or if the create() method resolves them from the module scope.
+        # The prompt implies RemoteRuntimeFactory uses these classes internally in create(), so patching the module is key.
+
+        # Make RemoteRuntimeFactory concrete for this test
+        mocker.patch.multiple(RemoteRuntimeFactory, __abstractmethods__=set())
+
+>       return RemoteRuntimeFactory(
+            initializer=fake_initializer,
+            event_source_queue=fake_event_queue,  # Changed to event_source_queue
+            data_reader_queue=fake_data_sink_queue,  # Changed to data_reader_queue
+            command_source_queue=fake_command_queue,  # Changed to command_source_queue
+        )
+
+tsercom/api/split_process/remote_runtime_factory_unittest.py:299:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/split_process/remote_runtime_factory.py:65: in __init__
+    super().__init__(other_config=initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.split_process.remote_runtime_factory.RemoteRuntimeFactory object at 0x7f3de14cce50>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+_______________ ERROR at setup of test_remote_data_reader_method _______________
+
+fake_initializer = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeRuntimeInitializer object at 0x7f3de0a083a0>
+fake_event_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSource object at 0x7f3de0a0a620>
+fake_data_sink_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSink object at 0x7f3de0a0add0>
+fake_command_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSource object at 0x7f3de0a09030>
+patch_dependencies_in_module = None
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de058e830>
+
+    @pytest.fixture
+    def factory(
+        fake_initializer,
+        fake_event_queue,
+        fake_data_sink_queue,
+        fake_command_queue,
+        patch_dependencies_in_module,
+        mocker,  # Add mocker fixture
+    ):
+        # patch_dependencies_in_module ensures that when RemoteRuntimeFactory is created,
+        # it will use the FakeEventSource, FakeDataReaderSink, etc., if it resolves them dynamically
+        # or if the create() method resolves them from the module scope.
+        # The prompt implies RemoteRuntimeFactory uses these classes internally in create(), so patching the module is key.
+
+        # Make RemoteRuntimeFactory concrete for this test
+        mocker.patch.multiple(RemoteRuntimeFactory, __abstractmethods__=set())
+
+>       return RemoteRuntimeFactory(
+            initializer=fake_initializer,
+            event_source_queue=fake_event_queue,  # Changed to event_source_queue
+            data_reader_queue=fake_data_sink_queue,  # Changed to data_reader_queue
+            command_source_queue=fake_command_queue,  # Changed to command_source_queue
+        )
+
+tsercom/api/split_process/remote_runtime_factory_unittest.py:299:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/split_process/remote_runtime_factory.py:65: in __init__
+    super().__init__(other_config=initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.split_process.remote_runtime_factory.RemoteRuntimeFactory object at 0x7f3de1524b80>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+__________________ ERROR at setup of test_event_poller_method __________________
+
+fake_initializer = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeRuntimeInitializer object at 0x7f3de0695f90>
+fake_event_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSource object at 0x7f3de0695000>
+fake_data_sink_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSink object at 0x7f3de0694850>
+fake_command_queue = <tsercom.api.split_process.remote_runtime_factory_unittest.FakeMultiprocessQueueSource object at 0x7f3de0695930>
+patch_dependencies_in_module = None
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0697d90>
+
+    @pytest.fixture
+    def factory(
+        fake_initializer,
+        fake_event_queue,
+        fake_data_sink_queue,
+        fake_command_queue,
+        patch_dependencies_in_module,
+        mocker,  # Add mocker fixture
+    ):
+        # patch_dependencies_in_module ensures that when RemoteRuntimeFactory is created,
+        # it will use the FakeEventSource, FakeDataReaderSink, etc., if it resolves them dynamically
+        # or if the create() method resolves them from the module scope.
+        # The prompt implies RemoteRuntimeFactory uses these classes internally in create(), so patching the module is key.
+
+        # Make RemoteRuntimeFactory concrete for this test
+        mocker.patch.multiple(RemoteRuntimeFactory, __abstractmethods__=set())
+
+>       return RemoteRuntimeFactory(
+            initializer=fake_initializer,
+            event_source_queue=fake_event_queue,  # Changed to event_source_queue
+            data_reader_queue=fake_data_sink_queue,  # Changed to data_reader_queue
+            command_source_queue=fake_command_queue,  # Changed to command_source_queue
+        )
+
+tsercom/api/split_process/remote_runtime_factory_unittest.py:299:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/split_process/remote_runtime_factory.py:65: in __init__
+    super().__init__(other_config=initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.split_process.remote_runtime_factory.RemoteRuntimeFactory object at 0x7f3de06958d0>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+___________ ERROR at setup of TestClientRuntimeDataHandler.test_init ___________
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f3de1298af0>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139903733207232'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903740176480'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903740168032'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139903733203008'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903740166208'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0523160>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:67:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3de1371ed0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.client.client_runtime_data_handler' from '/app/tsercom/runtime/client/client_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+_____ ERROR at setup of TestClientRuntimeDataHandler.test_register_caller ______
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f3de129b6a0>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139903748694336'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903748699232'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903748698512'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139903748699664'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903733652192'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de13e4730>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:67:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3de058f9a0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.client.client_runtime_data_handler' from '/app/tsercom/runtime/client/client_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_unregister_caller_valid_id _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f3de1298c10>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139903733983952'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733987984'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903733985008'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139903733986832'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903733984480'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de05dea10>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:67:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3de05df7c0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.client.client_runtime_data_handler' from '/app/tsercom/runtime/client/client_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_unregister_caller_invalid_id_not_found _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f3de1298d60>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139903732395376'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903732389856'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903732383904'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139903732399264'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903732390000'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0459e70>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:67:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3de14dd120>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.client.client_runtime_data_handler' from '/app/tsercom/runtime/client/client_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+____ ERROR at setup of TestClientRuntimeDataHandler.test_try_get_caller_id _____
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f3de1298d90>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139903733419408'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733421424'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903733427280'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139903733421904'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903733431648'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0557a60>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:67:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3de0556da0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.client.client_runtime_data_handler' from '/app/tsercom/runtime/client/client_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_try_get_caller_id_not_found _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f3de129b730>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139903731445872'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903750389088'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903731446208'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139903750386256'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903731446640'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0373eb0>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:67:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3de0371540>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.client.client_runtime_data_handler' from '/app/tsercom/runtime/client/client_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+____ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_constructor _____
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a367d0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733165520'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903733908288'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0517bb0>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_register_caller_endpoint_port _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a36e90>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733043872'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903749683712'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de04f9960>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_register_caller_grpc_context_success _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a36fb0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903740808736'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903733626624'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0c63a30>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_register_caller_grpc_context_no_ip _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a37340>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733206272'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903740203008'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0521480>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_get_data_iterator_returns_self _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a34310>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903732665792'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903731823712'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de049cc40>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_async_iteration_with_event_source _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a34250>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903721435584'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903732384960'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3ddf9e62c0>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_check_for_caller_id _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a345e0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903739804064'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903733418976'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0b68520>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_handler_on_data_ready_calls_reader_on_data_ready _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a34880>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903740807584'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903732157216'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0c626b0>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_desynchronize _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a341c0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903749682992'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903748690688'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de14d6b90>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_deregister_caller _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de0a36620>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903740765008'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903733987840'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0372410>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_with_datetime _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de09c5c90>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733419120'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903733416192'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0554250>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_with_server_timestamp _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de09c6170>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733605632'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903733477104'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0580a90>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_no_timestamp _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f3de09c64a0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733210640'>
+mock_event_source = <MagicMock spec='AsyncPoller' id='139903732648976'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0523310>
+
+    @pytest.fixture
+    def handler(self, mock_data_reader, mock_event_source, mocker):
+>       return TestableRuntimeDataHandler(
+            mock_data_reader, mock_event_source, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:156:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:61: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_with_endpoint_port_success _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903731443328'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903740487008'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0c57fa0>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_with_context_success _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903732323552'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903732326816'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0448f70>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_with_context_ip_none_returns_none _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903732675296'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903732677168'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de049cf40>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_with_context_port_none_raises_value_error _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903739313456'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903739312688'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0af38b0>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_mutex_args_endpoint_context _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903732890496'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903748213776'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de04d0e20>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_mutex_args_none _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903710484448'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903710482960'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3ddef75900>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_endpoint_without_port _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903731811184'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903731826016'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de03cec20>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_port_without_endpoint _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903733596656'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903731444864'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0582500>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_context_is_not_servicer_context_raises_type_error _
+
+mock_data_reader_fixture = <MagicMock spec='_GenericAlias' id='139903733910496'>
+mock_event_source_fixture = <MagicMock spec='_GenericAlias' id='139903733910640'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de05cfc40>
+
+    @pytest.fixture
+    def handler_fixture(
+        mock_data_reader_fixture, mock_event_source_fixture, mocker
+    ):
+>       return ConcreteRuntimeDataHandler(
+            mock_data_reader_fixture, mock_event_source_fixture, mocker
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:484:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base_unittest.py:436: in __init__
+    super().__init__(data_reader, event_source)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+___________ ERROR at setup of TestServerRuntimeDataHandler.test_init ___________
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f3de0b26650>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903710057600'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903689333136'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139903689956064'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903710528656'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3ddef0d450>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:70:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3ddef817e0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.server.server_runtime_data_handler' from '/app/tsercom/runtime/server/server_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+_____ ERROR at setup of TestServerRuntimeDataHandler.test_register_caller ______
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f3de0b26620>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903689276288'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903689277200'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139903689276192'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903711023968'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3dddb3baf0>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:70:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3ddeff9d50>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.server.server_runtime_data_handler' from '/app/tsercom/runtime/server/server_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+____ ERROR at setup of TestServerRuntimeDataHandler.test_unregister_caller _____
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f3de0c106d0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903710200832'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903710201744'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139903710211200'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903710215136'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3ddef30460>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:70:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3dddb046d0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.server.server_runtime_data_handler' from '/app/tsercom/runtime/server/server_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+____ ERROR at setup of TestServerRuntimeDataHandler.test_try_get_caller_id _____
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f3de0c10eb0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903731817376'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903731826256'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139903731825872'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903732889584'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de03cfb20>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:70:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3de0582a70>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.server.server_runtime_data_handler' from '/app/tsercom/runtime/server/server_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+_ ERROR at setup of TestServerRuntimeDataHandler.test_try_get_caller_id_not_found _
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f3de0c13df0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139903733051216'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139903733052752'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139903733046656'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139903732294192'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de04fa980>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+>       mock_IdTracker_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.IdTracker",
+            return_value=mock_id_tracker_instance,
+            autospec=True,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:70:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:439: in __call__
+    return self._start_patch(
+/home/swebot/.local/lib/python3.10/site-packages/pytest_mock/plugin.py:257: in _start_patch
+    mocked: MockType = p.start()
+/usr/lib/python3.10/unittest/mock.py:1595: in start
+    result = self.__enter__()
+/usr/lib/python3.10/unittest/mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x7f3de0443f70>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+
+        original = DEFAULT
+        local = False
+
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'tsercom.runtime.server.server_runtime_data_handler' from '/app/tsercom/runtime/server/server_runtime_data_handler.py'> does not have the attribute 'IdTracker'
+
+/usr/lib/python3.10/unittest/mock.py:1420: AttributeError
+=================================== FAILURES ===================================
+________________________ test_create_pair_return_types _________________________
+
+factory_factory = <tsercom.api.local_process.local_runtime_factory_factory.LocalRuntimeFactoryFactory object at 0x7f3de134f6d0>
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_factory_unittest.FakeRuntimeInitializer object at 0x7f3de14ce410>
+patch_run_on_event_loop = None
+
+    def test_create_pair_return_types(
+        factory_factory, fake_initializer, patch_run_on_event_loop
+    ):
+        """Tests that _create_pair returns objects of the expected types."""
+>       wrapper, factory = factory_factory._create_pair(fake_initializer)
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py:140:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory_factory.py:77: in _create_pair
+    factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
+/usr/lib/python3.10/typing.py:957: in __call__
+    result = self.__origin__(*args, **kwargs)
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de0b27040>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+________________ test_create_pair_remote_data_aggregator_wiring ________________
+
+factory_factory = <tsercom.api.local_process.local_runtime_factory_factory.LocalRuntimeFactoryFactory object at 0x7f3de067fd60>
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_factory_unittest.FakeRuntimeInitializer object at 0x7f3de067fcd0>
+fake_executor = <tsercom.api.local_process.local_runtime_factory_factory_unittest.FakeThreadPoolExecutor object at 0x7f3de067fd30>
+patch_run_on_event_loop = None
+
+    def test_create_pair_remote_data_aggregator_wiring(
+        factory_factory, fake_initializer, fake_executor, patch_run_on_event_loop
+    ):
+        """Tests the creation and wiring of RemoteDataAggregatorImpl."""
+>       wrapper, factory = factory_factory._create_pair(fake_initializer)
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py:149:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory_factory.py:77: in _create_pair
+    factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
+/usr/lib/python3.10/typing.py:957: in __call__
+    result = self.__origin__(*args, **kwargs)
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de067f760>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+_____________________ test_create_pair_async_poller_wiring _____________________
+
+factory_factory = <tsercom.api.local_process.local_runtime_factory_factory.LocalRuntimeFactoryFactory object at 0x7f3de0bd7340>
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_factory_unittest.FakeRuntimeInitializer object at 0x7f3de0bd76a0>
+patch_run_on_event_loop = None
+
+    def test_create_pair_async_poller_wiring(
+        factory_factory, fake_initializer, patch_run_on_event_loop
+    ):
+        """Tests the creation and wiring of AsyncPoller."""
+>       wrapper, factory = factory_factory._create_pair(fake_initializer)
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py:189:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory_factory.py:77: in _create_pair
+    factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
+/usr/lib/python3.10/typing.py:957: in __call__
+    result = self.__origin__(*args, **kwargs)
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de0bd4eb0>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+________________ test_create_pair_runtime_command_bridge_wiring ________________
+
+factory_factory = <tsercom.api.local_process.local_runtime_factory_factory.LocalRuntimeFactoryFactory object at 0x7f3de14d5e40>
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_factory_unittest.FakeRuntimeInitializer object at 0x7f3de14d4b20>
+patch_run_on_event_loop = None
+
+    def test_create_pair_runtime_command_bridge_wiring(
+        factory_factory, fake_initializer, patch_run_on_event_loop
+    ):
+        """Tests the creation and wiring of RuntimeCommandBridge."""
+>       wrapper, factory = factory_factory._create_pair(fake_initializer)
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py:203:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory_factory.py:77: in _create_pair
+    factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
+/usr/lib/python3.10/typing.py:957: in __call__
+    result = self.__origin__(*args, **kwargs)
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de14d4550>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+______________ test_create_pair_local_runtime_factory_initializer ______________
+
+factory_factory = <tsercom.api.local_process.local_runtime_factory_factory.LocalRuntimeFactoryFactory object at 0x7f3de06dd060>
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_factory_unittest.FakeRuntimeInitializer object at 0x7f3de06dc520>
+patch_run_on_event_loop = None
+
+    def test_create_pair_local_runtime_factory_initializer(
+        factory_factory, fake_initializer, patch_run_on_event_loop
+    ):
+        """Tests that LocalRuntimeFactory is created with the correct initializer."""
+>       _wrapper, factory = factory_factory._create_pair(fake_initializer)
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py:219:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory_factory.py:77: in _create_pair
+    factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
+/usr/lib/python3.10/typing.py:957: in __call__
+    result = self.__origin__(*args, **kwargs)
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de06ddc30>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+____________________ test_create_factory_calls_create_pair _____________________
+
+factory_factory = <tsercom.api.local_process.local_runtime_factory_factory.LocalRuntimeFactoryFactory object at 0x7f3de0bd7370>
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_factory_unittest.FakeRuntimeInitializer object at 0x7f3de0bd6620>
+patch_run_on_event_loop = None
+
+    def test_create_factory_calls_create_pair(
+        factory_factory, fake_initializer, patch_run_on_event_loop
+    ):
+        """Tests that create_factory calls _create_pair and wires client."""
+        fake_client = FakeRuntimeFactoryFactoryClient()
+
+        # Call the public method
+>       factory = factory_factory.create_factory(fake_client, fake_initializer)
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py:263:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/runtime_factory_factory.py:98: in create_factory
+    handle, factory = self._create_pair(initializer)
+tsercom/api/local_process/local_runtime_factory_factory.py:77: in _create_pair
+    factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
+/usr/lib/python3.10/typing.py:957: in __call__
+    result = self.__origin__(*args, **kwargs)
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de0bd5f60>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+_______________________ test_local_runtime_factory_init ________________________
+
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeInitializer object at 0x7f3de05ce830>
+fake_data_reader = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRemoteDataReader object at 0x7f3de05ce2f0>
+fake_event_poller = <tsercom.api.local_process.local_runtime_factory_unittest.FakeAsyncPoller object at 0x7f3de05ceb90>
+fake_bridge = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeCommandBridge object at 0x7f3de05cebc0>
+
+    def test_local_runtime_factory_init(
+        fake_initializer, fake_data_reader, fake_event_poller, fake_bridge
+    ):
+        """Tests the __init__ method of LocalRuntimeFactory."""
+>       factory = LocalRuntimeFactory(
+            initializer=fake_initializer,
+            data_reader=fake_data_reader,
+            event_poller=fake_event_poller,
+            bridge=fake_bridge,
+        )
+
+tsercom/api/local_process/local_runtime_factory_unittest.py:126:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de05ceec0>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+______________________ test_local_runtime_factory_create _______________________
+
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeInitializer object at 0x7f3de0c608e0>
+fake_data_reader = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRemoteDataReader object at 0x7f3de0c60ca0>
+fake_event_poller = <tsercom.api.local_process.local_runtime_factory_unittest.FakeAsyncPoller object at 0x7f3de0c63430>
+fake_bridge = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeCommandBridge object at 0x7f3de0c606d0>
+fake_thread_watcher = <tsercom.api.local_process.local_runtime_factory_unittest.FakeThreadWatcher object at 0x7f3de0c609a0>
+fake_data_handler = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeDataHandler object at 0x7f3de0c63b50>
+fake_grpc_channel_factory = <tsercom.api.local_process.local_runtime_factory_unittest.FakeGrpcChannelFactory object at 0x7f3de0c60c70>
+
+    def test_local_runtime_factory_create(
+        fake_initializer,
+        fake_data_reader,
+        fake_event_poller,
+        fake_bridge,
+        fake_thread_watcher,
+        fake_data_handler,
+        fake_grpc_channel_factory,
+    ):
+        """Tests the create method of LocalRuntimeFactory."""
+>       factory = LocalRuntimeFactory(
+            initializer=fake_initializer,
+            data_reader=fake_data_reader,
+            event_poller=fake_event_poller,
+            bridge=fake_bridge,
+        )
+
+tsercom/api/local_process/local_runtime_factory_unittest.py:145:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de0c626b0>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+________________ test_local_runtime_factory_remote_data_reader _________________
+
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeInitializer object at 0x7f3de0b6b370>
+fake_data_reader = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRemoteDataReader object at 0x7f3de0b6bc10>
+fake_event_poller = <tsercom.api.local_process.local_runtime_factory_unittest.FakeAsyncPoller object at 0x7f3de0b69e40>
+fake_bridge = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeCommandBridge object at 0x7f3de0b6a920>
+
+    def test_local_runtime_factory_remote_data_reader(
+        fake_initializer, fake_data_reader, fake_event_poller, fake_bridge
+    ):
+        """Tests the _remote_data_reader method."""
+>       factory = LocalRuntimeFactory(
+            initializer=fake_initializer,
+            data_reader=fake_data_reader,
+            event_poller=fake_event_poller,
+            bridge=fake_bridge,
+        )
+
+tsercom/api/local_process/local_runtime_factory_unittest.py:173:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de0b69e10>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+___________________ test_local_runtime_factory_event_poller ____________________
+
+fake_initializer = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeInitializer object at 0x7f3de067c2b0>
+fake_data_reader = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRemoteDataReader object at 0x7f3de067ffa0>
+fake_event_poller = <tsercom.api.local_process.local_runtime_factory_unittest.FakeAsyncPoller object at 0x7f3de067dcc0>
+fake_bridge = <tsercom.api.local_process.local_runtime_factory_unittest.FakeRuntimeCommandBridge object at 0x7f3de067e1d0>
+
+    def test_local_runtime_factory_event_poller(
+        fake_initializer, fake_data_reader, fake_event_poller, fake_bridge
+    ):
+        """Tests the _event_poller method."""
+>       factory = LocalRuntimeFactory(
+            initializer=fake_initializer,
+            data_reader=fake_data_reader,
+            event_poller=fake_event_poller,
+            bridge=fake_bridge,
+        )
+
+tsercom/api/local_process/local_runtime_factory_unittest.py:186:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/api/local_process/local_runtime_factory.py:53: in __init__
+    super().__init__(other_config=self.__initializer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.api.local_process.local_runtime_factory.LocalRuntimeFactory object at 0x7f3de067e680>
+service_type = None
+
+    def __init__(
+        self,
+        service_type: Optional[
+            Literal["Client", "Server"] | ServiceType
+        ] = None,
+        *,
+        other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
+        data_aggregator_client: Optional[
+            RemoteDataAggregator.Client  # Changed
+        ] = None,
+        timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = None,
+        auth_config: Optional[BaseChannelAuthConfig] = None,
+    ):
+        """Initializes the RuntimeConfig.
+
+        Can be initialized by `service_type` and other parameters,
+        or by providing an `other_config` instance to copy from.
+
+        Args:
+            service_type: 'Client', 'Server', or ServiceType enum.
+            other_config: An existing `RuntimeConfig` to clone.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Optional data timeout in seconds.
+            auth_config: Optional channel authentication configuration.
+
+        Raises:
+            ValueError: If `service_type` and `other_config` are not mutually
+                        exclusive, or `service_type` string is invalid.
+        """
+        if (service_type is None) == (other_config is None):
+            # Using f-string for ValueError as Pylint prefers it over %-style here
+            other_config_str = (
+                "<Provided>" if other_config is not None else None
+            )
+            raise ValueError(
+                "Exactly one of 'service_type' or 'other_config' must be "
+                f"provided. Got service_type={service_type}, "
+                f"other_config={other_config_str}."
+            )
+
+        if other_config is not None:
+            # Call __init__ again without 'other_config', using primary
+            # constructor logic with values from other_config.
+            # pylint: disable=non-parent-init-called # Recursive call for cloning
+            RuntimeConfig.__init__(
+                self,
+                service_type=other_config.service_type_enum,
+                data_aggregator_client=other_config.data_aggregator_client,
+                timeout_seconds=other_config.timeout_seconds,
+>               min_send_frequency_seconds=other_config.min_send_frequency_seconds,
+                auth_config=other_config.auth_config,
+            )
+E           AttributeError: 'FakeRuntimeInitializer' object has no attribute 'min_send_frequency_seconds'
+
+tsercom/runtime/runtime_config.py:107: AttributeError
+________________________________ test_equality _________________________________
+
+PatchedCallerIdentifier = <class 'tsercom.caller_id.caller_identifier.CallerIdentifier'>
+
+    def test_equality(PatchedCallerIdentifier):
+        uuid_val = uuid.uuid4()
+        id1 = PatchedCallerIdentifier(uuid_val)
+        id2 = PatchedCallerIdentifier(uuid_val)
+        id3 = PatchedCallerIdentifier.random()
+
+        assert id1 == id2
+        assert id1 != id3
+        assert id2 != id3
+        assert (
+            id1 == str(uuid_val)
+        ) is False  # Comparison with non-CallerIdentifier type
+>       assert (id1 != None) is True  # Comparison with None
+E       AssertionError: assert (CallerIdentifier('817e8723-c5b4-47b1-abb7-7605cdfb12ed') != None) is True
+
+tsercom/caller_id/caller_identifier_unittest.py:112: AssertionError
+______________________ TestIdTracker.test_add_and_get_id _______________________
+
+self = <tsercom.runtime.id_tracker_unittest.TestIdTracker object at 0x7f3de14d7790>
+
+    def test_add_and_get_id(self):
+        """Test adding and retrieving an ID."""
+        tracker = IdTracker()
+        caller_id = CallerIdentifier.random()
+        ip_address = "127.0.0.1"
+        port = 8080
+        tracker.add(caller_id, ip_address, port)
+
+>       assert tracker.get(address=ip_address, port=port) == caller_id
+E       AssertionError: assert (CallerIdentifier('5b5f8501-8e47-4c83-92a2-244985b5088e'), None) == CallerIdentifier('5b5f8501-8e47-4c83-92a2-244985b5088e')
+E        +  where (CallerIdentifier('5b5f8501-8e47-4c83-92a2-244985b5088e'), None) = get(address='127.0.0.1', port=8080)
+E        +    where get = <tsercom.runtime.id_tracker.IdTracker object at 0x7f3de05554e0>.get
+
+tsercom/runtime/id_tracker_unittest.py:20: AssertionError
+________________________ TestIdTracker.test_try_get_id _________________________
+
+self = <tsercom.runtime.id_tracker_unittest.TestIdTracker object at 0x7f3de14d7b50>
+
+    def test_try_get_id(self):
+        """Test try_get method."""
+        tracker = IdTracker()
+        caller_id = CallerIdentifier.random()
+        ip_address = "127.0.0.1"
+        port = 8080
+        tracker.add(caller_id, ip_address, port)
+
+>       assert tracker.try_get(address=ip_address, port=port) == caller_id
+E       AssertionError: assert (CallerIdentifier('d641f692-49ea-4d44-baea-12fb787a17e5'), None) == CallerIdentifier('d641f692-49ea-4d44-baea-12fb787a17e5')
+E        +  where (CallerIdentifier('d641f692-49ea-4d44-baea-12fb787a17e5'), None) = try_get(address='127.0.0.1', port=8080)
+E        +    where try_get = <tsercom.runtime.id_tracker.IdTracker object at 0x7f3de03cfc10>.try_get
+
+tsercom/runtime/id_tracker_unittest.py:31: AssertionError
+______________ TestIdTracker.test_add_existing_id_updates_address ______________
+
+self = <tsercom.runtime.id_tracker_unittest.TestIdTracker object at 0x7f3de14d6f50>
+
+    def test_add_existing_id_updates_address(self):
+        """Test adding a duplicate ID raises KeyError."""
+        tracker = IdTracker()
+        caller_id1 = CallerIdentifier.random()
+        ip_address1 = "127.0.0.1"
+        port1 = 8080
+        ip_address2 = "192.168.1.1"
+        port2 = 9090
+        tracker.add(caller_id1, ip_address1, port1)
+        tracker.add(caller_id1, ip_address2, port2)
+        val = tracker.get(id=caller_id1)
+>       assert val == (ip_address2, port2)
+E       AssertionError: assert ('192.168.1.1', 9090, None) == ('192.168.1.1', 9090)
+E
+E         Left contains one more item: None
+E         Use -v to get more diff
+
+tsercom/runtime/id_tracker_unittest.py:68: AssertionError
+____________________ TestIdTracker.test_remove_existing_id _____________________
+
+self = <tsercom.runtime.id_tracker_unittest.TestIdTracker object at 0x7f3de14d7e50>
+
+    def test_remove_existing_id(self):
+        """Test removing an existing ID."""
+        tracker = IdTracker()
+        caller_id = CallerIdentifier.random()
+        ip_address = "127.0.0.1"
+        port = 8080
+        tracker.add(caller_id, ip_address, port)
+
+        assert len(tracker) == 1
+>       remove_result = tracker.remove(caller_id)
+
+tsercom/runtime/id_tracker_unittest.py:127:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7f3de049c880>
+caller_id_obj = CallerIdentifier('83997e2e-d871-4852-beae-389c6f759fe7')
+
+    def remove(self, caller_id_obj: CallerIdentifier) -> bool:
+        """Removes `CallerIdentifier` and its mapping.
+
+        Returns:
+            True if found and removed, False otherwise.
+        """
+        with self.__lock:
+            if caller_id_obj not in self.__id_to_address:
+                return False
+            address_port_tuple = self.__id_to_address.pop(caller_id_obj)
+>           del self.__data_map[caller_id_obj]
+E           KeyError: CallerIdentifier('83997e2e-d871-4852-beae-389c6f759fe7')
+
+tsercom/runtime/id_tracker.py:296: KeyError
+____________________ TestIdTracker.test_get_id_after_remove ____________________
+
+self = <tsercom.runtime.id_tracker_unittest.TestIdTracker object at 0x7f3de14d7d30>
+
+    def test_get_id_after_remove(self):
+        """Test that get raises KeyError after an ID is removed."""
+        tracker = IdTracker()
+        caller_id = CallerIdentifier.random()
+        ip_address = "127.0.0.1"
+        port = 8080
+        tracker.add(caller_id, ip_address, port)
+
+>       tracker.remove(caller_id)
+
+tsercom/runtime/id_tracker_unittest.py:165:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7f3de0515750>
+caller_id_obj = CallerIdentifier('3e7cf84b-73df-487f-82fb-15a4488721c4')
+
+    def remove(self, caller_id_obj: CallerIdentifier) -> bool:
+        """Removes `CallerIdentifier` and its mapping.
+
+        Returns:
+            True if found and removed, False otherwise.
+        """
+        with self.__lock:
+            if caller_id_obj not in self.__id_to_address:
+                return False
+            address_port_tuple = self.__id_to_address.pop(caller_id_obj)
+>           del self.__data_map[caller_id_obj]
+E           KeyError: CallerIdentifier('3e7cf84b-73df-487f-82fb-15a4488721c4')
+
+tsercom/runtime/id_tracker.py:296: KeyError
+_____________________ TestIdTracker.test_add_after_remove ______________________
+
+self = <tsercom.runtime.id_tracker_unittest.TestIdTracker object at 0x7f3de14d5300>
+
+    def test_add_after_remove(self):
+        """Test adding the same ID or address after it has been removed."""
+        tracker = IdTracker()
+        caller_id = CallerIdentifier.random()
+        ip_address = "127.0.0.1"
+        port = 8080
+
+        tracker.add(caller_id, ip_address, port)
+>       tracker.remove(caller_id)
+
+tsercom/runtime/id_tracker_unittest.py:180:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7f3de03cd960>
+caller_id_obj = CallerIdentifier('117e7a8c-0673-4d11-a80d-362aa132bdb6')
+
+    def remove(self, caller_id_obj: CallerIdentifier) -> bool:
+        """Removes `CallerIdentifier` and its mapping.
+
+        Returns:
+            True if found and removed, False otherwise.
+        """
+        with self.__lock:
+            if caller_id_obj not in self.__id_to_address:
+                return False
+            address_port_tuple = self.__id_to_address.pop(caller_id_obj)
+>           del self.__data_map[caller_id_obj]
+E           KeyError: CallerIdentifier('117e7a8c-0673-4d11-a80d-362aa132bdb6')
+
+tsercom/runtime/id_tracker.py:296: KeyError
+________________ TestIdTracker.test_remove_maintains_other_ids _________________
+
+self = <tsercom.runtime.id_tracker_unittest.TestIdTracker object at 0x7f3de14d79d0>
+
+    def test_remove_maintains_other_ids(self):
+        """Test that removing one ID does not affect other stored IDs."""
+        tracker = IdTracker()
+        caller_id1 = CallerIdentifier.random()
+        ip1, port1 = "10.0.0.1", 1001
+        caller_id2 = CallerIdentifier.random()
+        ip2, port2 = "10.0.0.2", 1002
+        caller_id3 = CallerIdentifier.random()
+        ip3, port3 = "10.0.0.3", 1003
+
+        tracker.add(caller_id1, ip1, port1)
+        tracker.add(caller_id2, ip2, port2)
+        tracker.add(caller_id3, ip3, port3)
+
+        assert len(tracker) == 3
+
+>       remove_result = tracker.remove(caller_id2)
+
+tsercom/runtime/id_tracker_unittest.py:215:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7f3ddf9e6bc0>
+caller_id_obj = CallerIdentifier('978c7e61-5854-4778-ac0c-42401909551f')
+
+    def remove(self, caller_id_obj: CallerIdentifier) -> bool:
+        """Removes `CallerIdentifier` and its mapping.
+
+        Returns:
+            True if found and removed, False otherwise.
+        """
+        with self.__lock:
+            if caller_id_obj not in self.__id_to_address:
+                return False
+            address_port_tuple = self.__id_to_address.pop(caller_id_obj)
+>           del self.__data_map[caller_id_obj]
+E           KeyError: CallerIdentifier('978c7e61-5854-4778-ac0c-42401909551f')
+
+tsercom/runtime/id_tracker.py:296: KeyError
+________________ TestIdTracker.test_integration_add_get_has_len ________________
+
+self = <tsercom.runtime.id_tracker_unittest.TestIdTracker object at 0x7f3de14d5060>
+
+    def test_integration_add_get_has_len(self):
+        """Test a sequence of operations: add, get, has_id, has_address, len."""
+        tracker = IdTracker()
+
+        assert len(tracker) == 0
+        random_id_init = CallerIdentifier.random()
+        assert not tracker.has_id(random_id_init)
+        assert not tracker.has_address("10.0.0.1", 1001)
+
+        caller1 = CallerIdentifier.random()
+        addr1 = ("10.0.0.1", 1001)
+        tracker.add(caller1, addr1[0], addr1[1])
+
+        assert len(tracker) == 1
+        assert tracker.has_id(caller1)
+        assert not tracker.has_id(random_id_init)
+        assert tracker.has_address(addr1[0], addr1[1])
+>       assert tracker.get(id=caller1) == addr1
+E       AssertionError: assert ('10.0.0.1', 1001, None) == ('10.0.0.1', 1001)
+E
+E         Left contains one more item: None
+E         Use -v to get more diff
+
+tsercom/runtime/id_tracker_unittest.py:249: AssertionError
+____________ TestInitializeRuntimes.test_initialize_runtimes_client ____________
+
+self = <tsercom.runtime.runtime_main_unittest.TestInitializeRuntimes object at 0x7f3de0b27880>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0b6ad70>
+
+    def test_initialize_runtimes_client(
+        self,
+        mocker,
+    ):
+        """Tests runtime initialization for a client-type factory."""
+        mock_is_global_event_loop_set = mocker.patch(
+            "tsercom.runtime.runtime_main.is_global_event_loop_set",
+            return_value=True,
+        )
+        mock_run_on_event_loop = mocker.patch(
+            "tsercom.runtime.runtime_main.run_on_event_loop"
+        )
+        MockChannelFactorySelector = mocker.patch(
+            "tsercom.runtime.runtime_main.ChannelFactorySelector"
+        )
+        MockClientRuntimeDataHandler = mocker.patch(
+            "tsercom.runtime.runtime_main.ClientRuntimeDataHandler"
+        )
+        MockServerRuntimeDataHandler = mocker.patch(
+            "tsercom.runtime.runtime_main.ServerRuntimeDataHandler"
+        )
+
+        mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
+
+        mock_channel_factory_selector_instance = (
+            MockChannelFactorySelector.return_value
+        )
+        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
+        mock_channel_factory_selector_instance.create_factory.return_value = (
+            mock_grpc_channel_factory
+        )
+
+        mock_client_factory = mocker.Mock(spec=RuntimeFactory)
+        mock_client_factory.auth_config = None
+        mock_client_factory.is_client.return_value = True
+        mock_client_factory.is_server.return_value = False
+        mock_client_data_reader_actual_instance = mocker.Mock(
+            spec=RemoteDataReader, name="client_data_reader_instance"
+        )
+        mock_client_event_poller_actual_instance = mocker.Mock(
+            spec=AsyncPoller, name="client_event_poller_instance"
+        )
+        mock_client_factory._remote_data_reader.return_value = (
+            mock_client_data_reader_actual_instance
+        )
+        mock_client_factory._event_poller.return_value = (
+            mock_client_event_poller_actual_instance
+        )
+
+        mock_runtime_instance = mocker.Mock(spec=Runtime)
+        mock_runtime_instance.start_async = mocker.Mock(
+            name="start_async_method"
+        )
+        mock_client_factory.create.return_value = mock_runtime_instance
+
+        initializers = [mock_client_factory]
+
+        mock_event_loop_instance = mocker.MagicMock(
+            spec=asyncio.AbstractEventLoop
+        )
+        mock_get_global_event_loop = mocker.patch(
+            "tsercom.runtime.runtime_main.get_global_event_loop",
+            return_value=mock_event_loop_instance,
+        )
+
+        created_runtimes = initialize_runtimes(
+            mock_thread_watcher, initializers
+        )
+
+        mock_is_global_event_loop_set.assert_called_once()
+        mock_get_global_event_loop.assert_called_once()
+        MockChannelFactorySelector.assert_called_once_with()
+        # Changed to assert create_factory was called with the factory's auth_config
+        mock_channel_factory_selector_instance.create_factory.assert_called_once_with(
+            mock_client_factory.auth_config
+        )
+
+        MockClientRuntimeDataHandler.assert_called_once()
+        args, kwargs = MockClientRuntimeDataHandler.call_args
+>       assert args[0] is mock_thread_watcher
+E       IndexError: tuple index out of range
+
+tsercom/runtime/runtime_main_unittest.py:108: IndexError
+____________ TestInitializeRuntimes.test_initialize_runtimes_server ____________
+
+self = <tsercom.runtime.runtime_main_unittest.TestInitializeRuntimes object at 0x7f3de0b266e0>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de0515a20>
+
+    def test_initialize_runtimes_server(
+        self,
+        mocker,
+    ):
+        """Tests runtime initialization for a server-type factory."""
+        mock_is_global_event_loop_set = mocker.patch(
+            "tsercom.runtime.runtime_main.is_global_event_loop_set",
+            return_value=True,
+        )
+        mock_run_on_event_loop = mocker.patch(
+            "tsercom.runtime.runtime_main.run_on_event_loop"
+        )
+        MockChannelFactorySelector = mocker.patch(
+            "tsercom.runtime.runtime_main.ChannelFactorySelector"
+        )
+        MockClientRuntimeDataHandler = mocker.patch(
+            "tsercom.runtime.runtime_main.ClientRuntimeDataHandler"
+        )
+        MockServerRuntimeDataHandler = mocker.patch(
+            "tsercom.runtime.runtime_main.ServerRuntimeDataHandler"
+        )
+
+        mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
+        mock_channel_factory_selector_instance = (
+            MockChannelFactorySelector.return_value
+        )
+        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
+        # Changed from get_instance to create_factory
+        mock_channel_factory_selector_instance.create_factory.return_value = (
+            mock_grpc_channel_factory
+        )
+
+        mock_server_factory = mocker.Mock(spec=RuntimeFactory)
+        mock_server_factory.auth_config = None
+        mock_server_factory.is_client.return_value = False
+        mock_server_factory.is_server.return_value = True
+        mock_server_data_reader_actual_instance = mocker.Mock(
+            spec=RemoteDataReader, name="server_data_reader_instance"
+        )
+        mock_server_event_poller_actual_instance = mocker.Mock(
+            spec=AsyncPoller, name="server_event_poller_instance"
+        )
+        mock_server_factory._remote_data_reader.return_value = (
+            mock_server_data_reader_actual_instance
+        )
+        mock_server_factory._event_poller.return_value = (
+            mock_server_event_poller_actual_instance
+        )
+
+        mock_runtime_instance = mocker.Mock(spec=Runtime)
+        mock_runtime_instance.start_async = mocker.Mock(
+            name="start_async_method"
+        )
+        mock_server_factory.create.return_value = mock_runtime_instance
+
+        initializers = [mock_server_factory]
+
+        mock_event_loop_instance = mocker.MagicMock(
+            spec=asyncio.AbstractEventLoop
+        )
+        mock_get_global_event_loop = mocker.patch(
+            "tsercom.runtime.runtime_main.get_global_event_loop",
+            return_value=mock_event_loop_instance,
+        )
+
+        created_runtimes = initialize_runtimes(
+            mock_thread_watcher, initializers
+        )
+
+        mock_is_global_event_loop_set.assert_called_once()
+        mock_get_global_event_loop.assert_called_once()
+        MockChannelFactorySelector.assert_called_once_with()
+        # Changed to assert create_factory was called with the factory's auth_config
+        mock_channel_factory_selector_instance.create_factory.assert_called_once_with(
+            mock_server_factory.auth_config
+        )
+
+        MockServerRuntimeDataHandler.assert_called_once()
+        args, kwargs = MockServerRuntimeDataHandler.call_args
+>       assert args[0] is mock_server_data_reader_actual_instance
+E       IndexError: tuple index out of range
+
+tsercom/runtime/runtime_main_unittest.py:206: IndexError
+___________ TestInitializeRuntimes.test_initialize_runtimes_multiple ___________
+
+self = <tsercom.runtime.runtime_main_unittest.TestInitializeRuntimes object at 0x7f3de0b26aa0>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f3de049cc70>
+
+    def test_initialize_runtimes_multiple(
+        self,
+        mocker,
+    ):
+        """Tests initialization with multiple factories (client and server)."""
+        mock_is_global_event_loop_set = mocker.patch(
+            "tsercom.runtime.runtime_main.is_global_event_loop_set",
+            return_value=True,
+        )
+        mock_run_on_event_loop = mocker.patch(
+            "tsercom.runtime.runtime_main.run_on_event_loop"
+        )
+        MockChannelFactorySelector = mocker.patch(
+            "tsercom.runtime.runtime_main.ChannelFactorySelector"
+        )
+        MockClientRuntimeDataHandler = mocker.patch(
+            "tsercom.runtime.runtime_main.ClientRuntimeDataHandler"
+        )
+        MockServerRuntimeDataHandler = mocker.patch(
+            "tsercom.runtime.runtime_main.ServerRuntimeDataHandler"
+        )
+
+        mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
+        mock_channel_factory_selector_instance = (
+            MockChannelFactorySelector.return_value
+        )
+        mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
+        # Changed from get_instance to create_factory
+        mock_channel_factory_selector_instance.create_factory.return_value = (
+            mock_grpc_channel_factory
+        )
+
+        mock_client_factory = mocker.Mock(spec=RuntimeFactory)
+        mock_client_factory.auth_config = None
+        mock_client_factory.is_client.return_value = True
+        mock_client_factory.is_server.return_value = False
+        mock_client_data_reader_actual_instance_multi = mocker.Mock(
+            spec=RemoteDataReader, name="client_data_reader_instance_multi"
+        )
+        mock_client_event_poller_actual_instance_multi = mocker.Mock(
+            spec=AsyncPoller, name="client_event_poller_instance_multi"
+        )
+        mock_client_factory._remote_data_reader.return_value = (
+            mock_client_data_reader_actual_instance_multi
+        )
+        mock_client_factory._event_poller.return_value = (
+            mock_client_event_poller_actual_instance_multi
+        )
+        mock_client_runtime = mocker.Mock(spec=Runtime, name="client_runtime")
+        mock_client_runtime.start_async = mocker.Mock(
+            name="client_start_async"
+        )
+        mock_client_factory.create.return_value = mock_client_runtime
+
+        mock_server_factory = mocker.Mock(spec=RuntimeFactory)
+        mock_server_factory.auth_config = None
+        mock_server_factory.is_client.return_value = False
+        mock_server_factory.is_server.return_value = True
+        mock_server_data_reader_actual_instance_multi = mocker.Mock(
+            spec=RemoteDataReader, name="server_data_reader_instance_multi"
+        )
+        mock_server_event_poller_actual_instance_multi = mocker.Mock(
+            spec=AsyncPoller, name="server_event_poller_instance_multi"
+        )
+        mock_server_factory._remote_data_reader.return_value = (
+            mock_server_data_reader_actual_instance_multi
+        )
+        mock_server_factory._event_poller.return_value = (
+            mock_server_event_poller_actual_instance_multi
+        )
+        mock_server_runtime = mocker.Mock(spec=Runtime, name="server_runtime")
+        mock_server_runtime.start_async = mocker.Mock(
+            name="server_start_async"
+        )
+        mock_server_factory.create.return_value = mock_server_runtime
+
+        initializers = [mock_client_factory, mock_server_factory]
+
+        mock_event_loop_instance = mocker.MagicMock(
+            spec=asyncio.AbstractEventLoop
+        )
+        mock_get_global_event_loop = mocker.patch(
+            "tsercom.runtime.runtime_main.get_global_event_loop",
+            return_value=mock_event_loop_instance,
+        )
+
+        created_runtimes = initialize_runtimes(
+            mock_thread_watcher, initializers
+        )
+
+        mock_get_global_event_loop.assert_called()
+        MockChannelFactorySelector.assert_called_once_with()
+        # Changed to assert create_factory was called for each factory's auth_config
+        mock_channel_factory_selector_instance.create_factory.assert_any_call(
+            mock_client_factory.auth_config
+        )
+        mock_channel_factory_selector_instance.create_factory.assert_any_call(
+            mock_server_factory.auth_config
+        )
+        assert (
+            mock_channel_factory_selector_instance.create_factory.call_count
+            == 2
+        )
+
+        assert MockClientRuntimeDataHandler.call_count == 1
+        client_args, client_kwargs = (
+            MockClientRuntimeDataHandler.call_args
+        )  # Assuming only one call in this test
+>       assert client_args[0] is mock_thread_watcher
+E       IndexError: tuple index out of range
+
+tsercom/runtime/runtime_main_unittest.py:332: IndexError
+___________________________ test_out_of_process_init ___________________________
+
+clear_loop_fixture = None
+
+    def test_out_of_process_init(clear_loop_fixture):
+>       __check_initialization(RuntimeManager.start_out_of_process)
+
+tsercom/runtime_e2etest.py:277:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime_e2etest.py:266: in __check_initialization
+    raise e
+tsercom/runtime_e2etest.py:224: in __check_initialization
+    runtime_manager.check_for_exception()
+tsercom/api/runtime_manager.py:394: in check_for_exception
+    self.__thread_watcher.check_for_exception()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.threading.thread_watcher.ThreadWatcher object at 0x7f3ddefd1240>
+
+    def check_for_exception(self) -> None:
+        """
+        Checks for caught exceptions, raises first one if any.
+
+        Thread-safe and non-blocking. Does nothing if no exceptions.
+
+        Raises:
+            Exception: First caught exception if any exist.
+                       (Future: Python 3.11+ ExceptionGroup).
+        """
+        if not self.__barrier.is_set():  # Quick check without lock
+            return
+
+        with self.__exceptions_lock:
+            if not self.__exceptions:
+                return
+
+            # TODO(Python3.11+): Consider ExceptionGroup for multiple errors.
+            # Requires Python 3.11+. Raising first exception for now.
+
+>           raise self.__exceptions[0]
+E           AttributeError: 'coroutine' object has no attribute 'process_data'
+
+tsercom/threading/thread_watcher.py:126: AttributeError
+----------------------------- Captured stderr call -----------------------------
+Process Process-1:
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/app/tsercom/runtime/runtime_main.py", line 171, in remote_process_main
+    sink.run_until_exception()
+  File "/app/tsercom/api/split_process/split_process_error_watcher_sink.py", line 51, in run_until_exception
+    raise e
+  File "/app/tsercom/api/split_process/split_process_error_watcher_sink.py", line 48, in run_until_exception
+    self.__thread_watcher.run_until_exception()
+  File "/app/tsercom/threading/thread_watcher.py", line 104, in run_until_exception
+    raise self.__exceptions[0]
+  File "/app/tsercom/runtime_e2etest.py", line 85, in start_async
+    await self.__responder.process_data(
+AttributeError: 'coroutine' object has no attribute 'process_data'
+_____________________________ test_in_process_init _____________________________
+
+clear_loop_fixture = None
+
+    def test_in_process_init(clear_loop_fixture):
+        loop_future = Future()
+
+        def _thread_loop_runner(fut: Future):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            fut.set_result(loop)
+            try:
+                loop.run_forever()
+            finally:
+                if not loop.is_closed():
+                    loop.call_soon_threadsafe(loop.stop)
+                loop.close()
+
+        event_thread = Thread(
+            target=_thread_loop_runner, args=(loop_future,), daemon=True
+        )
+        event_thread.start()
+
+        worker_event_loop = loop_future.result(timeout=5)
+>       __check_initialization(
+            partial(
+                RuntimeManager.start_in_process,
+                runtime_event_loop=worker_event_loop,
+            )
+        )
+
+tsercom/runtime_e2etest.py:300:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime_e2etest.py:266: in __check_initialization
+    raise e
+tsercom/runtime_e2etest.py:224: in __check_initialization
+    runtime_manager.check_for_exception()
+tsercom/api/runtime_manager.py:394: in check_for_exception
+    self.__thread_watcher.check_for_exception()
+tsercom/threading/thread_watcher.py:126: in check_for_exception
+    raise self.__exceptions[0]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <FakeRuntime instance at 139903738735888>
+
+    async def start_async(self) -> None:
+        try:
+            asyncio.current_task()
+        except RuntimeError:
+            pass
+
+        await asyncio.sleep(0.01)
+
+        self.__responder = self.__data_handler.register_caller(
+            self.__test_id, "0.0.0.0", 443
+        )
+
+        if not self._data_sent:
+            fresh_data_value = "FRESH_SIMPLE_DATA_V2"
+            fresh_data_object = FakeData(fresh_data_value)
+            fresh_timestamp = datetime.datetime.now()
+
+>           await self.__responder.process_data(
+                fresh_data_object, fresh_timestamp
+            )
+E           AttributeError: 'coroutine' object has no attribute 'process_data'
+
+tsercom/runtime_e2etest.py:85: AttributeError
+=============================== warnings summary ===============================
+tsercom/api/runtime_manager_unittest.py::TestRuntimeManager::test_start_out_of_process
+  /usr/lib/python3.10/unittest/mock.py:2135: RuntimeWarning: coroutine 'dummy_coroutine_for_test' was never awaited
+    setattr(_type, entry, MagicProxy(entry, self))
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/api/runtime_manager_unittest.py::TestRuntimeManager::test_start_out_of_process_process_creation_fails
+  /usr/lib/python3.10/unittest/mock.py:2181: RuntimeWarning: coroutine 'dummy_coroutine_for_test' was never awaited
+    self.name = name
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/caller_id/caller_identifier_unittest.py::test_equality
+  /app/tsercom/caller_id/caller_identifier.py:123: DeprecationWarning: NotImplemented should not be used in a boolean context
+    return not self.__eq__(other)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/api/local_process/local_runtime_factory_factory_unittest.py::test_create_pair_return_types
+FAILED tsercom/api/local_process/local_runtime_factory_factory_unittest.py::test_create_pair_remote_data_aggregator_wiring
+FAILED tsercom/api/local_process/local_runtime_factory_factory_unittest.py::test_create_pair_async_poller_wiring
+FAILED tsercom/api/local_process/local_runtime_factory_factory_unittest.py::test_create_pair_runtime_command_bridge_wiring
+FAILED tsercom/api/local_process/local_runtime_factory_factory_unittest.py::test_create_pair_local_runtime_factory_initializer
+FAILED tsercom/api/local_process/local_runtime_factory_factory_unittest.py::test_create_factory_calls_create_pair
+FAILED tsercom/api/local_process/local_runtime_factory_unittest.py::test_local_runtime_factory_init
+FAILED tsercom/api/local_process/local_runtime_factory_unittest.py::test_local_runtime_factory_create
+FAILED tsercom/api/local_process/local_runtime_factory_unittest.py::test_local_runtime_factory_remote_data_reader
+FAILED tsercom/api/local_process/local_runtime_factory_unittest.py::test_local_runtime_factory_event_poller
+FAILED tsercom/caller_id/caller_identifier_unittest.py::test_equality - Asser...
+FAILED tsercom/runtime/id_tracker_unittest.py::TestIdTracker::test_add_and_get_id
+FAILED tsercom/runtime/id_tracker_unittest.py::TestIdTracker::test_try_get_id
+FAILED tsercom/runtime/id_tracker_unittest.py::TestIdTracker::test_add_existing_id_updates_address
+FAILED tsercom/runtime/id_tracker_unittest.py::TestIdTracker::test_remove_existing_id
+FAILED tsercom/runtime/id_tracker_unittest.py::TestIdTracker::test_get_id_after_remove
+FAILED tsercom/runtime/id_tracker_unittest.py::TestIdTracker::test_add_after_remove
+FAILED tsercom/runtime/id_tracker_unittest.py::TestIdTracker::test_remove_maintains_other_ids
+FAILED tsercom/runtime/id_tracker_unittest.py::TestIdTracker::test_integration_add_get_has_len
+FAILED tsercom/runtime/runtime_main_unittest.py::TestInitializeRuntimes::test_initialize_runtimes_client
+FAILED tsercom/runtime/runtime_main_unittest.py::TestInitializeRuntimes::test_initialize_runtimes_server
+FAILED tsercom/runtime/runtime_main_unittest.py::TestInitializeRuntimes::test_initialize_runtimes_multiple
+FAILED tsercom/runtime_e2etest.py::test_out_of_process_init - AttributeError:...
+FAILED tsercom/runtime_e2etest.py::test_in_process_init - AttributeError: 'co...
+ERROR tsercom/api/split_process/remote_runtime_factory_unittest.py::test_init
+ERROR tsercom/api/split_process/remote_runtime_factory_unittest.py::test_create_method
+ERROR tsercom/api/split_process/remote_runtime_factory_unittest.py::test_remote_data_reader_method
+ERROR tsercom/api/split_process/remote_runtime_factory_unittest.py::test_event_poller_method
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_init
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_register_caller
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_unregister_caller_valid_id
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_unregister_caller_invalid_id_not_found
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_try_get_caller_id
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_try_get_caller_id_not_found
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_constructor
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_register_caller_endpoint_port
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_register_caller_grpc_context_success
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_register_caller_grpc_context_no_ip
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_get_data_iterator_returns_self
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_async_iteration_with_event_source
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_check_for_caller_id
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_handler_on_data_ready_calls_reader_on_data_ready
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_desynchronize
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_deregister_caller
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_with_datetime
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_with_server_timestamp
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_no_timestamp
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_endpoint_port_success
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_context_success
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_context_ip_none_returns_none
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_context_port_none_raises_value_error
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_mutex_args_endpoint_context
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_mutex_args_none
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_endpoint_without_port
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_port_without_endpoint
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_context_is_not_servicer_context_raises_type_error
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_init
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_register_caller
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_unregister_caller
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_try_get_caller_id
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_try_get_caller_id_not_found
+= 24 failed, 458 passed, 1 skipped, 3 warnings, 37 errors in 93.47s (0:01:33) ==

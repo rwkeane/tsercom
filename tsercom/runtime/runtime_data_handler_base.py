@@ -6,9 +6,10 @@ from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
 from functools import partial
-from typing import Generic, List, TypeVar, Any, overload
+from typing import Generic, List, TypeVar, Any, overload, Optional
 
 import grpc  # Standard import
+from concurrent.futures import Future  # Added by Jules
 
 # Local application imports
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -225,7 +226,9 @@ class RuntimeDataHandlerBase(
         """
         return self._try_get_caller_id(endpoint, port)
 
-    async def _on_data_ready(self, data: AnnotatedInstance[DataTypeT]) -> None:
+    async def _on_data_ready(
+        self, data: AnnotatedInstance[DataTypeT]
+    ) -> Optional[Future]:  # Modified by Jules
         """Callback for new data to be processed by the data reader.
 
         Args:
@@ -234,7 +237,7 @@ class RuntimeDataHandlerBase(
         if self.__data_reader is None:
             raise ValueError("Data reader instance is None.")
         # pylint: disable=protected-access # Internal component call
-        self.__data_reader._on_data_ready(data)
+        return self.__data_reader._on_data_ready(data)  # Modified by Jules
 
     @abstractmethod
     async def _register_caller(

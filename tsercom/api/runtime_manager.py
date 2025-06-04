@@ -52,8 +52,9 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
-from tsercom.runtime.runtime_main import initialize_runtimes
-from tsercom.runtime.runtime_main import remote_process_main
+
+# Imports for runtime_main are moved into methods (start_in_process, start_out_of_process)
+# to break potential circular dependencies between manager and main execution modules.
 
 # Type variables for generic RuntimeHandle and related classes.
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
@@ -273,6 +274,7 @@ class RuntimeManager(
 
         # Import is deferred to avoid circular dependencies.
         # pylint: disable=C0415 # Avoid circular import / late import
+        from tsercom.runtime.runtime_main import initialize_runtimes
 
         initialize_runtimes(
             self.__thread_watcher, factories, is_testing=self.__is_testing
@@ -320,6 +322,7 @@ class RuntimeManager(
         # Import and prepare the main function for the remote process.
         # Import is deferred to avoid circular dependencies.
         # pylint: disable=C0415 # Avoid circular import / late import
+        from tsercom.runtime.runtime_main import remote_process_main
 
         # Configure and start the new process using ProcessCreator.
         process_target = partial(

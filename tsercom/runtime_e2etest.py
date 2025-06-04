@@ -73,7 +73,7 @@ class FakeRuntime(Runtime):
 
         await asyncio.sleep(0.01)
 
-        self.__responder = self.__data_handler.register_caller(
+        self.__responder = await self.__data_handler.register_caller(
             self.__test_id, "0.0.0.0", 443
         )
 
