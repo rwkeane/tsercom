@@ -33,7 +33,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
-        min_send_frequency_seconds: Optional[float] = 0.1,
+        min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
     ): ...
 
@@ -46,7 +46,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
-        min_send_frequency_seconds: Optional[float] = 0.1,
+        min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
     ): ...
 
@@ -65,7 +65,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
-        min_send_frequency_seconds: Optional[float] = 0.1,
+        min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
     ):
         """Initializes the RuntimeConfig.
