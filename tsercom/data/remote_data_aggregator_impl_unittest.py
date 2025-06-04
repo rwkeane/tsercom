@@ -120,7 +120,9 @@ def test_init_with_thread_pool_only(mock_thread_pool):
     aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
         mock_thread_pool
     )
-    assert aggregator._RemoteDataAggregatorImpl__thread_pool is mock_thread_pool
+    assert (
+        aggregator._RemoteDataAggregatorImpl__thread_pool is mock_thread_pool
+    )
     assert aggregator._RemoteDataAggregatorImpl__client is None
     assert aggregator._RemoteDataAggregatorImpl__tracker is None
     assert not aggregator._RemoteDataAggregatorImpl__organizers
@@ -253,7 +255,9 @@ def test_on_data_ready_existing_organizer(
     organizer_on_data_ready_method_mock = mocker.MagicMock(
         name="_on_data_ready_explicit_method_mock"
     )
-    mock_organizer_instance._on_data_ready = organizer_on_data_ready_method_mock
+    mock_organizer_instance._on_data_ready = (
+        organizer_on_data_ready_method_mock
+    )
 
     mock_remote_data_organizer_class.return_value = mock_organizer_instance
 

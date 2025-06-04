@@ -1,4 +1,3 @@
-# pylint: disable=C0301
 """MdnsListener ABC and client interface for mDNS service discovery."""
 
 from abc import ABC, abstractmethod

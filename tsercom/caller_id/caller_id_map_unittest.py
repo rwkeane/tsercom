@@ -114,9 +114,13 @@ def test_thread_safety_basic(caller_id_map_instance: CallerIdMap):
     def thread_target(caller_id: CallerIdentifier, thread_id: int):
         def factory_for_thread():
             factory_call_trackers[str(caller_id)].append(thread_id)
-            return f"object_from_thread_{thread_id}_for_id_{str(caller_id)[:4]}"
+            return (
+                f"object_from_thread_{thread_id}_for_id_{str(caller_id)[:4]}"
+            )
 
-        returned_obj = map_instance.find_instance(caller_id, factory_for_thread)
+        returned_obj = map_instance.find_instance(
+            caller_id, factory_for_thread
+        )
 
         caller_id_str = str(caller_id)
         results_map[str(caller_id)].append(returned_obj)

@@ -1,4 +1,3 @@
-# pylint: disable=C0301
 """Provides IsRunningTracker for managing running state and safe iteration."""
 
 import asyncio
@@ -217,7 +216,7 @@ class IsRunningTracker(Atomic[bool]):
 
             self.__event_loop = self._get_loop_func()
             if self.__event_loop is None:
-                # pylint: disable=C0301 # Long error message
+                # Long error message
                 raise RuntimeError(
                     "Event loop not found by _get_loop_func. "
                     "Must be called from within a running event loop or have an event loop set."
@@ -272,10 +271,8 @@ class IsRunningTracker(Atomic[bool]):
             next_item_coro = anext(self.__iterator)
             # Explicitly cast to Coroutine for mypy; Awaitable should be fine.
             # May indicate deeper issue or mypy quirk.
-            result = (
-                await self.__tracker.task_or_stopped(  # pylint: disable=C0301
-                    cast(Coroutine[Any, Any, ReturnTypeT], next_item_coro)
-                )
+            result = await self.__tracker.task_or_stopped(
+                cast(Coroutine[Any, Any, ReturnTypeT], next_item_coro)
             )
 
             if result is None or not self.__tracker.get():

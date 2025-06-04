@@ -285,5 +285,7 @@ def test_loop_termination_on_is_running_false(
     assert fake_watcher.on_exception_seen_called_with is test_exception
     assert fake_exception_queue.get_blocking_call_count == 1  # Read one item
 
-    internal_tracker.get = original_get_method  # Restore for other tests if any
+    internal_tracker.get = (
+        original_get_method  # Restore for other tests if any
+    )
     internal_tracker.set_is_running(False)  # Ensure it's reset for other tests

@@ -6,7 +6,7 @@ from typing import Generic, TypeVar, Optional
 from tsercom.data.event_instance import EventInstance
 from tsercom.threading.async_poller import AsyncPoller
 
-# pylint: disable=C0301 # Black-formatted import
+# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -71,7 +71,7 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
                         # Re-raise to terminate loop, consistent with DataReaderSource
                         raise e
 
-        # pylint: disable=C0301 # Black-formatted
+        # Black-formatted
         self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception
         )
@@ -85,7 +85,7 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
             if self.__thread.is_alive():
                 # Consider logging this error instead of raising.
                 # For now, raising RuntimeError for consistency.
-                # pylint: disable=C0301 # Long error message
+                # Long error message
                 raise RuntimeError(
                     f"ERROR: EventSource thread for {self.__event_source} did not "
                     f"terminate within 5 seconds."

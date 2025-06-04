@@ -30,7 +30,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         service_type: "ServiceType",
         *,
         data_aggregator_client: Optional[
-            RemoteDataAggregator[DataTypeT]
+            RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
         auth_config: Optional[BaseChannelAuthConfig] = None,
@@ -42,7 +42,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         service_type: Literal["Client", "Server"],
         *,
         data_aggregator_client: Optional[
-            RemoteDataAggregator[DataTypeT]
+            RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
         auth_config: Optional[BaseChannelAuthConfig] = None,
@@ -60,7 +60,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         *,
         other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
         data_aggregator_client: Optional[
-            RemoteDataAggregator[DataTypeT]
+            RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
         auth_config: Optional[BaseChannelAuthConfig] = None,
@@ -118,8 +118,8 @@ class RuntimeConfig(Generic[DataTypeT]):
             # This case should ideally not be reached with type hints.
             raise TypeError(f"Unsupported service_type: {type(service_type)}")
 
-        self.__data_aggregator_client: Optional[
-            RemoteDataAggregator[DataTypeT]
+        self.__data_aggregator_client: Optional[  # Changed
+            RemoteDataAggregator.Client
         ] = data_aggregator_client
         self.__timeout_seconds: Optional[int] = timeout_seconds
         self.__auth_config: Optional[BaseChannelAuthConfig] = auth_config
@@ -160,7 +160,7 @@ class RuntimeConfig(Generic[DataTypeT]):
     @property
     def data_aggregator_client(
         self,
-    ) -> Optional[RemoteDataAggregator[DataTypeT]]:
+    ) -> Optional[RemoteDataAggregator.Client]:  # Changed
         """Client for new data notifications. None if not set."""
         return self.__data_aggregator_client
 

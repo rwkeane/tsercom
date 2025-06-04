@@ -196,6 +196,13 @@ ignore-paths = [
 [tool.pylint.format]
 max-line-length = 80  # Differs with Black's and Ruff's line-length by design.
 
+[tool.pylint."MESSAGES CONTROL"]
+disable = [
+  "C0301",
+  "W0221",
+  "W0238",
+  "R0801",]
+
 [tool.coverage.run]
 source = ["tsercom"]
 omit = [

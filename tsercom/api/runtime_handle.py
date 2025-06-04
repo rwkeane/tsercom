@@ -1,4 +1,3 @@
-# pylint: disable=C0301
 """Defines the abstract base class for a runtime handle."""
 
 from abc import ABC, abstractmethod
@@ -99,7 +98,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         raise NotImplementedError()
 
     @abstractmethod
-    def _get_remote_data_aggregator(  # pylint: disable=C0301
+    def _get_remote_data_aggregator(
         self,
     ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Abstract method for subclasses to provide their RemoteDataAggregator.

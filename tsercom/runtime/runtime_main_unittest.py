@@ -270,7 +270,9 @@ class TestInitializeRuntimes:
             mock_client_event_poller_actual_instance_multi
         )
         mock_client_runtime = mocker.Mock(spec=Runtime, name="client_runtime")
-        mock_client_runtime.start_async = mocker.Mock(name="client_start_async")
+        mock_client_runtime.start_async = mocker.Mock(
+            name="client_start_async"
+        )
         mock_client_factory.create.return_value = mock_client_runtime
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
@@ -290,7 +292,9 @@ class TestInitializeRuntimes:
             mock_server_event_poller_actual_instance_multi
         )
         mock_server_runtime = mocker.Mock(spec=Runtime, name="server_runtime")
-        mock_server_runtime.start_async = mocker.Mock(name="server_start_async")
+        mock_server_runtime.start_async = mocker.Mock(
+            name="server_start_async"
+        )
         mock_server_factory.create.return_value = mock_server_runtime
 
         initializers = [mock_client_factory, mock_server_factory]

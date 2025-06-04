@@ -281,7 +281,9 @@ class RuntimeDataHandlerBase(
         Returns:
             An instance of `_DataProcessorImpl`.
         """
-        return RuntimeDataHandlerBase._DataProcessorImpl(self, caller_id, clock)
+        return RuntimeDataHandlerBase._DataProcessorImpl(
+            self, caller_id, clock
+        )
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.

@@ -1,4 +1,3 @@
-# pylint: disable=C0301
 """Publishes mDNS service records using zeroconf."""
 
 import logging  # For _logger
@@ -42,7 +41,7 @@ class RecordPublisher(MdnsPublisher):
             TypeError: If args are not of expected types (implicit check).
         """
         if type_ is None or not type_.startswith("_"):
-            # pylint: disable=C0301 # Long error message
+            # Long error message
             raise ValueError(
                 f"Service type_ must start with an underscore (e.g., '_myservice'), got '{type_}'."
             )
@@ -96,7 +95,7 @@ class RecordPublisher(MdnsPublisher):
             )
             try:
                 if self._service_info:  # Ensure service was registered
-                    # pylint: disable=C0301 # Black-formatted
+                    # Black-formatted
                     await self._loop.run_in_executor(
                         None, self._zc.unregister_service, self._service_info
                     )
@@ -105,7 +104,7 @@ class RecordPublisher(MdnsPublisher):
                 _logger.debug("Zeroconf instance for %s closed.", self.__srv)
             # pylint: disable=W0718 # Catch all exceptions to keep publish loop alive
             except Exception as e:
-                # pylint: disable=C0301 # Long log line
+                # Long log line
                 _logger.error(
                     "Error closing Zeroconf for %s: %s", self.__srv, e
                 )
@@ -114,7 +113,7 @@ class RecordPublisher(MdnsPublisher):
                 self._loop = None
                 self._service_info = None
         else:
-            # pylint: disable=C0301 # Long log line
+            # Long log line
             _logger.debug(
                 "Zeroconf for %s already closed or not initialized.",
                 self.__srv,

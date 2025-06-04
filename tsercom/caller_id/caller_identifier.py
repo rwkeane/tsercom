@@ -104,7 +104,7 @@ class CallerIdentifier:
             other: The object to compare with.
 
         Returns:
-            True if `other` is `CallerIdentifier` and their UUIDs are equal,  # pylint: disable=line-too-long
+            True if `other` is `CallerIdentifier` and their UUIDs are equal,
             False otherwise.
         """
         if not isinstance(other, CallerIdentifier):

@@ -26,7 +26,7 @@ QueueTypeT = TypeVar("QueueTypeT")
 # Factory function to create a pair of connected multiprocess queue sink and source.
 def create_multiprocess_queues() -> tuple[
     MultiprocessQueueSink[QueueTypeT],
-    MultiprocessQueueSource[QueueTypeT],  # pylint: disable=line-too-long
+    MultiprocessQueueSource[QueueTypeT],
 ]:
     """
     Creates a connected pair of MultiprocessQueueSink and MultiprocessQueueSource.

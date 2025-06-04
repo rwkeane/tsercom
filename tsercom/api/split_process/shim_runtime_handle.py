@@ -43,7 +43,9 @@ class ShimRuntimeHandle(
         event_queue: MultiprocessQueueSink[EventInstance[EventTypeT]],
         data_queue: MultiprocessQueueSource[AnnotatedInstance[DataTypeT]],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
-        data_aggregator: RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]],
+        data_aggregator: RemoteDataAggregatorImpl[
+            AnnotatedInstance[DataTypeT]
+        ],
         block: bool = False,
     ) -> None:
         """Initializes the ShimRuntimeHandle.
@@ -59,9 +61,9 @@ class ShimRuntimeHandle(
         """
         super().__init__()
 
-        self.__event_queue: MultiprocessQueueSink[EventInstance[EventTypeT]] = (
-            event_queue
-        )
+        self.__event_queue: MultiprocessQueueSink[
+            EventInstance[EventTypeT]
+        ] = event_queue
         self.__runtime_command_queue: MultiprocessQueueSink[RuntimeCommand] = (
             runtime_command_queue
         )
@@ -114,13 +116,13 @@ class ShimRuntimeHandle(
         _ = caller_id  # Preserved for clarity, not used for queue type
         _ = timestamp  # Preserved for clarity
 
-        effective_timestamp = (  # pylint: disable=C0301 # Black-formatted
+        effective_timestamp = (  # Black-formatted
             timestamp
             if timestamp is not None
             else datetime.datetime.now(tz=datetime.timezone.utc)
         )
 
-        # pylint: disable=C0301 # Black-formatted
+        # Black-formatted
         event_instance = EventInstance(
             data=event, caller_id=caller_id, timestamp=effective_timestamp
         )
@@ -154,7 +156,7 @@ class ShimRuntimeHandle(
         # pylint: disable=W0212 # Internal callback for client data readiness
         self.__data_aggregator._on_data_ready(new_data)
 
-    def _get_remote_data_aggregator(  # pylint: disable=C0301 # Black-formatted
+    def _get_remote_data_aggregator(  # Black-formatted
         self,
     ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Provides the remote data aggregator for this handle.

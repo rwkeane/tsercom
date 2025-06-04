@@ -65,7 +65,9 @@ class SerializableTensor:
         )
 
     @classmethod
-    def try_parse(cls, grpc_type: GrpcTensor) -> Optional["SerializableTensor"]:
+    def try_parse(
+        cls, grpc_type: GrpcTensor
+    ) -> Optional["SerializableTensor"]:
         """Attempts to parse a `GrpcTensor` protobuf message into a SerializableTensor.
 
         Reconstructs the PyTorch tensor from the flattened data and shape stored
