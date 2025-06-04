@@ -250,7 +250,9 @@ def test_create_factory_and_pair_logic(
     assert len(g_fake_remote_data_aggregator_instances) == 1
     aggregator_instance = g_fake_remote_data_aggregator_instances[0]
     assert aggregator_instance.thread_pool is fake_executor
-    assert aggregator_instance.client == fake_initializer.data_aggregator_client
+    assert (
+        aggregator_instance.client == fake_initializer.data_aggregator_client
+    )
     assert aggregator_instance.timeout == fake_initializer.timeout_seconds
 
     # Verify FakeRemoteRuntimeFactory instantiation

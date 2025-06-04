@@ -326,7 +326,9 @@ def test_poll_for_data_stop_mid_processing(
         timeout=0.1,
     ):  # Changed: timeout_seconds to timeout
         nonlocal stop_was_called_during_get
-        data = original_get_blocking(timeout=timeout)  # Use corrected signature
+        data = original_get_blocking(
+            timeout=timeout
+        )  # Use corrected signature
         if data is item1 and not stop_was_called_during_get:
             data_source.stop()
             stop_was_called_during_get = True

@@ -1,5 +1,7 @@
 """Base implementation for `RuntimeDataHandler`."""
 
+# pylint: disable=W0221 # Allow arguments-differ for register_caller flexibility
+
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
@@ -281,7 +283,9 @@ class RuntimeDataHandlerBase(
         Returns:
             An instance of `_DataProcessorImpl`.
         """
-        return RuntimeDataHandlerBase._DataProcessorImpl(self, caller_id, clock)
+        return RuntimeDataHandlerBase._DataProcessorImpl(
+            self, caller_id, clock
+        )
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.

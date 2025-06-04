@@ -211,7 +211,8 @@ class TestClientRuntimeDataHandler:
         handler._mock_id_tracker_instance.remove.assert_not_called()
         handler._mock_time_sync_tracker_instance.on_disconnect.assert_not_called()
         mock_logging_module.warning.assert_called_once_with(
-            "Attempted to unregister non-existent caller_id: %s", mock_caller_id
+            "Attempted to unregister non-existent caller_id: %s",
+            mock_caller_id,
         )
 
     def test_try_get_caller_id(self, handler_and_class_mocks):

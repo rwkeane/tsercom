@@ -126,7 +126,9 @@ def initialize_runtimes(
                 # Removed unnecessary pass
 
         future.add_done_callback(
-            partial(_runtime_start_done_callback, thread_watcher=thread_watcher)
+            partial(
+                _runtime_start_done_callback, thread_watcher=thread_watcher
+            )
         )
 
     return runtimes

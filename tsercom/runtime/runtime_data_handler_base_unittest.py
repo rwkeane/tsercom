@@ -175,7 +175,9 @@ class TestRuntimeDataHandlerBaseBehavior:  # Removed @pytest.mark.asyncio from c
         )  # Assuming CallerIdentifier has a factory or suitable constructor
 
     @pytest.fixture
-    def data_processor(self, handler, test_caller_id_instance, mock_sync_clock):
+    def data_processor(
+        self, handler, test_caller_id_instance, mock_sync_clock
+    ):
         # Create an instance of the inner class for testing
         # The _create_data_processor method is part of RuntimeDataHandlerBase
         return handler._create_data_processor(
@@ -594,7 +596,8 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
 
         # The app code uses %-formatting, so we match the resulting string.
         expected_msg_part = (
-            "Could not get client port from context for endpoint: " + expected_ip # Added colon
+            "Could not get client port from context for endpoint: "
+            + expected_ip  # Added colon
         )
         # We also need to ensure the trailing period from the app's message is handled.
         # The original app message is "Could not get client port from context for endpoint: %s."

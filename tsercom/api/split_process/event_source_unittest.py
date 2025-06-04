@@ -176,7 +176,9 @@ def test_start_method(
     )  # It's an inner function
     assert fake_thread_watcher.fake_thread is not None
     assert fake_thread_watcher.fake_thread._started is True
-    assert fake_thread_watcher.fake_thread.daemon is True  # Check daemon status
+    assert (
+        fake_thread_watcher.fake_thread.daemon is True
+    )  # Check daemon status
 
     # Restore original tracker
     event_source_instance._EventSource__is_running = original_tracker

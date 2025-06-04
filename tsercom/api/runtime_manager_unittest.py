@@ -259,7 +259,9 @@ class TestRuntimeManager:
 
             manager_with_mocks.start_in_process(loop)
 
-            mock_set_tsercom_event_loop_in_manager.assert_called_once_with(loop)
+            mock_set_tsercom_event_loop_in_manager.assert_called_once_with(
+                loop
+            )
             assert manager_with_mocks._RuntimeManager__error_watcher is None
             assert (
                 manager_with_mocks._RuntimeManager__thread_watcher
@@ -327,7 +329,9 @@ class TestRuntimeManager:
                 gev_loop.clear_tsercom_event_loop()
             loop.close()
 
-    @patch("tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher")
+    @patch(
+        "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
+    )
     @patch("tsercom.api.runtime_manager.create_multiprocess_queues")
     @patch("tsercom.api.runtime_manager.remote_process_main")
     def test_start_out_of_process(
@@ -347,7 +351,9 @@ class TestRuntimeManager:
             mock_error_sink,
             mock_error_source_queue,
         )
-        mock_error_watcher_source_instance = mock_split_ewsf.create.return_value
+        mock_error_watcher_source_instance = (
+            mock_split_ewsf.create.return_value
+        )
         manager_with_mocks.register_runtime_initializer(
             mock_runtime_initializer
         )
@@ -356,7 +362,9 @@ class TestRuntimeManager:
         mock_factory_instance.auth_config = None
         mock_split_rff.create_factory.return_value = mock_factory_instance
 
-        mock_process_instance = mock_process_creator.create_process.return_value
+        mock_process_instance = (
+            mock_process_creator.create_process.return_value
+        )
 
         manager_with_mocks.start_out_of_process(start_as_daemon=True)
 
@@ -443,7 +451,9 @@ class TestRuntimeManager:
             new_callable=PropertyMock,
             return_value=True,
         )
-        manager_with_mocks._RuntimeManager__thread_watcher = mock_thread_watcher
+        manager_with_mocks._RuntimeManager__thread_watcher = (
+            mock_thread_watcher
+        )
         manager_with_mocks.run_until_exception()
         mock_thread_watcher.run_until_exception.assert_called_once()
 
@@ -478,7 +488,9 @@ class TestRuntimeManager:
             new_callable=PropertyMock,
             return_value=True,
         )
-        manager_with_mocks._RuntimeManager__thread_watcher = mock_thread_watcher
+        manager_with_mocks._RuntimeManager__thread_watcher = (
+            mock_thread_watcher
+        )
         manager_with_mocks.check_for_exception()
         mock_thread_watcher.check_for_exception.assert_called_once()
 
@@ -519,14 +531,18 @@ class TestRuntimeManager:
                 factory_mock.create.return_value = mock_runtime_on_factory
                 return factory_mock
 
-            mock_local_rff.create_factory.side_effect = mock_create_factory_impl
+            mock_local_rff.create_factory.side_effect = (
+                mock_create_factory_impl
+            )
 
             manager_with_mocks.start_in_process(loop)
 
             assert future_handle.done()
             assert future_handle.result(timeout=0) is mock_created_handle
             mock_local_rff.create_factory.assert_called_once()
-            mock_set_tsercom_event_loop_in_manager.assert_called_once_with(loop)
+            mock_set_tsercom_event_loop_in_manager.assert_called_once_with(
+                loop
+            )
             mock_initialize_runtimes_in_manager_scope.assert_called_once()
         finally:
             gev_loop.clear_tsercom_event_loop()

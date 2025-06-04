@@ -179,7 +179,9 @@ def test_on_event_with_caller_id_and_timestamp(wrapper, fake_poller):
     test_event_data = "event_all_args"
     test_caller_id = CallerIdentifier.random()  # Corrected initialization
     fixed_timestamp = datetime.datetime(2022, 1, 1, 0, 0, 0)
-    wrapper.on_event(test_event_data, test_caller_id, timestamp=fixed_timestamp)
+    wrapper.on_event(
+        test_event_data, test_caller_id, timestamp=fixed_timestamp
+    )
 
     assert fake_poller.on_available_called
     event_instance = fake_poller.on_available_arg

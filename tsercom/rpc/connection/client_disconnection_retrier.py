@@ -325,7 +325,9 @@ class ClientDisconnectionRetrier(
                 delay_coro
             )
             stop_event_wait_task: asyncio.Task[bool] = (
-                self.__event_loop.create_task(self.__stop_retrying_event.wait())
+                self.__event_loop.create_task(
+                    self.__stop_retrying_event.wait()
+                )
             )
 
             done, pending = await asyncio.wait(

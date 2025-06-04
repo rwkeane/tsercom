@@ -134,7 +134,9 @@ class TestRuntimeConfig:
         config = RuntimeConfig(service_type="Client", timeout_seconds=90)
         assert config.timeout_seconds == 90
 
-        config_default = RuntimeConfig(service_type="Server")  # Default timeout
+        config_default = RuntimeConfig(
+            service_type="Server"
+        )  # Default timeout
         assert config_default.timeout_seconds == 60
 
     def test_is_client_is_server_methods(self):

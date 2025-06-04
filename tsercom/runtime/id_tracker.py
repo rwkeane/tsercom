@@ -94,7 +94,8 @@ class IdTracker:
                 if not isinstance(kw_address, str):
                     # pylint: disable=consider-using-f-string
                     raise ValueError(
-                        "'address' kwarg must be str. Got %s" % type(kw_address)
+                        "'address' kwarg must be str. Got %s"
+                        % type(kw_address)
                     )
                 _address = kw_address
             if "port" in kwargs:

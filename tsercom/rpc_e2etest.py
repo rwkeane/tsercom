@@ -272,8 +272,10 @@ class CustomServicePublisherRpcE2E(GrpcServicePublisher):
 
         for address in addresses_to_bind:
             try:
-                port_out = self._GrpcServicePublisher__server.add_insecure_port(
-                    f"{address}:{self._GrpcServicePublisher__port}"
+                port_out = (
+                    self._GrpcServicePublisher__server.add_insecure_port(
+                        f"{address}:{self._GrpcServicePublisher__port}"
+                    )
                 )
                 if self._chosen_port is None:
                     self._chosen_port = port_out
@@ -344,7 +346,9 @@ async def async_test_server():
             port = service_publisher.chosen_port
 
         if port is None:
-            pytest.fail("Server started but failed to capture the chosen port.")
+            pytest.fail(
+                "Server started but failed to capture the chosen port."
+            )
 
         logger.info(f"AsyncTestConnectionServer started on 127.0.0.1:{port}")
         yield "127.0.0.1", port
@@ -361,7 +365,9 @@ async def async_test_server():
                 await actual_server_obj.stop(grace=1)
                 logger.info("Async server stop completed.")
             else:
-                logger.info("Using GrpcServicePublisher's default stop method.")
+                logger.info(
+                    "Using GrpcServicePublisher's default stop method."
+                )
                 service_publisher.stop()
         else:
             logger.info(
@@ -742,7 +748,9 @@ async def retrier_server_controller():
         new_server = grpc.aio.server()
         _add_servicer_to_server(new_server)
         try:
-            new_server.add_insecure_port(f"127.0.0.1:{RETRIER_TEST_FIXED_PORT}")
+            new_server.add_insecure_port(
+                f"127.0.0.1:{RETRIER_TEST_FIXED_PORT}"
+            )
         except Exception as e:
             logger.error(
                 f"Failed to bind retrier test server to port {RETRIER_TEST_FIXED_PORT}: {e}"
@@ -1006,7 +1014,9 @@ async def test_client_retrier_reconnects(retrier_server_controller):
             "Retrier is using the exact same channel object. This might be okay if the channel object itself can recover, or if _connect re-established its internal state."
         )
     else:
-        logger.info("Retrier provided a new channel object after reconnection.")
+        logger.info(
+            "Retrier provided a new channel object after reconnection."
+        )
 
     try:
         response_after_reconnect = await reconnected_channel.unary_unary(
@@ -1318,12 +1328,14 @@ async def test_pinned_server_auth_incorrect_pinned_cert_fails(
     )
     server_cn = "localhost"
 
-    server_actual_cert_pem, server_actual_key_pem = generate_signed_certificate(
-        ca_cert_pem,
-        ca_key_pem,
-        common_name=server_cn,
-        sans=["DNS:localhost", "IP:127.0.0.1"],
-        is_server=True,
+    server_actual_cert_pem, server_actual_key_pem = (
+        generate_signed_certificate(
+            ca_cert_pem,
+            ca_key_pem,
+            common_name=server_cn,
+            sans=["DNS:localhost", "IP:127.0.0.1"],
+            is_server=True,
+        )
     )
 
     pinned_by_client_cert_pem, _ = generate_signed_certificate(

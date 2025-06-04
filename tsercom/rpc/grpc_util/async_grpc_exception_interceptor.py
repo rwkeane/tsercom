@@ -77,7 +77,9 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
 
     def _wrap_unary_unary(
         self,
-        method: Callable[[object, grpc.aio.ServicerContext], Awaitable[object]],
+        method: Callable[
+            [object, grpc.aio.ServicerContext], Awaitable[object]
+        ],
         method_name: grpc.HandlerCallDetails,
     ) -> Callable[[object, grpc.aio.ServicerContext], Awaitable[object]]:
         """Wraps a unary-unary RPC method to provide exception handling."""

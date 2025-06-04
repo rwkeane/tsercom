@@ -144,9 +144,7 @@ class UpdateTestClient(InstanceListener.Client):
 async def test_instance_update_reflects_changes():
     service_type_suffix = uuid.uuid4().hex[:8]
     service_type = f"_upd-{service_type_suffix}._tcp.local."
-    instance_name = (
-        f"UpdateInstance_{service_type_suffix}"  # Critical: This stays the same
-    )
+    instance_name = f"UpdateInstance_{service_type_suffix}"  # Critical: This stays the same
 
     service_port1 = 50002
     readable_name1 = f"UpdateTestService_V1_{service_type_suffix}"
