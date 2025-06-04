@@ -1,0 +1,898 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+collected 11 items
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py EEEEEE    [ 54%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py EEEEE     [100%]
+
+==================================== ERRORS ====================================
+___________ ERROR at setup of TestClientRuntimeDataHandler.test_init ___________
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f108e92b610>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139709088178400'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709088177392'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709088179360'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139709088176192'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709088176384'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e92a200>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:78:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.client.client_runtime_data_handler.ClientRuntimeDataHandler object at 0x7f108e94d5a0>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709088177392'>
+event_source = <MagicMock spec='AsyncPoller' id='139709088179360'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+_____ ERROR at setup of TestClientRuntimeDataHandler.test_register_caller ______
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f108e92b4c0>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139709087065728'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709087059008'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709087057712'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139709087057184'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709087062416'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e81a650>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:78:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.client.client_runtime_data_handler.ClientRuntimeDataHandler object at 0x7f108e983e80>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709087059008'>
+event_source = <MagicMock spec='AsyncPoller' id='139709087057712'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_unregister_caller_valid_id _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f108e92b100>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139709087080384'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709087079376'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709087079280'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139709087075968'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709087075248'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e81e080>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:78:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.client.client_runtime_data_handler.ClientRuntimeDataHandler object at 0x7f108e9b7df0>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709087079376'>
+event_source = <MagicMock spec='AsyncPoller' id='139709087079280'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_unregister_caller_invalid_id_not_found _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f108e92add0>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139709087366352'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709087355744'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709087357808'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139709087354784'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709087354304'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e863d60>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:78:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.client.client_runtime_data_handler.ClientRuntimeDataHandler object at 0x7f108e94c070>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709087355744'>
+event_source = <MagicMock spec='AsyncPoller' id='139709087357808'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+____ ERROR at setup of TestClientRuntimeDataHandler.test_try_get_caller_id _____
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f108e92aa70>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139709086963776'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709086969680'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709086971120'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139709086971840'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709086963536'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e801900>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:78:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.client.client_runtime_data_handler.ClientRuntimeDataHandler object at 0x7f108e834af0>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709086969680'>
+event_source = <MagicMock spec='AsyncPoller' id='139709086971120'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_try_get_caller_id_not_found _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f108e92a6e0>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139709088324656'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709088171680'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709088318848'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139709088324704'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709088317504'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e94c4c0>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:78:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.client.client_runtime_data_handler.ClientRuntimeDataHandler object at 0x7f108e8866b0>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709088171680'>
+event_source = <MagicMock spec='AsyncPoller' id='139709088318848'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+___________ ERROR at setup of TestServerRuntimeDataHandler.test_init ___________
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f108e929e10>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709087441696'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709087440160'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139709087438720'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709087435360'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e877df0>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:81:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.server.server_runtime_data_handler.ServerRuntimeDataHandler object at 0x7f108e9da7a0>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709087441696'>
+event_source = <MagicMock spec='AsyncPoller' id='139709087440160'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+_____ ERROR at setup of TestServerRuntimeDataHandler.test_register_caller ______
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f108e929030>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709088319040'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709088751936'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139709088323600'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709087514192'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e94c8b0>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:81:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.server.server_runtime_data_handler.ServerRuntimeDataHandler object at 0x7f108e8962f0>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709088319040'>
+event_source = <MagicMock spec='AsyncPoller' id='139709088751936'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+____ ERROR at setup of TestServerRuntimeDataHandler.test_unregister_caller _____
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f108e929b70>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709087498544'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709087018880'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139709087021088'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709087008992'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e887040>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:81:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.server.server_runtime_data_handler.ServerRuntimeDataHandler object at 0x7f108e8629e0>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709087498544'>
+event_source = <MagicMock spec='AsyncPoller' id='139709087018880'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+____ ERROR at setup of TestServerRuntimeDataHandler.test_try_get_caller_id _____
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f108e929b40>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709088906304'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709088904912'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139709088892528'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709088894112'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e9db1f0>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:81:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.server.server_runtime_data_handler.ServerRuntimeDataHandler object at 0x7f108e802b90>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709088906304'>
+event_source = <MagicMock spec='AsyncPoller' id='139709088904912'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+_ ERROR at setup of TestServerRuntimeDataHandler.test_try_get_caller_id_not_found _
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f108e929c90>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139709088749248'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139709088749536'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139709088748096'>
+mock_id_tracker_instance = <MagicMock name='IdTracker.__class_getitem__()()' spec='IdTracker' id='139709088745792'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f108e9b64a0>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        # Patch IdTracker class to handle generic subscripting and instantiation
+        patched_id_tracker_cls_mock = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.IdTracker",
+            spec=IdTracker,  # Use spec to get __class_getitem__ behavior
+        )
+        # Configure: PatchedIdTrackerClass[GenericTypeParams]
+        #   should return a mock that, when called, returns mock_id_tracker_instance.
+        patched_id_tracker_cls_mock.__class_getitem__.return_value.return_value = (
+            mock_id_tracker_instance
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:81:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.server.server_runtime_data_handler.ServerRuntimeDataHandler object at 0x7f108e983b20>
+data_reader = <MagicMock spec='RemoteDataReader' id='139709088749248'>
+event_source = <MagicMock spec='AsyncPoller' id='139709088749536'>
+min_send_frequency_seconds = None
+
+    def __init__(
+        self,
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
+    ):
+        """Initializes RuntimeDataHandlerBase.
+
+        Args:
+            data_reader: The `RemoteDataReader` to sink data into.
+            event_source: The `AsyncPoller` to source event data from.
+        """
+        super().__init__()
+        self.__data_reader = data_reader
+        self.__event_source = event_source
+>       self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+E       TypeError: 'MagicMock' object is not subscriptable
+
+tsercom/runtime/runtime_data_handler_base.py:63: TypeError
+=========================== short test summary info ============================
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_init
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_register_caller
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_unregister_caller_valid_id
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_unregister_caller_invalid_id_not_found
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_try_get_caller_id
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_try_get_caller_id_not_found
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_init
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_register_caller
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_unregister_caller
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_try_get_caller_id
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_try_get_caller_id_not_found
+============================== 11 errors in 0.62s ==============================

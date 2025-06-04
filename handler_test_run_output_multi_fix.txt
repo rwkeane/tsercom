@@ -1,0 +1,119 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+collected 11 items
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py Fsss..    [ 54%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py Fss..     [100%]
+
+=================================== FAILURES ===================================
+____________________ TestClientRuntimeDataHandler.test_init ____________________
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f099f331270>
+handler_and_class_mocks = {'TimeSyncTracker_class_mock': <MagicMock name='TimeSyncTracker' spec='TimeSyncTracker' id='139679302424256'>, 'handle...e='__init__' id='139679302425744'>, 'id_tracker_instance_mock': <MagicMock spec='IdTracker' id='139679302421664'>, ...}
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139679302433568'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139679302425408'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139679302430016'>
+
+    def test_init(
+        self,
+        handler_and_class_mocks,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+    ):
+        """Tests the __init__ method for correct instantiation and dependency setup."""
+        handler = handler_and_class_mocks["handler"]
+        TimeSyncTracker_class_mock = handler_and_class_mocks[
+            "TimeSyncTracker_class_mock"
+        ]
+        id_tracker_init_mock = handler_and_class_mocks["id_tracker_init_mock"]
+        time_sync_tracker_instance_mock = handler_and_class_mocks[
+            "time_sync_tracker_instance_mock"
+        ]
+        id_tracker_instance_mock = handler_and_class_mocks[
+            "id_tracker_instance_mock"
+        ]
+
+        TimeSyncTracker_class_mock.assert_called_once_with(
+            mock_thread_watcher, is_testing=False
+        )
+        # Check that IdTracker.__init__ was called (it's called by RuntimeDataHandlerBase)
+        id_tracker_init_mock.assert_called_once_with(unittest.mock.ANY)
+
+        # Check that our mock_id_tracker_instance is now the one used by the handler
+        assert (
+>           handler._ClientRuntimeDataHandler__id_tracker
+            == id_tracker_instance_mock
+        )
+E       AttributeError: 'ClientRuntimeDataHandler' object has no attribute '_ClientRuntimeDataHandler__id_tracker'. Did you mean: '_ClientRuntimeDataHandler__clock_tracker'?
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:165: AttributeError
+____________________ TestServerRuntimeDataHandler.test_init ____________________
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f099f340df0>
+handler_with_mocks = {'TimeSyncServer_class_mock': <MagicMock name='TimeSyncServer' spec='TimeSyncServer' id='139679302430640'>, 'handler':...e='__init__' id='139679301088064'>, 'id_tracker_instance_mock': <MagicMock spec='IdTracker' id='139679301925904'>, ...}
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139679302079136'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139679302119776'>
+
+    def test_init(
+        self, handler_with_mocks, mock_data_reader, mock_event_source_poller
+    ):
+        """Tests constructor for correct initialization and dependency usage."""
+        handler = handler_with_mocks["handler"]
+        TimeSyncServer_class_mock = handler_with_mocks[
+            "TimeSyncServer_class_mock"
+        ]
+        time_sync_server_instance_mock = handler_with_mocks[
+            "time_sync_server_instance_mock"
+        ]
+        id_tracker_init_mock = handler_with_mocks["id_tracker_init_mock"]
+        id_tracker_instance_mock = handler_with_mocks[
+            "id_tracker_instance_mock"
+        ]
+
+        TimeSyncServer_class_mock.assert_called_once_with()
+        time_sync_server_instance_mock.start_async.assert_called_once()
+        time_sync_server_instance_mock.get_synchronized_clock.assert_called_once()
+        assert (
+            handler._ServerRuntimeDataHandler__clock
+            == time_sync_server_instance_mock.get_synchronized_clock.return_value
+        )
+
+        # Check that IdTracker.__init__ was called (it's called by RuntimeDataHandlerBase)
+        id_tracker_init_mock.assert_called_once_with(unittest.mock.ANY)
+
+        # Check that our mock_id_tracker_instance is now the one used by the handler
+        assert (
+>           handler._ServerRuntimeDataHandler__id_tracker
+            == id_tracker_instance_mock
+        )
+E       AttributeError: 'ServerRuntimeDataHandler' object has no attribute '_ServerRuntimeDataHandler__id_tracker'. Did you mean: '_ServerRuntimeDataHandler__server'?
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:163: AttributeError
+=============================== warnings summary ===============================
+tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_register_caller
+tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_unregister_caller_valid_id
+tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_unregister_caller_invalid_id_not_found
+tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_register_caller
+tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_unregister_caller
+  /usr/local/lib/python3.10/dist-packages/_pytest/python.py:148: PytestUnhandledCoroutineWarning: async def functions are not natively supported and have been skipped.
+  You need to install a suitable plugin for your async framework, for example:
+    - anyio
+    - pytest-asyncio
+    - pytest-tornasync
+    - pytest-trio
+    - pytest-twisted
+    warnings.warn(PytestUnhandledCoroutineWarning(msg.format(nodeid)))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_init
+FAILED tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_init
+============== 2 failed, 4 passed, 5 skipped, 5 warnings in 0.34s ==============

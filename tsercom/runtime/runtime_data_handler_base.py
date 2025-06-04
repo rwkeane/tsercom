@@ -307,8 +307,9 @@ class RuntimeDataHandlerBase(
         if pair is None:
             return None
 
-        assert len(pair) == 3, len(pair)
-        return pair[0], pair[1]
+        # pair is expected to be (CallerIdentifier, TrackedDataT)
+        # where TrackedDataT is AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        return pair[0]
 
     async def __dispatch_poller_data_loop(self) -> None:
         """

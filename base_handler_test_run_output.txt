@@ -1,0 +1,725 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+collected 22 items
+
+tsercom/runtime/runtime_data_handler_base_unittest.py ...FFF..EEEEEFFFFF [ 81%]
+FFFF                                                                     [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_desynchronize _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fd09a98f100>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fd09a81a6e0>
+test_caller_id_instance = CallerIdentifier('d29e3277-6510-4bef-9604-16b423c7713d')
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='140533918139872'>
+
+    @pytest.fixture
+    def data_processor(
+        self, handler, test_caller_id_instance, mock_sync_clock
+    ):
+        # Create an instance of the inner class for testing
+        # The _create_data_processor method is part of RuntimeDataHandlerBase
+>       return handler._create_data_processor(
+            test_caller_id_instance, mock_sync_clock
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:205:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base.py:289: in _create_data_processor
+    _, _, data_poller = self.__id_tracker.get(caller_id)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7fd09a7e0f70>
+args = (CallerIdentifier('d29e3277-6510-4bef-9604-16b423c7713d'),), kwargs = {}
+resolved_result = None
+query_repr = "args=(CallerIdentifier('d29e3277-6510-4bef-9604-16b423c7713d'),)"
+
+    def get(
+        self, *args: Any, **kwargs: Any
+    ) -> tuple[str, int, TrackedDataT] | tuple[CallerIdentifier, TrackedDataT]:
+        """Retrieves a value, raising KeyError if not found.
+
+        Args:
+            caller_id_obj: `CallerIdentifier` to look up.
+            address: IP address or hostname.
+            port: Port number.
+
+        Returns:
+            (address, port) by ID, or `CallerIdentifier` by address/port.
+
+        Raises:
+            ValueError: If incorrect arguments provided.
+            KeyError: If lookup key not found.
+        """
+        resolved_result = self.try_get(*args, **kwargs)
+
+        if resolved_result is None:
+            query_repr = ""
+            if args:
+                # pylint: disable=consider-using-f-string
+                query_repr = "args=%s" % (args,)
+            if kwargs:
+                sep = ", " if args else ""
+                # pylint: disable=consider-using-f-string
+                query_repr += "%skwargs=%s" % (sep, kwargs)
+            # pylint: disable=consider-using-f-string
+>           raise KeyError("Key not found for query: %s" % query_repr)
+E           KeyError: "Key not found for query: args=(CallerIdentifier('d29e3277-6510-4bef-9604-16b423c7713d'),)"
+
+tsercom/runtime/id_tracker.py:211: KeyError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_deregister_caller _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fd09a98e680>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fd09a483df0>
+test_caller_id_instance = CallerIdentifier('60f1c88b-fbe8-4418-8b4f-92fb8829dd8e')
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='140533919118864'>
+
+    @pytest.fixture
+    def data_processor(
+        self, handler, test_caller_id_instance, mock_sync_clock
+    ):
+        # Create an instance of the inner class for testing
+        # The _create_data_processor method is part of RuntimeDataHandlerBase
+>       return handler._create_data_processor(
+            test_caller_id_instance, mock_sync_clock
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:205:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base.py:289: in _create_data_processor
+    _, _, data_poller = self.__id_tracker.get(caller_id)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7fd09a482110>
+args = (CallerIdentifier('60f1c88b-fbe8-4418-8b4f-92fb8829dd8e'),), kwargs = {}
+resolved_result = None
+query_repr = "args=(CallerIdentifier('60f1c88b-fbe8-4418-8b4f-92fb8829dd8e'),)"
+
+    def get(
+        self, *args: Any, **kwargs: Any
+    ) -> tuple[str, int, TrackedDataT] | tuple[CallerIdentifier, TrackedDataT]:
+        """Retrieves a value, raising KeyError if not found.
+
+        Args:
+            caller_id_obj: `CallerIdentifier` to look up.
+            address: IP address or hostname.
+            port: Port number.
+
+        Returns:
+            (address, port) by ID, or `CallerIdentifier` by address/port.
+
+        Raises:
+            ValueError: If incorrect arguments provided.
+            KeyError: If lookup key not found.
+        """
+        resolved_result = self.try_get(*args, **kwargs)
+
+        if resolved_result is None:
+            query_repr = ""
+            if args:
+                # pylint: disable=consider-using-f-string
+                query_repr = "args=%s" % (args,)
+            if kwargs:
+                sep = ", " if args else ""
+                # pylint: disable=consider-using-f-string
+                query_repr += "%skwargs=%s" % (sep, kwargs)
+            # pylint: disable=consider-using-f-string
+>           raise KeyError("Key not found for query: %s" % query_repr)
+E           KeyError: "Key not found for query: args=(CallerIdentifier('60f1c88b-fbe8-4418-8b4f-92fb8829dd8e'),)"
+
+tsercom/runtime/id_tracker.py:211: KeyError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_with_datetime _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fd09a98fa30>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fd09a4d8310>
+test_caller_id_instance = CallerIdentifier('ece33bed-da75-416e-969e-7eaafe0e7a04')
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='140533918980352'>
+
+    @pytest.fixture
+    def data_processor(
+        self, handler, test_caller_id_instance, mock_sync_clock
+    ):
+        # Create an instance of the inner class for testing
+        # The _create_data_processor method is part of RuntimeDataHandlerBase
+>       return handler._create_data_processor(
+            test_caller_id_instance, mock_sync_clock
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:205:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base.py:289: in _create_data_processor
+    _, _, data_poller = self.__id_tracker.get(caller_id)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7fd09a4dbb80>
+args = (CallerIdentifier('ece33bed-da75-416e-969e-7eaafe0e7a04'),), kwargs = {}
+resolved_result = None
+query_repr = "args=(CallerIdentifier('ece33bed-da75-416e-969e-7eaafe0e7a04'),)"
+
+    def get(
+        self, *args: Any, **kwargs: Any
+    ) -> tuple[str, int, TrackedDataT] | tuple[CallerIdentifier, TrackedDataT]:
+        """Retrieves a value, raising KeyError if not found.
+
+        Args:
+            caller_id_obj: `CallerIdentifier` to look up.
+            address: IP address or hostname.
+            port: Port number.
+
+        Returns:
+            (address, port) by ID, or `CallerIdentifier` by address/port.
+
+        Raises:
+            ValueError: If incorrect arguments provided.
+            KeyError: If lookup key not found.
+        """
+        resolved_result = self.try_get(*args, **kwargs)
+
+        if resolved_result is None:
+            query_repr = ""
+            if args:
+                # pylint: disable=consider-using-f-string
+                query_repr = "args=%s" % (args,)
+            if kwargs:
+                sep = ", " if args else ""
+                # pylint: disable=consider-using-f-string
+                query_repr += "%skwargs=%s" % (sep, kwargs)
+            # pylint: disable=consider-using-f-string
+>           raise KeyError("Key not found for query: %s" % query_repr)
+E           KeyError: "Key not found for query: args=(CallerIdentifier('ece33bed-da75-416e-969e-7eaafe0e7a04'),)"
+
+tsercom/runtime/id_tracker.py:211: KeyError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_with_server_timestamp _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fd09a98fe80>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fd09a4cd750>
+test_caller_id_instance = CallerIdentifier('20e9139e-91f0-4ffb-9ffc-a712619e10bd')
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='140533918619280'>
+
+    @pytest.fixture
+    def data_processor(
+        self, handler, test_caller_id_instance, mock_sync_clock
+    ):
+        # Create an instance of the inner class for testing
+        # The _create_data_processor method is part of RuntimeDataHandlerBase
+>       return handler._create_data_processor(
+            test_caller_id_instance, mock_sync_clock
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:205:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base.py:289: in _create_data_processor
+    _, _, data_poller = self.__id_tracker.get(caller_id)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7fd09a578cd0>
+args = (CallerIdentifier('20e9139e-91f0-4ffb-9ffc-a712619e10bd'),), kwargs = {}
+resolved_result = None
+query_repr = "args=(CallerIdentifier('20e9139e-91f0-4ffb-9ffc-a712619e10bd'),)"
+
+    def get(
+        self, *args: Any, **kwargs: Any
+    ) -> tuple[str, int, TrackedDataT] | tuple[CallerIdentifier, TrackedDataT]:
+        """Retrieves a value, raising KeyError if not found.
+
+        Args:
+            caller_id_obj: `CallerIdentifier` to look up.
+            address: IP address or hostname.
+            port: Port number.
+
+        Returns:
+            (address, port) by ID, or `CallerIdentifier` by address/port.
+
+        Raises:
+            ValueError: If incorrect arguments provided.
+            KeyError: If lookup key not found.
+        """
+        resolved_result = self.try_get(*args, **kwargs)
+
+        if resolved_result is None:
+            query_repr = ""
+            if args:
+                # pylint: disable=consider-using-f-string
+                query_repr = "args=%s" % (args,)
+            if kwargs:
+                sep = ", " if args else ""
+                # pylint: disable=consider-using-f-string
+                query_repr += "%skwargs=%s" % (sep, kwargs)
+            # pylint: disable=consider-using-f-string
+>           raise KeyError("Key not found for query: %s" % query_repr)
+E           KeyError: "Key not found for query: args=(CallerIdentifier('20e9139e-91f0-4ffb-9ffc-a712619e10bd'),)"
+
+tsercom/runtime/id_tracker.py:211: KeyError
+_ ERROR at setup of TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_no_timestamp _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fd09a98f5b0>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fd09a4fe770>
+test_caller_id_instance = CallerIdentifier('59ee25f6-f182-4f7d-8ae4-e969fe213cfe')
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='140533918516944'>
+
+    @pytest.fixture
+    def data_processor(
+        self, handler, test_caller_id_instance, mock_sync_clock
+    ):
+        # Create an instance of the inner class for testing
+        # The _create_data_processor method is part of RuntimeDataHandlerBase
+>       return handler._create_data_processor(
+            test_caller_id_instance, mock_sync_clock
+        )
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:205:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base.py:289: in _create_data_processor
+    _, _, data_poller = self.__id_tracker.get(caller_id)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.id_tracker.IdTracker object at 0x7fd09a467130>
+args = (CallerIdentifier('59ee25f6-f182-4f7d-8ae4-e969fe213cfe'),), kwargs = {}
+resolved_result = None
+query_repr = "args=(CallerIdentifier('59ee25f6-f182-4f7d-8ae4-e969fe213cfe'),)"
+
+    def get(
+        self, *args: Any, **kwargs: Any
+    ) -> tuple[str, int, TrackedDataT] | tuple[CallerIdentifier, TrackedDataT]:
+        """Retrieves a value, raising KeyError if not found.
+
+        Args:
+            caller_id_obj: `CallerIdentifier` to look up.
+            address: IP address or hostname.
+            port: Port number.
+
+        Returns:
+            (address, port) by ID, or `CallerIdentifier` by address/port.
+
+        Raises:
+            ValueError: If incorrect arguments provided.
+            KeyError: If lookup key not found.
+        """
+        resolved_result = self.try_get(*args, **kwargs)
+
+        if resolved_result is None:
+            query_repr = ""
+            if args:
+                # pylint: disable=consider-using-f-string
+                query_repr = "args=%s" % (args,)
+            if kwargs:
+                sep = ", " if args else ""
+                # pylint: disable=consider-using-f-string
+                query_repr += "%skwargs=%s" % (sep, kwargs)
+            # pylint: disable=consider-using-f-string
+>           raise KeyError("Key not found for query: %s" % query_repr)
+E           KeyError: "Key not found for query: args=(CallerIdentifier('59ee25f6-f182-4f7d-8ae4-e969fe213cfe'),)"
+
+tsercom/runtime/id_tracker.py:211: KeyError
+=================================== FAILURES ===================================
+__ TestRuntimeDataHandlerBaseBehavior.test_register_caller_grpc_context_no_ip __
+
+self = <MagicMock name='get_client_ip' spec='function' id='140533922433440'>
+args = (<AsyncMock spec='ServicerContext' id='140533922622784'>,), kwargs = {}
+msg = "Expected 'get_client_ip' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'get_client_ip' to be called once. Called 0 times.
+
+/usr/lib/python3.10/unittest/mock.py:940: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fd09a98dde0>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fd09aa134c0>
+mock_caller_id = <MagicMock name='MockCallerIdInstance' spec='CallerIdentifier' id='140533922570320'>
+mock_servicer_context = <AsyncMock spec='ServicerContext' id='140533922622784'>
+patch_get_client_ip = <function get_client_ip at 0x7fd09a9c9cf0>
+patch_get_client_port = <function get_client_port at 0x7fd09a9ca5f0>
+
+    @pytest.mark.asyncio  # Added asyncio mark
+    async def test_register_caller_grpc_context_no_ip(
+        self,
+        handler,
+        mock_caller_id,
+        mock_servicer_context,
+        patch_get_client_ip,
+        patch_get_client_port,  # patch_get_client_port is needed here
+    ):
+        patch_get_client_ip.return_value = None
+        patch_get_client_port.return_value = (
+            5678  # Does not matter if IP is None
+        )
+        returned_processor = handler.register_caller(  # Removed await
+            mock_caller_id, context=mock_servicer_context
+        )
+>       patch_get_client_ip.assert_called_once_with(mock_servicer_context)
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:275:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = (<AsyncMock spec='ServicerContext' id='140533922622784'>,), kwargs = {}
+
+    def assert_called_once_with(*args, **kwargs):
+>       return mock.assert_called_once_with(*args, **kwargs)
+E       AssertionError: Expected 'get_client_ip' to be called once. Called 0 times.
+
+/usr/lib/python3.10/unittest/mock.py:213: AssertionError
+____ TestRuntimeDataHandlerBaseBehavior.test_get_data_iterator_returns_self ____
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fd09a98f370>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fd09a8ca0b0>
+
+    def test_get_data_iterator_returns_self(self, handler):  # No asyncio mark
+>       assert handler.get_data_iterator() is handler
+E       AttributeError: 'TestableRuntimeDataHandler' object has no attribute 'get_data_iterator'
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:283: AttributeError
+__ TestRuntimeDataHandlerBaseBehavior.test_async_iteration_with_event_source ___
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fd09a98e890>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fd09a94bc40>
+mock_event_source = <MagicMock spec='AsyncPoller' id='140533923357424'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7fd09a94bc10>
+
+    @pytest.mark.asyncio  # Added asyncio mark
+    async def test_async_iteration_with_event_source(
+        self, handler, mock_event_source, mocker
+    ):
+        item1 = mocker.MagicMock(name="EventItem1")
+        item2 = mocker.MagicMock(name="EventItem2")
+        mock_event_source.__anext__.side_effect = [
+            item1,
+            item2,
+            StopAsyncIteration,
+        ]
+        collected_items = []
+>       async for item in handler.get_data_iterator():
+E       AttributeError: 'TestableRuntimeDataHandler' object has no attribute 'get_data_iterator'
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:297: AttributeError
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_with_endpoint_port_success _
+
+self = <MagicMock spec='method' id='140533918530288'>
+args = (CallerIdentifier('04aa1ffa-f1d5-485a-9b92-8be1a06968ac'), '127.0.0.1', 8080)
+kwargs = {}, msg = "Expected 'mock' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'mock' to be called once. Called 0 times.
+
+/usr/lib/python3.10/unittest/mock.py:940: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a98fa90>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09a4af850>
+mock_endpoint_processor_fixture = <MagicMock name='mock()' spec='EndpointDataProcessor' id='140533918517280'>
+
+    def test_register_caller_with_endpoint_port_success(
+        self, handler_fixture, mock_endpoint_processor_fixture
+    ):
+        caller_id = CallerIdentifier.random()
+        endpoint = "127.0.0.1"
+        port = 8080
+        handler_fixture._register_caller_mock.return_value = (
+            mock_endpoint_processor_fixture
+        )
+
+        result = handler_fixture.register_caller(
+            caller_id, endpoint=endpoint, port=port
+        )
+
+>       handler_fixture._register_caller_mock.assert_called_once_with(
+            caller_id, endpoint, port
+        )
+E       AssertionError: Expected 'mock' to be called once. Called 0 times.
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:557: AssertionError
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_with_context_success _
+
+self = <MagicMock name='get_client_ip' id='140533918656896'>
+args = (<MagicMock spec='ServicerContext' id='140533918656608'>,), kwargs = {}
+msg = "Expected 'get_client_ip' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'get_client_ip' to be called once. Called 0 times.
+
+/usr/lib/python3.10/unittest/mock.py:940: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a98eec0>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09a53fa90>
+mock_context_fixture = <MagicMock spec='ServicerContext' id='140533918656608'>
+mock_endpoint_processor_fixture = <MagicMock name='mock()' spec='EndpointDataProcessor' id='140533918979248'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7fd09a4fc310>
+
+    def test_register_caller_with_context_success(
+        self,
+        handler_fixture,
+        mock_context_fixture,
+        mock_endpoint_processor_fixture,
+        mocker,  # Ensure mocker is passed here
+    ):
+        caller_id = CallerIdentifier.random()
+        expected_ip = "192.168.0.1"
+        expected_port = 1234
+        mock_get_ip = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.get_client_ip",
+            return_value=expected_ip,
+        )
+        mock_get_port = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.get_client_port",
+            return_value=expected_port,
+        )
+        handler_fixture._register_caller_mock.return_value = (
+            mock_endpoint_processor_fixture
+        )
+
+        result = handler_fixture.register_caller(
+            caller_id, context=mock_context_fixture
+        )
+
+>       mock_get_ip.assert_called_once_with(mock_context_fixture)
+E       AssertionError: Expected 'get_client_ip' to be called once. Called 0 times.
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:588: AssertionError
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_with_context_ip_none_returns_none _
+
+self = <MagicMock name='get_client_ip' id='140533923352528'>
+args = (<MagicMock spec='ServicerContext' id='140533923364816'>,), kwargs = {}
+msg = "Expected 'get_client_ip' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'get_client_ip' to be called once. Called 0 times.
+
+/usr/lib/python3.10/unittest/mock.py:940: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a98df30>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09c329030>
+mock_context_fixture = <MagicMock spec='ServicerContext' id='140533923364816'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7fd09a972890>
+
+    def test_register_caller_with_context_ip_none_returns_none(
+        self,
+        handler_fixture,
+        mock_context_fixture,
+        mocker,  # Ensure mocker is passed here
+    ):
+        caller_id = CallerIdentifier.random()
+        mock_get_ip = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.get_client_ip",
+            return_value=None,
+        )
+        mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.get_client_port",
+            return_value=1234,
+        )  # Mock get_client_port as well
+
+        result = handler_fixture.register_caller(
+            caller_id, context=mock_context_fixture
+        )
+
+>       mock_get_ip.assert_called_once_with(mock_context_fixture)
+E       AssertionError: Expected 'get_client_ip' to be called once. Called 0 times.
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:615: AssertionError
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_with_context_port_none_raises_value_error _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a98d750>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09a88b070>
+mock_context_fixture = <MagicMock spec='ServicerContext' id='140533922577376'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7fd09a88afe0>
+
+    def test_register_caller_with_context_port_none_raises_value_error(
+        self,
+        handler_fixture,
+        mock_context_fixture,
+        mocker,  # Ensure mocker is passed here
+    ):
+        caller_id = CallerIdentifier.random()
+        expected_ip = "192.168.0.1"
+        mock_get_ip = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.get_client_ip",
+            return_value=expected_ip,
+        )
+        mock_get_port = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.get_client_port",
+            return_value=None,
+        )
+
+>       with pytest.raises(ValueError) as excinfo:
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:638: Failed
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_mutex_args_endpoint_context _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a973e20>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09a5c49a0>
+mock_context_fixture = <MagicMock spec='ServicerContext' id='140533919675248'>
+
+    def test_register_caller_mutex_args_endpoint_context(
+        self, handler_fixture, mock_context_fixture
+    ):
+        """Test providing both endpoint and context raises ValueError."""
+        caller_id = CallerIdentifier.random()
+>       with pytest.raises(ValueError) as excinfo:
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:663: Failed
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_mutex_args_none _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a973dc0>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09a8842e0>
+
+    def test_register_caller_mutex_args_none(self, handler_fixture):
+        """Test providing neither endpoint/port nor context raises ValueError."""
+        caller_id = CallerIdentifier.random()
+>       with pytest.raises(ValueError) as excinfo:
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:678: Failed
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_endpoint_without_port _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a9739d0>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09a5c5c30>
+
+    def test_register_caller_endpoint_without_port(self, handler_fixture):
+        """Test providing endpoint without port raises ValueError."""
+        caller_id = CallerIdentifier.random()
+>       with pytest.raises(ValueError) as excinfo:
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:690: Failed
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_port_without_endpoint _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a973730>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09a611420>
+
+    def test_register_caller_port_without_endpoint(self, handler_fixture):
+        """Test providing port without endpoint raises ValueError."""
+        caller_id = CallerIdentifier.random()
+>       with pytest.raises(ValueError) as excinfo:
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:702: Failed
+_ TestRuntimeDataHandlerBaseRegisterCaller.test_register_caller_context_is_not_servicer_context_raises_type_error _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseRegisterCaller object at 0x7fd09a9734c0>
+handler_fixture = <tsercom.runtime.runtime_data_handler_base_unittest.ConcreteRuntimeDataHandler object at 0x7fd09a611510>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7fd09a611b40>
+
+    def test_register_caller_context_is_not_servicer_context_raises_type_error(
+        self, handler_fixture, mocker  # Ensure mocker is passed here
+    ):
+        """Test that if context is not None, it must be a ServicerContext."""
+        caller_id = CallerIdentifier.random()
+        not_a_servicer_context = object()  # Some other object type
+
+        # These can return valid values, the type check for context should happen before.
+        mock_get_ip = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.get_client_ip",
+            return_value="1.2.3.4",
+        )
+        mock_get_port = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.get_client_port",
+            return_value=1234,
+        )
+
+>       with pytest.raises(TypeError) as excinfo:
+E       Failed: DID NOT RAISE <class 'TypeError'>
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:728: Failed
+=============================== warnings summary ===============================
+tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_context_port_none_raises_value_error
+  /app/tsercom/runtime/runtime_data_handler_base_unittest.py:639: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.register_caller' was never awaited
+    handler_fixture.register_caller(
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_mutex_args_endpoint_context
+  /app/tsercom/runtime/runtime_data_handler_base_unittest.py:664: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.register_caller' was never awaited
+    handler_fixture.register_caller(
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_mutex_args_none
+  /app/tsercom/runtime/runtime_data_handler_base_unittest.py:679: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.register_caller' was never awaited
+    handler_fixture.register_caller(
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_endpoint_without_port
+  /app/tsercom/runtime/runtime_data_handler_base_unittest.py:691: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.register_caller' was never awaited
+    handler_fixture.register_caller(
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_port_without_endpoint
+  /app/tsercom/runtime/runtime_data_handler_base_unittest.py:703: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.register_caller' was never awaited
+    handler_fixture.register_caller(
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_context_is_not_servicer_context_raises_type_error
+  /app/tsercom/runtime/runtime_data_handler_base_unittest.py:729: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.register_caller' was never awaited
+    handler_fixture.register_caller(
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_register_caller_grpc_context_no_ip
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_get_data_iterator_returns_self
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_async_iteration_with_event_source
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_endpoint_port_success
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_context_success
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_context_ip_none_returns_none
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_with_context_port_none_raises_value_error
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_mutex_args_endpoint_context
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_mutex_args_none
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_endpoint_without_port
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_port_without_endpoint
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseRegisterCaller::test_register_caller_context_is_not_servicer_context_raises_type_error
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_desynchronize
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_deregister_caller
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_with_datetime
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_with_server_timestamp
+ERROR tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_no_timestamp
+============== 12 failed, 5 passed, 6 warnings, 5 errors in 1.25s ==============

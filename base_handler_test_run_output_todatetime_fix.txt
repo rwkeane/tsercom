@@ -1,0 +1,209 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+collected 21 items
+
+tsercom/runtime/runtime_data_handler_base_unittest.py .......F..F....... [ 85%]
+...                                                                      [100%]
+
+=================================== FAILURES ===================================
+_______ TestRuntimeDataHandlerBaseBehavior.test_processor_desynchronize ________
+
+self = <MagicMock name='sync_clock_desync' id='139764313767552'>
+args = (<MagicMock spec='ServerTimestamp' id='139764313827184'>,), kwargs = {}
+expected = call(<MagicMock spec='ServerTimestamp' id='139764313827184'>)
+actual = call(SynchronizedTimestamp(timestamp=datetime.datetime(2025, 6, 4, 22, 45, 57, 30848, tzinfo=datetime.timezone.utc)))
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x7f1d6a73a710>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\nActual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: sync_clock_desync(<MagicMock spec='ServerTimestamp' id='139764313827184'>)
+E           Actual: sync_clock_desync(SynchronizedTimestamp(timestamp=datetime.datetime(2025, 6, 4, 22, 45, 57, 30848, tzinfo=datetime.timezone.utc)))
+
+/usr/lib/python3.10/unittest/mock.py:929: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = <MagicMock name='sync_clock_desync' id='139764313767552'>
+args = (<MagicMock spec='ServerTimestamp' id='139764313827184'>,), kwargs = {}
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+            raise AssertionError(msg)
+>       return self.assert_called_with(*args, **kwargs)
+E       AssertionError: expected call not found.
+E       Expected: sync_clock_desync(<MagicMock spec='ServerTimestamp' id='139764313827184'>)
+E       Actual: sync_clock_desync(SynchronizedTimestamp(timestamp=datetime.datetime(2025, 6, 4, 22, 45, 57, 30848, tzinfo=datetime.timezone.utc)))
+E
+E       pytest introspection follows:
+E
+E       Args:
+E       assert (Synchronized...mezone.utc)),) == (<MagicMock s...4313827184'>,)
+E
+E         At index 0 diff: SynchronizedTimestamp(timestamp=datetime.datetime(2025, 6, 4, 22, 45, 57, 30848, tzinfo=datetime.timezone.utc)) != <MagicMock spec='ServerTimestamp' id='139764313827184'>
+E         Use -v to get more diff
+
+/usr/lib/python3.10/unittest/mock.py:941: AssertionError
+
+During handling of the above exception, another exception occurred:
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f1d6a667220>
+data_processor = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7f1d6a4705b0>
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='139764313766880'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f1d6a629e10>
+
+    @pytest.mark.asyncio
+    async def test_processor_desynchronize(
+        self, data_processor, mock_sync_clock, mocker
+    ):
+        mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
+        mock_server_ts.timestamp = mocker.MagicMock(
+            spec=GrpcTimestamp
+        )  # Changed spec
+        mock_server_ts.timestamp.ToDatetime.return_value = (
+            datetime.datetime.now(datetime.timezone.utc)
+        )
+        expected_datetime = datetime.datetime.now(datetime.timezone.utc)
+        mock_sync_clock.desync.return_value = expected_datetime
+
+        result_dt = await data_processor.desynchronize(mock_server_ts)
+
+>       mock_sync_clock.desync.assert_called_once_with(mock_server_ts)
+E       AssertionError: expected call not found.
+E       Expected: sync_clock_desync(<MagicMock spec='ServerTimestamp' id='139764313827184'>)
+E       Actual: sync_clock_desync(SynchronizedTimestamp(timestamp=datetime.datetime(2025, 6, 4, 22, 45, 57, 30848, tzinfo=datetime.timezone.utc)))
+E
+E       pytest introspection follows:
+E
+E       Args:
+E       assert (Synchronized...mezone.utc)),) == (<MagicMock s...4313827184'>,)
+E
+E         At index 0 diff: SynchronizedTimestamp(timestamp=datetime.datetime(2025, 6, 4, 22, 45, 57, 30848, tzinfo=datetime.timezone.utc)) != <MagicMock spec='ServerTimestamp' id='139764313827184'>
+E         Use -v to get more diff
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:370: AssertionError
+_ TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_with_server_timestamp _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f1d6a667c70>
+data_processor = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7f1d6a4d7b20>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7f1d6a513250>
+test_caller_id_instance = CallerIdentifier('c615eb73-2923-4884-8115-a85174c5414f')
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='139764313204880'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f1d6bcbed40>
+
+    @pytest.mark.asyncio
+    async def test_processor_process_data_with_server_timestamp(
+        self,
+        data_processor,
+        handler,
+        test_caller_id_instance,
+        mock_sync_clock,
+        mocker,
+    ):
+        test_payload = "payload_with_server_ts"
+        mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
+        mock_server_ts.timestamp = mocker.MagicMock(
+            spec=GrpcTimestamp
+        )  # Changed spec
+        mock_server_ts.timestamp.ToDatetime.return_value = (
+            datetime.datetime.now(datetime.timezone.utc)
+        )
+        expected_desynced_dt = datetime.datetime.now(
+            datetime.timezone.utc
+        ) - datetime.timedelta(seconds=5)
+
+        # Mock the desynchronize method of the specific processor instance
+        # Or, rely on mock_sync_clock.desync which is used by processor.desynchronize
+        mock_sync_clock.desync.return_value = expected_desynced_dt
+
+>       await data_processor.process_data(test_payload, mock_server_ts)
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:426:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7f1d6a4d7b20>
+data = 'payload_with_server_ts'
+timestamp = datetime.datetime(2025, 6, 4, 22, 45, 52, 269471, tzinfo=datetime.timezone.utc)
+context = None
+
+    async def process_data(
+        self,
+        data: DataTypeT,
+        timestamp: datetime | ServerTimestamp | None = None,
+        context: Optional[grpc.aio.ServicerContext] = None,
+    ) -> None:
+        """Processes incoming data, converting timestamp if necessary.
+
+        If the provided timestamp is a `ServerTimestamp`, it's first
+        desynchronized to a local `datetime` object. If timestamp is None,
+        current time is used. Then, `_process_data` is called.
+
+        Args:
+            data: The data item of type DataTypeT to process.
+            timestamp: The timestamp associated with the data, can be either
+                       a `datetime` object, a `ServerTimestamp`, or None.
+        """
+        actual_timestamp: datetime
+        if timestamp is None:
+            # Ensure timezone is available if datetime.now needs it.
+            # Assumes 'from datetime import datetime, timezone' in this file
+            # Ensure timezone is in scope for .now() - import moved to top
+
+            actual_timestamp = datetime.now(timezone.utc)
+        elif isinstance(timestamp, ServerTimestamp):
+            maybe_timestamp = await self.desynchronize(timestamp)
+            if maybe_timestamp is None:
+                if context is not None:
+                    await context.abort(
+                        grpc.StatusCode.INVALID_ARGUMENT,
+                        "Invalid ServerTimestamp Provided",
+                    )
+                return
+
+            timestamp = maybe_timestamp
+        else:  # Is already a datetime object
+            actual_timestamp = timestamp
+
+        # The problematic 'assert isinstance(timestamp, datetime)' was here.
+        # The logic above ensures actual_timestamp is a datetime.
+
+>       await self._process_data(data, actual_timestamp)
+E       UnboundLocalError: local variable 'actual_timestamp' referenced before assignment
+
+tsercom/runtime/endpoint_data_processor.py:138: UnboundLocalError
+=========================== short test summary info ============================
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_desynchronize
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_with_server_timestamp
+========================= 2 failed, 19 passed in 0.65s =========================

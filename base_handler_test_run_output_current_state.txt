@@ -1,0 +1,116 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+collected 21 items
+
+tsercom/runtime/runtime_data_handler_base_unittest.py .......F..F....... [ 85%]
+...                                                                      [100%]
+
+=================================== FAILURES ===================================
+_______ TestRuntimeDataHandlerBaseBehavior.test_processor_desynchronize ________
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f342b60b370>
+data_processor = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7f342b40c5e0>
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='139862040640528'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f342b6864a0>
+
+    @pytest.mark.asyncio
+    async def test_processor_desynchronize(
+        self, data_processor, mock_sync_clock, mocker
+    ):
+        mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
+        mock_server_ts.timestamp = mocker.MagicMock(
+            spec=GrpcTimestamp
+        )  # Changed spec
+        expected_datetime = datetime.datetime.now(datetime.timezone.utc)
+        mock_sync_clock.desync.return_value = expected_datetime
+
+>       result_dt = await data_processor.desynchronize(mock_server_ts)
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:365:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base.py:359: in desynchronize
+    st = SynchronizedTimestamp.try_parse(timestamp)
+tsercom/timesync/common/synchronized_timestamp.py:61: in try_parse
+    return cls(dt_object)
+<string>:4: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = SynchronizedTimestamp(timestamp=<MagicMock name='mock.timestamp.ToDatetime()' id='139862040728752'>)
+
+    def __post_init__(self) -> None:
+        """Performs post-initialization validation."""
+        if self.timestamp is None:
+            raise TypeError("Timestamp cannot be None.")
+        if not isinstance(self.timestamp, datetime.datetime):
+>           raise TypeError("Timestamp must be a datetime.datetime object.")
+E           TypeError: Timestamp must be a datetime.datetime object.
+
+tsercom/timesync/common/synchronized_timestamp.py:40: TypeError
+_ TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_with_server_timestamp _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7f342b60bdf0>
+data_processor = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7f342b336bf0>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7f342b4a71f0>
+test_caller_id_instance = CallerIdentifier('7f1fb27d-4415-4dde-bfb0-805852d3f3ea')
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='139862039750704'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f342b40d8d0>
+
+    @pytest.mark.asyncio
+    async def test_processor_process_data_with_server_timestamp(
+        self,
+        data_processor,
+        handler,
+        test_caller_id_instance,
+        mock_sync_clock,
+        mocker,
+    ):
+        test_payload = "payload_with_server_ts"
+        mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
+        mock_server_ts.timestamp = mocker.MagicMock(
+            spec=GrpcTimestamp
+        )  # Changed spec
+        expected_desynced_dt = datetime.datetime.now(
+            datetime.timezone.utc
+        ) - datetime.timedelta(seconds=5)
+
+        # Mock the desynchronize method of the specific processor instance
+        # Or, rely on mock_sync_clock.desync which is used by processor.desynchronize
+        mock_sync_clock.desync.return_value = expected_desynced_dt
+
+>       await data_processor.process_data(test_payload, mock_server_ts)
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:420:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/endpoint_data_processor.py:122: in process_data
+    maybe_timestamp = await self.desynchronize(timestamp)
+tsercom/runtime/runtime_data_handler_base.py:359: in desynchronize
+    st = SynchronizedTimestamp.try_parse(timestamp)
+tsercom/timesync/common/synchronized_timestamp.py:61: in try_parse
+    return cls(dt_object)
+<string>:4: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = SynchronizedTimestamp(timestamp=<MagicMock name='mock.timestamp.ToDatetime()' id='139862039835120'>)
+
+    def __post_init__(self) -> None:
+        """Performs post-initialization validation."""
+        if self.timestamp is None:
+            raise TypeError("Timestamp cannot be None.")
+        if not isinstance(self.timestamp, datetime.datetime):
+>           raise TypeError("Timestamp must be a datetime.datetime object.")
+E           TypeError: Timestamp must be a datetime.datetime object.
+
+tsercom/timesync/common/synchronized_timestamp.py:40: TypeError
+=========================== short test summary info ============================
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_desynchronize
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_with_server_timestamp
+========================= 2 failed, 19 passed in 0.45s =========================

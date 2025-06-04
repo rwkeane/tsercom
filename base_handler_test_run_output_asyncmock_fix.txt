@@ -1,0 +1,136 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+collected 21 items
+
+tsercom/runtime/runtime_data_handler_base_unittest.py .......FF.F....... [ 85%]
+...                                                                      [100%]
+
+=================================== FAILURES ===================================
+_______ TestRuntimeDataHandlerBaseBehavior.test_processor_desynchronize ________
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fb4e740f2b0>
+data_processor = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7fb4e720f550>
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='140414948521296'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7fb4e73d57e0>
+
+    @pytest.mark.asyncio
+    async def test_processor_desynchronize(
+        self, data_processor, mock_sync_clock, mocker
+    ):
+        mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
+        expected_datetime = datetime.datetime.now(datetime.timezone.utc)
+        mock_sync_clock.desync.return_value = expected_datetime
+
+>       result_dt = await data_processor.desynchronize(mock_server_ts)
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:359:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/runtime_data_handler_base.py:359: in desynchronize
+    st = SynchronizedTimestamp.try_parse(timestamp)
+tsercom/timesync/common/synchronized_timestamp.py:51: in try_parse
+    other = other.timestamp
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock spec='ServerTimestamp' id='140414948564832'>
+name = 'timestamp'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+>               raise AttributeError("Mock object has no attribute %r" % name)
+E               AttributeError: Mock object has no attribute 'timestamp'
+
+/usr/lib/python3.10/unittest/mock.py:643: AttributeError
+_____ TestRuntimeDataHandlerBaseBehavior.test_processor_deregister_caller ______
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fb4e740f730>
+data_processor = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7fb4e7299990>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fb4e70f84c0>
+test_caller_id_instance = CallerIdentifier('e53a7c0a-0ead-4d0a-a2db-71fa93057e7a')
+
+    @pytest.mark.asyncio
+    async def test_processor_deregister_caller(
+        self, data_processor, handler, test_caller_id_instance
+    ):
+>       await data_processor.deregister_caller()
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:368:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7fb4e7299990>
+
+    async def deregister_caller(self) -> None:
+        """Deregisters caller via the parent data handler."""
+        # Return value of _unregister_caller (bool) is ignored
+        # to match supertype's None return.
+        # pylint: disable=protected-access # Outer class call
+>       await self.__data_handler._unregister_caller(self.caller_id)
+E       TypeError: object bool can't be used in 'await' expression
+
+tsercom/runtime/runtime_data_handler_base.py:369: TypeError
+_ TestRuntimeDataHandlerBaseBehavior.test_processor_process_data_with_server_timestamp _
+
+self = <tsercom.runtime.runtime_data_handler_base_unittest.TestRuntimeDataHandlerBaseBehavior object at 0x7fb4e740ff70>
+data_processor = <tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase._DataProcessorImpl object at 0x7fb4e71bd780>
+handler = <tsercom.runtime.runtime_data_handler_base_unittest.TestableRuntimeDataHandler object at 0x7fb4e72d4b80>
+test_caller_id_instance = CallerIdentifier('ef80fbe2-6f6a-451e-b388-55cf95aeb966')
+mock_sync_clock = <MagicMock spec='SynchronizedClock' id='140414949216304'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7fb4e72a52d0>
+
+    @pytest.mark.asyncio
+    async def test_processor_process_data_with_server_timestamp(
+        self,
+        data_processor,
+        handler,
+        test_caller_id_instance,
+        mock_sync_clock,
+        mocker,
+    ):
+        test_payload = "payload_with_server_ts"
+        mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
+        expected_desynced_dt = datetime.datetime.now(
+            datetime.timezone.utc
+        ) - datetime.timedelta(seconds=5)
+
+        # Mock the desynchronize method of the specific processor instance
+        # Or, rely on mock_sync_clock.desync which is used by processor.desynchronize
+        mock_sync_clock.desync.return_value = expected_desynced_dt
+
+>       await data_processor.process_data(test_payload, mock_server_ts)
+
+tsercom/runtime/runtime_data_handler_base_unittest.py:411:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/endpoint_data_processor.py:122: in process_data
+    maybe_timestamp = await self.desynchronize(timestamp)
+tsercom/runtime/runtime_data_handler_base.py:359: in desynchronize
+    st = SynchronizedTimestamp.try_parse(timestamp)
+tsercom/timesync/common/synchronized_timestamp.py:51: in try_parse
+    other = other.timestamp
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock spec='ServerTimestamp' id='140414949260400'>
+name = 'timestamp'
+
+    def __getattr__(self, name):
+        if name in {'_mock_methods', '_mock_unsafe'}:
+            raise AttributeError(name)
+        elif self._mock_methods is not None:
+            if name not in self._mock_methods or name in _all_magics:
+>               raise AttributeError("Mock object has no attribute %r" % name)
+E               AttributeError: Mock object has no attribute 'timestamp'
+
+/usr/lib/python3.10/unittest/mock.py:643: AttributeError
+=========================== short test summary info ============================
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_desynchronize
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_deregister_caller
+FAILED tsercom/runtime/runtime_data_handler_base_unittest.py::TestRuntimeDataHandlerBaseBehavior::test_processor_process_data_with_server_timestamp
+========================= 3 failed, 18 passed in 0.77s =========================

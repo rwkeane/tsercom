@@ -1,0 +1,733 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+collected 11 items
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py EEEEEE    [ 54%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py EEEEE     [100%]
+
+==================================== ERRORS ====================================
+___________ ERROR at setup of TestClientRuntimeDataHandler.test_init ___________
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f334b3bb6d0>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139858282258992'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858282258704'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858282259664'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139858282256640'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858282259616'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b3ba3b0>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:72:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_____ ERROR at setup of TestClientRuntimeDataHandler.test_register_caller ______
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f334b3bb430>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139858281150304'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858281145024'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858281143392'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139858281141280'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858281139840'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b2aba30>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:72:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_unregister_caller_valid_id _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f334b3bb190>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139858281153056'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858281162800'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858281164000'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139858281166832'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858281164144'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b2ac880>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:72:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_unregister_caller_invalid_id_not_found _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f334b3bae90>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139858282829264'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858282839248'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858282836128'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139858282837952'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858282834976'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b445330>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:72:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+____ ERROR at setup of TestClientRuntimeDataHandler.test_try_get_caller_id _____
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f334b3bbaf0>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139858282599936'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858282610640'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858282606224'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139858282610496'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858282609056'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b40c730>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:72:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestClientRuntimeDataHandler.test_try_get_caller_id_not_found _
+
+self = <tsercom.runtime.client.client_runtime_data_handler_unittest.TestClientRuntimeDataHandler object at 0x7f334b3ba860>
+mock_thread_watcher = <MagicMock spec='ThreadWatcher' id='139858281586768'>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858281590272'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858281580480'>
+mock_time_sync_tracker_instance = <MagicMock spec='TimeSyncTracker' id='139858281581488'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858281583744'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b315ed0>
+
+    @pytest.fixture
+    def handler_and_class_mocks(
+        self,
+        mock_thread_watcher,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_tracker_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up handler instance with mocked class dependencies (TimeSyncTracker, IdTracker)."""
+        mock_TimeSyncTracker_class = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.TimeSyncTracker",
+            return_value=mock_time_sync_tracker_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ClientRuntimeDataHandler(
+            thread_watcher=mock_thread_watcher,
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+        )
+
+tsercom/runtime/client/client_runtime_data_handler_unittest.py:72:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/client/client_runtime_data_handler.py:58: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+___________ ERROR at setup of TestServerRuntimeDataHandler.test_init ___________
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f334b3b8460>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858281168656'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858281390208'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139858281398032'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858281281184'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b2e6980>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:75:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_____ ERROR at setup of TestServerRuntimeDataHandler.test_register_caller ______
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f334b3b9210>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858281139600'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858281148528'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139858281142912'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858281147136'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b2a80a0>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:75:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+____ ERROR at setup of TestServerRuntimeDataHandler.test_unregister_caller _____
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f334b3b9120>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858305382288'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858305383152'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139858305382576'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858281187456'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334c9c7850>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:75:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+____ ERROR at setup of TestServerRuntimeDataHandler.test_try_get_caller_id _____
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f334b3b9bd0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858281215744'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858281208592'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139858281212624'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858281211040'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b2bb640>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:75:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+_ ERROR at setup of TestServerRuntimeDataHandler.test_try_get_caller_id_not_found _
+
+self = <tsercom.runtime.server.server_runtime_data_handler_unittest.TestServerRuntimeDataHandler object at 0x7f334b3ba1d0>
+mock_data_reader = <MagicMock spec='RemoteDataReader' id='139858281139120'>
+mock_event_source_poller = <MagicMock spec='AsyncPoller' id='139858281586048'>
+mock_time_sync_server_instance = <MagicMock spec='TimeSyncServer' id='139858281151360'>
+mock_id_tracker_instance = <MagicMock spec='IdTracker' id='139858281397648'>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7f334b2a8760>
+
+    @pytest.fixture
+    def handler_with_mocks(
+        self,
+        mock_data_reader,
+        mock_event_source_poller,
+        mock_time_sync_server_instance,
+        mock_id_tracker_instance,
+        mocker,
+    ):
+        """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
+            return_value=mock_time_sync_server_instance,
+            autospec=True,
+        )
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
+        )
+
+>       handler_instance = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=False,
+        )
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py:75:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tsercom/runtime/server/server_runtime_data_handler.py:59: in __init__
+    super().__init__(data_reader, event_source, min_send_frequency_seconds)
+tsercom/runtime/runtime_data_handler_base.py:72: in __init__
+    run_on_event_loop(self.__dispatch_poller_data_loop)
+tsercom/threading/aio/aio_utils.py:88: in run_on_event_loop
+    event_loop = get_global_event_loop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def get_global_event_loop() -> AbstractEventLoop:
+        """Retrieves the global event loop used by tsercom.
+
+        Asserts that the event loop has been set before calling.
+
+        Returns:
+            AbstractEventLoop: The global asyncio event loop.
+
+        Raises:
+            AssertionError: If global event loop has not been set.
+        """
+        # No 'global' needed for read-only access
+        assert (
+>           __g_global_event_loop is not None
+        ), "Global event loop accessed before being set."
+E       AssertionError: Global event loop accessed before being set.
+
+tsercom/threading/aio/global_event_loop.py:57: AssertionError
+=========================== short test summary info ============================
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_init
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_register_caller
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_unregister_caller_valid_id
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_unregister_caller_invalid_id_not_found
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_try_get_caller_id
+ERROR tsercom/runtime/client/client_runtime_data_handler_unittest.py::TestClientRuntimeDataHandler::test_try_get_caller_id_not_found
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_init
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_register_caller
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_unregister_caller
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_try_get_caller_id
+ERROR tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_try_get_caller_id_not_found
+============================== 11 errors in 0.58s ==============================
