@@ -8,6 +8,8 @@ from typing import Optional  # For Optional[ThreadWatcher]
 from tsercom.runtime.runtime import Runtime
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.aio.aio_utils import run_on_event_loop
+
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -55,7 +57,7 @@ class RuntimeCommandSource:
             AssertionError: If called multiple times or state is inconsistent.
         """
         # Ensure that start_async is called only once and in a valid state.
-        # Long but readable assertion message
+        # pylint: disable=C0301 # Long but readable assertion message
         assert (
             self.__is_running is None
         ), "RuntimeCommandSource already started or in an inconsistent state."
@@ -63,7 +65,7 @@ class RuntimeCommandSource:
         assert (
             not self.__is_running.get()
         ), "IsRunningTracker started prematurely."
-        # Long but readable assertion message
+        # pylint: disable=C0301 # Long but readable assertion message
         assert (
             self.__runtime is None
         ), "Runtime instance already set before start_async."
@@ -74,7 +76,7 @@ class RuntimeCommandSource:
 
         def watch_commands() -> None:
             """Polls for commands and executes them on the runtime."""
-            while (  # Long condition
+            while (  # pylint: disable=C0301 # Long condition
                 self.__is_running and self.__is_running.get()
             ):  # Check both instance and its value
                 # Poll queue with timeout to check is_running periodically.
@@ -86,7 +88,7 @@ class RuntimeCommandSource:
                 if self.__runtime is None:
                     # This case should ideally not be reached if start_async is
                     # called correctly and stop_async sets self.__runtime to None.
-                    # Long but readable warning
+                    # pylint: disable=C0301 # Long but readable warning
                     RuntimeCommandSource.logger.warning(
                         "RuntimeCommandSource: __runtime is None in watch_commands loop, skipping command."
                     )
@@ -115,6 +117,7 @@ class RuntimeCommandSource:
                     raise  # Re-raise to terminate the command processing loop
 
         # Store thread reference for joining and ensure it's tracked.
+        # pylint: disable=C0301 # Black-formatted
         self.__command_thread = self.__thread_watcher.create_tracked_thread(
             target=watch_commands  # Ensure target is passed
         )
@@ -134,7 +137,7 @@ class RuntimeCommandSource:
             "RuntimeCommandSource.stop_async() called"
         )
         # Ensure stop_async is called only when running and in a valid state.
-        # Long but readable assertion message
+        # pylint: disable=C0301 # Long but readable assertion message
         assert (
             self.__is_running is not None
         ), "RuntimeCommandSource not started or in an inconsistent state."
@@ -149,7 +152,7 @@ class RuntimeCommandSource:
                 timeout=5  # Or another reasonable timeout
             )
             if self.__command_thread.is_alive():
-                # Long but readable error message
+                # pylint: disable=C0301 # Long but readable error message
                 raise RuntimeError(
                     f"ERROR: RuntimeCommandSource thread for queue {self.__runtime_command_queue} did not terminate within 5 seconds."
                 )

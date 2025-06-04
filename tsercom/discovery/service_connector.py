@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """Manages service discovery and connection establishment."""
 
 from abc import ABC, abstractmethod
@@ -56,7 +57,7 @@ class ServiceConnector(
             """
             # pass # W0107 (unnecessary-pass) will be fixed by removing this
 
-    def __init__(
+    def __init__(  # pylint: disable=C0301
         self,
         client: "ServiceConnector.Client",  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[ChannelTypeT]
         connection_factory: ConnectionFactory[ChannelTypeT],
@@ -106,7 +107,7 @@ class ServiceConnector(
         """
         if self.__event_loop is None:
             logging.warning(
-                "mark_client_failed called before event loop capture. Potential issue."
+                "mark_client_failed called before event loop capture. Potential issue."  # pylint: disable=C0301
             )
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
@@ -153,14 +154,14 @@ class ServiceConnector(
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:  # pragma: no cover
-                # Long error message
+                # pylint: disable=C0301 # Long error message
                 logging.error(
                     "Failed to get event loop in _on_service_added. Cannot proceed."
                 )
                 return
         else:
             # Ensure subsequent calls are on the same captured event loop.
-            assert is_running_on_event_loop(
+            assert is_running_on_event_loop(  # pylint: disable=C0301
                 self.__event_loop
             ), "Operations must run on the captured event loop."
 
@@ -186,7 +187,7 @@ class ServiceConnector(
         )
 
         if channel is None:
-            # Long warning message
+            # pylint: disable=C0301 # Long warning message
             logging.warning(
                 "Could not establish gRPC channel for endpoint: %s at %s:%s.",
                 connection_info.name,

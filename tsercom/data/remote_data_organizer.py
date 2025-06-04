@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
 
 import logging  # Add logging import

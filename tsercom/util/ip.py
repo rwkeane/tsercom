@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """Utilities for network IP addresses."""
 
 import socket

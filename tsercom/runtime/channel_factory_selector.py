@@ -18,6 +18,7 @@ from tsercom.rpc.grpc_util.transport.server_auth_grpc_channel_factory import (
     ServerAuthGrpcChannelFactory,
 )
 
+# pylint: disable=line-too-long
 from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory import (
     PinnedServerAuthGrpcChannelFactory,
 )

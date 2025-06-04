@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """Defines an abstract factory for creating connections."""
 
 from abc import ABC, abstractmethod

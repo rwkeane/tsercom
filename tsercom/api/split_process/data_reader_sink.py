@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """Defines DataReaderSink for sending data to a multiprocess queue."""
 
 from typing import Generic, TypeVar

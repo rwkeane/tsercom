@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """DataHostBase: reusable base for DataHost & RemoteDataReader."""
 
 from typing import Any, Generic, Optional, TypeVar

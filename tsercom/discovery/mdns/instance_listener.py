@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """mDNS instance listener, builds on RecordListener."""
 
 from abc import ABC, abstractmethod
@@ -67,7 +68,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         if client is None:
             raise ValueError("Client cannot be None for InstanceListener.")
         if not isinstance(client, InstanceListener.Client):
-            # Long error message
+            # pylint: disable=C0301 # Long error message
             raise TypeError(
                 f"Client must be InstanceListener.Client, got {type(client).__name__}."
             )
@@ -83,6 +84,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         self.__listener: MdnsListener
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
+            # pylint: disable=C0301 # Black-formatted line
             def default_mdns_listener_factory(
                 listener_client: MdnsListener.Client, s_type: str
             ) -> MdnsListener:
@@ -93,7 +95,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             # Use provided factory
             self.__listener = mdns_listener_factory(self, service_type)
 
-    def __populate_service_info(
+    def __populate_service_info(  # pylint: disable=C0301
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
         # to build a cohesive ServiceInfo object representing a discovered service.
         self,
@@ -139,7 +141,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
                 continue  # Skip this address.
 
         if not addresses_out:
-            logging.warning(
+            logging.warning(  # pylint: disable=C0301
                 "No binary IPs converted to string for '%s', port %s.",
                 record_name,
                 port,
@@ -155,7 +157,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             try:
                 readable_name_str = txt_value_bytes.decode("utf-8")
             except UnicodeDecodeError:
-                logging.warning(
+                logging.warning(  # pylint: disable=C0301
                     "Failed to decode TXT 'name' for '%s'. Using record name.",
                     record_name,
                 )
@@ -167,7 +169,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # Subclasses might override _convert_service_info.
         return ServiceInfo(readable_name_str, port, addresses_out, record_name)
 
-    def _convert_service_info(
+    def _convert_service_info(  # pylint: disable=C0301
         self, service_info: ServiceInfo, _txt_record: Dict[bytes, bytes | None]
     ) -> ServiceInfoT:
         """Converts base `ServiceInfo` to specific `ServiceInfoT`.

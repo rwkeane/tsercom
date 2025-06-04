@@ -4,9 +4,13 @@ import logging
 from multiprocessing import Process
 from typing import Callable, Tuple, Any, Optional
 from tsercom.threading.thread_watcher import ThreadWatcher
+
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
+
+# pylint: disable=C0301 # Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -22,7 +26,7 @@ logger = logging.getLogger(__name__)
 class ProcessCreator:
     """Wraps `multiprocessing.Process` for centralized creation and testing."""
 
-    def create_process(
+    def create_process(  # pylint: disable=C0301 # Black-formatted
         self, target: Callable[..., Any], args: Tuple[Any, ...], daemon: bool
     ) -> Optional[Process]:
         """Creates and returns a multiprocessing.Process.
@@ -45,7 +49,7 @@ class ProcessCreator:
             target_name = (
                 target.__name__ if hasattr(target, "__name__") else str(target)
             )
-            # Long but readable error message
+            # pylint: disable=C0301 # Long but readable error message
             logger.error(
                 "Failed to create process for target %s: %s",
                 target_name,
@@ -59,7 +63,7 @@ class ProcessCreator:
 class SplitErrorWatcherSourceFactory:
     """Factory for `SplitProcessErrorWatcherSource`. For DI."""
 
-    def create(
+    def create(  # pylint: disable=C0301 # Black-formatted
         self,
         thread_watcher: ThreadWatcher,
         error_source_queue: MultiprocessQueueSource[Exception],
@@ -73,6 +77,7 @@ class SplitErrorWatcherSourceFactory:
         Returns:
             A new instance of `SplitProcessErrorWatcherSource`.
         """
+        # pylint: disable=C0301 # Black-formatted return
         return SplitProcessErrorWatcherSource(
             thread_watcher, error_source_queue
         )

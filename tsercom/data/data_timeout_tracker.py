@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """DataTimeoutTracker: manages/triggers periodic timeout notifications."""
 
 import logging

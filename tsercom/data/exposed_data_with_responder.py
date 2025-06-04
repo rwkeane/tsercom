@@ -38,7 +38,7 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
             TypeError: If `responder` is not a `RemoteDataResponder` subclass.
         """
         if responder is None:
-            # Long error message
+            # pylint: disable=C0301 # Long error message
             raise ValueError(
                 "Responder argument cannot be None for ExposedDataWithResponder."
             )
@@ -46,7 +46,7 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
         # This check is important for type safety and ensuring the responder
         # will have the expected `_on_response_ready` method.
         if not issubclass(type(responder), RemoteDataResponder):
-            # Long error message
+            # pylint: disable=C0301 # Long error message
             raise TypeError(
                 f"Responder must be RemoteDataResponder subclass, got {type(responder).__name__}."
             )

@@ -6,7 +6,7 @@ callers or clients within the Tsercom system.
 
 # Import key classes from submodules to make them available at the package level.
 from tsercom.caller_id.caller_id_map import CallerIdMap
-from tsercom.caller_id.caller_identifier_waiter import (
+from tsercom.caller_id.caller_identifier_waiter import (  # pylint: disable=line-too-long
     CallerIdentifierWaiter,
 )
 from tsercom.caller_id.caller_identifier import CallerIdentifier
