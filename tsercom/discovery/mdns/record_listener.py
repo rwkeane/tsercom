@@ -141,7 +141,6 @@ class RecordListener(MdnsListener):
         logging.info("Service removed: type='%s', name='%s'", type_, name)
         # Placeholder for client notification or cleanup for service removal.
         # For example, self.__client._on_service_removed(name, type_)
-        # pass # Removed W0107
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a new service is discovered.

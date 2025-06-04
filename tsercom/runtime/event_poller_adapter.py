@@ -72,4 +72,3 @@ class EventToSerializableAnnInstancePollerAdapter(
     # The on_available method from the base AsyncPoller can be used if this
     # adapter instance itself needs to be an independent source, but typically
     # it wraps an existing, populated poller for read-path transformation.
-    # pass # Removed unnecessary pass by not including it in the overwrite

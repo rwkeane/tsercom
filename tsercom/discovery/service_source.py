@@ -29,7 +29,6 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
                 connection_info: Info about the discovered service.
                 caller_id: Unique ID for the discovered service instance.
             """
-            # pass removed
 
     @abstractmethod
     async def start_discovery(self, client: "ServiceSource.Client") -> None:
@@ -40,4 +39,3 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
         Args:
             client: Client to be notified of discovered services.
         """
-        # pass removed

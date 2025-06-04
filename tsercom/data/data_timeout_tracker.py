@@ -40,7 +40,6 @@ class DataTimeoutTracker:
                 timeout_seconds: The duration of the timeout that triggered
                                  this callback.
             """
-            # pass removed
 
     def __init__(self, timeout_seconds: int = 60) -> None:
         """Initializes the DataTimeoutTracker.

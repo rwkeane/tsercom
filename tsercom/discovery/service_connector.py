@@ -54,11 +54,10 @@ class ServiceConnector(
                 caller_id: `CallerIdentifier` for the service instance.
                 channel: The established `grpc.Channel`.
             """
-            # pass # W0107 (unnecessary-pass) will be fixed by removing this
 
     def __init__(
         self,
-        client: "ServiceConnector.Client",  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[ChannelTypeT]
+        client: "ServiceConnector.Client[ChannelTypeT]",
         connection_factory: ConnectionFactory[ChannelTypeT],
         service_source: ServiceSource[ServiceInfoT],
     ) -> None:

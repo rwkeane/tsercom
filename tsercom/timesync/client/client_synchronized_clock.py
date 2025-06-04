@@ -35,28 +35,24 @@ class ClientSynchronizedClock(SynchronizedClock):
             Returns:
                 The time offset in seconds as a float.
             """
-            # pass removed by overwrite
 
         @abstractmethod
         def get_synchronized_clock(self) -> SynchronizedClock:
             """
             Returns a SynchronizedClock instance using this client for offsets.
             """
-            # pass removed by overwrite
 
         @abstractmethod
         def start_async(self) -> None:
             """
             Starts the time synchronization client asynchronously.
             """
-            # pass removed by overwrite
 
         @abstractmethod
         def stop(self) -> None:
             """
             Stops the time synchronization client.
             """
-            # pass removed by overwrite
 
     def __init__(self, client: "ClientSynchronizedClock.Client") -> None:
         """

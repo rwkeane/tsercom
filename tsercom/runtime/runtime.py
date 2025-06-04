@@ -18,7 +18,6 @@ class Runtime(ABC):
         Subclasses must implement this method to define the startup logic
         for the service.
         """
-        # pass removed
 
     @abstractmethod
     async def stop(self, exception: Optional[Exception] = None) -> None:
@@ -28,4 +27,3 @@ class Runtime(ABC):
         stop. |exception| is the exception, if any, that caused the runtime to
         stop.
         """
-        # pass removed

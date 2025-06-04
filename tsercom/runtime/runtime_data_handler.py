@@ -40,7 +40,6 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
         Yields:
             Lists of `SerializableAnnotatedInstance[EventTypeT]`.
         """
-        # pass removed
 
     @abstractmethod
     def check_for_caller_id(
@@ -55,19 +54,18 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
         Returns:
             The `CallerIdentifier` if found, otherwise `None`.
         """
-        # pass removed
 
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT]:
-        pass  # Pass in @overload is fine
+        pass
 
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
     ) -> EndpointDataProcessor[DataTypeT] | None:
-        pass  # Pass in @overload is fine
+        pass
 
     @abstractmethod
     def register_caller(
@@ -95,4 +93,3 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
             An `EndpointDataProcessor` for the registered caller,
             or `None` if registration fails (e.g. context has no address).
         """
-        # pass removed
