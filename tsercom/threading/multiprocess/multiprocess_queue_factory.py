@@ -20,15 +20,14 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 
 # Type variable for the generic type of the queue.
-TQueueType = TypeVar("TQueueType")
+QueueTypeT = TypeVar("QueueTypeT")
 
 
 # Factory function to create a pair of connected multiprocess queue sink and source.
-def create_multiprocess_queues() -> (
-    tuple[
-        MultiprocessQueueSink[TQueueType], MultiprocessQueueSource[TQueueType]
-    ]
-):
+def create_multiprocess_queues() -> tuple[
+    MultiprocessQueueSink[QueueTypeT],
+    MultiprocessQueueSource[QueueTypeT],
+]:
     """
     Creates a connected pair of MultiprocessQueueSink and MultiprocessQueueSource.
 
@@ -36,13 +35,15 @@ def create_multiprocess_queues() -> (
     and receiving data between processes.
 
     Returns:
-        tuple[MultiprocessQueueSink[TQueueType], MultiprocessQueueSource[TQueueType]]:
-            A tuple containing the sink (for putting items) and the source
-            (for getting items) for the created multiprocess queue.
+        tuple[
+            MultiprocessQueueSink[QueueTypeT],
+            MultiprocessQueueSource[QueueTypeT],
+        ]: A tuple with the sink (for putting) and source (for getting)
+           for the created multiprocess queue.
     """
-    queue: "MpQueue[TQueueType]" = MpQueue()
+    queue: "MpQueue[QueueTypeT]" = MpQueue()
 
-    sink = MultiprocessQueueSink[TQueueType](queue)
-    source = MultiprocessQueueSource[TQueueType](queue)
+    sink = MultiprocessQueueSink[QueueTypeT](queue)
+    source = MultiprocessQueueSource[QueueTypeT](queue)
 
     return sink, source

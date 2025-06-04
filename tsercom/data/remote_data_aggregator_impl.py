@@ -1,3 +1,4 @@
+# pylint: disable=C0301
 """Provides RemoteDataAggregatorImpl, a concrete implementation of the RemoteDataAggregator interface.
 
 This class manages RemoteDataOrganizer instances for each data source (identified by
@@ -17,14 +18,15 @@ from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_organizer import RemoteDataOrganizer
 from tsercom.data.remote_data_reader import RemoteDataReader
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
 class RemoteDataAggregatorImpl(
-    Generic[TDataType],
-    RemoteDataAggregator[TDataType],
+    # pylint: disable=C0301
+    Generic[DataTypeT],
+    RemoteDataAggregator[DataTypeT],
     RemoteDataOrganizer.Client,
-    RemoteDataReader[TDataType],
+    RemoteDataReader[DataTypeT],
 ):
     """Concrete implementation of `RemoteDataAggregator`.
 
@@ -103,28 +105,30 @@ class RemoteDataAggregatorImpl(
         self.__tracker = tracker
 
         self.__organizers: Dict[
-            CallerIdentifier, RemoteDataOrganizer[TDataType]
+            CallerIdentifier, RemoteDataOrganizer[DataTypeT]
         ] = {}
         self.__lock: threading.Lock = threading.Lock()
 
-    def stop(self, id: Optional[CallerIdentifier] = None) -> None:
+    def stop(
+        self, identifier: Optional[CallerIdentifier] = None
+    ) -> None:  # Renamed id to identifier
         """Stops data processing for one or all callers.
 
-        If an `id` is provided, stops the `RemoteDataOrganizer` for that specific
+        If an `identifier` is provided, stops the `RemoteDataOrganizer` for that specific
         caller. Otherwise, stops all organizers managed by this aggregator.
 
         Args:
-            id: Optional `CallerIdentifier` of the caller to stop.
+            identifier: Optional `CallerIdentifier` of the caller to stop.
 
         Raises:
-            KeyError: If `id` is provided but not found among active organizers.
+            KeyError: If `identifier` is provided but not found among active organizers.
         """
         with self.__lock:
-            if id is not None:
-                organizer = self.__organizers.get(id)
+            if identifier is not None:
+                organizer = self.__organizers.get(identifier)
                 if organizer is None:
                     raise KeyError(
-                        f"Caller ID '{id}' not found in active organizers during stop."
+                        f"Caller ID '{identifier}' not found in active organizers during stop."
                     )
                 organizer.stop()
                 return
@@ -132,27 +136,28 @@ class RemoteDataAggregatorImpl(
             for organizer in self.__organizers.values():
                 organizer.stop()
 
+    # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     @overload
     def has_new_data(self) -> Dict[CallerIdentifier, bool]: ...
     @overload
-    def has_new_data(self, id: CallerIdentifier) -> bool: ...
+    def has_new_data(self, identifier: CallerIdentifier) -> bool: ...
     def has_new_data(
-        self, id: Optional[CallerIdentifier] = None
+        self, identifier: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, bool] | bool:
         """Checks for new data for one or all callers.
 
         Args:
-            id: Optional `CallerIdentifier`. If provided, checks for this specific
+            identifier: Optional `CallerIdentifier`. If provided, checks for this specific
                 caller. Otherwise, checks for all callers.
 
         Returns:
-            If `id` is provided, returns a boolean indicating if new data is available for that caller (returns False if the `id` is not found).
-            If `id` is None, returns a dictionary mapping each `CallerIdentifier`
+            If `identifier` is provided, returns a boolean indicating if new data is available for that caller (returns False if the `identifier` is not found).
+            If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
             to a boolean.
         """
         with self.__lock:
-            if id is not None:
-                organizer = self.__organizers.get(id)
+            if identifier is not None:
+                organizer = self.__organizers.get(identifier)
                 if organizer is None:
                     return False
                 return organizer.has_new_data()
@@ -162,33 +167,36 @@ class RemoteDataAggregatorImpl(
                 results[key] = org_item.has_new_data()
             return results
 
+    # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     @overload
-    def get_new_data(self) -> Dict[CallerIdentifier, List[TDataType]]: ...
+    def get_new_data(self) -> Dict[CallerIdentifier, List[DataTypeT]]: ...
     @overload
-    def get_new_data(self, id: CallerIdentifier) -> List[TDataType]: ...
     def get_new_data(
-        self, id: Optional[CallerIdentifier] = None
-    ) -> Dict[CallerIdentifier, List[TDataType]] | List[TDataType]:
+        self, identifier: CallerIdentifier
+    ) -> List[DataTypeT]: ...
+    def get_new_data(
+        self, identifier: Optional[CallerIdentifier] = None
+    ) -> Dict[CallerIdentifier, List[DataTypeT]] | List[DataTypeT]:
         """Retrieves new data for one or all callers.
 
         Args:
-            id: Optional `CallerIdentifier`. If provided, retrieves data for this
+            identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
                 specific caller. Otherwise, retrieves data for all callers.
 
         Returns:
-            If `id` is provided, returns a list of new data items for that caller.
-            If `id` is None, returns a dictionary mapping each `CallerIdentifier`
+            If `identifier` is provided, returns a list of new data items for that caller.
+            If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
             to a list of its new data items.
 
         Raises:
-            KeyError: If `id` is provided but not found.
+            KeyError: If `identifier` is provided but not found.
         """
         with self.__lock:
-            if id is not None:
-                organizer = self.__organizers.get(id)
+            if identifier is not None:
+                organizer = self.__organizers.get(identifier)
                 if organizer is None:
                     raise KeyError(
-                        f"Caller ID '{id}' not found for get_new_data."
+                        f"Caller ID '{identifier}' not found for get_new_data."
                     )
                 return organizer.get_new_data()
 
@@ -200,35 +208,37 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_most_recent_data(
         self,
-    ) -> Dict[CallerIdentifier, Optional[TDataType]]: ...
+    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]: ...
     @overload
     def get_most_recent_data(
-        self, id: CallerIdentifier
-    ) -> Optional[TDataType]: ...
+        self, identifier: CallerIdentifier
+    ) -> Optional[DataTypeT]: ...
+
+    # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     def get_most_recent_data(
-        self, id: Optional[CallerIdentifier] = None
-    ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
+        self, identifier: Optional[CallerIdentifier] = None
+    ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves the most recent data for one or all callers.
 
         Args:
-            id: Optional `CallerIdentifier`. If provided, retrieves data for this
+            identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
                 specific caller. Otherwise, retrieves data for all callers.
 
         Returns:
-            If `id` is provided, returns the most recent data item (or None) for
+            If `identifier` is provided, returns the most recent data item (or None) for
             that caller.
-            If `id` is None, returns a dictionary mapping each `CallerIdentifier`
+            If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
             to its most recent data item (or None).
 
         Raises:
-            KeyError: If `id` is provided but not found.
+            KeyError: If `identifier` is provided but not found.
         """
         with self.__lock:
-            if id is not None:
-                organizer = self.__organizers.get(id)
+            if identifier is not None:
+                organizer = self.__organizers.get(identifier)
                 if organizer is None:
                     raise KeyError(
-                        f"Caller ID '{id}' not found for get_most_recent_data."
+                        f"Caller ID '{identifier}' not found for get_most_recent_data."
                     )
                 return organizer.get_most_recent_data()
 
@@ -240,38 +250,40 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Dict[CallerIdentifier, Optional[TDataType]]: ...
+    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]: ...
     @overload
     def get_data_for_timestamp(
-        self, timestamp: datetime.datetime, id: CallerIdentifier
-    ) -> Optional[TDataType]: ...
+        self, timestamp: datetime.datetime, identifier: CallerIdentifier
+    ) -> Optional[DataTypeT]: ...
+
+    # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     def get_data_for_timestamp(
         self,
         timestamp: datetime.datetime,
-        id: Optional[CallerIdentifier] = None,
-    ) -> Dict[CallerIdentifier, TDataType | None] | TDataType | None:
+        identifier: Optional[CallerIdentifier] = None,
+    ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves data for a specific timestamp for one or all callers.
 
         Args:
             timestamp: The `datetime` to compare data against.
-            id: Optional `CallerIdentifier`. If provided, retrieves data for this
+            identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
                 specific caller. Otherwise, retrieves data for all callers.
 
         Returns:
-            If `id` is provided, returns the data item (or None) for that caller
+            If `identifier` is provided, returns the data item (or None) for that caller
             at the given timestamp.
-            If `id` is None, returns a dictionary mapping each `CallerIdentifier`
+            If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
             to its data item (or None) at the given timestamp.
 
         Raises:
-            KeyError: If `id` is provided but not found.
+            KeyError: If `identifier` is provided but not found.
         """
         with self.__lock:
-            if id is not None:
-                organizer = self.__organizers.get(id)
+            if identifier is not None:
+                organizer = self.__organizers.get(identifier)
                 if organizer is None:
                     raise KeyError(
-                        f"Caller ID '{id}' not found for get_data_for_timestamp."
+                        f"Caller ID '{identifier}' not found for get_data_for_timestamp."
                     )
                 return organizer.get_data_for_timestamp(timestamp)
 
@@ -284,7 +296,7 @@ class RemoteDataAggregatorImpl(
 
     def _on_data_available(
         self,
-        data_organizer: RemoteDataOrganizer[TDataType],  # type: ignore[override]
+        data_organizer: RemoteDataOrganizer[DataTypeT],  # type: ignore[override]
     ) -> None:
         """Callback from a `RemoteDataOrganizer` when it has new data.
 
@@ -295,9 +307,10 @@ class RemoteDataAggregatorImpl(
             data_organizer: The `RemoteDataOrganizer` instance that has new data.
         """
         if self.__client is not None:
+            # pylint: disable=W0212 # Calling listener method
             self.__client._on_data_available(self, data_organizer.caller_id)
 
-    def _on_data_ready(self, new_data: TDataType) -> None:
+    def _on_data_ready(self, new_data: DataTypeT) -> None:
         """Handles incoming raw data, routing it to the appropriate `RemoteDataOrganizer`.
 
         This method is part of the `RemoteDataReader` interface. If an organizer
@@ -317,7 +330,7 @@ class RemoteDataAggregatorImpl(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
             )
 
-        data_organizer: RemoteDataOrganizer[TDataType]
+        data_organizer: RemoteDataOrganizer[DataTypeT]
         is_new_organizer = False
 
         with self.__lock:
@@ -337,10 +350,11 @@ class RemoteDataAggregatorImpl(
 
             else:
                 data_organizer = self.__organizers[new_data.caller_id]
-
+        # pylint: disable=W0212 # Calling data host method
         data_organizer._on_data_ready(new_data)
 
         if is_new_organizer and self.__client is not None:
+            # pylint: disable=W0212 # Calling listener method
             self.__client._on_new_endpoint_began_transmitting(
                 self, data_organizer.caller_id
             )

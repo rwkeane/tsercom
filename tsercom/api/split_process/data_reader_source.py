@@ -1,4 +1,4 @@
-"""Defines DataReaderSource for reading data from a multiprocess queue and forwarding it."""
+"""DataReaderSource: reads from multiprocess queue, forwards data."""
 
 import threading
 from typing import Generic, TypeVar
@@ -12,30 +12,29 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
-class DataReaderSource(Generic[TDataType]):
-    """Reads data from a MultiprocessQueueSource and forwards it to a RemoteDataReader.
+class DataReaderSource(Generic[DataTypeT]):
+    """Reads from MultiprocessQueueSource, forwards to RemoteDataReader.
 
-    This class runs a dedicated thread to continuously poll a multiprocess
-    queue for incoming data. When data is retrieved, it's passed to the
-    `_on_data_ready` method of the configured `RemoteDataReader` instance.
-    It manages the lifecycle (start/stop) of the polling thread.
+    Runs a thread to poll a queue for data. Received data is passed
+    to `_on_data_ready` of the configured `RemoteDataReader`.
+    Manages polling thread lifecycle.
     """
 
     def __init__(
         self,
         watcher: ThreadWatcher,
-        queue: MultiprocessQueueSource[TDataType],
-        data_reader: RemoteDataReader[TDataType],
+        queue: MultiprocessQueueSource[DataTypeT],
+        data_reader: RemoteDataReader[DataTypeT],
     ) -> None:
         """Initializes the DataReaderSource.
 
         Args:
-            watcher: A ThreadWatcher instance to monitor the polling thread.
-            queue: The multiprocess queue source from which data will be read.
-            data_reader: The RemoteDataReader instance to which data will be forwarded.
+            watcher: ThreadWatcher to monitor the polling thread.
+            queue: Multiprocess queue source for reading data.
+            data_reader: RemoteDataReader to forward data to.
         """
         self.__queue = queue
         self.__data_reader = data_reader
@@ -70,29 +69,29 @@ class DataReaderSource(Generic[TDataType]):
     def stop(self) -> None:
         """Stops the data polling thread.
 
-        Signals the polling thread to terminate and then waits for it to join.
-        A timeout is used for the join operation.
+        Signals polling thread to terminate and waits for it to join (with timeout).
         """
         self.__is_running.stop()
         if self.__thread:
             self.__thread.join(timeout=5)
             if self.__thread.is_alive():
+                # Long error message
                 raise RuntimeError(
                     f"ERROR: DataReaderSource thread for queue {self.__queue} did not terminate within 5 seconds."
                 )
 
     def __poll_for_data(self) -> None:
-        """Continuously polls the queue for data and forwards it.
+        """Continuously polls queue for data and forwards it.
 
-        This method runs in a dedicated thread. It blocks on fetching data
-        from the queue with a timeout. If data is received, it's passed to
-        the data_reader. Exceptions during data forwarding are caught to
-        keep the polling loop alive.
+        Runs in a dedicated thread. Blocks on fetching data from queue (with
+        timeout). Received data is passed to data_reader. Exceptions during
+        forwarding are caught to keep polling loop alive.
         """
         while self.__is_running.get():
             data = self.__queue.get_blocking(timeout=1)
             if data is not None:
                 try:
+                    # pylint: disable=W0212 # Internal callback for client data readiness
                     self.__data_reader._on_data_ready(data)
                 except Exception as e:
                     # It's important to catch exceptions here to prevent the

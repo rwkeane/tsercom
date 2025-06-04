@@ -1,41 +1,44 @@
 """Main entry points and initialization logic for Tsercom runtimes."""
 
-from typing import Any, List
+import concurrent.futures  # Moved up
+from functools import partial  # Moved up
 import logging
-from tsercom.runtime.runtime import Runtime
-from tsercom.runtime.runtime_factory import RuntimeFactory
-from tsercom.runtime.channel_factory_selector import ChannelFactorySelector
+from typing import Any, List
 
-from tsercom.runtime.client.client_runtime_data_handler import (
-    ClientRuntimeDataHandler,
-)
+
 from tsercom.api.split_process.split_process_error_watcher_sink import (
     SplitProcessErrorWatcherSink,
 )
+from tsercom.runtime.channel_factory_selector import ChannelFactorySelector
+from tsercom.runtime.client.client_runtime_data_handler import (
+    ClientRuntimeDataHandler,
+)
+from tsercom.runtime.runtime import Runtime
+from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.server.server_runtime_data_handler import (
     ServerRuntimeDataHandler,
 )
 from tsercom.threading.aio.aio_utils import run_on_event_loop
-from functools import partial
 from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
     create_tsercom_event_loop_from_watcher,
-    is_global_event_loop_set,
     get_global_event_loop,
+    is_global_event_loop_set,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-import concurrent.futures
-from .runtime_data_handler import RuntimeDataHandler
 from .event_poller_adapter import (
     EventToSerializableAnnInstancePollerAdapter,
 )
+from .runtime_data_handler import RuntimeDataHandler
+
 
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=too-many-locals # Complex setup, many variables needed for initialization
 def initialize_runtimes(
     thread_watcher: ThreadWatcher,
     initializers: List[RuntimeFactory[Any, Any]],
@@ -46,7 +49,7 @@ def initialize_runtimes(
 
     Args:
         thread_watcher: Monitors threads for the runtimes.
-        initializers: A list of `RuntimeFactory` instances to create and start runtimes from.
+        initializers: List of `RuntimeFactory` to create & start runtimes.
         is_testing: Boolean flag for testing mode.
 
     Returns:
@@ -58,8 +61,10 @@ def initialize_runtimes(
 
     runtimes: List[Runtime] = []
     data_handler: RuntimeDataHandler[Any, Any]
-    for factory_idx, initializer_factory in enumerate(initializers):
+    for _factory_idx, initializer_factory in enumerate(initializers):
+        # pylint: disable=protected-access # Accessing internal components for setup
         data_reader = initializer_factory._remote_data_reader()
+        # pylint: disable=protected-access # Accessing internal components for setup
         event_poller = initializer_factory._event_poller()
 
         auth_config = initializer_factory.auth_config
@@ -94,7 +99,7 @@ def initialize_runtimes(
         )
         runtimes.append(runtime_instance)
 
-    for runtime_idx, runtime in enumerate(runtimes):
+    for _runtime_idx, runtime in enumerate(runtimes):
         active_loop = get_global_event_loop()
 
         coro_to_run = runtime.start_async
@@ -111,11 +116,14 @@ def initialize_runtimes(
                         thread_watcher.on_exception_seen(exc)
                     elif exc is not None:
                         logger.warning(
-                            f"Future completed with a BaseException not reported to ThreadWatcher: {type(exc).__name__}"
+                            "Future completed with BaseException not "
+                            "reported to ThreadWatcher: %s",
+                            type(exc).__name__,
                         )
+            # pylint: disable=broad-exception-caught # Ensuring callback itself doesn't crash watcher
             except Exception as e:
-                logger.error(f"Error in _runtime_start_done_callback: {e}")
-                pass
+                logger.error("Error in _runtime_start_done_callback: %s", e)
+                # Removed unnecessary pass
 
         future.add_done_callback(
             partial(
@@ -139,7 +147,7 @@ def remote_process_main(
 
     Args:
         initializers: List of `RuntimeFactory` instances.
-        error_queue: A `MultiprocessQueueSink` to send exceptions back to the parent.
+        error_queue: `MultiprocessQueueSink` to send exceptions to parent.
         is_testing: Boolean flag for testing mode.
     """
     clear_tsercom_event_loop(try_stop_loop=False)
@@ -161,8 +169,12 @@ def remote_process_main(
             error_queue.put_nowait(e)
         raise
     finally:
-        for runtime_idx, runtime in enumerate(runtimes):
-            run_on_event_loop(partial(runtime.stop, None))
+        for _runtime_idx, runtime in enumerate(runtimes):
+            # pylint: disable=protected-access # Calling internal stop for cleanup
+            run_on_event_loop(
+                partial(runtime.stop, None)
+            )  # runtime.stop not protected
 
-        for factory_idx, factory in enumerate(initializers):
+        for _factory_idx, factory in enumerate(initializers):
+            # pylint: disable=protected-access # Calling internal stop for cleanup
             factory._stop()

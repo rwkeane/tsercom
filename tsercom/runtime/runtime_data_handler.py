@@ -20,33 +20,32 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
 
 
-class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
-    """Defines the contract for handling data and caller registration for a runtime.
+class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
+    """Contract for data handling and caller registration for a runtime.
 
-    This includes providing an iterator for event data, checking for caller IDs,
+    Includes providing event data iterator, checking caller IDs,
     and registering new callers.
     """
 
     @abstractmethod
     def get_data_iterator(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]]:
-        """Returns an async iterator for lists of serializable annotated event instances.
+    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+        """Returns async iterator for lists of serializable event instances.
 
         Yields:
-            Lists of `SerializableAnnotatedInstance[TEventType]`.
+            Lists of `SerializableAnnotatedInstance[EventTypeT]`.
         """
-        pass
 
     @abstractmethod
     def check_for_caller_id(
         self, endpoint: str, port: int
     ) -> CallerIdentifier | None:
-        """Checks if a CallerIdentifier is registered for the given endpoint and port.
+        """Checks if CallerID is registered for a given endpoint and port.
 
         Args:
             endpoint: The IP address or hostname of the endpoint.
@@ -55,18 +54,17 @@ class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
         Returns:
             The `CallerIdentifier` if found, otherwise `None`.
         """
-        pass
 
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType]:
+    ) -> EndpointDataProcessor[DataTypeT]:
         pass
 
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> EndpointDataProcessor[TDataType] | None:
+    ) -> EndpointDataProcessor[DataTypeT] | None:
         pass
 
     @abstractmethod
@@ -75,25 +73,23 @@ class RuntimeDataHandler(ABC, Generic[TDataType, TEventType]):
         caller_id: CallerIdentifier,
         *args: Any,
         **kwargs: Any,
-    ) -> EndpointDataProcessor[TDataType] | None:
+    ) -> EndpointDataProcessor[DataTypeT] | None:
         """Registers a caller with the runtime.
 
-        This method is responsible for associating a `CallerIdentifier` with
-        its network endpoint, which can be provided directly via `endpoint` and
-        `port` arguments, or extracted from a `grpc.aio.ServicerContext`.
-        Implementations should handle the logic for creating or retrieving an
-        `EndpointDataProcessor` for the caller.
+        This method associates a `CallerIdentifier` with its network endpoint
+        (via `endpoint` and `port` args), or extracted from a
+        `grpc.aio.ServicerContext`. Implementations handle creating or
+        retrieving an `EndpointDataProcessor` for the caller.
 
         Args:
             caller_id: The unique identifier of the caller.
-            endpoint: The network endpoint (e.g., IP address) of the caller.
+            endpoint: Network endpoint (e.g., IP address) of the caller.
                       Required if `context` is not provided.
-            port: The port number of the caller. Required if `context` is not provided.
-            context: The gRPC servicer context, from which endpoint information
-                     can be extracted if `endpoint` and `port` are not given.
+            port: Port number of the caller. Required if `context` not provided.
+            context: gRPC servicer context, from which endpoint information
+                     extracted if `endpoint` and `port` are not given.
 
         Returns:
-            An `EndpointDataProcessor` instance for the registered caller,
-            or `None` if registration fails (e.g., context does not yield an address).
+            An `EndpointDataProcessor` for the registered caller,
+            or `None` if registration fails (e.g. context has no address).
         """
-        pass

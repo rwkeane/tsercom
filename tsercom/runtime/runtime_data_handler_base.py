@@ -1,44 +1,48 @@
 """Base implementation for `RuntimeDataHandler`."""
 
+# pylint: disable=W0221 # Allow arguments-differ for register_caller flexibility
+
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import Generic, List, TypeVar, Any, overload
 
-import grpc
+import grpc  # Standard import
 
+# Local application imports
+from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
-from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.data.exposed_data import ExposedData
 from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
+from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
-TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType", bound=ExposedData)
+
+EventTypeT = TypeVar("EventTypeT")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
 class RuntimeDataHandlerBase(
-    Generic[TDataType, TEventType], RuntimeDataHandler[TDataType, TEventType]
+    Generic[DataTypeT, EventTypeT], RuntimeDataHandler[DataTypeT, EventTypeT]
 ):
     """Provides common functionality for runtime data handlers.
 
-    Manages data reading via `RemoteDataReader` and event polling via `AsyncPoller`.
-    Handles caller registration by parsing context or direct endpoint info.
-    Implements the async iterator protocol for event data.
+    Manages data reading via `RemoteDataReader` and event polling via
+    `AsyncPoller`. Handles caller registration by parsing context or direct
+    endpoint info. Implements async iterator for event data.
     """
 
     def __init__(
         self,
-        data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-        event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
     ):
         """Initializes RuntimeDataHandlerBase.
 
@@ -53,26 +57,28 @@ class RuntimeDataHandlerBase(
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType]:
+    ) -> EndpointDataProcessor[DataTypeT]:
         pass
 
     @overload
     def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> EndpointDataProcessor[TDataType] | None:
+    ) -> EndpointDataProcessor[DataTypeT] | None:
         pass
 
+    # pylint: disable=too-many-branches # Complex argument parsing logic
     def register_caller(
         self,
         caller_id: CallerIdentifier,
         *args: Any,
         **kwargs: Any,
-    ) -> EndpointDataProcessor[TDataType] | None:
+    ) -> EndpointDataProcessor[DataTypeT] | None:
+        # pylint: disable=W0221, arguments-differ # Actual signature uses *args, **kwargs for flexibility
         """Registers a caller using either endpoint/port or gRPC context.
 
-        This concrete implementation of `RuntimeDataHandler.register_caller`
-        validates inputs and extracts endpoint/port from context if provided,
-        then delegates to the abstract `_register_caller` method.
+        This impl of `RuntimeDataHandler.register_caller` validates inputs,
+        extracts endpoint/port from context if provided, then delegates
+        to `_register_caller`.
 
         Args:
             caller_id: The `CallerIdentifier` of the caller.
@@ -80,7 +86,8 @@ class RuntimeDataHandlerBase(
             **kwargs: Can contain endpoint="...", port=123 or context=ctx.
 
         Returns:
-            An `EndpointDataProcessor` for the caller, or `None` if registration fails.
+            An `EndpointDataProcessor` for the caller, or `None` if
+            registration fails.
 
         Raises:
             ValueError: If arguments are inconsistent.
@@ -100,22 +107,23 @@ class RuntimeDataHandlerBase(
             _endpoint = args[0]
             _port = args[1]
         elif args:
-            raise ValueError(
-                f"Unexpected positional arguments: {args}. Provide (endpoint, port) or (context,)."
+            # pylint: disable=consider-using-f-string
+            msg = (
+                "Unexpected positional args: %s. Provide (endpoint, port) "
+                "or (context,)." % (args,)
             )
+            raise ValueError(msg)
 
         if "endpoint" in kwargs:
             if _endpoint is not None or _context is not None:
                 raise ValueError(
-                    "Cannot specify endpoint via both args and kwargs, or with context."
+                    "Cannot use endpoint via both args & kwargs, or with context."
                 )
             _endpoint = kwargs.pop("endpoint")
         if "port" in kwargs:
-            if (
-                _port is not None or _context is not None
-            ):  # Ensure port isn't mixed with context kwarg
+            if _port is not None or _context is not None:
                 raise ValueError(
-                    "Cannot specify port via both args and kwargs, or with context."
+                    "Cannot use port via both args & kwargs, or with context."
                 )
             _port = kwargs.pop("port")
         if "context" in kwargs:
@@ -125,20 +133,22 @@ class RuntimeDataHandlerBase(
                 or _port is not None
             ):
                 raise ValueError(
-                    "Cannot specify context via both args and kwargs, or with endpoint/port."
+                    "Cannot use context via args & kwargs, or with endpoint/port."
                 )
             _context = kwargs.pop("context")
 
         if kwargs:
-            raise ValueError(f"Unexpected keyword arguments: {kwargs.keys()}")
+            # pylint: disable=consider-using-f-string
+            msg = "Unexpected keyword arguments: %s" % list(kwargs.keys())
+            raise ValueError(msg)
 
         if (_endpoint is None and _port is None) == (_context is None):
             raise ValueError(
-                "Exactly one of ('endpoint'/'port' combination) or 'context' must be provided."
+                "Provide (endpoint/port) or context, not both/neither."
             )
         if (_port is None) != (_endpoint is None):
             raise ValueError(
-                "If 'endpoint' is provided, 'port' must also be provided, and vice-versa."
+                "If 'endpoint' provided, 'port' must be too, and vice-versa."
             )
 
         actual_endpoint: str
@@ -146,162 +156,157 @@ class RuntimeDataHandlerBase(
 
         if _context is not None:
             if not isinstance(_context, grpc.aio.ServicerContext):
-                raise TypeError(
-                    f"Expected context to be an instance of grpc.aio.ServicerContext, but got {type(_context).__name__}."
+                # pylint: disable=consider-using-f-string
+                msg = (
+                    "Expected context: grpc.aio.ServicerContext, got %s."
+                    % type(_context).__name__
                 )
+                raise TypeError(msg)
             extracted_endpoint = get_client_ip(_context)
             extracted_port = get_client_port(_context)
 
             if extracted_endpoint is None:
                 return None
             if extracted_port is None:
-                raise ValueError(
-                    f"Could not determine client port from context for endpoint {extracted_endpoint}."
+                # pylint: disable=consider-using-f-string
+                msg = (
+                    "Could not get client port from context for endpoint: %s."  # Shortened
+                    % extracted_endpoint
                 )
+                raise ValueError(msg)
             actual_endpoint = extracted_endpoint
             actual_port = extracted_port
         elif _endpoint is not None and _port is not None:
-            # This path is taken if context is None and endpoint/port are provided.
             actual_endpoint = _endpoint
             actual_port = _port
         else:
-            # This state should ideally be prevented by the initial validation logic.
-            raise ValueError(
-                "Internal error: Inconsistent endpoint/port/context state after argument parsing."
+            raise ValueError(  # Line 147 (Pylint) - Shortened
+                "Internal error: Inconsistent endpoint/port/context state."
             )
 
         return self._register_caller(caller_id, actual_endpoint, actual_port)
 
     def get_data_iterator(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]]:
-        """Returns an async iterator for event data, grouped by CallerIdentifier.
+    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+        """Returns async iterator for event data, grouped by CallerIdentifier.
 
-        This implementation returns `self` as it implements `__aiter__` and `__anext__`.
-        """
+        This impl returns `self` as it implements `__aiter__` / `__anext__`.
+        """  # Line 167 (Pylint) - Shortened
         return self
 
     def check_for_caller_id(
         self, endpoint: str, port: int
     ) -> CallerIdentifier | None:
-        """Checks for an existing caller ID using the `_try_get_caller_id` template method.
+        """Checks for existing caller ID using `_try_get_caller_id`.
 
         Args:
-            endpoint: The IP address or hostname.
-            port: The port number.
+            endpoint: IP address or hostname.
+            port: Port number.
 
         Returns:
-            The `CallerIdentifier` if found, `None` otherwise.
+            `CallerIdentifier` if found, `None` otherwise.
         """
         return self._try_get_caller_id(endpoint, port)
 
-    async def _on_data_ready(self, data: AnnotatedInstance[TDataType]) -> None:
-        """Callback invoked when new data is ready to be processed by the data reader.
+    async def _on_data_ready(self, data: AnnotatedInstance[DataTypeT]) -> None:
+        """Callback for new data to be processed by the data reader.
 
         Args:
-            data: The `AnnotatedInstance` containing the data and metadata.
+            data: The `AnnotatedInstance` with data and metadata.
         """
         if self.__data_reader is None:
             raise ValueError("Data reader instance is None.")
-
+        # pylint: disable=protected-access # Internal component call
         self.__data_reader._on_data_ready(data)
 
     @abstractmethod
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType]:
-        """Template method for subclass-specific caller registration logic.
+    ) -> EndpointDataProcessor[DataTypeT]:
+        """Template for subclass-specific caller registration logic.
 
         Args:
-            caller_id: The `CallerIdentifier` of the caller.
-            endpoint: The IP address or hostname of the caller.
-            port: The port number of the caller.
+            caller_id: `CallerIdentifier` of the caller.
+            endpoint: IP address or hostname of the caller.
+            port: Port number of the caller.
 
         Returns:
             An `EndpointDataProcessor` for the caller.
         """
-        pass
 
     @abstractmethod
     def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
-        """Template method for subclass-specific caller deregistration logic.
+        """Template for subclass-specific caller deregistration.
 
         Args:
-            caller_id: The `CallerIdentifier` of the caller to unregister.
+            caller_id: `CallerIdentifier` of the caller to unregister.
 
         Returns:
-            True if the caller was found and unregistered, False otherwise.
+            True if caller was found and unregistered, False otherwise.
         """
-        pass
 
     @abstractmethod
     def _try_get_caller_id(
         self, endpoint: str, port: int
     ) -> CallerIdentifier | None:
-        """Template method for subclass-specific logic to find a caller ID by endpoint.
+        """Template for subclass logic to find caller ID by endpoint.
 
         Args:
-            endpoint: The IP address or hostname.
-            port: The port number.
+            endpoint: IP address or hostname.
+            port: Port number.
 
         Returns:
-            The `CallerIdentifier` if found, `None` otherwise.
+            `CallerIdentifier` if found, `None` otherwise.
         """
-        pass
 
     async def __anext__(
         self,
-    ) -> List[SerializableAnnotatedInstance[TEventType]]:
-        """Retrieves the next batch of events from the event source.
-
-        Implements the async iterator protocol.
-        """
+    ) -> List[SerializableAnnotatedInstance[EventTypeT]]:
+        """Retrieves next batch of events from the event source."""
         return await self.__event_source.__anext__()
 
     def __aiter__(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[TEventType]]]:
-        """Returns self as the async iterator for events.
-
-        Implements the async iterator protocol.
-        """
+    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+        """Returns self as the async iterator for events."""
         return self
 
     def _create_data_processor(
         self, caller_id: CallerIdentifier, clock: SynchronizedClock
-    ) -> EndpointDataProcessor[TDataType]:
+    ) -> EndpointDataProcessor[DataTypeT]:
         """Factory method to create a concrete `EndpointDataProcessor`.
 
         Args:
-            caller_id: The `CallerIdentifier` for the processor.
-            clock: The `SynchronizedClock` to be used by the processor.
+            caller_id: `CallerIdentifier` for the processor.
+            clock: `SynchronizedClock` to be used by the processor.
 
         Returns:
-            An instance of `__DataProcessorImpl`.
+            An instance of `_DataProcessorImpl`.
         """
-        return RuntimeDataHandlerBase.__DataProcessorImpl(
+        return RuntimeDataHandlerBase._DataProcessorImpl(
             self, caller_id, clock
         )
 
-    class __DataProcessorImpl(EndpointDataProcessor[TDataType]):
-        """Concrete implementation of `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
+    class _DataProcessorImpl(EndpointDataProcessor[DataTypeT]):
+        """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
 
-        This nested class handles data desynchronization, caller deregistration,
-        and data processing by delegating to the outer `RuntimeDataHandlerBase` instance.
+        Handles data desync, caller deregistration, and data processing
+        by delegating to the outer `RuntimeDataHandlerBase` instance.
         """
 
         def __init__(
             self,
-            data_handler: "RuntimeDataHandlerBase[TDataType, TEventType]",
+            data_handler: "RuntimeDataHandlerBase[DataTypeT, EventTypeT]",
             caller_id: CallerIdentifier,
             clock: SynchronizedClock,
         ):
-            """Initializes the __DataProcessorImpl.
+            """Initializes the _DataProcessorImpl.
 
             Args:
-                data_handler: The parent `RuntimeDataHandlerBase` instance.
-                caller_id: The `CallerIdentifier` for this processor.
-                clock: The `SynchronizedClock` for timestamp desynchronization.
+                data_handler: Parent `RuntimeDataHandlerBase` instance.
+                caller_id: `CallerIdentifier` for this processor.
+                clock: `SynchronizedClock` for timestamp desynchronization.
             """
             super().__init__(caller_id)
             self.__data_handler = data_handler
@@ -311,20 +316,20 @@ class RuntimeDataHandlerBase(
             """Desynchronizes a server timestamp using the provided clock."""
             return self.__clock.desync(timestamp)
 
-        async def deregister_caller(
-            self,
-        ) -> None:  # Changed return type from bool to None
-            """Deregisters the caller via the parent data handler."""
-            # The actual return value of _unregister_caller (a bool) is ignored here
-            # to match the supertype's None return.
+        async def deregister_caller(self) -> None:
+            """Deregisters caller via the parent data handler."""
+            # Return value of _unregister_caller (bool) is ignored
+            # to match supertype's None return.
+            # pylint: disable=protected-access # Outer class call
             self.__data_handler._unregister_caller(self.caller_id)
-            return None  # Explicitly return None
+            return None
 
         async def _process_data(
-            self, data: TDataType, timestamp: datetime
+            self, data: DataTypeT, timestamp: datetime
         ) -> None:
-            """Processes data by wrapping it in an `AnnotatedInstance` and passing to the parent."""
+            """Processes data by wrapping it and passing to parent."""
             wrapped_data = AnnotatedInstance(
                 caller_id=self.caller_id, timestamp=timestamp, data=data
             )
+            # pylint: disable=protected-access # Outer class call
             await self.__data_handler._on_data_ready(wrapped_data)

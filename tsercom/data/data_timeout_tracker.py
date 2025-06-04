@@ -1,6 +1,6 @@
-"""Defines DataTimeoutTracker for managing and triggering periodic timeout notifications for registered objects."""
+"""DataTimeoutTracker: manages/triggers periodic timeout notifications."""
 
-import logging  # Add logging import
+import logging
 from abc import ABC, abstractmethod
 import asyncio
 from functools import partial
@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 class DataTimeoutTracker:
     """Manages and triggers timeout events for registered 'Tracked' objects.
 
-    This class allows objects implementing the `Tracked` interface to be
-    notified periodically after a defined timeout interval. It operates
-    asynchronously on an event loop.
+    Allows objects implementing `Tracked` interface to be notified
+    periodically after a defined timeout. Operates asynchronously.
     """
 
+    # pylint: disable=R0903 # Abstract listener interface
     class Tracked(ABC):
         """Interface for objects that can be tracked for timeouts.
 
@@ -40,14 +40,12 @@ class DataTimeoutTracker:
                 timeout_seconds: The duration of the timeout that triggered
                                  this callback.
             """
-            pass
 
     def __init__(self, timeout_seconds: int = 60) -> None:
         """Initializes the DataTimeoutTracker.
 
         Args:
-            timeout_seconds: The interval in seconds at which registered
-                             `Tracked` objects will be notified.
+            timeout_seconds: Interval in secs for notifying `Tracked` objects.
         """
         self.__timeout_seconds: int = timeout_seconds
         self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
@@ -59,15 +57,14 @@ class DataTimeoutTracker:
         The registration is performed asynchronously on the event loop.
 
         Args:
-            tracked: The object to register, which must implement the
-                     `DataTimeoutTracker.Tracked` interface.
+            tracked: Object to register (must implement `Tracked`).
         """
         run_on_event_loop(partial(self.__register_impl, tracked))
 
     async def __register_impl(self, tracked: Tracked) -> None:
         """Internal implementation to register a 'Tracked' object.
 
-        This method must be run on the event loop.
+        Must run on event loop.
 
         Args:
             tracked: The `Tracked` object to add to the list.
@@ -89,19 +86,14 @@ class DataTimeoutTracker:
         run_on_event_loop(self.__execute_periodically)
 
     def stop(self) -> None:
-        """Signals the periodic timeout execution to stop.
-
-        This method is thread-safe; the stop signal is scheduled on the event loop.
-        """
+        """Signals periodic timeout execution to stop. Thread-safe."""
         if self.__is_running.get():  # Check if running before trying to stop
             run_on_event_loop(self.__signal_stop_impl)
 
     async def __signal_stop_impl(self) -> None:
         """Internal implementation to signal stop on the event loop."""
-        # Ensure this runs on the loop, though run_on_event_loop handles scheduling
-        assert (
-            is_running_on_event_loop()
-        ), "Stop signal must be processed on the event loop."
+        # Ensure this runs on the loop, though run_on_event_loop handles it.
+        assert is_running_on_event_loop(), "Stop signal must be on event loop."
         if self.__is_running.get():  # Double check on the loop
             self.__is_running.stop()
             logger.info("DataTimeoutTracker stop signaled.")
@@ -111,10 +103,10 @@ class DataTimeoutTracker:
             )
 
     async def __execute_periodically(self) -> None:
-        """Periodically triggers the timeout callback on all registered objects.
+        """Periodically triggers timeout callback on all registered objects.
 
-        This coroutine runs indefinitely, sleeping for `__timeout_seconds`
-        and then calling `_on_triggered` for each registered `Tracked` object.
+        Runs indefinitely, sleeping for `__timeout_seconds`, then calls
+        `_on_triggered` for each registered `Tracked` object.
         """
         logger.info("DataTimeoutTracker: Starting periodic execution.")
         while self.__is_running.get():
@@ -123,34 +115,32 @@ class DataTimeoutTracker:
                 break
             for tracked_item in list(self.__tracked_list):  # Iterate a copy
                 try:
+                    # pylint: disable=W0212 # Calling listener's trigger method
                     tracked_item._on_triggered(self.__timeout_seconds)
+                # pylint: disable=W0718 # Catch any exception from listener callback
                 except Exception as e:
                     logger.error(
-                        f"Exception in DataTimeoutTracker._on_triggered for {tracked_item}: {e}",
+                        "Exception in DataTimeoutTracker._on_triggered for %s: %s",
+                        tracked_item,
+                        e,
                         exc_info=True,
                     )
         logger.info("DataTimeoutTracker: Stopped periodic execution.")
 
     def unregister(self, tracked: Tracked) -> None:
-        """Unregisters a 'Tracked' object.
-
-        The unregistration is performed asynchronously on the event loop.
-
-        Args:
-            tracked: The object to unregister.
-        """
+        """Unregisters 'Tracked' object. Runs async on event loop."""
         run_on_event_loop(partial(self.__unregister_impl, tracked))
 
     async def __unregister_impl(self, tracked: Tracked) -> None:
         """Internal implementation to unregister a 'Tracked' object."""
         assert (
             is_running_on_event_loop()
-        ), "Unregistration must run on the event loop."
+        ), "Unregistration must be on event loop."
         try:
             self.__tracked_list.remove(tracked)
-            logger.info(f"Unregistered item: {tracked}")
+            logger.info("Unregistered item: %s", tracked)
         except ValueError:
             logger.warning(
-                f"Attempted to unregister a non-registered or "
-                f"already unregistered item: {tracked}"
+                "Attempted to unregister a non-registered or already unregistered item: %s",
+                tracked,
             )

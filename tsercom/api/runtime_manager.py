@@ -7,8 +7,7 @@ from functools import partial
 from multiprocessing import Process  # Keep for type hinting if necessary
 from typing import Any, Generic, List, TypeVar, Optional
 
-# Make RuntimeManager Generic by importing TypeVar if not already (it is, for TDataType, TEventType)
-# from typing import TypeVar # Already imported for TDataType, TEventType
+# Make RuntimeManager Generic by importing TypeVar if not already (it is, for DataTypeT, EventTypeT)
 
 from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
@@ -53,17 +52,20 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.runtime.runtime_main import initialize_runtimes
+from tsercom.runtime.runtime_main import remote_process_main
 
 # Type variables for generic RuntimeHandle and related classes.
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
 
 
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=R0902 # Essential attributes for manager state
 class RuntimeManager(
-    ErrorWatcher, Generic[TDataType, TEventType]
+    ErrorWatcher, Generic[DataTypeT, EventTypeT]
 ):  # Made Generic
     """Manages the lifecycle of Tsercom runtimes.
 
@@ -73,16 +75,17 @@ class RuntimeManager(
     monitoring and propagation.
     """
 
+    # pylint: disable=R0913 # Necessary arguments for comprehensive setup
     def __init__(
         self,
         *,
         is_testing: bool = False,
         thread_watcher: Optional[ThreadWatcher] = None,
         local_runtime_factory_factory: Optional[
-            LocalRuntimeFactoryFactory[TDataType, TEventType]  # Parameterized
+            LocalRuntimeFactoryFactory[DataTypeT, EventTypeT]  # Parameterized
         ] = None,
         split_runtime_factory_factory: Optional[
-            SplitRuntimeFactoryFactory[TDataType, TEventType]  # Parameterized
+            SplitRuntimeFactoryFactory[DataTypeT, EventTypeT]  # Parameterized
         ] = None,
         process_creator: Optional[ProcessCreator] = None,
         split_error_watcher_source_factory: Optional[
@@ -92,13 +95,13 @@ class RuntimeManager(
         """Initializes the RuntimeManager.
 
         Args:
-            is_testing: If True, configures some operations for testing purposes,
+            is_testing: If True, configures some operations for testing,
                         such as making out-of-process runtimes daemonic.
             thread_watcher: Optional ThreadWatcher instance.
             local_runtime_factory_factory: Optional factory for local runtimes.
-            split_runtime_factory_factory: Optional factory for split-process runtimes.
+            split_runtime_factory_factory: Optional factory for split runtimes.
             process_creator: Optional helper to create processes.
-            split_error_watcher_source_factory: Optional factory for SplitProcessErrorWatcherSource.
+            split_error_watcher_source_factory: Factory for error watcher source.
         """
         super().__init__()
 
@@ -134,7 +137,7 @@ class RuntimeManager(
                     max_workers=1
                 )
             )
-            # Default factories are [Any, Any] because TDataType/TEventType are not known
+            # Default factories are [Any, Any] because DataTypeT/EventTypeT are not known
             # if RuntimeManager is instantiated as RuntimeManager() without specific types.
             self.__local_runtime_factory_factory = LocalRuntimeFactoryFactory[
                 Any, Any
@@ -154,9 +157,9 @@ class RuntimeManager(
                 Any, Any
             ](default_split_factory_thread_pool, self.__thread_watcher)
 
-        # If RuntimeManager is Generic[TDataType, TEventType], initializers should store these specific types.
+        # If RuntimeManager is Generic[DataTypeT, EventTypeT], initializers should store these specific types.
         self.__initializers: list[
-            InitializationPair[TDataType, TEventType]
+            InitializationPair[DataTypeT, EventTypeT]
         ] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
@@ -174,15 +177,14 @@ class RuntimeManager(
         return self.__has_started.get()
 
     def register_runtime_initializer(
-        self, runtime_initializer: RuntimeInitializer[TDataType, TEventType]
-    ) -> Future[RuntimeHandle[TDataType, TEventType]]:
+        self, runtime_initializer: RuntimeInitializer[DataTypeT, EventTypeT]
+    ) -> Future[RuntimeHandle[DataTypeT, EventTypeT]]:
         """Registers a RuntimeInitializer to be managed.
 
-        This method must be called before any of the start methods
-        (`start_in_process`, `start_out_of_process`) are invoked.
+        Must be called before `start_in_process` or `start_out_of_process`.
 
         Args:
-            runtime_initializer: The initializer for the runtime to be created.
+            runtime_initializer: The initializer for the runtime.
 
         Returns:
             A Future that will be populated with the RuntimeHandle once the
@@ -193,12 +195,13 @@ class RuntimeManager(
         """
         # Ensure initializers are registered only before starting.
         if self.has_started:
+            # Long but readable error message
             raise RuntimeError(
                 "Cannot register runtime initializer after the manager has started."
             )
 
-        handle_future = Future[RuntimeHandle[TDataType, TEventType]]()
-        pair = InitializationPair[TDataType, TEventType](
+        handle_future = Future[RuntimeHandle[DataTypeT, EventTypeT]]()
+        pair = InitializationPair[DataTypeT, EventTypeT](
             handle_future, runtime_initializer
         )
         self.__initializers.append(pair)
@@ -210,26 +213,22 @@ class RuntimeManager(
     ) -> None:
         """Creates and starts all registered runtimes in the current process.
 
-        This method calls the synchronous `start_in_process` method, providing
-        it with the currently running asyncio event loop. Tsercom operations
-        will run on this event loop.
+        This method calls `start_in_process` with the current asyncio event
+        loop. Tsercom operations will run on this loop.
 
-        The primary mechanism for retrieving `RuntimeHandle` instances is through
-        the `Future` objects returned by `register_runtime_initializer`.
+        RuntimeHandles are retrieved via Futures from `register_runtime_initializer`.
 
         Returns:
-            None. RuntimeHandle instances are obtained via the `Future` objects
-            returned by `register_runtime_initializer`.
+            None. RuntimeHandles are obtained via Futures.
 
         Raises:
-            RuntimeError: If no event loop is running when this method is called.
-            Exception: If `future.result(timeout=0)` raises an exception because
-                       the future completed with an exception (e.g., `CancelledError`
-                       or any exception set on the future by the task it was awaiting).
+            RuntimeError: If no event loop is running.
+            Exception: If a future completed with an exception.
         """
         running_loop = get_running_loop_or_none()
 
         if running_loop is None:
+            # Long but readable error message
             raise RuntimeError(
                 "Could not determine the current running event loop for start_in_process_async."
             )
@@ -273,9 +272,7 @@ class RuntimeManager(
         )
 
         # Import is deferred to avoid circular dependencies.
-        from tsercom.runtime.runtime_main import (
-            initialize_runtimes,
-        )
+        # pylint: disable=C0415 # Avoid circular import / late import
 
         initialize_runtimes(
             self.__thread_watcher, factories, is_testing=self.__is_testing
@@ -284,16 +281,14 @@ class RuntimeManager(
     def start_out_of_process(self, start_as_daemon: bool = False) -> None:
         """Creates and starts registered runtimes in a new, separate process.
 
-        Creates runtimes from all registered RuntimeInitializer instances, and
-        then starts each created instance in a new process separate from the
-        current process. Commands to such runtimes are forwarded from the
-        returned Runtime instances, and data received from it can be accessed
-        through the RemoteDataAggregator instance available in it.
+        Creates runtimes from registered initializers and starts them in a new,
+        separate process. Commands are forwarded from the returned Runtime
+        instances. Data is accessed via RemoteDataAggregator.
 
         Args:
             start_as_daemon: If True, the new process will be a daemon process.
-                             Daemonic processes are typically used for background
-                             tasks and are terminated when the main program exits.
+                             Daemonic processes are for background tasks and
+                             terminate when the main program exits.
 
         Raises:
             RuntimeError: If called after the manager has started.
@@ -324,9 +319,7 @@ class RuntimeManager(
 
         # Import and prepare the main function for the remote process.
         # Import is deferred to avoid circular dependencies.
-        from tsercom.runtime.runtime_main import (
-            remote_process_main,
-        )
+        # pylint: disable=C0415 # Avoid circular import / late import
 
         # Configure and start the new process using ProcessCreator.
         process_target = partial(
@@ -355,23 +348,22 @@ class RuntimeManager(
             )
 
     def run_until_exception(self) -> None:
-        """Blocks execution until an exception is raised by any managed runtime.
+        """Blocks execution until an exception from any managed runtime.
 
-        Runs the current thread until an exception as been raised, throwing the
-        exception upon receipt. This method is thread-safe and can be called
-        from any thread.
+        Runs the current thread until an exception is raised, then throws it.
+        This method is thread-safe.
 
-        This method is thread-safe. It re-raises the caught exception in the
-        calling thread.
+        It re-raises the caught exception in the calling thread.
 
         Raises:
             Any exception propagated from the managed runtimes.
-            RuntimeError: If the manager hasn't started or the error watcher isn't set.
+            RuntimeError: If manager not started or error watcher not set.
         """
         if not self.has_started:
             # Added this check for consistency, as __thread_watcher depends on has_started
             raise RuntimeError("RuntimeManager has not been started.")
         if self.__thread_watcher is None:  # Reverted to simpler check
+            # Long but readable error message
             raise RuntimeError(
                 "Error watcher is not available. Ensure the RuntimeManager has been properly started."
             )
@@ -387,13 +379,14 @@ class RuntimeManager(
 
         Raises:
             Any exception propagated from the managed runtimes.
-            RuntimeError: If the manager has started but the error watcher isn't set.
+            RuntimeError: If manager started but error watcher not set.
         """
         if not self.has_started:
             return  # No exceptions to check if not started.
 
         # Reverted: If manager has started, but __thread_watcher is somehow None, it's an issue.
         if self.__thread_watcher is None:
+            # Long but readable error message
             raise RuntimeError(
                 "Error watcher is not available. Ensure the RuntimeManager has been properly started."
             )
@@ -404,8 +397,8 @@ class RuntimeManager(
         """Shuts down the managed process and associated error watcher if applicable.
 
         This method is intended to clean up resources, particularly for out-of-process
-        runtimes. It stops the error watcher if it's a SplitProcessErrorWatcherSource
-        and terminates the managed process.
+        runtimes. It stops the error watcher if it's a
+        SplitProcessErrorWatcherSource and terminates the managed process.
         """
         logger.info("RuntimeManager.shutdown: Starting.")
 
@@ -420,44 +413,45 @@ class RuntimeManager(
 
         clear_tsercom_event_loop()
 
-    def __create_factories(  # This method now needs to use TDataType, TEventType from self
-        self, factory_factory: RuntimeFactoryFactory[TDataType, TEventType]
-    ) -> List[RuntimeFactory[TDataType, TEventType]]:
+    def __create_factories(  # This method now needs to use DataTypeT, EventTypeT from self
+        self, factory_factory: RuntimeFactoryFactory[DataTypeT, EventTypeT]
+    ) -> List[RuntimeFactory[DataTypeT, EventTypeT]]:
         """Creates runtime factories using the provided factory_factory.
 
         Iterates through all registered `InitializationPair`s and uses the
-        `factory_factory` to create a `RuntimeFactory` for each. The associated
-        `RuntimeHandle` Future within each pair is populated by a
+        `factory_factory` to create a `RuntimeFactory` for each. The
+        associated `RuntimeHandle` Future in each pair is populated by a
         `RuntimeFuturePopulator` client.
 
         Args:
-            factory_factory: The `RuntimeFactoryFactory` (e.g., local or split)
-                             to use for creating individual `RuntimeFactory` instances.
+            factory_factory: The `RuntimeFactoryFactory` (local or split)
+                             to use for creating `RuntimeFactory` instances.
 
         Returns:
             A list of created `RuntimeFactory` instances.
         """
-        results: List[RuntimeFactory[TDataType, TEventType]] = []
+        results: List[RuntimeFactory[DataTypeT, EventTypeT]] = []
         for (
             pair
         ) in (
             self.__initializers
-        ):  # pair is InitializationPair[TDataType, TEventType]
+        ):  # pair is InitializationPair[DataTypeT, EventTypeT]
             # The RuntimeFuturePopulator acts as the client to receive the handle.
-            client = RuntimeFuturePopulator[TDataType, TEventType](
+            client = RuntimeFuturePopulator[DataTypeT, EventTypeT](
                 pair.handle_future
-            )  # Use TDataType, TEventType from pair
+            )  # Use DataTypeT, EventTypeT from pair
             factory = factory_factory.create_factory(
-                client,  # client is Populator[TDataType, TEventType]
-                pair.initializer,  # initializer is RuntimeInitializer[TDataType, TEventType]
+                client,  # client is Populator[DataTypeT, EventTypeT]
+                pair.initializer,  # initializer is RuntimeInitializer[DataTypeT, EventTypeT]
             )
             results.append(factory)
         return results
 
 
+# pylint: disable=R0903 # Internal helper class
 class RuntimeFuturePopulator(
     RuntimeFactoryFactory.Client,
-    Generic[TDataType, TEventType],  # Make it generic again
+    Generic[DataTypeT, EventTypeT],  # Make it generic again
 ):
     """A client that populates a Future with a RuntimeHandle when ready.
 
@@ -467,7 +461,7 @@ class RuntimeFuturePopulator(
     """
 
     def __init__(
-        self, future: Future[RuntimeHandle[TDataType, TEventType]]
+        self, future: Future[RuntimeHandle[DataTypeT, EventTypeT]]
     ) -> None:
         """Initializes the RuntimeFuturePopulator.
 
@@ -475,10 +469,10 @@ class RuntimeFuturePopulator(
             future: The `Future` object that will be populated with the
                     `RuntimeHandle`.
         """
-        self.__future: Future[RuntimeHandle[TDataType, TEventType]] = future
+        self.__future: Future[RuntimeHandle[DataTypeT, EventTypeT]] = future
 
     def _on_handle_ready(  # type: ignore[override]
-        self, handle: RuntimeHandle[TDataType, TEventType]
+        self, handle: RuntimeHandle[DataTypeT, EventTypeT]
     ) -> None:
         """Callback invoked when the RuntimeHandle is ready.
 

@@ -1,46 +1,43 @@
-"""Defines the MdnsListener abstract base class and its client interface for mDNS service discovery."""
+"""MdnsListener ABC and client interface for mDNS service discovery."""
 
 from abc import ABC, abstractmethod
 from typing import Dict, List
 from zeroconf import ServiceListener
 
 
+# pylint: disable=W0223 # Relies on InstanceListener fulfilling ServiceListener contract
 class MdnsListener(ServiceListener):
-    """Abstract base class for mDNS service listeners.
+    """ABC for mDNS service listeners.
 
-    This class extends `zeroconf.ServiceListener` and defines a `Client`
-    interface for notifying clients about discovered raw service details.
-    Subclasses are expected to implement the methods from `zeroconf.ServiceListener`
-    (e.g., `add_service`, `update_service`, `remove_service`) and use this
-    `Client` interface to propagate relevant service information.
+    Extends `zeroconf.ServiceListener`, defines `Client` interface for
+    notifying clients about discovered raw service details. Subclasses should
+    implement `zeroconf.ServiceListener` methods and use `Client` interface.
     """
 
+    # pylint: disable=R0903 # Internal helper/callback class for zeroconf
     class Client(ABC):
-        """Interface for clients of `MdnsListener`.
+        """Interface for `MdnsListener` clients.
 
-        Implementers are notified when full service details (name, port, addresses,
-        TXT record) for a service of the monitored type are discovered or updated.
+        Notified when full service details (name, port, addresses, TXT record)
+        for a monitored service type are discovered/updated.
         """
 
         @abstractmethod
         def _on_service_added(
             self,
-            name: str,  # The mDNS instance name of the service.
-            port: int,  # The service port number.
-            addresses: List[bytes],  # List of raw binary IP addresses.
-            txt_record: Dict[
-                bytes, bytes | None
-            ],  # Parsed TXT record as a dictionary.
+            name: str,  # mDNS instance name of the service.
+            port: int,  # Service port number.
+            addresses: List[bytes],  # Raw binary IP addresses.
+            txt_record: Dict[bytes, bytes | None],  # Parsed TXT record.
         ) -> None:
-            """Callback invoked when a new service is discovered or an existing one is updated.
+            """Callback for new or updated service discovery.
 
             Args:
-                name: The unique mDNS instance name of the service (e.g., "MyDevice._myservice._tcp.local.").
-                port: The network port on which the service is available.
-                addresses: A list of raw IP addresses (in binary format) associated with the service.
-                           These typically come from A or AAAA records.
-                txt_record: A dictionary representing the service's TXT record,
-                            containing key-value metadata. Keys are bytes, values are bytes or None.
+                name: Unique mDNS name (e.g., "MyDevice._myservice._tcp.local").
+                port: Network port of the service.
+                addresses: List of raw binary IP addresses (A/AAAA records).
+                txt_record: Dict of service's TXT record (metadata).
+                            Keys are bytes, values are bytes or None.
             """
             # This method must be implemented by concrete client classes.
             raise NotImplementedError(

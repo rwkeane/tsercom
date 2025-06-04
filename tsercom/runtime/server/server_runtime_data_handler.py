@@ -25,13 +25,13 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 
-TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
 class ServerRuntimeDataHandler(
-    Generic[TDataType, TEventType],
-    RuntimeDataHandlerBase[TDataType, TEventType],
+    Generic[DataTypeT, EventTypeT],
+    RuntimeDataHandlerBase[DataTypeT, EventTypeT],
 ):
     """Handles data, events, and caller management for server runtimes.
 
@@ -43,8 +43,8 @@ class ServerRuntimeDataHandler(
 
     def __init__(
         self,
-        data_reader: RemoteDataReader[AnnotatedInstance[TDataType]],
-        event_source: AsyncPoller[SerializableAnnotatedInstance[TEventType]],
+        data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
+        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
         *,
         is_testing: bool = False,
     ):
@@ -54,7 +54,7 @@ class ServerRuntimeDataHandler(
             data_reader: The reader for incoming data instances.
             event_source: The poller for incoming event instances.
             is_testing: If True, enables testing-specific behaviors, notably
-                        using `FakeSynchronizedClock` instead of `TimeSyncServer`.
+                        using `FakeSynchronizedClock` not `TimeSyncServer`.
         """
         super().__init__(data_reader, event_source)
 
@@ -72,19 +72,19 @@ class ServerRuntimeDataHandler(
 
     def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[TDataType]:
-        """Registers a new caller and its endpoint, returning a data processor.
+    ) -> EndpointDataProcessor[DataTypeT]:
+        """Registers a new caller, returning a data processor.
 
-        Adds the caller to the ID tracker. The server's synchronized clock
-        is used for the data processor.
+        Adds caller to ID tracker. Server's synchronized clock is used
+        for the data processor.
 
         Args:
-            caller_id: The `CallerIdentifier` of the new caller (usually assigned by the server).
+            caller_id: New caller's `CallerIdentifier` (server-assigned).
             endpoint: The network endpoint (e.g., IP address) of the caller.
             port: The port number of the caller.
 
         Returns:
-            An `EndpointDataProcessor` configured for this caller using the server's clock.
+            An `EndpointDataProcessor` for this caller (uses server clock).
         """
         self.__id_tracker.add(caller_id, endpoint, port)
         return self._create_data_processor(caller_id, self.__clock)
@@ -92,9 +92,8 @@ class ServerRuntimeDataHandler(
     def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
         """Handles unregistration of a caller.
 
-        In this server implementation, this method is currently a no-op.
-        CallerIDs are kept to allow re-establishment of connections.
-        Returning False as the caller is not actively removed.
+        Currently a no-op in server impl; IDs kept for re-connection.
+        Returns False as caller is not actively removed.
 
         Args:
             caller_id: The `CallerIdentifier` of the caller to unregister.
@@ -104,7 +103,7 @@ class ServerRuntimeDataHandler(
     def _try_get_caller_id(
         self, endpoint: str, port: int
     ) -> CallerIdentifier | None:
-        """Tries to retrieve the CallerIdentifier for a given endpoint and port.
+        """Tries to get CallerIdentifier for a given endpoint and port.
 
         Args:
             endpoint: The network endpoint of the caller.

@@ -1,4 +1,4 @@
-"""Defines the RuntimeCommandBridge for relaying commands to a Runtime instance."""
+"""RuntimeCommandBridge for relaying commands to a Runtime instance."""
 
 import concurrent.futures
 from functools import partial
@@ -52,15 +52,17 @@ class RuntimeCommandBridge:
             pending_command = self.__state.get()
             if pending_command is None:
                 return
-            elif pending_command == RuntimeCommand.kStart:
+            if pending_command == RuntimeCommand.START:
                 run_on_event_loop(runtime.start_async)
-            elif pending_command == RuntimeCommand.kStop:
+            elif (
+                pending_command == RuntimeCommand.STOP
+            ):  # Still elif as it's mutually exclusive to START
                 # Execute stop and wait for it to complete.
                 future = run_on_event_loop(partial(runtime.stop, None))
                 try:
                     future.result(timeout=5.0)
                 except concurrent.futures.TimeoutError:
-                    # Log or handle timeout if necessary
+                    # Log or handle timeout if needed
                     pass  # Or raise an error, log, etc.
 
             self.__state.set(None)
@@ -75,7 +77,7 @@ class RuntimeCommandBridge:
         with self.__runtime_mutex:
             if self.__runtime is None:
                 # Runtime not yet available, store the command.
-                self.__state.set(RuntimeCommand.kStart)
+                self.__state.set(RuntimeCommand.START)
             else:
                 run_on_event_loop(self.__runtime.start_async)
 
@@ -89,12 +91,12 @@ class RuntimeCommandBridge:
         with self.__runtime_mutex:
             if self.__runtime is None:
                 # Runtime not yet available, store the command.
-                self.__state.set(RuntimeCommand.kStop)
+                self.__state.set(RuntimeCommand.STOP)
             else:
                 # Execute stop and wait for it to complete.
                 future = run_on_event_loop(partial(self.__runtime.stop, None))
                 try:
                     future.result(timeout=5.0)
                 except concurrent.futures.TimeoutError:
-                    # Log or handle timeout if necessary
+                    # Log or handle timeout if needed
                     pass  # Or raise an error, log, etc.

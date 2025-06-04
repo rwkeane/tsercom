@@ -1,4 +1,4 @@
-"""Defines DataHost, an abstract base class for hosts exposing data aggregators."""
+"""DataHost ABC for hosts that expose a RemoteDataAggregator."""
 
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
@@ -6,10 +6,11 @@ from typing import Generic, TypeVar
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
-class DataHost(ABC, Generic[TDataType]):
+# pylint: disable=R0903 # Abstract data hosting interface
+class DataHost(ABC, Generic[DataTypeT]):
     """Abstract base class for data hosts that expose a RemoteDataAggregator.
 
     Subclasses (like ClientHost and ServerHost) should inherit from DataHost
@@ -18,7 +19,7 @@ class DataHost(ABC, Generic[TDataType]):
     """
 
     @property
-    def remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
+    def remote_data_aggregator(self) -> RemoteDataAggregator[DataTypeT]:
         """The `RemoteDataAggregator` instance for this data host.
 
         This property provides access to the aggregator, which is responsible
@@ -31,7 +32,7 @@ class DataHost(ABC, Generic[TDataType]):
         return self._remote_data_aggregator()
 
     @abstractmethod
-    def _remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
+    def _remote_data_aggregator(self) -> RemoteDataAggregator[DataTypeT]:
         """Provides the `RemoteDataAggregator` instance.
 
         This abstract method must be implemented by subclasses to return their
@@ -39,7 +40,6 @@ class DataHost(ABC, Generic[TDataType]):
         exposed publicly via the `remote_data_aggregator` property.
 
         Returns:
-            An instance of `RemoteDataAggregator[TDataType]`.
+            An instance of `RemoteDataAggregator[DataTypeT]`.
         """
         # Abstract method: subclasses must provide the implementation.
-        pass

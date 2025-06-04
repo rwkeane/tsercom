@@ -14,37 +14,38 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.util.is_running_tracker import IsRunningTracker
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 logger = logging.getLogger(__name__)  # Initialize logger
 
 
 class RemoteDataOrganizer(
-    Generic[TDataType], RemoteDataReader[TDataType], DataTimeoutTracker.Tracked
+    Generic[DataTypeT], RemoteDataReader[DataTypeT], DataTimeoutTracker.Tracked
 ):
     """Organizes and provides access to data received from a specific remote endpoint.
 
     This class is responsible for managing a time-ordered collection of data
-    (of type `TDataType`) associated with a single `CallerIdentifier`.
+        (of type `DataTypeT`) associated with a single `CallerIdentifier`.
     It ensures thread-safe access to this data, handles data input via the
     `RemoteDataReader` interface, and implements the `DataTimeoutTracker.Tracked`
     interface to facilitate data timeout logic. It can notify a `Client` when
     new data becomes available.
     """
 
+    # pylint: disable=R0903 # Abstract listener interface
     class Client(ABC):
         """Interface for clients that need to be notified by `RemoteDataOrganizer`."""
 
         @abstractmethod
         def _on_data_available(
-            self, data_organizer: "RemoteDataOrganizer[TDataType]"
+            self, data_organizer: "RemoteDataOrganizer[DataTypeT]"
         ) -> None:
             """Callback invoked when new data is processed and available in the organizer.
 
             Args:
                 data_organizer: The `RemoteDataOrganizer` instance that has new data.
             """
-            pass
+            raise NotImplementedError()
 
     def __init__(
         self,
@@ -70,7 +71,7 @@ class RemoteDataOrganizer(
         self.__data_lock: threading.Lock = threading.Lock()
 
         # Deque to store received data, ordered by timestamp (most recent first).
-        self.__data: Deque[TDataType] = Deque[TDataType]()
+        self.__data: Deque[DataTypeT] = Deque[DataTypeT]()
 
         # Timestamp of the most recent data item retrieved via get_new_data().
         self.__last_access: datetime.datetime = datetime.datetime.min
@@ -127,22 +128,22 @@ class RemoteDataOrganizer(
 
             return result
 
-    def get_new_data(self) -> List[TDataType]:
+    def get_new_data(self) -> List[DataTypeT]:  # Corrected Python type hint
         """Retrieves all data items received since the last call to this method.
 
         Updates the internal "last access" timestamp to the timestamp of the
         most recent item retrieved in this call.
 
         Returns:
-            A list of new `TDataType` items, ordered from most recent to oldest.
+            A list of new `DataTypeT` items, ordered from most recent to oldest.
             Returns an empty list if no new data is available.
         """
         with self.__data_lock:
-            results: List[TDataType] = []
+            results: List[DataTypeT] = []  # Corrected Python type hint
             if not self.__data:
                 return results
 
-            for item_idx, item in enumerate(self.__data):
+            for _item_idx, item in enumerate(self.__data):  # Renamed item_idx
                 if item.timestamp > self.__last_access:
                     results.append(item)
                 else:
@@ -154,11 +155,11 @@ class RemoteDataOrganizer(
 
             return results
 
-    def get_most_recent_data(self) -> Optional[TDataType]:
+    def get_most_recent_data(self) -> Optional[DataTypeT]:
         """Returns the most recently received data item, regardless of last access time.
 
         Returns:
-            The most recent `TDataType` item, or `None` if no data has been received.
+            The most recent `DataTypeT` item, or `None` if no data has been received.
         """
         with self.__data_lock:
             if not self.__data:
@@ -168,14 +169,14 @@ class RemoteDataOrganizer(
 
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Optional[TDataType]:
+    ) -> Optional[DataTypeT]:
         """Returns the most recent data item received at or before the given timestamp.
 
         Args:
             timestamp: The specific `datetime` to find data for.
 
         Returns:
-            The `TDataType` item whose timestamp is the latest at or before the
+            The `DataTypeT` item whose timestamp is the latest at or before the # Corrected TDataType in docstring
             specified `timestamp`, or `None` if no such data exists (e.g., all
             data is newer, or no data at all).
         """
@@ -197,7 +198,7 @@ class RemoteDataOrganizer(
         # but as a fallback or if logic changes, return None.
         return None
 
-    def _on_data_ready(self, new_data: TDataType) -> None:
+    def _on_data_ready(self, new_data: DataTypeT) -> None:
         """Handles an incoming data item.
 
         Validates the data, ensures it matches the organizer's `caller_id`,
@@ -222,7 +223,7 @@ class RemoteDataOrganizer(
         ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
-    def __on_data_ready_impl(self, new_data: TDataType) -> None:
+    def __on_data_ready_impl(self, new_data: DataTypeT) -> None:
         """Internal implementation to process and store new data.
 
         This method is executed by the thread pool. It adds the new data to the
@@ -230,7 +231,7 @@ class RemoteDataOrganizer(
         the client if data was inserted or updated.
 
         Args:
-            new_data: The `TDataType` item to process.
+            new_data: The `DataTypeT` item to process.
         """
         # Do not process data if the organizer is not running.
         if not self.__is_running.get():
@@ -247,8 +248,10 @@ class RemoteDataOrganizer(
 
                 if new_data_time < current_most_recent_time:
                     logger.debug(
-                        f"CallerID {self.caller_id}: Discarding out-of-order older data "
-                        f"(ts: {new_data_time}, newest_is: {current_most_recent_time})."
+                        "CallerID %s: Discarding out-of-order older data (ts: %s, newest_is: %s).",
+                        self.caller_id,
+                        new_data_time,
+                        current_most_recent_time,
                     )
                     # DESIGN NOTE: This implementation handles new data as follows:
                     # - If the deque is empty, the new data is added.
@@ -265,6 +268,7 @@ class RemoteDataOrganizer(
                     #   #     idx += 1
                     #   # self.__data.insert(idx, new_data)
                     #   # data_inserted_or_updated = True
+                    # pylint: disable=W0107 # Explicitly do nothing for older data as per design note
                     pass
                 elif new_data_time == current_most_recent_time:
                     # Data with the same timestamp as the newest; update the newest.
@@ -276,6 +280,7 @@ class RemoteDataOrganizer(
                     data_inserted_or_updated = True
 
         if data_inserted_or_updated and self.__client is not None:
+            # pylint: disable=W0212 # Calling listener's notification method
             self.__client._on_data_available(self)
 
     def _on_triggered(self, timeout_seconds: int) -> None:

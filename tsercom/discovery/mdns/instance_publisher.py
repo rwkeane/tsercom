@@ -1,4 +1,4 @@
-"""Defines InstancePublisher for announcing service instances via mDNS, including TXT record preparation."""
+"""InstancePublisher for mDNS service announcement with TXT prep."""
 
 import datetime
 import logging
@@ -12,14 +12,13 @@ _logger = logging.getLogger(__name__)
 
 
 class InstancePublisher:
-    """Publishes a service instance using mDNS (Multicast DNS).
+    """Publishes a service instance using mDNS.
 
-    This class handles the creation of an mDNS instance name (if not provided)
-    and prepares a TXT record with basic information like a readable name
-    and a publication timestamp. It then uses `RecordPublisher` to announce
-    the service instance on the local network.
+    Handles mDNS instance name creation (if not provided) and prepares
+    a TXT record (name, timestamp). Uses `RecordPublisher` to announce.
     """
 
+    # pylint: disable=R0913,R0912 # Handles complex initialization logic for service properties
     def __init__(
         self,
         port: int,
@@ -37,39 +36,32 @@ class InstancePublisher:
         """Initializes the InstancePublisher.
 
         Args:
-            port: The network port on which the service is available.
-            service_type: The mDNS service type string (e.g., "_my_service._tcp.local.").
-            readable_name: An optional human-readable name for the service.
-                           This will be included in the TXT record if provided.
-            instance_name: An optional specific mDNS instance name. If None,
-                           a unique name is generated based on port and MAC address,
-                           truncated to 15 characters.
+            port: Network port of the service.
+            service_type: mDNS service type (e.g., "_my_service._tcp.local.").
+            readable_name: Optional human-readable name for TXT record.
+            instance_name: Optional mDNS instance name. If None, a unique name
+                           is generated (port + MAC, truncated to 15 chars).
 
         Raises:
-            ValueError: If `port` or `service_type` is None (though type hints
-                        should prevent this, explicit checks are for runtime safety).
-            TypeError: If arguments are not of the expected types.
-            RuntimeError: If `_make_txt_record` fails internally.
+            ValueError: If port/service_type is None or invalid.
+            TypeError: If arguments have unexpected types.
+            RuntimeError: If _make_txt_record fails.
         """
         if port is None:
-            raise ValueError(
-                "port argument cannot be None for InstancePublisher."
-            )
+            raise ValueError("port cannot be None for InstancePublisher.")
         if not isinstance(port, int):
-            raise TypeError(
-                f"port must be an integer, got {type(port).__name__}."
-            )
+            raise TypeError(f"port must be int, got {type(port).__name__}.")
 
         if service_type is None:
             raise ValueError(
-                "service_type argument cannot be None for InstancePublisher."
+                "service_type cannot be None for InstancePublisher."
             )
         if not isinstance(service_type, str):
             raise TypeError(
-                f"service_type must be a string, got {type(service_type).__name__}."
+                f"service_type must be str, got {type(service_type).__name__}."
             )
 
-        # Ensure service_type is the base type (e.g., "_myservice") for RecordPublisher
+        # Ensure service_type is base type (e.g., "_myservice") for RecordPublisher
         base_service_type = service_type
         suffix_to_remove = "._tcp.local."
         if base_service_type.endswith(suffix_to_remove):
@@ -77,25 +69,23 @@ class InstancePublisher:
 
         if readable_name is not None and not isinstance(readable_name, str):
             raise TypeError(
-                f"readable_name must be a string or None, got {type(readable_name).__name__}."
+                f"readable_name must be str or None, got {type(readable_name).__name__}."
             )
 
         if instance_name is not None and not isinstance(instance_name, str):
             raise TypeError(
-                f"instance_name must be a string or None, got {type(instance_name).__name__}."
+                f"instance_name must be str or None, got {type(instance_name).__name__}."
             )
 
         self.__name: str | None = readable_name
 
-        # The name is based on port and MAC address to provide some uniqueness,
-        # and truncated to meet mDNS length recommendations/requirements if necessary.
+        # Name based on port/MAC for uniqueness, truncated for mDNS if needed.
         effective_instance_name: str
         if instance_name is None:
             mac_address = get_mac()
             generated_name = f"{port}{mac_address}"
-            # TODO(developer/issue_id): Verify the 15-character truncation for generated
-            # instance names. Standard mDNS labels can typically be up to 63 characters.
-            # Ensure this truncation is intentional and necessary, or adjust if possible.
+            # TODO(dev): Verify 15-char truncation for generated names.
+            # mDNS labels can be up to 63 chars. Adjust if needed.
             if len(generated_name) > 15:
                 effective_instance_name = generated_name[:15]
             else:
@@ -107,7 +97,7 @@ class InstancePublisher:
         # This check is defensive; _make_txt_record should always return a dict.
         if txt_record is None:  # Should ideally not be reachable
             raise RuntimeError(
-                "_make_txt_record failed to produce a TXT record."
+                "_make_txt_record failed to produce TXT record."
             )
 
         self.__record_publisher: MdnsPublisher  # Declare type once
@@ -119,7 +109,6 @@ class InstancePublisher:
                 p: int,
                 txt: Optional[Dict[bytes, bytes | None]],
             ) -> MdnsPublisher:
-                # RecordPublisher is already imported at the top of the file.
                 return RecordPublisher(eff_inst_name, s_type, p, txt)
 
             self.__record_publisher = default_mdns_publisher_factory(
@@ -132,13 +121,10 @@ class InstancePublisher:
             )
 
     def _make_txt_record(self) -> dict[bytes, bytes | None]:
-        """Creates the TXT record dictionary for the mDNS announcement.
-
-        The TXT record includes the publication timestamp and, if provided,
-        the human-readable name of the service.
+        """Creates TXT record dict for mDNS. Incl. pub timestamp & opt. name.
 
         Returns:
-            A dictionary where keys and values are bytes, suitable for mDNS TXT records.
+            Dict (bytes: bytes/None) for mDNS TXT record.
         """
         properties: dict[bytes, bytes | None] = {
             b"published_on": self.__get_current_date_time_bytes()
@@ -165,6 +151,7 @@ class InstancePublisher:
             try:
                 # Assuming the close method of the publisher is async
                 await self.__record_publisher.close()
+            # pylint: disable=W0718 # Catch all exceptions to keep publish loop alive
             except Exception as e:
                 _logger.error(
                     "Error while closing the record publisher: %s",
@@ -172,17 +159,18 @@ class InstancePublisher:
                     exc_info=True,
                 )
         else:
+            # Long but readable debug message
             _logger.debug(
                 "Record publisher does not have a close method or it's not callable."
             )
 
     def __get_current_date_time_bytes(self) -> bytes:
-        """Gets the current date and time formatted as a UTF-8 encoded string.
+        """Gets current date/time as UTF-8 encoded string.
 
         Returns:
-            The current timestamp as bytes (e.g., "YYYY-MM-DD HH:MM:SS.ffffff").
+            Timestamp as bytes (e.g., "YYYY-MM-DD HH:MM:SS.ffffff").
         """
         now = datetime.datetime.now()
-        # Format includes microseconds for higher precision if needed.
+        # Format includes microseconds for precision.
         as_str = now.strftime("%F %T.%f")
         return as_str.encode("utf-8")

@@ -88,7 +88,7 @@ def test_initial_state(bridge):
 # Tests for Commands Before Runtime Set
 def test_start_before_runtime_set(bridge, patch_rcb_run_on_event_loop):
     bridge.start()
-    assert bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.kStart
+    assert bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.START
     # run_on_event_loop should not have been called yet meaningfully
     # as there's no runtime to act upon. The captured_callables might be empty
     # or contain a lambda that does nothing if runtime is None.
@@ -97,7 +97,7 @@ def test_start_before_runtime_set(bridge, patch_rcb_run_on_event_loop):
 
 def test_stop_before_runtime_set(bridge, patch_rcb_run_on_event_loop):
     bridge.stop()
-    assert bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.kStop
+    assert bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.STOP
 
 
 # Tests for Setting Runtime Executes Pending Commands
@@ -213,7 +213,7 @@ def test_pending_stop_overwrites_pending_start_before_runtime_set(  # Renamed
     """If start then stop is called before runtime, stop command is stored."""
     bridge.start()
     bridge.stop()
-    assert bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.kStop
+    assert bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.STOP
 
     bridge.set_runtime(fake_runtime)
     assert not fake_runtime.start_async_called
@@ -228,7 +228,7 @@ def test_pending_start_overwrites_pending_stop_before_runtime_set(  # Renamed
     """If stop then start is called before runtime, start command is stored."""
     bridge.stop()
     bridge.start()
-    assert bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.kStart
+    assert bridge._RuntimeCommandBridge__state.get() == RuntimeCommand.START
 
     bridge.set_runtime(fake_runtime)
     assert fake_runtime.start_async_called

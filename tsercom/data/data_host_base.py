@@ -1,4 +1,4 @@
-"""Defines DataHostBase, a reusable base class implementing DataHost and RemoteDataReader functionalities."""
+"""DataHostBase: reusable base for DataHost & RemoteDataReader."""
 
 from typing import Any, Generic, Optional, TypeVar
 
@@ -10,11 +10,12 @@ from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
+# pylint: disable=R0903 # Base class providing concrete interface implementations
 class DataHostBase(
-    Generic[TDataType], DataHost[TDataType], RemoteDataReader[TDataType]
+    Generic[DataTypeT], DataHost[DataTypeT], RemoteDataReader[DataTypeT]
 ):
     """A base implementation of DataHost and RemoteDataReader.
 
@@ -24,6 +25,7 @@ class DataHostBase(
     and optionally a `DataTimeoutTracker`.
     """
 
+    # pylint: disable=W1113 # False positive with complex defaults and *args
     def __init__(
         self,
         watcher: ThreadWatcher,
@@ -35,15 +37,13 @@ class DataHostBase(
         """Initializes the DataHostBase.
 
         Args:
-            watcher: A ThreadWatcher to monitor threads created for the
-                     data aggregator.
-            aggregation_client: An optional client for the RemoteDataAggregator
-                                to notify when new data is available.
-            timeout_seconds: The duration in seconds after which data is
-                             considered timed out. If <= 0, timeout tracking
-                             is disabled.
-            *args: Variable length argument list passed to the superclass constructor.
-            **kwargs: Arbitrary keyword arguments passed to the superclass constructor.
+            watcher: ThreadWatcher to monitor threads for the data aggregator.
+            aggregation_client: Optional client for RemoteDataAggregator
+                                to notify of new data.
+            timeout_seconds: Duration in seconds for data timeout. If <= 0,
+                             timeout tracking disabled.
+            *args: Variable length arguments for superclass.
+            **kwargs: Keyword arguments for superclass.
         """
         # This ensures sequential processing of data aggregation tasks.
         thread_pool = watcher.create_tracked_thread_pool_executor(
@@ -56,20 +56,20 @@ class DataHostBase(
             tracker.start()
 
         # Assign to a local variable first, then to self.__aggregator to avoid redefinition error.
-        aggregator_instance: RemoteDataAggregatorImpl[TDataType]
+        aggregator_instance: RemoteDataAggregatorImpl[DataTypeT]
         if tracker is not None:
-            aggregator_instance = RemoteDataAggregatorImpl[TDataType](
+            aggregator_instance = RemoteDataAggregatorImpl[DataTypeT](
                 thread_pool, aggregation_client, tracker=tracker
             )
         else:
-            aggregator_instance = RemoteDataAggregatorImpl[TDataType](
+            aggregator_instance = RemoteDataAggregatorImpl[DataTypeT](
                 thread_pool, aggregation_client
             )
         self.__aggregator = aggregator_instance
 
         super().__init__(*args, **kwargs)
 
-    def _on_data_ready(self, new_data: TDataType) -> None:
+    def _on_data_ready(self, new_data: DataTypeT) -> None:
         """Handles new data by passing it to the internal data aggregator.
 
         This method is called when new data is available, typically from a
@@ -78,14 +78,15 @@ class DataHostBase(
         Args:
             new_data: The new data item that has become available.
         """
+        # pylint: disable=W0212 # Calling client's data ready method
         self.__aggregator._on_data_ready(new_data)
 
-    def _remote_data_aggregator(self) -> RemoteDataAggregator[TDataType]:
+    def _remote_data_aggregator(self) -> RemoteDataAggregator[DataTypeT]:
         """Provides the internal `RemoteDataAggregator` instance.
 
         This method fulfills the `DataHost` abstract contract.
 
         Returns:
-            The `RemoteDataAggregator[TDataType]` instance used by this host.
+            The `RemoteDataAggregator[DataTypeT]` instance used by this host.
         """
         return self.__aggregator

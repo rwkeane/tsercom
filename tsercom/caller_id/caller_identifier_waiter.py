@@ -21,24 +21,22 @@ class CallerIdentifierWaiter:
         self.__barrier = asyncio.Event()
 
     async def get_caller_id_async(self) -> CallerIdentifier:
-        """Waits for and returns the `CallerIdentifier` once it's set.
+        """Waits for and returns the `CallerIdentifier` once set.
 
-        This method will block asynchronously until `set_caller_id` is called.
+        Blocks asynchronously until `set_caller_id` is called.
 
         Returns:
             The `CallerIdentifier` instance.
 
         Raises:
-            RuntimeError: Internally, if `set_caller_id` is not called before waiting indefinitely,
-                          or if the event is set without setting `__caller_id` (which shouldn't happen with correct usage).
+            RuntimeError: If `set_caller_id` not called before wait, or event set
+                          without `__caller_id` (should not happen).
         """
         await self.__barrier.wait()
         # At this point, __caller_id is guaranteed to be set by set_caller_id.
         if self.__caller_id is None:
             # This state should ideally not be reached if used correctly.
-            raise RuntimeError(
-                "CallerIdentifier was not set after barrier was signaled."
-            )
+            raise RuntimeError("ID not set after barrier was signaled.")
         return self.__caller_id
 
     def has_id(self) -> bool:
@@ -53,9 +51,9 @@ class CallerIdentifierWaiter:
         return self.__caller_id is not None
 
     async def set_caller_id(self, caller_id: CallerIdentifier) -> None:
-        """Sets the `CallerIdentifier` and notifies any waiters.
+        """Sets the `CallerIdentifier` and notifies waiters.
 
-        This method can only be called once. Subsequent calls will raise an error.
+        Can only be called once. Subsequent calls will raise an error.
 
         Args:
             caller_id: The `CallerIdentifier` to set.

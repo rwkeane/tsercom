@@ -5,7 +5,7 @@ and communication within the Tsercom system. This includes data structures,
 interfaces for data reading and aggregation, and base classes for data hosts.
 """
 
-# Import key classes from submodules to make them available at the package level.
+# Import key classes from submodules for package-level availability.
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.data_host_base import DataHostBase
 from tsercom.data.data_host import DataHost

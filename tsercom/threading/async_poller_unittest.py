@@ -238,7 +238,10 @@ class TestAsyncPollerWaitInstanceStopped:
         poller._AsyncPoller__is_loop_running.set(False)
         poller._AsyncPoller__barrier.set()
 
-        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+        with pytest.raises(
+            RuntimeError,
+            match="AsyncPoller stopped while waiting for instance.",
+        ):
             await wait_task
 
     async def test_wait_instance_raises_error_even_if_data_queued_then_stopped(

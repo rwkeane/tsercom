@@ -13,13 +13,13 @@ from tsercom.threading.async_poller import AsyncPoller
 from tsercom.data.exposed_data import ExposedData  # Import ExposedData
 
 
-TEventType = TypeVar("TEventType")
-TDataType = TypeVar("TDataType", bound=ExposedData)  # Constrain TDataType
+EventTypeT = TypeVar("EventTypeT")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)  # Constrain DataTypeT
 
 
 class RuntimeFactory(
-    Generic[TDataType, TEventType],
-    RuntimeInitializer[TDataType, TEventType],
+    Generic[DataTypeT, EventTypeT],
+    RuntimeInitializer[DataTypeT, EventTypeT],
     ABC,
 ):
     """Defines the contract for factories that create Runtime instances.
@@ -32,52 +32,47 @@ class RuntimeFactory(
     @abstractmethod
     def remote_data_reader(
         self,
-    ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
+    ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
         """Provides a `RemoteDataReader` for accessing annotated data instances.
 
         Subclasses must implement this property.
         """
-        pass
 
     @property
     @abstractmethod
     def event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted to EventInstance
+    ) -> AsyncPoller[EventInstance[EventTypeT]]:  # Reverted to EventInstance
         """Provides an `AsyncPoller` for receiving event instances.
 
         Subclasses must implement this property.
         """
-        pass
 
     @abstractmethod
     def _remote_data_reader(
         self,
-    ) -> RemoteDataReader[AnnotatedInstance[TDataType]]:
-        """Internal abstract method to be implemented by subclasses to provide the data reader.
+    ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
+        """Internal abstract method by subclasses to provide the data reader.
 
         This method is typically called by the `remote_data_reader` property.
 
         Returns:
             A `RemoteDataReader` instance.
         """
-        pass
 
     @abstractmethod
     def _event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[TEventType]]:  # Reverted to EventInstance
-        """Internal abstract method to be implemented by subclasses to provide the event poller
+    ) -> AsyncPoller[EventInstance[EventTypeT]]:  # Reverted to EventInstance
+        """Internal abstract method by subclasses to provide the event poller.
 
         This method is typically called by the `event_poller` property.
 
         Returns:
             An `AsyncPoller` instance.
         """
-        pass
 
     def _stop(self) -> None:
         """
         Stops any underlying calls and executions associated with this instance.
         """
-        pass

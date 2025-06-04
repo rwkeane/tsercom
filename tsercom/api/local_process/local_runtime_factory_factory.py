@@ -1,4 +1,4 @@
-"""Defines the LocalRuntimeFactoryFactory for creating pairs of RuntimeHandles and LocalRuntimeFactory instances."""
+"""LocalRuntimeFactoryFactory for local RuntimeHandle/Factory pairs."""
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypeVar, Tuple
@@ -19,62 +19,62 @@ from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
 
 
+# pylint: disable=R0903 # Concrete factory implementation
 class LocalRuntimeFactoryFactory(
-    RuntimeFactoryFactory[TDataType, TEventType]
+    RuntimeFactoryFactory[DataTypeT, EventTypeT]
 ):  # Added type parameters
-    """Factory class responsible for creating LocalRuntimeFactory instances
-    and their associated RuntimeHandles for local process runtimes.
-    """
+    """Creates LocalRuntimeFactory instances and associated RuntimeHandles."""
 
     def __init__(self, thread_pool: ThreadPoolExecutor) -> None:
         """Initializes the LocalRuntimeFactoryFactory.
 
         Args:
-            thread_pool: A ThreadPoolExecutor for managing asynchronous tasks.
+            thread_pool: ThreadPoolExecutor for managing asynchronous tasks.
         """
         super().__init__()
         self.__thread_pool = thread_pool
 
     def _create_pair(
-        self, initializer: RuntimeInitializer[TDataType, TEventType]
+        self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
     ) -> Tuple[
-        RuntimeHandle[TDataType, TEventType],
-        RuntimeFactory[TDataType, TEventType],
+        RuntimeHandle[DataTypeT, EventTypeT],
+        RuntimeFactory[DataTypeT, EventTypeT],
     ]:
         """Creates a RuntimeHandle and its corresponding LocalRuntimeFactory.
 
-        This method sets up the necessary components for a local runtime,
-        including data aggregation, event polling, and command bridging.
+        Sets up components for a local runtime: data aggregation, event
+        polling, and command bridging.
 
         Args:
-            initializer: The RuntimeInitializer containing configuration for the runtime.
+            initializer: Configuration for the runtime.
 
         Returns:
-            A tuple containing the created RuntimeHandle and the LocalRuntimeFactory.
+            A tuple (RuntimeHandle, LocalRuntimeFactory).
         """
         if initializer.timeout_seconds is not None:
             data_aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[TDataType]
+                AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                client=initializer.data_aggregator_client,  # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[TDataType], gets [AnnotatedInstance[TDataType]]
+                # pylint: disable=W0511,C0301 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
+                client=initializer.data_aggregator_client,
                 timeout=initializer.timeout_seconds,
             )
         else:
             data_aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[TDataType]
+                AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                client=initializer.data_aggregator_client,  # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[TDataType], gets [AnnotatedInstance[TDataType]]
+                # pylint: disable=W0511,C0301 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
+                client=initializer.data_aggregator_client,
             )
-        event_poller = AsyncPoller[EventInstance[TEventType]]()
+        event_poller = AsyncPoller[EventInstance[EventTypeT]]()
         bridge = RuntimeCommandBridge()
-
-        factory = LocalRuntimeFactory[TDataType, TEventType](
+        factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
             initializer, data_aggregator, event_poller, bridge
         )
         handle = RuntimeWrapper(event_poller, data_aggregator, bridge)

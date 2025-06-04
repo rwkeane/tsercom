@@ -107,7 +107,7 @@ def test_on_data_ready_not_lossy_queue_full_raises_assertion_error(
 
     with pytest.raises(
         RuntimeError,
-        match="Queue is full and data would be lost on a non-lossy sink.",
+        match="Queue full; data would be lost on non-lossy sink.",
     ):
         sink._on_data_ready(test_data)
 

@@ -16,28 +16,28 @@ class TestRuntimeConfig:
         assert config.is_client()
         assert not config.is_server()
         # Accessing private __service_type for exact enum check
-        assert config._RuntimeConfig__service_type == ServiceType.kClient
+        assert config._RuntimeConfig__service_type == ServiceType.CLIENT
 
     def test_init_with_server_string(self):
         """Test initialization with service_type='Server'."""
         config = RuntimeConfig(service_type="Server")
         assert not config.is_client()
         assert config.is_server()
-        assert config._RuntimeConfig__service_type == ServiceType.kServer
+        assert config._RuntimeConfig__service_type == ServiceType.SERVER
 
     def test_init_with_client_enum(self):
-        """Test initialization with ServiceType.kClient."""
-        config = RuntimeConfig(service_type=ServiceType.kClient)
+        """Test initialization with ServiceType.CLIENT."""
+        config = RuntimeConfig(service_type=ServiceType.CLIENT)
         assert config.is_client()
         assert not config.is_server()
-        assert config._RuntimeConfig__service_type == ServiceType.kClient
+        assert config._RuntimeConfig__service_type == ServiceType.CLIENT
 
     def test_init_with_server_enum(self):
-        """Test initialization with ServiceType.kServer."""
-        config = RuntimeConfig(service_type=ServiceType.kServer)
+        """Test initialization with ServiceType.SERVER."""
+        config = RuntimeConfig(service_type=ServiceType.SERVER)
         assert not config.is_client()
         assert config.is_server()
-        assert config._RuntimeConfig__service_type == ServiceType.kServer
+        assert config._RuntimeConfig__service_type == ServiceType.SERVER
 
     def test_init_copy_constructor_client(self):
         """Test initialization by copying from another Client RuntimeConfig."""
@@ -54,9 +54,7 @@ class TestRuntimeConfig:
 
         assert copied_config.is_client()
         assert not copied_config.is_server()
-        assert (
-            copied_config._RuntimeConfig__service_type == ServiceType.kClient
-        )
+        assert copied_config._RuntimeConfig__service_type == ServiceType.CLIENT
         assert copied_config.timeout_seconds == 30
         assert copied_config.data_aggregator_client == mock_aggregator
 
@@ -75,9 +73,7 @@ class TestRuntimeConfig:
 
         assert not copied_config.is_client()
         assert copied_config.is_server()
-        assert (
-            copied_config._RuntimeConfig__service_type == ServiceType.kServer
-        )
+        assert copied_config._RuntimeConfig__service_type == ServiceType.SERVER
         assert copied_config.timeout_seconds == 45
         # Based on implementation, data_aggregator_client is copied regardless of service type
         assert copied_config.data_aggregator_client == mock_aggregator_server
@@ -145,11 +141,11 @@ class TestRuntimeConfig:
 
     def test_is_client_is_server_methods(self):
         """Test is_client and is_server methods thoroughly."""
-        client_config = RuntimeConfig(service_type=ServiceType.kClient)
+        client_config = RuntimeConfig(service_type=ServiceType.CLIENT)
         assert client_config.is_client() is True
         assert client_config.is_server() is False
 
-        server_config = RuntimeConfig(service_type=ServiceType.kServer)
+        server_config = RuntimeConfig(service_type=ServiceType.SERVER)
         assert server_config.is_client() is False
         assert server_config.is_server() is True
 

@@ -1,7 +1,10 @@
+"""Manages service discovery and connection establishment."""
+
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Generic, TypeVar, Optional
 import asyncio
+import logging  # Moved up
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_info import ServiceInfo
@@ -11,107 +14,98 @@ from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
-import logging
 
 # Local application imports
 from tsercom.util.connection_factory import ConnectionFactory
 
 
-TServiceInfo = TypeVar("TServiceInfo", bound=ServiceInfo)
-TChannelType = TypeVar("TChannelType")
+ServiceInfoT = TypeVar("ServiceInfoT", bound=ServiceInfo)
+ChannelTypeT = TypeVar("ChannelTypeT")
 
 
 class ServiceConnector(
-    Generic[TServiceInfo, TChannelType], ServiceSource.Client
+    Generic[ServiceInfoT, ChannelTypeT], ServiceSource.Client
 ):
-    """Connects to gRPC endpoints discovered via a `ServiceSource`.
+    """Connects to gRPC endpoints from a `ServiceSource`.
 
-    This class acts as a client to a `ServiceSource`. When a service is discovered,
-    it attempts to establish a gRPC channel to that service using a provided
-    `ConnectionFactory[grpc.Channel]`. Successful connections (channel established) are then
-    reported to its own registered `Client`. It also tracks active connections
-    to avoid redundant connection attempts.
+    Acts as a `ServiceSource` client. On discovery, attempts to establish
+    a gRPC channel using a `ConnectionFactory`. Successful connections are
+    reported to its own `Client`. Tracks active connections.
     """
 
+    # pylint: disable=R0903 # Abstract listener interface
     class Client(ABC):
-        """Interface for clients of `ServiceConnector`.
+        """Interface for `ServiceConnector` clients.
 
-        Implementers are notified when a gRPC channel to a discovered service
-        has been successfully established.
+        Notified when a gRPC channel to a discovered service is established.
         """
 
         @abstractmethod
         async def _on_channel_connected(
             self,
-            connection_info: TServiceInfo,
+            connection_info: ServiceInfoT,
             caller_id: CallerIdentifier,
-            channel: TChannelType,
+            channel: ChannelTypeT,
         ) -> None:
-            """Callback invoked when a gRPC channel to a discovered service is connected.
+            """Callback when a gRPC channel to a service is connected.
 
             Args:
-                connection_info: The `TServiceInfo` object for the discovered service.
-                caller_id: The `CallerIdentifier` associated with the service instance.
-                channel: The successfully established `grpc.Channel`.
+                connection_info: `ServiceInfoT` for the discovered service.
+                caller_id: `CallerIdentifier` for the service instance.
+                channel: The established `grpc.Channel`.
             """
-            pass
 
     def __init__(
         self,
-        client: "ServiceConnector.Client",  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[TChannelType]
-        connection_factory: ConnectionFactory[TChannelType],
-        service_source: ServiceSource[TServiceInfo],
+        client: "ServiceConnector.Client[ChannelTypeT]",
+        connection_factory: ConnectionFactory[ChannelTypeT],
+        service_source: ServiceSource[ServiceInfoT],
     ) -> None:
         """Initializes the ServiceConnector.
 
         Args:
-            client: The client object that will receive notifications about
-                    successfully connected channels.
-            connection_factory: A `ConnectionFactory[grpc.Channel]` used to create
-                                gRPC channels to discovered services.
-            service_source: The `ServiceSource` instance that will provide
-                            discovered service information.
+            client: Client to receive notifications of connected channels.
+            connection_factory: `ConnectionFactory` to create gRPC channels.
+            service_source: `ServiceSource` for discovered service info.
         """
         self.__client: ServiceConnector.Client = (
-            client  # TODO(https://github.com/ClaudeTools/claude-tools-swe-prototype/issues/223): Should be ServiceConnector.Client[TChannelType]
+            client  # pylint: disable=W0511 # TODO: fix type hint
         )
-        self.__service_source: ServiceSource[TServiceInfo] = service_source
-        self.__connection_factory: ConnectionFactory[TChannelType] = (
+        self.__service_source: ServiceSource[ServiceInfoT] = service_source
+        self.__connection_factory: ConnectionFactory[ChannelTypeT] = (
             connection_factory
         )
 
-        self.__callers: set[CallerIdentifier] = set[CallerIdentifier]()
+        self.__callers: set[CallerIdentifier] = set()
 
-        # Event loop captured during the first relevant async operation (_on_service_added).
+        # Event loop captured during first relevant async op (_on_service_added).
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
         super().__init__()
 
     async def start(self) -> None:
-        """Starts the service discovery process.
+        """Starts service discovery.
 
-        This initiates discovery by calling `start_discovery` on the configured
-        `ServiceSource`. This instance (`self`) is passed as the client to
-        receive `_on_service_added` callbacks from the `ServiceSource`.
+        Calls `start_discovery` on `ServiceSource`, passing `self` as client
+        to receive `_on_service_added` callbacks.
         """
         await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
-        """Marks a client associated with a `CallerIdentifier` as failed or unhealthy.
+        """Marks a client with `CallerIdentifier` as failed/unhealthy.
 
-        This allows the connector to potentially re-establish a connection to this
-        service if it's discovered again. The operation is performed on the
-        event loop captured during initial operations.
+        Allows re-establishing connection if service is re-discovered.
+        Operation is performed on the captured event loop.
 
         Args:
-            caller_id: The `CallerIdentifier` of the client/service to mark as failed.
+            caller_id: `CallerIdentifier` of the client/service to mark failed.
 
         Raises:
             AssertionError: If `caller_id` was not previously tracked.
         """
         if self.__event_loop is None:
             logging.warning(
-                "mark_client_failed called before event loop was captured. This may indicate an issue if called before any service discovery."
+                "mark_client_failed called before event loop capture. Potential issue."
             )
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
@@ -132,36 +126,35 @@ class ServiceConnector(
     async def _mark_client_failed_impl(
         self, caller_id: CallerIdentifier
     ) -> None:
-        assert (
-            caller_id in self.__callers
-        ), f"Attempted to mark unknown caller_id {caller_id} as failed."
-        # Removing the caller_id allows new connections if the service is re-discovered.
+        assert caller_id in self.__callers, f"Unknown caller {caller_id}."
+        # Removing caller_id allows new connections if service re-discovered.
         self.__callers.remove(caller_id)
         logging.info(
-            f"Marked client with caller_id {caller_id} as failed. It can now be re-discovered."
+            "Marked client with caller_id %s as failed. Can be re-discovered.",
+            caller_id,
         )
 
     async def _on_service_added(  # type: ignore[override]
         self,
-        connection_info: TServiceInfo,
+        connection_info: ServiceInfoT,
         caller_id: CallerIdentifier,
     ) -> None:
         """Callback from `ServiceSource` when a new service is discovered.
 
-        This method attempts to establish a gRPC channel to the discovered service.
-        If successful, it notifies its own client via `_on_channel_connected`.
-        It ensures operations run on a consistent event loop.
+        Attempts to establish gRPC channel. If successful, notifies client via
+        `_on_channel_connected`. Ensures operations run on consistent event loop.
 
         Args:
-            connection_info: The `TServiceInfo` for the discovered service.
-            caller_id: The `CallerIdentifier` for the service instance.
+            connection_info: `ServiceInfoT` for the discovered service.
+            caller_id: `CallerIdentifier` for service.
         """
-        # Capture or verify the event loop on the first call.
+        # Capture or verify event loop on first call.
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:  # pragma: no cover
+                # Long error message
                 logging.error(
-                    "Failed to get event loop in _on_service_added. Cannot proceed with channel connection."
+                    "Failed to get event loop in _on_service_added. Cannot proceed."
                 )
                 return
         else:
@@ -170,37 +163,48 @@ class ServiceConnector(
                 self.__event_loop
             ), "Operations must run on the captured event loop."
 
-        # Prevent duplicate connection attempts to the same service instance.
+        # Prevent duplicate connection attempts to same service instance.
         if caller_id in self.__callers:
             logging.info(
-                f"Service with Caller ID {caller_id} (Name: {connection_info.name}) already connected or connecting. Skipping."
+                "Service with Caller ID %s (Name: %s) already connected. Skipping.",
+                caller_id,
+                connection_info.name,
             )
             return
 
         logging.info(
-            f"Service added: {connection_info.name} (CallerID: {caller_id}). Attempting to establish gRPC channel."
+            "Service added: %s (CallerID: %s). Attempting gRPC channel.",
+            connection_info.name,
+            caller_id,
         )
 
-        channel: Optional[TChannelType] = (
+        channel: Optional[ChannelTypeT] = (
             await self.__connection_factory.connect(
                 connection_info.addresses, connection_info.port
             )
         )
 
         if channel is None:
+            # Long warning message
             logging.warning(
-                f"Could not establish gRPC channel for endpoint: {connection_info.name} at {connection_info.addresses}:{connection_info.port}."
+                "Could not establish gRPC channel for endpoint: %s at %s:%s.",
+                connection_info.name,
+                connection_info.addresses,
+                connection_info.port,
             )
             return
 
         logging.info(
-            f"Successfully established gRPC channel for: {connection_info.name} (CallerID: {caller_id})"
+            "Successfully established gRPC channel for: %s (CallerID: %s)",
+            connection_info.name,
+            caller_id,
         )
 
         self.__callers.add(caller_id)
-        # The client expects a T_ChannelType, not ChannelInfo wrapper here.
+        # The client expects a ChannelTypeT, not ChannelInfo wrapper here.
+        # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_channel_connected(
             connection_info,
             caller_id,
-            channel,  # TODO: Fix this
+            channel,  # pylint: disable=W0511 # TODO: Fix this
         )

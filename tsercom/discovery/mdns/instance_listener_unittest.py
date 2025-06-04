@@ -8,7 +8,7 @@ from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.instance_listener import (
     InstanceListener,
     ServiceInfo,
-    TServiceInfo,
+    ServiceInfoT,  # Changed TServiceInfo to ServiceInfoT
 )
 from tsercom.discovery.mdns.record_listener import (
     RecordListener,
@@ -213,7 +213,9 @@ class TestInstanceListener:
 
     def test_init_invalid_client_none(self):
         """Test __init__ with client=None raises ValueError."""
-        with pytest.raises(ValueError, match="Client argument cannot be None"):
+        with pytest.raises(
+            ValueError, match="Client cannot be None for InstanceListener."
+        ):
             InstanceListener(
                 client=None,
                 service_type=self.SERVICE_TYPE,
@@ -224,8 +226,8 @@ class TestInstanceListener:
         """Test __init__ with invalid client type raises TypeError."""
         with pytest.raises(
             TypeError,
-            match="Client must be an instance of InstanceListener.Client",
-        ):
+            match=r"Client must be InstanceListener\.Client, got \w+\.",
+        ):  # Use regex for type name
             InstanceListener(
                 client=MagicMock(),
                 service_type=self.SERVICE_TYPE,
@@ -234,7 +236,9 @@ class TestInstanceListener:
 
     def test_init_invalid_service_type(self):
         """Test __init__ with invalid service_type raises TypeError."""
-        with pytest.raises(TypeError, match="service_type must be a string"):
+        with pytest.raises(
+            TypeError, match=r"service_type must be str, got \w+\."
+        ):  # Use regex for type name
             InstanceListener(
                 client=self.mock_il_client,
                 service_type=123,

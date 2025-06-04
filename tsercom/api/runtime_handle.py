@@ -10,12 +10,12 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 
 # Type variable for data, bound by ExposedData.
-TDataType = TypeVar("TDataType", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 # Type variable for events.
-TEventType = TypeVar("TEventType")
+EventTypeT = TypeVar("EventTypeT")
 
 
-class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
+class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
     """Abstract handle for a running Runtime instance.
 
     This class provides an interface to control (start/stop) and send events
@@ -26,16 +26,17 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
     @property
     def data_aggregator(
         self,
-    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
-        """The RemoteDataAggregator for retrieving data from this runtime.
+    ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
+        """RemoteDataAggregator for retrieving data from this runtime.
 
         Returns:
-            A RemoteDataAggregator instance associated with this runtime handle.
+            A RemoteDataAggregator for this handle.
         """
         # This property relies on _get_remote_data_aggregator being implemented.
         # For an ABC, it's better to make the property itself abstract
         # or implement it using an abstract method if there's common logic.
-        return self._get_remote_data_aggregator()
+        aggregator = self._get_remote_data_aggregator()
+        return aggregator
 
     @abstractmethod
     def start(self) -> None:
@@ -50,22 +51,22 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
     # Overloads for the on_event method, defining different ways to call it.
     # These guide type checkers and IDEs for better developer experience.
     @overload
-    def on_event(self, event: TEventType) -> None: ...
+    def on_event(self, event: EventTypeT) -> None: ...
 
     @overload
     def on_event(
-        self, event: TEventType, caller_id: CallerIdentifier
+        self, event: EventTypeT, caller_id: CallerIdentifier
     ) -> None: ...
 
     @overload
     def on_event(
-        self, event: TEventType, *, timestamp: datetime.datetime
+        self, event: EventTypeT, *, timestamp: datetime.datetime
     ) -> None: ...
 
     @overload
     def on_event(
         self,
-        event: TEventType,
+        event: EventTypeT,
         caller_id: CallerIdentifier,
         *,
         timestamp: datetime.datetime,
@@ -74,7 +75,7 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
     @abstractmethod
     def on_event(
         self,
-        event: TEventType,
+        event: EventTypeT,
         caller_id: Optional[CallerIdentifier] = None,
         *,
         timestamp: Optional[datetime.datetime] = None,
@@ -89,21 +90,20 @@ class RuntimeHandle(ABC, Generic[TDataType, TEventType]):
 
         Args:
             event: The event data to send.
-            caller_id: Optional. The identifier of the caller originating the event.
-                       If specified, the event might be targeted or filtered based
-                       on this ID.
-            timestamp: Optional. The timestamp to associate with the event.
-                       If None, implementations usually default to `datetime.now()`.
+            caller_id: Optional. ID of the caller originating the event.
+                       If specified, event might be targeted or filtered.
+            timestamp: Optional. Timestamp for the event.
+                       If None, implementations default to `datetime.now()`.
         """
         raise NotImplementedError()
 
     @abstractmethod
     def _get_remote_data_aggregator(
         self,
-    ) -> RemoteDataAggregator[AnnotatedInstance[TDataType]]:
+    ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Abstract method for subclasses to provide their RemoteDataAggregator.
 
         Returns:
-            The RemoteDataAggregator instance associated with this runtime.
+            The RemoteDataAggregator instance for this runtime.
         """
         raise NotImplementedError()

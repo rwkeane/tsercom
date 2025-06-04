@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 
 
 # Defines an interface for objects that can monitor for and report exceptions.
+# pylint: disable=too-few-public-methods # Abstract interface definition.
 class ErrorWatcher(ABC):
     """
     Abstract base class for error watching.
@@ -30,4 +31,3 @@ class ErrorWatcher(ABC):
         Raises:
             Exception: Any exception encountered during the monitoring process.
         """
-        pass

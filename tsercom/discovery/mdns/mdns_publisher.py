@@ -1,8 +1,9 @@
-"""Defines the MdnsPublisher abstract base class for publishing services via mDNS."""
+"""MdnsPublisher ABC for publishing services via mDNS."""
 
 from abc import ABC, abstractmethod
 
 
+# pylint: disable=R0903 # Interface implementation
 class MdnsPublisher(ABC):
     """Abstract base class for mDNS service publishers.
 
@@ -18,4 +19,3 @@ class MdnsPublisher(ABC):
         discoverable on the network according to their mDNS library and
         configuration.
         """
-        pass

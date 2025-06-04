@@ -1,3 +1,5 @@
+"""Defines data structures for runtime initialization pairs."""
+
 import dataclasses
 from concurrent.futures import Future
 from typing import Generic, TypeVar
@@ -7,13 +9,13 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.data.exposed_data import ExposedData
 
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
-TEventType = TypeVar("TEventType")
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+EventTypeT = TypeVar("EventTypeT")
 
 
 @dataclasses.dataclass
-class InitializationPair(Generic[TDataType, TEventType]):
+class InitializationPair(Generic[DataTypeT, EventTypeT]):
     """A container holding a future for a RuntimeHandle and its initializer."""
 
-    handle_future: Future[RuntimeHandle[TDataType, TEventType]]
-    initializer: RuntimeInitializer[TDataType, TEventType]
+    handle_future: Future[RuntimeHandle[DataTypeT, EventTypeT]]
+    initializer: RuntimeInitializer[DataTypeT, EventTypeT]

@@ -8,10 +8,11 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
 
-TDataType = TypeVar("TDataType", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
-class DataReaderSink(Generic[TDataType], RemoteDataReader[TDataType]):
+# pylint: disable=R0903 # Abstract interface/protocol class
+class DataReaderSink(Generic[DataTypeT], RemoteDataReader[DataTypeT]):
     """Implements RemoteDataReader to send data to a MultiprocessQueueSink.
 
     This class acts as a sink in a data pipeline, taking data items via
@@ -20,7 +21,7 @@ class DataReaderSink(Generic[TDataType], RemoteDataReader[TDataType]):
     """
 
     def __init__(
-        self, queue: MultiprocessQueueSink[TDataType], is_lossy: bool = True
+        self, queue: MultiprocessQueueSink[DataTypeT], is_lossy: bool = True
     ) -> None:
         """Initializes the DataReaderSink.
 
@@ -33,7 +34,7 @@ class DataReaderSink(Generic[TDataType], RemoteDataReader[TDataType]):
         self.__queue = queue
         self.__is_lossy = is_lossy
 
-    def _on_data_ready(self, new_data: TDataType) -> None:
+    def _on_data_ready(self, new_data: DataTypeT) -> None:
         """Handles new data by putting it onto the multiprocess queue.
 
         This method is called when new data is available to be processed.
@@ -50,5 +51,5 @@ class DataReaderSink(Generic[TDataType], RemoteDataReader[TDataType]):
         # If putting to queue failed (e.g., full) and this sink is not lossy, raise an error.
         if not success and not self.__is_lossy:
             raise RuntimeError(
-                "Queue is full and data would be lost on a non-lossy sink."
+                "Queue full; data would be lost on non-lossy sink."
             )

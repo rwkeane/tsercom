@@ -20,18 +20,17 @@ from tsercom.threading.aio.aio_utils import (
 from tsercom.threading.atomic import Atomic
 
 # Maximum number of responses to keep in the queue.
-kMaxResponses = 30
+MAX_RESPONSES = 30
 
 # Type variable for the result type of the poller.
-TResultType = TypeVar("TResultType")
+ResultTypeT = TypeVar("ResultTypeT")
 
 
 # Provides an asynchronous queueing mechanism for subscribers to await new instances.
-class AsyncPoller(Generic[TResultType], ABC):
+class AsyncPoller(Generic[ResultTypeT], ABC):
     """
-    This class provides an asynchronous queueing mechanism, to allow for
-    subscribers to request the next available instance, and asynchronously
-    await that until a new instance(s) is published.
+    Provides an async queue for subscribers to request the next available
+    instance and await new instances if the queue is empty.
     """
 
     def __init__(self) -> None:
@@ -41,7 +40,7 @@ class AsyncPoller(Generic[TResultType], ABC):
         Sets up the internal response queue, synchronization primitives,
         and state variables.
         """
-        self.__responses: Deque[TResultType] = Deque[TResultType]()
+        self.__responses: Deque[ResultTypeT] = Deque[ResultTypeT]()
         self.__barrier = asyncio.Event()
         self.__lock = threading.Lock()
 
@@ -55,22 +54,22 @@ class AsyncPoller(Generic[TResultType], ABC):
         The asyncio event loop this poller is associated with.
 
         Returns:
-            Optional[asyncio.AbstractEventLoop]: The event loop, or None if not set.
-        """
+            Optional[asyncio.AbstractEventLoop]: Event loop, or None if unset.
+        """  # Shortened line 58 target
         return self.__event_loop
 
-    def on_available(self, new_instance: TResultType) -> None:
+    def on_available(self, new_instance: ResultTypeT) -> None:
         """
-        Enqueues a newly available |new_instance| and notifies waiting consumers.
+        Enqueues a new |new_instance| and notifies waiting consumers.
 
-        If the queue is full, the oldest item is discarded.
+        If queue full, oldest item discarded.
 
         Args:
-            new_instance (TResultType): The new instance to add to the queue.
+            new_instance (ResultTypeT): The new instance to add to the queue.
         """
         with self.__lock:
             # Limit queue size
-            if len(self.__responses) >= kMaxResponses:
+            if len(self.__responses) >= MAX_RESPONSES:
                 self.__responses.popleft()
             self.__responses.append(new_instance)
 
@@ -82,9 +81,9 @@ class AsyncPoller(Generic[TResultType], ABC):
 
     async def __set_results_available(self) -> None:
         """
-        Sets the internal event to signal that results are available.
+        Sets internal event to signal results are available.
 
-        This is an internal coroutine intended to be run on the poller's event loop.
+        Internal coroutine, runs on poller's event loop.
         """
         self.__barrier.set()
 
@@ -95,22 +94,22 @@ class AsyncPoller(Generic[TResultType], ABC):
         with self.__lock:
             self.__responses.clear()
 
-    async def wait_instance(self) -> List[TResultType]:
+    async def wait_instance(self) -> List[ResultTypeT]:
         """
         Asynchronously waits for new data to be available in the queue.
 
         Returns:
-            List[TResultType]: A list of available instances from the queue.
+            List[ResultTypeT]: A list of available instances from the queue.
 
         Raises:
-            RuntimeError: If the poller is stopped, not running on the correct event loop,
-                          or if it's stopped while waiting for an instance (e.g., during timeout).
+            RuntimeError: If poller stopped, on wrong loop,
+                          or stopped while waiting (e.g., during timeout).
         """
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
                 raise RuntimeError(
-                    "AsyncPoller.wait_instance called without a running event loop."
+                    "AsyncPoller.wait_instance needs running event loop."
                 )
             self.__is_loop_running.set(True)
         elif not self.__is_loop_running.get():
@@ -119,19 +118,19 @@ class AsyncPoller(Generic[TResultType], ABC):
         assert self.__event_loop is not None
         if not is_running_on_event_loop(self.__event_loop):
             raise RuntimeError(
-                "AsyncPoller.wait_instance called from a different event loop "
+                "AsyncPoller.wait_instance called from different event loop "
                 "than it was initialized with."
             )
 
         while self.__is_loop_running.get():
-            queue_snapshot: Deque[TResultType] | None = None
+            queue_snapshot: Deque[ResultTypeT] | None = None
             with self.__lock:
                 if len(self.__responses) > 0:
                     queue_snapshot = self.__responses
-                    self.__responses = Deque[TResultType]()
+                    self.__responses = Deque[ResultTypeT]()
 
             if queue_snapshot is not None:
-                responses: List[TResultType] = []
+                responses: List[ResultTypeT] = []
                 while len(queue_snapshot) > 0:
                     responses.append(queue_snapshot.popleft())
                 return responses
@@ -140,36 +139,36 @@ class AsyncPoller(Generic[TResultType], ABC):
             try:
                 await asyncio.wait_for(self.__barrier.wait(), timeout=0.1)
             except asyncio.TimeoutError:
-                pass
+                pass  # Standard way to handle timeout for periodic checks
 
             if not self.__is_loop_running.get():
                 raise RuntimeError(
-                    "AsyncPoller is stopped while waiting for instance."
+                    "AsyncPoller stopped while waiting for instance."
                 )
 
         raise RuntimeError("AsyncPoller is stopped")
 
-    def __aiter__(self) -> AsyncIterator[List[TResultType]]:
+    def __aiter__(self) -> AsyncIterator[List[ResultTypeT]]:
         """
         Returns the asynchronous iterator itself.
 
         Returns:
-            AsyncIterator[List[TResultType]]: The async iterator.
+            AsyncIterator[List[ResultTypeT]]: The async iterator.
         """
         return self
 
-    async def __anext__(self) -> List[TResultType]:
+    async def __anext__(self) -> List[ResultTypeT]:
         """
         Asynchronously retrieves the next list of available instances.
 
         This method is part of the asynchronous iterator protocol.
 
         Returns:
-            List[TResultType]: The next list of available instances.
+            List[ResultTypeT]: The next list of available instances.
 
         Raises:
-            StopAsyncIteration: If the poller is stopped (implicitly, by wait_instance raising RuntimeError).
-        """
+            StopAsyncIteration: If poller stopped (via wait_instance RTError).
+        """  # Shortened line 171 target
         try:
             return await self.wait_instance()
         except RuntimeError as e:

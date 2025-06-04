@@ -1,4 +1,4 @@
-"""Provides helper classes used by the RuntimeManager, primarily for process creation and factory/DI purposes."""
+"""Helper classes for RuntimeManager: process creation, factories."""
 
 import logging
 from multiprocessing import Process
@@ -11,56 +11,64 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 
-# You might need to import the specific queue type from 'create_multiprocess_queues' if available,
+# You might need to import specific queue type if available,
 # otherwise, use 'Any' or a generic 'multiprocessing.Queue'.
 # from tsercom.threading.multiprocess.multiprocess_queue_factory import SomeQueueType
 
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=R0903 # Simple factory/helper class
 class ProcessCreator:
-    """Wraps `multiprocessing.Process` instantiation to provide a centralized point for process creation logic, error handling, and to facilitate testing."""
+    """Wraps `multiprocessing.Process` for centralized creation and testing."""
 
     def create_process(
         self, target: Callable[..., Any], args: Tuple[Any, ...], daemon: bool
     ) -> Optional[Process]:
-        """Creates and returns a multiprocessing.Process instance.
+        """Creates and returns a multiprocessing.Process.
 
         Args:
-            target: The callable object to be invoked by the new process's run() method.
-            args: The argument tuple for the target invocation.
-            daemon: Whether the process is a daemon process.
+            target: Callable for the new process's run() method.
+            args: Argument tuple for the target.
+            daemon: Whether the process is a daemon.
 
         Returns:
-            A `multiprocessing.Process` instance if successful, or `None` if an
-            exception occurs during instantiation.
+            `multiprocessing.Process` instance or `None` on error.
 
         Catches:
-            Exception: Catches any exception during `Process` instantiation and returns None.
+            Exception: Catches any `Process` instantiation errors.
         """
         try:
             return Process(target=target, args=args, daemon=daemon)
+        # pylint: disable=W0718 # Catching any Process creation error is intentional
         except Exception as e:
+            target_name = (
+                target.__name__ if hasattr(target, "__name__") else str(target)
+            )
+            # Long but readable error message
             logger.error(
-                f"Failed to create process for target {target.__name__ if hasattr(target, '__name__') else target}: {e}",
+                "Failed to create process for target %s: %s",
+                target_name,
+                e,
                 exc_info=True,
             )
             return None
 
 
+# pylint: disable=R0903 # Simple factory/helper class
 class SplitErrorWatcherSourceFactory:
-    """Factory for creating `SplitProcessErrorWatcherSource` instances. Useful for dependency injection."""
+    """Factory for `SplitProcessErrorWatcherSource`. For DI."""
 
     def create(
         self,
         thread_watcher: ThreadWatcher,
         error_source_queue: MultiprocessQueueSource[Exception],
     ) -> SplitProcessErrorWatcherSource:
-        """Creates a new SplitProcessErrorWatcherSource instance.
+        """Creates a new SplitProcessErrorWatcherSource.
 
         Args:
-            thread_watcher: The ThreadWatcher instance to be used by the error watcher.
-            error_source_queue: The queue from which the error watcher will read errors.
+            thread_watcher: ThreadWatcher for the error watcher.
+            error_source_queue: Queue for error watcher to read from.
 
         Returns:
             A new instance of `SplitProcessErrorWatcherSource`.

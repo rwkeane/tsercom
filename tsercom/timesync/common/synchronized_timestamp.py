@@ -1,3 +1,6 @@
+# pylint: disable=no-name-in-module
+"""Defines SynchronizedTimestamp for time-offset-aware timestamps."""
+
 import dataclasses
 import datetime
 from typing import TypeAlias, Union, Optional
@@ -17,20 +20,20 @@ class SynchronizedTimestamp:
     A wrapper around a `datetime.datetime` object to represent a timestamp
     within a synchronized time context.
 
-    This class ensures that timestamps are explicitly handled as being part of a
+    This class ensures timestamps are explicitly handled as part of a
     synchronized system (e.g., aligned with a server's clock). It provides
-    methods for conversion to and from other timestamp representations like
+    methods for converting to/from other timestamp representations like
     gRPC `Timestamp` and `ServerTimestamp` protobuf messages.
 
-    It also supports direct comparison with other `SynchronizedTimestamp` objects
-    or naive `datetime.datetime` objects. When comparing, it unwraps the
-    underlying `datetime.datetime` object for the actual comparison.
+    It also supports direct comparison with other `SynchronizedTimestamp`
+    objects or naive `datetime.datetime` objects. When comparing, it unwraps
+    the underlying `datetime.datetime` object.
     """
 
     timestamp: datetime.datetime
 
     def __post_init__(self) -> None:
-        """Post-initialization checks."""
+        """Performs post-initialization validation."""
         if self.timestamp is None:
             raise TypeError("Timestamp cannot be None.")
         if not isinstance(self.timestamp, datetime.datetime):
@@ -40,6 +43,7 @@ class SynchronizedTimestamp:
     def try_parse(
         cls, other: Timestamp | ServerTimestamp
     ) -> Optional["SynchronizedTimestamp"]:
+        """Tries to parse 'other' into a SynchronizedTimestamp."""
         if other is None:
             return None
 
@@ -49,7 +53,7 @@ class SynchronizedTimestamp:
         # This assertion is a useful precondition check.
         if not isinstance(other, Timestamp):
             raise TypeError(
-                "Input must be a google.protobuf.timestamp_pb2.Timestamp or can be resolved to one."
+                "Input must be a gRPC Timestamp or resolve to one."
             )
 
         try:
@@ -57,13 +61,17 @@ class SynchronizedTimestamp:
             return cls(dt_object)
         except ValueError as e:
             # Logging here is important for debugging potential data issues.
-            logging.warning(f"Failed to parse gRPC Timestamp to datetime: {e}")
+            logging.warning(
+                "Failed to parse gRPC Timestamp to datetime: %s", e
+            )
             return None
 
     def as_datetime(self) -> datetime.datetime:
+        """Returns the underlying datetime.datetime object."""
         return self.timestamp
 
     def to_grpc_type(self) -> ServerTimestamp:
+        """Converts this timestamp to a gRPC ServerTimestamp protobuf message."""
         timestamp_pb = Timestamp()
         timestamp_pb.FromDatetime(self.timestamp)
         return ServerTimestamp(timestamp=timestamp_pb)
@@ -74,9 +82,11 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise TypeError(
-                f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
+            msg = (
+                "Compare error: SynchronizedTimestamp/datetime vs "
+                f"{type(other_dt).__name__}"
             )
+            raise TypeError(msg)
         return self.as_datetime() > other_dt
 
     def __ge__(self, other: TimestampType) -> bool:
@@ -85,9 +95,11 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise TypeError(
-                f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
+            msg = (
+                "Compare error: SynchronizedTimestamp/datetime vs "
+                f"{type(other_dt).__name__}"
             )
+            raise TypeError(msg)
         return self.as_datetime() >= other_dt
 
     def __lt__(self, other: TimestampType) -> bool:
@@ -96,9 +108,11 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise TypeError(
-                f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
+            msg = (
+                "Compare error: SynchronizedTimestamp/datetime vs "
+                f"{type(other_dt).__name__}"
             )
+            raise TypeError(msg)
         return self.as_datetime() < other_dt
 
     def __le__(self, other: TimestampType) -> bool:
@@ -107,9 +121,11 @@ class SynchronizedTimestamp:
         else:
             other_dt = other
         if not isinstance(other_dt, datetime.datetime):
-            raise TypeError(
-                f"Comparison is only supported with SynchronizedTimestamp or datetime.datetime, got {type(other_dt)}"
+            msg = (
+                "Compare error: SynchronizedTimestamp/datetime vs "
+                f"{type(other_dt).__name__}"
             )
+            raise TypeError(msg)
         return self.as_datetime() <= other_dt
 
     def __eq__(self, other: object) -> bool:

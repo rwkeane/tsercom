@@ -1,1 +1,1 @@
-"""Initializes the tsercom.api.split_process module, related to multi-process runtime handling."""
+"""Initializes split_process module for multi-process runtime handling."""

@@ -9,5 +9,5 @@ class RuntimeCommand(Enum):
     These commands control the lifecycle of a runtime instance.
     """
 
-    kStart = 1
-    kStop = 2
+    START = 1
+    STOP = 2
