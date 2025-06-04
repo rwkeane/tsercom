@@ -74,10 +74,10 @@ write_to = "tsercom/_version.py"
 write_to_template = "__version__ = '{version}'"
 
 [tool.black]
-line-length = 80
+line-length = 79
 
 [tool.ruff]
-line-length = 80  # Must match Black's line-length
+line-length = 79  # Must match Black's line-length
 
 [tool.ruff.lint]
 exclude = [
@@ -194,7 +194,7 @@ ignore-paths = [
 ]
 
 [tool.pylint.format]
-max-line-length = 80  # Must match Black's and Ruff's line-length
+max-line-length = 80  # Differs with Black's and Ruff's line-length by design.
 
 [tool.coverage.run]
 source = ["tsercom"]
