@@ -116,13 +116,11 @@ class ShimRuntimeHandle(
         _ = caller_id  # Preserved for clarity, not used for queue type
         _ = timestamp  # Preserved for clarity
 
-        effective_timestamp = (  # Black-formatted
+        effective_timestamp = (
             timestamp
             if timestamp is not None
             else datetime.datetime.now(tz=datetime.timezone.utc)
         )
-
-        # Black-formatted
         event_instance = EventInstance(
             data=event, caller_id=caller_id, timestamp=effective_timestamp
         )
@@ -156,7 +154,7 @@ class ShimRuntimeHandle(
         # pylint: disable=W0212 # Internal callback for client data readiness
         self.__data_aggregator._on_data_ready(new_data)
 
-    def _get_remote_data_aggregator(  # Black-formatted
+    def _get_remote_data_aggregator(
         self,
     ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Provides the remote data aggregator for this handle.

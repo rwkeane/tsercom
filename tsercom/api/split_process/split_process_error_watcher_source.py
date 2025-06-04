@@ -2,8 +2,6 @@
 
 import logging
 import threading
-
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -70,7 +68,6 @@ class SplitProcessErrorWatcherSource:
                         )
                         # Loop should continue to report further exceptions.
 
-        # Black-formatted
         self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception  # Pass target for clarity
         )

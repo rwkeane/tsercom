@@ -1,5 +1,7 @@
 """Base implementation for `RuntimeDataHandler`."""
 
+# pylint: disable=W0221 # Allow arguments-differ for register_caller flexibility
+
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
@@ -65,12 +67,13 @@ class RuntimeDataHandlerBase(
         pass
 
     # pylint: disable=too-many-branches # Complex argument parsing logic
-    def register_caller(  # pylint: disable=arguments-differ # Actual signature uses *args, **kwargs
+    def register_caller(
         self,
         caller_id: CallerIdentifier,
         *args: Any,
         **kwargs: Any,
     ) -> EndpointDataProcessor[DataTypeT] | None:
+        # pylint: disable=W0221, arguments-differ # Actual signature uses *args, **kwargs for flexibility
         """Registers a caller using either endpoint/port or gRPC context.
 
         This impl of `RuntimeDataHandler.register_caller` validates inputs,

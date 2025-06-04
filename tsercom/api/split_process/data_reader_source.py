@@ -5,8 +5,6 @@ from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
-
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )

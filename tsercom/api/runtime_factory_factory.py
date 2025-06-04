@@ -30,7 +30,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
         """
 
         @abstractmethod
-        def _on_handle_ready(  # Black-formatted line
+        def _on_handle_ready(
             self, handle: RuntimeHandle[DataTypeT, EventTypeT]
         ) -> None:
             """Callback invoked when a RuntimeHandle has been successfully created.

@@ -26,7 +26,6 @@ class InstancePublisher:
         readable_name: str | None = None,
         instance_name: str | None = None,
         *,
-        # Black-formatted type hint
         mdns_publisher_factory: Optional[
             Callable[
                 [str, str, int, Optional[Dict[bytes, bytes | None]]],
@@ -104,7 +103,6 @@ class InstancePublisher:
         self.__record_publisher: MdnsPublisher  # Declare type once
         if mdns_publisher_factory is None:
             # Default factory creates RecordPublisher
-            # Black-formatted signature
             def default_mdns_publisher_factory(
                 eff_inst_name: str,
                 s_type: str,
@@ -113,13 +111,11 @@ class InstancePublisher:
             ) -> MdnsPublisher:
                 return RecordPublisher(eff_inst_name, s_type, p, txt)
 
-            # Black-formatted call
             self.__record_publisher = default_mdns_publisher_factory(
                 effective_instance_name, base_service_type, port, txt_record
             )
         else:
             # Use provided factory
-            # Black-formatted call
             self.__record_publisher = mdns_publisher_factory(
                 effective_instance_name, base_service_type, port, txt_record
             )

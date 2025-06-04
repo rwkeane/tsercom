@@ -95,7 +95,6 @@ class RecordPublisher(MdnsPublisher):
             )
             try:
                 if self._service_info:  # Ensure service was registered
-                    # Black-formatted
                     await self._loop.run_in_executor(
                         None, self._zc.unregister_service, self._service_info
                     )

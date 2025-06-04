@@ -1,73 +1,32 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
+requires = [ "setuptools>=61.0", "wheel", "setuptools_scm",]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "tsercom"
 requires-python = ">=3.10"
-dynamic = ["version"]
-license = { text = "Apache-2.0" }
+dynamic = [ "version",]
 readme = "README.md"
-keywords = ["ts", "time", "time series", "communication", "rpc", "serialization", "transport", "channel", "grpc"]
+keywords = [ "ts", "time", "time series", "communication", "rpc", "serialization", "transport", "channel", "grpc",]
 description = "Time-SERies COMmunication using gRPC for data science and machine learning applications."
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "License :: OSI Approved :: Apache Software License"
-]
-authors = [
-  { name = "Ryan Keane" },
-]
-dependencies = [
-  "grpcio~=1.70.0",
-  "grpcio-status~=1.70.0",
-  "grpcio-tools~=1.70.0",
-  "ntplib>=0.4.0",
-  "zeroconf>=0.135.0",
-  "psutil>=5.9.0",
-]
+classifiers = [ "Development Status :: 3 - Alpha", "Programming Language :: Python", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "License :: OSI Approved :: Apache Software License",]
+dependencies = [ "grpcio~=1.70.0", "grpcio-status~=1.70.0", "grpcio-tools~=1.70.0", "ntplib>=0.4.0", "zeroconf>=0.135.0", "psutil>=5.9.0",]
+[[project.authors]]
+name = "Ryan Keane"
+
+[project.license]
+text = "Apache-2.0"
 
 [project.optional-dependencies]
-dev = [
-    "pytest",
-    "pytest-asyncio",
-    "pytest-mock", 
-    "pytest-timeout",
-    "pre-commit",
-    "ruff",
-    "black",
-    "mypy",
-    "pylint",
-    "cryptography", # Added
-]
-typing = [
-    "types-psutil",
-    "types-requests",
-    "mypy-protobuf"
-]
-docs = [
-    "sphinx",
-    "sphinx-rtd-theme",
-    "sphinx-multiversion",
-]
+dev = [ "pytest", "pytest-asyncio", "pytest-mock", "pytest-timeout", "pre-commit", "ruff", "black", "mypy", "pylint", "cryptography",]
+typing = [ "types-psutil", "types-requests", "mypy-protobuf",]
+docs = [ "sphinx", "sphinx-rtd-theme", "sphinx-multiversion",]
 
 [project.urls]
 Homepage = "https://github.com/rwkeane/tsercom"
 Documentation = "https://github.com/rwkeane/tsercom"
 Repository = "https://github.com/rwkeane/tsercom"
 Issues = "https://github.com/rwkeane/tsercom/issues"
-
-[tool.setuptools.packages.find]
-where = ["."]  # <---  THIS IS KEY: Look in the current directory
-include = ["tsercom*"]  #  <--  Include tsercom and subpackages
-exclude = ["docs*", "tests*", "scripts"]
-
-[tool.setuptools] # Add this section
-package-dir = {"" = "."}  #  <--  THIS IS THE KEY
 
 [tool.setuptools_scm]
 write_to = "tsercom/_version.py"
@@ -77,149 +36,53 @@ write_to_template = "__version__ = '{version}'"
 line-length = 79
 
 [tool.ruff]
-line-length = 79  # Must match Black's line-length
-
-[tool.ruff.lint]
-exclude = [
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    "venv",
-    "**/*_pb2.py",     # Clearer exclusion for .py files
-    "**/*_pb2.pyi",    # Explicitly exclude .pyi files
-    "**/*_pb2_grpc.py", # Clearer exclusion
-    "**/*_unittest.py", # Clearer exclusion
-]
-fixable = ["ALL"]
-
-[tool.pytest.ini_options]
-python_files = [
-    "*_test.py",
-    "*_tests.py",
-    "*_unittest.py",
-    "*_unittests.py",
-    "*_e2etest.py",
-    "*_e2etests.py",
-]
-python_classes = [
-    "*Test*",
-]
-python_functions = [
-    "test_*",
-]
-markers = [
-    "asyncio: mark a test as asynchronous (run by pytest-asyncio)",
-]
-asyncio_default_fixture_loop_scope = "function"
-filterwarnings = [
-    "ignore:cannot collect test class 'TestConnectionCall'.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
-    "ignore:cannot collect test class 'TestConnectionResponse'.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
-]
+line-length = 79
 
 [tool.mypy]
 strict = true
 warn_unused_ignores = true
-show_error_codes = true # Add for readability
-check_untyped_defs = true  # Start with this
+show_error_codes = true
+check_untyped_defs = true
 pretty = true
-exclude = [
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    "venv",
-    ".*_pb2.py",        # Exclude Protocol Buffer generated files
-    ".*_pb2_grpc.py",   # Exclude gRPC generated files
-    ".*_pb2.pyi",       # Exclude Protocol Buffer stub files
-    "migrations",
-    "scripts",
-    # Exclude test files based on pytest configuration and common patterns
-    # More specific paths:
-    "tsercom/.*_test\\.py$",
-    "tsercom/.*_tests\\.py$",
-    "tsercom/.*_unittest\\.py$",
-    "tsercom/.*_unittests\\.py$",
-    "tsercom/.*_e2etest\\.py$",
-    "tsercom/.*_e2etests\\.py$",
-    # Also keep broader ones just in case, or if tests are outside tsercom
-    ".*/.*_test\\.py$",
-    ".*/.*_tests\\.py$",
-    ".*/.*_unittest\\.py$",
-    ".*/.*_unittests\\.py$",
-    ".*/.*_e2etest\\.py$",
-    ".*/.*_e2etests\\.py$",
-    "tests/",
-    "tsercom/test/"
-]
-
+exclude = [ ".git", "__pycache__", "build", "dist", "venv", ".*_pb2.py", ".*_pb2_grpc.py", ".*_pb2.pyi", "migrations", "scripts", "tsercom/.*_test\\.py$", "tsercom/.*_tests\\.py$", "tsercom/.*_unittest\\.py$", "tsercom/.*_unittests\\.py$", "tsercom/.*_e2etest\\.py$", "tsercom/.*_e2etests\\.py$", ".*/.*_test\\.py$", ".*/.*_tests\\.py$", ".*/.*_unittest\\.py$", ".*/.*_unittests\\.py$", ".*/.*_e2etest\\.py$", ".*/.*_e2etests\\.py$", "tests/", "tsercom/test/",]
 [[tool.mypy.overrides]]
-module = [
-    "*.proto.*", 
-    "*.proto", 
-]
+module = [ "*.proto.*", "*.proto",]
 ignore_errors = true
-disable_error_code = ["attr-defined"]
+disable_error_code = [ "attr-defined",]
 
 [[tool.mypy.overrides]]
-module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*" ]  # Target the grpc module and its submodules
+module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*",]
 ignore_missing_imports = true
 
+[tool.setuptools.package-dir]
+"" = "."
+
+[tool.ruff.lint]
+exclude = [ ".git", "__pycache__", "build", "dist", "venv", "**/*_pb2.py", "**/*_pb2.pyi", "**/*_pb2_grpc.py", "**/*_unittest.py",]
+fixable = [ "ALL",]
+
+[tool.pytest.ini_options]
+python_files = [ "*_test.py", "*_tests.py", "*_unittest.py", "*_unittests.py", "*_e2etest.py", "*_e2etests.py",]
+python_classes = [ "*Test*",]
+python_functions = [ "test_*",]
+markers = [ "asyncio: mark a test as asynchronous (run by pytest-asyncio)",]
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [ "ignore:cannot collect test class 'TestConnectionCall'.*because it has a __init__ constructor:pytest.PytestCollectionWarning", "ignore:cannot collect test class 'TestConnectionResponse'.*because it has a __init__ constructor:pytest.PytestCollectionWarning",]
+
 [tool.pylint.MASTER]
-# Comma-separated list of glob patterns for files/directories to ignore.
-# This list consolidates exclusions from Ruff, Mypy, and setuptools configurations.
-ignore-paths = [
-    '^.git',
-    '.*__pycache__/.*',
-    '^build/.*',
-    '^dist/.*',
-    '^venv/.*',
-    '^docs/.*',
-    '^tests/.*',
-    '^scripts/.*',
-    # Protobuf and gRPC generated files (from Ruff and Mypy)
-    '^.*_pb2.py',
-    '^.*_pb2.pyi',
-    '^.*_pb2_grpc.py',
-    '^.*/proto/.*',
-    # Test files (based on pytest config, Ruff, and Mypy exclusions)
-    # These patterns should cover the specific ones in mypy and pytest
-    '.*_test.py',
-    '.*_tests.py',
-    '.*_unittest.py',
-    '.*_unittests.py',
-    '.*_e2etest.py',
-    '.*_e2etests.py',
-    '^tsercom/_version\.py$',
-]
+ignore-paths = [ "^.git", ".*__pycache__/.*", "^build/.*", "^dist/.*", "^venv/.*", "^docs/.*", "^tests/.*", "^scripts/.*", "^.*_pb2.py", "^.*_pb2.pyi", "^.*_pb2_grpc.py", "^.*/proto/.*", ".*_test.py", ".*_tests.py", ".*_unittest.py", ".*_unittests.py", ".*_e2etest.py", ".*_e2etests.py", "^tsercom/_version\\.py$",]
 
 [tool.pylint.format]
-max-line-length = 80  # Differs with Black's and Ruff's line-length by design.
+max-line-length = 80
 
 [tool.pylint."MESSAGES CONTROL"]
-disable = [
-  "C0301",
-  "W0221",
-  "W0238",
-  "R0801",]
+disable = [ "C0301", "R0801",]
 
 [tool.coverage.run]
-source = ["tsercom"]
-omit = [
-    # Pytest discovery patterns
-    "*_test.py",
-    "*_tests.py",
-    "*_unittest.py",
-    "*_unittests.py",
-    "*_e2etest.py",
-    "*_e2etests.py",
-    # Common test directory patterns
-    "tsercom/tests/*",
-    "tests/*",
-    # Virtual environment
-    "*/.venv/*",
-    # Exclude generated protobuf files explicitly
-    "tsercom/*/*_pb2.py",
-    "tsercom/*/*_pb2_grpc.py",
-    "tsercom/*/proto/*",
-]
+source = [ "tsercom",]
+omit = [ "*_test.py", "*_tests.py", "*_unittest.py", "*_unittests.py", "*_e2etest.py", "*_e2etests.py", "tsercom/tests/*", "tests/*", "*/.venv/*", "tsercom/*/*_pb2.py", "tsercom/*/*_pb2_grpc.py", "tsercom/*/proto/*",]
+
+[tool.setuptools.packages.find]
+where = [ ".",]
+include = [ "tsercom*",]
+exclude = [ "docs*", "tests*", "scripts",]

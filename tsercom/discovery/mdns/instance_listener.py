@@ -83,7 +83,6 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         self.__listener: MdnsListener
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
-            # Black-formatted line
             def default_mdns_listener_factory(
                 listener_client: MdnsListener.Client, s_type: str
             ) -> MdnsListener:

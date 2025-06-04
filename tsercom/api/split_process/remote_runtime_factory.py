@@ -1,20 +1,12 @@
 """RemoteRuntimeFactory for creating Runtimes for separate processes."""
 
 from typing import Generic, TypeVar
-
-# Black-formatted import
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-
-# Black-formatted import
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime_factory import RuntimeFactory
-
-# Black-formatted import
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
 from tsercom.api.split_process.event_source import EventSource
-
-# Black-formatted import
 from tsercom.api.split_process.runtime_command_source import (
     RuntimeCommandSource,
 )
@@ -28,13 +20,9 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.runtime import Runtime
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.async_poller import AsyncPoller
-
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
-
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -154,8 +142,6 @@ class RemoteRuntimeFactory(
             data_handler=data_handler,
             grpc_channel_factory=grpc_channel_factory,
         )
-
-        # Black-formatted
         current_event_poller = (
             self._event_poller()
         )  # This will initialize EventSource if None
@@ -177,7 +163,6 @@ class RemoteRuntimeFactory(
         """Stops command source and event source."""
         if self.__command_source is not None:
             self.__command_source.stop_async()
-        # Black-formatted
         if (
             self.__event_source is not None
             and hasattr(self.__event_source, "is_running")

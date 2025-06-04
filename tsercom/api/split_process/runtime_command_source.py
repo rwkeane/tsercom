@@ -8,8 +8,6 @@ from typing import Optional  # For Optional[ThreadWatcher]
 from tsercom.runtime.runtime import Runtime
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.aio.aio_utils import run_on_event_loop
-
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -117,7 +115,6 @@ class RuntimeCommandSource:
                     raise  # Re-raise to terminate the command processing loop
 
         # Store thread reference for joining and ensure it's tracked.
-        # Black-formatted
         self.__command_thread = self.__thread_watcher.create_tracked_thread(
             target=watch_commands  # Ensure target is passed
         )

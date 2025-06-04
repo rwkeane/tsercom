@@ -44,8 +44,10 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         self.__ntp_port = ntp_port  # pylint: disable=unused-private-member # API compatibility
 
         # __sync_loop_thread: Intended for actual NTP sync loop. Remains None.
-        self.__sync_loop_thread: threading.Thread | None = (
-            None  # pylint: disable=unused-private-member # API compatibility
+        self.__sync_loop_thread: (
+            threading.Thread | None
+        ) = (  # pylint: disable=W0238, unused-private-member # API compatibility, retained for future use or consistency
+            None
         )
 
         # __time_offset_lock: Lock for thread-safe access to __time_offsets.

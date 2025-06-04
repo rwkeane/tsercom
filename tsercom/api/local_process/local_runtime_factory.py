@@ -1,8 +1,6 @@
 """LocalRuntimeFactory: creates/configures local Runtime instances."""
 
 from typing import Generic, TypeVar
-
-# Black-formatted import
 from tsercom.api.local_process.runtime_command_bridge import (
     RuntimeCommandBridge,
 )
@@ -11,16 +9,10 @@ from tsercom.data.event_instance import EventInstance
 
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
-
-# Black-formatted import
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime import Runtime
-
-# Black-formatted import
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_factory import RuntimeFactory
-
-# Black-formatted import
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher

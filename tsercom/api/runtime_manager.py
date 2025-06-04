@@ -10,26 +10,18 @@ from typing import Any, Generic, List, TypeVar, Optional
 # Make RuntimeManager Generic by importing TypeVar if not already (it is, for DataTypeT, EventTypeT)
 
 from tsercom.api.initialization_pair import InitializationPair
-
-# Black-formatted import
 from tsercom.api.local_process.local_runtime_factory_factory import (
     LocalRuntimeFactoryFactory,
 )
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
-
-# Black-formatted import
 from tsercom.api.split_process.split_runtime_factory_factory import (
     SplitRuntimeFactoryFactory,
 )
 from tsercom.api.runtime_handle import RuntimeHandle
-
-# Black-formatted import
 from tsercom.api.runtime_manager_helpers import (
     ProcessCreator,
     SplitErrorWatcherSourceFactory,
 )
-
-# Black-formatted import
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,  # Keep for type hinting if necessary
 )
@@ -41,8 +33,6 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 # Imports for runtime_main are moved into methods (start_in_process, start_out_of_process)
 # to break potential circular dependencies between manager and main execution modules.
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
-
-# Black-formatted import
 from tsercom.threading.aio.global_event_loop import (
     create_tsercom_event_loop_from_watcher,
     set_tsercom_event_loop,
@@ -51,17 +41,12 @@ from tsercom.threading.aio.global_event_loop import (
 from tsercom.threading.error_watcher import ErrorWatcher
 
 # Removed incorrect import: from tsercom.system.multiprocess_queue import MultiprocessQueueSink, MultiprocessQueueSource
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     create_multiprocess_queues,
 )
-
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
-
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -91,7 +76,7 @@ class RuntimeManager(
     """
 
     # pylint: disable=R0913 # Necessary arguments for comprehensive setup
-    def __init__(  # Black-formatted signature
+    def __init__(
         self,
         *,
         is_testing: bool = False,

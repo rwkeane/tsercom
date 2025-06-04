@@ -5,8 +5,6 @@ from typing import Generic, TypeVar, Optional
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.threading.async_poller import AsyncPoller
-
-# Black-formatted import
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
@@ -71,7 +69,6 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
                         # Re-raise to terminate loop, consistent with DataReaderSource
                         raise e
 
-        # Black-formatted
         self.__thread = self.__thread_watcher.create_tracked_thread(
             target=loop_until_exception
         )
