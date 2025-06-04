@@ -1,36 +1,56 @@
 """Manages bidirectional mappings: CallerIdentifier <=> network address."""
 
 import threading
-from typing import Dict, Optional, overload, Iterator, Any, cast
+from typing import (
+    Callable,
+    Dict,
+    Generic,
+    Optional,
+    TypeVar,
+    overload,
+    Iterator,
+    Any,
+)
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
 
-class IdTracker:
+TrackedDataT = TypeVar("TrackedDataT")
+
+
+class IdTracker(Generic[TrackedDataT]):
     """
     Thread-safe bidirectional dictionary mapping CallerID to address/port.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, data_factory: Optional[Callable[[], TrackedDataT]] = None
+    ) -> None:
         """Initializes IdTracker with internal lock and dictionaries."""
+        self.__data_factory = data_factory
         self.__lock = threading.Lock()
         self.__address_to_id: Dict[tuple[str, int], CallerIdentifier] = {}
         self.__id_to_address: Dict[CallerIdentifier, tuple[str, int]] = {}
+        self.__data_map: Dict[CallerIdentifier, TrackedDataT] = {}
 
     # pylint: disable=too-many-branches # Handles multiple lookup methods
     @overload
     def try_get(
         self, caller_id_obj: CallerIdentifier
-    ) -> Optional[tuple[str, int]]:
+    ) -> Optional[tuple[str, int, TrackedDataT]]:
         pass
 
     @overload
-    def try_get(self, address: str, port: int) -> Optional[CallerIdentifier]:
+    def try_get(
+        self, address: str, port: int
+    ) -> Optional[tuple[CallerIdentifier, TrackedDataT]]:
         pass
 
     def try_get(
         self, *args: Any, **kwargs: Any
-    ) -> Optional[tuple[str, int] | CallerIdentifier]:
+    ) -> Optional[
+        tuple[str, int, TrackedDataT] | tuple[CallerIdentifier, TrackedDataT]
+    ]:
         """Attempts to retrieve a value from the tracker.
 
         Can be called with a `CallerIdentifier` (gets address/port)
@@ -122,22 +142,46 @@ class IdTracker:
 
         with self.__lock:
             if _id is not None:
-                return self.__id_to_address.get(_id)
+                data = self.__id_to_address.get(_id)
+                if data is None:
+                    return None
+
+                value = None
+                if self.__data_factory is not None:
+                    value = self.__data_map.get(_id)
+                    assert value is not None
+
+                return tuple(list(data) + [value])  # type: ignore
+
             if _address is not None and _port is not None:
-                return self.__address_to_id.get((_address, _port))
+                fetched_id = self.__address_to_id.get((_address, _port))
+                if fetched_id is None:
+                    return None
+
+                value = None
+                if self.__data_factory is not None:
+                    value = self.__data_map.get(fetched_id)
+                    assert value is not None
+
+                return fetched_id, value  # type: ignore
+
         return None  # Should be unreachable
 
     @overload
-    def get(self, caller_id_obj: CallerIdentifier) -> tuple[str, int]:
+    def get(
+        self, caller_id_obj: CallerIdentifier
+    ) -> tuple[str, int, TrackedDataT]:
         pass
 
     @overload
-    def get(self, address: str, port: int) -> CallerIdentifier:
+    def get(
+        self, address: str, port: int
+    ) -> tuple[CallerIdentifier, TrackedDataT]:
         pass
 
     def get(
         self, *args: Any, **kwargs: Any
-    ) -> tuple[str, int] | CallerIdentifier:
+    ) -> tuple[str, int, TrackedDataT] | tuple[CallerIdentifier, TrackedDataT]:
         """Retrieves a value, raising KeyError if not found.
 
         Args:
@@ -165,7 +209,7 @@ class IdTracker:
                 query_repr += "%skwargs=%s" % (sep, kwargs)
             # pylint: disable=consider-using-f-string
             raise KeyError("Key not found for query: %s" % query_repr)
-        return cast(tuple[str, int] | CallerIdentifier, resolved_result)
+        return resolved_result  # type: ignore
 
     def add(
         self, caller_id_obj: CallerIdentifier, address: str, port: int
@@ -210,6 +254,8 @@ class IdTracker:
 
             self.__address_to_id[(address, port)] = caller_id_obj
             self.__id_to_address[caller_id_obj] = (address, port)
+            if self.__data_factory is not None:
+                self.__data_map[caller_id_obj] = self.__data_factory()
 
     def has_id(self, caller_id_obj: CallerIdentifier) -> bool:
         """Checks if `CallerIdentifier` exists."""
@@ -247,6 +293,7 @@ class IdTracker:
             if caller_id_obj not in self.__id_to_address:
                 return False
             address_port_tuple = self.__id_to_address.pop(caller_id_obj)
+            del self.__data_map[caller_id_obj]
             if address_port_tuple in self.__address_to_id:
                 # Ensure we only delete if mapped to the ID we are removing
                 if self.__address_to_id[address_port_tuple] == caller_id_obj:

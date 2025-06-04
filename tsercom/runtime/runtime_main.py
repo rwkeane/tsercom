@@ -62,9 +62,9 @@ def initialize_runtimes(
     runtimes: List[Runtime] = []
     data_handler: RuntimeDataHandler[Any, Any]
     for _factory_idx, initializer_factory in enumerate(initializers):
-        # pylint: disable=protected-access # Accessing internal components for setup
+        # pylint: disable=protected-access # Accessing internals for setup
         data_reader = initializer_factory._remote_data_reader()
-        # pylint: disable=protected-access # Accessing internal components for setup
+        # pylint: disable=protected-access # Accessing internals for setup
         event_poller = initializer_factory._event_poller()
 
         auth_config = initializer_factory.auth_config
@@ -75,9 +75,12 @@ def initialize_runtimes(
                 event_poller
             )
             data_handler = ClientRuntimeDataHandler(
-                thread_watcher,
-                data_reader,
-                adapted_event_poller,
+                thread_watcher=thread_watcher,
+                data_reader=data_reader,
+                event_source=adapted_event_poller,
+                min_send_frequency_seconds=(
+                    initializer_factory.min_send_frequency_seconds
+                ),
                 is_testing=is_testing,
             )
         elif initializer_factory.is_server():
@@ -85,8 +88,11 @@ def initialize_runtimes(
                 event_poller
             )
             data_handler = ServerRuntimeDataHandler(
-                data_reader,
-                adapted_event_poller,
+                data_reader=data_reader,
+                event_source=adapted_event_poller,
+                min_send_frequency_seconds=(
+                    initializer_factory.min_send_frequency_seconds
+                ),
                 is_testing=is_testing,
             )
         else:

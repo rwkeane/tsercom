@@ -14,7 +14,6 @@ from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.threading.async_poller import AsyncPoller
@@ -45,6 +44,7 @@ class ServerRuntimeDataHandler(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
         *,
         is_testing: bool = False,
     ):
@@ -56,9 +56,8 @@ class ServerRuntimeDataHandler(
             is_testing: If True, enables testing-specific behaviors, notably
                         using `FakeSynchronizedClock` not `TimeSyncServer`.
         """
-        super().__init__(data_reader, event_source)
+        super().__init__(data_reader, event_source, min_send_frequency_seconds)
 
-        self.__id_tracker = IdTracker()
         self.__clock: SynchronizedClock
 
         if is_testing:
@@ -70,9 +69,9 @@ class ServerRuntimeDataHandler(
 
         self.__clock = self.__server.get_synchronized_clock()
 
-    def _register_caller(
+    async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[DataTypeT]:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
         """Registers a new caller, returning a data processor.
 
         Adds caller to ID tracker. Server's synchronized clock is used
@@ -86,10 +85,10 @@ class ServerRuntimeDataHandler(
         Returns:
             An `EndpointDataProcessor` for this caller (uses server clock).
         """
-        self.__id_tracker.add(caller_id, endpoint, port)
+        self._id_tracker.add(caller_id, endpoint, port)
         return self._create_data_processor(caller_id, self.__clock)
 
-    def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
+    async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
         """Handles unregistration of a caller.
 
         Currently a no-op in server impl; IDs kept for re-connection.
@@ -99,17 +98,3 @@ class ServerRuntimeDataHandler(
             caller_id: The `CallerIdentifier` of the caller to unregister.
         """
         return False
-
-    def _try_get_caller_id(
-        self, endpoint: str, port: int
-    ) -> CallerIdentifier | None:
-        """Tries to get CallerIdentifier for a given endpoint and port.
-
-        Args:
-            endpoint: The network endpoint of the caller.
-            port: The port number of the caller.
-
-        Returns:
-            The `CallerIdentifier` if found, otherwise `None`.
-        """
-        return self.__id_tracker.try_get(endpoint, port)

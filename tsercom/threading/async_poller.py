@@ -17,6 +17,11 @@ from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
+from tsercom.threading.aio.rate_limiter import (
+    NullRateLimiter,
+    RateLimiter,
+    RateLimiterImpl,
+)
 from tsercom.threading.atomic import Atomic
 
 # Maximum number of responses to keep in the queue.
@@ -33,13 +38,20 @@ class AsyncPoller(Generic[ResultTypeT], ABC):
     instance and await new instances if the queue is empty.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, min_poll_frequency_seconds: float | None = None
+    ) -> None:
         """
         Initializes the AsyncPoller.
 
         Sets up the internal response queue, synchronization primitives,
         and state variables.
         """
+        self.__rate_limiter: RateLimiter = (
+            RateLimiterImpl(min_poll_frequency_seconds)
+            if min_poll_frequency_seconds is not None
+            else NullRateLimiter()
+        )
         self.__responses: Deque[ResultTypeT] = Deque[ResultTypeT]()
         self.__barrier = asyncio.Event()
         self.__lock = threading.Lock()
@@ -105,6 +117,8 @@ class AsyncPoller(Generic[ResultTypeT], ABC):
             RuntimeError: If poller stopped, on wrong loop,
                           or stopped while waiting (e.g., during timeout).
         """
+        await self.__rate_limiter.wait_for_pass()
+
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:

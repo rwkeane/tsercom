@@ -57,7 +57,7 @@ class ServiceConnector(
 
     def __init__(
         self,
-        client: "ServiceConnector.Client[ChannelTypeT]",
+        client: "ServiceConnector.Client",
         connection_factory: ConnectionFactory[ChannelTypeT],
         service_source: ServiceSource[ServiceInfoT],
     ) -> None:

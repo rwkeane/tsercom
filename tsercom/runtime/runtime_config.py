@@ -33,6 +33,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = 0.1,
         auth_config: Optional[BaseChannelAuthConfig] = None,
     ): ...
 
@@ -45,6 +46,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = 0.1,
         auth_config: Optional[BaseChannelAuthConfig] = None,
     ): ...
 
@@ -63,6 +65,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             RemoteDataAggregator.Client  # Changed
         ] = None,
         timeout_seconds: Optional[int] = 60,
+        min_send_frequency_seconds: Optional[float] = 0.1,
         auth_config: Optional[BaseChannelAuthConfig] = None,
     ):
         """Initializes the RuntimeConfig.
@@ -101,6 +104,7 @@ class RuntimeConfig(Generic[DataTypeT]):
                 service_type=other_config.service_type_enum,
                 data_aggregator_client=other_config.data_aggregator_client,
                 timeout_seconds=other_config.timeout_seconds,
+                min_send_frequency_seconds=other_config.min_send_frequency_seconds,
                 auth_config=other_config.auth_config,
             )
             return
@@ -123,6 +127,9 @@ class RuntimeConfig(Generic[DataTypeT]):
         ] = data_aggregator_client
         self.__timeout_seconds: Optional[int] = timeout_seconds
         self.__auth_config: Optional[BaseChannelAuthConfig] = auth_config
+        self.__min_send_frequency_seconds: Optional[float] = (
+            min_send_frequency_seconds
+        )
 
     def is_client(self) -> bool:
         """Checks if the runtime is configured as a client.
@@ -171,6 +178,11 @@ class RuntimeConfig(Generic[DataTypeT]):
         Returns None if data should not time out.
         """
         return self.__timeout_seconds
+
+    @property
+    def min_send_frequency_seconds(self) -> Optional[float]:
+        """The minimum frequency with which Event data may be processed."""
+        return self.__min_send_frequency_seconds
 
     @property
     def auth_config(self) -> Optional[BaseChannelAuthConfig]:

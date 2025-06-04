@@ -1,17 +1,24 @@
 """Defines the abstract base class for endpoint data processors."""
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from datetime import datetime, timezone  # Added timezone here
-from typing import Generic, TypeVar, overload
+from typing import Generic, List, Optional, TypeVar, overload
+
+import grpc
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.data.serializable_annotated_instance import (
+    SerializableAnnotatedInstance,
+)
 from tsercom.timesync.common.proto import ServerTimestamp
 
 
 DataTypeT = TypeVar("DataTypeT")
+EventTypeT = TypeVar("EventTypeT")
 
 
-class EndpointDataProcessor(ABC, Generic[DataTypeT]):
+class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     """ABC for processing data associated with a specific endpoint caller.
 
     Attributes:
@@ -32,7 +39,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT]):
         return self.__caller_id
 
     @abstractmethod
-    async def desynchronize(self, timestamp: ServerTimestamp) -> datetime:
+    async def desynchronize(
+        self, timestamp: ServerTimestamp
+    ) -> datetime | None:
         """Converts a server-side timestamp to a local datetime object.
 
         This typically involves using a synchronized clock.
@@ -49,19 +58,47 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT]):
         """Performs cleanup when the associated caller is deregistered."""
 
     @overload
+    async def process_data(self, data: DataTypeT) -> None:
+        """Processes incoming data, treating the associated timestamp as the
+        current time.
+
+        Args:
+            data: The data item of type DataTypeT to process.
+        """
+
+    @overload
     async def process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-        pass
+        """Processes incoming data, converting timestamp if necessary.
+
+        Args:
+            data: The data item of type DataTypeT to process.
+            timestamp: The timestamp associated with the data
+        """
 
     @overload
     async def process_data(
-        self, data: DataTypeT, timestamp: ServerTimestamp
+        self,
+        data: DataTypeT,
+        timestamp: ServerTimestamp,
+        context: Optional[grpc.aio.ServicerContext] = None,
     ) -> None:
-        pass
+        """Processes incoming data, converting timestamp if necessary. It is
+        first desynchronized to a local `datetime` object. This operation is a
+        no-op if an invalid timestamp is provided.
+
+        Args:
+            data: The data item of type DataTypeT to process.
+            timestamp: The timestamp associated with the data, as a
+                       `ServerTimestamp`.
+            context: The (optional) gRPC context associated with this call, used
+                     for error handling.
+        """
 
     async def process_data(
         self,
         data: DataTypeT,
-        timestamp: datetime | ServerTimestamp | None = None,  # Allow None
+        timestamp: datetime | ServerTimestamp | None = None,
+        context: Optional[grpc.aio.ServicerContext] = None,
     ) -> None:
         """Processes incoming data, converting timestamp if necessary.
 
@@ -82,7 +119,16 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT]):
 
             actual_timestamp = datetime.now(timezone.utc)
         elif isinstance(timestamp, ServerTimestamp):
-            actual_timestamp = await self.desynchronize(timestamp)
+            maybe_timestamp = await self.desynchronize(timestamp)
+            if maybe_timestamp is None:
+                if context is not None:
+                    await context.abort(
+                        grpc.StatusCode.INVALID_ARGUMENT,
+                        "Invalid ServerTimestamp Provided",
+                    )
+                return
+
+            timestamp = maybe_timestamp
         else:  # Is already a datetime object
             actual_timestamp = timestamp
 
@@ -104,3 +150,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT]):
             data: The data item of type DataTypeT.
             timestamp: The synchronized `datetime` object for the data.
         """
+
+    @abstractmethod
+    def __aiter__(
+        self,
+    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+        """Returns self as the async iterator for events."""

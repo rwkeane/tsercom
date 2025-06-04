@@ -120,8 +120,7 @@ class CallerIdentifier:
         Returns:
             True if the objects are not equal, False otherwise.
         """
-        equal = self.__eq__(other)
-        return NotImplemented if equal is NotImplemented else not equal
+        return not self.__eq__(other)
 
     def __str__(self) -> str:
         """Returns the string representation of the underlying UUID.

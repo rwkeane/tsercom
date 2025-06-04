@@ -2,9 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import (
-    AsyncIterator,
     Generic,
-    List,
     TypeVar,
     overload,
     Any,
@@ -13,9 +11,6 @@ from typing import (
 import grpc
 
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
-from tsercom.data.serializable_annotated_instance import (
-    SerializableAnnotatedInstance,
-)
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
 
@@ -31,49 +26,25 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
     and registering new callers.
     """
 
-    @abstractmethod
-    def get_data_iterator(
-        self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
-        """Returns async iterator for lists of serializable event instances.
-
-        Yields:
-            Lists of `SerializableAnnotatedInstance[EventTypeT]`.
-        """
-
-    @abstractmethod
-    def check_for_caller_id(
-        self, endpoint: str, port: int
-    ) -> CallerIdentifier | None:
-        """Checks if CallerID is registered for a given endpoint and port.
-
-        Args:
-            endpoint: The IP address or hostname of the endpoint.
-            port: The port number of the endpoint.
-
-        Returns:
-            The `CallerIdentifier` if found, otherwise `None`.
-        """
-
     @overload
-    def register_caller(
+    async def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[DataTypeT]:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
         pass
 
     @overload
-    def register_caller(
+    async def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> EndpointDataProcessor[DataTypeT] | None:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
         pass
 
     @abstractmethod
-    def register_caller(
+    async def register_caller(
         self,
         caller_id: CallerIdentifier,
         *args: Any,
         **kwargs: Any,
-    ) -> EndpointDataProcessor[DataTypeT] | None:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
         """Registers a caller with the runtime.
 
         This method associates a `CallerIdentifier` with its network endpoint

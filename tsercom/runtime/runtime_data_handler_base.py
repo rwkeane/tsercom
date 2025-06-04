@@ -5,6 +5,7 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
+from functools import partial
 from typing import Generic, List, TypeVar, Any, overload
 
 import grpc  # Standard import
@@ -19,10 +20,15 @@ from tsercom.data.serializable_annotated_instance import (
 )
 from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
+from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
+from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)
 
 
 EventTypeT = TypeVar("EventTypeT")
@@ -43,6 +49,7 @@ class RuntimeDataHandlerBase(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        min_send_frequency_seconds: float | None = None,
     ):
         """Initializes RuntimeDataHandlerBase.
 
@@ -53,26 +60,42 @@ class RuntimeDataHandlerBase(
         super().__init__()
         self.__data_reader = data_reader
         self.__event_source = event_source
+        self.__id_tracker = IdTracker[
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ](
+            partial(
+                AsyncPoller,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
+        )
+
+        run_on_event_loop(self.__dispatch_poller_data_loop)
+
+    @property
+    def _id_tracker(
+        self,
+    ) -> IdTracker[AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]]:
+        return self.__id_tracker
 
     @overload
-    def register_caller(
+    async def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[DataTypeT]:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
         pass
 
     @overload
-    def register_caller(
+    async def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> EndpointDataProcessor[DataTypeT] | None:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
         pass
 
     # pylint: disable=too-many-branches # Complex argument parsing logic
-    def register_caller(
+    async def register_caller(
         self,
         caller_id: CallerIdentifier,
         *args: Any,
         **kwargs: Any,
-    ) -> EndpointDataProcessor[DataTypeT] | None:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
         # pylint: disable=W0221, arguments-differ # Actual signature uses *args, **kwargs for flexibility
         """Registers a caller using either endpoint/port or gRPC context.
 
@@ -184,16 +207,9 @@ class RuntimeDataHandlerBase(
                 "Internal error: Inconsistent endpoint/port/context state."
             )
 
-        return self._register_caller(caller_id, actual_endpoint, actual_port)
-
-    def get_data_iterator(
-        self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
-        """Returns async iterator for event data, grouped by CallerIdentifier.
-
-        This impl returns `self` as it implements `__aiter__` / `__anext__`.
-        """  # Line 167 (Pylint) - Shortened
-        return self
+        return await self._register_caller(
+            caller_id, actual_endpoint, actual_port
+        )
 
     def check_for_caller_id(
         self, endpoint: str, port: int
@@ -221,9 +237,9 @@ class RuntimeDataHandlerBase(
         self.__data_reader._on_data_ready(data)
 
     @abstractmethod
-    def _register_caller(
+    async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[DataTypeT]:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
         """Template for subclass-specific caller registration logic.
 
         Args:
@@ -236,7 +252,7 @@ class RuntimeDataHandlerBase(
         """
 
     @abstractmethod
-    def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
+    async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
         """Template for subclass-specific caller deregistration.
 
         Args:
@@ -244,20 +260,6 @@ class RuntimeDataHandlerBase(
 
         Returns:
             True if caller was found and unregistered, False otherwise.
-        """
-
-    @abstractmethod
-    def _try_get_caller_id(
-        self, endpoint: str, port: int
-    ) -> CallerIdentifier | None:
-        """Template for subclass logic to find caller ID by endpoint.
-
-        Args:
-            endpoint: IP address or hostname.
-            port: Port number.
-
-        Returns:
-            `CallerIdentifier` if found, `None` otherwise.
         """
 
     async def __anext__(
@@ -274,7 +276,7 @@ class RuntimeDataHandlerBase(
 
     def _create_data_processor(
         self, caller_id: CallerIdentifier, clock: SynchronizedClock
-    ) -> EndpointDataProcessor[DataTypeT]:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
         """Factory method to create a concrete `EndpointDataProcessor`.
 
         Args:
@@ -284,11 +286,44 @@ class RuntimeDataHandlerBase(
         Returns:
             An instance of `_DataProcessorImpl`.
         """
+        _, _, data_poller = self.__id_tracker.get(caller_id)
         return RuntimeDataHandlerBase._DataProcessorImpl(
-            self, caller_id, clock
+            self, caller_id, clock, data_poller
         )
 
-    class _DataProcessorImpl(EndpointDataProcessor[DataTypeT]):
+    def _try_get_caller_id(
+        self, endpoint: str, port: int
+    ) -> CallerIdentifier | None:
+        """Tries to retrieve CallerIdentifier for a given endpoint and port.
+
+        Args:
+            endpoint: The network endpoint of the caller.
+            port: The port number of the caller.
+
+        Returns:
+            The `CallerIdentifier` if found, otherwise `None`.
+        """
+        pair = self.__id_tracker.try_get(endpoint, port)
+        if pair is None:
+            return None
+
+        assert len(pair) == 3, len(pair)
+        return pair[0], pair[1]
+
+    async def __dispatch_poller_data_loop(self) -> None:
+        """
+        A loop to dispatch all data from the input AsyncPoller to the
+        per-caller-id AsyncPoller.
+        """
+        async for events in self.__event_source:
+            for event in events:
+                address_port_poller = self._id_tracker.try_get(event.caller_id)
+                if address_port_poller is None:
+                    continue
+                _, _, poller = address_port_poller
+                poller.on_available(event)
+
+    class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
 
         Handles data desync, caller deregistration, and data processing
@@ -300,6 +335,9 @@ class RuntimeDataHandlerBase(
             data_handler: "RuntimeDataHandlerBase[DataTypeT, EventTypeT]",
             caller_id: CallerIdentifier,
             clock: SynchronizedClock,
+            data_poller: AsyncPoller[
+                SerializableAnnotatedInstance[EventTypeT]
+            ],
         ):
             """Initializes the _DataProcessorImpl.
 
@@ -311,17 +349,23 @@ class RuntimeDataHandlerBase(
             super().__init__(caller_id)
             self.__data_handler = data_handler
             self.__clock = clock
+            self.__data_poller = data_poller
 
-        async def desynchronize(self, timestamp: ServerTimestamp) -> datetime:
+        async def desynchronize(
+            self, timestamp: ServerTimestamp
+        ) -> datetime | None:
             """Desynchronizes a server timestamp using the provided clock."""
-            return self.__clock.desync(timestamp)
+            st = SynchronizedTimestamp.try_parse(timestamp)
+            if st is None:
+                return None
+            return self.__clock.desync(st)
 
         async def deregister_caller(self) -> None:
             """Deregisters caller via the parent data handler."""
             # Return value of _unregister_caller (bool) is ignored
             # to match supertype's None return.
             # pylint: disable=protected-access # Outer class call
-            self.__data_handler._unregister_caller(self.caller_id)
+            await self.__data_handler._unregister_caller(self.caller_id)
             return None
 
         async def _process_data(
@@ -333,3 +377,9 @@ class RuntimeDataHandlerBase(
             )
             # pylint: disable=protected-access # Outer class call
             await self.__data_handler._on_data_ready(wrapped_data)
+
+        def __aiter__(
+            self,
+        ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+            """Returns self as the async iterator for events."""
+            return self.__data_poller.__aiter__()
