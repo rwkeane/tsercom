@@ -13,7 +13,6 @@ from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
-from tsercom.api.split_process.data_reader_sink import DataReaderSink
 import asyncio
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -104,14 +103,25 @@ class TestInitializeRuntimes:
         )
 
         MockClientRuntimeDataHandler.assert_called_once()
-        args, kwargs = MockClientRuntimeDataHandler.call_args
-        assert args[0] is mock_thread_watcher
-        assert args[1] is mock_client_data_reader_actual_instance
-        assert isinstance(args[2], EventToSerializableAnnInstancePollerAdapter)
+        _pos_args, kw_args = MockClientRuntimeDataHandler.call_args
+        assert not _pos_args, "Expected no positional arguments"
+        assert kw_args["thread_watcher"] is mock_thread_watcher
         assert (
-            args[2]._source_poller is mock_client_event_poller_actual_instance
+            kw_args["data_reader"] is mock_client_data_reader_actual_instance
         )
-        assert kwargs["is_testing"] is False
+        assert isinstance(
+            kw_args["event_source"],
+            EventToSerializableAnnInstancePollerAdapter,
+        )
+        assert (
+            kw_args["event_source"]._source_poller
+            is mock_client_event_poller_actual_instance
+        )
+        assert (
+            kw_args["min_send_frequency_seconds"]
+            == mock_client_factory.min_send_frequency_seconds
+        )
+        assert kw_args["is_testing"] is False
         MockServerRuntimeDataHandler.assert_not_called()
         mock_client_factory.create.assert_called_once_with(
             mock_thread_watcher,
@@ -202,13 +212,24 @@ class TestInitializeRuntimes:
         )
 
         MockServerRuntimeDataHandler.assert_called_once()
-        args, kwargs = MockServerRuntimeDataHandler.call_args
-        assert args[0] is mock_server_data_reader_actual_instance
-        assert isinstance(args[1], EventToSerializableAnnInstancePollerAdapter)
+        _pos_args, kw_args = MockServerRuntimeDataHandler.call_args
+        assert not _pos_args, "Expected no positional arguments"
         assert (
-            args[1]._source_poller is mock_server_event_poller_actual_instance
+            kw_args["data_reader"] is mock_server_data_reader_actual_instance
         )
-        assert kwargs["is_testing"] is False
+        assert isinstance(
+            kw_args["event_source"],
+            EventToSerializableAnnInstancePollerAdapter,
+        )
+        assert (
+            kw_args["event_source"]._source_poller
+            is mock_server_event_poller_actual_instance
+        )
+        assert (
+            kw_args["min_send_frequency_seconds"]
+            == mock_server_factory.min_send_frequency_seconds
+        )
+        assert kw_args["is_testing"] is False
         MockClientRuntimeDataHandler.assert_not_called()
         mock_server_factory.create.assert_called_once_with(
             mock_thread_watcher,
@@ -326,33 +347,61 @@ class TestInitializeRuntimes:
         )
 
         assert MockClientRuntimeDataHandler.call_count == 1
-        client_args, client_kwargs = (
+        (
+            _pos_client_args,
+            kw_client_args,
+        ) = (  # Adjusted to _pos_client_args, kw_client_args
             MockClientRuntimeDataHandler.call_args
-        )  # Assuming only one call in this test
-        assert client_args[0] is mock_thread_watcher
-        assert client_args[1] is mock_client_data_reader_actual_instance_multi
-        assert isinstance(
-            client_args[2], EventToSerializableAnnInstancePollerAdapter
         )
         assert (
-            client_args[2]._source_poller
+            not _pos_client_args
+        ), "Expected no positional arguments for ClientRuntimeDataHandler"
+        assert kw_client_args["thread_watcher"] is mock_thread_watcher
+        assert (
+            kw_client_args["data_reader"]
+            is mock_client_data_reader_actual_instance_multi
+        )
+        assert isinstance(
+            kw_client_args["event_source"],
+            EventToSerializableAnnInstancePollerAdapter,
+        )
+        assert (
+            kw_client_args["event_source"]._source_poller
             is mock_client_event_poller_actual_instance_multi
         )
-        assert client_kwargs["is_testing"] is False
+        assert (
+            kw_client_args["min_send_frequency_seconds"]
+            == mock_client_factory.min_send_frequency_seconds
+        )
+        assert kw_client_args["is_testing"] is False
 
         assert MockServerRuntimeDataHandler.call_count == 1
-        server_args, server_kwargs = (
+        (
+            _pos_server_args,
+            kw_server_args,
+        ) = (  # Adjusted to _pos_server_args, kw_server_args
             MockServerRuntimeDataHandler.call_args
-        )  # Assuming only one call
-        assert server_args[0] is mock_server_data_reader_actual_instance_multi
-        assert isinstance(
-            server_args[1], EventToSerializableAnnInstancePollerAdapter
         )
         assert (
-            server_args[1]._source_poller
+            not _pos_server_args
+        ), "Expected no positional arguments for ServerRuntimeDataHandler"
+        assert (
+            kw_server_args["data_reader"]
+            is mock_server_data_reader_actual_instance_multi
+        )
+        assert isinstance(
+            kw_server_args["event_source"],
+            EventToSerializableAnnInstancePollerAdapter,
+        )
+        assert (
+            kw_server_args["event_source"]._source_poller
             is mock_server_event_poller_actual_instance_multi
         )
-        assert server_kwargs["is_testing"] is False
+        assert (
+            kw_server_args["min_send_frequency_seconds"]
+            == mock_server_factory.min_send_frequency_seconds
+        )
+        assert kw_server_args["is_testing"] is False
 
         mock_client_factory.create.assert_called_once()
         mock_server_factory.create.assert_called_once()
