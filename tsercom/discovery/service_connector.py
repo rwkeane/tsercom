@@ -10,7 +10,7 @@ to allow for re-discovery and re-connection.
 
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, TypeVar, Optional, Set  # Updated Set import
+from typing import Generic, TypeVar, Optional, Set
 import asyncio
 import logging
 
@@ -33,7 +33,7 @@ ChannelTypeT = TypeVar(
 
 class ServiceConnector(
     Generic[ServiceInfoT, ChannelTypeT],
-    ServiceSource.Client,  # Removed [ServiceInfoT]
+    ServiceSource.Client,
 ):
     """Monitors a `ServiceSource` and attempts to connect to discovered services.
 
@@ -59,7 +59,7 @@ class ServiceConnector(
             `ConnectionFactory` produces (e.g., `grpc.aio.Channel`).
     """
 
-    class Client(ABC):  # Removed Generic[ServiceInfoT, ChannelTypeT]
+    class Client(ABC):
         """Interface for clients of `ServiceConnector`.
 
         Implementers of this interface are notified when the `ServiceConnector`
@@ -86,7 +86,7 @@ class ServiceConnector(
 
     def __init__(
         self,
-        client: "ServiceConnector.Client",  # Removed [ServiceInfoT, ChannelTypeT]
+        client: "ServiceConnector.Client",
         connection_factory: ConnectionFactory[ChannelTypeT],
         service_source: ServiceSource[ServiceInfoT],
     ) -> None:
@@ -103,9 +103,7 @@ class ServiceConnector(
                 information about discovered services (of type `ServiceInfoT`).
                 The `ServiceConnector` registers itself as a client to this source.
         """
-        self.__client: ServiceConnector.Client = (
-            client  # Removed [ServiceInfoT, ChannelTypeT]
-        )
+        self.__client: ServiceConnector.Client = client
         self.__service_source: ServiceSource[ServiceInfoT] = service_source
         self.__connection_factory: ConnectionFactory[ChannelTypeT] = (
             connection_factory
@@ -235,12 +233,12 @@ class ServiceConnector(
             # should ideally be on a consistent loop or handled appropriately.
             # For now, assert to highlight this during development/testing.
             # In production, might re-schedule or log a critical warning.
-            raise RuntimeError(  # Replaced assert with RuntimeError for clarity
+            raise RuntimeError(
                 "_on_service_added callback received on an unexpected event loop."
             )
 
         if caller_id in self.__callers:
-            logging.debug(  # Changed to debug for less noise on common event
+            logging.debug(
                 "Service with CallerIdentifier %s (Name: %s) already connected or connect attempt in progress. Skipping.",
                 caller_id,
                 connection_info.name,

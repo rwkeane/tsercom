@@ -8,7 +8,7 @@ and time synchronization with those remote entities.
 """
 
 import logging
-from typing import Generic, TypeVar, Optional  # Added Optional
+from typing import Generic, TypeVar, Optional
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
@@ -19,7 +19,7 @@ from tsercom.data.serializable_annotated_instance import (
 )
 from tsercom.timesync.common.synchronized_clock import (
     SynchronizedClock,
-)  # Added import
+)
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase

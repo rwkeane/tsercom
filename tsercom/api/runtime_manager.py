@@ -483,7 +483,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
 
 class RuntimeFuturePopulator(
-    RuntimeFactoryFactory.Client,  # Removed [DataTypeT, EventTypeT]
+    RuntimeFactoryFactory.Client,
     Generic[DataTypeT, EventTypeT],
 ):
     """A client that populates a Future with a RuntimeHandle once it's ready.
