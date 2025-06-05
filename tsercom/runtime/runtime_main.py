@@ -14,7 +14,6 @@ Key functions:
   propagation back to the parent process.
 """
 
-import asyncio
 import concurrent.futures
 from functools import partial
 import logging
@@ -258,21 +257,7 @@ def remote_process_main(
         # Ensure cleanup of runtimes and factories on exit.
         logger.info("Remote process shutting down. Stopping runtimes.")
         for runtime in active_runtimes:
-            try:
-                # Runtimes might have async stop methods; ensure they are run on the loop.
-                if hasattr(runtime, "stop") and asyncio.iscoroutinefunction(
-                    runtime.stop
-                ):
-                    _ = run_on_event_loop(
-                        partial(runtime.stop, captured_exception)
-                    )  # type: ignore[unused-coroutine]
-                elif hasattr(runtime, "stop"):  # Synchronous stop
-                    runtime.stop(captured_exception)
-            except (
-                Exception
-            ) as e_stop:  # pylint: disable=broad-exception-caught
-                logger.error("Error stopping runtime %s: %s", runtime, e_stop)
-
+            run_on_event_loop(partial(runtime.stop, captured_exception))
         for factory in initializers:
             try:
                 # pylint: disable=protected-access

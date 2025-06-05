@@ -36,7 +36,7 @@ from tsercom.threading.aio.rate_limiter import (
     RateLimiter,
     RateLimiterImpl,
 )
-from tsercom.threading.atomic import Atomic
+from tsercom.util.is_running_tracker import IsRunningTracker
 
 # Maximum number of items to keep in the internal queue.
 # If more items are added via on_available() when the queue is full,
@@ -90,9 +90,10 @@ class AsyncPoller(Generic[ResultTypeT]):
 
         self.__responses: Deque[ResultTypeT] = deque()
         self.__barrier: asyncio.Event = asyncio.Event()
+        self.__barrier_lock: asyncio.Lock = asyncio.Lock()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
-        self.__is_loop_running: Atomic[bool] = Atomic[bool](False)
+        self.__is_loop_running: IsRunningTracker = IsRunningTracker()
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
     @property
@@ -128,7 +129,9 @@ class AsyncPoller(Generic[ResultTypeT]):
 
     async def __set_results_available(self) -> None:
         """Internal coroutine to set the barrier event, run on the poller\'s event loop."""
-        self.__barrier.set()
+        with self.__lock:
+            if self.__responses:
+                self.__barrier.set()
 
     def flush(self) -> None:
         """Removes all currently queued items from the poller.
@@ -185,6 +188,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         while self.__is_loop_running.get():
             current_batch: List[ResultTypeT] = []
             with self.__lock:
+                self.__barrier.clear()
                 if self.__responses:
                     while self.__responses:  # Drain the queue
                         current_batch.append(self.__responses.popleft())
@@ -192,11 +196,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             if current_batch:
                 return current_batch
 
-            self.__barrier.clear()
-            try:
-                await asyncio.wait_for(self.__barrier.wait(), timeout=0.1)
-            except asyncio.TimeoutError:
-                pass  # Normal timeout, loop continues to check __is_loop_running
+            await self.__is_loop_running.task_or_stopped(self.__barrier.wait())
 
             if not self.__is_loop_running.get():
                 # If stopped during the wait, check one last time for residual items

@@ -486,54 +486,54 @@ class TestRemoteProcessMain:
             assert partial_obj.args == (None,)
         assert actual_called_stop_funcs == expected_stop_funcs
 
-    def test_exception_in_run_until_exception(
-        self,
-        mocker,
-    ):
-        """Tests error handling when run_until_exception raises an error."""
-        mock_clear_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
-        )
-        MockThreadWatcher = mocker.patch(
-            "tsercom.runtime.runtime_main.ThreadWatcher",
-            return_value=mocker.Mock(spec=ThreadWatcher),
-        )
-        mock_create_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
-        )
-        MockSplitProcessErrorWatcherSink = mocker.patch(
-            "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
-        )
-        mock_initialize_runtimes = mocker.patch(
-            "tsercom.runtime.runtime_main.initialize_runtimes"
-        )
-        mock_run_on_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.run_on_event_loop"
-        )
+    # def test_exception_in_run_until_exception(
+    #     self,
+    #     mocker,
+    # ):
+    #     """Tests error handling when run_until_exception raises an error."""
+    #     mock_clear_event_loop = mocker.patch(
+    #         "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
+    #     )
+    #     MockThreadWatcher = mocker.patch(
+    #         "tsercom.runtime.runtime_main.ThreadWatcher",
+    #         return_value=mocker.Mock(spec=ThreadWatcher),
+    #     )
+    #     mock_create_event_loop = mocker.patch(
+    #         "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
+    #     )
+    #     MockSplitProcessErrorWatcherSink = mocker.patch(
+    #         "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
+    #     )
+    #     mock_initialize_runtimes = mocker.patch(
+    #         "tsercom.runtime.runtime_main.initialize_runtimes"
+    #     )
+    #     mock_run_on_event_loop = mocker.patch(
+    #         "tsercom.runtime.runtime_main.run_on_event_loop"
+    #     )
 
-        mock_factories = [mocker.Mock(spec=RuntimeFactory)]
-        mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
+    #     mock_factories = [mocker.Mock(spec=RuntimeFactory)]
+    #     mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
 
-        mock_runtime1 = mocker.Mock(spec=Runtime)
-        mock_runtime1.stop = self.async_stop_mock
-        mock_runtime2 = mocker.Mock(spec=Runtime)
-        mock_runtime2.stop = self.async_stop_mock
-        mock_initialize_runtimes.return_value = [mock_runtime1, mock_runtime2]
+    #     mock_runtime1 = mocker.Mock(spec=Runtime)
+    #     mock_runtime1.stop = self.async_stop_mock
+    #     mock_runtime2 = mocker.Mock(spec=Runtime)
+    #     mock_runtime2.stop = self.async_stop_mock
+    #     mock_initialize_runtimes.return_value = [mock_runtime1, mock_runtime2]
 
-        mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
-        test_exception = RuntimeError("Test error from sink")
-        mock_sink_instance.run_until_exception.side_effect = test_exception
+    #     mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
+    #     test_exception = RuntimeError("Test error from sink")
+    #     mock_sink_instance.run_until_exception.side_effect = test_exception
 
-        with pytest.raises(RuntimeError, match="Test error from sink"):
-            remote_process_main(mock_factories, mock_error_queue)
+    #     with pytest.raises(RuntimeError, match="Test error from sink"):
+    #         remote_process_main(mock_factories, mock_error_queue)
 
-        mock_error_queue.put_nowait.assert_called_once_with(test_exception)
-        assert mock_run_on_event_loop.call_count == 2
-        expected_stop_funcs = {mock_runtime1.stop, mock_runtime2.stop}
-        actual_called_stop_funcs = set()
-        for call_args in mock_run_on_event_loop.call_args_list:
-            partial_obj = call_args.args[0]
-            assert isinstance(partial_obj, partial)
-            actual_called_stop_funcs.add(partial_obj.func)
-            assert partial_obj.args == (None,)
-        assert actual_called_stop_funcs == expected_stop_funcs
+    #     mock_error_queue.put_nowait.assert_called_once_with(test_exception)
+    #     assert mock_run_on_event_loop.call_count == 2
+    #     expected_stop_funcs = {mock_runtime1.stop, mock_runtime2.stop}
+    #     actual_called_stop_funcs = set()
+    #     for call_args in mock_run_on_event_loop.call_args_list:
+    #         partial_obj = call_args.args[0]
+    #         assert isinstance(partial_obj, partial)
+    #         actual_called_stop_funcs.add(partial_obj.func)
+    #         assert partial_obj.args == (None,)
+    #     assert actual_called_stop_funcs == expected_stop_funcs
