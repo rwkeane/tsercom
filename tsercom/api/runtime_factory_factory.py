@@ -23,10 +23,10 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
 
     # pylint: disable=R0903 # Abstract base class / config holder
     class Client(ABC):
-        """Interface for clients of RuntimeFactoryFactory.
+        """Interface for clients of `RuntimeFactoryFactory`.
 
         Clients implement this interface to receive notifications when a
-        RuntimeHandle is ready after a factory creation.
+        `RuntimeHandle` is ready after a factory creation process.
         """
 
         @abstractmethod

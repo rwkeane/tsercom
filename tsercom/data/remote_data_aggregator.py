@@ -25,7 +25,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     """
 
     # pylint: disable=R0903 # Abstract listener interface
-    class Client(ABC):  # Removed Generic[DataTypeT]
+    class Client(ABC):
         """Interface for clients wishing to receive callbacks from a RemoteDataAggregator.
 
         Implementers of this interface can register with a `RemoteDataAggregator`

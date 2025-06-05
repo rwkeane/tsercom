@@ -21,8 +21,18 @@ class FakeRuntimeInitializer:
         service_type_str="Server",
         data_aggregator_client=None,
         timeout_seconds=60,
+        min_send_frequency_seconds: Optional[float] = None,
         auth_config=None,
     ):  # Added params
+        """Initializes a fake runtime initializer.
+
+        Args:
+            service_type_str: The service type string ("Server" or "Client").
+            data_aggregator_client: Fake data aggregator client.
+            timeout_seconds: Timeout in seconds.
+            min_send_frequency_seconds: Minimum send frequency in seconds.
+            auth_config: Fake auth configuration.
+        """
         if service_type_str == "Server":
             self.__service_type_enum_val = ServiceType.SERVER
         elif service_type_str == "Client":
@@ -34,6 +44,7 @@ class FakeRuntimeInitializer:
         self.data_aggregator_client = data_aggregator_client
         self.timeout_seconds = timeout_seconds
         self.auth_config = auth_config
+        self.min_send_frequency_seconds = min_send_frequency_seconds
         self.create_called = False
         self.create_args = None
         self.runtime_to_return = FakeRuntime()

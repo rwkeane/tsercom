@@ -1,6 +1,12 @@
 """Tests for ClientRuntimeDataHandler."""
 
 import pytest
+import asyncio
+import unittest.mock  # Added import
+from tsercom.threading.aio.global_event_loop import (
+    set_tsercom_event_loop,
+    clear_tsercom_event_loop,
+)
 
 from tsercom.runtime.client.client_runtime_data_handler import (
     ClientRuntimeDataHandler,
@@ -17,6 +23,41 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 class TestClientRuntimeDataHandler:
     """Tests for the ClientRuntimeDataHandler class."""
+
+    @pytest.fixture(autouse=True)
+    def manage_event_loop(self):
+        """Ensures a global event loop is set for tsercom for each test."""
+        loop = None
+        try:
+            # Try to get existing loop, or create new if none for current context
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    raise RuntimeError("existing loop is closed")
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            set_tsercom_event_loop(loop)
+            yield loop
+        finally:
+            clear_tsercom_event_loop()
+            # Only close the loop if this fixture created it and it is not the default policy loop
+            # This logic is simplified; robust loop management can be complex.
+            # For unit tests, often creating/closing a new loop per test is safest.
+            if (
+                loop
+                and not getattr(loop, "_default_loop", False)
+                and not loop.is_closed()
+            ):
+                if loop.is_running():
+                    loop.call_soon_threadsafe(loop.stop)
+                # Ensure all tasks are given a chance to cancel if loop was running
+                # cancellation_tasks = [task for task in asyncio.all_tasks(loop) if not task.done()] \
+                # if cancellation_tasks: \
+                #    for task in cancellation_tasks: \
+                #        task.cancel() \
+                #    # loop.run_until_complete(asyncio.gather(*cancellation_tasks, return_exceptions=True)) \
+                # loop.close() # Closing can be problematic if other things expect to use it.
 
     @pytest.fixture
     def mock_thread_watcher(self, mocker):
@@ -64,10 +105,9 @@ class TestClientRuntimeDataHandler:
             return_value=mock_time_sync_tracker_instance,
             autospec=True,
         )
-        mock_IdTracker_class = mocker.patch(
-            "tsercom.runtime.client.client_runtime_data_handler.IdTracker",
-            return_value=mock_id_tracker_instance,
-            autospec=True,
+        mock_id_tracker_init = mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__",
+            return_value=None,  # __init__ should return None
         )
 
         handler_instance = ClientRuntimeDataHandler(
@@ -75,15 +115,21 @@ class TestClientRuntimeDataHandler:
             data_reader=mock_data_reader,
             event_source=mock_event_source_poller,
         )
+        # Force set the __id_tracker to our mock instance
+        handler_instance._RuntimeDataHandlerBase__id_tracker = (
+            mock_id_tracker_instance
+        )
         handler_instance._mock_time_sync_tracker_instance = (
             mock_time_sync_tracker_instance
         )
+        # This direct assignment is for tests to access the mock_id_tracker_instance easily
+        # The actual IdTracker instance used by the handler is set above.
         handler_instance._mock_id_tracker_instance = mock_id_tracker_instance
 
         yield {
             "handler": handler_instance,
             "TimeSyncTracker_class_mock": mock_TimeSyncTracker_class,
-            "IdTracker_class_mock": mock_IdTracker_class,
+            "id_tracker_init_mock": mock_id_tracker_init,
             "time_sync_tracker_instance_mock": mock_time_sync_tracker_instance,
             "id_tracker_instance_mock": mock_id_tracker_instance,
         }
@@ -100,7 +146,7 @@ class TestClientRuntimeDataHandler:
         TimeSyncTracker_class_mock = handler_and_class_mocks[
             "TimeSyncTracker_class_mock"
         ]
-        IdTracker_class_mock = handler_and_class_mocks["IdTracker_class_mock"]
+        id_tracker_init_mock = handler_and_class_mocks["id_tracker_init_mock"]
         time_sync_tracker_instance_mock = handler_and_class_mocks[
             "time_sync_tracker_instance_mock"
         ]
@@ -111,14 +157,21 @@ class TestClientRuntimeDataHandler:
         TimeSyncTracker_class_mock.assert_called_once_with(
             mock_thread_watcher, is_testing=False
         )
-        IdTracker_class_mock.assert_called_once_with()
+        # Check that IdTracker.__init__ was called (it's called by RuntimeDataHandlerBase)
+        id_tracker_init_mock.assert_called_once_with(unittest.mock.ANY)
 
+        # Check that our mock_id_tracker_instance is now the one used by the handler
+        assert (
+            handler._RuntimeDataHandlerBase__id_tracker  # Corrected attribute
+            == id_tracker_instance_mock
+        )
         assert (
             handler._ClientRuntimeDataHandler__clock_tracker
             == time_sync_tracker_instance_mock
         )
+        # The following assertion is redundant due to direct assignment but confirms internal state
         assert (
-            handler._ClientRuntimeDataHandler__id_tracker
+            handler._RuntimeDataHandlerBase__id_tracker  # Corrected attribute
             == id_tracker_instance_mock
         )
 
@@ -128,7 +181,8 @@ class TestClientRuntimeDataHandler:
             == mock_event_source_poller
         )
 
-    def test_register_caller(
+    @pytest.mark.asyncio
+    async def test_register_caller(
         self, handler_and_class_mocks, mock_endpoint_data_processor, mocker
     ):
         """Tests the _register_caller method for correct registration flow."""
@@ -148,7 +202,7 @@ class TestClientRuntimeDataHandler:
             return_value=mock_endpoint_data_processor,
         )
 
-        returned_processor = handler._register_caller(
+        returned_processor = await handler._register_caller(
             mock_caller_id, mock_endpoint, mock_port
         )
 
@@ -163,7 +217,10 @@ class TestClientRuntimeDataHandler:
         )
         assert returned_processor == mock_endpoint_data_processor
 
-    def test_unregister_caller_valid_id(self, handler_and_class_mocks):
+    @pytest.mark.asyncio
+    async def test_unregister_caller_valid_id(
+        self, handler_and_class_mocks, mocker
+    ):  # Added mocker
         """Test _unregister_caller with a valid and existing caller_id."""
         handler = handler_and_class_mocks["handler"]
         mock_caller_id = CallerIdentifier.random()
@@ -173,10 +230,11 @@ class TestClientRuntimeDataHandler:
         handler._mock_id_tracker_instance.try_get.return_value = (
             mock_address,
             mock_port,
+            mocker.MagicMock(),  # Added third element for poller
         )
         handler._mock_id_tracker_instance.remove.return_value = True
 
-        result = handler._unregister_caller(mock_caller_id)
+        result = await handler._unregister_caller(mock_caller_id)
 
         assert result is True
         handler._mock_id_tracker_instance.try_get.assert_called_once_with(
@@ -189,7 +247,8 @@ class TestClientRuntimeDataHandler:
             mock_address
         )
 
-    def test_unregister_caller_invalid_id_not_found(
+    @pytest.mark.asyncio
+    async def test_unregister_caller_invalid_id_not_found(
         self, handler_and_class_mocks, mocker
     ):
         """Test _unregister_caller with a non-existent caller_id."""
@@ -202,7 +261,7 @@ class TestClientRuntimeDataHandler:
             "tsercom.runtime.client.client_runtime_data_handler.logging"
         )
 
-        result = handler._unregister_caller(mock_caller_id)
+        result = await handler._unregister_caller(mock_caller_id)
 
         assert result is False
         handler._mock_id_tracker_instance.try_get.assert_called_once_with(
@@ -215,15 +274,20 @@ class TestClientRuntimeDataHandler:
             mock_caller_id,
         )
 
-    def test_try_get_caller_id(self, handler_and_class_mocks):
+    def test_try_get_caller_id(
+        self, handler_and_class_mocks, mocker
+    ):  # Added mocker
         """Tests _try_get_caller_id for a successfully found ID."""
         handler = handler_and_class_mocks["handler"]
         mock_endpoint = "10.0.0.1"
         mock_port = 8080
         expected_caller_id = CallerIdentifier.random()
 
+        # _try_get_caller_id in base class now expects a 2-tuple from id_tracker.try_get
+        # but returns only the first element (CallerIdentifier)
         handler._mock_id_tracker_instance.try_get.return_value = (
-            expected_caller_id
+            expected_caller_id,
+            mocker.MagicMock(),  # Mock for the TrackedDataT part
         )
 
         returned_caller_id = handler._try_get_caller_id(

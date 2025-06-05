@@ -104,20 +104,16 @@ class TestRuntimeManager:
         mock_tw = mocker.patch(
             "tsercom.api.runtime_manager.ThreadWatcher", autospec=True
         )
-        mock_lff_class = mocker.patch(
-            "tsercom.api.runtime_manager.LocalRuntimeFactoryFactory"
+        mock_lff_init = mocker.patch(
+            "tsercom.api.local_process.local_runtime_factory_factory.LocalRuntimeFactoryFactory.__init__",
+            return_value=None,
+            autospec=True,
         )
-        mock_lff_constructor_callable = mocker.MagicMock(
-            name="LFF_ConstructorProxy"
+        mock_sff_init = mocker.patch(
+            "tsercom.api.split_process.split_runtime_factory_factory.SplitRuntimeFactoryFactory.__init__",
+            return_value=None,
+            autospec=True,
         )
-        mock_lff_class.__getitem__.return_value = mock_lff_constructor_callable
-        mock_sff_class = mocker.patch(
-            "tsercom.api.runtime_manager.SplitRuntimeFactoryFactory"
-        )
-        mock_sff_constructor_callable = mocker.MagicMock(
-            name="SFF_ConstructorProxy"
-        )
-        mock_sff_class.__getitem__.return_value = mock_sff_constructor_callable
         mock_pc_constructor = mocker.patch(
             "tsercom.api.runtime_manager.ProcessCreator", autospec=True
         )
@@ -134,9 +130,9 @@ class TestRuntimeManager:
         manager = RuntimeManager(is_testing=True)
 
         mock_tw.assert_called_once()
-        mock_lff_constructor_callable.assert_called_once_with(mock_thread_pool)
-        mock_sff_constructor_callable.assert_called_once_with(
-            mock_thread_pool, mock_thread_watcher_instance
+        mock_lff_init.assert_called_once_with(mocker.ANY, mock_thread_pool)
+        mock_sff_init.assert_called_once_with(
+            mocker.ANY, mock_thread_pool, mock_thread_watcher_instance
         )
         mock_pc_constructor.assert_called_once()
         mock_sewsf_constructor.assert_called_once()
@@ -145,13 +141,14 @@ class TestRuntimeManager:
             manager._RuntimeManager__thread_watcher
             is mock_thread_watcher_instance
         )
-        assert (
-            manager._RuntimeManager__local_runtime_factory_factory
-            is mock_lff_constructor_callable.return_value
+        # Corrected assertions for the new mocking strategy (patching __init__)
+        assert isinstance(
+            manager._RuntimeManager__local_runtime_factory_factory,
+            LocalRuntimeFactoryFactory,
         )
-        assert (
-            manager._RuntimeManager__split_runtime_factory_factory
-            is mock_sff_constructor_callable.return_value
+        assert isinstance(
+            manager._RuntimeManager__split_runtime_factory_factory,
+            SplitRuntimeFactoryFactory,
         )
         assert (
             manager._RuntimeManager__process_creator
@@ -226,8 +223,8 @@ class TestRuntimeManager:
 
     @patch("tsercom.api.runtime_manager.set_tsercom_event_loop")
     @patch(
-        "tsercom.api.runtime_manager.initialize_runtimes"
-    )  # Patched where it's imported in runtime_manager
+        "tsercom.runtime.runtime_main.initialize_runtimes"  # Corrected target
+    )
     def test_start_in_process(
         self,
         mock_initialize_runtimes_in_manager_scope,
@@ -333,7 +330,9 @@ class TestRuntimeManager:
         "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
     )
     @patch("tsercom.api.runtime_manager.create_multiprocess_queues")
-    @patch("tsercom.api.runtime_manager.remote_process_main")
+    @patch(
+        "tsercom.runtime.runtime_main.remote_process_main"
+    )  # Corrected target
     def test_start_out_of_process(
         self,
         mock_remote_process_main_in_manager_scope,
@@ -411,7 +410,9 @@ class TestRuntimeManager:
             "tsercom.api.runtime_manager.create_multiprocess_queues",
             return_value=(MagicMock(), MagicMock()),
         )
-        mocker.patch("tsercom.api.runtime_manager.remote_process_main")
+        mocker.patch(
+            "tsercom.runtime.runtime_main.remote_process_main"
+        )  # Corrected target
         mock_process_creator = (
             manager_with_mocks._RuntimeManager__process_creator
         )
@@ -438,7 +439,7 @@ class TestRuntimeManager:
         manager_with_mocks._RuntimeManager__thread_watcher = None
         with pytest.raises(
             RuntimeError,
-            match="Error watcher is not available. Ensure the RuntimeManager has been properly started.",
+            match="Internal ThreadWatcher is None when checking for exceptions after start.",
         ):
             manager_with_mocks.run_until_exception()
 
@@ -475,7 +476,7 @@ class TestRuntimeManager:
         manager_with_mocks._RuntimeManager__thread_watcher = None
         with pytest.raises(
             RuntimeError,
-            match="Error watcher is not available. Ensure the RuntimeManager has been properly started.",
+            match="Internal ThreadWatcher is None when checking for exceptions after start.",
         ):
             manager_with_mocks.check_for_exception()
 
@@ -496,8 +497,8 @@ class TestRuntimeManager:
 
     @patch("tsercom.api.runtime_manager.set_tsercom_event_loop")
     @patch(
-        "tsercom.api.runtime_manager.initialize_runtimes"
-    )  # Patched where it's imported in runtime_manager
+        "tsercom.runtime.runtime_main.initialize_runtimes"  # Corrected target
+    )
     def test_runtime_future_populator_indirectly(
         self,
         mock_initialize_runtimes_in_manager_scope,
@@ -559,7 +560,9 @@ class TestRuntimeManager:
             "tsercom.api.runtime_manager.create_multiprocess_queues",
             return_value=(MagicMock(), MagicMock()),
         )
-        mocker.patch("tsercom.api.runtime_manager.remote_process_main")
+        mocker.patch(
+            "tsercom.runtime.runtime_main.remote_process_main"
+        )  # Corrected target
 
         manager_with_mocks.start_out_of_process()
         assert manager_with_mocks._RuntimeManager__process is None
