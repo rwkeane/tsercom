@@ -284,7 +284,9 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             self.__thread_watcher, factories, is_testing=self.__is_testing
         )
 
-    def start_out_of_process(self, start_as_daemon: bool = False) -> None:
+    def start_out_of_process(
+        self, start_as_daemon: bool = True
+    ) -> None:  # Changed default to True
         """Creates and starts registered runtimes in a new, separate process.
 
         This method uses the `SplitRuntimeFactoryFactory` to prepare runtime
@@ -299,10 +301,10 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             `Future` objects returned by `register_runtime_initializer`.
 
         Args:
-            start_as_daemon: If True, the new process will be a daemon process.
+            start_as_daemon: If True, the new process will be a daemon process. Defaults to `True`.
                 Daemonic processes are typically used for background tasks and
                 are automatically terminated when the main program exits.
-                If `is_testing` is True, this defaults to True.
+                When `is_testing` is also True, it remains `True`.
 
         Raises:
             RuntimeError: If the manager has already been started.

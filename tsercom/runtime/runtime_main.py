@@ -21,7 +21,8 @@ import logging
 from typing import (
     Any,
     List,
-)  # Corrected previous comment, Optional was already here or added by black
+    Optional,
+)
 
 from tsercom.api.split_process.split_process_error_watcher_sink import (
     SplitProcessErrorWatcherSink,
@@ -196,6 +197,7 @@ def remote_process_main(
     *,
     is_testing: bool = False,
 ) -> None:
+    captured_exception: Optional[Exception] = None  # Added
     """Main entry point for a Tsercom runtime operating in a remote process.
 
     This function is intended to be the target for a new process created by
@@ -242,6 +244,7 @@ def remote_process_main(
         error_sink.run_until_exception()
 
     except Exception as e:  # Catch any exception during init or runtime
+        captured_exception = e  # Added
         if error_queue:
             try:
                 error_queue.put_nowait(e)
@@ -261,10 +264,12 @@ def remote_process_main(
                     runtime.stop
                 ):
                     _ = run_on_event_loop(
-                        partial(runtime.stop, None)
+                        partial(
+                            runtime.stop, captured_exception
+                        )  # Pass captured_exception
                     )  # type: ignore[unused-coroutine]
                 elif hasattr(runtime, "stop"):  # Synchronous stop
-                    runtime.stop(None)
+                    runtime.stop(captured_exception)  # Pass captured_exception
             except (
                 Exception
             ) as e_stop:  # pylint: disable=broad-exception-caught
@@ -272,9 +277,8 @@ def remote_process_main(
 
         for factory in initializers:
             try:
-                if hasattr(factory, "_stop") and callable(factory._stop):
-                    # pylint: disable=protected-access
-                    factory._stop()
+                # pylint: disable=protected-access
+                factory._stop()  # Unconditional call
             except (
                 Exception
             ) as e_factory_stop:  # pylint: disable=broad-exception-caught
