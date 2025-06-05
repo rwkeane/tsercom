@@ -56,10 +56,10 @@ class RateLimiterImpl(RateLimiter):
         super().__init__()  # Call superclass __init__
         if interval_seconds < 0:
             raise ValueError("Interval must be non-negative.")
-        self._interval: float = interval_seconds
-        self._loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
-        self._next_allowed_pass_time: float = self._loop.time()
-        self._lock: asyncio.Lock = asyncio.Lock()
+        self.__interval: float = interval_seconds
+        self.__loop: asyncio.AbstractEventLoop = asyncio.get_running_loop()
+        self.__next_allowed_pass_time: float = self.__loop.time()
+        self.__lock: asyncio.Lock = asyncio.Lock()
 
     async def wait_for_pass(self) -> None:
         """Waits until the configured interval has passed since the last call.
@@ -70,16 +70,18 @@ class RateLimiterImpl(RateLimiter):
         internal lock and processed sequentially, each respecting the interval
         from the previously completed pass.
         """
-        async with self._lock:
-            current_time = self._loop.time()
+        async with self.__lock:
+            current_time = self.__loop.time()
 
-            time_to_wait = self._next_allowed_pass_time - current_time
+            time_to_wait = self.__next_allowed_pass_time - current_time
 
             if time_to_wait > 0:
                 await asyncio.sleep(time_to_wait)
 
             # Update for the *next* pass, relative to the current time
-            self._next_allowed_pass_time = self._loop.time() + self._interval
+            self.__next_allowed_pass_time = (
+                self.__loop.time() + self.__interval
+            )
 
 
 class NullRateLimiter(RateLimiter):

@@ -14,7 +14,7 @@ Key functions:
   propagation back to the parent process.
 """
 
-import asyncio  # Added import
+import asyncio
 import concurrent.futures
 from functools import partial
 import logging
@@ -101,7 +101,7 @@ def initialize_runtimes(
     assert is_global_event_loop_set(), "Global Tsercom event loop must be set."
 
     channel_factory_selector = ChannelFactorySelector()
-    created_runtimes: List[Runtime] = []  # Renamed for clarity
+    created_runtimes: List[Runtime] = []
 
     for initializer_factory in initializers:
         # pylint: disable=protected-access # Accessing factory internals for setup
@@ -118,7 +118,7 @@ def initialize_runtimes(
             event_poller
         )
 
-        data_handler: RuntimeDataHandler[Any, Any]  # Explicit type for clarity
+        data_handler: RuntimeDataHandler[Any, Any]
         if initializer_factory.is_client():
             data_handler = ClientRuntimeDataHandler(
                 thread_watcher=thread_watcher,
@@ -197,7 +197,7 @@ def remote_process_main(
     *,
     is_testing: bool = False,
 ) -> None:
-    captured_exception: Optional[Exception] = None  # Added
+    captured_exception: Optional[Exception] = None
     """Main entry point for a Tsercom runtime operating in a remote process.
 
     This function is intended to be the target for a new process created by
@@ -234,7 +234,7 @@ def remote_process_main(
     # Error sink to report exceptions from this process to the parent.
     error_sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
-    active_runtimes: List[Runtime] = []  # Renamed for clarity
+    active_runtimes: List[Runtime] = []
     try:
         active_runtimes = initialize_runtimes(
             thread_watcher, initializers, is_testing=is_testing
@@ -244,7 +244,7 @@ def remote_process_main(
         error_sink.run_until_exception()
 
     except Exception as e:  # Catch any exception during init or runtime
-        captured_exception = e  # Added
+        captured_exception = e
         if error_queue:
             try:
                 error_queue.put_nowait(e)
@@ -264,12 +264,10 @@ def remote_process_main(
                     runtime.stop
                 ):
                     _ = run_on_event_loop(
-                        partial(
-                            runtime.stop, captured_exception
-                        )  # Pass captured_exception
+                        partial(runtime.stop, captured_exception)
                     )  # type: ignore[unused-coroutine]
                 elif hasattr(runtime, "stop"):  # Synchronous stop
-                    runtime.stop(captured_exception)  # Pass captured_exception
+                    runtime.stop(captured_exception)
             except (
                 Exception
             ) as e_stop:  # pylint: disable=broad-exception-caught
@@ -278,7 +276,7 @@ def remote_process_main(
         for factory in initializers:
             try:
                 # pylint: disable=protected-access
-                factory._stop()  # Unconditional call
+                factory._stop()
             except (
                 Exception
             ) as e_factory_stop:  # pylint: disable=broad-exception-caught

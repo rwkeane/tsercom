@@ -24,7 +24,7 @@ from typing import (
     TypeVar,
     AsyncIterator,
     Optional,
-)  # Added Optional
+)
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -46,9 +46,7 @@ MAX_RESPONSES: int = 30
 ResultTypeT = TypeVar("ResultTypeT")
 
 
-class AsyncPoller(
-    Generic[ResultTypeT]
-):  # Removed ABC as it has no abstract methods
+class AsyncPoller(Generic[ResultTypeT]):
     """An asynchronous poller that provides items in batches via async iteration.
 
     Producers call `on_available()` (which is thread-safe) to add items.
