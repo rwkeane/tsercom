@@ -1,10 +1,18 @@
-"""Manages service discovery and connection establishment."""
+"""Manages dynamic service discovery and establishes connections to discovered services.
+
+This module provides the `ServiceConnector` class, which acts as a bridge between
+a `ServiceSource` (which discovers services) and a `ConnectionFactory` (which
+establishes connections, typically gRPC channels). The `ServiceConnector` listens
+for newly discovered services, attempts to connect to them, and notifies its
+client upon successful connection. It also handles marking connections as failed
+to allow for re-discovery and re-connection.
+"""
 
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar, Optional, Set
 import asyncio
-import logging  # Moved up
+import logging
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_info import ServiceInfo
@@ -14,30 +22,48 @@ from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
-
-# Local application imports
 from tsercom.util.connection_factory import ConnectionFactory
 
 
 ServiceInfoT = TypeVar("ServiceInfoT", bound=ServiceInfo)
-ChannelTypeT = TypeVar("ChannelTypeT")
+ChannelTypeT = TypeVar(
+    "ChannelTypeT"
+)  # Represents the type of channel (e.g., grpc.aio.Channel)
 
 
 class ServiceConnector(
-    Generic[ServiceInfoT, ChannelTypeT], ServiceSource.Client
+    Generic[ServiceInfoT, ChannelTypeT],
+    ServiceSource.Client,
 ):
-    """Connects to gRPC endpoints from a `ServiceSource`.
+    """Monitors a `ServiceSource` and attempts to connect to discovered services.
 
-    Acts as a `ServiceSource` client. On discovery, attempts to establish
-    a gRPC channel using a `ConnectionFactory`. Successful connections are
-    reported to its own `Client`. Tracks active connections.
+    This class implements `ServiceSource.Client` to receive notifications about
+    services being added. When a new service is discovered, `ServiceConnector`
+    uses the provided `ConnectionFactory` to attempt to establish a connection
+    (e.g., a gRPC channel) to it.
+
+    If a connection is successfully established, the `ServiceConnector` notifies
+    its own registered `Client` (an implementer of `ServiceConnector.Client`)
+    via the `_on_channel_connected` callback, passing the service information,
+    a `CallerIdentifier` for the service instance, and the established channel.
+
+    It tracks active connections by `CallerIdentifier` to avoid duplicate
+    connection attempts and allows marking specific clients as failed to enable
+    re-discovery and connection. Operations are managed to run on a consistent
+    asyncio event loop, captured during the first asynchronous operation.
+
+    Type Args:
+        ServiceInfoT: The type of service information object (subclass of
+            `ServiceInfo`) that the `ServiceSource` provides.
+        ChannelTypeT: The type of the communication channel object that the
+            `ConnectionFactory` produces (e.g., `grpc.aio.Channel`).
     """
 
-    # pylint: disable=R0903 # Abstract listener interface
     class Client(ABC):
-        """Interface for `ServiceConnector` clients.
+        """Interface for clients of `ServiceConnector`.
 
-        Notified when a gRPC channel to a discovered service is established.
+        Implementers of this interface are notified when the `ServiceConnector`
+        successfully establishes a communication channel to a discovered service.
         """
 
         @abstractmethod
@@ -47,12 +73,15 @@ class ServiceConnector(
             caller_id: CallerIdentifier,
             channel: ChannelTypeT,
         ) -> None:
-            """Callback when a gRPC channel to a service is connected.
+            """Callback invoked when a channel to a discovered service is connected.
 
             Args:
-                connection_info: `ServiceInfoT` for the discovered service.
-                caller_id: `CallerIdentifier` for the service instance.
-                channel: The established `grpc.Channel`.
+                connection_info: The `ServiceInfoT` object containing details
+                    about the discovered service (e.g., name, addresses, port).
+                caller_id: The `CallerIdentifier` uniquely identifying the specific
+                    instance of the discovered service.
+                channel: The established communication channel (of type `ChannelTypeT`,
+                    e.g., `grpc.aio.Channel`) to the service.
             """
 
     def __init__(
@@ -64,118 +93,164 @@ class ServiceConnector(
         """Initializes the ServiceConnector.
 
         Args:
-            client: Client to receive notifications of connected channels.
-            connection_factory: `ConnectionFactory` to create gRPC channels.
-            service_source: `ServiceSource` for discovered service info.
+            client: An instance that implements the `ServiceConnector.Client`
+                interface. This client will receive notifications about
+                successfully established channels.
+            connection_factory: A `ConnectionFactory` instance responsible for
+                creating communication channels (of type `ChannelTypeT`) to
+                services based on their address and port.
+            service_source: A `ServiceSource` instance that will provide
+                information about discovered services (of type `ServiceInfoT`).
+                The `ServiceConnector` registers itself as a client to this source.
         """
-        self.__client: ServiceConnector.Client = (
-            client  # pylint: disable=W0511 # TODO: fix type hint
-        )
+        self.__client: ServiceConnector.Client = client
         self.__service_source: ServiceSource[ServiceInfoT] = service_source
         self.__connection_factory: ConnectionFactory[ChannelTypeT] = (
             connection_factory
         )
 
-        self.__callers: set[CallerIdentifier] = set()
+        self.__callers: Set[CallerIdentifier] = set()  # Using typing.Set
 
-        # Event loop captured during first relevant async op (_on_service_added).
+        # The event loop is captured on the first relevant async operation,
+        # typically in _on_service_added, to ensure subsequent operations
+        # are scheduled on the same loop for consistency.
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
-        super().__init__()
+        super().__init__()  # Call ServiceSource.Client.__init__
 
     async def start(self) -> None:
-        """Starts service discovery.
+        """Starts the service discovery process.
 
-        Calls `start_discovery` on `ServiceSource`, passing `self` as client
-        to receive `_on_service_added` callbacks.
+        This method initiates discovery by calling `start_discovery` on the
+        configured `ServiceSource`, passing `self` as the client to receive
+        callbacks when services are added or removed (though only `_on_service_added`
+        is actively used by this implementation for connection logic).
         """
         await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
-        """Marks a client with `CallerIdentifier` as failed/unhealthy.
+        """Marks a connected service instance (client from ServiceConnector\'s perspective) as failed.
 
-        Allows re-establishing connection if service is re-discovered.
-        Operation is performed on the captured event loop.
+        This removes the `caller_id` from the set of tracked active connections,
+        allowing the `ServiceConnector` to attempt a new connection if the same
+        service instance (with the same `caller_id`) is re-discovered by the
+        `ServiceSource`.
+
+        The operation is scheduled to run on the `ServiceConnector`\'s captured
+        event loop to ensure thread-safety and proper async context.
 
         Args:
-            caller_id: `CallerIdentifier` of the client/service to mark failed.
+            caller_id: The `CallerIdentifier` of the service instance to be
+                marked as failed.
 
         Raises:
-            AssertionError: If `caller_id` was not previously tracked.
+            AssertionError: If `caller_id` was not previously tracked as an
+                active connection (internal consistency check). This typically
+                indicates a logic error or misuse.
+            RuntimeError: If an event loop cannot be determined when attempting
+                to schedule the operation (should not happen if `start` has been
+                called and discovery is active).
         """
         if self.__event_loop is None:
+            # Attempt to capture loop if not already. This might occur if mark_client_failed
+            # is called before any service discovery callback has set the loop.
             logging.warning(
-                "mark_client_failed called before event loop capture. Potential issue."
+                "mark_client_failed called before event loop was captured by a discovery event."
             )
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
                 logging.error(
-                    "Failed to get event loop in mark_client_failed."
+                    "Failed to get current event loop in mark_client_failed. Cannot proceed."
                 )
+                # Or raise RuntimeError if this is considered a critical failure path.
                 return
 
         if not is_running_on_event_loop(self.__event_loop):
+            # Schedule the implementation to run on the captured event loop.
+            # The future returned by run_on_event_loop is not awaited here,
+            # as mark_client_failed is fire-and-forget from the caller\'s perspective.
             run_on_event_loop(
                 partial(self._mark_client_failed_impl, caller_id),
                 self.__event_loop,
             )
             return
 
+        # Already on the correct loop, execute directly.
         await self._mark_client_failed_impl(caller_id)
 
     async def _mark_client_failed_impl(
         self, caller_id: CallerIdentifier
     ) -> None:
-        assert caller_id in self.__callers, f"Unknown caller {caller_id}."
-        # Removing caller_id allows new connections if service re-discovered.
+        """Internal implementation for marking a client as failed.
+
+        This method must be called on the `ServiceConnector`\'s event loop.
+        It removes the `caller_id` from the set of active callers.
+
+        Args:
+            caller_id: The `CallerIdentifier` of the client to remove.
+        """
+        assert caller_id in self.__callers, (
+            f"Attempted to mark unknown caller {caller_id} as failed. "
+            f"Known callers: {self.__callers}"
+        )
         self.__callers.remove(caller_id)
         logging.info(
-            "Marked client with caller_id %s as failed. Can be re-discovered.",
+            "Marked service with CallerIdentifier %s as failed. "
+            "It can be re-discovered and re-connected.",
             caller_id,
         )
 
-    async def _on_service_added(  # type: ignore[override]
+    async def _on_service_added(
         self,
         connection_info: ServiceInfoT,
         caller_id: CallerIdentifier,
-    ) -> None:
-        """Callback from `ServiceSource` when a new service is discovered.
+    ) -> None:  # type: ignore[override]
+        """Handles new service discovery events from the `ServiceSource`.
 
-        Attempts to establish gRPC channel. If successful, notifies client via
-        `_on_channel_connected`. Ensures operations run on consistent event loop.
+        This method is called by the `ServiceSource` when a new service instance
+        is discovered. It captures the event loop on its first invocation.
+        If the service (identified by `caller_id`) is not already tracked as an
+        active connection, it attempts to establish a gRPC channel using the
+        `ConnectionFactory`. If successful, it notifies its own client via
+        `_on_channel_connected`.
 
         Args:
-            connection_info: `ServiceInfoT` for the discovered service.
-            caller_id: `CallerIdentifier` for service.
+            connection_info: The `ServiceInfoT` object containing details about
+                the newly discovered service.
+            caller_id: The `CallerIdentifier` for the specific service instance.
         """
-        # Capture or verify event loop on first call.
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
-            if self.__event_loop is None:  # pragma: no cover
-                # Long error message
+            if self.__event_loop is None:
                 logging.error(
-                    "Failed to get event loop in _on_service_added. Cannot proceed."
+                    "Failed to capture event loop in _on_service_added for service %s. "
+                    "Cannot attempt connection.",
+                    connection_info.name,
                 )
                 return
-        else:
-            # Ensure subsequent calls are on the same captured event loop.
-            assert is_running_on_event_loop(
-                self.__event_loop
-            ), "Operations must run on the captured event loop."
+        elif not is_running_on_event_loop(self.__event_loop):
+            # This indicates a potential issue, as callbacks from ServiceSource
+            # should ideally be on a consistent loop or handled appropriately.
+            # For now, assert to highlight this during development/testing.
+            # In production, might re-schedule or log a critical warning.
+            raise RuntimeError(
+                "_on_service_added callback received on an unexpected event loop."
+            )
 
-        # Prevent duplicate connection attempts to same service instance.
         if caller_id in self.__callers:
-            logging.info(
-                "Service with Caller ID %s (Name: %s) already connected. Skipping.",
+            logging.debug(
+                "Service with CallerIdentifier %s (Name: %s) already connected or connect attempt in progress. Skipping.",
                 caller_id,
                 connection_info.name,
             )
             return
 
         logging.info(
-            "Service added: %s (CallerID: %s). Attempting gRPC channel.",
+            "Service %s (CallerIdentifier: %s) discovered at %s:%s. Attempting connection.",
             connection_info.name,
             caller_id,
+            connection_info.addresses,
+            connection_info.port,
         )
 
         channel: Optional[ChannelTypeT] = (
@@ -185,26 +260,25 @@ class ServiceConnector(
         )
 
         if channel is None:
-            # Long warning message
             logging.warning(
-                "Could not establish gRPC channel for endpoint: %s at %s:%s.",
+                "Could not establish gRPC channel for service %s (CallerIdentifier: %s) at %s:%s.",
                 connection_info.name,
+                caller_id,
                 connection_info.addresses,
                 connection_info.port,
             )
             return
 
         logging.info(
-            "Successfully established gRPC channel for: %s (CallerID: %s)",
+            "Successfully established gRPC channel for service %s (CallerIdentifier: %s).",
             connection_info.name,
             caller_id,
         )
 
         self.__callers.add(caller_id)
-        # The client expects a ChannelTypeT, not ChannelInfo wrapper here.
-        # pylint: disable=W0212 # Calling listener's notification method
+        # pylint: disable=protected-access # Calling client's designated callback
         await self.__client._on_channel_connected(
             connection_info,
             caller_id,
-            channel,  # pylint: disable=W0511 # TODO: Fix this
+            channel,
         )

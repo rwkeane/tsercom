@@ -115,7 +115,10 @@ class TestRuntimeConfig:
         invalid_type = "InvalidType"
         with pytest.raises(ValueError) as excinfo:
             RuntimeConfig(service_type=invalid_type)
-        assert f"Invalid service type: {invalid_type}" == str(excinfo.value)
+        assert (
+            f"Invalid service_type string: '{invalid_type}'. Must be 'Client' or 'Server'."
+            == str(excinfo.value)
+        )
 
     def test_data_aggregator_client_property(self):
         """Test the data_aggregator_client property returns the correct object."""

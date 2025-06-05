@@ -1,5 +1,6 @@
 import pytest
 from concurrent.futures import ThreadPoolExecutor
+from typing import Optional
 
 from tsercom.api.local_process.local_runtime_factory_factory import (
     LocalRuntimeFactoryFactory,
@@ -42,8 +43,18 @@ class FakeRuntimeInitializer:
         service_type_str="Server",  # Changed parameter name for clarity
         data_aggregator_client=None,
         timeout_seconds=60,
+        min_send_frequency_seconds: Optional[float] = None,
         auth_config=None,
     ):
+        """Initializes a fake runtime initializer.
+
+        Args:
+            service_type_str: The service type string ("Server" or "Client").
+            data_aggregator_client: Fake data aggregator client.
+            timeout_seconds: Timeout in seconds.
+            min_send_frequency_seconds: Minimum send frequency in seconds.
+            auth_config: Fake auth configuration.
+        """
         # Store the string, but also prepare the enum
         if service_type_str == "Server":
             self.__service_type_enum_val = ServiceType.SERVER
@@ -58,6 +69,7 @@ class FakeRuntimeInitializer:
         self.data_aggregator_client = data_aggregator_client
         self.timeout_seconds = timeout_seconds
         self.auth_config = auth_config
+        self.min_send_frequency_seconds = min_send_frequency_seconds
 
         # Attributes/methods that might be called by the class under test or its collaborators
         self.create_called = False

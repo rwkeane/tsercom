@@ -104,8 +104,9 @@ class CallerIdentifier:
             other: The object to compare with.
 
         Returns:
-            True if `other` is `CallerIdentifier` and their UUIDs are equal,
-            False otherwise.
+            True if `other` is a `CallerIdentifier` and their UUIDs are equal.
+            False if `other` is a `CallerIdentifier` but their UUIDs differ.
+            NotImplemented if `other` is not a `CallerIdentifier`.
         """
         if not isinstance(other, CallerIdentifier):
             return NotImplemented  # Use NotImplemented for type mismatches in comparison
@@ -118,9 +119,15 @@ class CallerIdentifier:
             other: The object to compare with.
 
         Returns:
-            True if the objects are not equal, False otherwise.
+            True if the objects are considered not equal.
+            False if the objects are considered equal.
+            NotImplemented if the comparison is not implemented for the other type
+            (i.e., if `__eq__` returns `NotImplemented`).
         """
-        return not self.__eq__(other)
+        equal_result = self.__eq__(other)
+        if equal_result is NotImplemented:
+            return NotImplemented
+        return not equal_result
 
     def __str__(self) -> str:
         """Returns the string representation of the underlying UUID.
