@@ -1,1 +1,3 @@
-__version__ = "0.1.dev1+g3282974.d20250604"
+"""Specifies the version of the tsercom package."""
+
+__version__ = "0.1.dev1+g4561167.d20250605"

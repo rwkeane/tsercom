@@ -578,3 +578,197 @@ class TestRuntimeManager:
         )
         manager_with_failing_pc.start_out_of_process()
         assert manager_with_failing_pc._RuntimeManager__process is None
+
+    def test_register_after_start_in_process(
+        self, manager_with_mocks, mock_runtime_initializer, mocker
+    ):
+        """Tests registering an initializer after start_in_process."""
+        # Mock AbstractEventLoop
+        mock_loop = mocker.MagicMock(spec=asyncio.AbstractEventLoop)
+        mocker.patch(
+            "tsercom.api.runtime_manager.set_tsercom_event_loop"
+        )  # Prevent actual loop setting
+        mocker.patch(
+            "tsercom.runtime.runtime_main.initialize_runtimes"
+        )  # Prevent runtime init
+
+        manager_with_mocks.start_in_process(mock_loop)
+        with pytest.raises(
+            RuntimeError,
+            match="Cannot register runtime initializer after the manager has started.",
+        ):
+            manager_with_mocks.register_runtime_initializer(
+                mock_runtime_initializer
+            )
+
+    def test_register_after_start_out_of_process(
+        self, manager_with_mocks, mock_runtime_initializer, mocker
+    ):
+        """Tests registering an initializer after start_out_of_process."""
+        mocker.patch(
+            "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
+        )
+        mocker.patch(
+            "tsercom.api.runtime_manager.create_multiprocess_queues",
+            return_value=(MagicMock(), MagicMock()),
+        )
+        mocker.patch("tsercom.runtime.runtime_main.remote_process_main")
+        # Ensure process is created and started
+        mock_process = (
+            manager_with_mocks._RuntimeManager__process_creator.create_process.return_value
+        )
+        mock_process.is_alive.return_value = True
+
+        manager_with_mocks.start_out_of_process()
+        with pytest.raises(
+            RuntimeError,
+            match="Cannot register runtime initializer after the manager has started.",
+        ):
+            manager_with_mocks.register_runtime_initializer(
+                mock_runtime_initializer
+            )
+
+    def test_start_in_process_multiple_times(self, manager_with_mocks, mocker):
+        """Tests calling start_in_process multiple times."""
+        mock_loop = mocker.MagicMock(spec=asyncio.AbstractEventLoop)
+        mocker.patch("tsercom.api.runtime_manager.set_tsercom_event_loop")
+        mocker.patch("tsercom.runtime.runtime_main.initialize_runtimes")
+
+        manager_with_mocks.start_in_process(mock_loop)  # First call
+        with pytest.raises(
+            RuntimeError, match="RuntimeManager has already been started."
+        ):
+            manager_with_mocks.start_in_process(mock_loop)  # Second call
+
+    def test_start_out_of_process_multiple_times(
+        self, manager_with_mocks, mocker
+    ):
+        """Tests calling start_out_of_process multiple times."""
+        mocker.patch(
+            "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
+        )
+        mocker.patch(
+            "tsercom.api.runtime_manager.create_multiprocess_queues",
+            return_value=(MagicMock(), MagicMock()),
+        )
+        mocker.patch("tsercom.runtime.runtime_main.remote_process_main")
+        mock_process = (
+            manager_with_mocks._RuntimeManager__process_creator.create_process.return_value
+        )
+        mock_process.is_alive.return_value = True
+
+        manager_with_mocks.start_out_of_process()  # First call
+        with pytest.raises(
+            RuntimeError, match="RuntimeManager has already been started."
+        ):
+            manager_with_mocks.start_out_of_process()  # Second call
+
+    def test_shutdown_terminates_process(
+        self, manager_with_mocks, mock_process_creator, mocker
+    ):
+        """Tests that shutdown terminates the process in out-of-process mode."""
+        mock_process = mock_process_creator.create_process.return_value
+        mock_process.is_alive.return_value = True  # Simulate live process
+
+        # Setup for start_out_of_process to run
+        mocker.patch(
+            "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
+        )
+        mocker.patch(
+            "tsercom.api.runtime_manager.create_multiprocess_queues",
+            return_value=(MagicMock(), MagicMock()),
+        )
+        mocker.patch("tsercom.runtime.runtime_main.remote_process_main")
+        # Mock the error watcher to prevent issues during shutdown
+        mock_error_watcher = MagicMock(spec=SplitProcessErrorWatcherSource)
+        manager_with_mocks._RuntimeManager__split_error_watcher_source_factory.create.return_value = (
+            mock_error_watcher
+        )
+
+        manager_with_mocks.start_out_of_process()
+        manager_with_mocks.shutdown()
+
+        mock_process.kill.assert_called_once()
+        mock_process.join.assert_called_once()
+
+    def test_shutdown_stops_error_watcher(
+        self, manager_with_mocks, mock_split_ewsf, mocker
+    ):
+        """Tests that shutdown stops the error watcher in out-of-process mode."""
+        mock_error_watcher = mock_split_ewsf.create.return_value
+        # manager_with_mocks._RuntimeManager__process = None # Simulate in-process or no process started yet
+        # manager_with_mocks._RuntimeManager__error_watcher = mock_error_watcher # Assign watcher
+
+        # Setup for start_out_of_process to run without creating a real process that hangs
+        mocker.patch(
+            "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
+        )
+        mocker.patch(
+            "tsercom.api.runtime_manager.create_multiprocess_queues",
+            return_value=(MagicMock(), MagicMock()),
+        )
+        mocker.patch("tsercom.runtime.runtime_main.remote_process_main")
+        mock_process = (
+            manager_with_mocks._RuntimeManager__process_creator.create_process.return_value
+        )
+        mock_process.is_alive.return_value = (
+            False  # Process not alive, so kill/join won't be problematic
+        )
+
+        manager_with_mocks.start_out_of_process()  # This will set up the error watcher via mocks
+        manager_with_mocks.shutdown()
+
+        mock_error_watcher.stop.assert_called_once()
+
+    # New tests to be added here
+
+    @pytest.mark.asyncio
+    async def test_start_in_process_async_no_loop(self, mocker):
+        """Tests start_in_process_async when no event loop is found."""
+        manager = RuntimeManager()  # Fresh instance
+        mocker.patch(
+            "tsercom.api.runtime_manager.get_running_loop_or_none",
+            return_value=None,
+        )
+        with pytest.raises(
+            RuntimeError,
+            match="Could not determine the current running event loop for start_in_process_async.",  # Corrected message
+        ):
+            await manager.start_in_process_async()
+
+    def test_run_until_exception_before_start(self):
+        """Tests run_until_exception before the manager has started."""
+        manager = RuntimeManager()  # Fresh instance
+        # Ensure ThreadWatcher is created for this test if not using manager_with_mocks
+        manager._RuntimeManager__thread_watcher = MagicMock(spec=ThreadWatcher)
+        with pytest.raises(
+            RuntimeError, match="RuntimeManager has not been started."
+        ):
+            manager.run_until_exception()
+
+    def test_check_for_exception_before_start(self, mocker):
+        """Tests check_for_exception before the manager has started. Should not raise."""
+        # We need a ThreadWatcher instance, but it shouldn't be called.
+        mock_tw = mocker.patch("tsercom.api.runtime_manager.ThreadWatcher")
+        manager = RuntimeManager(thread_watcher=mock_tw)
+
+        # Explicitly ensure has_started is False
+        mocker.patch.object(
+            RuntimeManager,
+            "has_started",
+            new_callable=PropertyMock,
+            return_value=False,
+        )
+
+        try:
+            manager.check_for_exception()
+        except RuntimeError:
+            pytest.fail(
+                "check_for_exception raised RuntimeError unexpectedly before start"
+            )
+
+        # Verify that the ThreadWatcher's method was not called
+        assert (
+            manager._RuntimeManager__thread_watcher is mock_tw
+        )  # manager holds the class mock itself
+        mock_tw.check_for_exception.assert_not_called()  # Methods are called on the class mock

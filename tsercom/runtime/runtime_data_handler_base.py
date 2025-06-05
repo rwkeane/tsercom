@@ -313,6 +313,7 @@ class RuntimeDataHandlerBase(
         self.__data_reader._on_data_ready(data)
 
     @abstractmethod
+    # pylint: disable=arguments-differ
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:

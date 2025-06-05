@@ -315,3 +315,48 @@ class TestClientRuntimeDataHandler:
             mock_endpoint, mock_port
         )
         assert returned_caller_id is None
+
+    @pytest.mark.asyncio
+    async def test_unregister_caller_id_tracker_remove_fails(
+        self, handler_and_class_mocks, mocker
+    ):
+        """
+        Tests _unregister_caller when IdTracker.try_get finds the caller,
+        but IdTracker.remove returns False.
+        """
+        handler = handler_and_class_mocks["handler"]
+        mock_caller_id = CallerIdentifier.random()
+        mock_address = "192.168.1.101"
+        mock_port = 54321
+
+        # Configure IdTracker.try_get to return a found caller
+        handler._mock_id_tracker_instance.try_get.return_value = (
+            mock_address,
+            mock_port,
+            mocker.MagicMock(),  # Mock for the poller part of the tuple
+        )
+        # Configure IdTracker.remove to return False
+        handler._mock_id_tracker_instance.remove.return_value = False
+
+        # Patch logging
+        mock_logging_module = mocker.patch(
+            "tsercom.runtime.client.client_runtime_data_handler.logging"
+        )
+
+        result = await handler._unregister_caller(mock_caller_id)
+
+        # Assertions
+        assert result is False
+        handler._mock_id_tracker_instance.try_get.assert_called_once_with(
+            mock_caller_id
+        )
+        handler._mock_id_tracker_instance.remove.assert_called_once_with(
+            mock_caller_id
+        )
+        mock_logging_module.warning.assert_called_once_with(
+            "Failed to remove caller_id %s from IdTracker, though it was initially found. "
+            "Skipping clock_tracker.on_disconnect.",
+            mock_caller_id,
+        )
+        # Assert that TimeSyncTracker.on_disconnect was NOT called
+        handler._mock_time_sync_tracker_instance.on_disconnect.assert_not_called()

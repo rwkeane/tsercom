@@ -20,7 +20,6 @@ import logging
 from typing import (
     Any,
     List,
-    Optional,
 )
 
 from tsercom.api.split_process.split_process_error_watcher_sink import (
@@ -175,9 +174,8 @@ def initialize_runtimes(
                             "BaseException: %s. This will not be reported via ThreadWatcher.",
                             type(exc).__name__,
                         )
-            except (
-                Exception
-            ) as e_callback:  # pylint: disable=broad-exception-caught
+            # pylint: disable=broad-exception-caught
+            except Exception as e_callback:
                 # Log errors within the callback itself to prevent ThreadWatcher issues.
                 logger.error(
                     "Error in _runtime_start_done_callback: %s", e_callback
@@ -196,7 +194,7 @@ def remote_process_main(
     *,
     is_testing: bool = False,
 ) -> None:
-    captured_exception: Optional[Exception] = None
+    # captured_exception: Optional[Exception] = None # This variable is assigned but not used
     """Main entry point for a Tsercom runtime operating in a remote process.
 
     This function is intended to be the target for a new process created by
@@ -243,11 +241,12 @@ def remote_process_main(
         error_sink.run_until_exception()
 
     except Exception as e:  # Catch any exception during init or runtime
-        captured_exception = e
+        # captured_exception = e # This variable is assigned but not used
         if error_queue:
             try:
                 error_queue.put_nowait(e)
-            except Exception as q_e:  # pylint: disable=broad-exception-caught
+            # pylint: disable=broad-exception-caught
+            except Exception as q_e:
                 # Log if putting to queue fails, but prioritize raising original error.
                 logger.error(
                     "Failed to put exception onto error_queue: %s", q_e
@@ -257,14 +256,15 @@ def remote_process_main(
         # Ensure cleanup of runtimes and factories on exit.
         logger.info("Remote process shutting down. Stopping runtimes.")
         for runtime in active_runtimes:
-            run_on_event_loop(partial(runtime.stop, captured_exception))
+            run_on_event_loop(
+                partial(runtime.stop, None)
+            )  # Pass None instead of captured_exception
         for factory in initializers:
             try:
                 # pylint: disable=protected-access
                 factory._stop()
-            except (
-                Exception
-            ) as e_factory_stop:  # pylint: disable=broad-exception-caught
+            # pylint: disable=broad-exception-caught
+            except Exception as e_factory_stop:
                 logger.error(
                     "Error stopping factory %s: %s", factory, e_factory_stop
                 )

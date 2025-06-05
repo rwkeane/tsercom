@@ -629,3 +629,24 @@ def test_on_data_available_no_client(mock_thread_pool, caller_id_1, mocker):
         pytest.fail(
             f"_on_data_available raised an exception with no client: {e}"
         )
+
+
+# Test _on_data_ready with invalid data type
+def test_on_data_ready_invalid_data_type(mock_thread_pool):
+    """
+    Tests that _on_data_ready() raises a TypeError if new_data is not ExposedData.
+    """
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
+        mock_thread_pool
+    )
+
+    class NotExposedData:  # Simple class not inheriting from ExposedData
+        pass
+
+    invalid_data_object = NotExposedData()
+
+    with pytest.raises(
+        TypeError,
+        match=r"Expected new_data to be an instance of ExposedData, but got .*\.",  # Updated regex
+    ):
+        aggregator._on_data_ready(invalid_data_object)

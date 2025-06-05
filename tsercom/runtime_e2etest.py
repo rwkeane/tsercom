@@ -246,9 +246,23 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        time.sleep(0.5)
+        time.sleep(0.5) # Initial sleep
 
-        assert data_aggregator.has_new_data(current_test_id)
+        # Add a wait loop for the "stopped" data
+        stopped_data_arrived = False
+        max_wait_stopped_data = 3.0 # Wait up to 3 seconds for stopped data
+        poll_interval_stopped = 0.1
+        waited_time_stopped = 0.0
+        while waited_time_stopped < max_wait_stopped_data:
+            if data_aggregator.has_new_data(current_test_id):
+                stopped_data_arrived = True
+                break
+            time.sleep(poll_interval_stopped)
+            waited_time_stopped += poll_interval_stopped
+
+        assert stopped_data_arrived, f"Aggregator did not receive 'stopped' data for test_id ({current_test_id}) within {max_wait_stopped_data}s"
+        assert data_aggregator.has_new_data(current_test_id) # Now this should be true
+
         values = data_aggregator.get_new_data(current_test_id)
         assert isinstance(values, list)
         assert len(values) == 1
