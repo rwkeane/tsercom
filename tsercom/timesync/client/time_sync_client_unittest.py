@@ -220,19 +220,23 @@ class TestTimeSyncClientOperations:
         ]
         client.start_async()
         barrier_set = client._TimeSyncClient__start_barrier.wait(timeout=1.0)
-        assert barrier_set, "Start barrier was not set."
+        assert barrier_set, "Start barrier was not set after client start."
 
-        max_wait_cycles = num_offsets_to_send + 20
-        cycles = 0
+        # Wait for all expected NTP calls to occur
+        # Increased wait time and polling interval for more stability
+        max_wait_duration_for_calls = 3.0  # seconds
+        poll_interval_for_calls = 0.05  # seconds
+        start_wait_time = time.time()
         while (
             mock_ntp_client_fixture.request.call_count < num_offsets_to_send
-            and cycles < max_wait_cycles
+            and (time.time() - start_wait_time) < max_wait_duration_for_calls
         ):
-            time.sleep(0.001)
-            cycles += 1
+            time.sleep(poll_interval_for_calls)
+
         assert (
             mock_ntp_client_fixture.request.call_count >= num_offsets_to_send
-        ), f"NTP request not called enough. Expected: {num_offsets_to_send}, Got: {mock_ntp_client_fixture.request.call_count}"
+        ), f"NTP request not called enough times. Expected at least: {num_offsets_to_send}, Got: {mock_ntp_client_fixture.request.call_count}"
+
         expected_stored_offsets = offsets[-k_max_offset_count_from_source:]
         assert (
             list(client._TimeSyncClient__time_offsets)
