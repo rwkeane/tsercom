@@ -1,0 +1,94 @@
+tsercom/util/ip.py:4: error: Library stubs not installed for "psutil"
+[import-untyped]
+    import psutil
+    ^
+tsercom/util/ip.py:4: note: Hint: "python3 -m pip install types-psutil"
+tsercom/util/ip.py:4: note: (or run "mypy --install-types" to install all missing stub packages)
+tsercom/util/ip.py:4: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+tsercom/runtime/id_tracker.py:262: error: Unused "type: ignore" comment
+[unused-ignore]
+            return resolved_result  # type: ignore[return-value] # mypy st...
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/data/remote_data_aggregator.py:28: error: Free type variable expected
+in Generic[...]  [misc]
+        class Client(ABC, Generic[DataTypeT]):
+                          ^
+tsercom/runtime/runtime_config.py:56: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            data_aggregator_client: Optional[
+                ^
+tsercom/runtime/runtime_config.py:69: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            data_aggregator_client: Optional[
+                ^
+tsercom/runtime/runtime_config.py:87: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            data_aggregator_client: Optional[
+                ^
+tsercom/runtime/runtime_config.py:176: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+            self.__data_aggregator_client: Optional[
+                ^
+tsercom/runtime/runtime_config.py:222: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+        ) -> Optional[RemoteDataAggregator.Client[DataTypeT]]:
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/threading/aio/async_poller.py:270: error: "Atomic[bool]" has no
+attribute "get_and_set"  [attr-defined]
+            was_running = self.__is_loop_running.get_and_set(False)
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/discovery/service_connector.py:36: error: "Client" expects no type
+arguments, but 1 given  [type-arg]
+        ServiceSource.Client[ServiceInfoT],  # Specified Client generic
+        ^
+tsercom/discovery/service_connector.py:62: error: Free type variable expected
+in Generic[...]  [misc]
+        class Client(ABC, Generic[ServiceInfoT, ChannelTypeT]):  # Made ge...
+                          ^
+tsercom/discovery/service_connector.py:89: error: "Client" expects no type
+arguments, but 2 given  [type-arg]
+            client: "ServiceConnector.Client[ServiceInfoT, ChannelTypeT]",...
+     ^
+tsercom/discovery/service_connector.py:106: error: "Client" expects no type
+arguments, but 2 given  [type-arg]
+            self.__client: ServiceConnector.Client[ServiceInfoT, ChannelTy...
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/discovery/service_connector.py:207: error: Argument 1 of
+"_on_service_added" is incompatible with supertype "Client"; supertype defines
+the argument type as "ServiceInfoT"  [override]
+            connection_info: ServiceInfoT,
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/discovery/service_connector.py:207: note: This violates the Liskov substitution principle
+tsercom/discovery/service_connector.py:207: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+tsercom/runtime/runtime_data_handler_base.py:115: error: Argument 1 to
+"IdTracker" has incompatible type "partial[AsyncPoller[ResultTypeT]]"; expected
+"Callable[[], AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]] | None"
+[arg-type]
+                partial(  # This factory creates a new AsyncPoller for eac...
+                ^
+tsercom/api/runtime_factory_factory.py:25: error: Free type variable expected
+in Generic[...]  [misc]
+        class Client(ABC, Generic[DataTypeT, EventTypeT]):
+                          ^
+tsercom/runtime/runtime_main.py:265: error: Unused "type: ignore" comment
+[unused-ignore]
+                        runtime.stop(None)  # type: ignore[call-arg] # If ...
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/runtime/runtime_main.py:265: error: Value of type
+"Coroutine[Any, Any, None]" must be used  [unused-coroutine]
+                        runtime.stop(None)  # type: ignore[call-arg] # If ...
+                        ^~~~~~~~~~~~~~~~~~
+tsercom/runtime/runtime_main.py:265: note: Error code "unused-coroutine" not covered by "type: ignore" comment
+tsercom/runtime/runtime_main.py:265: note: Are you missing an await?
+tsercom/api/runtime_manager.py:476: error: "Client" expects no type arguments,
+but 2 given  [type-arg]
+        RuntimeFactoryFactory.Client[
+        ^
+tsercom/api/runtime_manager.py:501: error: Argument 1 of "_on_handle_ready" is
+incompatible with supertype "Client"; supertype defines the argument type as
+"RuntimeHandle[DataTypeT, EventTypeT]"  [override]
+            self, handle: RuntimeHandle[DataTypeT, EventTypeT]
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/api/runtime_manager.py:501: note: This violates the Liskov substitution principle
+tsercom/api/runtime_manager.py:501: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+Found 20 errors in 10 files (checked 134 source files)

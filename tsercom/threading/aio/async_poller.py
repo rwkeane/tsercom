@@ -11,11 +11,12 @@ Key features include:
 - Asynchronous iteration (`async for`) for consumers to retrieve batches of items.
 - Optional rate limiting to control the frequency of polling/yielding batches.
 - A bounded internal queue to prevent excessive memory consumption.
+- An explicit `stop()` method to terminate the poller and release waiting consumers.
 """
 
 import asyncio
 import threading
-from collections import deque  # Changed from typing.Deque for direct use
+from collections import deque  # Use collections.deque directly
 from typing import (
     Deque,
     Generic,
@@ -40,12 +41,14 @@ from tsercom.threading.atomic import Atomic
 # Maximum number of items to keep in the internal queue.
 # If more items are added via on_available() when the queue is full,
 # the oldest items will be discarded.
-MAX_RESPONSES = 30
+MAX_RESPONSES: int = 30
 
 ResultTypeT = TypeVar("ResultTypeT")
 
 
-class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
+class AsyncPoller(
+    Generic[ResultTypeT]
+):  # Removed ABC as it has no abstract methods
     """An asynchronous poller that provides items in batches via async iteration.
 
     Producers call `on_available()` (which is thread-safe) to add items.
@@ -55,12 +58,13 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
 
     An optional `min_poll_frequency_seconds` can be specified to enforce a minimum
     time interval between when batches of items are yielded to consumers, effectively
-    rate-limiting the consumers.
+    rate-limiting the consumers. The poller can be explicitly stopped using the
+    `stop()` method.
 
     Attributes:
         event_loop: The asyncio event loop this poller is associated with.
             It is typically determined from the first call to `wait_instance` or
-            `__anext__` if not explicitly set.
+            `__anext__` if not explicitly set during initialization.
     """
 
     def __init__(
@@ -69,12 +73,13 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
         """Initializes the AsyncPoller.
 
         Args:
-            min_poll_frequency_seconds: Optional. If provided, this value is used
-                to initialize an internal `RateLimiterImpl`. This rate limiter
-                ensures that the `wait_instance` (and thus `__anext__`) method
-                will wait at least this many seconds after the previous batch
-                was yielded before yielding a new batch. If `None` or 0,
-                a `NullRateLimiter` is used, imposing no such delay.
+            min_poll_frequency_seconds: Optional. If provided and positive,
+                this value is used to initialize an internal `RateLimiterImpl`.
+                This rate limiter ensures that the `wait_instance` (and thus
+                `__anext__`) method will wait at least this many seconds after
+                the previous batch was yielded before yielding a new batch.
+                If `None` or non-positive, a `NullRateLimiter` is used,
+                imposing no such delay.
         """
         self.__rate_limiter: RateLimiter
         if (
@@ -85,11 +90,10 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
         else:
             self.__rate_limiter = NullRateLimiter()
 
-        self.__responses: Deque[ResultTypeT] = deque()  # Use collections.deque
+        self.__responses: Deque[ResultTypeT] = deque()
         self.__barrier: asyncio.Event = asyncio.Event()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
-        # Tracks if the poller is actively running and associated with an event loop.
         self.__is_loop_running: Atomic[bool] = Atomic[bool](False)
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
@@ -99,7 +103,7 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
 
         This is typically the loop on which `wait_instance` (or `__anext__`)
         is first called. Returns `None` if the poller has not yet been
-        awaited by a consumer.
+        awaited by a consumer and thus not yet associated with a loop.
         """
         return self.__event_loop
 
@@ -107,27 +111,25 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
         """Makes a new item available to consumers of this poller.
 
         This method is thread-safe. It adds the `new_instance` to an internal
-        queue. If the queue is full (exceeds `MAX_RESPONSES`), the oldest item
-        is discarded. After adding the item, it signals an internal asyncio.Event
-        to wake up any consumers waiting in `wait_instance` or `__anext__`.
+        queue. If the queue length exceeds `MAX_RESPONSES`, the oldest item
+        is discarded to maintain the bound. After adding the item, if the poller
+        is active and associated with an event loop, it signals an internal
+        `asyncio.Event` to wake up any consumers waiting in `wait_instance`
+        or `__anext__`.
 
         Args:
-            new_instance: The item to make available.
+            new_instance: The item of `ResultTypeT` to make available.
         """
         with self.__lock:
             if len(self.__responses) >= MAX_RESPONSES:
-                self.__responses.popleft()  # Discard oldest if queue is full
+                self.__responses.popleft()
             self.__responses.append(new_instance)
 
-        # If the poller has an associated event loop and is running,
-        # schedule __set_results_available to run on that loop.
         if self.__is_loop_running.get() and self.__event_loop is not None:
-            # Ensure __set_results_available is called from the poller's event loop
             run_on_event_loop(self.__set_results_available, self.__event_loop)
-        # If not yet running, the barrier will be checked when wait_instance starts.
 
     async def __set_results_available(self) -> None:
-        """Internal coroutine to set the barrier event. Runs on the poller\'s event loop."""
+        """Internal coroutine to set the barrier event, run on the poller\'s event loop."""
         self.__barrier.set()
 
     def flush(self) -> None:
@@ -141,78 +143,80 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
     async def wait_instance(self) -> List[ResultTypeT]:
         """Asynchronously waits for and retrieves a batch of available items.
 
-        This method first respects the configured rate limit (if any).
-        It then checks for items in its internal queue. If items are present,
-        they are returned immediately as a list. If the queue is empty,
-        it waits for a short period (0.1 seconds) for items to become available
-        (signaled by `on_available` via an `asyncio.Event`).
+        This method first respects the configured rate limit (if any). It then
+        checks the internal queue for items. If items are present, they are all
+        drained from the queue and returned immediately as a list.
+        If the queue is empty, it clears an internal `asyncio.Event` and waits
+        for up to 0.1 seconds for this event to be signaled (by `on_available`).
+        This wait-and-check cycle continues as long as the poller is running.
 
         This method forms the core of the `__anext__` implementation for
         async iteration.
 
         Returns:
             A list containing all items that were available in the queue at the
-            time of retrieval. The list might be empty if the wait timed out
-            and no items were available.
+            time of retrieval. The list will not be empty unless the poller
+            is stopped and there were no items.
 
         Raises:
-            RuntimeError: If the poller is stopped (e.g., if `stop()` has been
-                called or if the associated event loop is not running when
-                expected). Also raised if called from a different event loop
-                than the one it was first associated with.
+            RuntimeError: If the poller is stopped (either before or during the
+                wait). Also raised if called from a different event loop than the
+                one it was first associated with, or if no event loop is running
+                when it\'s first called.
         """
         await self.__rate_limiter.wait_for_pass()
 
         if self.__event_loop is None:
-            # First-time association with an event loop
             current_loop = get_running_loop_or_none()
             if current_loop is None:
                 raise RuntimeError(
                     "AsyncPoller.wait_instance must be called from within a running asyncio event loop."
                 )
             self.__event_loop = current_loop
-            self.__is_loop_running.set(True)  # Mark as running
+            self.__is_loop_running.set(True)
         elif not self.__is_loop_running.get():
             raise RuntimeError("AsyncPoller is stopped.")
 
-        # Ensure subsequent calls are from the same loop
-        assert self.__event_loop is not None  # Guaranteed by the block above
+        assert self.__event_loop is not None
         if not is_running_on_event_loop(self.__event_loop):
             raise RuntimeError(
                 "AsyncPoller.wait_instance called from a different event loop "
                 "than it was initially associated with."
             )
 
-        # Loop to handle data retrieval and timed waits
         while self.__is_loop_running.get():
             current_batch: List[ResultTypeT] = []
             with self.__lock:
-                if self.__responses:  # Check if there are any responses
-                    # Drain the entire queue into the current batch
-                    while self.__responses:
+                if self.__responses:
+                    while self.__responses:  # Drain the queue
                         current_batch.append(self.__responses.popleft())
 
             if current_batch:
-                return current_batch  # Return the batch if items were found
+                return current_batch
 
-            # If no items, clear barrier and wait for signal or timeout
             self.__barrier.clear()
             try:
                 await asyncio.wait_for(self.__barrier.wait(), timeout=0.1)
             except asyncio.TimeoutError:
-                # Timeout is normal, means no new items were signaled quickly.
-                # Loop will continue and check __is_loop_running.
-                pass
+                pass  # Normal timeout, loop continues to check __is_loop_running
 
-            if (
-                not self.__is_loop_running.get()
-            ):  # Check if stopped during wait
+            if not self.__is_loop_running.get():
+                # If stopped during the wait, check one last time for residual items
+                # This handles a race condition where stop() is called after the while condition
+                # but before or during asyncio.wait_for, and on_available adds items just before stop.
+                with self.__lock:
+                    if self.__responses:
+                        while self.__responses:
+                            current_batch.append(self.__responses.popleft())
+                if current_batch:
+                    return current_batch
                 raise RuntimeError(
                     "AsyncPoller stopped while waiting for instance."
                 )
 
-        # If loop exits due to __is_loop_running being false
-        raise RuntimeError("AsyncPoller is stopped.")
+        raise RuntimeError(
+            "AsyncPoller is stopped."
+        )  # Should be hit if loop_running was false initially
 
     def __aiter__(self) -> AsyncIterator[List[ResultTypeT]]:
         """Returns self, as `AsyncPoller` is an asynchronous iterator."""
@@ -226,9 +230,7 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
         `wait_instance` to get the next batch.
 
         Returns:
-            A list of available items (of `ResultTypeT`). The list may be empty
-            if `wait_instance` times out without new items but the poller is
-            still running.
+            A list of available items (of `ResultTypeT`).
 
         Raises:
             StopAsyncIteration: If the poller is stopped (which causes
@@ -237,7 +239,6 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
         try:
             return await self.wait_instance()
         except RuntimeError as e:
-            # Convert RuntimeError (signifying poller stopped) to StopAsyncIteration
             raise StopAsyncIteration(
                 f"AsyncPoller iteration stopped: {e}"
             ) from e
@@ -246,41 +247,30 @@ class AsyncPoller(Generic[ResultTypeT]):  # Removed ABC inheritance
         """Returns the current number of items in the internal response queue.
 
         This provides a snapshot of the queue length. Note that the length can
-        change immediately after this call in a concurrent environment. This
-        method is thread-safe.
+        change immediately after this call in a concurrent environment.
+        This method is thread-safe.
         """
         with self.__lock:
             return len(self.__responses)
 
-    def stop(self) -> None:  # Added stop method based on TODO
+    def stop(self) -> None:
         """Stops the poller and signals any waiting consumers to terminate.
 
-        This method sets an internal flag to indicate that the poller should
-        stop, and it sets the asyncio Event barrier to ensure that any consumer
-        currently blocked in `wait_instance` or `__anext__` wakes up, observes
-        the stopped state, and exits cleanly (typically by raising
+        This method sets an internal flag (`self.__is_loop_running`) to `False`,
+        indicating that the poller should stop its operations. It then sets the
+        internal `asyncio.Event` barrier. This ensures that any consumer
+        currently blocked in `wait_instance` (or `__anext__`) wakes up,
+        observes the stopped state, and exits cleanly (typically by raising
         `StopAsyncIteration` or `RuntimeError`).
 
-        This method is thread-safe.
+        This method is thread-safe and idempotent.
         """
-        if not self.__is_loop_running.get_and_set(
-            False
-        ):  # Atomically set to False and get old value
-            return  # Already stopped or never started
+        # Atomically set to False and get the old value.
+        # If it was already False, no need to signal again.
+        was_running = self.__is_loop_running.get_and_set(False)
 
-        if self.__event_loop is not None:
-            # Schedule setting the barrier on the poller\'s event loop
+        if was_running and self.__event_loop is not None:
+            # Schedule setting the barrier on the poller's event loop
             # to ensure any task awaiting it is woken up correctly.
+            # This helps __anext__ break out of its loop if it's waiting on the barrier.
             run_on_event_loop(self.__set_results_available, self.__event_loop)
-        else:
-            # If no event loop was ever associated (e.g., never awaited),
-            # just ensure the flag is set. Barrier would not have waiters.
-            pass
-
-
-# TODO(developer): Consider adding a public stop() method.
-# This method would set self.__is_loop_running.set(False)
-# and potentially self.__barrier.set() to ensure any waiters
-# in wait_instance() can wake up promptly and observe the stop.
-# This would provide more explicit lifecycle control for the poller.
-# -> Implemented basic stop() method above.
