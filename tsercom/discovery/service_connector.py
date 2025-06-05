@@ -33,7 +33,7 @@ ChannelTypeT = TypeVar(
 
 class ServiceConnector(
     Generic[ServiceInfoT, ChannelTypeT],
-    ServiceSource.Client[ServiceInfoT],  # Specified Client generic
+    ServiceSource.Client,  # Removed [ServiceInfoT]
 ):
     """Monitors a `ServiceSource` and attempts to connect to discovered services.
 
@@ -59,7 +59,7 @@ class ServiceConnector(
             `ConnectionFactory` produces (e.g., `grpc.aio.Channel`).
     """
 
-    class Client(ABC, Generic[ServiceInfoT, ChannelTypeT]):  # Made generic
+    class Client(ABC):  # Removed Generic[ServiceInfoT, ChannelTypeT]
         """Interface for clients of `ServiceConnector`.
 
         Implementers of this interface are notified when the `ServiceConnector`
@@ -86,7 +86,7 @@ class ServiceConnector(
 
     def __init__(
         self,
-        client: "ServiceConnector.Client[ServiceInfoT, ChannelTypeT]",  # Specified generic client
+        client: "ServiceConnector.Client",  # Removed [ServiceInfoT, ChannelTypeT]
         connection_factory: ConnectionFactory[ChannelTypeT],
         service_source: ServiceSource[ServiceInfoT],
     ) -> None:
@@ -103,8 +103,8 @@ class ServiceConnector(
                 information about discovered services (of type `ServiceInfoT`).
                 The `ServiceConnector` registers itself as a client to this source.
         """
-        self.__client: ServiceConnector.Client[ServiceInfoT, ChannelTypeT] = (
-            client
+        self.__client: ServiceConnector.Client = (
+            client  # Removed [ServiceInfoT, ChannelTypeT]
         )
         self.__service_source: ServiceSource[ServiceInfoT] = service_source
         self.__connection_factory: ConnectionFactory[ChannelTypeT] = (
@@ -206,7 +206,7 @@ class ServiceConnector(
         self,
         connection_info: ServiceInfoT,
         caller_id: CallerIdentifier,
-    ) -> None:
+    ) -> None:  # type: ignore[override]
         """Handles new service discovery events from the `ServiceSource`.
 
         This method is called by the `ServiceSource` when a new service instance

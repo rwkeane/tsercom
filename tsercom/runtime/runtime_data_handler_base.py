@@ -14,7 +14,6 @@ for client and server-side operations, respectively.
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
-from functools import partial
 from typing import (
     Generic,
     List,
@@ -108,15 +107,17 @@ class RuntimeDataHandlerBase(
             SerializableAnnotatedInstance[EventTypeT]
         ] = event_source
 
-        # Initialize IdTracker with a factory that creates AsyncPollers for each caller
+        # Define a properly typed factory for the IdTracker
+        def _poller_factory() -> (
+            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
+        ):
+            return AsyncPoller(
+                min_poll_frequency_seconds=min_send_frequency_seconds
+            )
+
         self.__id_tracker = IdTracker[
             AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
-        ](
-            partial(  # This factory creates a new AsyncPoller for each new ID
-                AsyncPoller,
-                min_poll_frequency_seconds=min_send_frequency_seconds,
-            )
-        )
+        ](_poller_factory)
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.

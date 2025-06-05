@@ -369,6 +369,10 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         """
         if not self.has_started:
             raise RuntimeError("RuntimeManager has not been started.")
+        if self.__thread_watcher is None:
+            raise RuntimeError(
+                "Internal ThreadWatcher is None when checking for exceptions after start."
+            )
         # The __thread_watcher is initialized in __init__, so it should always be present.
         self.__thread_watcher.run_until_exception()
 
@@ -388,6 +392,10 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         """
         if not self.has_started:
             return
+        if self.__thread_watcher is None:
+            raise RuntimeError(
+                "Internal ThreadWatcher is None when checking for exceptions after start."
+            )
         # The __thread_watcher is initialized in __init__.
         self.__thread_watcher.check_for_exception()
 
@@ -473,9 +481,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
 
 class RuntimeFuturePopulator(
-    RuntimeFactoryFactory.Client[
-        DataTypeT, EventTypeT
-    ],  # Explicitly type Client
+    RuntimeFactoryFactory.Client,  # Removed [DataTypeT, EventTypeT]
     Generic[DataTypeT, EventTypeT],
 ):
     """A client that populates a Future with a RuntimeHandle once it's ready.
@@ -499,7 +505,7 @@ class RuntimeFuturePopulator(
 
     def _on_handle_ready(
         self, handle: RuntimeHandle[DataTypeT, EventTypeT]
-    ) -> None:
+    ) -> None:  # type: ignore[override]
         """Callback invoked by a `RuntimeFactory` when its `RuntimeHandle` is ready.
 
         This method fulfills the `Future` (provided during initialization) with

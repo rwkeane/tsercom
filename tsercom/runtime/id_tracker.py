@@ -259,7 +259,7 @@ class IdTracker(Generic[TrackedDataT]):
                 sep = ", " if args else ""
                 query_repr += f"{sep}kwargs={kwargs}"
             raise KeyError(f"Key not found for query: {query_repr}")
-        return resolved_result  # type: ignore[return-value] # mypy struggles with overload + union return
+        return resolved_result
 
     def add(
         self, caller_id_obj: CallerIdentifier, address: str, port: int

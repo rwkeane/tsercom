@@ -267,7 +267,9 @@ class AsyncPoller(
         """
         # Atomically set to False and get the old value.
         # If it was already False, no need to signal again.
-        was_running = self.__is_loop_running.get_and_set(False)
+        was_running = self.__is_loop_running.get()
+        if was_running:
+            self.__is_loop_running.set(False)
 
         if was_running and self.__event_loop is not None:
             # Schedule setting the barrier on the poller's event loop

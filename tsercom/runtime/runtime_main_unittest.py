@@ -422,6 +422,9 @@ class TestInitializeRuntimes:
 class TestRemoteProcessMain:
     """Tests for the remote_process_main function."""
 
+    async def async_stop_mock(self, *args, **kwargs):
+        pass
+
     def test_normal_execution(
         self,
         mocker,
@@ -451,9 +454,9 @@ class TestRemoteProcessMain:
         mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
 
         mock_runtime1 = mocker.Mock(spec=Runtime)
-        mock_runtime1.stop = mocker.Mock(name="runtime1_stop")
+        mock_runtime1.stop = self.async_stop_mock
         mock_runtime2 = mocker.Mock(spec=Runtime)
-        mock_runtime2.stop = mocker.Mock(name="runtime2_stop")
+        mock_runtime2.stop = self.async_stop_mock
         mock_initialize_runtimes.return_value = [mock_runtime1, mock_runtime2]
 
         mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
@@ -512,9 +515,9 @@ class TestRemoteProcessMain:
         mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
 
         mock_runtime1 = mocker.Mock(spec=Runtime)
-        mock_runtime1.stop = mocker.Mock(name="runtime1_stop")
+        mock_runtime1.stop = self.async_stop_mock
         mock_runtime2 = mocker.Mock(spec=Runtime)
-        mock_runtime2.stop = mocker.Mock(name="runtime2_stop")
+        mock_runtime2.stop = self.async_stop_mock
         mock_initialize_runtimes.return_value = [mock_runtime1, mock_runtime2]
 
         mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value

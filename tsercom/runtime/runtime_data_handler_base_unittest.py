@@ -731,7 +731,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id
             )  # No endpoint, port or context
         assert (
-            "Provide (endpoint/port) or context, not both/neither."  # Updated message
+            "Provide (endpoint and port) or context, but not both or neither."  # Corrected message
             in str(excinfo.value)
         )
 
@@ -746,7 +746,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, endpoint="1.2.3.4"
             )  # Port is None
         assert (
-            "If 'endpoint' provided, 'port' must be too, and vice-versa."  # Updated message
+            "If 'endpoint' is provided, 'port' must also be, and vice-versa."  # Corrected message
             in str(excinfo.value)
         )
 
@@ -761,7 +761,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, port=1234
             )  # Endpoint is None
         assert (
-            "If 'endpoint' provided, 'port' must be too, and vice-versa."  # Updated message
+            "If 'endpoint' is provided, 'port' must also be, and vice-versa."  # Corrected message
             in str(excinfo.value)
         )
 

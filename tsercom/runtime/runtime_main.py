@@ -260,9 +260,11 @@ def remote_process_main(
                 if hasattr(runtime, "stop") and asyncio.iscoroutinefunction(
                     runtime.stop
                 ):
-                    run_on_event_loop(partial(runtime.stop, None))
+                    _ = run_on_event_loop(
+                        partial(runtime.stop, None)
+                    )  # type: ignore[unused-coroutine]
                 elif hasattr(runtime, "stop"):  # Synchronous stop
-                    runtime.stop(None)  # type: ignore[call-arg] # If stop is sync
+                    runtime.stop(None)
             except (
                 Exception
             ) as e_stop:  # pylint: disable=broad-exception-caught

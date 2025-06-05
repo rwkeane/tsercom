@@ -54,7 +54,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         service_type: ServiceType,
         *,
         data_aggregator_client: Optional[
-            RemoteDataAggregator.Client[DataTypeT]
+            RemoteDataAggregator.Client  # Removed [DataTypeT]
         ] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
@@ -67,7 +67,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         service_type: Literal["Client", "Server"],
         *,
         data_aggregator_client: Optional[
-            RemoteDataAggregator.Client[DataTypeT]
+            RemoteDataAggregator.Client  # Removed [DataTypeT]
         ] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
@@ -85,7 +85,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         *,
         other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
         data_aggregator_client: Optional[
-            RemoteDataAggregator.Client[DataTypeT]
+            RemoteDataAggregator.Client  # Removed [DataTypeT]
         ] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
@@ -174,7 +174,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             )
 
         self.__data_aggregator_client: Optional[
-            RemoteDataAggregator.Client[DataTypeT]
+            RemoteDataAggregator.Client  # Removed [DataTypeT]
         ] = data_aggregator_client
         self.__timeout_seconds: Optional[int] = timeout_seconds
         self.__auth_config: Optional[BaseChannelAuthConfig] = auth_config
@@ -219,7 +219,7 @@ class RuntimeConfig(Generic[DataTypeT]):
     @property
     def data_aggregator_client(
         self,
-    ) -> Optional[RemoteDataAggregator.Client[DataTypeT]]:
+    ) -> Optional[RemoteDataAggregator.Client]:  # Removed [DataTypeT]
         """The configured client for a `RemoteDataAggregator`, if any.
 
         Returns:
