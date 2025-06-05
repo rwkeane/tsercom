@@ -1,7 +1,9 @@
 import pytest
-import time  # For potential sleep to simulate thread behavior if needed, though direct call is preferred
 
 from tsercom.api.split_process.data_reader_source import DataReaderSource
+from tsercom.util.is_running_tracker import ( # Moved import to top
+    IsRunningTracker,
+) # Import real one for isinstance check
 
 # from tsercom.utils.is_running_tracker import IsRunningTracker # Faked
 # from tsercom.utils.multiprocess_queue_source import MultiprocessQueueSource # Faked
@@ -23,13 +25,24 @@ class FakeThread:
         self.daemon = False
         self._started = False
         self._joined = False
+        self._is_alive = False  # Add is_alive attribute
 
     def start(self):
         self._started = True
+        self._is_alive = True  # Set to alive on start
         # For tests, we'll call target directly rather than actually threading
 
     def join(self, timeout=None):
+        # In a real scenario, join blocks. For this fake, we can simulate
+        # behavior based on how stop() is supposed to work with __is_running.
+        # If the target loop respects __is_running, it should exit.
+        # We can simulate that it eventually "joins" by setting _is_alive to False.
+        # For the timeout test, we'll mock this further.
         self._joined = True
+        self._is_alive = False  # Assume join means it's no longer alive
+
+    def is_alive(self):  # Add is_alive method
+        return self._is_alive
 
 
 class FakeThreadWatcher:
@@ -38,6 +51,19 @@ class FakeThreadWatcher:
         self.created_thread_args = None
         self.created_thread_daemon = None
         self.fake_thread = None
+        # Initialize on_exception_seen as a MagicMock
+        try:
+            # This will work if mocker is available in this scope,
+            # otherwise, it needs to be passed or imported.
+            # For a fixture, this is tricky. Let's assume tests will patch/set it.
+            # For direct use in tests, test will have 'mocker' fixture.
+            from unittest.mock import MagicMock
+
+            self.on_exception_seen = MagicMock()
+        except ImportError:  # pragma: no cover
+            self.on_exception_seen = None  # Fallback if no mock
+        # self.on_exception_seen_called_with = None # Replaced by MagicMock
+        # self.on_exception_seen_call_count = 0 # Replaced by MagicMock
 
     def create_tracked_thread(self, target, args=(), daemon=True):
         self.created_thread_target = target
@@ -125,9 +151,9 @@ def fake_is_running_tracker():
     return FakeIsRunningTracker()
 
 
-from tsercom.util.is_running_tracker import (
-    IsRunningTracker,
-)  # Import real one for isinstance check
+# from tsercom.util.is_running_tracker import ( # Moved import to top
+#     IsRunningTracker,
+# )  # Import real one for isinstance check
 
 
 @pytest.fixture
@@ -401,3 +427,102 @@ def test_start_creates_daemon_thread(
     assert (
         fake_watcher.fake_thread.daemon is True
     )  # Default for create_tracked_thread is True
+
+
+def test_stop_join_timeout(
+    data_source, fake_watcher, fake_is_running_tracker, mocker
+):
+    """
+    Tests that stop() raises RuntimeError if the polling thread does not join
+    within the timeout.
+    """
+    # Replace the internal tracker with our fake one
+    original_tracker = data_source._DataReaderSource__is_running
+    data_source._DataReaderSource__is_running = fake_is_running_tracker
+
+    # Call start() to create and start the thread
+    fake_is_running_tracker.set_is_running(
+        True
+    )  # So start() thinks it can run
+    data_source.start()
+
+    assert (
+        fake_watcher.fake_thread is not None
+    ), "Thread should have been created"
+
+    # Mock thread.join to do nothing (simulating it never finishes on its own)
+    mocker.patch.object(
+        fake_watcher.fake_thread, "join", side_effect=lambda timeout=None: None
+    )
+    # Mock thread.is_alive to always return True
+    mocker.patch.object(
+        fake_watcher.fake_thread, "is_alive", return_value=True
+    )
+
+    # Updated regex to match the actual error message more broadly
+    with pytest.raises(
+        RuntimeError,
+        match=r"DataReaderSource thread for queue .* did not terminate within 5 seconds.",
+    ):
+        data_source.stop()  # This call will set __is_running to False and then try to join
+
+    # Ensure join was called with the correct timeout
+    fake_watcher.fake_thread.join.assert_called_once_with(timeout=5.0)
+    # is_alive would have been checked after join
+    fake_watcher.fake_thread.is_alive.assert_called_once()
+
+    # Restore original tracker
+    data_source._DataReaderSource__is_running = original_tracker
+
+
+def test_poll_for_data_reader_on_data_ready_exception(
+    data_source,
+    fake_queue,
+    fake_data_reader,
+    fake_watcher,
+    fake_is_running_tracker,
+    mocker,
+):
+    """
+    Tests that if data_reader._on_data_ready raises an exception, it's caught,
+    reported to the watcher, and the poll loop terminates.
+    """
+    original_tracker = data_source._DataReaderSource__is_running
+    data_source._DataReaderSource__is_running = fake_is_running_tracker
+
+    test_exception = ValueError("Reader error")
+    fake_data_reader._on_data_ready = mocker.Mock(
+        side_effect=test_exception
+    )  # More robust mock
+
+    test_item = FakeExposedData()
+    fake_queue.set_return_values([test_item])
+
+    # Ensure the loop runs once then stops to check the exception effect
+    is_running_sequence = [True, False]
+    # We need to control the fake_is_running_tracker's get method
+    original_get_method = fake_is_running_tracker.get
+
+    def sequenced_get():
+        if is_running_sequence:
+            return is_running_sequence.pop(0)
+        return False  # pragma: no cover
+
+    fake_is_running_tracker.get = sequenced_get
+
+    # Ensure fake_watcher.on_exception_seen is a mock for assertion
+    # (It should be by default now due to change in FakeThreadWatcher.__init__)
+    # If it was None due to import error (unlikely in test env), this would fail.
+    assert hasattr(fake_watcher, "on_exception_seen") and callable(
+        fake_watcher.on_exception_seen.assert_called_once_with
+    )
+
+    with pytest.raises(ValueError, match="Reader error"):
+        data_source._DataReaderSource__poll_for_data()
+
+    fake_data_reader._on_data_ready.assert_called_once_with(test_item)
+    fake_watcher.on_exception_seen.assert_called_once_with(test_exception)
+
+    # Restore original get method and tracker
+    fake_is_running_tracker.get = original_get_method
+    data_source._DataReaderSource__is_running = original_tracker

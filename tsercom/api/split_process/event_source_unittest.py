@@ -37,6 +37,12 @@ class FakeThreadWatcher:
         self.created_thread_args = None
         self.created_thread_daemon = None
         self.fake_thread = None
+        try:
+            from unittest.mock import MagicMock
+
+            self.on_exception_seen = MagicMock()
+        except ImportError:  # pragma: no cover
+            self.on_exception_seen = None
 
     def create_tracked_thread(self, target, args=(), daemon=True):
         self.created_thread_target = target
@@ -383,3 +389,112 @@ def test_loop_terminates_on_stop_call(
     teardown_loop_test(
         event_source_instance, original_tracker, original_on_available
     )
+
+
+def test_stop_join_timeout(
+    event_source_instance, fake_thread_watcher, fake_is_running_tracker, mocker
+):
+    """
+    Tests that EventSource.stop() raises RuntimeError if the polling thread
+    does not join within the timeout.
+    """
+    # Replace internal tracker with our fake for this test
+    original_tracker = event_source_instance._EventSource__is_running
+    event_source_instance._EventSource__is_running = fake_is_running_tracker
+
+    # Call start() to create and start the thread
+    fake_is_running_tracker.set_is_running(
+        True
+    )  # So start() thinks it can run
+    event_source_instance.start(fake_thread_watcher)
+
+    assert (
+        fake_thread_watcher.fake_thread is not None
+    ), "Thread should have been created"
+
+    # Mock thread.join to do nothing (simulating it never finishes on its own)
+    mocker.patch.object(
+        fake_thread_watcher.fake_thread,
+        "join",
+        side_effect=lambda timeout=None: None,
+    )
+    # Mock thread.is_alive to always return True after join is called (which means it's still running)
+    mocker.patch.object(
+        fake_thread_watcher.fake_thread, "is_alive", return_value=True
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"ERROR: EventSource thread for .* did not terminate within 5 seconds.",
+    ):  # Added ERROR:
+        event_source_instance.stop()  # This call will set __is_running to False and then try to join
+
+    # Ensure join was called with the correct timeout
+    fake_thread_watcher.fake_thread.join.assert_called_once_with(timeout=5.0)
+    # is_alive is checked twice if the thread is still alive after join
+    assert fake_thread_watcher.fake_thread.is_alive.call_count == 2
+
+    # Restore original tracker
+    event_source_instance._EventSource__is_running = original_tracker
+
+
+def test_loop_on_available_exception(
+    event_source_instance,
+    fake_event_queue,
+    fake_thread_watcher,
+    fake_is_running_tracker,
+    test_event_instance,
+    mocker,
+):
+    """
+    Tests that if on_available raises an exception during the loop,
+    it's caught, reported to the watcher, and the loop terminates (by re-raising).
+    """
+    original_tracker = event_source_instance._EventSource__is_running
+    event_source_instance._EventSource__is_running = fake_is_running_tracker
+
+    test_exception = ValueError("on_available error")
+    # EventSource inherits from AsyncPoller; on_available is a method of AsyncPoller.
+    # We mock it on the EventSource instance.
+    mocker.patch.object(
+        event_source_instance, "on_available", side_effect=test_exception
+    )
+
+    fake_event_queue.set_return_values(
+        [test_event_instance]
+    )  # Provide one item to process
+
+    # Ensure the loop runs once then stops to check the exception effect
+    is_running_sequence = [True, False]
+    original_get_method = fake_is_running_tracker.get
+
+    def sequenced_get():
+        if is_running_sequence:
+            return is_running_sequence.pop(0)
+        return False  # pragma: no cover
+
+    fake_is_running_tracker.get = sequenced_get
+
+    # Ensure fake_watcher.on_exception_seen is a mock for assertion
+    assert hasattr(fake_thread_watcher, "on_exception_seen") and callable(
+        fake_thread_watcher.on_exception_seen.assert_called_once_with
+    )
+
+    # Start the source to set the watcher and get the loop target
+    event_source_instance.start(fake_thread_watcher)
+    loop_target = fake_thread_watcher.created_thread_target
+    # (loop_until_exception is an inner func, target is loop_until_exception itself)
+
+    with pytest.raises(ValueError, match="on_available error"):
+        loop_target()  # Directly call the thread's target function
+
+    event_source_instance.on_available.assert_called_once_with(
+        test_event_instance
+    )
+    fake_thread_watcher.on_exception_seen.assert_called_once_with(
+        test_exception
+    )
+
+    # Restore original get method and tracker
+    fake_is_running_tracker.get = original_get_method
+    event_source_instance._EventSource__is_running = original_tracker

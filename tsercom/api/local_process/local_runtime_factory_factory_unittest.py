@@ -311,3 +311,81 @@ def test_create_factory_calls_create_pair(
     assert (
         factory.timeout_seconds == fake_initializer.timeout_seconds
     )  # property access
+
+
+def test_create_pair_aggregator_no_timeout(
+    factory_factory, mocker, patch_run_on_event_loop
+):
+    """
+    Tests that RemoteDataAggregatorImpl is initialized without a timeout
+    when the initializer's timeout_seconds is None.
+    """
+    # Use the existing FakeRuntimeInitializer from the test file
+    initializer_no_timeout = FakeRuntimeInitializer(timeout_seconds=None)
+
+    # Spy on RemoteDataAggregatorImpl.__init__
+    # The path needs to be where it's imported and used by LocalRuntimeFactoryFactory
+    mock_aggregator_init = mocker.spy(RemoteDataAggregatorImpl, "__init__")
+
+    # Call the method under test
+    factory_factory._create_pair(initializer_no_timeout)
+
+    # Assert that RemoteDataAggregatorImpl.__init__ was called
+    mock_aggregator_init.assert_called_once()
+
+    # Inspect the arguments passed to RemoteDataAggregatorImpl.__init__
+    # call_args is a tuple (args, kwargs) or Call object
+    # We expect __init__(self, thread_pool, client=None, timeout=None, tracker=None)
+    # In _create_pair, client comes from initializer.data_aggregator_client
+    # and thread_pool from self.__thread_pool.
+
+    # Get the keyword arguments passed to __init__
+    # The first argument to spy is `self`, so we look at `call_args[0][0]` for self,
+    # `call_args[0][1]` for thread_pool, etc. if positional.
+    # Or, more robustly, check kwargs if they are used.
+
+    # The constructor of RemoteDataAggregatorImpl is:
+    # def __init__(self, thread_pool: ThreadPoolExecutor, client: Optional[Client] = None,
+    #              timeout: Optional[int] = None, tracker: Optional[DataTimeoutTracker] = None):
+
+    # LocalRuntimeFactoryFactory._create_pair calls it like this when timeout is None:
+    # RemoteDataAggregatorImpl(self.__thread_pool, initializer.data_aggregator_client)
+    # or with timeout:
+    # RemoteDataAggregatorImpl(self.__thread_pool, initializer.data_aggregator_client, timeout=initializer.timeout_seconds)
+
+    args_list = mock_aggregator_init.call_args_list
+    assert len(args_list) == 1
+    call_args = args_list[0]
+
+    # Check positional arguments (self, thread_pool, client)
+    # args[0] is self (the RemoteDataAggregatorImpl instance)
+    # args[1] should be the thread_pool from factory_factory
+    assert (
+        call_args.args[1]
+        is factory_factory._LocalRuntimeFactoryFactory__thread_pool
+    )
+
+    # Check client argument (it's initializer_no_timeout.data_aggregator_client, which is None by default for FakeRuntimeInitializer)
+    client_arg_from_call = None
+    if len(call_args.args) > 2:  # Check if passed positionally
+        client_arg_from_call = call_args.args[2]
+    elif "client" in call_args.kwargs:  # Check if passed as keyword
+        client_arg_from_call = call_args.kwargs["client"]
+
+    assert (
+        client_arg_from_call is initializer_no_timeout.data_aggregator_client
+    )
+
+    # Check keyword arguments
+    # When timeout is None in initializer, _create_pair does not pass 'timeout' or 'tracker' kwargs.
+    # So, kwargs should be empty or not contain 'timeout'.
+    # The default for 'timeout' in RemoteDataAggregatorImpl.__init__ is None.
+    assert (
+        "timeout" not in call_args.kwargs
+    ), "Timeout kwarg should not be present when initializer.timeout_seconds is None"
+    assert (
+        "tracker" not in call_args.kwargs
+    ), "Tracker kwarg should not be present initially"
+
+    # Alternatively, if it always passed timeout=None:
+    # assert call_args.kwargs.get('timeout') is None

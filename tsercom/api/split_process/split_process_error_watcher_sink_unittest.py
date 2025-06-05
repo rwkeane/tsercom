@@ -108,3 +108,35 @@ def test_run_until_exception_with_exception_scenario(
     # Verify exception_queue.put_nowait was called with the exception
     assert fake_exception_queue.put_nowait_call_count == 1
     assert fake_exception_queue.put_nowait_called_with is test_exception
+
+
+def test_run_until_exception_queue_put_fails(
+    error_watcher_sink, fake_thread_watcher, fake_exception_queue, mocker
+):
+    """
+    Tests that run_until_exception re-raises the original exception even if
+    reporting it to the queue fails.
+    """
+    original_exception = SystemError("Original error from watcher")
+    fake_thread_watcher.set_exception_to_raise(original_exception)
+
+    queue_exception = ValueError("Queue put failed")
+    # Patch the put_nowait method on the specific instance of FakeMultiprocessQueueSink
+    fake_exception_queue.put_nowait = mocker.MagicMock(
+        side_effect=queue_exception
+    )
+
+    # Expect the original_exception to be re-raised
+    with pytest.raises(
+        SystemError, match="Original error from watcher"
+    ) as excinfo:
+        error_watcher_sink.run_until_exception()
+
+    assert excinfo.value is original_exception
+
+    # Assert that put_nowait was called with the original_exception
+    fake_exception_queue.put_nowait.assert_called_once_with(original_exception)
+
+    # Logging of the queue_exception is done by the main library, not asserted here
+    # unless we explicitly patch and check the logger within SplitProcessErrorWatcherSink.
+    # The primary check is that the original error propagates.

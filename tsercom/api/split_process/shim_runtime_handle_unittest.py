@@ -1,5 +1,4 @@
 import pytest
-import importlib
 
 import datetime  # Ensure datetime is imported
 
@@ -8,6 +7,9 @@ import tsercom.api.split_process.shim_runtime_handle as shim_module
 from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.data.event_instance import EventInstance
+from tsercom.caller_id.caller_identifier import (
+    CallerIdentifier,
+)  # Added import
 
 # --- Fake Classes for Dependencies ---
 
@@ -353,3 +355,41 @@ def test_get_remote_data_aggregator(handle_block_false, fake_aggregator):
     """Test ShimRuntimeHandle._get_remote_data_aggregator()."""
     retrieved_aggregator = handle_block_false._get_remote_data_aggregator()
     assert retrieved_aggregator is fake_aggregator
+
+
+def test_on_event_with_caller_id_and_timestamp(
+    handle_block_false, fake_event_q_sink, test_event_data, mocker
+):
+    """
+    Tests on_event() with specific caller_id and timestamp.
+    """
+    mock_caller_id = CallerIdentifier.random()
+    # Ensure timezone-aware datetime for consistency, as EventInstance might create one
+    mock_timestamp = datetime.datetime.now(
+        datetime.timezone.utc
+    ) - datetime.timedelta(seconds=30)
+
+    handle_block_false.on_event(
+        test_event_data, caller_id=mock_caller_id, timestamp=mock_timestamp
+    )
+
+    # Since block=False, put_nowait should be called
+    # fake_event_q_sink.put_blocking.assert_not_called() # This would fail if put_blocking was called for some reason
+    assert fake_event_q_sink.put_blocking_call_count == 0  # More direct check
+    assert fake_event_q_sink.put_nowait_call_count == 1
+
+    # If FakeMultiprocessQueueSink directly stores the arg in an attribute:
+    captured_event_instance = fake_event_q_sink.put_nowait_called_with
+
+    assert isinstance(
+        captured_event_instance, EventInstance
+    ), "Captured object must be an EventInstance"
+    assert (
+        captured_event_instance.data == test_event_data
+    ), "EventInstance data does not match"
+    assert (
+        captured_event_instance.caller_id is mock_caller_id
+    ), "EventInstance caller_id does not match"
+    assert (
+        captured_event_instance.timestamp == mock_timestamp
+    ), "EventInstance timestamp does not match"
