@@ -19,7 +19,7 @@ from tsercom.data.serializable_annotated_instance import (
 )
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )

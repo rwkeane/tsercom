@@ -11,7 +11,7 @@ from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime import Runtime
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
 import asyncio
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
@@ -535,221 +535,294 @@ class TestInitializeRuntimes:
 class TestRemoteProcessMain:
     """Tests for the remote_process_main function."""
 
+    # Removed manage_event_loop_for_remote_process fixture
+
     async def async_stop_mock(self, *args, **kwargs):
         pass
 
-    def test_normal_execution(
+    @pytest.mark.asyncio
+    async def test_normal_execution(
         self,
         mocker,
     ):
         """Tests the normal execution path of remote_process_main."""
-        mock_clear_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
-        )
-        MockThreadWatcher = mocker.patch(
-            "tsercom.runtime.runtime_main.ThreadWatcher",
-            return_value=mocker.Mock(spec=ThreadWatcher),
-        )
-        mock_create_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
-        )
-        MockSplitProcessErrorWatcherSink = mocker.patch(
-            "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
-        )
-        mock_initialize_runtimes = mocker.patch(
-            "tsercom.runtime.runtime_main.initialize_runtimes"
-        )
-        mock_run_on_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.run_on_event_loop"
-        )
-
-        mock_factories = [mocker.Mock(spec=RuntimeFactory)]
-        mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
-
-        mock_runtime1 = mocker.Mock(spec=Runtime)
-        mock_runtime1.stop = self.async_stop_mock
-        mock_runtime2 = mocker.Mock(spec=Runtime)
-        mock_runtime2.stop = self.async_stop_mock
-        mock_initialize_runtimes.return_value = [mock_runtime1, mock_runtime2]
-
-        mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
-
-        remote_process_main(mock_factories, mock_error_queue)
-
-        mock_clear_event_loop.assert_called_once()
-        MockThreadWatcher.assert_called_once()
-        mock_create_event_loop.assert_called_once_with(
-            MockThreadWatcher.return_value
-        )
-        MockSplitProcessErrorWatcherSink.assert_called_once_with(
-            MockThreadWatcher.return_value, mock_error_queue
-        )
-        mock_initialize_runtimes.assert_called_once_with(
-            MockThreadWatcher.return_value, mock_factories, is_testing=False
-        )
-        mock_sink_instance.run_until_exception.assert_called_once()
-
-        assert mock_run_on_event_loop.call_count == 2
-        expected_stop_funcs = {mock_runtime1.stop, mock_runtime2.stop}
-        actual_called_stop_funcs = set()
-        for call_args in mock_run_on_event_loop.call_args_list:
-            partial_obj = call_args.args[0]
-            assert isinstance(partial_obj, partial)
-            actual_called_stop_funcs.add(partial_obj.func)
-            assert partial_obj.args == (None,)
-        assert actual_called_stop_funcs == expected_stop_funcs
-
-    def test_remote_process_main_error_queue_put_fails(self, mocker):
-        """Tests error handling when error_queue.put_nowait fails."""
-        mocker.patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
-        mocker.patch("tsercom.runtime.runtime_main.ThreadWatcher")
-        mocker.patch(
-            "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
-        )
-        mocker.patch(
-            "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
-        )
-        mock_initialize_runtimes = mocker.patch(
-            "tsercom.runtime.runtime_main.initialize_runtimes"
-        )
-        # Mock run_on_event_loop to prevent actual calls during finally block
-        mocker.patch("tsercom.runtime.runtime_main.run_on_event_loop")
-
-        mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
-        queue_exception = Exception("Queue put failed")
-        mock_error_queue.put_nowait.side_effect = queue_exception
-
-        mock_factories = [mocker.Mock(spec=RuntimeFactory)]
-        main_exception = RuntimeError("Simulated main error")
-        mock_initialize_runtimes.side_effect = main_exception
-
-        mock_logger = mocker.patch("tsercom.runtime.runtime_main.logger")
-
-        with pytest.raises(RuntimeError, match="Simulated main error"):
-            remote_process_main(mock_factories, mock_error_queue)
-
-        mock_error_queue.put_nowait.assert_called_once_with(main_exception)
-        mock_logger.error.assert_called_once_with(
-            "Failed to put exception onto error_queue: %s", queue_exception
-        )
-
-    def test_remote_process_main_exception_in_factory_stop(self, mocker):
-        """Tests error handling when a factory's _stop method fails."""
-        mocker.patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
-        MockThreadWatcher = mocker.patch(
-            "tsercom.runtime.runtime_main.ThreadWatcher"
-        )
-        mocker.patch(
-            "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
-        )
-        MockSplitProcessErrorWatcherSink = mocker.patch(
-            "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
-        )
-        mock_initialize_runtimes = mocker.patch(
-            "tsercom.runtime.runtime_main.initialize_runtimes"
-        )
-        mock_run_on_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.run_on_event_loop"
-        )
-
-        mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
-
-        mock_factory1 = mocker.Mock(spec=RuntimeFactory)
-        stop_exception = RuntimeError("Factory1 stop failed")
-        mock_factory1._stop.side_effect = stop_exception
-
-        mock_factory2 = mocker.Mock(spec=RuntimeFactory)
-        mock_factory2._stop = (
-            mocker.Mock()
-        )  # No side effect for the second factory
-
-        mock_factories = [mock_factory1, mock_factory2]
-
-        # Simulate some runtimes being initialized
-        mock_runtime = mocker.Mock(spec=Runtime)
-        mock_runtime.stop = (
-            self.async_stop_mock
-        )  # Use existing async_stop_mock
-        mock_initialize_runtimes.return_value = [mock_runtime]
-
-        # Simulate a clean exit from the main try block to reach finally
-        mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
-        # Allow run_until_exception to complete normally without raising an exception
-        mock_sink_instance.run_until_exception.return_value = None
-
-        mock_logger = mocker.patch("tsercom.runtime.runtime_main.logger")
-
-        # Call remote_process_main - it should not re-raise the factory stop exception
+        # Rely on conftest.py:manage_tsercom_loop to set/clear the event loop
         try:
+            mock_clear_event_loop = mocker.patch(
+                "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
+            )
+            MockThreadWatcher = mocker.patch(
+                "tsercom.runtime.runtime_main.ThreadWatcher",
+                return_value=mocker.Mock(spec=ThreadWatcher),
+            )
+            mock_create_event_loop = mocker.patch(  # Mock create_tsercom_event_loop_from_watcher too
+                "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
+            )
+            MockSplitProcessErrorWatcherSink = mocker.patch(
+                "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
+            )
+            mock_initialize_runtimes = mocker.patch(
+                "tsercom.runtime.runtime_main.initialize_runtimes"
+            )
+            # mock_run_on_event_loop is not used by the part of code causing InvalidStateError
+
+            mock_factories = [mocker.Mock(spec=RuntimeFactory)]
+            mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
+
+            mock_runtime1 = mocker.AsyncMock(
+                spec=Runtime
+            )  # Use AsyncMock for stop
+            mock_runtime1.stop = mocker.AsyncMock()  # Make stop an AsyncMock
+            mock_initialize_runtimes.return_value = [mock_runtime1]
+
+            mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
+
+            # Mock the event loop and task chain
+            mock_loop = mocker.patch(
+                "tsercom.runtime.runtime_main.get_global_event_loop"
+            ).return_value
+            mock_task = mocker.AsyncMock()
+            mock_loop.create_task.return_value = mock_task
+            mock_task.result.return_value = None  # Simulate task completion
+
             remote_process_main(mock_factories, mock_error_queue)
-        except Exception as e:
-            # We don't expect exceptions from factory._stop to propagate out of remote_process_main
-            pytest.fail(
-                f"remote_process_main raised unexpected exception: {e}"
+
+            mock_clear_event_loop.assert_called_once()
+            MockThreadWatcher.assert_called_once()
+            mock_create_event_loop.assert_called_once_with(
+                MockThreadWatcher.return_value
+            )
+            MockSplitProcessErrorWatcherSink.assert_called_once_with(
+                MockThreadWatcher.return_value, mock_error_queue
+            )
+            mock_initialize_runtimes.assert_called_once_with(
+                MockThreadWatcher.return_value,
+                mock_factories,
+                is_testing=False,
+            )
+            mock_sink_instance.run_until_exception.assert_called_once()
+
+            mock_runtime1.stop.assert_called_once()  # Check if stop was called
+            mock_loop.create_task.assert_called_once()
+            mock_task.result.assert_called_once()
+        finally:
+            pass  # clear_tsercom_event_loop() will be handled by conftest
+
+    @pytest.mark.asyncio
+    async def test_remote_process_main_error_queue_put_fails(self, mocker):
+        """Tests error handling when error_queue.put_nowait fails."""
+        # Rely on conftest.py:manage_tsercom_loop to set/clear the event loop
+        try:
+            mocker.patch(
+                "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
+            )
+            mocker.patch("tsercom.runtime.runtime_main.ThreadWatcher")
+            mocker.patch(
+                "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
+            )
+            mocker.patch(
+                "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
+            )
+            mock_initialize_runtimes = mocker.patch(
+                "tsercom.runtime.runtime_main.initialize_runtimes"
+            )
+            # Mock run_on_event_loop to prevent actual calls during finally block
+            mocker.patch("tsercom.runtime.runtime_main.run_on_event_loop")
+
+            # Mock the event loop and task chain for this test
+            mock_loop_error_queue = mocker.patch(
+                "tsercom.runtime.runtime_main.get_global_event_loop"
+            ).return_value
+            mock_task_error_queue = mocker.AsyncMock()
+            mock_loop_error_queue.create_task.return_value = (
+                mock_task_error_queue
+            )
+            mock_task_error_queue.result.return_value = (
+                None  # Simulate task completion
             )
 
-        mock_factory1._stop.assert_called_once()
-        mock_logger.error.assert_any_call(  # Use assert_any_call if other errors might be logged
-            "Error stopping factory %s: %s", mock_factory1, stop_exception
-        )
-        mock_factory2._stop.assert_called_once()
-        # Ensure runtime stop is still called
-        mock_run_on_event_loop.assert_called_once()
-        # Verify the specifics of the partial call
-        args, _ = mock_run_on_event_loop.call_args
-        called_partial = args[0]
-        assert isinstance(called_partial, partial)
-        assert called_partial.func is mock_runtime.stop
-        assert called_partial.args == (None,)
+            mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
+            queue_exception = Exception("Queue put failed")
+            mock_error_queue.put_nowait.side_effect = queue_exception
 
-    def test_exception_in_run_until_exception(
+            mock_factories = [mocker.Mock(spec=RuntimeFactory)]
+            main_exception = RuntimeError("Simulated main error")
+            mock_initialize_runtimes.side_effect = main_exception
+
+            mock_logger = mocker.patch("tsercom.runtime.runtime_main.logger")
+
+            with pytest.raises(RuntimeError, match="Simulated main error"):
+                remote_process_main(mock_factories, mock_error_queue)
+
+            mock_error_queue.put_nowait.assert_called_once_with(main_exception)
+            mock_logger.error.assert_called_once_with(
+                "Failed to put exception onto error_queue: %s", queue_exception
+            )
+        finally:
+            pass  # clear_tsercom_event_loop() will be handled by conftest
+
+    @pytest.mark.asyncio
+    async def test_remote_process_main_exception_in_factory_stop(self, mocker):
+        """Tests error handling when a factory's _stop method fails."""
+        # Rely on conftest.py:manage_tsercom_loop to set/clear the event loop
+        try:
+            mocker.patch(
+                "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
+            )
+            MockThreadWatcher = mocker.patch(
+                "tsercom.runtime.runtime_main.ThreadWatcher"
+            )
+            mocker.patch(
+                "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
+            )
+            MockSplitProcessErrorWatcherSink = mocker.patch(
+                "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
+            )
+            mock_initialize_runtimes = mocker.patch(
+                "tsercom.runtime.runtime_main.initialize_runtimes"
+            )
+            mock_run_on_event_loop = mocker.patch(
+                "tsercom.runtime.runtime_main.run_on_event_loop"
+            )
+
+            mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
+
+            mock_factory1 = mocker.Mock(spec=RuntimeFactory)
+            stop_exception = RuntimeError("Factory1 stop failed")
+            mock_factory1._stop.side_effect = stop_exception
+
+            mock_factory2 = mocker.Mock(spec=RuntimeFactory)
+            mock_factory2._stop = (
+                mocker.Mock()
+            )  # No side effect for the second factory
+
+            mock_factories = [mock_factory1, mock_factory2]
+
+            # Simulate some runtimes being initialized
+            mock_runtime1 = mocker.AsyncMock(spec=Runtime)
+            mock_runtime1.stop = mocker.AsyncMock()
+            mock_initialize_runtimes.return_value = [mock_runtime1]
+
+            # Mock the event loop and task chain for this test too
+            mock_loop_factory_stop = mocker.patch(
+                "tsercom.runtime.runtime_main.get_global_event_loop"
+            ).return_value
+            mock_task_factory_stop = mocker.AsyncMock()
+            mock_loop_factory_stop.create_task.return_value = (
+                mock_task_factory_stop
+            )
+            mock_task_factory_stop.result.return_value = (
+                None  # Simulate task completion
+            )
+
+            # Simulate a clean exit from the main try block to reach finally
+            mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
+            # Allow run_until_exception to complete normally without raising an exception
+            mock_sink_instance.run_until_exception.return_value = None
+
+            mock_logger = mocker.patch("tsercom.runtime.runtime_main.logger")
+
+            # Call remote_process_main - it should not re-raise the factory stop exception
+            try:
+                remote_process_main(mock_factories, mock_error_queue)
+            except Exception as e:
+                # We don't expect exceptions from factory._stop to propagate out of remote_process_main
+                pytest.fail(
+                    f"remote_process_main raised unexpected exception: {e}"
+                )
+
+            mock_factory1._stop.assert_called_once()
+            mock_logger.error.assert_any_call(  # Use assert_any_call if other errors might be logged
+                "Error stopping factory %s: %s", mock_factory1, stop_exception
+            )
+            mock_factory2._stop.assert_called_once()
+            # Ensure runtime stop is still called
+            # mock_run_on_event_loop.assert_called_once() # This was incorrect
+            mock_runtime1.stop.assert_called_once()  # Check the AsyncMock
+            mock_loop_factory_stop.create_task.assert_called_once()
+            mock_task_factory_stop.result.assert_called_once()
+            # The following lines regarding 'called_partial' and 'args' are removed
+            # as 'args' is not defined in this scope due to previous changes.
+            # The relevant checks are already made above.
+        finally:
+            pass  # clear_tsercom_event_loop() will be handled by conftest
+
+    @pytest.mark.asyncio
+    async def test_exception_in_run_until_exception(
         self,
         mocker,
     ):
         """Tests error handling when run_until_exception raises an error."""
-        mock_clear_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
-        )
-        MockThreadWatcher = mocker.patch(
-            "tsercom.runtime.runtime_main.ThreadWatcher",
-            return_value=mocker.Mock(spec=ThreadWatcher),
-        )
-        mock_create_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
-        )
-        MockSplitProcessErrorWatcherSink = mocker.patch(
-            "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
-        )
-        mock_initialize_runtimes = mocker.patch(
-            "tsercom.runtime.runtime_main.initialize_runtimes"
-        )
-        mock_run_on_event_loop = mocker.patch(
-            "tsercom.runtime.runtime_main.run_on_event_loop"
-        )
+        # Rely on conftest.py:manage_tsercom_loop to set/clear the event loop
+        try:
+            mock_clear_event_loop = mocker.patch(
+                "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
+            )
+            MockThreadWatcher = mocker.patch(
+                "tsercom.runtime.runtime_main.ThreadWatcher",
+                return_value=mocker.Mock(spec=ThreadWatcher),
+            )
+            mock_create_event_loop = mocker.patch(
+                "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
+            )
+            MockSplitProcessErrorWatcherSink = mocker.patch(
+                "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
+            )
+            mock_initialize_runtimes = mocker.patch(
+                "tsercom.runtime.runtime_main.initialize_runtimes"
+            )
+            mock_run_on_event_loop = mocker.patch(
+                "tsercom.runtime.runtime_main.run_on_event_loop"
+            )
 
-        mock_factories = [mocker.Mock(spec=RuntimeFactory)]
-        mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
+            # Mock the event loop and task chain for this test
+            mock_loop_run_exc = mocker.patch(
+                "tsercom.runtime.runtime_main.get_global_event_loop"
+            ).return_value
+            mock_task_run_exc = mocker.AsyncMock()
+            mock_loop_run_exc.create_task.return_value = mock_task_run_exc
+            mock_task_run_exc.result.return_value = (
+                None  # Simulate task completion
+            )
 
-        mock_runtime1 = mocker.Mock(spec=Runtime)
-        mock_runtime1.stop = self.async_stop_mock
-        mock_runtime2 = mocker.Mock(spec=Runtime)
-        mock_runtime2.stop = self.async_stop_mock
-        mock_initialize_runtimes.return_value = [mock_runtime1, mock_runtime2]
+            mock_factories = [mocker.Mock(spec=RuntimeFactory)]
+            mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
 
-        mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
-        test_exception = RuntimeError("Test error from sink")
-        mock_sink_instance.run_until_exception.side_effect = test_exception
+            mock_runtime1 = mocker.AsyncMock(spec=Runtime)  # Use AsyncMock
+            mock_runtime1.stop = mocker.AsyncMock()  # Use AsyncMock
+            mock_runtime2 = mocker.AsyncMock(spec=Runtime)  # Use AsyncMock
+            mock_runtime2.stop = mocker.AsyncMock()  # Use AsyncMock
+            mock_initialize_runtimes.return_value = [
+                mock_runtime1,
+                mock_runtime2,
+            ]
 
-        with pytest.raises(RuntimeError, match="Test error from sink"):
-            remote_process_main(mock_factories, mock_error_queue)
+            mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
+            test_exception = RuntimeError("Test error from sink")
+            mock_sink_instance.run_until_exception.side_effect = test_exception
 
-        mock_error_queue.put_nowait.assert_called_once_with(test_exception)
-        assert mock_run_on_event_loop.call_count == 2
-        expected_stop_funcs = {mock_runtime1.stop, mock_runtime2.stop}
-        actual_called_stop_funcs = set()
-        for call_args in mock_run_on_event_loop.call_args_list:
-            partial_obj = call_args.args[0]
-            assert isinstance(partial_obj, partial)
-            actual_called_stop_funcs.add(partial_obj.func)
-            assert partial_obj.args == (None,)
-        assert actual_called_stop_funcs == expected_stop_funcs
+            with pytest.raises(RuntimeError, match="Test error from sink"):
+                remote_process_main(mock_factories, mock_error_queue)
+
+            mock_error_queue.put_nowait.assert_called_once_with(test_exception)
+            # mock_run_on_event_loop is not called by remote_process_main for stop logic.
+            # Runtime stop calls are gathered and run via create_task.
+            # assert mock_run_on_event_loop.call_count == 2
+            # Instead, check that initialize_runtimes was called, and mock_error_queue was used.
+            mock_initialize_runtimes.assert_called_once()
+            expected_stop_funcs = {
+                mock_runtime1.stop,
+                mock_runtime2.stop,
+            }  # These mocks won't be called if init_runtimes is empty
+            # actual_called_stop_funcs = set()
+            # for call_args in mock_run_on_event_loop.call_args_list:
+            #     partial_obj = call_args.args[0]
+            #     assert isinstance(partial_obj, partial)
+            #     actual_called_stop_funcs.add(partial_obj.func)
+            #     assert partial_obj.args == (None,)
+            # assert actual_called_stop_funcs == expected_stop_funcs
+            mock_initialize_runtimes.assert_called_once()
+            mock_runtime1.stop.assert_called_once()
+            mock_runtime2.stop.assert_called_once()
+        finally:
+            pass  # clear_tsercom_event_loop() will be handled by conftest
