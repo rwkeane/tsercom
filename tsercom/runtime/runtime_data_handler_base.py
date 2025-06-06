@@ -121,7 +121,24 @@ class RuntimeDataHandlerBase(
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
-        run_on_event_loop(self.__dispatch_poller_data_loop)
+        self.__dispatch_task: Optional[asyncio.Task] = run_on_event_loop(
+            self.__dispatch_poller_data_loop
+        )
+
+    async def stop_dispatch_loop(self) -> None:
+        """Stops the background event dispatching loop."""
+        if self.__dispatch_task is not None and not self.__dispatch_task.done():
+            self.__dispatch_task.cancel()
+            try:
+                await self.__dispatch_task
+            except asyncio.CancelledError:
+                # Expected on cancellation
+                pass
+            except Exception as e:
+                # Log other potential errors during task shutdown
+                # Consider using a logger instance if available
+                print(f"Error stopping dispatch loop: {e}") # Basic print for now
+            self.__dispatch_task = None
 
     @property
     def _id_tracker(
@@ -445,18 +462,34 @@ class RuntimeDataHandlerBase(
         """
         async for events_batch in self.__event_source:
             for event_item in events_batch:
-                # try_get by caller_id returns (address, port, data_poller) or None
-                id_tracker_entry = self._id_tracker.try_get(
-                    event_item.caller_id
-                )
-                if id_tracker_entry is None:
-                    # Potentially log this? Caller might have deregistered.
-                    continue
+                if event_item.caller_id is None:
+                    # Broadcast to all tracked pollers
+                    all_caller_ids = self._id_tracker.get_all_caller_ids()
+                    for current_caller_id in all_caller_ids:
+                        # try_get by caller_id returns (address, port, data_poller) or None
+                        id_tracker_entry = self._id_tracker.try_get(
+                            current_caller_id
+                        )
+                        if id_tracker_entry is not None:
+                            _address, _port, per_caller_poller = id_tracker_entry
+                            if per_caller_poller is not None:
+                                per_caller_poller.on_available(event_item)
+                            # else: Potentially log if poller is None for an active ID
+                        # else: Potentially log if a caller_id from get_all_caller_ids is not found by try_get
+                else:
+                    # Dispatch to a specific poller
+                    # try_get by caller_id returns (address, port, data_poller) or None
+                    id_tracker_entry = self._id_tracker.try_get(
+                        event_item.caller_id
+                    )
+                    if id_tracker_entry is None:
+                        # Potentially log this? Caller might have deregistered.
+                        continue
 
-                _address, _port, per_caller_poller = id_tracker_entry
-                if per_caller_poller is not None:
-                    per_caller_poller.on_available(event_item)
-                # else: Potentially log if poller is None but entry existed?
+                    _address, _port, per_caller_poller = id_tracker_entry
+                    if per_caller_poller is not None:
+                        per_caller_poller.on_available(event_item)
+                    # else: Potentially log if poller is None but entry existed?
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.

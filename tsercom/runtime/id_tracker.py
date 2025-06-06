@@ -352,6 +352,16 @@ class IdTracker(Generic[TrackedDataT]):
             # if modifications occur in another thread (though individual operations are locked).
             return iter(list(self.__id_to_address.keys()))
 
+    def get_all_caller_ids(self) -> list[CallerIdentifier]:
+        """Returns a list of all tracked `CallerIdentifier`s.
+
+        Returns:
+            A list containing all `CallerIdentifier` objects currently
+            tracked by this instance. Returns an empty list if no IDs are tracked.
+        """
+        with self.__lock:
+            return list(self.__id_to_address.keys())
+
     def remove(self, caller_id_obj: CallerIdentifier) -> bool:
         """Removes a `CallerIdentifier` and all its associated mappings.
 

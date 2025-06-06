@@ -4,9 +4,13 @@ import asyncio
 from collections.abc import Callable
 from concurrent.futures import Future
 import datetime
+import dataclasses # Ensure this import is present
 from functools import partial
 from threading import Thread
 import time
+from typing import List, Optional, Any # Ensure List, Optional, Any are imported
+import uuid # For creating specific UUIDs for CallerIdentifier
+
 import pytest
 
 from tsercom.api.runtime_manager import RuntimeManager
@@ -732,6 +736,285 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
             worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
         event_thread.join(timeout=1)
 
+# --- Broadcast Test Components ---
+
+class BroadcastTestRuntimeEvent:
+    def __init__(self, payload: str):
+        self.payload = payload
+
+    def __repr__(self) -> str:
+        return f"<BroadcastTestRuntimeEvent payload='{self.payload}'>"
+
+@dataclasses.dataclass(frozen=True) # Using dataclass for simple data objects
+class BroadcastTestRuntimeData:
+    message: str
+    originator_id_str: str # String representation of the CallerIdentifier that created this data
+
+    def __repr__(self) -> str:
+        return f"<BroadcastTestRuntimeData message='{self.message}' from='{self.originator_id_str}'>"
+
+
+class BroadcastTestRuntime(Runtime):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent],
+        grpc_channel_factory: GrpcChannelFactory, # Included for Runtime signature compatibility
+        test_ids: list[CallerIdentifier],
+    ):
+        super().__init__()
+        self.__thread_watcher = thread_watcher
+        self.__data_handler = data_handler
+        self.__test_ids = test_ids
+        self.__responders: dict[CallerIdentifier, EndpointDataProcessor[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent]] = {}
+        self.__processing_tasks: list[asyncio.Task] = []
+
+    async def _create_processing_task_for_responder(
+        self, test_id: CallerIdentifier, responder: EndpointDataProcessor[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent]
+    ):
+        """Listens to events on a responder's poller and processes them."""
+        try:
+            async for event_list in responder: # event_list is List[SerializableAnnotatedInstance[BroadcastTestRuntimeEvent]]
+                for event_inst in event_list:
+                    # For a broadcast event, event_inst.caller_id might be None.
+                    # We want the runtime to react by generating data associated with *its own* test_id.
+                    processed_data = BroadcastTestRuntimeData(
+                        message=f"processed_event_{event_inst.data.payload}_by_{str(test_id)}",
+                        originator_id_str=str(test_id)
+                    )
+                    await responder.process_data(
+                        processed_data,
+                        datetime.datetime.now(datetime.timezone.utc)
+                    )
+        except asyncio.CancelledError:
+            # print(f"Processing task for {str(test_id)} cancelled.")
+            pass
+        except Exception as e:
+            # print(f"Error in processing task for {str(test_id)}: {e}")
+            # In a real runtime, you'd handle this more robustly (e.g., log, report error)
+            pass
+
+
+    async def start_async(self) -> None:
+        # print(f"BroadcastTestRuntime starting for IDs: {[str(tid) for tid in self.__test_ids]}")
+        # Register all callers and send initial data
+        for i, test_id in enumerate(self.__test_ids):
+            # Using a unique port for each registration for clarity, though for local
+            # scenarios it might not be strictly necessary if endpoint resolution is mocked/handled.
+            # However, RuntimeDataHandlerBase uses (endpoint, port) as part of its ID tracking.
+            port = 50000 + i
+            responder = await self.__data_handler.register_caller(
+                test_id, "127.0.0.1", port
+            )
+            assert responder is not None, f"Failed to register caller {str(test_id)}"
+            self.__responders[test_id] = responder
+            # print(f"Registered {str(test_id)}, sending initial data.")
+            initial_data = BroadcastTestRuntimeData(
+                message=f"initial_for_{str(test_id)}",
+                originator_id_str=str(test_id)
+            )
+            await responder.process_data(
+                initial_data,
+                datetime.datetime.now(datetime.timezone.utc)
+            )
+            # Start a task to listen for events for this responder
+            task = asyncio.create_task(
+                self._create_processing_task_for_responder(test_id, responder)
+            )
+            self.__processing_tasks.append(task)
+        # print("BroadcastTestRuntime start_async complete.")
+
+
+    async def stop(self, exception) -> None: # Matches Runtime signature
+        current_stop_time = datetime.datetime.now(datetime.timezone.utc)
+        print(f"REMOTERUNTIME_STOP_CALLED: {current_stop_time} for instance {id(self)}")
+
+        stop_message_sending_tasks = []
+        # Iterate over self.__test_ids to ensure order and that we attempt for all original IDs
+        for cid in self.__test_ids:
+            responder = self.__responders.get(cid) # Get responder for current cid
+            if responder:
+                print(f"REMOTERUNTIME_STOP_PROCESSING_CLIENT: {str(cid)} at {datetime.datetime.now(datetime.timezone.utc)}")
+                try:
+                    stopped_data = BroadcastTestRuntimeData(
+                        message=f"stopped_for_{str(cid)}",
+                        originator_id_str=str(cid)
+                    )
+                    # Create a task for each process_data call
+                    stop_message_sending_tasks.append(
+                        responder.process_data(
+                            stopped_data,
+                            current_stop_time # Use consistent timestamp
+                        )
+                    )
+                    print(f"REMOTERUNTIME_STOP_TASK_APPENDED_FOR_CLIENT: {str(cid)} at {datetime.datetime.now(datetime.timezone.utc)}")
+                except Exception as e:
+                    print(f"REMOTERUNTIME_STOP_ERROR_APPENDING_TASK_FOR_CLIENT: {str(cid)} - {e!r}")
+            else:
+                print(f"REMOTERUNTIME_STOP_NO_RESPONDER_FOR_CLIENT: {str(cid)}")
+
+        if stop_message_sending_tasks:
+            print(f"REMOTERUNTIME_STOP_AWAITING_GATHER for {len(stop_message_sending_tasks)} tasks at {datetime.datetime.now(datetime.timezone.utc)}")
+            results = await asyncio.gather(*stop_message_sending_tasks, return_exceptions=True)
+            print(f"REMOTERUNTIME_STOP_GATHER_RESULTS: {results} at {datetime.datetime.now(datetime.timezone.utc)}")
+
+        print(f"REMOTERUNTIME_STOP_CANCELLING_PROCESSING_TASKS at {datetime.datetime.now(datetime.timezone.utc)}")
+        for task_idx, task in enumerate(self.__processing_tasks):
+            if not task.done():
+                print(f"REMOTERUNTIME_STOP_CANCELLING_TASK_{task_idx} for {str(self.__test_ids[task_idx]) if task_idx < len(self.__test_ids) else 'unknown_task'}")
+                task.cancel()
+        if self.__processing_tasks:
+            await asyncio.gather(*self.__processing_tasks, return_exceptions=True)
+        print(f"REMOTERUNTIME_STOP_COMPLETED: {datetime.datetime.now(datetime.timezone.utc)}")
+
+
+class BroadcastTestRuntimeInitializer(RuntimeInitializer[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent]):
+    def __init__(self, test_ids: list[CallerIdentifier], service_type="Client"):
+        super().__init__(service_type=service_type)
+        self._test_ids = test_ids
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        return BroadcastTestRuntime(
+            thread_watcher, data_handler, grpc_channel_factory, self._test_ids
+        )
+
+async def _wait_for_data(
+    aggregator,
+    caller_id: CallerIdentifier,
+    expected_message_part: str,
+    data_class_type: type,
+    timeout: float = 5.0,
+    originator_id_str_to_check: Optional[str] = None
+) -> Any: # Returns the found data item
+    """Helper to wait for specific data from the aggregator."""
+    data_arrived = False
+    found_item = None
+    max_wait_time = timeout
+    poll_interval = 0.1
+    waited_time = 0.0
+
+    # print(f"Waiting for data for {str(caller_id)} containing '{expected_message_part}'...")
+    while waited_time < max_wait_time:
+        if aggregator.has_new_data(caller_id):
+            items = aggregator.get_new_data(caller_id) # This clears the items from the organizer for this caller_id
+            print(f"DEBUG: _wait_for_data for {str(caller_id)} got items: {items}")
+            for item_wrapper in items:
+                assert isinstance(item_wrapper, AnnotatedInstance)
+                data_item = item_wrapper.data
+                assert isinstance(data_item, data_class_type)
+                if expected_message_part in data_item.message:
+                    if originator_id_str_to_check is None or data_item.originator_id_str == originator_id_str_to_check:
+                        data_arrived = True
+                        found_item = data_item
+                        # print(f"  Found expected item: {found_item}")
+                        break
+            if data_arrived:
+                break
+        time.sleep(poll_interval)
+        waited_time += poll_interval
+
+    assert data_arrived, (
+        f"Aggregator did not receive data for {str(caller_id)} "
+        f"containing '{expected_message_part}' (originator: {originator_id_str_to_check}) within {max_wait_time}s. "
+        f"Last known data: {aggregator.get_new_data(caller_id) if aggregator.has_new_data(caller_id) else 'None'}"
+    )
+    return found_item
+
+
+def test_broadcast_event_e2e(clear_loop_fixture):
+    """E2E test for event broadcasting functionality."""
+    runtime_manager = RuntimeManager(is_testing=True)
+    runtime_handle_for_cleanup = None
+
+    # Create specific, predictable CallerIdentifiers for testing
+    caller_id_1 = CallerIdentifier(uuid.UUID('00000000-0000-0000-0000-000000000001'))
+    caller_id_2 = CallerIdentifier(uuid.UUID('00000000-0000-0000-0000-000000000002'))
+    caller_id_3 = CallerIdentifier(uuid.UUID('00000000-0000-0000-0000-000000000003'))
+    all_caller_ids = [caller_id_1, caller_id_2, caller_id_3]
+
+    try:
+        runtime_future = runtime_manager.register_runtime_initializer(
+            BroadcastTestRuntimeInitializer(test_ids=all_caller_ids, service_type="Server")
+        )
+        runtime_manager.start_out_of_process()
+        assert runtime_manager.has_started
+        runtime_handle = runtime_future.result(timeout=5) # Increased timeout
+        runtime_handle_for_cleanup = runtime_handle
+        data_aggregator = runtime_handle.data_aggregator
+
+        runtime_handle.start()
+        # print("Runtime handle started.")
+
+        # 1. Verify initial data for all callers
+        # print("Verifying initial data...")
+        for cid in all_caller_ids:
+            # print(f"Checking initial data for {str(cid)}")
+            initial_data = asyncio.run(_wait_for_data(
+                data_aggregator,
+                cid,
+                f"initial_for_{str(cid)}",
+                BroadcastTestRuntimeData,
+                originator_id_str_to_check=str(cid)
+            ))
+            assert initial_data.message == f"initial_for_{str(cid)}"
+        # print("Initial data verified for all callers.")
+
+        # 2. Send a broadcast event
+        broadcast_payload = "test_payload_123"
+        event_to_broadcast = BroadcastTestRuntimeEvent(payload=broadcast_payload)
+        # print(f"Sending broadcast event: {event_to_broadcast}")
+        runtime_handle.on_event(event=event_to_broadcast, caller_id=None) # Broadcast
+
+        # 3. Verify each caller processed the broadcast event
+        # print("Verifying broadcast event reception...")
+        for cid in all_caller_ids:
+            # print(f"Checking broadcast data for {str(cid)}")
+            processed_event_data = asyncio.run(_wait_for_data(
+                data_aggregator,
+                cid,
+                f"processed_event_{broadcast_payload}_by_{str(cid)}",
+                BroadcastTestRuntimeData,
+                originator_id_str_to_check=str(cid),
+                timeout=10 # Increased timeout for event processing
+            ))
+            assert processed_event_data.message == f"processed_event_{broadcast_payload}_by_{str(cid)}"
+        # print("Broadcast event reception verified for all callers.")
+
+        # 4. Stop and cleanup
+        # print("Stopping runtime handle...")
+        runtime_handle.stop()
+
+        time.sleep(0.5) # Added delay to allow IPC queues to flush before checking "stopped"
+
+        # print("Verifying 'stopped' messages...")
+        for cid in all_caller_ids:
+            # print(f"Checking stopped message for {str(cid)}")
+            stopped_data = asyncio.run(_wait_for_data(
+                data_aggregator,
+                cid,
+                f"stopped_for_{str(cid)}",
+                BroadcastTestRuntimeData,
+                originator_id_str_to_check=str(cid),
+                timeout=10 # Increased timeout for "stopped" messages
+            ))
+            assert stopped_data.message == f"stopped_for_{str(cid)}"
+        # print("'stopped' messages verified.")
+
+    finally:
+        # print("Performing final cleanup...")
+        if runtime_handle_for_cleanup:
+            try:
+                runtime_handle_for_cleanup.stop() # Ensure stop is called
+            except Exception:
+                pass # Ignore errors during cleanup stop
+        runtime_manager.shutdown()
+        # print("Test finished.")
+
 
 def test_in_process_initializer_create_error(clear_loop_fixture):
     """
@@ -817,6 +1100,263 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
         if worker_event_loop.is_running():
             worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
         event_thread.join(timeout=1)
+
+# --- Broadcast Test Components ---
+
+class BroadcastTestRuntimeEvent:
+    def __init__(self, payload: str):
+        self.payload = payload
+
+    def __repr__(self) -> str:
+        return f"<BroadcastTestRuntimeEvent payload='{self.payload}'>"
+
+@dataclasses.dataclass(frozen=True) # Using dataclass for simple data objects
+class BroadcastTestRuntimeData:
+    message: str
+    originator_id_str: str # String representation of the CallerIdentifier that created this data
+
+    def __repr__(self) -> str:
+        return f"<BroadcastTestRuntimeData message='{self.message}' from='{self.originator_id_str}'>"
+
+
+class BroadcastTestRuntime(Runtime):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent],
+        grpc_channel_factory: GrpcChannelFactory, # Included for Runtime signature compatibility
+        test_ids: list[CallerIdentifier],
+    ):
+        super().__init__()
+        self.__thread_watcher = thread_watcher
+        self.__data_handler = data_handler
+        self.__test_ids = test_ids
+        self.__responders: dict[CallerIdentifier, EndpointDataProcessor[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent]] = {}
+        self.__processing_tasks: list[asyncio.Task] = []
+
+    async def _create_processing_task_for_responder(
+        self, test_id: CallerIdentifier, responder: EndpointDataProcessor[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent]
+    ):
+        """Listens to events on a responder's poller and processes them."""
+        try:
+            async for event_list in responder: # event_list is List[SerializableAnnotatedInstance[BroadcastTestRuntimeEvent]]
+                for event_inst in event_list:
+                    # For a broadcast event, event_inst.caller_id might be None.
+                    # We want the runtime to react by generating data associated with *its own* test_id.
+                    processed_data = BroadcastTestRuntimeData(
+                        message=f"processed_event_{event_inst.data.payload}_by_{str(test_id)}",
+                        originator_id_str=str(test_id)
+                    )
+                    await responder.process_data(
+                        processed_data,
+                        datetime.datetime.now(datetime.timezone.utc)
+                    )
+        except asyncio.CancelledError:
+            # print(f"Processing task for {str(test_id)} cancelled.")
+            pass
+        except Exception as e:
+            # print(f"Error in processing task for {str(test_id)}: {e}")
+            # In a real runtime, you'd handle this more robustly (e.g., log, report error)
+            pass
+
+
+    async def start_async(self) -> None:
+        # print(f"BroadcastTestRuntime starting for IDs: {[str(tid) for tid in self.__test_ids]}")
+        # Register all callers and send initial data
+        for i, test_id in enumerate(self.__test_ids):
+            # Using a unique port for each registration for clarity, though for local
+            # scenarios it might not be strictly necessary if endpoint resolution is mocked/handled.
+            # However, RuntimeDataHandlerBase uses (endpoint, port) as part of its ID tracking.
+            port = 50000 + i
+            responder = await self.__data_handler.register_caller(
+                test_id, "127.0.0.1", port
+            )
+            assert responder is not None, f"Failed to register caller {str(test_id)}"
+            self.__responders[test_id] = responder
+            # print(f"Registered {str(test_id)}, sending initial data.")
+            initial_data = BroadcastTestRuntimeData(
+                message=f"initial_for_{str(test_id)}",
+                originator_id_str=str(test_id)
+            )
+            await responder.process_data(
+                initial_data,
+                datetime.datetime.now(datetime.timezone.utc)
+            )
+            # Start a task to listen for events for this responder
+            task = asyncio.create_task(
+                self._create_processing_task_for_responder(test_id, responder)
+            )
+            self.__processing_tasks.append(task)
+        # print("BroadcastTestRuntime start_async complete.")
+
+
+    async def stop(self, exception) -> None: # Matches Runtime signature
+        # print("BroadcastTestRuntime stopping...")
+        for test_id, responder in self.__responders.items():
+            try:
+                stopped_data = BroadcastTestRuntimeData(
+                    message=f"stopped_for_{str(test_id)}",
+                    originator_id_str=str(test_id)
+                )
+                await responder.process_data(
+                    stopped_data,
+                    datetime.datetime.now(datetime.timezone.utc) # Using now() for stop time
+                )
+            except Exception as e:
+                # print(f"Error sending stop message for {str(test_id)}: {e}")
+                pass # Ignore errors during stop for test robustness
+
+        for task in self.__processing_tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*self.__processing_tasks, return_exceptions=True)
+        # print("BroadcastTestRuntime stop complete.")
+
+
+class BroadcastTestRuntimeInitializer(RuntimeInitializer[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent]):
+    def __init__(self, test_ids: list[CallerIdentifier], service_type="Client"):
+        super().__init__(service_type=service_type)
+        self._test_ids = test_ids
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[BroadcastTestRuntimeData, BroadcastTestRuntimeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        return BroadcastTestRuntime(
+            thread_watcher, data_handler, grpc_channel_factory, self._test_ids
+        )
+
+async def _wait_for_data(
+    aggregator,
+    caller_id: CallerIdentifier,
+    expected_message_part: str,
+    data_class_type: type,
+    timeout: float = 5.0,
+    originator_id_str_to_check: Optional[str] = None
+) -> Any: # Returns the found data item
+    """Helper to wait for specific data from the aggregator."""
+    data_arrived = False
+    found_item = None
+    max_wait_time = timeout
+    poll_interval = 0.1
+    waited_time = 0.0
+
+    # print(f"Waiting for data for {str(caller_id)} containing '{expected_message_part}'...")
+    while waited_time < max_wait_time:
+        if aggregator.has_new_data(caller_id):
+            items = aggregator.get_new_data(caller_id)
+            # print(f"  Got {len(items)} items for {str(caller_id)}: {items}")
+            for item_wrapper in items:
+                assert isinstance(item_wrapper, AnnotatedInstance)
+                data_item = item_wrapper.data
+                assert isinstance(data_item, data_class_type)
+                if expected_message_part in data_item.message:
+                    if originator_id_str_to_check is None or data_item.originator_id_str == originator_id_str_to_check:
+                        data_arrived = True
+                        found_item = data_item
+                        # print(f"  Found expected item: {found_item}")
+                        break
+            if data_arrived:
+                break
+        time.sleep(poll_interval)
+        waited_time += poll_interval
+
+    assert data_arrived, (
+        f"Aggregator did not receive data for {str(caller_id)} "
+        f"containing '{expected_message_part}' (originator: {originator_id_str_to_check}) within {max_wait_time}s. "
+        f"Last known data: {aggregator.get_new_data(caller_id) if aggregator.has_new_data(caller_id) else 'None'}"
+    )
+    return found_item
+
+
+def test_broadcast_event_e2e(clear_loop_fixture):
+    """E2E test for event broadcasting functionality."""
+    runtime_manager = RuntimeManager(is_testing=True)
+    runtime_handle_for_cleanup = None
+
+    # Create specific, predictable CallerIdentifiers for testing
+    caller_id_1 = CallerIdentifier(uuid.UUID('00000000-0000-0000-0000-000000000001'))
+    caller_id_2 = CallerIdentifier(uuid.UUID('00000000-0000-0000-0000-000000000002'))
+    caller_id_3 = CallerIdentifier(uuid.UUID('00000000-0000-0000-0000-000000000003'))
+    all_caller_ids = [caller_id_1, caller_id_2, caller_id_3]
+
+    try:
+        runtime_future = runtime_manager.register_runtime_initializer(
+            BroadcastTestRuntimeInitializer(test_ids=all_caller_ids, service_type="Server")
+        )
+        runtime_manager.start_out_of_process()
+        assert runtime_manager.has_started
+        runtime_handle = runtime_future.result(timeout=5) # Increased timeout
+        runtime_handle_for_cleanup = runtime_handle
+        data_aggregator = runtime_handle.data_aggregator
+
+        runtime_handle.start()
+        # print("Runtime handle started.")
+
+        # 1. Verify initial data for all callers
+        # print("Verifying initial data...")
+        for cid in all_caller_ids:
+            # print(f"Checking initial data for {str(cid)}")
+            initial_data = asyncio.run(_wait_for_data(
+                data_aggregator,
+                cid,
+                f"initial_for_{str(cid)}",
+                BroadcastTestRuntimeData,
+                originator_id_str_to_check=str(cid)
+            ))
+            assert initial_data.message == f"initial_for_{str(cid)}"
+        # print("Initial data verified for all callers.")
+
+        # 2. Send a broadcast event
+        broadcast_payload = "test_payload_123"
+        event_to_broadcast = BroadcastTestRuntimeEvent(payload=broadcast_payload)
+        # print(f"Sending broadcast event: {event_to_broadcast}")
+        runtime_handle.on_event(event=event_to_broadcast, caller_id=None) # Broadcast
+
+        # 3. Verify each caller processed the broadcast event
+        # print("Verifying broadcast event reception...")
+        for cid in all_caller_ids:
+            # print(f"Checking broadcast data for {str(cid)}")
+            processed_event_data = asyncio.run(_wait_for_data(
+                data_aggregator,
+                cid,
+                f"processed_event_{broadcast_payload}_by_{str(cid)}",
+                BroadcastTestRuntimeData,
+                originator_id_str_to_check=str(cid),
+                timeout=10 # Increased timeout for event processing
+            ))
+            assert processed_event_data.message == f"processed_event_{broadcast_payload}_by_{str(cid)}"
+        # print("Broadcast event reception verified for all callers.")
+
+        # 4. Stop and cleanup
+        # print("Stopping runtime handle...")
+        runtime_handle.stop()
+
+        # print("Verifying 'stopped' messages...")
+        for cid in all_caller_ids:
+            print(f"DEBUG_TEST: About to wait for 'stopped' message for {str(cid)} with explicit timeout=20") # Distinct print
+            stopped_data = asyncio.run(_wait_for_data(
+                data_aggregator,
+                cid,
+                f"stopped_for_{str(cid)}",
+                BroadcastTestRuntimeData,
+                originator_id_str_to_check=str(cid),
+                timeout=20 # Increased to 20 seconds
+            ))
+            assert stopped_data.message == f"stopped_for_{str(cid)}"
+        # print("'stopped' messages verified.")
+
+    finally:
+        # print("Performing final cleanup...")
+        if runtime_handle_for_cleanup:
+            try:
+                runtime_handle_for_cleanup.stop() # Ensure stop is called
+            except Exception:
+                pass # Ignore errors during cleanup stop
+        runtime_manager.shutdown()
+        # print("Test finished.")
 
 
 def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
