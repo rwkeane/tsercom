@@ -109,6 +109,20 @@ class RemoteDataAggregatorImpl(
         ] = {}
         self.__lock: threading.Lock = threading.Lock()
 
+    def close(self) -> None:
+        """Stops the internal DataTimeoutTracker if it was created and started by this instance."""
+        if self.__tracker is not None:
+            # Check if this instance of RemoteDataAggregatorImpl actually created the tracker.
+            # This is a heuristic; if tracker was passed in, this instance is not its owner.
+            # A more robust way would be to have an internal flag, e.g., self.__owns_tracker.
+            # For now, we assume if self.__tracker exists, it might need stopping by this instance.
+            # The DataTimeoutTracker.stop() method itself is idempotent.
+            self.__tracker.stop() # Changed from await to direct call
+            # We might not want to set self.__tracker to None if it was passed in,
+            # as the owner might still need it. However, if we created it, clearing is fine.
+            # For simplicity in this refactor, let's assume if we stop it, we are done with it here.
+            # self.__tracker = None # Decided against clearing if it could be externally owned.
+
     def stop(
         self, identifier: Optional[CallerIdentifier] = None
     ) -> None:  # Renamed id to identifier

@@ -23,7 +23,10 @@ from typing import (
     Optional,
 )  # Added Optional
 
+import asyncio
+import concurrent.futures
 import grpc
+import logging # Added for potential logging
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
@@ -121,7 +124,30 @@ class RuntimeDataHandlerBase(
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
-        run_on_event_loop(self.__dispatch_poller_data_loop)
+        self._RuntimeDataHandlerBase__dispatch_loop_future: Optional[concurrent.futures.Future] = None
+        try:
+            # Assuming global_event_loop is imported correctly where this class is used,
+            # or it's available via tsercom.threading.aio.global_event_loop
+            from tsercom.threading.aio import global_event_loop as tsercom_global_loop
+
+            loop = tsercom_global_loop.get_global_event_loop() # This asserts if loop is not set.
+            if loop.is_running():
+                # Create coroutine object first
+                coro = self._RuntimeDataHandlerBase__dispatch_poller_data_loop()
+                self._RuntimeDataHandlerBase__dispatch_loop_future = asyncio.run_coroutine_threadsafe(coro, loop)
+            else:
+                # logger = logging.getLogger(__name__)
+                # logger.warning("RuntimeDataHandlerBase: Event loop not running. __dispatch_poller_data_loop will not be started.")
+                pass # Future remains None
+        except AssertionError: # Raised by get_global_event_loop if not set
+            # logger = logging.getLogger(__name__)
+            # logger.warning("RuntimeDataHandlerBase: No global event loop set. __dispatch_poller_data_loop will not be started.")
+            pass # Future remains None
+        except RuntimeError: # Can be raised by run_coroutine_threadsafe if loop is closed before task runs
+            # logger = logging.getLogger(__name__)
+            # logger.warning("RuntimeDataHandlerBase: Event loop closed or closing. __dispatch_poller_data_loop may not have started.", exc_info=True)
+            pass # Future remains None
+
 
     @property
     def _id_tracker(

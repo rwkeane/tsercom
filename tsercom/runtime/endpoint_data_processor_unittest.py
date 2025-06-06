@@ -17,7 +17,7 @@ DataTypeT = TypeVar("DataTypeT")
 EventTypeT = TypeVar("EventTypeT")
 
 
-class ConcreteTestProcessor(
+class MockEndpointProcessor(
     Generic[DataTypeT, EventTypeT],
     EndpointDataProcessor[DataTypeT, EventTypeT],
 ):
@@ -69,7 +69,7 @@ def mock_caller_id():
 @pytest.fixture
 def processor(mock_caller_id, mocker):
     # Use object as a simple placeholder for DataTypeT and EventTypeT if not specified
-    return ConcreteTestProcessor[object, object](mock_caller_id, mocker)
+    return MockEndpointProcessor[object, object](mock_caller_id, mocker)
 
 
 @pytest.mark.asyncio

@@ -90,6 +90,8 @@ class FakeRuntime(Runtime):
     async def stop(self, exception) -> None:
         assert self.__responder is not None
         await self.__responder.process_data(FakeData(stopped), stop_timestamp)
+        if hasattr(self.__data_handler, 'close') and callable(self.__data_handler.close):
+            await self.__data_handler.close()
 
 
 class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):

@@ -34,11 +34,6 @@ import tsercom.threading.aio.global_event_loop as gev_loop
 # Import for auth_config
 
 
-async def dummy_coroutine_for_test():
-    """A simple coroutine that does nothing, for mocking awaitables."""
-    pass
-
-
 @pytest.fixture
 def mock_thread_watcher(mocker):
     mock = mocker.MagicMock(spec=ThreadWatcher)
@@ -247,9 +242,7 @@ class TestRuntimeManager:
             mock_factory_instance.auth_config = None
 
             mock_runtime_on_factory = MagicMock()
-            mock_runtime_on_factory.start_async = AsyncMock(
-                return_value=dummy_coroutine_for_test()
-            )
+            mock_runtime_on_factory.start_async = AsyncMock(return_value=None)
             mock_factory_instance.create.return_value = mock_runtime_on_factory
 
             mock_local_rff.create_factory.return_value = mock_factory_instance
@@ -526,9 +519,7 @@ class TestRuntimeManager:
                 factory_mock.auth_config = None
 
                 mock_runtime_on_factory = MagicMock()
-                mock_runtime_on_factory.start_async = AsyncMock(
-                    return_value=dummy_coroutine_for_test()
-                )
+                mock_runtime_on_factory.start_async = AsyncMock(return_value=None)
                 factory_mock.create.return_value = mock_runtime_on_factory
                 return factory_mock
 

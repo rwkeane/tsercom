@@ -284,37 +284,37 @@ class TestTimeSyncClientOperations:
         assert client.get_offset_seconds() == pytest.approx(first_offset)
         assert client._TimeSyncClient__start_barrier.is_set()
 
-    # def test_assertion_error_in_loop_calls_watcher_and_stops_loop(
-    #     self,
-    #     client: TimeSyncClient,
-    #     mock_ntp_client_fixture,
-    #     mock_thread_watcher_fixture,
-    # ):
-    #     test_exception = AssertionError("Test assertion in loop")
-    #     mock_ntp_client_fixture.request.side_effect = test_exception
-    #     client.start_async()
-    #     max_wait_cycles = 10
-    #     cycles = 0
-    #     while (
-    #         mock_thread_watcher_fixture.on_exception_seen.call_count == 0
-    #         and cycles < max_wait_cycles
-    #     ):
-    #         time.sleep(0.1)
-    #         cycles += 1
-    #     mock_thread_watcher_fixture.on_exception_seen.assert_called_once_with(
-    #         test_exception
-    #     )
-    #     sync_loop_thread = client._TimeSyncClient__sync_loop_thread
-    #     if sync_loop_thread:
-    #         sync_loop_thread.join(timeout=1.0)
-    #         assert (
-    #             not sync_loop_thread.is_alive()
-    #         ), "Sync loop thread should be dead."
-    #     assert (
-    #         client.is_running()
-    #     ), "is_running is True as loop crash doesn't call client.stop()."
-    #     client.stop()
-    #     assert not client.is_running()
+    def test_assertion_error_in_loop_calls_watcher_and_stops_loop(
+        self,
+        client: TimeSyncClient,
+        mock_ntp_client_fixture,
+        mock_thread_watcher_fixture,
+    ):
+        test_exception = AssertionError("Test assertion in loop")
+        mock_ntp_client_fixture.request.side_effect = test_exception
+        client.start_async()
+        max_wait_cycles = 10
+        cycles = 0
+        while (
+            mock_thread_watcher_fixture.on_exception_seen.call_count == 0
+            and cycles < max_wait_cycles
+        ):
+            time.sleep(0.1)
+            cycles += 1
+        mock_thread_watcher_fixture.on_exception_seen.assert_called_once_with(
+            test_exception
+        )
+        sync_loop_thread = client._TimeSyncClient__sync_loop_thread
+        if sync_loop_thread:
+            sync_loop_thread.join(timeout=1.0)
+            assert (
+                not sync_loop_thread.is_alive()
+            ), "Sync loop thread should be dead."
+        assert (
+            client.is_running()
+        ), "is_running is True as loop crash doesn't call client.stop()."
+        client.stop()
+        assert not client.is_running()
 
     def test_general_exception_in_loop_logs_and_continues(
         self, client: TimeSyncClient, mock_ntp_client_fixture, mocker
