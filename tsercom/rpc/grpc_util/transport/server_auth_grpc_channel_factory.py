@@ -1,9 +1,8 @@
-# tsercom/rpc/grpc_util/transport/server_auth_grpc_channel_factory.py
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, List, Optional, Union  # Added List, Union
+from typing import Any, List, Optional, Union
 
 import grpc
 

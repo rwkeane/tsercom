@@ -162,7 +162,7 @@ def initialize_runtimes(
         # Add a callback to propagate exceptions from runtime startup to the thread_watcher.
         def _runtime_start_done_callback(
             f: concurrent.futures.Future[Any],
-            watcher: ThreadWatcher,  # Renamed for clarity
+            watcher: ThreadWatcher,
         ) -> None:
             """Callback to handle completion of a runtime's start_async future."""
             try:

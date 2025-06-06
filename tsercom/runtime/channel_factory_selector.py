@@ -1,6 +1,5 @@
 """Selects and manages gRPC channel factories based on configuration."""
 
-# tsercom/runtime/channel_factory_selector.py
 import logging
 from typing import Optional
 

@@ -3,7 +3,7 @@
 import dataclasses
 from typing import (
     List,
-    TypeVar,  # Add TypeVar
+    TypeVar,
 )
 
 

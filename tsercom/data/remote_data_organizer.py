@@ -1,7 +1,7 @@
 """Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
 
 import datetime
-import logging  # Add logging import
+import logging
 import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor

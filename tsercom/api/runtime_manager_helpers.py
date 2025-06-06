@@ -14,7 +14,6 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 # You might need to import specific queue type if available,
 # otherwise, use 'Any' or a generic 'multiprocessing.Queue'.
-# from tsercom.threading.multiprocess.multiprocess_queue_factory import SomeQueueType
 
 logger = logging.getLogger(__name__)
 

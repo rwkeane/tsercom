@@ -1,10 +1,7 @@
 import asyncio
 import pytest
 
-# import unittest # Removed
-import uuid  # Import uuid
-
-# from unittest.mock import AsyncMock, patch # Removed
+import uuid
 
 from tsercom.caller_id.client_id_fetcher import ClientIdFetcher
 from tsercom.caller_id.caller_identifier import CallerIdentifier

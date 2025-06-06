@@ -8,7 +8,7 @@ truth for time, providing a synchronized clock for its clients, often through
 a `TimeSyncServer`.
 """
 
-from typing import Generic, Optional, TypeVar  # Added Optional
+from typing import Generic, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance

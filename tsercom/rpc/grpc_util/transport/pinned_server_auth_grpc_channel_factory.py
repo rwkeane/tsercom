@@ -1,4 +1,3 @@
-# tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py
 from __future__ import annotations
 
 import asyncio

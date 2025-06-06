@@ -3,9 +3,6 @@ import functools
 
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 
-# Assuming aio_utils are used as imported in data_timeout_tracker.py
-# from tsercom.threading.aio.aio_utils import run_on_event_loop, is_running_on_event_loop
-
 
 # --- Fixtures ---
 

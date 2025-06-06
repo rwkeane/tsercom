@@ -18,7 +18,6 @@ class MockProtoCallerIdType:
 # This will be handled by importing CallerIdentifier within the tests or fixtures that need it,
 # or by re-importing it within the fixture. For module-scoped application,
 # we can reload the SUT module within the fixture.
-# Removed global import of CallerIdentifier
 
 
 @pytest.fixture(scope="function")
@@ -182,14 +181,3 @@ def test_constructor_with_invalid_type(PatchedCallerIdentifier):
         TypeError, match="id_value must be a UUID instance, got <class 'int'>"
     ):
         PatchedCallerIdentifier(123)
-
-
-# Removed redundant/problematic tests like:
-# - test_try_parse_grpc_caller_id_correct_access (covered by test_try_parse_grpc_caller_id)
-# - test_to_grpc_type_mock_instance_check (covered by test_to_grpc_type with refined mock)
-# - test_id_property (testing private attribute)
-# The original test_try_parse_grpc_caller_id was failing due to mock issues, now hopefully fixed.
-# The original test_to_grpc_type was failing due to mock issues, now hopefully fixed.
-# The original test_string_representations for repr was failing, fixed in SUT.
-# The original test_constructor_with_invalid_type was expecting TypeError, SUT raised AssertionError, fixed in SUT.
-# The original test_to_grpc_type_mock_instance_check was checking isinstance(grpc_id, MagicMock), now uses MockProtoCallerIdType.

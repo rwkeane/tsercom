@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from tsercom.data.exposed_data import ExposedData  # Import ExposedData
+from tsercom.data.exposed_data import ExposedData
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_config import RuntimeConfig

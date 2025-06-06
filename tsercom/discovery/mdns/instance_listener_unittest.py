@@ -8,7 +8,7 @@ from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.instance_listener import (
     InstanceListener,
     ServiceInfo,
-    ServiceInfoT,  # Changed TServiceInfo to ServiceInfoT
+    ServiceInfoT,
 )
 from tsercom.discovery.mdns.record_listener import (
     RecordListener,
@@ -273,14 +273,10 @@ class TestInstanceListener:
         received_info = self.mock_il_client.get_received_service_info()
         assert received_info is not None
         assert isinstance(received_info, ServiceInfo)
-        assert (
-            received_info.name == "My Readable Name"
-        )  # Changed readable_name to name
+        assert received_info.name == "My Readable Name"
         assert received_info.port == port
         assert received_info.addresses == [ip_str]
-        assert (
-            received_info.mdns_name == record_name
-        )  # Changed instance_name to mdns_name
+        assert received_info.mdns_name == record_name
 
     @pytest.mark.asyncio
     async def test_on_service_added_no_ip_addresses(self):

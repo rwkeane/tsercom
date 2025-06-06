@@ -1,6 +1,6 @@
 """Publishes mDNS service records using zeroconf."""
 
-import asyncio  # Added import
+import asyncio
 import logging  # For _logger
 from asyncio import AbstractEventLoop  # For type hinting
 from typing import Dict, Optional
@@ -70,7 +70,6 @@ class RecordPublisher(MdnsPublisher):
             )
             # Optionally, unregister first or update. For now, assume
             # re-registering is desired or Zeroconf handles it.
-            # await self.close() # Would unregister/close before re-registering
 
         self._service_info = ServiceInfo(  # Store service_info
             type_=self.__ptr,

@@ -7,7 +7,6 @@ from typing import Callable, Iterable
 
 import grpc
 
-# Removed: from tsercom.rpc.grpc.async_grpc_exception_interceptor import AsyncGrpcExceptionInterceptor
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings

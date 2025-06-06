@@ -1,7 +1,6 @@
 import pytest
 import threading
 
-# Removed: from unittest.mock import Mock
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.caller_id.caller_id_map import CallerIdMap
