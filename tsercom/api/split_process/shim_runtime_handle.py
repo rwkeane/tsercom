@@ -108,19 +108,23 @@ class ShimRuntimeHandle(
 
         Args:
             event: The event to send.
-            caller_id: Optional caller ID (ignored).
-            timestamp: Optional event timestamp (ignored).
+            caller_id: Optional `CallerIdentifier`. This ID is packaged into the
+                       `EventInstance` and sent to the remote runtime. While this
+                       shim handle itself doesn't use the ID for routing decisions
+                       before queueing, the ID is preserved for the remote runtime.
+            timestamp: Optional event timestamp. If None, `datetime.now()` is used.
+                       This timestamp is packaged into the `EventInstance`.
         """
-        # `caller_id` and `timestamp` are part of RuntimeHandle interface,
-        # but shim doesn't use them when sending to queue.
-        _ = caller_id  # Preserved for clarity, not used for queue type
-        _ = timestamp  # Preserved for clarity
+        # `caller_id` and `timestamp` are packaged into the EventInstance.
+        # The ShimRuntimeHandle itself may not use them for pre-queueing logic,
+        # but they are not discarded and are sent to the remote process.
 
         effective_timestamp = (
             timestamp
             if timestamp is not None
             else datetime.datetime.now(tz=datetime.timezone.utc)
         )
+        # caller_id is passed directly to EventInstance.
         event_instance = EventInstance(
             data=event, caller_id=caller_id, timestamp=effective_timestamp
         )

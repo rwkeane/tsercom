@@ -22,6 +22,7 @@ from typing import (
     overload,
     Optional,
 )  # Added Optional
+import logging # Added for logging
 
 import grpc
 
@@ -47,6 +48,8 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+
+logger = logging.getLogger(__name__) # Added logger instance
 
 
 class RuntimeDataHandlerBase(
@@ -443,20 +446,48 @@ class RuntimeDataHandlerBase(
         per-caller `AsyncPoller`. If found, the event is put onto that
         dedicated poller.
         """
-        async for events_batch in self.__event_source:
-            for event_item in events_batch:
-                # try_get by caller_id returns (address, port, data_poller) or None
-                id_tracker_entry = self._id_tracker.try_get(
-                    event_item.caller_id
-                )
-                if id_tracker_entry is None:
-                    # Potentially log this? Caller might have deregistered.
-                    continue
-
+    def _broadcast_event_to_all_pollers(
+        self, event_item: SerializableAnnotatedInstance[EventTypeT]
+    ) -> None:
+        """Sends the event_item to all tracked pollers."""
+        all_caller_ids = self._id_tracker.get_all_caller_ids()
+        for current_caller_id in all_caller_ids:
+            id_tracker_entry = self._id_tracker.try_get(current_caller_id)
+            if id_tracker_entry is not None:
                 _address, _port, per_caller_poller = id_tracker_entry
                 if per_caller_poller is not None:
                     per_caller_poller.on_available(event_item)
-                # else: Potentially log if poller is None but entry existed?
+                # else: Potentially log if poller is None for an active ID
+            # else: Potentially log if a caller_id from get_all_caller_ids is not found by try_get
+
+    def _dispatch_event_to_specific_poller(
+        self, event_item: SerializableAnnotatedInstance[EventTypeT]
+    ) -> None:
+        """Dispatches the event_item to a specific poller based on event_item.caller_id."""
+        if event_item.caller_id is None:
+            logger.error(
+                "DEVELOPER ERROR: _dispatch_event_to_specific_poller called with None caller_id."
+            )
+            return
+
+        id_tracker_entry = self._id_tracker.try_get(event_item.caller_id)
+        if id_tracker_entry is None:
+            # Potentially log this? Caller might have deregistered.
+            return
+
+        _address, _port, per_caller_poller = id_tracker_entry
+        if per_caller_poller is not None:
+            per_caller_poller.on_available(event_item)
+        # else: Potentially log if poller is None but entry existed for this specific caller_id
+
+    async def __dispatch_poller_data_loop(self) -> None:
+        """Continuously polls the main event source and dispatches events."""
+        async for events_batch in self.__event_source:
+            for event_item in events_batch:
+                if event_item.caller_id is None:
+                    self._broadcast_event_to_all_pollers(event_item)
+                else:
+                    self._dispatch_event_to_specific_poller(event_item)
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.

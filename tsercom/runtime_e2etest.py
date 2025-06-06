@@ -26,8 +26,12 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 started = "STARTED"
 stopped = "STOPPED"
 
-start_timestamp = datetime.datetime.now() - datetime.timedelta(hours=10)
-stop_timestamp = datetime.datetime.now() + datetime.timedelta(minutes=20)
+start_timestamp = datetime.datetime.now(
+    tz=datetime.timezone.utc
+) - datetime.timedelta(hours=10)
+stop_timestamp = datetime.datetime.now(
+    tz=datetime.timezone.utc
+) + datetime.timedelta(minutes=20)
 
 test_id = CallerIdentifier.random()
 
@@ -42,7 +46,8 @@ class FakeData:
 
 
 class FakeEvent:
-    pass
+    def __init__(self, payload: str):
+        self.payload = payload
 
 
 class FakeRuntime(Runtime):
@@ -51,51 +56,126 @@ class FakeRuntime(Runtime):
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[FakeData, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
-        test_id: CallerIdentifier,
+        caller_ids: list[CallerIdentifier],  # Changed from test_id
     ):
         self.__thread_watcher = thread_watcher
         self.__data_handler = data_handler
         self.__grpc_channel_factory = grpc_channel_factory
-        self.__test_id = test_id
-        self.__responder: EndpointDataProcessor[FakeData] | None = None
-        self._data_sent = False
+        self.__caller_ids = caller_ids  # Store the list of caller IDs
+        self.__responders_map: dict[
+            CallerIdentifier, EndpointDataProcessor[FakeData, FakeEvent]
+        ] = {}
+        self._data_sent_initial = False  # Renamed to avoid confusion
+        self.__event_processing_tasks: list[asyncio.Task] = []
 
         super().__init__()
 
     def __repr__(self) -> str:
-        return f"<FakeRuntime instance at {id(self)}>"
+        return f"<FakeRuntime instance at {id(self)} for {len(self.__caller_ids)} callers>"
+
+    async def _process_events_for_caller(
+        self,
+        responder: EndpointDataProcessor[FakeData, FakeEvent],
+        caller_id_for_this_responder: CallerIdentifier,
+    ):
+        try:
+            async for (
+                event_list
+            ) in (
+                responder
+            ):  # event_list is List[SerializableAnnotatedInstance[FakeEvent]]
+                for event_inst in event_list:
+                    actual_event = event_inst.data  # This is FakeEvent
+                    # Ensure actual_event has a payload if it's expected
+                    payload_str = getattr(
+                        actual_event, "payload", "unknown_payload"
+                    )
+                    output_data = FakeData(
+                        f"broadcast_echo_{payload_str}_for_{str(caller_id_for_this_responder)[:8]}"
+                    )
+                    await responder.process_data(
+                        output_data,
+                        datetime.datetime.now(tz=datetime.timezone.utc),
+                    )
+        except Exception as e:
+            # Handle exceptions during event processing, e.g., logging
+            # In a real scenario, this might involve more robust error handling
+            print(
+                f"Error processing events for {caller_id_for_this_responder}: {e}"
+            )
 
     async def start_async(self) -> None:
         try:
             asyncio.current_task()
         except RuntimeError:
-            pass
+            pass  # Not running in a task, which is fine for some contexts
 
         await asyncio.sleep(0.01)
 
-        self.__responder = await self.__data_handler.register_caller(
-            self.__test_id, "0.0.0.0", 443
-        )
-
-        if not self._data_sent:
-            fresh_data_value = "FRESH_SIMPLE_DATA_V2"
-            fresh_data_object = FakeData(fresh_data_value)
-            fresh_timestamp = datetime.datetime.now()
-
-            await self.__responder.process_data(
-                fresh_data_object, fresh_timestamp
+        for i, cid in enumerate(self.__caller_ids):
+            # Use a unique port for each registration to simulate different callers if needed,
+            # though for E2E against a single runtime instance, host/port might be less critical
+            # than the CallerIdentifier itself.
+            port = 443 + i
+            responder = await self.__data_handler.register_caller(
+                cid, "0.0.0.0", port
             )
-            self._data_sent = True
+            self.__responders_map[cid] = responder
+            # Start a task to process events for this specific responder
+            task = asyncio.create_task(
+                self._process_events_for_caller(responder, cid)
+            )
+            self.__event_processing_tasks.append(task)
+
+        # Optional: Send initial data only for the first caller, if desired for some tests.
+        # For the broadcast test, this might not be necessary or could be removed.
+        if self.__caller_ids and not self._data_sent_initial:
+            first_caller_id = self.__caller_ids[0]
+            first_responder = self.__responders_map.get(first_caller_id)
+            if first_responder:
+                fresh_data_value = "FRESH_SIMPLE_DATA_V2"
+                fresh_data_object = FakeData(fresh_data_value)
+                fresh_timestamp = datetime.datetime.now(
+                    tz=datetime.timezone.utc
+                )
+                await first_responder.process_data(
+                    fresh_data_object, fresh_timestamp
+                )
+                self._data_sent_initial = True
 
     async def stop(self, exception) -> None:
-        assert self.__responder is not None
-        await self.__responder.process_data(FakeData(stopped), stop_timestamp)
+        # Send "stopped" message for all registered responders sequentially
+        for caller_id, responder in self.__responders_map.items():
+            if responder:
+                try:
+                    await responder.process_data(
+                        FakeData(stopped), stop_timestamp
+                    )
+                    await asyncio.sleep(
+                        0.01
+                    )  # Allow event loop to process this IPC operation
+                except Exception as e:
+                    print(f"Error sending stop message for {caller_id}: {e}")
+
+        # Then, cancel and gather the main event processing tasks
+        for task in self.__event_processing_tasks:
+            if not task.done():
+                task.cancel()
+
+        await asyncio.gather(
+            *self.__event_processing_tasks, return_exceptions=True
+        )
+
+        self.__event_processing_tasks.clear()
+        self.__responders_map.clear()
 
 
 class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
-    def __init__(self, test_id: CallerIdentifier, service_type="Client"):
+    def __init__(
+        self, caller_ids: list[CallerIdentifier], service_type="Client"
+    ):  # Changed from test_id
         super().__init__(service_type=service_type)
-        self._test_id = test_id
+        self._caller_ids = caller_ids  # Store list of caller_ids
 
     def create(
         self,
@@ -104,7 +184,10 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         return FakeRuntime(
-            thread_watcher, data_handler, grpc_channel_factory, self._test_id
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self._caller_ids,  # Pass list
         )
 
 
@@ -191,8 +274,8 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         current_test_id = CallerIdentifier.random()
         runtime_manager.check_for_exception()
         runtime_future = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(
-                test_id=current_test_id, service_type="Server"
+            FakeRuntimeInitializer(  # Pass a list of caller IDs
+                caller_ids=[current_test_id], service_type="Server"
             )
         )
 
@@ -442,10 +525,14 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
 
         # Register two FakeRuntimeInitializers
         runtime_future_1 = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(test_id=test_id_1, service_type="Server")
+            FakeRuntimeInitializer(
+                caller_ids=[test_id_1], service_type="Server"
+            )
         )
         runtime_future_2 = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(test_id=test_id_2, service_type="Server")
+            FakeRuntimeInitializer(
+                caller_ids=[test_id_2], service_type="Server"
+            )
         )
 
         assert not runtime_future_1.done()
@@ -638,8 +725,8 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
 
         # Key difference: service_type="Client"
         runtime_future = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(
-                test_id=current_test_id, service_type="Client"
+            FakeRuntimeInitializer(  # Pass a list of caller IDs
+                caller_ids=[current_test_id], service_type="Client"
             )
         )
 
@@ -909,3 +996,147 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
             pass
         elif test_thread:  # ensure it's joined if it finished on its own
             test_thread.join(timeout=1)
+
+
+def test_broadcast_event_e2e(clear_loop_fixture):  # Added clear_loop_fixture
+    """
+    End-to-end test for broadcast event functionality.
+    Verifies that an event sent with caller_id=None is received by all
+    registered runtime instances (EndpointDataProcessors).
+    """
+    runtime_manager = RuntimeManager(is_testing=True)
+    runtime_handle_for_cleanup = None
+    try:
+        caller_id_1 = CallerIdentifier.random()
+        caller_id_2 = CallerIdentifier.random()
+        caller_id_3 = CallerIdentifier.random()
+        all_caller_ids = [caller_id_1, caller_id_2, caller_id_3]
+
+        runtime_manager.check_for_exception()
+        runtime_future = runtime_manager.register_runtime_initializer(
+            FakeRuntimeInitializer(
+                caller_ids=all_caller_ids, service_type="Server"
+            )
+        )
+
+        assert not runtime_future.done()
+        assert not runtime_manager.has_started
+        runtime_manager.start_out_of_process()  # Using out-of-process for this test
+        assert runtime_manager.has_started
+        assert runtime_future.done()
+
+        runtime_manager.check_for_exception()
+        runtime_handle = runtime_future.result()
+        runtime_handle_for_cleanup = runtime_handle
+        data_aggregator = runtime_handle.data_aggregator
+
+        # Start the runtime (which in turn starts FakeRuntime.start_async)
+        runtime_handle.start()
+
+        # Allow some time for FakeRuntime.start_async to complete and register callers
+        # and for the initial "FRESH_SIMPLE_DATA_V2" to be processed for the first caller.
+        time.sleep(1.0)  # Increased sleep
+
+        # Clear any initial data (e.g., FRESH_SIMPLE_DATA_V2 from the first caller)
+        if data_aggregator.has_new_data(caller_id_1):
+            data_aggregator.get_new_data(caller_id_1)
+
+        # Trigger a broadcast event
+        broadcast_payload = f"broadcast_event_{int(time.time())}"
+        test_event = FakeEvent(payload=broadcast_payload)
+        runtime_handle.on_event(event=test_event, caller_id=None)
+
+        # Verification for each caller
+        max_wait_time = 10.0  # Increased timeout for multiple data points
+        poll_interval = 0.1
+
+        for cid in all_caller_ids:
+            data_arrived_for_cid = False
+            waited_time = 0.0
+            received_data_value = None
+            while waited_time < max_wait_time:
+                runtime_manager.check_for_exception()  # Check for errors during wait
+                if data_aggregator.has_new_data(cid):
+                    values = data_aggregator.get_new_data(cid)
+                    assert isinstance(values, list)
+                    # We expect one piece of data in response to the broadcast for each caller
+                    # Filter out "stopped" messages if they arrive early due to test structure
+                    relevant_values = [
+                        v
+                        for v in values
+                        if isinstance(v.data, FakeData)
+                        and v.data.value != stopped
+                    ]
+                    if relevant_values:
+                        assert (
+                            len(relevant_values) == 1
+                        ), f"Expected 1 relevant data item for {cid}, got {len(relevant_values)}"
+                        first_item = relevant_values[0]
+                        assert isinstance(first_item, AnnotatedInstance)
+                        assert first_item.caller_id == cid
+                        assert isinstance(first_item.data, FakeData)
+                        received_data_value = first_item.data.value
+                        data_arrived_for_cid = True
+                        break
+                time.sleep(poll_interval)
+                waited_time += poll_interval
+
+            assert (
+                data_arrived_for_cid
+            ), f"Data for broadcast event not received by caller {str(cid)[:8]} within {max_wait_time}s"
+            expected_data_payload = (
+                f"broadcast_echo_{broadcast_payload}_for_{str(cid)[:8]}"
+            )
+            assert (
+                received_data_value == expected_data_payload
+            ), f"Incorrect payload for {str(cid)[:8]}. Expected '{expected_data_payload}', got '{received_data_value}'"
+            assert not data_aggregator.has_new_data(
+                cid
+            ), f"Aggregator should have no new data for {str(cid)[:8]} after get"
+
+        # Stop and cleanup
+        runtime_handle.stop()
+        runtime_manager.check_for_exception()  # Check for errors during stop
+
+        time.sleep(
+            3.0
+        )  # Significantly increase sleep to allow "stopped" messages to propagate
+
+        # Wait for and verify "stopped" messages for all callers
+        for cid in all_caller_ids:
+            stopped_data_arrived = False
+            waited_time = 0.0
+            while waited_time < max_wait_time:
+                if data_aggregator.has_new_data(cid):
+                    values = data_aggregator.get_new_data(cid)
+                    # Filter for the "stopped" message
+                    stopped_values = [
+                        v
+                        for v in values
+                        if isinstance(v.data, FakeData)
+                        and v.data.value == stopped
+                    ]
+                    if stopped_values:
+                        assert len(stopped_values) == 1
+                        first_stopped = stopped_values[0]
+                        assert isinstance(first_stopped, AnnotatedInstance)
+                        assert first_stopped.caller_id == cid
+                        assert isinstance(first_stopped.data, FakeData)
+                        assert first_stopped.data.value == stopped
+                        stopped_data_arrived = True
+                        break
+                time.sleep(poll_interval)
+                waited_time += poll_interval
+            assert (
+                stopped_data_arrived
+            ), f"Aggregator did not receive 'stopped' data for caller {str(cid)[:8]} within {max_wait_time}s"
+            # It's possible other data (like previous broadcast echos if test failed before get_new_data) might exist.
+            # The critical part is that the 'stopped' message was received.
+
+    finally:
+        if runtime_handle_for_cleanup:
+            try:
+                runtime_handle_for_cleanup.stop()
+            except Exception:
+                pass  # Ignore errors during cleanup stop
+        runtime_manager.shutdown()

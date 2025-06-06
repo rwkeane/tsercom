@@ -23,6 +23,16 @@ if not TYPE_CHECKING:
     if False:
         pass
 
+    elif version_string == "v1_72":
+        from tsercom.timesync.common.proto.generated.v1_72.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_70":
+        from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import (
+            ServerTimestamp,
+        )
+
     elif version_string == "v1_62":
         from tsercom.timesync.common.proto.generated.v1_62.time_pb2 import (
             ServerTimestamp,
@@ -30,11 +40,6 @@ if not TYPE_CHECKING:
 
     elif version_string == "v1_71":
         from tsercom.timesync.common.proto.generated.v1_71.time_pb2 import (
-            ServerTimestamp,
-        )
-
-    elif version_string == "v1_70":
-        from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import (
             ServerTimestamp,
         )
 
@@ -48,6 +53,6 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import (
+    from tsercom.timesync.common.proto.generated.v1_71.time_pb2 import (
         ServerTimestamp as ServerTimestamp,
     )

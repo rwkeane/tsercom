@@ -74,7 +74,9 @@ class RemoteDataOrganizer(
         self.__data: Deque[DataTypeT] = Deque[DataTypeT]()
 
         # Timestamp of the most recent data item retrieved via get_new_data().
-        self.__last_access: datetime.datetime = datetime.datetime.min
+        self.__last_access: datetime.datetime = datetime.datetime.min.replace(
+            tzinfo=datetime.timezone.utc
+        )
 
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
@@ -311,7 +313,7 @@ class RemoteDataOrganizer(
         if not self.__is_running.get():
             return
 
-        current_time = datetime.datetime.now()
+        current_time = datetime.datetime.now(tz=datetime.timezone.utc)
         timeout_delta = datetime.timedelta(seconds=timeout_seconds)
         oldest_allowed_timestamp = current_time - timeout_delta
 
