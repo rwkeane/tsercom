@@ -27,10 +27,13 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
+import logging # Added for logging
 
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
+
+logger = logging.getLogger(__name__) # Added logger instance
 
 
 class RemoteRuntimeFactory(
@@ -101,7 +104,9 @@ class RemoteRuntimeFactory(
         # Note: Base `RuntimeFactory` expects RemoteDataReader[AnnotatedInstance[DataTypeT]].
         # DataReaderSink is compatible.
         if self.__data_reader_sink is None:
-            self.__data_reader_sink = DataReaderSink(self.__data_reader_queue)
+            self.__data_reader_sink = DataReaderSink(
+                self.__data_reader_queue, is_lossy=False
+            )
         return self.__data_reader_sink
 
     def _event_poller(
@@ -168,4 +173,20 @@ class RemoteRuntimeFactory(
             and hasattr(self.__event_source, "is_running")
             and self.__event_source.is_running
         ):
-            self.__event_source.stop()
+            self.__event_source.stop()  # This should handle closing __event_source_queue
+
+        # Explicitly close and join the data_reader_queue's sink side
+        # DataReaderSink uses this queue to send data back to the main process.
+        # We need to ensure its feeder thread is joined.
+        if self.__data_reader_queue is not None:
+            try:
+                # DataReaderSink itself doesn't have a stop, so we manage its queue here.
+                # This is MultiprocessQueueSink from the perspective of the remote process
+                # (where _stop() is called).
+                self.__data_reader_queue.close()
+                self.__data_reader_queue.join_thread(timeout=4.0) # Increased timeout
+            except Exception as e:
+                logger.error(f"Error closing data_reader_queue in RemoteRuntimeFactory._stop: {e}")
+
+        # Note: RuntimeCommandSource also has a stop_async that closes its queue.
+        # EventSource.stop() also closes its queue.

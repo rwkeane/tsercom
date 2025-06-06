@@ -171,6 +171,13 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
         self.__process: Optional[Process] = None
+        # For two-stage shutdown
+        self.__control_to_remote_sink: Optional[MultiprocessQueueSink[str]] = (
+            None
+        )
+        self.__ack_from_remote_source: Optional[MultiprocessQueueSource[str]] = (
+            None
+        )
 
     @property
     def has_started(self) -> bool:
@@ -319,6 +326,16 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         error_source: MultiprocessQueueSource[Exception]
         error_sink, error_source = create_multiprocess_queues()
 
+        # Queues for two-stage shutdown control
+        control_to_remote_sink, control_to_remote_source = (
+            create_multiprocess_queues()
+        )
+        ack_from_remote_sink, ack_from_remote_source = (
+            create_multiprocess_queues()
+        )
+        self.__control_to_remote_sink = control_to_remote_sink
+        self.__ack_from_remote_source = ack_from_remote_source
+
         self.__error_watcher = (
             self.__split_error_watcher_source_factory.create(
                 self.__thread_watcher, error_source
@@ -339,6 +356,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             remote_process_main,
             factories,
             error_sink,
+            control_to_remote_source,  # New argument
+            ack_from_remote_sink,  # New argument
             is_testing=self.__is_testing,
         )
         process_daemon = start_as_daemon or self.__is_testing
@@ -414,15 +433,89 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         """
         logger.info("RuntimeManager.shutdown: Starting shutdown sequence.")
 
+        # --- Stage 1: Quiesce Runtimes & Flush Queues ---
+        if (
+            self.__process is not None
+            and self.__process.is_alive()
+            and self.__control_to_remote_sink is not None
+            and self.__ack_from_remote_source is not None
+        ):
+            logger.info(
+                "Sending PREPARE_SHUTDOWN command to remote process."
+            )
+            try:
+                success = self.__control_to_remote_sink.put_blocking(
+                    "PREPARE_SHUTDOWN", timeout=1.0
+                )
+                if not success:
+                    logger.warning(
+                        "Failed to send PREPARE_SHUTDOWN command to remote process (timeout)."
+                    )
+                else:
+                    logger.info(
+                        "Waiting for SHUTDOWN_READY acknowledgment from remote process."
+                    )
+                    ack = self.__ack_from_remote_source.get_blocking(
+                        timeout=7.0
+                    )  # Increased timeout for remote cleanup
+                    if ack == "SHUTDOWN_READY":
+                        logger.info(
+                            "Received SHUTDOWN_READY ack from remote process."
+                        )
+                    elif ack is None: # Timeout
+                        logger.warning(
+                            "Timeout waiting for SHUTDOWN_READY ack. Remote cleanup may be incomplete."
+                        )
+                    else: # Error or unexpected ack
+                        logger.warning(
+                            f"Received unexpected ack '{ack}' from remote process. Remote cleanup may have failed."
+                        )
+            except Exception as e_q:
+                logger.error(
+                    f"Exception during PREPARE_SHUTDOWN/ACK sequence: {e_q}"
+                )
+
+        # --- Stage 2: Terminate Process ---
         if self.__process is not None and self.__process.is_alive():
-            logger.info("Terminating out-of-process runtime process.")
-            self.__process.kill()  # kill() is more forceful than terminate()
-            self.__process.join(timeout=5)  # Wait for kill
+            logger.info(
+                "Attempting graceful termination of out-of-process runtime process (SIGTERM)."
+            )
+            self.__process.terminate()
+            self.__process.join(timeout=5)  # Wait for graceful termination
+
             if self.__process.is_alive():
                 logger.warning(
-                    "Out-of-process runtime process did not terminate cleanly after kill()."
+                    "Out-of-process runtime process did not terminate gracefully after SIGTERM. Forcing kill (SIGKILL)."
+                )
+                self.__process.kill()
+                self.__process.join(timeout=1)  # Wait for kill
+                if self.__process.is_alive():
+                    logger.error(
+                        "Out-of-process runtime process still alive after kill attempt."
+                    )
+            else:
+                logger.info(
+                    "Out-of-process runtime process successfully terminated."
                 )
             self.__process = None
+
+        # --- Cleanup Queues ---
+        if self.__control_to_remote_sink is not None:
+            try:
+                self.__control_to_remote_sink.close()
+                self.__control_to_remote_sink.join_thread()
+            except Exception as e_q_close:
+                logger.warning(f"Error closing control_to_remote_sink: {e_q_close}")
+            self.__control_to_remote_sink = None
+
+        if self.__ack_from_remote_source is not None:
+            try:
+                self.__ack_from_remote_source.close()
+                self.__ack_from_remote_source.join_thread()
+            except Exception as e_q_close:
+                logger.warning(f"Error closing ack_from_remote_source: {e_q_close}")
+            self.__ack_from_remote_source = None
+
 
         if isinstance(self.__error_watcher, SplitProcessErrorWatcherSource):
             if self.__error_watcher.is_running:

@@ -73,3 +73,21 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
             return True
         except Full:  # Queue is full.
             return False
+
+    def close(self) -> None:
+        """
+        Closes the queue.
+
+        Indicates that no more data will be put on this queue by this process.
+        The feeder thread will exit when all buffered data is flushed to the pipe.
+        """
+        self.__queue.close()
+
+    def join_thread(self) -> None:
+        """
+        Joins the background thread.
+
+        Blocks until the background thread (which flushes buffered data to the
+        pipe) exits. This can only be called after `close()`.
+        """
+        self.__queue.join_thread()

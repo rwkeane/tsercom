@@ -71,3 +71,26 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
         except Empty:  # Queue is empty.
             return None
         # Other exceptions (EOFError, OSError) are not caught here.
+
+    def close(self) -> None:
+        """
+        Closes the queue from the reading end.
+
+        For `multiprocessing.Queue`, `close()` is typically called by the writer
+        to signal no more data. A reader calling `close()` might not be standard,
+        but if the underlying queue supports it or it's for resource cleanup,
+        it's included. The main purpose is to allow `join_thread` to be called.
+        """
+        # Underlying multiprocessing.Queue.close() is primarily for writers.
+        # However, it's safe to call and necessary before join_thread.
+        self.__queue.close()
+
+    def join_thread(self) -> None:
+        """
+        Joins the background thread associated with the queue.
+
+        Blocks until the background thread (which flushes buffered data to the
+        pipe) exits. This should be called after the queue has been closed
+        and all items have been read, or if the reader is done.
+        """
+        self.__queue.join_thread()
