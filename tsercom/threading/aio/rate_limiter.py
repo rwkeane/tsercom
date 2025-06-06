@@ -7,8 +7,8 @@ concrete implementations:
   - `NullRateLimiter`: A no-op rate limiter that imposes no restrictions.
 """
 
-from abc import ABC, abstractmethod
 import asyncio
+from abc import ABC, abstractmethod
 
 
 class RateLimiter(ABC):

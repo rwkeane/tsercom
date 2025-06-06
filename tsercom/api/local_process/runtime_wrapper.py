@@ -6,14 +6,14 @@ from typing import Generic, Optional, TypeVar
 from tsercom.api.local_process.runtime_command_bridge import (
     RuntimeCommandBridge,
 )
+from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
-from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.threading.aio.async_poller import AsyncPoller
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)

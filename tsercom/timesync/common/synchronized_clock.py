@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 import datetime
+from abc import ABC, abstractmethod
 
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,

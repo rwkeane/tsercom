@@ -1,7 +1,7 @@
 """Defines the CallerIdentifier class for uniquely identifying callers."""
 
-from typing import Optional, Union
 import uuid
+from typing import Optional, Union
 
 from tsercom.caller_id.proto import CallerId
 

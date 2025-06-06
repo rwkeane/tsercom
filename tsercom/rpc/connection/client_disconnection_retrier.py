@@ -1,22 +1,26 @@
-from abc import abstractmethod
 import asyncio
+import logging
+from abc import abstractmethod
 from functools import partial
 from typing import (
+    Any,
     Callable,
+    Coroutine,
     Generic,
     Optional,
     TypeVar,
-    Coroutine,
-    Any,
 )
-import logging
 
 from tsercom.rpc.connection.client_reconnection_handler import (
     ClientReconnectionManager,
 )
 from tsercom.rpc.grpc_util.grpc_caller import (
     delay_before_retry as default_delay_before_retry,
+)
+from tsercom.rpc.grpc_util.grpc_caller import (
     is_grpc_error as default_is_grpc_error,
+)
+from tsercom.rpc.grpc_util.grpc_caller import (
     is_server_unavailable_error as default_is_server_unavailable_error,
 )
 from tsercom.threading.aio.aio_utils import (

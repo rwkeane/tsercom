@@ -17,13 +17,16 @@ Key features include:
 import asyncio
 import threading
 from collections import deque  # Use collections.deque directly
+
+# Defer import of IsRunningTracker to break circular dependency
 from typing import (
+    TYPE_CHECKING,
+    AsyncIterator,
     Deque,
     Generic,
     List,
-    TypeVar,
-    AsyncIterator,
     Optional,
+    TypeVar,
 )
 
 from tsercom.threading.aio.aio_utils import (
@@ -36,9 +39,6 @@ from tsercom.threading.aio.rate_limiter import (
     RateLimiter,
     RateLimiterImpl,
 )
-
-# Defer import of IsRunningTracker to break circular dependency
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tsercom.util.is_running_tracker import IsRunningTracker

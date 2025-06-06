@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import asyncio
-import grpc
 import logging
 from typing import (
     Any,
-    Optional,
     List,
+    Optional,
     Union,
 )
+
+import grpc
 
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 

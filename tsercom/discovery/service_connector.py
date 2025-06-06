@@ -8,16 +8,18 @@ client upon successful connection. It also handles marking connections as failed
 to allow for re-discovery and re-connection.
 """
 
-from abc import ABC, abstractmethod
-from functools import partial
-from typing import Generic, TypeVar, Optional, Set
 import asyncio
 import logging
+from abc import ABC, abstractmethod
+from functools import partial
+from typing import Generic, Optional, Set, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_source import (
-    ServiceSource,
     ServiceInfoT as SourceServiceInfoT,
+)
+from tsercom.discovery.service_source import (
+    ServiceSource,
 )
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -25,7 +27,6 @@ from tsercom.threading.aio.aio_utils import (
     run_on_event_loop,
 )
 from tsercom.util.connection_factory import ConnectionFactory
-
 
 ChannelTypeT = TypeVar("ChannelTypeT")
 

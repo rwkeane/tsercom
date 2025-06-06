@@ -1,17 +1,17 @@
 """mDNS instance listener, builds on RecordListener."""
 
+import logging
+import socket
 from abc import ABC, abstractmethod
 from functools import partial
-import socket
 from typing import Callable, Dict, Generic, List, Optional  # Removed TypeVar
-import logging
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
+from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.discovery.service_info import (
     ServiceInfo,
     ServiceInfoT,  # Changed TServiceInfo to ServiceInfoT
 )
-from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 
 

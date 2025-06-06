@@ -1,11 +1,11 @@
 """Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
 
+import datetime
 import logging  # Add logging import
+import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-import datetime
 from functools import partial
-import threading
 from typing import Deque, Generic, List, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier

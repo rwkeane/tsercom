@@ -1,11 +1,11 @@
 """Defines ClientIdFetcher for lazily fetching a CallerIdentifier via gRPC."""
 
-import logging  # Add logging import
 import asyncio
+import logging  # Add logging import
 from typing import Any, Optional
 
-from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 
 
 # pylint: disable=too-few-public-methods

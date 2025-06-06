@@ -1,18 +1,18 @@
 """ShimRuntimeHandle for interacting with a separate process runtime."""
 
 import datetime
-from typing import TypeVar, Optional
+from typing import Optional, TypeVar
 
+from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.api.runtime_handle import RuntimeHandle
+from tsercom.api.split_process.data_reader_source import DataReaderSource
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.data.exposed_data import ExposedData
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
+from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.api.split_process.data_reader_source import DataReaderSource
-from tsercom.api.runtime_handle import RuntimeHandle
-from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
@@ -20,7 +20,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")

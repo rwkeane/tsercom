@@ -3,26 +3,26 @@
 # tsercom/runtime/channel_factory_selector.py
 import logging
 from typing import Optional
+
 from tsercom.rpc.grpc_util.channel_auth_config import (
     BaseChannelAuthConfig,
-    InsecureChannelConfig,
-    ServerCAChannelConfig,
-    PinnedServerChannelConfig,
     ClientAuthChannelConfig,
+    InsecureChannelConfig,
+    PinnedServerChannelConfig,
+    ServerCAChannelConfig,
 )
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
+    ClientAuthGrpcChannelFactory,
+)
 from tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory import (
     InsecureGrpcChannelFactory,
 )
-from tsercom.rpc.grpc_util.transport.server_auth_grpc_channel_factory import (
-    ServerAuthGrpcChannelFactory,
-)
-
 from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory import (
     PinnedServerAuthGrpcChannelFactory,
 )
-from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
-    ClientAuthGrpcChannelFactory,
+from tsercom.rpc.grpc_util.transport.server_auth_grpc_channel_factory import (
+    ServerAuthGrpcChannelFactory,
 )
 
 logger = logging.getLogger(__name__)

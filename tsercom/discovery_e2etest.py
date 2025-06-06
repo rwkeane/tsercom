@@ -1,19 +1,20 @@
 import asyncio
-import uuid
-import ipaddress
 import gc  # Moved import gc to top level
+import ipaddress
+import uuid
 
 import pytest
 import pytest_asyncio  # Import pytest_asyncio
 
+from tsercom.discovery.mdns.instance_listener import InstanceListener
+from tsercom.discovery.mdns.instance_publisher import InstancePublisher
+from tsercom.discovery.service_info import ServiceInfo
+
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
 from tsercom.threading.aio.global_event_loop import (
-    set_tsercom_event_loop,
     clear_tsercom_event_loop,
+    set_tsercom_event_loop,
 )
-from tsercom.discovery.service_info import ServiceInfo
-from tsercom.discovery.mdns.instance_publisher import InstancePublisher
-from tsercom.discovery.mdns.instance_listener import InstanceListener
 
 
 class DiscoveryTestClient(InstanceListener.Client):

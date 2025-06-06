@@ -1,6 +1,7 @@
 """Provides simple gRPC server components for testing connections."""
 
 import grpc
+
 from tsercom.rpc.proto import TestConnectionCall, TestConnectionResponse
 
 

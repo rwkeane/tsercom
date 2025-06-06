@@ -1,8 +1,8 @@
 """Defines ThrowingThread, for threads that re-raise exceptions."""
 
-from collections.abc import Callable
-import threading
 import logging
+import threading
+from collections.abc import Callable
 from typing import Any, Optional
 
 

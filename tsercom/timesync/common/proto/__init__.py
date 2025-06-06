@@ -1,6 +1,7 @@
-import grpc
 import subprocess
 from typing import TYPE_CHECKING
+
+import grpc
 
 if not TYPE_CHECKING:
     try:

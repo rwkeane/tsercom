@@ -1,7 +1,7 @@
 """Client-side synchronized clock, uses a TimeSyncClient for offsets."""
 
-from abc import ABC, abstractmethod
 import datetime
+from abc import ABC, abstractmethod
 
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.common.synchronized_timestamp import (

@@ -16,8 +16,8 @@ Key functions:
 
 import asyncio
 import concurrent.futures
-from functools import partial
 import logging
+from functools import partial
 from typing import (
     Any,
     List,
@@ -47,11 +47,11 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-from .event_poller_adapter import (
+
+from tsercom.runtime.event_poller_adapter import (
     EventToSerializableAnnInstancePollerAdapter,
 )
-from .runtime_data_handler import RuntimeDataHandler
-
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 
 logger = logging.getLogger(__name__)
 

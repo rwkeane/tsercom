@@ -7,9 +7,10 @@ data aggregation mechanisms, timeouts, and security configurations.
 """
 
 from enum import Enum
-from typing import Literal, Optional, TypeVar, overload, Generic
-from tsercom.data.remote_data_aggregator import RemoteDataAggregator
+from typing import Generic, Literal, Optional, TypeVar, overload
+
 from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.rpc.grpc_util.channel_auth_config import BaseChannelAuthConfig
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)

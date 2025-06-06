@@ -2,18 +2,17 @@
 
 from abc import ABC, abstractmethod
 from typing import (
+    Any,
     Generic,
     TypeVar,
     overload,
-    Any,
 )
 
 import grpc
 
-from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
-
+from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")

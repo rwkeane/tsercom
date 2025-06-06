@@ -1,9 +1,10 @@
 """Publishes mDNS service records using zeroconf."""
 
-import logging  # For _logger
 import asyncio  # Added import
-from typing import Dict, Optional
+import logging  # For _logger
 from asyncio import AbstractEventLoop  # For type hinting
+from typing import Dict, Optional
+
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher

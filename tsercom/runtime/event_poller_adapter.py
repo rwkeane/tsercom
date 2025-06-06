@@ -1,6 +1,6 @@
 """Adapter for event pollers to provide a consistent interface."""
 
-from typing import TypeVar, Generic, List, AsyncIterator
+from typing import AsyncIterator, Generic, List, TypeVar
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.serializable_annotated_instance import (

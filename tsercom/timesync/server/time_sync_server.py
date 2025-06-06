@@ -1,13 +1,13 @@
 """NTP based TimeSyncServer implementation."""
 
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial
-import threading
 import errno
+import logging
 import socket
 import struct
+import threading
 import time
-import logging
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,

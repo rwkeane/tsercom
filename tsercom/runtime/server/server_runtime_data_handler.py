@@ -8,7 +8,7 @@ truth for time, providing a synchronized clock for its clients, often through
 a `TimeSyncServer`.
 """
 
-from typing import Generic, TypeVar, Optional  # Added Optional
+from typing import Generic, Optional, TypeVar  # Added Optional
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
@@ -25,7 +25,6 @@ from tsercom.timesync.common.fake_synchronized_clock import (
 )
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
-
 
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)

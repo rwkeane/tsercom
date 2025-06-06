@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import asyncio
-import grpc
 import logging
-from typing import Any, Optional, List, Union  # Added List, Union
+from typing import Any, List, Optional, Union  # Added List, Union
+
+import grpc
 
 # ChannelInfo is no longer returned by find_async_channel
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory

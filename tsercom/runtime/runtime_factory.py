@@ -5,13 +5,12 @@ from typing import Generic, TypeVar
 
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
+from tsercom.data.exposed_data import ExposedData  # Import ExposedData
 
 # SerializableAnnotatedInstance might become unused in this file
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.async_poller import AsyncPoller
-from tsercom.data.exposed_data import ExposedData  # Import ExposedData
-
 
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)  # Constrain DataTypeT

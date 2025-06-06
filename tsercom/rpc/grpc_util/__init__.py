@@ -1,19 +1,21 @@
 # tsercom/rpc/grpc_util/__init__.py
-from .channel_auth_config import (
+from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
+from tsercom.rpc.grpc_util.async_grpc_exception_interceptor import (
+    AsyncGrpcExceptionInterceptor,
+)
+from tsercom.rpc.grpc_util.channel_auth_config import (
     BaseChannelAuthConfig,
-    InsecureChannelConfig,
-    ServerCAChannelConfig,
-    PinnedServerChannelConfig,
     ClientAuthChannelConfig,
+    InsecureChannelConfig,
+    PinnedServerChannelConfig,
+    ServerCAChannelConfig,
 )
-from .grpc_channel_factory import GrpcChannelFactory
-from .addressing import get_client_ip, get_client_port
-from .async_grpc_exception_interceptor import AsyncGrpcExceptionInterceptor
-from .grpc_caller import (
-    is_server_unavailable_error,
+from tsercom.rpc.grpc_util.grpc_caller import (
     is_grpc_error,
+    is_server_unavailable_error,
 )
-from .grpc_service_publisher import GrpcServicePublisher
+from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
+from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
 
 __all__ = [
     "BaseChannelAuthConfig",

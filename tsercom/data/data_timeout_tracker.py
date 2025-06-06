@@ -1,8 +1,8 @@
 """DataTimeoutTracker: manages/triggers periodic timeout notifications."""
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
-import asyncio
 from functools import partial
 from typing import List
 

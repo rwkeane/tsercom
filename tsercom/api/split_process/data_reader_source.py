@@ -11,7 +11,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
-
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 

@@ -1,10 +1,11 @@
 """Provides GrpcServicePublisher for hosting gRPC services."""
 
 import asyncio
+import logging
 from functools import partial
 from typing import Callable, Iterable
+
 import grpc
-import logging
 
 # Removed: from tsercom.rpc.grpc.async_grpc_exception_interceptor import AsyncGrpcExceptionInterceptor
 from tsercom.threading.aio.aio_utils import run_on_event_loop

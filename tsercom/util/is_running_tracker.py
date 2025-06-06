@@ -1,13 +1,15 @@
 """Provides IsRunningTracker for managing running state and safe iteration."""
 
 import asyncio
+import threading
 from collections.abc import Coroutine
 from functools import partial
-import threading
-from typing import Any, AsyncIterator, TypeVar, Optional, Callable, cast
+from typing import Any, AsyncIterator, Callable, Optional, TypeVar, cast
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none as default_get_running_loop_or_none,
+)
+from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
