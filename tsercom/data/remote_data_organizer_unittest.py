@@ -3,6 +3,7 @@ import datetime
 from concurrent.futures import ThreadPoolExecutor
 from collections import deque  # Corrected import
 import functools  # For checking partial
+import re  # For re.escape
 
 # Import actual classes from tsercom
 from tsercom.data.exposed_data import ExposedData
@@ -510,3 +511,82 @@ def test_on_triggered_partial_call_integration(
 
     assert len(organizer._RemoteDataOrganizer__data) == 0
     datetime_module_mock.datetime.now.assert_called_once()
+
+
+# --- New Tests ---
+
+
+def test_on_data_ready_raises_type_error_for_invalid_data_type(
+    organizer, mock_thread_pool
+):
+    """
+    Tests that _on_data_ready() raises a TypeError if new_data is not an instance of ExposedData.
+    """
+    invalid_data = "not_exposed_data_object"  # A simple string
+
+    with pytest.raises(
+        TypeError,
+        match="Expected new_data to be an instance of ExposedData",
+    ):
+        organizer._on_data_ready(invalid_data)
+
+    mock_thread_pool.submit.assert_not_called()
+
+
+def test_on_data_ready_raises_assertion_error_for_caller_id_mismatch(
+    organizer,
+    mock_caller_id,
+    mock_thread_pool,
+    mocker,  # mock_caller_id is the one organizer was initialized with
+):
+    """
+    Tests that _on_data_ready() raises an AssertionError if the data's caller_id
+    does not match the organizer's caller_id.
+    """
+    mismatched_caller_id = DummyCallerIdentifier("mismatched_id")
+    # Ensure it's different from the organizer's mock_caller_id
+    assert mismatched_caller_id != mock_caller_id
+
+    data_with_wrong_id = create_data(
+        mismatched_caller_id, datetime.datetime.now()
+    )
+
+    with pytest.raises(
+        AssertionError,
+        match=re.escape(
+            f"Data's caller_id '{repr(mismatched_caller_id)}' does not match organizer's '{repr(mock_caller_id)}'"
+        ),
+    ):  # The SUT message does not have a trailing dot.
+        organizer._on_data_ready(data_with_wrong_id)
+
+    mock_thread_pool.submit.assert_not_called()
+
+
+def test_timeout_old_data_does_nothing_if_not_running(
+    organizer,
+    mock_caller_id,  # mock_is_running_tracker is part of organizer fixture
+):
+    """
+    Tests that __timeout_old_data does nothing if the organizer is not running.
+    """
+    # Get the mock_is_running_tracker from the organizer instance
+    internal_mock_is_running_tracker = (
+        organizer._RemoteDataOrganizer__is_running
+    )
+    internal_mock_is_running_tracker.get.return_value = (
+        False  # Set to not running
+    )
+
+    old_ts = datetime.datetime.now() - datetime.timedelta(days=1)
+    data_old = create_data(mock_caller_id, old_ts)
+
+    # Manually add data to the internal deque
+    organizer._RemoteDataOrganizer__data.append(data_old)
+    assert len(organizer._RemoteDataOrganizer__data) == 1
+
+    organizer._RemoteDataOrganizer__timeout_old_data(timeout_seconds=30)
+
+    assert (
+        len(organizer._RemoteDataOrganizer__data) == 1
+    ), "Data should not have been removed"
+    internal_mock_is_running_tracker.get.assert_called_once()  # Should be called once at the start of __timeout_old_data

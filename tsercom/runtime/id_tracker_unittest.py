@@ -1,6 +1,7 @@
 """Tests for IdTracker."""
 
 import pytest
+import re  # Import re for escaping regex characters
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.runtime.id_tracker import IdTracker
@@ -286,3 +287,198 @@ class TestIdTracker:
             tracker.add(caller_temp, addr1[0], addr1[1])
 
         assert len(tracker) == 2
+
+    # --- Tests for data_factory integration ---
+
+    def test_add_with_data_factory_new_id(self, mocker):
+        mock_data_factory = mocker.Mock(return_value="factory_data")
+        tracker = IdTracker(data_factory=mock_data_factory)
+        caller_id = CallerIdentifier.random()
+        ip_address = "10.0.0.1"
+        port = 1001
+
+        tracker.add(caller_id, ip_address, port)
+
+        mock_data_factory.assert_called_once_with()
+        assert tracker.get(id=caller_id) == (
+            ip_address,
+            port,
+            "factory_data",
+        )
+        assert tracker.get(address=ip_address, port=port) == (
+            caller_id,
+            "factory_data",
+        )
+
+    def test_add_with_data_factory_existing_id_updates_address_and_refactories(
+        self, mocker
+    ):
+        """
+        Tests that adding an existing ID updates its address and re-calls the data_factory.
+        This confirms the SUT comment: "The current logic effectively re-calls factory on every add if factory exists."
+        """
+        mock_data_factory = mocker.Mock()
+        mock_data_factory.side_effect = ["initial_data", "new_data"]
+
+        tracker = IdTracker(data_factory=mock_data_factory)
+        caller_id = CallerIdentifier.random()
+
+        # First add
+        tracker.add(caller_id, "ip1", 123)
+        assert mock_data_factory.call_count == 1
+        assert tracker.get(id=caller_id) == ("ip1", 123, "initial_data")
+
+        # Second add for the same ID (updates address and should re-call factory)
+        tracker.add(caller_id, "ip2", 456)
+        assert mock_data_factory.call_count == 2
+        # Data should be updated because factory was called again
+        assert tracker.get(id=caller_id) == ("ip2", 456, "new_data")
+        # Old address should be gone
+        assert tracker.try_get(address="ip1", port=123) is None
+        # New address should point to the ID with new data
+        assert tracker.get(address="ip2", port=456) == (caller_id, "new_data")
+
+    def test_remove_with_data_factory(self, mocker):
+        mock_data_factory = mocker.Mock()
+        mock_data_factory.side_effect = [
+            "data1",
+            "data2",
+        ]  # Factory returns different data each time
+        tracker = IdTracker(data_factory=mock_data_factory)
+        caller_id = CallerIdentifier.random()
+
+        tracker.add(caller_id, "ip", 123)
+        assert mock_data_factory.call_count == 1
+        assert tracker.get(id=caller_id) == ("ip", 123, "data1")
+
+        tracker.remove(caller_id)
+        assert tracker.try_get(id=caller_id) is None
+        assert not tracker.has_id(caller_id)
+        assert not tracker.has_address("ip", 123)
+
+        # Add the ID again
+        tracker.add(caller_id, "ip_new", 789)
+        assert mock_data_factory.call_count == 2  # Factory called again
+        assert tracker.get(id=caller_id) == (
+            "ip_new",
+            789,
+            "data2",
+        )  # New data from factory
+        assert tracker.has_id(caller_id)
+        assert tracker.has_address("ip_new", 789)
+
+    def test_get_try_get_no_data_factory(self):
+        tracker = IdTracker(data_factory=None)  # Explicitly None
+        caller_id = CallerIdentifier.random()
+        ip_address = "10.0.0.1"
+        port = 1001
+
+        tracker.add(caller_id, ip_address, port)
+
+        assert tracker.get(id=caller_id) == (ip_address, port, None)
+        assert tracker.get(address=ip_address, port=port) == (caller_id, None)
+        assert tracker.try_get(id=caller_id) == (ip_address, port, None)
+        assert tracker.try_get(address=ip_address, port=port) == (
+            caller_id,
+            None,
+        )
+
+    # --- Tests for get/try_get argument validation ---
+
+    def test_get_invalid_arg_combinations(self):
+        tracker = IdTracker()
+        caller_id = CallerIdentifier.random()
+        tracker.add(caller_id, "ip", 123)
+
+        with pytest.raises(
+            ValueError,
+            match="Cannot mix 'address' kwarg with 'id' or positional address.",
+        ):
+            tracker.get(
+                caller_id, address="ip"
+            )  # Positional id and keyword address
+        with pytest.raises(
+            ValueError,
+            match="Cannot mix 'address' kwarg with 'id' or positional address.",
+        ):
+            tracker.get(
+                id=caller_id, address="ip"
+            )  # Both id and address by keyword
+        with pytest.raises(
+            ValueError,
+            match="If 'address' is provided, 'port' must also be, and vice-versa.",
+        ):
+            tracker.get(address="ip")  # Missing port
+        with pytest.raises(
+            ValueError,
+            match="If 'address' is provided, 'port' must also be, and vice-versa.",
+        ):
+            tracker.get(port=123)  # Missing address
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Provide CallerIdentifier or (address and port), not both or neither."
+            ),
+        ):
+            tracker.get()  # No args
+        with pytest.raises(
+            ValueError,
+            match=r"Invalid positional args\. Use CallerIdentifier or \(address, port\)\. Got: .*",
+        ):
+            tracker.get(caller_id, "another_pos_arg_is_invalid")
+        # pytest.raises does not catch TypeError from unexpected kwargs directly,
+        # but the method itself should raise ValueError based on its logic.
+        # The IdTracker.get doesn't explicitly check for unexpected kwargs to raise ValueError,
+        # it would rely on Python's native TypeError for unexpected kwargs if not handled.
+        # Let's assume the goal is to test its internal validation.
+        # The SUT's try_get method (called by get) raises ValueError for unexpected kwargs.
+        with pytest.raises(
+            ValueError,
+            match=re.escape("Unexpected kwargs: ['unexpected_kwarg']"),
+        ):
+            tracker.get(unexpected_kwarg="foo")
+
+    def test_try_get_invalid_arg_combinations(self):
+        tracker = IdTracker()
+        caller_id = CallerIdentifier.random()
+        tracker.add(
+            caller_id, "ip", 123
+        )  # Add something so it's not empty for all checks
+
+        with pytest.raises(
+            ValueError,
+            match="Cannot mix 'address' kwarg with 'id' or positional address.",
+        ):
+            tracker.try_get(caller_id, address="ip")
+        with pytest.raises(
+            ValueError,
+            match="Cannot mix 'address' kwarg with 'id' or positional address.",
+        ):
+            tracker.try_get(id=caller_id, address="ip")
+        with pytest.raises(
+            ValueError,
+            match="If 'address' is provided, 'port' must also be, and vice-versa.",
+        ):
+            tracker.try_get(address="ip")
+        with pytest.raises(
+            ValueError,
+            match="If 'address' is provided, 'port' must also be, and vice-versa.",
+        ):
+            tracker.try_get(port=123)
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Provide CallerIdentifier or (address and port), not both or neither."
+            ),
+        ):
+            tracker.try_get()
+        with pytest.raises(
+            ValueError,
+            match=r"Invalid positional args\. Use CallerIdentifier or \(address, port\)\. Got: .*",
+        ):
+            tracker.try_get(caller_id, "another_pos_arg_is_invalid")
+        with pytest.raises(
+            ValueError,
+            match=re.escape("Unexpected kwargs: ['unexpected_kwarg']"),
+        ):
+            tracker.try_get(unexpected_kwarg="foo")
