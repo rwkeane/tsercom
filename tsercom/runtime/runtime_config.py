@@ -59,7 +59,17 @@ class RuntimeConfig(Generic[DataTypeT]):
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
-    ): ...
+    ):
+        """Initializes with ServiceType enum and optional configurations.
+
+        Args:
+            service_type: The operational mode as a `ServiceType` enum.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Data timeout in seconds. Defaults to 60.
+            min_send_frequency_seconds: Minimum event send interval.
+            auth_config: Optional channel authentication configuration.
+        """
+        ...
 
     @overload
     def __init__(
@@ -72,10 +82,27 @@ class RuntimeConfig(Generic[DataTypeT]):
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
-    ): ...
+    ):
+        """Initializes with service type as string and optional configurations.
+
+        Args:
+            service_type: The operational mode as "Client" or "Server".
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Data timeout in seconds. Defaults to 60.
+            min_send_frequency_seconds: Minimum event send interval.
+            auth_config: Optional channel authentication configuration.
+        """
+        ...
 
     @overload
-    def __init__(self, *, other_config: "RuntimeConfig[DataTypeT]"): ...
+    def __init__(self, *, other_config: "RuntimeConfig[DataTypeT]"):
+        """Initializes by cloning settings from another RuntimeConfig instance.
+
+        Args:
+            other_config: An existing `RuntimeConfig` instance to clone.
+                All other parameters will be ignored if this is provided.
+        """
+        ...
 
     def __init__(
         self,
