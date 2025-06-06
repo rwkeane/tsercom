@@ -29,7 +29,7 @@ class RuntimeInitializer(
         self,
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
-        grpc_channel_factory: GrpcChannelFactory | None,
+        grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         """
         Creates a new Runtime instance. This method will only be called once

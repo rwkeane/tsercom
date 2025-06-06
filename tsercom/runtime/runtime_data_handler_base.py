@@ -500,7 +500,7 @@ class RuntimeDataHandlerBase(
             ] = data_poller
 
         async def desynchronize(
-            self, timestamp: ServerTimestamp
+            self, timestamp: ServerTimestamp, context: Optional[grpc.aio.ServicerContext] = None
         ) -> Optional[datetime]:
             """Desynchronizes a `ServerTimestamp` to a local `datetime` object.
 
@@ -515,7 +515,10 @@ class RuntimeDataHandlerBase(
             """
             synchronized_ts_obj = SynchronizedTimestamp.try_parse(timestamp)
             if synchronized_ts_obj is None:
+                if context is not None:
+                    await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Invalid timestamp provided")
                 return None
+            
             return self.__clock.desync(synchronized_ts_obj)
 
         async def deregister_caller(self) -> None:

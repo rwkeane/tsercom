@@ -54,7 +54,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def desynchronize(
-        self, timestamp: ServerTimestamp
+        self, timestamp: ServerTimestamp, context: Optional[grpc.aio.ServicerContext] = None
     ) -> datetime | None:
         """Converts a server-side timestamp to a local, desynchronized datetime.
 
@@ -160,13 +160,8 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         if timestamp is None:
             actual_timestamp = datetime.now(timezone.utc)
         elif isinstance(timestamp, ServerTimestamp):
-            maybe_timestamp = await self.desynchronize(timestamp)
+            maybe_timestamp = await self.desynchronize(timestamp, context)
             if maybe_timestamp is None:
-                if context is not None:
-                    await context.abort(
-                        grpc.StatusCode.INVALID_ARGUMENT,
-                        "Invalid ServerTimestamp Provided",
-                    )
                 return
             actual_timestamp = maybe_timestamp
         else:  # Is already a datetime object
