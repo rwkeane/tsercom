@@ -24,6 +24,7 @@ from typing import (
     TypeVar,
     AsyncIterator,
     Optional,
+    TYPE_CHECKING, # Moved here
 )
 
 from tsercom.threading.aio.aio_utils import (
@@ -36,12 +37,15 @@ from tsercom.threading.aio.rate_limiter import (
     RateLimiter,
     RateLimiterImpl,
 )
+# Moved IsRunningTracker import for runtime to top-level
+from tsercom.util.is_running_tracker import IsRunningTracker
 
-# Defer import of IsRunningTracker to break circular dependency
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from tsercom.util.is_running_tracker import IsRunningTracker
+    # This can remain if there are specific type-time circular issues resolved by it,
+    # for example, if IsRunningTracker itself imports something from async_poller causing a full cycle.
+    # Using an alias to avoid potential name clash if IsRunningTracker was also needed from here for type checking only.
+    from tsercom.util.is_running_tracker import IsRunningTracker as _IsRunningTrackerForTypeChecking_
 
 # Maximum number of items to keep in the internal queue.
 # If more items are added via on_available() when the queue is full,
@@ -97,9 +101,8 @@ class AsyncPoller(Generic[ResultTypeT]):
         self.__barrier: asyncio.Event = asyncio.Event()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
-        if not TYPE_CHECKING:
-            from tsercom.util.is_running_tracker import IsRunningTracker
-        self.__is_loop_running: "IsRunningTracker" = IsRunningTracker()
+        # IsRunningTracker is now imported at the top level
+        self.__is_loop_running: IsRunningTracker = IsRunningTracker()
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
     @property

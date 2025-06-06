@@ -26,8 +26,9 @@ from typing import (
 import asyncio
 import concurrent.futures
 import grpc
-import logging # Added for potential logging
+# import logging # Kept commented out
 
+from tsercom.threading.aio import global_event_loop as tsercom_global_loop # Moved import
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
@@ -39,7 +40,6 @@ from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
@@ -124,30 +124,35 @@ class RuntimeDataHandlerBase(
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
-        self._RuntimeDataHandlerBase__dispatch_loop_future: Optional[concurrent.futures.Future] = None
+        self._RuntimeDataHandlerBase__dispatch_loop_future: Optional[
+            concurrent.futures.Future[None]
+        ] = None
         try:
-            # Assuming global_event_loop is imported correctly where this class is used,
-            # or it's available via tsercom.threading.aio.global_event_loop
-            from tsercom.threading.aio import global_event_loop as tsercom_global_loop
-
-            loop = tsercom_global_loop.get_global_event_loop() # This asserts if loop is not set.
+            # global_event_loop is now imported at the top level.
+            loop = (
+                tsercom_global_loop.get_global_event_loop()
+            )  # This asserts if loop is not set.
             if loop.is_running():
                 # Create coroutine object first
-                coro = self._RuntimeDataHandlerBase__dispatch_poller_data_loop()
-                self._RuntimeDataHandlerBase__dispatch_loop_future = asyncio.run_coroutine_threadsafe(coro, loop)
+                # Accessing private method within the class should use __ directly.
+                coro = self.__dispatch_poller_data_loop()
+                self._RuntimeDataHandlerBase__dispatch_loop_future = (
+                    asyncio.run_coroutine_threadsafe(coro, loop)
+                )
             else:
                 # logger = logging.getLogger(__name__)
                 # logger.warning("RuntimeDataHandlerBase: Event loop not running. __dispatch_poller_data_loop will not be started.")
-                pass # Future remains None
-        except AssertionError: # Raised by get_global_event_loop if not set
+                pass  # Future remains None
+        except AssertionError:  # Raised by get_global_event_loop if not set
             # logger = logging.getLogger(__name__)
             # logger.warning("RuntimeDataHandlerBase: No global event loop set. __dispatch_poller_data_loop will not be started.")
-            pass # Future remains None
-        except RuntimeError: # Can be raised by run_coroutine_threadsafe if loop is closed before task runs
+            pass  # Future remains None
+        except (
+            RuntimeError
+        ):  # Can be raised by run_coroutine_threadsafe if loop is closed before task runs
             # logger = logging.getLogger(__name__)
             # logger.warning("RuntimeDataHandlerBase: Event loop closed or closing. __dispatch_poller_data_loop may not have started.", exc_info=True)
-            pass # Future remains None
-
+            pass  # Future remains None
 
     @property
     def _id_tracker(
@@ -174,7 +179,7 @@ class RuntimeDataHandlerBase(
     ]:  # Can return None if context parsing fails
         ...
 
-    async def register_caller(
+    async def register_caller( # Added *args and **kwargs to match ABC
         self,
         caller_id: CallerIdentifier,
         *args: Any,
@@ -339,7 +344,7 @@ class RuntimeDataHandlerBase(
         self.__data_reader._on_data_ready(data)
 
     @abstractmethod
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-differ # This comment will be removed by the fix
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:

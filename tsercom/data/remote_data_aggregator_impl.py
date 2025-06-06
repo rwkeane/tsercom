@@ -117,7 +117,7 @@ class RemoteDataAggregatorImpl(
             # A more robust way would be to have an internal flag, e.g., self.__owns_tracker.
             # For now, we assume if self.__tracker exists, it might need stopping by this instance.
             # The DataTimeoutTracker.stop() method itself is idempotent.
-            self.__tracker.stop() # Changed from await to direct call
+            self.__tracker.stop()  # Changed from await to direct call
             # We might not want to set self.__tracker to None if it was passed in,
             # as the owner might still need it. However, if we created it, clearing is fine.
             # For simplicity in this refactor, let's assume if we stop it, we are done with it here.

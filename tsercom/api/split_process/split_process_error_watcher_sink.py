@@ -1,6 +1,7 @@
 """Defines an ErrorWatcher that sinks exceptions to a multiprocess queue."""
 
 import logging
+import queue # For queue.Full exception
 
 from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
@@ -53,10 +54,17 @@ class SplitProcessErrorWatcherSink(ErrorWatcher):
             # If this fails, log it, but prioritize re-raising the original exception.
             try:
                 self.__queue.put_nowait(e)
-            except Exception as queue_e:
+            except queue.Full as qf_e: # Catch specific queue.Full
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    "Failed to put exception onto error_queue: %s. Original error: %s",
+                    "Failed to put exception onto error_queue (queue full): %s. Original error: %s",
+                    qf_e,
+                    e,
+                )
+            except Exception as queue_e: # General catch for other unexpected queue errors
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    "Failed to put exception onto error_queue (other error): %s. Original error: %s",
                     queue_e,
                     e,
                 )

@@ -57,7 +57,7 @@ class DataHostBase(
 
         # Assign to a local variable first, then to self.__aggregator to avoid redefinition error.
         aggregator_instance: RemoteDataAggregatorImpl[DataTypeT]
-        self.__tracker: Optional[DataTimeoutTracker] = tracker # Store tracker
+        self.__tracker: Optional[DataTimeoutTracker] = tracker  # Store tracker
 
         if self.__tracker is not None:
             aggregator_instance = RemoteDataAggregatorImpl[DataTypeT](
@@ -74,8 +74,8 @@ class DataHostBase(
     def close(self) -> None:
         """Stops the data timeout tracker if it was started."""
         if self.__tracker is not None:
-            self.__tracker.stop() # Changed from await to direct call
-            self.__tracker = None # Clear after stopping
+            self.__tracker.stop()  # Changed from await to direct call
+            self.__tracker = None  # Clear after stopping
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
         """Handles new data by passing it to the internal data aggregator.

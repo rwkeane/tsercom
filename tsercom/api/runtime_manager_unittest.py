@@ -519,7 +519,9 @@ class TestRuntimeManager:
                 factory_mock.auth_config = None
 
                 mock_runtime_on_factory = MagicMock()
-                mock_runtime_on_factory.start_async = AsyncMock(return_value=None)
+                mock_runtime_on_factory.start_async = AsyncMock(
+                    return_value=None
+                )
                 factory_mock.create.return_value = mock_runtime_on_factory
                 return factory_mock
 

@@ -584,7 +584,6 @@ class TestRemoteProcessMain:
                 "tsercom.runtime.runtime_main.get_global_event_loop"
             ).return_value
 
-
             remote_process_main(mock_factories, mock_error_queue)
 
             mock_clear_event_loop.assert_called_once()
@@ -638,7 +637,6 @@ class TestRemoteProcessMain:
             mocker.patch(  # Keep this if the loop instance is used for other assertions.
                 "tsercom.runtime.runtime_main.get_global_event_loop"
             ).return_value
-
 
             mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
             queue_exception = Exception("Queue put failed")
@@ -699,7 +697,9 @@ class TestRemoteProcessMain:
 
             # Simulate some runtimes being initialized
             mock_runtime1 = mocker.AsyncMock(spec=Runtime)
-            mock_runtime1.stop = mocker.AsyncMock() # This is the coroutine we need awaited
+            mock_runtime1.stop = (
+                mocker.AsyncMock()
+            )  # This is the coroutine we need awaited
             mock_initialize_runtimes.return_value = [mock_runtime1]
 
             # Event loop is managed by pytest-asyncio and conftest.py
@@ -707,7 +707,6 @@ class TestRemoteProcessMain:
             mock_loop_instance = mocker.patch(
                 "tsercom.runtime.runtime_main.get_global_event_loop"
             ).return_value
-
 
             # Simulate a clean exit from the main try block to reach finally
             mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
@@ -768,16 +767,13 @@ class TestRemoteProcessMain:
                 "tsercom.runtime.runtime_main.initialize_runtimes"
             )
             # mock_run_on_event_loop is not used for stop logic
-            mocker.patch(
-                "tsercom.runtime.runtime_main.run_on_event_loop"
-            )
+            mocker.patch("tsercom.runtime.runtime_main.run_on_event_loop")
 
             # Event loop is managed by pytest-asyncio and conftest.py
             # Patch get_global_event_loop once and store the mock loop instance
             mock_loop_instance = mocker.patch(
                 "tsercom.runtime.runtime_main.get_global_event_loop"
             ).return_value
-
 
             mock_factories = [mocker.Mock(spec=RuntimeFactory)]
             mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
@@ -816,8 +812,8 @@ class TestRemoteProcessMain:
             #     assert partial_obj.args == (None,)
             # assert actual_called_stop_funcs == expected_stop_funcs
             mock_initialize_runtimes.assert_called_once()
-            mock_runtime1.stop.assert_called_once() # Check the AsyncMocks were called
-            mock_runtime2.stop.assert_called_once() # Check the AsyncMocks were called
+            mock_runtime1.stop.assert_called_once()  # Check the AsyncMocks were called
+            mock_runtime2.stop.assert_called_once()  # Check the AsyncMocks were called
             # The call_count assertion for create_task has been removed as it was problematic
             # and the core behavior is verified by checking if stop() was called on runtimes.
         finally:

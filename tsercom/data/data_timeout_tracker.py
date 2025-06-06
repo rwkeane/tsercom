@@ -2,8 +2,8 @@
 
 import logging
 from abc import ABC, abstractmethod
-import asyncio # Still needed for __execute_periodically, __register_impl, __signal_stop_impl, __unregister_impl
-import concurrent.futures # Still needed for type hint of __exec_task_future
+import asyncio  # Still needed for __execute_periodically, __register_impl, __signal_stop_impl, __unregister_impl
+import concurrent.futures  # Still needed for type hint of __exec_task_future
 from functools import partial
 from typing import List, Optional
 
@@ -51,7 +51,7 @@ class DataTimeoutTracker:
         self.__timeout_seconds: int = timeout_seconds
         self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
         self.__is_running: IsRunningTracker = IsRunningTracker()
-        self.__exec_task_future: Optional[concurrent.futures.Future] = None
+        self.__exec_task_future: Optional[concurrent.futures.Future[None]] = None
 
     def register(self, tracked: Tracked) -> None:
         """Registers a 'Tracked' object to be monitored for timeouts.
@@ -84,11 +84,13 @@ class DataTimeoutTracker:
         Raises:
             RuntimeError: If the tracker is already running.
         """
-        if self.__is_running.get(): # Changed from is_running() to get()
-            logger.warning("DataTimeoutTracker.start() called but already running.")
+        if self.__is_running.get():  # Changed from is_running() to get()
+            logger.warning(
+                "DataTimeoutTracker.start() called but already running."
+            )
             return
 
-        self.__is_running.start() # Mark as attempting to start
+        self.__is_running.start()  # Mark as attempting to start
         # run_on_event_loop should ideally indicate if scheduling failed.
         # Assuming it returns a future or raises if loop isn't available for run_coroutine_threadsafe.
         try:
@@ -98,16 +100,22 @@ class DataTimeoutTracker:
             # or raises an exception that would prevent __exec_task_future from being set.
             # A more robust run_on_event_loop might return None if loop not found,
             # but current version raises RuntimeError.
-            self.__exec_task_future = run_on_event_loop(self.__execute_periodically)
+            self.__exec_task_future = run_on_event_loop(
+                self.__execute_periodically
+            )
             if self.__exec_task_future is None and self.__is_running.get():
                 # This case might occur if run_on_event_loop is changed to return None on failure
                 # instead of raising an error.
-                logger.error("DataTimeoutTracker: Failed to schedule __execute_periodically task.")
-                self.__is_running.stop() # Revert running state
+                logger.error(
+                    "DataTimeoutTracker: Failed to schedule __execute_periodically task."
+                )
+                self.__is_running.stop()  # Revert running state
         except RuntimeError as e:
-            logger.error(f"DataTimeoutTracker: Error scheduling __execute_periodically: {e}")
-            self.__is_running.stop() # Revert running state
-            self.__exec_task_future = None # Ensure it's None
+            logger.error(
+                "DataTimeoutTracker: Error scheduling __execute_periodically: %s", e
+            ) # Changed from f-string to %-formatting
+            self.__is_running.stop()  # Revert running state
+            self.__exec_task_future = None  # Ensure it's None
 
     def stop(self) -> None:
         """Signals periodic timeout execution to stop. Synchronous method.
@@ -116,7 +124,9 @@ class DataTimeoutTracker:
         updates the running flag.
         """
         if not self.__is_running.get():
-            logger.info("DataTimeoutTracker.stop() called but not running or already stopped.")
+            logger.info(
+                "DataTimeoutTracker.stop() called but not running or already stopped."
+            )
             return
 
         logger.info("DataTimeoutTracker: Attempting to stop...")
@@ -134,10 +144,12 @@ class DataTimeoutTracker:
         # Attempt to cancel the future for the background task.
         # This is a request; the task must cooperate by checking is_running or handling CancelledError.
         if self.__exec_task_future and not self.__exec_task_future.done():
-            logger.info("DataTimeoutTracker: Requesting cancellation of execution task future.")
+            logger.info(
+                "DataTimeoutTracker: Requesting cancellation of execution task future."
+            )
             self.__exec_task_future.cancel()
 
-        self.__exec_task_future = None # Clear the future reference
+        self.__exec_task_future = None  # Clear the future reference
 
         logger.info("DataTimeoutTracker: Synchronous stop process initiated.")
         # Note: __is_running.stop() was called above. If __signal_stop_impl hasn't run yet,
@@ -150,8 +162,10 @@ class DataTimeoutTracker:
         """
         assert is_running_on_event_loop(), "Stop signal must be on event loop."
         if self.__is_running.get():  # Double check on the loop
-            self.__is_running.stop() # This should cause __execute_periodically to exit
-            logger.info("DataTimeoutTracker stop signal processed by event loop.")
+            self.__is_running.stop()  # This should cause __execute_periodically to exit
+            logger.info(
+                "DataTimeoutTracker stop signal processed by event loop."
+            )
         else:
             logger.info(
                 "DataTimeoutTracker already stopped or stop signal was already processed by event loop."

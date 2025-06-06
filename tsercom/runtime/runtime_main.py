@@ -249,8 +249,33 @@ def remote_process_main(
     logger.info("Remote process shutting down. Stopping runtimes.")
 
     asyncs = [runtime.stop(captured_exception) for runtime in active_runtimes]
-    aggregate_asyncs = asyncio.wait_for(asyncio.gather(*asyncs), timeout=5)
-    asyncs_task = get_global_event_loop().create_task(aggregate_asyncs)
+    # Ensure that asyncio.gather is awaited, and handle potential TimeoutError
+    if asyncs: # Only gather if there are tasks to run
+        try:
+            aggregate_asyncs = asyncio.wait_for(asyncio.gather(*asyncs, return_exceptions=True), timeout=5.0)
+            asyncs_task = get_global_event_loop().create_task(aggregate_asyncs)
+            # This is where the original broad except was.
+            # Now catching more specific exceptions first.
+            try:
+                asyncs_task.result() # This is where the result (or exception from gather) is retrieved.
+            except asyncio.TimeoutError as e_timeout:
+                logger.warning("Timeout waiting for runtime stop tasks: %s", e_timeout)
+                if captured_exception is None:
+                    captured_exception = e_timeout
+            except asyncio.CancelledError as e_cancelled: # Should not happen if we are awaiting result()
+                logger.warning("Runtime stop tasks were cancelled: %s", e_cancelled)
+                if captured_exception is None:
+                    captured_exception = e_cancelled
+            except Exception as e_gather: # Catch other exceptions from gather/tasks
+                logger.error("Exception during runtime stop tasks: %s", e_gather, exc_info=True)
+                if captured_exception is None:
+                    captured_exception = e_gather
+        except Exception as e_setup: # Catch errors from wait_for or create_task itself
+            logger.error("Error setting up/awaiting stop tasks: %s", e_setup, exc_info=True)
+            if captured_exception is None:
+                captured_exception = e_setup
+
+
     for factory in initializers:
         try:
             # pylint: disable=protected-access
@@ -262,15 +287,6 @@ def remote_process_main(
             )
 
     logger.info("Remote process cleanup complete.")
-
-    # Wait for all stop calls to return or time out.
-    try:
-        asyncs_task.result()
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        # TODO: Create AggregateException with both if captured_exception is NOT
-        # None.
-        if captured_exception is None:
-            captured_exception = e
 
     # Handle exception after finally is done.
     if captured_exception is not None:
