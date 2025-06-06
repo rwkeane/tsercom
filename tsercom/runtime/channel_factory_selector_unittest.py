@@ -231,7 +231,7 @@ class TestCreateFactory:
                 return b"client_key"
             return None  # Should not be called for ca.pem
 
-        mocker.patch.object( # Removed assignment to mock_read_content
+        mocker.patch.object(  # Removed assignment to mock_read_content
             selector, "_read_file_content", side_effect=read_side_effect
         )
         spy_client_auth_factory_init = mocker.spy(

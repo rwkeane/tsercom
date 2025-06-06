@@ -157,7 +157,7 @@ class RuntimeManager(
                 RuntimeFactoryFactory[  # Use imported
                     RFDataTypeT, RFEventTypeT
                 ]
-            ) = local_runtime_factory_factory
+            ) = (local_runtime_factory_factory)
         else:
             default_local_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
@@ -173,7 +173,7 @@ class RuntimeManager(
                 RuntimeFactoryFactory[  # Use imported
                     RFDataTypeT, RFEventTypeT
                 ]
-            ) = split_runtime_factory_factory
+            ) = (split_runtime_factory_factory)
         else:
             default_split_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
@@ -539,7 +539,9 @@ class RuntimeFuturePopulator(  # This now correctly implements RuntimeFactoryFac
             future: The `Future` object that will be populated with the
                 `RuntimeHandle` when `_on_handle_ready` is called.
         """
-        self.__future: Future[RuntimeHandle[RFDataTypeT, RFEventTypeT]] = future # Use imported
+        self.__future: Future[RuntimeHandle[RFDataTypeT, RFEventTypeT]] = (
+            future  # Use imported
+        )
 
     def _on_handle_ready(  # type: ignore[override]
         self,

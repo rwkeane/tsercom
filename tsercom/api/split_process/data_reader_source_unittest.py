@@ -1,9 +1,9 @@
 import pytest
 
 from tsercom.api.split_process.data_reader_source import DataReaderSource
-from tsercom.util.is_running_tracker import ( # Moved import to top
+from tsercom.util.is_running_tracker import (  # Moved import to top
     IsRunningTracker,
-) # Import real one for isinstance check
+)  # Import real one for isinstance check
 
 # from tsercom.utils.is_running_tracker import IsRunningTracker # Faked
 # from tsercom.utils.multiprocess_queue_source import MultiprocessQueueSource # Faked

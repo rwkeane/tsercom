@@ -1,5 +1,5 @@
 import asyncio
-import concurrent.futures # Added import
+import concurrent.futures  # Added import
 import pytest
 import threading
 import time
@@ -163,13 +163,15 @@ def test_is_running_on_event_loop_outside_loop_specific(new_event_loop):
 
 # Helper to run a future and get its result in the current thread
 def await_future_in_thread(
-    loop: asyncio.AbstractEventLoop, # Loop the cf_future is bound to
-    cf_future: concurrent.futures.Future, # concurrent.futures.Future
-    timeout: float = 2.0
+    loop: asyncio.AbstractEventLoop,  # Loop the cf_future is bound to
+    cf_future: concurrent.futures.Future,  # concurrent.futures.Future
+    timeout: float = 2.0,
 ) -> Any:
     event = threading.Event()
-    result_holder: List[Any] = [] # Use list to allow assignment in inner func
-    exception_holder: List[Optional[BaseException]] = [None] # Use list for inner func
+    result_holder: List[Any] = []  # Use list to allow assignment in inner func
+    exception_holder: List[Optional[BaseException]] = [
+        None
+    ]  # Use list for inner func
 
     def callback(fut):
         try:
@@ -193,8 +195,10 @@ def await_future_in_thread(
             # If it was submitted via run_coroutine_threadsafe, the cancellation
             # might need to be propagated to the asyncio task.
             # For now, just log or raise timeout.
-            pass # Future cancellation logic can be complex.
-        raise TimeoutError(f"Timeout waiting for future {cf_future} to complete via event")
+            pass  # Future cancellation logic can be complex.
+        raise TimeoutError(
+            f"Timeout waiting for future {cf_future} to complete via event"
+        )
 
     if exception_holder[0] is not None:
         raise exception_holder[0]
@@ -204,7 +208,7 @@ def await_future_in_thread(
         # but fut.result() raised CancelledError which was caught by generic Exception
         # and stored in exception_holder, or if future completed with None result.
         # If it was cancelled and not caught as an exception, it might get here.
-        if cf_future.cancelled(): # pragma: no cover
+        if cf_future.cancelled():  # pragma: no cover
             raise asyncio.CancelledError("Future was cancelled.")
 
     return result_holder[0] if result_holder else None
@@ -223,7 +227,9 @@ def test_run_on_event_loop_with_global_loop_success(managed_global_loop):
 
     # Check it ran on the global loop
     loop_check_future = aio_utils.run_on_event_loop(coro_check_current_loop)
-    loop_it_ran_on = await_future_in_thread(managed_global_loop, loop_check_future, timeout=0.5)
+    loop_it_ran_on = await_future_in_thread(
+        managed_global_loop, loop_check_future, timeout=0.5
+    )
     assert loop_it_ran_on is managed_global_loop
 
 
@@ -267,9 +273,8 @@ def test_run_on_event_loop_with_specified_loop(new_event_loop):
     start_time = time.time()
     while not new_event_loop.is_running():
         time.sleep(0.001)
-        if time.time() - start_time > 1: # Timeout for loop start
+        if time.time() - start_time > 1:  # Timeout for loop start
             pytest.fail("Event loop did not start in thread within 1 second.")
-
 
     expected_value = "specified_loop_success"
     future = aio_utils.run_on_event_loop(
@@ -283,11 +288,13 @@ def test_run_on_event_loop_with_specified_loop(new_event_loop):
     loop_check_future = aio_utils.run_on_event_loop(
         coro_check_current_loop, new_event_loop
     )
-    loop_it_ran_on = await_future_in_thread(new_event_loop, loop_check_future, timeout=0.5)
+    loop_it_ran_on = await_future_in_thread(
+        new_event_loop, loop_check_future, timeout=0.5
+    )
     assert loop_it_ran_on is new_event_loop
 
     new_event_loop.call_soon_threadsafe(new_event_loop.stop)
-    loop_thread.join(timeout=1.0) # Increased join timeout
+    loop_thread.join(timeout=1.0)  # Increased join timeout
 
 
 def test_run_on_event_loop_with_specified_loop_exception(new_event_loop):
@@ -299,9 +306,8 @@ def test_run_on_event_loop_with_specified_loop_exception(new_event_loop):
     start_time = time.time()
     while not new_event_loop.is_running():
         time.sleep(0.001)
-        if time.time() - start_time > 1: # Timeout for loop start
+        if time.time() - start_time > 1:  # Timeout for loop start
             pytest.fail("Event loop did not start in thread within 1 second.")
-
 
     error_message = "Specified loop failure"
     future = aio_utils.run_on_event_loop(
@@ -312,13 +318,13 @@ def test_run_on_event_loop_with_specified_loop_exception(new_event_loop):
         await_future_in_thread(new_event_loop, future, timeout=0.5)
 
     new_event_loop.call_soon_threadsafe(new_event_loop.stop)
-    loop_thread.join(timeout=1.0) # Increased join timeout
+    loop_thread.join(timeout=1.0)  # Increased join timeout
 
 
 # 3. Error Case (No Global Loop, No Specified Loop)
 def test_run_on_event_loop_no_global_or_specified_loop():
     """Test run_on_event_loop raises RuntimeError if no loop is available."""
-    if global_event_loop.is_global_event_loop_set(): # pragma: no cover
+    if global_event_loop.is_global_event_loop_set():  # pragma: no cover
         global_event_loop.clear_tsercom_event_loop()
 
     with pytest.raises(
@@ -339,15 +345,13 @@ def test_run_on_event_loop_global_loop_set_then_cleared_then_error():
     assert global_event_loop.is_global_event_loop_set()
     created_loop = global_event_loop.get_global_event_loop()
 
-
     # Clear it
-    global_event_loop.clear_tsercom_event_loop() # This also stops the loop and joins thread
+    global_event_loop.clear_tsercom_event_loop()  # This also stops the loop and joins thread
     assert not global_event_loop.is_global_event_loop_set()
 
     # To be absolutely sure the thread from create_tsercom_event_loop_from_watcher is joined:
     # This might require access to the factory or thread, which clear_tsercom_event_loop handles.
     # If watcher has a joinable thread, it should be joined. For now, assume clear handles it.
-
 
     with pytest.raises(
         RuntimeError, match="ERROR: tsercom global event loop not set!"
@@ -364,9 +368,8 @@ def test_set_tsercom_event_loop_manually(new_event_loop):
     start_time = time.time()
     while not new_event_loop.is_running():
         time.sleep(0.001)
-        if time.time() - start_time > 1: # Timeout for loop start
+        if time.time() - start_time > 1:  # Timeout for loop start
             pytest.fail("Event loop did not start in thread within 1 second.")
-
 
     try:
         global_event_loop.set_tsercom_event_loop(new_event_loop)
@@ -383,4 +386,4 @@ def test_set_tsercom_event_loop_manually(new_event_loop):
             new_event_loop.call_soon_threadsafe(new_event_loop.stop)
             global_event_loop.clear_tsercom_event_loop()
 
-        loop_thread.join(timeout=1.0) # Increased join timeout
+        loop_thread.join(timeout=1.0)  # Increased join timeout
