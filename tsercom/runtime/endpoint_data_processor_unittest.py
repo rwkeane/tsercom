@@ -17,10 +17,12 @@ DataTypeT = TypeVar("DataTypeT")
 EventTypeT = TypeVar("EventTypeT")
 
 
-class _ConcreteTestProcessor(
+class HelperConcreteTestProcessor(
     Generic[DataTypeT, EventTypeT],
     EndpointDataProcessor[DataTypeT, EventTypeT],
 ):
+    __test__ = False  # Prevent pytest from collecting this class
+
     def __init__(self, caller_id: CallerIdentifier):
         super().__init__(caller_id)
         # Mocks will be initialized in setup_mocks
@@ -72,7 +74,7 @@ def mock_caller_id():
 @pytest.fixture
 def processor(mock_caller_id, mocker):
     # Use object as a simple placeholder for DataTypeT and EventTypeT if not specified
-    proc = _ConcreteTestProcessor[object, object](mock_caller_id)
+    proc = HelperConcreteTestProcessor[object, object](mock_caller_id)
     proc.setup_mocks(mocker)
     return proc
 
