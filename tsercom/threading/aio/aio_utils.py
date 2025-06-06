@@ -90,9 +90,9 @@ def run_on_event_loop(
         except (
             AssertionError
         ):  # Catches "Global event loop accessed before being set."
-            event_loop = None  # Ensure event_loop remains None if get_global_event_loop fails
+            pass
 
-        if event_loop is None:  # This check is now effective
+        if event_loop is None:
             raise RuntimeError("ERROR: tsercom global event loop not set!")
 
     coro_obj = call(*args, **kwargs)

@@ -1,6 +1,6 @@
 """Defines an ErrorWatcher that sinks exceptions to a multiprocess queue."""
 
-import logging  # Added import for logging
+import logging
 
 from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (

@@ -15,10 +15,6 @@ import asyncio
 import logging
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-
-# ServiceInfo is no longer used directly, SourceServiceInfoT covers its uses.
-# from tsercom.discovery.service_info import ServiceInfo
-# Import ServiceInfoT directly from service_source to ensure type variable consistency
 from tsercom.discovery.service_source import (
     ServiceSource,
     ServiceInfoT as SourceServiceInfoT,
@@ -31,16 +27,11 @@ from tsercom.threading.aio.aio_utils import (
 from tsercom.util.connection_factory import ConnectionFactory
 
 
-# ServiceInfoT = TypeVar("ServiceInfoT", bound=ServiceInfo) # Use SourceServiceInfoT instead
-ChannelTypeT = TypeVar(
-    "ChannelTypeT"
-)  # Represents the type of channel (e.g., grpc.aio.Channel)
+ChannelTypeT = TypeVar("ChannelTypeT")
 
 
 class ServiceConnector(
-    Generic[
-        SourceServiceInfoT, ChannelTypeT
-    ],  # Use imported SourceServiceInfoT
+    Generic[SourceServiceInfoT, ChannelTypeT],
     ServiceSource.Client,
 ):
     """Monitors a `ServiceSource` and attempts to connect to discovered services.
@@ -212,7 +203,7 @@ class ServiceConnector(
 
     async def _on_service_added(  # type: ignore[override]
         self,
-        connection_info: SourceServiceInfoT,  # Use imported SourceServiceInfoT
+        connection_info: SourceServiceInfoT,
         caller_id: CallerIdentifier,
     ) -> None:
         """Handles new service discovery events from the `ServiceSource`.

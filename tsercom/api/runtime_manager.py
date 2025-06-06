@@ -11,7 +11,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
 from multiprocessing import Process
-from typing import Generic, List, Optional  # TypeVar removed
+from typing import Generic, List, Optional
 
 from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
@@ -30,7 +30,6 @@ from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
 
-# ExposedData removed
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
@@ -53,23 +52,13 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 # Import TypeVars from runtime_factory_factory for consistency
-from tsercom.api.runtime_factory_factory import (
-    DataTypeT as RFDataTypeT,
-    EventTypeT as RFEventTypeT,
-)
+from tsercom.api.runtime_factory_factory import DataTypeT, EventTypeT
 
-# Ensure DataTypeT and EventTypeT are not defined locally if we intend to use RFDataTypeT and RFEventTypeT throughout.
-# If they were meant to be distinct for RuntimeManager, they need to be defined.
-# Based on the previous fix attempt, the goal was to use the imported ones.
-# DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
-# EventTypeT = TypeVar("EventTypeT")
 
 logger = logging.getLogger(__name__)
 
 
-class RuntimeManager(
-    ErrorWatcher, Generic[RFDataTypeT, RFEventTypeT]
-):  # Use imported TypeVars
+class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
     """Manages the lifecycle of Tsercom runtimes, supporting in-process and out-of-process execution.
 
     This class serves as a central coordinator for initializing, starting, and
@@ -99,14 +88,10 @@ class RuntimeManager(
         is_testing: bool = False,
         thread_watcher: Optional[ThreadWatcher] = None,
         local_runtime_factory_factory: Optional[
-            LocalRuntimeFactoryFactory[
-                RFDataTypeT, RFEventTypeT
-            ]  # Use imported
+            LocalRuntimeFactoryFactory[DataTypeT, EventTypeT]
         ] = None,
         split_runtime_factory_factory: Optional[
-            SplitRuntimeFactoryFactory[
-                RFDataTypeT, RFEventTypeT
-            ]  # Use imported
+            SplitRuntimeFactoryFactory[DataTypeT, EventTypeT]
         ] = None,
         process_creator: Optional[ProcessCreator] = None,
         split_error_watcher_source_factory: Optional[
@@ -153,11 +138,9 @@ class RuntimeManager(
         )
 
         if local_runtime_factory_factory is not None:
-            self.__local_runtime_factory_factory: (
-                RuntimeFactoryFactory[  # Use imported
-                    RFDataTypeT, RFEventTypeT
-                ]
-            ) = (local_runtime_factory_factory)
+            self.__local_runtime_factory_factory: RuntimeFactoryFactory[
+                DataTypeT, EventTypeT
+            ] = local_runtime_factory_factory
         else:
             default_local_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
@@ -169,11 +152,9 @@ class RuntimeManager(
             )
 
         if split_runtime_factory_factory is not None:
-            self.__split_runtime_factory_factory: (
-                RuntimeFactoryFactory[  # Use imported
-                    RFDataTypeT, RFEventTypeT
-                ]
-            ) = (split_runtime_factory_factory)
+            self.__split_runtime_factory_factory: RuntimeFactoryFactory[
+                DataTypeT, EventTypeT
+            ] = split_runtime_factory_factory  # Use imported
         else:
             default_split_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
@@ -184,8 +165,8 @@ class RuntimeManager(
                 default_split_factory_thread_pool, self.__thread_watcher
             )
 
-        self.__initializers: List[  # Use imported
-            InitializationPair[RFDataTypeT, RFEventTypeT]
+        self.__initializers: List[
+            InitializationPair[DataTypeT, EventTypeT]
         ] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
@@ -205,12 +186,8 @@ class RuntimeManager(
 
     def register_runtime_initializer(
         self,
-        runtime_initializer: RuntimeInitializer[
-            RFDataTypeT, RFEventTypeT
-        ],  # Use imported TypeVars
-    ) -> Future[
-        RuntimeHandle[RFDataTypeT, RFEventTypeT]
-    ]:  # Use imported TypeVars
+        runtime_initializer: RuntimeInitializer[DataTypeT, EventTypeT],
+    ) -> Future[RuntimeHandle[DataTypeT, EventTypeT]]:
         """Registers a `RuntimeInitializer` to be managed and launched.
 
         This method must be called before `start_in_process` or
@@ -236,12 +213,8 @@ class RuntimeManager(
                 "Cannot register runtime initializer after the manager has started."
             )
 
-        handle_future = Future[
-            RuntimeHandle[RFDataTypeT, RFEventTypeT]
-        ]()  # Use imported TypeVars
-        pair = InitializationPair[
-            RFDataTypeT, RFEventTypeT
-        ](  # Use imported TypeVars
+        handle_future = Future[RuntimeHandle[DataTypeT, EventTypeT]]()
+        pair = InitializationPair[DataTypeT, EventTypeT](
             handle_future, runtime_initializer
         )
         self.__initializers.append(pair)
@@ -475,12 +448,8 @@ class RuntimeManager(
 
     def __create_factories(
         self,
-        factory_factory: RuntimeFactoryFactory[
-            RFDataTypeT, RFEventTypeT
-        ],  # Use imported TypeVars
-    ) -> List[
-        RuntimeFactory[RFDataTypeT, RFEventTypeT]
-    ]:  # Use imported TypeVars
+        factory_factory: RuntimeFactoryFactory[DataTypeT, EventTypeT],
+    ) -> List[RuntimeFactory[DataTypeT, EventTypeT]]:
         """Creates runtime factories for all registered initializers.
 
         This internal helper method iterates through each `InitializationPair`
@@ -501,13 +470,9 @@ class RuntimeManager(
             A list of created `RuntimeFactory` instances, one for each
             registered `RuntimeInitializer`.
         """
-        results: List[RuntimeFactory[RFDataTypeT, RFEventTypeT]] = (
-            []
-        )  # Use imported TypeVars
+        results: List[RuntimeFactory[DataTypeT, EventTypeT]] = []
         for pair in self.__initializers:
-            populator_client = RuntimeFuturePopulator[
-                RFDataTypeT, RFEventTypeT
-            ](  # Use imported TypeVars
+            populator_client = RuntimeFuturePopulator[DataTypeT, EventTypeT](
                 pair.handle_future
             )
             factory = factory_factory.create_factory(
@@ -518,9 +483,9 @@ class RuntimeManager(
         return results
 
 
-class RuntimeFuturePopulator(  # This now correctly implements RuntimeFactoryFactory[RFDataTypeT, RFEventTypeT].Client
+class RuntimeFuturePopulator(
     RuntimeFactoryFactory.Client,
-    Generic[RFDataTypeT, RFEventTypeT],  # Use imported TypeVars
+    Generic[DataTypeT, EventTypeT],
 ):
     """A client that populates a Future with a RuntimeHandle once it's ready.
 
@@ -531,7 +496,7 @@ class RuntimeFuturePopulator(  # This now correctly implements RuntimeFactoryFac
     """
 
     def __init__(
-        self, future: Future[RuntimeHandle[RFDataTypeT, RFEventTypeT]]
+        self, future: Future[RuntimeHandle[DataTypeT, EventTypeT]]
     ) -> None:
         """Initializes the RuntimeFuturePopulator.
 
@@ -539,15 +504,11 @@ class RuntimeFuturePopulator(  # This now correctly implements RuntimeFactoryFac
             future: The `Future` object that will be populated with the
                 `RuntimeHandle` when `_on_handle_ready` is called.
         """
-        self.__future: Future[RuntimeHandle[RFDataTypeT, RFEventTypeT]] = (
-            future  # Use imported
-        )
+        self.__future: Future[RuntimeHandle[DataTypeT, EventTypeT]] = future
 
     def _on_handle_ready(  # type: ignore[override]
         self,
-        handle: RuntimeHandle[
-            RFDataTypeT, RFEventTypeT
-        ],  # Use imported TypeVars
+        handle: RuntimeHandle[DataTypeT, EventTypeT],  # Use imported TypeVars
     ) -> None:
         """Callback invoked by a `RuntimeFactory` when its `RuntimeHandle` is ready.
 

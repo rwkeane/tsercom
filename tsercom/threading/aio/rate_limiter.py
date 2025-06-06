@@ -20,7 +20,6 @@ class RateLimiter(ABC):
 
     def __init__(self) -> None:
         """Initializes the rate limiter."""
-        pass
 
     @abstractmethod
     async def wait_for_pass(self) -> None:
@@ -91,13 +90,5 @@ class NullRateLimiter(RateLimiter):
     scenarios where rate-limiting behavior is not desired.
     """
 
-    # __init__ is removed to avoid useless-parent-delegation,
-    # as RateLimiter.__init__ is just "..."
-    # def __init__(self) -> None:
-    #     """Initializes the NullRateLimiter."""
-    #     super().__init__()
-
     async def wait_for_pass(self) -> None:
-        """Allows an operation to pass immediately without any delay or restriction."""
-        # No operation needed, effectively a no-op.
-        pass
+        """Allows an operation to pass immediately."""
