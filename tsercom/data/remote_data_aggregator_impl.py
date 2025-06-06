@@ -43,7 +43,14 @@ class RemoteDataAggregatorImpl(
         self,
         thread_pool: ThreadPoolExecutor,
         client: Optional[RemoteDataAggregator.Client] = None,
-    ): ...
+    ):
+        """Initializes with thread pool and optional client.
+
+        Args:
+            thread_pool: Executor for asynchronous tasks.
+            client: Optional client for data event callbacks.
+        """
+        ...
 
     @overload
     def __init__(
@@ -52,7 +59,15 @@ class RemoteDataAggregatorImpl(
         client: Optional[RemoteDataAggregator.Client] = None,
         *,
         tracker: DataTimeoutTracker,
-    ): ...
+    ):
+        """Initializes with thread pool, client, and custom data timeout tracker.
+
+        Args:
+            thread_pool: Executor for asynchronous tasks.
+            client: Optional client for data event callbacks.
+            tracker: Custom `DataTimeoutTracker` instance.
+        """
+        ...
 
     @overload
     def __init__(
@@ -61,7 +76,17 @@ class RemoteDataAggregatorImpl(
         client: Optional[RemoteDataAggregator.Client] = None,
         *,
         timeout: int,
-    ): ...
+    ):
+        """Initializes with thread pool, client, and data timeout value.
+
+        A `DataTimeoutTracker` will be created internally using this timeout.
+
+        Args:
+            thread_pool: Executor for asynchronous tasks.
+            client: Optional client for data event callbacks.
+            timeout: Timeout duration in seconds for data tracking.
+        """
+        ...
 
     def __init__(
         self,
@@ -138,9 +163,26 @@ class RemoteDataAggregatorImpl(
 
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     @overload
-    def has_new_data(self) -> Dict[CallerIdentifier, bool]: ...
+    def has_new_data(self) -> Dict[CallerIdentifier, bool]:
+        """Checks for new data for all callers.
+
+        Returns:
+            Dict[CallerIdentifier, bool]: True if new data for a caller.
+        """
+        ...
+
     @overload
-    def has_new_data(self, identifier: CallerIdentifier) -> bool: ...
+    def has_new_data(self, identifier: CallerIdentifier) -> bool:
+        """Checks if new data is available for a specific caller.
+
+        Args:
+            identifier: The `CallerIdentifier` to check.
+
+        Returns:
+            bool: True if new data is available, False otherwise.
+        """
+        ...
+
     def has_new_data(
         self, identifier: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, bool] | bool:
@@ -169,11 +211,26 @@ class RemoteDataAggregatorImpl(
 
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     @overload
-    def get_new_data(self) -> Dict[CallerIdentifier, List[DataTypeT]]: ...
+    def get_new_data(self) -> Dict[CallerIdentifier, List[DataTypeT]]:
+        """Retrieves all new data items for all callers.
+
+        Returns:
+            Dict[CallerIdentifier, List[DataTypeT]]: New data from each caller.
+        """
+        ...
+
     @overload
-    def get_new_data(
-        self, identifier: CallerIdentifier
-    ) -> List[DataTypeT]: ...
+    def get_new_data(self, identifier: CallerIdentifier) -> List[DataTypeT]:
+        """Retrieves all new data items for a specific caller.
+
+        Args:
+            identifier: The `CallerIdentifier` for which to retrieve new data.
+
+        Returns:
+            List[DataTypeT]: New data items from the specified caller.
+        """
+        ...
+
     def get_new_data(
         self, identifier: Optional[CallerIdentifier] = None
     ) -> Dict[CallerIdentifier, List[DataTypeT]] | List[DataTypeT]:
@@ -208,11 +265,31 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_most_recent_data(
         self,
-    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]: ...
+    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]:
+        """Retrieves the most recent data item for all callers.
+
+        Returns `None` for a caller if no data or if timed out.
+
+        Returns:
+            Dict[CallerIdentifier, Optional[DataTypeT]]: Most recent data or None.
+        """
+        ...
+
     @overload
     def get_most_recent_data(
         self, identifier: CallerIdentifier
-    ) -> Optional[DataTypeT]: ...
+    ) -> Optional[DataTypeT]:
+        """Retrieves the most recent data item for a specific caller.
+
+        Returns `None` if no data for this caller or if timed out.
+
+        Args:
+            identifier: The `CallerIdentifier` for which to retrieve data.
+
+        Returns:
+            Optional[DataTypeT]: The most recent data item or `None`.
+        """
+        ...
 
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     def get_most_recent_data(
@@ -250,11 +327,35 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]: ...
+    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]:
+        """Retrieves data before or at `timestamp` for all callers.
+
+        Returns `None` for a caller if no suitable data exists.
+
+        Args:
+            timestamp: The `datetime` to compare data timestamps against.
+
+        Returns:
+            Dict[CallerIdentifier, Optional[DataTypeT]]: Relevant data or None.
+        """
+        ...
+
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier
-    ) -> Optional[DataTypeT]: ...
+    ) -> Optional[DataTypeT]:
+        """Retrieves data before or at `timestamp` for a specific caller.
+
+        Returns `None` if no suitable data exists for this caller.
+
+        Args:
+            timestamp: The `datetime` to compare data timestamps against.
+            identifier: The `CallerIdentifier` for which to retrieve data.
+
+        Returns:
+            Optional[DataTypeT]: Relevant data item or `None`.
+        """
+        ...
 
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     def get_data_for_timestamp(
