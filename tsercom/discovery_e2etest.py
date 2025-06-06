@@ -4,7 +4,7 @@ import ipaddress
 import uuid
 
 import pytest
-import pytest_asyncio  # Import pytest_asyncio
+import pytest_asyncio
 
 from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher

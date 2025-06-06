@@ -1,7 +1,7 @@
 """Defines `ThreadSafeQueue[T]`, a generic wrapper for `queue.Queue`."""
 
-import queue  # Standard library queue module
-import threading  # Standard library threading module
+import queue
+import threading
 from typing import Generic, TypeVar
 
 # Type variable for the generic type of items in the queue.

@@ -6,7 +6,7 @@ import logging  # For server/client logging
 from collections.abc import (
     Awaitable,
     Callable,
-)  # For type hinting delay_before_retry_func
+)
 from ipaddress import ip_address  # For SANs
 from typing import (
     Optional,
