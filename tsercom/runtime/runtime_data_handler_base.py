@@ -22,7 +22,7 @@ from typing import (
     overload,
     Optional,
 )  # Added Optional
-import logging # Added for logging
+import logging  # Added for logging
 
 import grpc
 
@@ -49,7 +49,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
-logger = logging.getLogger(__name__) # Added logger instance
+logger = logging.getLogger(__name__)  # Added logger instance
 
 
 class RuntimeDataHandlerBase(
@@ -437,15 +437,6 @@ class RuntimeDataHandlerBase(
         # We only need the CallerIdentifier from the (CallerIdentifier, TrackedDataT) tuple
         return result_tuple[0]
 
-    async def __dispatch_poller_data_loop(self) -> None:
-        """Continuously polls the main event source and dispatches events.
-
-        This background task runs in the event loop. It asynchronously iterates
-        over events from `self.__event_source`. For each event, it looks up the
-        `CallerIdentifier` in the `IdTracker` to find the corresponding
-        per-caller `AsyncPoller`. If found, the event is put onto that
-        dedicated poller.
-        """
     def _broadcast_event_to_all_pollers(
         self, event_item: SerializableAnnotatedInstance[EventTypeT]
     ) -> None:
