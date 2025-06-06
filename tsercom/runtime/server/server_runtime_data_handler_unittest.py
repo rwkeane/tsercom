@@ -12,7 +12,7 @@ from tsercom.runtime.server.server_runtime_data_handler import (
     ServerRuntimeDataHandler,
 )
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor

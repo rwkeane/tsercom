@@ -17,7 +17,7 @@ from tsercom.data.event_instance import EventInstance
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")

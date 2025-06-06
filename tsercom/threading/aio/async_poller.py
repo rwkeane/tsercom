@@ -36,7 +36,12 @@ from tsercom.threading.aio.rate_limiter import (
     RateLimiter,
     RateLimiterImpl,
 )
-from tsercom.util.is_running_tracker import IsRunningTracker
+
+# Defer import of IsRunningTracker to break circular dependency
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tsercom.util.is_running_tracker import IsRunningTracker
 
 # Maximum number of items to keep in the internal queue.
 # If more items are added via on_available() when the queue is full,
@@ -92,7 +97,9 @@ class AsyncPoller(Generic[ResultTypeT]):
         self.__barrier: asyncio.Event = asyncio.Event()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
-        self.__is_loop_running: IsRunningTracker = IsRunningTracker()
+        if not TYPE_CHECKING:
+            from tsercom.util.is_running_tracker import IsRunningTracker
+        self.__is_loop_running: "IsRunningTracker" = IsRunningTracker()
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
     @property

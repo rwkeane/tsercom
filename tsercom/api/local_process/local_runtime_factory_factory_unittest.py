@@ -10,7 +10,7 @@ from tsercom.api.local_process.runtime_wrapper import RuntimeWrapper
 from tsercom.api.local_process.runtime_command_bridge import (
     RuntimeCommandBridge,
 )
-from tsercom.threading.async_poller import AsyncPoller  # Corrected path
+from tsercom.threading.aio.async_poller import AsyncPoller  # Corrected path
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_config import ServiceType
 

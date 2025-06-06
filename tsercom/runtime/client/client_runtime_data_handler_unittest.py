@@ -6,6 +6,7 @@ import unittest.mock  # Added import
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop,
     clear_tsercom_event_loop,
+    is_global_event_loop_set,  # Import added
 )
 
 from tsercom.runtime.client.client_runtime_data_handler import (
@@ -13,7 +14,7 @@ from tsercom.runtime.client.client_runtime_data_handler import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
@@ -37,27 +38,29 @@ class TestClientRuntimeDataHandler:
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            set_tsercom_event_loop(loop)
+
+            # Only set if not already set (by conftest.py or another fixture)
+            initial_loop_was_set_by_this_fixture = False
+            if not is_global_event_loop_set():
+                set_tsercom_event_loop(loop)
+                initial_loop_was_set_by_this_fixture = True
+
             yield loop
         finally:
-            clear_tsercom_event_loop()
-            # Only close the loop if this fixture created it and it is not the default policy loop
-            # This logic is simplified; robust loop management can be complex.
-            # For unit tests, often creating/closing a new loop per test is safest.
+            if initial_loop_was_set_by_this_fixture:
+                clear_tsercom_event_loop()
+            # Loop closing logic can remain if tests in this file might create loops
+            # for non-tsercom-global purposes, but usually pytest-asyncio handles its own loop well.
             if (
                 loop
                 and not getattr(loop, "_default_loop", False)
                 and not loop.is_closed()
             ):
-                if loop.is_running():
-                    loop.call_soon_threadsafe(loop.stop)
-                # Ensure all tasks are given a chance to cancel if loop was running
-                # cancellation_tasks = [task for task in asyncio.all_tasks(loop) if not task.done()] \
-                # if cancellation_tasks: \
-                #    for task in cancellation_tasks: \
-                #        task.cancel() \
-                #    # loop.run_until_complete(asyncio.gather(*cancellation_tasks, return_exceptions=True)) \
-                # loop.close() # Closing can be problematic if other things expect to use it.
+                if (
+                    loop.is_running()
+                ):  # This check might be problematic if loop is from higher scope
+                    pass  # Avoid stopping pytest-asyncio's loop here; it manages its own lifecycle.
+                # loop.close() # Generally, don't close pytest-asyncio's loop.
 
     @pytest.fixture
     def mock_thread_watcher(self, mocker):

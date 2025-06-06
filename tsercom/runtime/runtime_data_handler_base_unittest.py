@@ -1,8 +1,11 @@
 import asyncio
 import pytest
+
+# Import missing functions as well
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop,
     clear_tsercom_event_loop,
+    is_global_event_loop_set,
 )
 import grpc.aio  # For ServicerContext
 
@@ -20,7 +23,7 @@ from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 
 # Dependencies to be mocked or used
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
@@ -111,17 +114,29 @@ class TestRuntimeDataHandlerBaseBehavior:
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            set_tsercom_event_loop(loop)
+
+            initial_loop_was_set_by_this_fixture = False
+            if not is_global_event_loop_set():  # Check before setting
+                set_tsercom_event_loop(loop)
+                initial_loop_was_set_by_this_fixture = True
+
             yield loop
         finally:
-            clear_tsercom_event_loop()
+            if (
+                initial_loop_was_set_by_this_fixture
+            ):  # Only clear if this fixture set it
+                clear_tsercom_event_loop()
+
+            # Loop closing logic - be cautious with loops from pytest-asyncio
             if (
                 loop
                 and not getattr(loop, "_default_loop", False)
                 and not loop.is_closed()
+                and initial_loop_was_set_by_this_fixture  # Only manage loops this fixture created/set policy for
             ):
                 if loop.is_running():  # pragma: no cover
                     loop.call_soon_threadsafe(loop.stop)
+                # loop.close() # Avoid closing if it might be pytest-asyncio's
 
     @pytest.fixture
     def mock_data_reader(self, mocker):
@@ -524,27 +539,57 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
     """Tests for the register_caller method of RuntimeDataHandlerBase."""
 
     @pytest.fixture(autouse=True)
-    def manage_event_loop(self):
+    def manage_event_loop(
+        self, request
+    ):  # Add request to check for asyncio marker
+        from tsercom.threading.aio.global_event_loop import (
+            is_global_event_loop_set,
+            set_tsercom_event_loop,
+            clear_tsercom_event_loop,
+        )  # Import here
+
+        if request.node.get_closest_marker("asyncio"):
+            # If it's an asyncio test, conftest.manage_tsercom_loop should handle it.
+            # This fixture instance should then do nothing further with set/clear for tsercom global loop.
+            # It might still provide 'loop' to the test if the test requests it directly,
+            # which would be the loop from pytest-asyncio.
+            try:
+                loop = asyncio.get_running_loop()  # Loop from pytest-asyncio
+                yield loop
+                return
+            except RuntimeError:  # Should not happen in an async test
+                pass  # Fall through to sync test logic if really no loop
+
+        # For non-asyncio tests in this class, or if above failed (should not for async)
         loop = None
+        initial_loop_was_set_by_this_fixture = False
         try:
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_closed():
-                    raise RuntimeError("existing loop is closed")
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            set_tsercom_event_loop(loop)
+
+            if not is_global_event_loop_set():
+                set_tsercom_event_loop(loop)
+                initial_loop_was_set_by_this_fixture = True
             yield loop
         finally:
-            clear_tsercom_event_loop()
+            if initial_loop_was_set_by_this_fixture:
+                clear_tsercom_event_loop()
+
             if (
                 loop
                 and not getattr(loop, "_default_loop", False)
                 and not loop.is_closed()
+                and initial_loop_was_set_by_this_fixture
             ):
-                if loop.is_running():  # pragma: no cover
+                if loop.is_running():
                     loop.call_soon_threadsafe(loop.stop)
+                # loop.close()
 
     @pytest.mark.asyncio
     async def test_register_caller_with_endpoint_port_success(

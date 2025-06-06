@@ -14,7 +14,7 @@ from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 EventTypeT = TypeVar("EventTypeT")

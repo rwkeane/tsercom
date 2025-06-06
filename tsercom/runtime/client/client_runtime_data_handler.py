@@ -23,7 +23,7 @@ from tsercom.timesync.common.synchronized_clock import (
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
