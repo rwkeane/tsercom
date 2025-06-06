@@ -49,6 +49,7 @@ EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
+# pylint: disable=arguments-differ # Handled by *args, **kwargs in actual implementation matching abstract
 class RuntimeDataHandlerBase(
     Generic[DataTypeT, EventTypeT], RuntimeDataHandler[DataTypeT, EventTypeT]
 ):

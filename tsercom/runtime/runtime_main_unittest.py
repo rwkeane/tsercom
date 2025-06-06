@@ -1,7 +1,6 @@
 """Tests for tsercom.runtime.runtime_main."""
 
 import pytest
-from functools import partial
 
 from tsercom.runtime.runtime_main import (
     initialize_runtimes,
@@ -247,7 +246,7 @@ class TestInitializeRuntimes:
         mocker,
     ):
         """Tests initialization with multiple factories (client and server)."""
-        mock_is_global_event_loop_set = mocker.patch(
+        _mock_is_global_event_loop_set = mocker.patch(
             "tsercom.runtime.runtime_main.is_global_event_loop_set",
             return_value=True,
         )
@@ -468,7 +467,7 @@ class TestInitializeRuntimes:
         MockChannelFactorySelector = mocker.patch(
             "tsercom.runtime.runtime_main.ChannelFactorySelector"
         )
-        MockClientRuntimeDataHandler = (
+        _MockClientRuntimeDataHandler = (
             mocker.patch(  # Assuming client factory for simplicity
                 "tsercom.runtime.runtime_main.ClientRuntimeDataHandler"
             )
@@ -581,7 +580,8 @@ class TestRemoteProcessMain:
             mock_loop = mocker.patch(
                 "tsercom.runtime.runtime_main.get_global_event_loop"
             ).return_value
-            mock_task = mocker.AsyncMock()
+            # asyncs_task is an asyncio.Task, not an AsyncMock
+            mock_task = mocker.MagicMock(spec=asyncio.Task)
             mock_loop.create_task.return_value = mock_task
             mock_task.result.return_value = None  # Simulate task completion
 
@@ -633,7 +633,8 @@ class TestRemoteProcessMain:
             mock_loop_error_queue = mocker.patch(
                 "tsercom.runtime.runtime_main.get_global_event_loop"
             ).return_value
-            mock_task_error_queue = mocker.AsyncMock()
+            # asyncs_task is an asyncio.Task, not an AsyncMock
+            mock_task_error_queue = mocker.MagicMock(spec=asyncio.Task)
             mock_loop_error_queue.create_task.return_value = (
                 mock_task_error_queue
             )
@@ -669,7 +670,7 @@ class TestRemoteProcessMain:
             mocker.patch(
                 "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
             )
-            MockThreadWatcher = mocker.patch(
+            _MockThreadWatcher_factory_stop = mocker.patch(
                 "tsercom.runtime.runtime_main.ThreadWatcher"
             )
             mocker.patch(
@@ -681,7 +682,7 @@ class TestRemoteProcessMain:
             mock_initialize_runtimes = mocker.patch(
                 "tsercom.runtime.runtime_main.initialize_runtimes"
             )
-            mock_run_on_event_loop = mocker.patch(
+            _mock_run_on_event_loop_factory_stop = mocker.patch(
                 "tsercom.runtime.runtime_main.run_on_event_loop"
             )
 
@@ -707,7 +708,8 @@ class TestRemoteProcessMain:
             mock_loop_factory_stop = mocker.patch(
                 "tsercom.runtime.runtime_main.get_global_event_loop"
             ).return_value
-            mock_task_factory_stop = mocker.AsyncMock()
+            # asyncs_task is an asyncio.Task, not an AsyncMock
+            mock_task_factory_stop = mocker.MagicMock(spec=asyncio.Task)
             mock_loop_factory_stop.create_task.return_value = (
                 mock_task_factory_stop
             )
@@ -744,6 +746,11 @@ class TestRemoteProcessMain:
             # The following lines regarding 'called_partial' and 'args' are removed
             # as 'args' is not defined in this scope due to previous changes.
             # The relevant checks are already made above.
+            del mock_runtime1
+            del mock_loop_factory_stop
+            del mock_task_factory_stop
+            del mock_logger
+            del mock_sink_instance
         finally:
             pass  # clear_tsercom_event_loop() will be handled by conftest
 
@@ -755,14 +762,14 @@ class TestRemoteProcessMain:
         """Tests error handling when run_until_exception raises an error."""
         # Rely on conftest.py:manage_tsercom_loop to set/clear the event loop
         try:
-            mock_clear_event_loop = mocker.patch(
+            _mock_clear_event_loop_exc = mocker.patch(
                 "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
             )
-            MockThreadWatcher = mocker.patch(
+            _MockThreadWatcher_exc = mocker.patch(
                 "tsercom.runtime.runtime_main.ThreadWatcher",
                 return_value=mocker.Mock(spec=ThreadWatcher),
             )
-            mock_create_event_loop = mocker.patch(
+            _mock_create_event_loop_exc = mocker.patch(  # Mock create_tsercom_event_loop_from_watcher too
                 "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
             )
             MockSplitProcessErrorWatcherSink = mocker.patch(
@@ -771,7 +778,7 @@ class TestRemoteProcessMain:
             mock_initialize_runtimes = mocker.patch(
                 "tsercom.runtime.runtime_main.initialize_runtimes"
             )
-            mock_run_on_event_loop = mocker.patch(
+            _mock_run_on_event_loop_exc = mocker.patch(
                 "tsercom.runtime.runtime_main.run_on_event_loop"
             )
 
@@ -779,7 +786,8 @@ class TestRemoteProcessMain:
             mock_loop_run_exc = mocker.patch(
                 "tsercom.runtime.runtime_main.get_global_event_loop"
             ).return_value
-            mock_task_run_exc = mocker.AsyncMock()
+            # asyncs_task is an asyncio.Task, not an AsyncMock
+            mock_task_run_exc = mocker.MagicMock(spec=asyncio.Task)
             mock_loop_run_exc.create_task.return_value = mock_task_run_exc
             mock_task_run_exc.result.return_value = (
                 None  # Simulate task completion
@@ -810,12 +818,12 @@ class TestRemoteProcessMain:
             # assert mock_run_on_event_loop.call_count == 2
             # Instead, check that initialize_runtimes was called, and mock_error_queue was used.
             mock_initialize_runtimes.assert_called_once()
-            expected_stop_funcs = {
+            _expected_stop_funcs = {
                 mock_runtime1.stop,
                 mock_runtime2.stop,
             }  # These mocks won't be called if init_runtimes is empty
             # actual_called_stop_funcs = set()
-            # for call_args in mock_run_on_event_loop.call_args_list:
+            # for call_args in _mock_run_on_event_loop_exc.call_args_list:
             #     partial_obj = call_args.args[0]
             #     assert isinstance(partial_obj, partial)
             #     actual_called_stop_funcs.add(partial_obj.func)
