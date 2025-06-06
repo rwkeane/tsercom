@@ -1,5 +1,4 @@
 import pytest
-import importlib
 
 # Module to be tested & whose attributes will be patched
 import tsercom.api.split_process.split_runtime_factory_factory as srff_module
@@ -78,7 +77,9 @@ class FakeRemoteDataAggregatorImpl:
     # Make it subscriptable like a Generic class for the test
     __class_getitem__ = classmethod(lambda cls, item: cls)
 
-    def __init__(self, thread_pool, client, timeout):
+    def __init__(
+        self, thread_pool, client, timeout=None
+    ):  # Added default for timeout
         self.thread_pool = thread_pool
         self.client = client
         self.timeout = timeout
@@ -309,3 +310,60 @@ def test_init_method(fake_executor, fake_watcher):
         factory_factory._SplitRuntimeFactoryFactory__thread_watcher
         is fake_watcher
     )  # Corrected attribute name
+
+
+def test_create_pair_aggregator_no_timeout(
+    fake_executor, fake_watcher, mocker, patch_srff_dependencies
+):
+    """
+    Tests that FakeRemoteDataAggregatorImpl is initialized with timeout=None
+    when the initializer's timeout_seconds is None.
+    """
+    factory_factory = SplitRuntimeFactoryFactory(
+        thread_pool=fake_executor, thread_watcher=fake_watcher
+    )
+    initializer_no_timeout = FakeRuntimeInitializer(timeout_seconds=None)
+
+    # patch_srff_dependencies ensures srff_module.RemoteDataAggregatorImpl is FakeRemoteDataAggregatorImpl
+    # Spy on the __init__ of RemoteDataAggregatorImpl, which is patched to be FakeRemoteDataAggregatorImpl.
+    mock_aggregator_init = mocker.spy(
+        srff_module.RemoteDataAggregatorImpl, "__init__"
+    )
+
+    factory_factory._create_pair(initializer_no_timeout)
+
+    mock_aggregator_init.assert_called_once()
+
+    args_list = mock_aggregator_init.call_args_list
+    assert len(args_list) == 1
+    call_args = args_list[0]
+
+    # FakeRemoteDataAggregatorImpl.__init__(self, thread_pool, client, timeout)
+    # args[0] is self
+    # FakeRemoteDataAggregatorImpl.__init__(self, thread_pool, client, timeout=None)
+    # SplitRuntimeFactoryFactory calls it as:
+    # FakeRemoteDataAggregatorImpl(thread_pool, client=client_for_aggregator) when timeout is None.
+
+    assert (
+        len(call_args.args) == 2
+    ), "Should have 2 positional args (self, thread_pool)"
+    # call_args.args[0] is the 'self' instance of FakeRemoteDataAggregatorImpl
+    assert isinstance(
+        call_args.args[0], srff_module.RemoteDataAggregatorImpl
+    )  # Check type
+    assert call_args.args[1] is fake_executor  # thread_pool
+
+    assert "client" in call_args.kwargs, "client should be a keyword argument"
+    assert (
+        call_args.kwargs["client"]
+        is initializer_no_timeout.data_aggregator_client
+    )
+
+    assert (
+        "timeout" not in call_args.kwargs
+    ), "timeout kwarg should not be present"
+    # The FakeRemoteDataAggregatorImpl will use its default for timeout (None)
+
+    # To check the effective timeout value on the created instance:
+    created_aggregator_instance = g_fake_remote_data_aggregator_instances[0]
+    assert created_aggregator_instance.timeout is None

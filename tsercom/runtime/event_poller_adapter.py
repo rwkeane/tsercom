@@ -6,7 +6,7 @@ from tsercom.data.event_instance import EventInstance
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )

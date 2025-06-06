@@ -141,6 +141,9 @@ def test_local_runtime_factory_init(
         bridge=fake_bridge,
     )
     assert factory._LocalRuntimeFactory__initializer is fake_initializer
+    assert factory._LocalRuntimeFactory__data_reader is fake_data_reader
+    assert factory._LocalRuntimeFactory__event_poller is fake_event_poller
+    assert factory._LocalRuntimeFactory__bridge is fake_bridge
 
 
 def test_local_runtime_factory_create(

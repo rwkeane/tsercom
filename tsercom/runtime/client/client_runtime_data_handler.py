@@ -23,7 +23,7 @@ from tsercom.timesync.common.synchronized_clock import (
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
@@ -147,11 +147,7 @@ class ClientRuntimeDataHandler(
         # Remove from IdTracker first
         was_removed_from_id_tracker = self._id_tracker.remove(caller_id)
 
-        if was_removed_from_id_tracker:
-            # If successfully removed from IdTracker, also handle clock tracker cleanup
-            self.__clock_tracker.on_disconnect(address)
-            return True
-        else:
+        if not was_removed_from_id_tracker:
             # This case should ideally not be reached if id_tracker_entry was found,
             # but included for robustness.
             logging.warning(
@@ -160,3 +156,7 @@ class ClientRuntimeDataHandler(
                 caller_id,
             )
             return False
+
+        # If successfully removed from IdTracker, also handle clock tracker cleanup
+        self.__clock_tracker.on_disconnect(address)
+        return True

@@ -470,3 +470,74 @@ def test_event_poller_method(
     assert isinstance(actual_source, FakeEventSource)
     assert actual_source is FakeEventSource.get_last_instance()
     assert actual_source is factory._RemoteRuntimeFactory__event_source
+
+
+def test_stop_method(
+    factory,
+    fake_thread_watcher,
+    fake_data_handler,
+    fake_grpc_channel_factory,
+    mocker,
+):
+    """Tests the _stop method of RemoteRuntimeFactory."""
+    # Call create to initialize internal sources
+    factory.create(
+        fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
+    )
+
+    command_source_instance = factory._RemoteRuntimeFactory__command_source
+    event_source_instance = factory._RemoteRuntimeFactory__event_source
+
+    assert (
+        command_source_instance is not None
+    ), "Command source should be initialized"
+    assert (
+        event_source_instance is not None
+    ), "Event source should be initialized"
+
+    # Spy on the stop methods of the fake instances
+    # FakeRuntimeCommandSource does not have stop_async in the provided fake,
+    # let's assume it should or add it for the test.
+    # For now, we'll assume it's meant to be there or _stop handles it if not.
+    # If FakeRuntimeCommandSource is intended to have stop_async:
+    if not hasattr(command_source_instance, "stop_async"):
+        command_source_instance.stop_async = mocker.MagicMock(
+            name="stop_async_mock"
+        )
+
+    # If FakeEventSource is intended to have stop:
+    if not hasattr(event_source_instance, "stop"):
+        event_source_instance.stop = mocker.MagicMock(name="stop_mock")
+
+    spy_command_stop = mocker.spy(command_source_instance, "stop_async")
+    spy_event_stop = mocker.spy(event_source_instance, "stop")
+
+    # Ensure is_running is True for EventSource to trigger its stop logic
+    event_source_instance.is_running = True
+
+    factory._stop()
+
+    spy_command_stop.assert_called_once()
+    spy_event_stop.assert_called_once()
+
+
+def test_stop_method_sources_not_initialized(factory, mocker):
+    """
+    Tests that _stop gracefully handles cases where sources were not initialized
+    (i.e., create() was not called).
+    """
+    # Ensure internal sources are None (default state before create())
+    assert factory._RemoteRuntimeFactory__command_source is None
+    assert factory._RemoteRuntimeFactory__event_source is None
+    # _RemoteRuntimeFactory__data_reader_sink is also initialized in create via property
+    assert factory._RemoteRuntimeFactory__data_reader_sink is None
+
+    try:
+        factory._stop()
+    except AttributeError:  # pragma: no cover
+        pytest.fail("_stop() raised AttributeError when sources were None")
+    except Exception as e:  # pragma: no cover
+        pytest.fail(f"_stop() raised an unexpected exception: {e}")
+
+    # No assertions needed on mocks as they shouldn't exist or be called.
+    # The main assertion is that no error was raised.

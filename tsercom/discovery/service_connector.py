@@ -15,8 +15,10 @@ import asyncio
 import logging
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.discovery.service_info import ServiceInfo
-from tsercom.discovery.service_source import ServiceSource
+from tsercom.discovery.service_source import (
+    ServiceSource,
+    ServiceInfoT as SourceServiceInfoT,
+)
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
     is_running_on_event_loop,
@@ -25,14 +27,11 @@ from tsercom.threading.aio.aio_utils import (
 from tsercom.util.connection_factory import ConnectionFactory
 
 
-ServiceInfoT = TypeVar("ServiceInfoT", bound=ServiceInfo)
-ChannelTypeT = TypeVar(
-    "ChannelTypeT"
-)  # Represents the type of channel (e.g., grpc.aio.Channel)
+ChannelTypeT = TypeVar("ChannelTypeT")
 
 
 class ServiceConnector(
-    Generic[ServiceInfoT, ChannelTypeT],
+    Generic[SourceServiceInfoT, ChannelTypeT],
     ServiceSource.Client,
 ):
     """Monitors a `ServiceSource` and attempts to connect to discovered services.
@@ -69,7 +68,7 @@ class ServiceConnector(
         @abstractmethod
         async def _on_channel_connected(
             self,
-            connection_info: ServiceInfoT,
+            connection_info: SourceServiceInfoT,  # Use imported SourceServiceInfoT
             caller_id: CallerIdentifier,
             channel: ChannelTypeT,
         ) -> None:
@@ -88,7 +87,7 @@ class ServiceConnector(
         self,
         client: "ServiceConnector.Client",
         connection_factory: ConnectionFactory[ChannelTypeT],
-        service_source: ServiceSource[ServiceInfoT],
+        service_source: ServiceSource[SourceServiceInfoT],
     ) -> None:
         """Initializes the ServiceConnector.
 
@@ -100,11 +99,13 @@ class ServiceConnector(
                 creating communication channels (of type `ChannelTypeT`) to
                 services based on their address and port.
             service_source: A `ServiceSource` instance that will provide
-                information about discovered services (of type `ServiceInfoT`).
+                information about discovered services (of type `SourceServiceInfoT`).
                 The `ServiceConnector` registers itself as a client to this source.
         """
         self.__client: ServiceConnector.Client = client
-        self.__service_source: ServiceSource[ServiceInfoT] = service_source
+        self.__service_source: ServiceSource[SourceServiceInfoT] = (
+            service_source
+        )
         self.__connection_factory: ConnectionFactory[ChannelTypeT] = (
             connection_factory
         )
@@ -200,11 +201,11 @@ class ServiceConnector(
             caller_id,
         )
 
-    async def _on_service_added(
+    async def _on_service_added(  # type: ignore[override]
         self,
-        connection_info: ServiceInfoT,
+        connection_info: SourceServiceInfoT,
         caller_id: CallerIdentifier,
-    ) -> None:  # type: ignore[override]
+    ) -> None:
         """Handles new service discovery events from the `ServiceSource`.
 
         This method is called by the `ServiceSource` when a new service instance

@@ -14,6 +14,7 @@ Key functions:
   propagation back to the parent process.
 """
 
+import asyncio
 import concurrent.futures
 from functools import partial
 import logging
@@ -175,9 +176,8 @@ def initialize_runtimes(
                             "BaseException: %s. This will not be reported via ThreadWatcher.",
                             type(exc).__name__,
                         )
-            except (
-                Exception
-            ) as e_callback:  # pylint: disable=broad-exception-caught
+            # pylint: disable=broad-exception-caught
+            except Exception as e_callback:
                 # Log errors within the callback itself to prevent ThreadWatcher issues.
                 logger.error(
                     "Error in _runtime_start_done_callback: %s", e_callback
@@ -196,7 +196,6 @@ def remote_process_main(
     *,
     is_testing: bool = False,
 ) -> None:
-    captured_exception: Optional[Exception] = None
     """Main entry point for a Tsercom runtime operating in a remote process.
 
     This function is intended to be the target for a new process created by
@@ -234,6 +233,7 @@ def remote_process_main(
     error_sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
     active_runtimes: List[Runtime] = []
+    captured_exception: Optional[Exception] = None
     try:
         active_runtimes = initialize_runtimes(
             thread_watcher, initializers, is_testing=is_testing
@@ -242,31 +242,44 @@ def remote_process_main(
         # the error_sink is stopped.
         error_sink.run_until_exception()
 
-    except Exception as e:  # Catch any exception during init or runtime
+    except Exception as e:
         captured_exception = e
+
+    # Ensure cleanup of runtimes and factories on exit.
+    logger.info("Remote process shutting down. Stopping runtimes.")
+
+    asyncs = [runtime.stop(captured_exception) for runtime in active_runtimes]
+    aggregate_asyncs = asyncio.wait_for(asyncio.gather(*asyncs), timeout=5)
+    asyncs_task = get_global_event_loop().create_task(aggregate_asyncs)
+    for factory in initializers:
+        try:
+            # pylint: disable=protected-access
+            factory._stop()
+        # pylint: disable=broad-exception-caught
+        except Exception as e_factory_stop:
+            logger.error(
+                "Error stopping factory %s: %s", factory, e_factory_stop
+            )
+
+    logger.info("Remote process cleanup complete.")
+
+    # Wait for all stop calls to return or time out.
+    try:
+        asyncs_task.result()
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        # TODO: Create AggregateException with both if captured_exception is NOT
+        # None.
+        if captured_exception is None:
+            captured_exception = e
+
+    # Handle exception after finally is done.
+    if captured_exception is not None:
         if error_queue:
             try:
-                error_queue.put_nowait(e)
-            except Exception as q_e:  # pylint: disable=broad-exception-caught
-                # Log if putting to queue fails, but prioritize raising original error.
+                error_queue.put_nowait(captured_exception)
+            # pylint: disable=broad-exception-caught
+            except Exception as q_e:
                 logger.error(
                     "Failed to put exception onto error_queue: %s", q_e
                 )
-        raise  # Re-raise the original exception to terminate the process with error.
-    finally:
-        # Ensure cleanup of runtimes and factories on exit.
-        logger.info("Remote process shutting down. Stopping runtimes.")
-        for runtime in active_runtimes:
-            run_on_event_loop(partial(runtime.stop, captured_exception))
-        for factory in initializers:
-            try:
-                # pylint: disable=protected-access
-                factory._stop()
-            except (
-                Exception
-            ) as e_factory_stop:  # pylint: disable=broad-exception-caught
-                logger.error(
-                    "Error stopping factory %s: %s", factory, e_factory_stop
-                )
-
-        logger.info("Remote process cleanup complete.")
+        raise captured_exception

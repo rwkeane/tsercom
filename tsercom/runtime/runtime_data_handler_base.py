@@ -37,7 +37,7 @@ from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.threading.aio.aio_utils import run_on_event_loop
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.common.synchronized_timestamp import (
@@ -313,6 +313,7 @@ class RuntimeDataHandlerBase(
         self.__data_reader._on_data_ready(data)
 
     @abstractmethod
+    # pylint: disable=arguments-differ
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:

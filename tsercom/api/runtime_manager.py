@@ -11,7 +11,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
 from multiprocessing import Process
-from typing import Generic, List, TypeVar, Optional
+from typing import Generic, List, Optional
 
 from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
@@ -29,7 +29,7 @@ from tsercom.api.runtime_manager_helpers import (
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
-from tsercom.data.exposed_data import ExposedData
+
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
@@ -51,9 +51,8 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 
-# Type variables for generic RuntimeHandle and related classes.
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
-EventTypeT = TypeVar("EventTypeT")
+# Import TypeVars from runtime_factory_factory for consistency
+from tsercom.api.runtime_factory_factory import DataTypeT, EventTypeT
 
 
 logger = logging.getLogger(__name__)
@@ -155,7 +154,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         if split_runtime_factory_factory is not None:
             self.__split_runtime_factory_factory: RuntimeFactoryFactory[
                 DataTypeT, EventTypeT
-            ] = split_runtime_factory_factory
+            ] = split_runtime_factory_factory  # Use imported
         else:
             default_split_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
@@ -186,7 +185,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         return self.__has_started.get()
 
     def register_runtime_initializer(
-        self, runtime_initializer: RuntimeInitializer[DataTypeT, EventTypeT]
+        self,
+        runtime_initializer: RuntimeInitializer[DataTypeT, EventTypeT],
     ) -> Future[RuntimeHandle[DataTypeT, EventTypeT]]:
         """Registers a `RuntimeInitializer` to be managed and launched.
 
@@ -276,7 +276,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         )
 
         # Import is deferred to method scope to avoid circular dependencies at module load time.
-        from tsercom.runtime.runtime_main import (
+        from tsercom.runtime.runtime_main import (  # pylint: disable=import-outside-toplevel
             initialize_runtimes,
         )
 
@@ -331,7 +331,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         )
 
         # Import is deferred to method scope to avoid circular dependencies at module load time.
-        from tsercom.runtime.runtime_main import (
+        from tsercom.runtime.runtime_main import (  # pylint: disable=import-outside-toplevel
             remote_process_main,
         )
 
@@ -447,7 +447,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         logger.info("RuntimeManager.shutdown: Sequence complete.")
 
     def __create_factories(
-        self, factory_factory: RuntimeFactoryFactory[DataTypeT, EventTypeT]
+        self,
+        factory_factory: RuntimeFactoryFactory[DataTypeT, EventTypeT],
     ) -> List[RuntimeFactory[DataTypeT, EventTypeT]]:
         """Creates runtime factories for all registered initializers.
 
@@ -505,9 +506,10 @@ class RuntimeFuturePopulator(
         """
         self.__future: Future[RuntimeHandle[DataTypeT, EventTypeT]] = future
 
-    def _on_handle_ready(
-        self, handle: RuntimeHandle[DataTypeT, EventTypeT]
-    ) -> None:  # type: ignore[override]
+    def _on_handle_ready(  # type: ignore[override]
+        self,
+        handle: RuntimeHandle[DataTypeT, EventTypeT],  # Use imported TypeVars
+    ) -> None:
         """Callback invoked by a `RuntimeFactory` when its `RuntimeHandle` is ready.
 
         This method fulfills the `Future` (provided during initialization) with

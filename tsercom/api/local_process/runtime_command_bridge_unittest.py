@@ -279,6 +279,101 @@ def test_run_on_event_loop_usage_on_stop(
     # Implicitly tests that .result() was called on the future
 
 
+def test_set_runtime_pending_stop_timeout_on_result(
+    bridge, fake_runtime, mocker
+):
+    """
+    Tests that set_runtime with a pending STOP command handles TimeoutError
+    from future.result() gracefully.
+    """
+    bridge.stop()  # Set pending STOP command
+    assert not fake_runtime.stop_called
+
+    mock_future_for_stop = mocker.MagicMock(spec=concurrent.futures.Future)
+    mock_future_for_stop.result.side_effect = concurrent.futures.TimeoutError(
+        "Simulated timeout"
+    )
+
+    # Temporarily patch run_on_event_loop for this specific test's scenario
+    # The patch_rcb_run_on_event_loop fixture will be overridden by this more specific patch
+    # within the scope of this test.
+    def run_on_event_loop_side_effect_pending_stop(
+        callable_to_run, *args, **kwargs
+    ):
+        if callable(callable_to_run):
+            callable_to_run()  # Execute the callable
+        return mock_future_for_stop  # Return the future that will timeout
+
+    mock_run_on_event_loop = mocker.patch(
+        "tsercom.api.local_process.runtime_command_bridge.run_on_event_loop",
+        side_effect=run_on_event_loop_side_effect_pending_stop,
+    )
+
+    try:
+        bridge.set_runtime(fake_runtime)
+    except concurrent.futures.TimeoutError:  # pragma: no cover
+        pytest.fail(
+            "TimeoutError should be caught and handled by set_runtime, not re-raised."
+        )
+    except Exception as e:  # pragma: no cover
+        pytest.fail(f"set_runtime raised an unexpected exception: {e}")
+
+    assert (
+        fake_runtime.stop_called
+    ), "Runtime's stop method should have been called."
+    mock_run_on_event_loop.assert_called_once()  # Ensure our mock was used
+    # The callable passed to run_on_event_loop is a partial(fake_runtime.stop, None)
+    # We can inspect its first argument (the partial)
+    called_arg = mock_run_on_event_loop.call_args[0][0]
+    assert callable(called_arg)
+    # To be very precise, one could check called_arg.func and called_arg.args
+
+    mock_future_for_stop.result.assert_called_once_with(timeout=5.0)
+
+
+def test_stop_after_runtime_set_timeout_on_result(
+    bridge, fake_runtime, mocker
+):
+    """
+    Tests that bridge.stop() after runtime is set handles TimeoutError
+    from future.result() gracefully.
+    """
+    bridge.set_runtime(fake_runtime)  # Runtime is set, no pending commands
+    assert not fake_runtime.stop_called  # stop should not have been called yet
+
+    mock_future_for_stop = mocker.MagicMock(spec=concurrent.futures.Future)
+    mock_future_for_stop.result.side_effect = concurrent.futures.TimeoutError(
+        "Simulated timeout"
+    )
+
+    def run_on_event_loop_side_effect_direct_stop(
+        callable_to_run, *args, **kwargs
+    ):
+        if callable(callable_to_run):
+            callable_to_run()  # Execute the callable
+        return mock_future_for_stop  # Return the future that will timeout
+
+    mock_run_on_event_loop = mocker.patch(
+        "tsercom.api.local_process.runtime_command_bridge.run_on_event_loop",
+        side_effect=run_on_event_loop_side_effect_direct_stop,
+    )
+
+    try:
+        bridge.stop()  # This should trigger the run_on_event_loop with runtime.stop
+    except concurrent.futures.TimeoutError:  # pragma: no cover
+        pytest.fail(
+            "TimeoutError should be caught and handled by bridge.stop, not re-raised."
+        )
+    except Exception as e:  # pragma: no cover
+        pytest.fail(f"bridge.stop() raised an unexpected exception: {e}")
+
+    assert (
+        fake_runtime.stop_called
+    ), "Runtime's stop method should have been called."
+    mock_run_on_event_loop.assert_called_once()
+    mock_future_for_stop.result.assert_called_once_with(timeout=5.0)
+
+
 # Test that run_on_event_loop is called when setting runtime with a pending start
 def test_run_on_event_loop_usage_on_set_runtime_pending_start(
     bridge, fake_runtime, patch_rcb_run_on_event_loop

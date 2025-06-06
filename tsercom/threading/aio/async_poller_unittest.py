@@ -7,7 +7,7 @@ import functools
 from collections import deque
 
 from tsercom.threading.atomic import Atomic
-from tsercom.threading.async_poller import AsyncPoller
+from .async_poller import AsyncPoller
 import tsercom.threading.aio.aio_utils as aio_utils_to_patch
 
 K_MAX_RESPONSES = 30

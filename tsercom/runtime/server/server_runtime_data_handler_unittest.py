@@ -12,7 +12,7 @@ from tsercom.runtime.server.server_runtime_data_handler import (
     ServerRuntimeDataHandler,
 )
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.threading.async_poller import AsyncPoller
+from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
@@ -292,3 +292,37 @@ class TestServerRuntimeDataHandler:
             mock_endpoint, mock_port
         )
         assert returned_caller_id is None
+
+    def test_init_is_testing_true(
+        self, mock_data_reader, mock_event_source_poller, mocker
+    ):
+        """Tests __init__ with is_testing=True."""
+        mock_FakeSynchronizedClock_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.FakeSynchronizedClock"
+        )
+        mock_fake_clock_instance = mocker.MagicMock(spec=SynchronizedClock)
+        mock_FakeSynchronizedClock_class.return_value = (
+            mock_fake_clock_instance
+        )
+
+        mock_TimeSyncServer_class = mocker.patch(
+            "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer"
+        )
+
+        # Mock IdTracker.__init__ as it's called in the base class constructor
+        mocker.patch(
+            "tsercom.runtime.id_tracker.IdTracker.__init__", return_value=None
+        )
+
+        handler = ServerRuntimeDataHandler(
+            data_reader=mock_data_reader,
+            event_source=mock_event_source_poller,
+            is_testing=True,  # Key for this test
+        )
+
+        mock_FakeSynchronizedClock_class.assert_called_once_with()
+        mock_TimeSyncServer_class.assert_not_called()
+        assert (
+            handler._ServerRuntimeDataHandler__clock
+            is mock_fake_clock_instance
+        )

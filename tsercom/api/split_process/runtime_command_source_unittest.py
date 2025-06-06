@@ -61,6 +61,7 @@ class FakeThread:
         self._started = False
         self.join_called = False
         self.join_timeout = None
+        self._is_alive = False  # Initial state
 
     def start(self):
         self._started = True
@@ -69,9 +70,7 @@ class FakeThread:
     def join(self, timeout=None):
         self.join_called = True
         self.join_timeout = timeout
-        # In a fake, we don't actually block or join anything.
-        # Typically, after join (even with timeout), is_alive would be false if thread finished.
-        self._is_alive = False
+        self._is_alive = False  # Simulate thread joined
         pass
 
     def is_alive(self):
@@ -84,7 +83,12 @@ class FakeThreadWatcher:
         self.created_thread_args = None
         self.created_thread_daemon = None
         self.fake_thread = None
-        self.last_exception_seen = None  # For on_exception_seen
+        try:
+            from unittest.mock import MagicMock
+
+            self.on_exception_seen = MagicMock()
+        except ImportError:  # pragma: no cover
+            self.on_exception_seen = None
 
     def create_tracked_thread(self, target, args=(), daemon=True):
         self.created_thread_target = target
@@ -93,12 +97,13 @@ class FakeThreadWatcher:
         self.fake_thread = FakeThread(target=target, args=args, daemon=daemon)
         return self.fake_thread
 
-    def on_exception_seen(self, exception: Exception) -> None:
-        """Records the exception seen by the thread watcher."""
-        self.last_exception_seen = exception
+    # This method was defined twice in the read_files output, keeping one.
+    # def on_exception_seen(self, exception: Exception) -> None:
+    #     """Records the exception seen by the thread watcher."""
+    #     self.last_exception_seen = exception
 
 
-class FakeIsRunningTracker:  # No global variable needed here
+class FakeIsRunningTracker:
     def __init__(self, name="default_fake_tracker"):
         self.name = name
         self._is_running = False
@@ -156,9 +161,7 @@ def patch_run_on_event_loop_in_rcs_module(request):
     def cleanup():
         if original_func:
             setattr(rcs_module, "run_on_event_loop", original_func)
-        elif hasattr(
-            rcs_module, "run_on_event_loop"
-        ):  # If we added it, delete it
+        elif hasattr(rcs_module, "run_on_event_loop"):
             delattr(rcs_module, "run_on_event_loop")
 
     request.addfinalizer(cleanup)
@@ -174,9 +177,7 @@ def patch_is_running_tracker_in_rcs_module(request):
     def cleanup():
         if original_class:
             setattr(rcs_module, "IsRunningTracker", original_class)
-        elif hasattr(
-            rcs_module, "IsRunningTracker"
-        ):  # If we added it, delete it
+        elif hasattr(rcs_module, "IsRunningTracker"):
             delattr(rcs_module, "IsRunningTracker")
 
     request.addfinalizer(cleanup)
@@ -184,7 +185,6 @@ def patch_is_running_tracker_in_rcs_module(request):
 
 @pytest.fixture
 def command_source(fake_command_queue):
-    # patch_is_running_tracker_in_rcs_module will be applied by tests that need it
     source = RuntimeCommandSource(runtime_command_queue=fake_command_queue)
     return source
 
@@ -193,7 +193,6 @@ def command_source(fake_command_queue):
 
 
 def test_init(command_source, fake_command_queue):
-    """Test RuntimeCommandSource.__init__."""
     assert (
         command_source._RuntimeCommandSource__runtime_command_queue
         is fake_command_queue
@@ -208,34 +207,18 @@ def test_start_async(
     fake_runtime_instance,
     patch_is_running_tracker_in_rcs_module,
 ):
-    """Test start_async() method."""
-    # patch_is_running_tracker_in_rcs_module ensures IsRunningTracker class is FakeIsRunningTracker for this test
-
-    command_source.start_async(
-        fake_thread_watcher, fake_runtime_instance
-    )  # FakeIsRunningTracker is created here
-
+    command_source.start_async(fake_thread_watcher, fake_runtime_instance)
     internal_fake_tracker = command_source._RuntimeCommandSource__is_running
-    assert (
-        internal_fake_tracker is not None
-    ), "Internal tracker not set after start_async"
-    assert isinstance(
-        internal_fake_tracker, FakeIsRunningTracker
-    ), "Internal tracker is not a FakeIsRunningTracker"
-
+    assert internal_fake_tracker is not None
+    assert isinstance(internal_fake_tracker, FakeIsRunningTracker)
     assert (
         command_source._RuntimeCommandSource__runtime is fake_runtime_instance
     )
     assert internal_fake_tracker.start_call_count == 1
-
-    assert callable(
-        fake_thread_watcher.created_thread_target
-    )  # Check if a function was set
+    assert callable(fake_thread_watcher.created_thread_target)
     assert fake_thread_watcher.fake_thread is not None
     assert fake_thread_watcher.fake_thread._started is True
     assert fake_thread_watcher.fake_thread.daemon is True
-
-    # Test calling start_async twice
     with pytest.raises(AssertionError):
         command_source.start_async(fake_thread_watcher, fake_runtime_instance)
 
@@ -246,33 +229,24 @@ def test_stop_async(
     fake_runtime_instance,
     patch_is_running_tracker_in_rcs_module,
 ):
-    """Test stop_async() method."""
     command_source.start_async(fake_thread_watcher, fake_runtime_instance)
     internal_fake_tracker = command_source._RuntimeCommandSource__is_running
-    assert isinstance(
-        internal_fake_tracker, FakeIsRunningTracker
-    ), "Internal tracker is not a FakeIsRunningTracker"
-
+    assert isinstance(internal_fake_tracker, FakeIsRunningTracker)
     command_source.stop_async()
     assert internal_fake_tracker.stop_call_count == 1
 
 
 def test_stop_async_before_start_raises_assertion_error(command_source):
-    """Test stop_async() raises AssertionError if called before start_async."""
     with pytest.raises(AssertionError):
         command_source.stop_async()
 
 
-# Helper for watch_commands tests
 def setup_watch_commands_test(
     command_source, fake_thread_watcher, fake_runtime_instance
 ):
-    # patch_is_running_tracker_in_rcs_module should be active in the calling test function
     command_source.start_async(fake_thread_watcher, fake_runtime_instance)
     internal_fake_tracker = command_source._RuntimeCommandSource__is_running
-    assert isinstance(
-        internal_fake_tracker, FakeIsRunningTracker
-    ), "Internal tracker is not FakeIsRunningTracker in setup. Ensure calling test uses patch_is_running_tracker_in_rcs_module."
+    assert isinstance(internal_fake_tracker, FakeIsRunningTracker)
     loop_target_function = fake_thread_watcher.created_thread_target
     assert callable(loop_target_function)
     return internal_fake_tracker, loop_target_function
@@ -289,13 +263,10 @@ def test_watch_commands_kstart(
     internal_fake_tracker, loop_target = setup_watch_commands_test(
         command_source, fake_thread_watcher, fake_runtime_instance
     )
-
     fake_command_queue.set_return_values([RuntimeCommand.START, StopIteration])
     internal_fake_tracker.set_is_running(True)
-
     with pytest.raises(StopIteration):
-        loop_target()  # Call the actual thread target
-
+        loop_target()
     assert len(patch_run_on_event_loop_in_rcs_module) == 1
     assert fake_runtime_instance.start_async_called
     assert fake_runtime_instance.start_async_call_count == 1
@@ -312,13 +283,10 @@ def test_watch_commands_kstop(
     internal_fake_tracker, loop_target = setup_watch_commands_test(
         command_source, fake_thread_watcher, fake_runtime_instance
     )
-
     fake_command_queue.set_return_values([RuntimeCommand.STOP, StopIteration])
     internal_fake_tracker.set_is_running(True)
-
     with pytest.raises(StopIteration):
-        loop_target()  # Call the actual thread target
-
+        loop_target()
     assert len(patch_run_on_event_loop_in_rcs_module) == 1
     assert fake_runtime_instance.stop_called
     assert fake_runtime_instance.stop_call_count == 1
@@ -335,13 +303,10 @@ def test_watch_commands_unknown_command_raises_value_error(
     internal_fake_tracker, loop_target = setup_watch_commands_test(
         command_source, fake_thread_watcher, fake_runtime_instance
     )
-
     fake_command_queue.set_return_values([-1, StopIteration])
     internal_fake_tracker.set_is_running(True)
-
     with pytest.raises(ValueError):
-        loop_target()  # Call the actual thread target
-
+        loop_target()
     assert len(patch_run_on_event_loop_in_rcs_module) == 0
 
 
@@ -356,13 +321,10 @@ def test_watch_commands_queue_timeout(
     internal_fake_tracker, loop_target = setup_watch_commands_test(
         command_source, fake_thread_watcher, fake_runtime_instance
     )
-
     fake_command_queue.set_return_values([None, StopIteration])
     internal_fake_tracker.set_is_running(True)
-
     with pytest.raises(StopIteration):
-        loop_target()  # Call the actual thread target
-
+        loop_target()
     assert len(patch_run_on_event_loop_in_rcs_module) == 0
 
 
@@ -377,11 +339,9 @@ def test_watch_commands_loop_termination(
     internal_fake_tracker, loop_target = setup_watch_commands_test(
         command_source, fake_thread_watcher, fake_runtime_instance
     )
-
     fake_command_queue.set_return_values(
         [RuntimeCommand.START, RuntimeCommand.START]
     )
-
     is_running_sequence = [True, True, False]
     original_get_method = internal_fake_tracker.get
 
@@ -391,11 +351,95 @@ def test_watch_commands_loop_termination(
         return False
 
     internal_fake_tracker.get = sequenced_get
-
-    loop_target()  # Call the actual thread target
-
+    loop_target()
     assert fake_runtime_instance.start_async_call_count == 2
     assert fake_command_queue.get_blocking_call_count == 2
-
     internal_fake_tracker.get = original_get_method
     internal_fake_tracker.set_is_running(False)
+
+
+def test_stop_async_join_timeout(
+    command_source,
+    fake_thread_watcher,
+    fake_runtime_instance,
+    patch_is_running_tracker_in_rcs_module,
+    mocker,
+):
+    """
+    Tests that stop_async() raises RuntimeError if the command processing thread
+    does not join within the timeout.
+    """
+    # Start the command source. This will initialize __is_running using the patched FakeIsRunningTracker
+    command_source.start_async(fake_thread_watcher, fake_runtime_instance)
+
+    # Now __is_running should be an instance of FakeIsRunningTracker
+    assert isinstance(
+        command_source._RuntimeCommandSource__is_running, FakeIsRunningTracker
+    ), "Internal __is_running tracker should be a FakeIsRunningTracker instance after start_async"
+    internal_fake_tracker = command_source._RuntimeCommandSource__is_running
+
+    assert (
+        internal_fake_tracker.get() is True
+    ), "Tracker should be running after start_async"
+    assert (
+        fake_thread_watcher.fake_thread is not None
+    ), "Thread should have been created"
+
+    # Mock thread.join to do nothing (simulating it never finishes on its own)
+    mocker.patch.object(
+        fake_thread_watcher.fake_thread,
+        "join",
+        side_effect=lambda timeout=None: None,
+    )
+    # Mock thread.is_alive to always return True
+    mocker.patch.object(
+        fake_thread_watcher.fake_thread, "is_alive", return_value=True
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"RuntimeCommandSource thread for queue .* did not terminate within 5 seconds.",
+    ):
+        command_source.stop_async()  # This will set __is_running to False and then try to join
+
+    fake_thread_watcher.fake_thread.join.assert_called_once_with(timeout=5.0)
+    fake_thread_watcher.fake_thread.is_alive.assert_called_once()
+
+
+def test_watch_commands_runtime_command_exception(
+    command_source,
+    fake_command_queue,
+    fake_runtime_instance,
+    fake_thread_watcher,
+    patch_run_on_event_loop_in_rcs_module,
+    patch_is_running_tracker_in_rcs_module,
+    mocker,
+):
+    """
+    Tests that if a runtime command (e.g., runtime.start_async) raises an exception,
+    it's caught, reported to the watcher, and the loop terminates by re-raising.
+    """
+    internal_fake_tracker, loop_target = setup_watch_commands_test(
+        command_source, fake_thread_watcher, fake_runtime_instance
+    )
+
+    test_exception = ValueError("Runtime start_async error")
+    fake_runtime_instance.start_async = mocker.MagicMock(
+        side_effect=test_exception
+    )
+
+    fake_command_queue.set_return_values([RuntimeCommand.START, StopIteration])
+    internal_fake_tracker.set_is_running(True)
+
+    assert hasattr(fake_thread_watcher, "on_exception_seen") and callable(
+        fake_thread_watcher.on_exception_seen.assert_called_once_with
+    )
+
+    with pytest.raises(ValueError, match="Runtime start_async error"):
+        loop_target()
+
+    fake_runtime_instance.start_async.assert_called_once()
+    fake_thread_watcher.on_exception_seen.assert_called_once_with(
+        test_exception
+    )
+    assert internal_fake_tracker.get() is True
