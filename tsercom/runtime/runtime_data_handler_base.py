@@ -21,8 +21,9 @@ from typing import (
     Any,
     overload,
     Optional,
-)  # Added Optional
-
+)
+import asyncio  # Added for task management
+import concurrent.futures # Added for Future type hint
 import grpc
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -121,23 +122,28 @@ class RuntimeDataHandlerBase(
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
-        self.__dispatch_task: Optional[asyncio.Task] = run_on_event_loop(
+        self.__dispatch_task: Optional[concurrent.futures.Future[None]] = run_on_event_loop(
             self.__dispatch_poller_data_loop
         )
 
     async def stop_dispatch_loop(self) -> None:
         """Stops the background event dispatching loop."""
-        if self.__dispatch_task is not None and not self.__dispatch_task.done():
+        if (
+            self.__dispatch_task is not None
+            and not self.__dispatch_task.done()
+        ):
             self.__dispatch_task.cancel()
             try:
-                await self.__dispatch_task
+                await asyncio.wrap_future(self.__dispatch_task)
             except asyncio.CancelledError:
                 # Expected on cancellation
                 pass
             except Exception as e:
                 # Log other potential errors during task shutdown
                 # Consider using a logger instance if available
-                print(f"Error stopping dispatch loop: {e}") # Basic print for now
+                print(
+                    f"Error stopping dispatch loop: {e}"
+                )  # Basic print for now
             self.__dispatch_task = None
 
     @property
@@ -471,7 +477,9 @@ class RuntimeDataHandlerBase(
                             current_caller_id
                         )
                         if id_tracker_entry is not None:
-                            _address, _port, per_caller_poller = id_tracker_entry
+                            _address, _port, per_caller_poller = (
+                                id_tracker_entry
+                            )
                             if per_caller_poller is not None:
                                 per_caller_poller.on_available(event_item)
                             # else: Potentially log if poller is None for an active ID

@@ -122,6 +122,7 @@ class TestEventToSerializableAnnInstancePollerAdapter:
         adapter._convert_event_instance = Mock()
         adapter._convert_event_instance.assert_not_called()
 
+
 # Minimal test for SerializableAnnotatedInstance constructor changes
 # This should ideally be in its own test file if one existed.
 def test_serializable_annotated_instance_optional_caller_id():
@@ -133,9 +134,13 @@ def test_serializable_annotated_instance_optional_caller_id():
     ts = SynchronizedTimestamp(current_dt)
 
     # With CallerIdentifier
-    inst1 = SerializableAnnotatedInstance(data=data, caller_id=cid, timestamp=ts)
+    inst1 = SerializableAnnotatedInstance(
+        data=data, caller_id=cid, timestamp=ts
+    )
     assert inst1.caller_id == cid
 
     # With None caller_id
-    inst2 = SerializableAnnotatedInstance(data=data, caller_id=None, timestamp=ts)
+    inst2 = SerializableAnnotatedInstance(
+        data=data, caller_id=None, timestamp=ts
+    )
     assert inst2.caller_id is None
