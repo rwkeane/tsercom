@@ -53,7 +53,10 @@ class SplitProcessErrorWatcherSink(ErrorWatcher):
             # If this fails, log it, but prioritize re-raising the original exception.
             try:
                 self.__queue.put_nowait(e)
-            except (OSError, ValueError) as queue_e: # More specific exceptions for queue operations
+            except (
+                OSError,
+                ValueError,
+            ) as queue_e:  # More specific exceptions for queue operations
                 # ValueError can be raised by pickle if 'e' is unpicklable
                 # OSError can be raised for broken pipes etc.
                 # queue.Full might also be relevant if using standard 'queue'
