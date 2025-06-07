@@ -1,6 +1,6 @@
 """Manages mDNS service discovery and notifies clients of services."""
 
-import logging  # Added logging
+import logging
 from typing import Callable, Dict, Generic, Optional, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier

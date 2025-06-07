@@ -29,14 +29,6 @@ class RecordListener(MdnsListener):
         """
         if client is None:
             raise ValueError("Client cannot be None for RecordListener.")
-        # Check for method implementation (duck typing for ABC)
-        if not hasattr(client, "_on_service_added") or not callable(
-            getattr(client, "_on_service_added")
-        ):
-            # Long error message
-            raise TypeError(
-                f"Client must implement MdnsListener.Client interface (e.g., _on_service_added), got {type(client).__name__}."
-            )
 
         if service_type is None:
             raise ValueError("service_type cannot be None for RecordListener.")
@@ -145,12 +137,7 @@ class RecordListener(MdnsListener):
         """
         logging.info("Service removed: type='%s', name='%s'", type_, name)
         # Notify the client about the service removal.
-        # Check if the client has implemented _on_service_removed to avoid errors.
-        if hasattr(self.__client, "_on_service_removed") and callable(
-            getattr(self.__client, "_on_service_removed")
-        ):
-            # pylint: disable=W0212 # Calling client's notification method
-            self.__client._on_service_removed(name, type_, self._uuid_str)
+        self.__client._on_service_removed(name, type_, self._uuid_str)
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a new service is discovered.
