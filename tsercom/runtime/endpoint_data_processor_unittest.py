@@ -45,9 +45,11 @@ class HelperConcreteTestProcessor(
         )
 
     async def desynchronize(
-        self, timestamp: ServerTimestamp
+        self,
+        timestamp: ServerTimestamp,
+        context: Optional[grpc.aio.ServicerContext] = None,
     ) -> Optional[datetime.datetime]:
-        return await self.desynchronize_mock(timestamp)
+        return await self.desynchronize_mock(timestamp, context)
 
     async def deregister_caller(self) -> None:
         await self.deregister_caller_mock()  # pragma: no cover (not tested here)
@@ -109,9 +111,11 @@ async def test_process_data_server_timestamp_desync_success(
     desynchronized_dt = datetime.datetime.now(datetime.timezone.utc)
     processor.desynchronize_mock.return_value = desynchronized_dt
 
-    await processor.process_data(test_data, timestamp=mock_server_ts)
+    await processor.process_data(
+        test_data, timestamp=mock_server_ts, context=None
+    )  # Added context explicitly for clarity
 
-    processor.desynchronize_mock.assert_awaited_once_with(mock_server_ts)
+    processor.desynchronize_mock.assert_awaited_once_with(mock_server_ts, None)
     processor._process_data_mock.assert_awaited_once_with(
         test_data, desynchronized_dt
     )
@@ -131,7 +135,7 @@ async def test_process_data_server_timestamp_desync_none_no_context(
         test_data, timestamp=mock_server_ts, context=None
     )
 
-    processor.desynchronize_mock.assert_awaited_once_with(mock_server_ts)
+    processor.desynchronize_mock.assert_awaited_once_with(mock_server_ts, None)
     processor._process_data_mock.assert_not_awaited()
     # No direct logging to assert here from process_data itself for this path
 
@@ -148,7 +152,9 @@ async def test_process_data_server_timestamp_desync_none_with_context(
         test_data, timestamp=mock_server_ts, context=mock_grpc_context
     )
 
-    processor.desynchronize_mock.assert_awaited_once_with(mock_server_ts)
+    processor.desynchronize_mock.assert_awaited_once_with(
+        mock_server_ts, mock_grpc_context
+    )
     mock_grpc_context.abort.assert_awaited_once_with(
         grpc.StatusCode.INVALID_ARGUMENT, "Invalid ServerTimestamp Provided"
     )

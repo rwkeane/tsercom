@@ -5,15 +5,14 @@ from typing import Generic, TypeVar
 
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
-from tsercom.data.exposed_data import ExposedData
-
+# ExposedData import removed as DataTypeT is no longer bound to it here.
 # SerializableAnnotatedInstance might become unused in this file
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.async_poller import AsyncPoller
 
 EventTypeT = TypeVar("EventTypeT")
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)  # Constrain DataTypeT
+DataTypeT = TypeVar("DataTypeT")  # No longer constrained by ExposedData
 
 
 class RuntimeFactory(
@@ -25,6 +24,10 @@ class RuntimeFactory(
 
     Extends `RuntimeInitializer` and requires implementations to provide
     a `RemoteDataReader` and an `AsyncPoller` for event handling.
+
+    Type Args:
+        DataTypeT: The generic type of data objects the runtime processes.
+        EventTypeT: The generic type of event objects the runtime processes.
     """
 
     @property

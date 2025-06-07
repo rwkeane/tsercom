@@ -46,6 +46,10 @@ class ClientRuntimeDataHandler(
     resulting synchronized clock when creating the `EndpointDataProcessor` for
     that caller. Similarly, it notifies the `TimeSyncTracker` upon unregistering
     a caller.
+
+    Type Args:
+        DataTypeT: The generic type of data objects that this handler processes.
+        EventTypeT: The generic type of event objects that this handler processes.
     """
 
     def __init__(

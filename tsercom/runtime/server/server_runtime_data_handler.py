@@ -41,6 +41,10 @@ class ServerRuntimeDataHandler(
     it typically initializes a `TimeSyncServer` to provide a consistent time
     source for these clients. In testing mode, a `FakeSynchronizedClock` can
     be used instead. The server\'s own clock is considered authoritative.
+
+    Type Args:
+        DataTypeT: The generic type of data objects that this handler processes.
+        EventTypeT: The generic type of event objects that this handler processes.
     """
 
     def __init__(

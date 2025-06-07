@@ -18,7 +18,7 @@ from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 EventTypeT = TypeVar("EventTypeT")
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT")
 
 
 class LocalRuntimeFactory(
@@ -56,7 +56,7 @@ class LocalRuntimeFactory(
         self,
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
-        grpc_channel_factory: GrpcChannelFactory | None,
+        grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         """Creates a new Runtime instance.
 
@@ -66,7 +66,7 @@ class LocalRuntimeFactory(
         Args:
             thread_watcher: ThreadWatcher to monitor runtime threads.
             data_handler: Handler for data/events within runtime.
-            grpc_channel_factory: Factory for gRPC channels if runtime needs them.
+            grpc_channel_factory: Factory for gRPC channels (required).
 
         Returns:
             The newly created and configured Runtime instance.
