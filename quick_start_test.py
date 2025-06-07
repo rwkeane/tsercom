@@ -1,206 +1,236 @@
+# quick_start_test.py
+# This script demonstrates a basic client-server interaction using tsercom.
+# It sets up a simple gRPC service, starts it, and then a client connects
+# to it, sends a request, and receives a response.
+
 import asyncio
-import time
-from datetime import datetime  # For timestamp
-from typing import Any, Optional  # For type hinting
-from concurrent.futures import Future
+import grpc  # For gRPC types and channel creation
+import logging  # For basic logging
 
-from tsercom.api.runtime_manager import RuntimeManager
-from tsercom.api.runtime_handle import RuntimeHandle
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.runtime.runtime_config import ServiceType  # For RuntimeConfig
-from tsercom.runtime.runtime_data_handler import (
-    RuntimeDataHandler,
-)  # For data handling
-from tsercom.runtime.runtime import Runtime  # Base class for custom runtime
-from tsercom.threading.thread_watcher import (
-    ThreadWatcher,
-)  # For exception handling
-from tsercom.rpc.grpc_util.grpc_channel_factory import (
-    GrpcChannelFactory,
-)  # For gRPC channel
+# Import necessary components from the tsercom library
+from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
+from tsercom.threading.thread_watcher import ThreadWatcher
+from tsercom.rpc.proto import (
+    TestConnectionCall,
+    TestConnectionResponse,
+)  # For TestConnectionCall and TestConnectionResponse
+from tsercom.threading.aio.global_event_loop import (
+    set_tsercom_event_loop,
+    clear_tsercom_event_loop,
+)
 
-# from tsercom.data.data_host import DataHost # To send data - Removing as it's problematic
-from tsercom.data.annotated_instance import AnnotatedInstance  # To wrap data
-from tsercom.caller_id.caller_identifier import (
-    CallerIdentifier,
-)  # For CallerId
+# --- Configuration ---
+# Define a service name and method name for the gRPC interaction.
+# These are arbitrary but must be consistent between server and client.
+_SERVICE_NAME = "tsercom.quickstart.SimpleService"
+_METHOD_NAME = "Communicate"
+_FULL_METHOD_PATH = f"/{_SERVICE_NAME}/{_METHOD_NAME}"
+_SERVER_ADDRESS = "127.0.0.1"  # Localhost for this example
+_SERVER_PORT = 50051  # A common port for gRPC examples
 
-# Define a placeholder for data types used by the application
-MyDataType = str  # Example: string data
-MyEventType = str  # Example: string events
+# Configure basic logging to see output from the script.
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# --- Server-Side Implementation ---
 
 
-class MyCustomRuntime(Runtime):
+class SimpleService:
     """
-    A custom Runtime implementation.
-    This class would typically contain the application-specific logic
-    for handling data and events. For this example, it's minimal.
-    """
-
-    def __init__(
-        self,
-        thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[MyDataType, MyEventType],
-        grpc_channel_factory: GrpcChannelFactory,
-    ):
-        # super().__init__(thread_watcher, data_handler, grpc_channel_factory) # Base Runtime/Stopable has no such __init__
-        # Store provided arguments if needed by this class, e.g.:
-        self._thread_watcher = thread_watcher
-        self._data_handler = data_handler
-        self._grpc_channel_factory = grpc_channel_factory
-        # self._data_host = DataHost[MyDataType, MyEventType](...) # Removing problematic DataHost
-        print("MyCustomRuntime initialized.")
-
-    async def start_async(self) -> None:
-        """Starts the custom runtime's operations."""
-        print("MyCustomRuntime started asynchronously.")
-        # In a real application, this is where you might start gRPC services,
-        # mDNS advertisements, or other background tasks.
-        # For this example, we'll simulate an action and show how data *could* be structured.
-        await asyncio.sleep(1)  # Simulate some async work
-        timestamp_val = time.time()
-        # Example of creating an AnnotatedInstance, though not sending it via _data_host anymore
-        _dummy_caller_id = CallerIdentifier(id="my_custom_runtime_caller")
-        _data_instance = AnnotatedInstance[MyDataType](
-            data="Hello Tsercom from MyCustomRuntime!",
-            caller_id=_dummy_caller_id,
-            timestamp=datetime.fromtimestamp(timestamp_val),
-        )
-        # self._data_host.send_data(data_instance) # Removed due to DataHost issues
-        print(f"MyCustomRuntime: Would have sent data - {_data_instance.data}")
-        # To actually send data, you would use capabilities of self._data_handler
-        # or a specific client/responder instance. For instance, if RuntimeDataHandler
-        # had a method like `send_data_to_clients(data_instance)`:
-        # self._data_handler.send_data_to_clients(_data_instance)
-        # This part is highly dependent on the concrete RuntimeDataHandler implementation
-        # and the application's specific data flow design.
-
-    async def stop(
-        self, exception: Optional[Exception] = None
-    ) -> None:  # Made async, removed unused 'exception'
-        """Stops the custom runtime's operations."""
-        print("MyCustomRuntime stopping.")
-        # If super().stop() from Stopable is needed and MyCustomRuntime is the end of the Stopable chain:
-        # await super(Runtime, self).stop() # Assuming Runtime is the next in MRO that is also Stopable
-        # For this example, specific cleanup for MyCustomRuntime would go here.
-        # The bridge calls this method, which should be a coroutine.
-
-
-class MyRuntimeInitializer(RuntimeInitializer):
-    """
-    Initializes MyCustomRuntime.
-    This class is responsible for creating an instance of the custom runtime.
+    A simple service implementation.
+    This class defines the methods that will be exposed via gRPC.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        # Call super to initialize RuntimeConfig, e.g., as a client.
-        super().__init__(service_type=ServiceType.kClient, *args, **kwargs)
-        print("MyRuntimeInitializer initialized.")
-
-    def create(  # Changed from create_runtime to create
-        self,
-        thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler,  # Removed type parameters
-        grpc_channel_factory: GrpcChannelFactory,
-    ) -> (
-        Runtime
-    ):  # Return type is Runtime, not MyCustomRuntime explicitly, removed type parameters
-        """Creates and returns an instance of MyCustomRuntime."""
-        print("MyRuntimeInitializer: Creating MyCustomRuntime.")
-        return MyCustomRuntime(
-            thread_watcher, data_handler, grpc_channel_factory
-        )
+    async def Communicate(
+        self, request: TestConnectionCall, context: grpc.aio.ServicerContext
+    ) -> TestConnectionResponse:
+        """
+        The gRPC method implemented by this service.
+        It receives a TestConnectionCall and returns a TestConnectionResponse.
+        For this example, the request and response are empty, but it demonstrates
+        the communication flow.
+        """
+        logger.info(f"Server: Communicate method called by {context.peer()}")
+        # In a real application, you would process the request here.
+        # Since TestConnectionCall is empty, there's no data to inspect from it directly.
+        # Similarly, TestConnectionResponse is empty, so we return an empty instance.
+        return TestConnectionResponse()
 
 
-async def main():
+async def run_server(stop_event: asyncio.Event) -> None:
     """
-    Main function to demonstrate RuntimeManager usage.
+    Sets up and runs the gRPC server.
     """
-    print("Starting Tsercom RuntimeManager example...")
-
-    # 1. Initialize the RuntimeManager
-    # RuntimeManager is the main entry point for managing Tsercom runtimes.
-    runtime_manager = RuntimeManager()
-
-    # 2. Create and register your custom RuntimeInitializer
-    # A RuntimeInitializer is responsible for creating your specific Runtime instance.
-    my_initializer = MyRuntimeInitializer()
-    handle_future: Future[RuntimeHandle] = (  # Removed type parameters
-        runtime_manager.register_runtime_initializer(my_initializer)
+    logger.info("Server: Initializing...")
+    # ThreadWatcher is required by GrpcServicePublisher for managing threads.
+    thread_watcher = ThreadWatcher()
+    # GrpcServicePublisher is used to host and manage the gRPC service.
+    # We specify a port (0 means assign a free port, but we'll use a fixed one for simplicity here)
+    # and the address to bind to.
+    service_publisher = GrpcServicePublisher(
+        watcher=thread_watcher, port=_SERVER_PORT, addresses=_SERVER_ADDRESS
     )
-    print("RuntimeInitializer registered.")
 
-    # 3. Start the runtime in the current process
-    # This will create and start the MyCustomRuntime instance using MyRuntimeInitializer.
-    # It requires the current asyncio event loop.
-    print("Starting runtime in-process...")
-    # Note: `start_in_process_async` is an async method.
-    await runtime_manager.start_in_process_async()
-    print("RuntimeManager started in-process.")
+    # Instantiate our simple service.
+    simple_service_impl = SimpleService()
 
-    # 4. Get the RuntimeHandle
-    # The RuntimeHandle is used to interact with the started runtime.
-    # We wait for the Future returned by register_runtime_initializer to complete.
-    try:
-        runtime_handle: RuntimeHandle = (  # Removed type parameters
-            handle_future.result(timeout=5)
-        )  # Wait up to 5s
-        print(f"Obtained RuntimeHandle: {runtime_handle}")
-
-        # 5. Interact with the runtime (optional, depending on your RuntimeHandle's capabilities)
-        # For this example, MyCustomRuntime sends data internally upon start.
-        # We can try to receive it if the handle provides a way.
-        # The base RuntimeHandle provides access to a RemoteDataAggregator.
-        data_aggregator = runtime_handle.data_aggregator  # Changed to property
-
-        print(
-            "Attempting to receive data from runtime (will timeout if none)..."
+    # The connect_call callback is used by GrpcServicePublisher to add RPC method handlers
+    # to the gRPC server instance.
+    def connect_call(server: grpc.aio.Server) -> None:
+        logger.info("Server: Adding RPC handlers...")
+        # Create a gRPC method handler for our 'Communicate' method.
+        # It specifies:
+        #   - The implementation method (simple_service_impl.Communicate)
+        #   - How to deserialize requests (TestConnectionCall.FromString)
+        #   - How to serialize responses (TestConnectionResponse.SerializeToString)
+        rpc_method_handler = grpc.unary_unary_rpc_method_handler(
+            simple_service_impl.Communicate,
+            request_deserializer=TestConnectionCall.FromString,
+            response_serializer=TestConnectionResponse.SerializeToString,
         )
-        try:
-            # Get all new data; it returns a Dict[CallerIdentifier, List[MyDataType]]
-            all_new_data = (
-                data_aggregator.get_new_data()
-            )  # Removed timeout, method doesn't take it
-            data_found = False
-            if all_new_data:
-                for caller_id, data_list in all_new_data.items():
-                    if data_list:
-                        for received_data_item in data_list:
-                            # Assuming received_data_item is of type AnnotatedInstance[MyDataType]
-                            # based on how data_instance was created in MyCustomRuntime.
-                            # However, data_aggregator is RemoteDataAggregator[TDataType],
-                            # and TDataType for RuntimeHandle is ExposedData.
-                            # AnnotatedInstance IS-A ExposedData.
-                            # The actual TDataType for RuntimeHandle is AnnotatedInstance[MyDataType] as per RuntimeHandle.data_aggregator property type hint.
-                            # So, received_data_item should be AnnotatedInstance[MyDataType].
-                            print(
-                                f"QuickStart: Received data - {received_data_item.data} at {received_data_item.timestamp} from {caller_id.id}"
-                            )
-                            data_found = True
-                            break  # Process first item from first caller with data
-                    if data_found:
-                        break
-            if not data_found:
-                print("QuickStart: No new data received.")
-        except (
-            Exception
-        ) as e:  # Catching general exception as TimeoutError might not be relevant now
-            print(f"QuickStart: Error receiving data: {e}")
+        # Create a generic handler that maps service and method names to the actual method handler.
+        generic_handler = grpc.method_handlers_generic_handler(
+            _SERVICE_NAME,  # The name of our service
+            {
+                _METHOD_NAME: rpc_method_handler
+            },  # Maps method name to its handler
+        )
+        # Add this generic handler to the server.
+        server.add_generic_rpc_handlers((generic_handler,))
+        logger.info(
+            f"Server: RPC handlers added for service '{_SERVICE_NAME}'."
+        )
 
-    except TimeoutError:  # This was for handle_future.result, keep it.
-        print("Error: Timed out waiting for RuntimeHandle.")
+    try:
+        # Start the server asynchronously.
+        # The connect_call will be invoked to set up the service.
+        await service_publisher.start_async(connect_call)
+        logger.info(
+            f"Server: Started and listening on http://{_SERVER_ADDRESS}:{_SERVER_PORT}"
+        )
+        # Keep the server running until the stop_event is set.
+        await stop_event.wait()
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"Server: Failed to start or run: {e!r}")
     finally:
-        # 6. Stop the runtime (important for cleanup)
-        if "runtime_handle" in locals() and runtime_handle:
-            print("Stopping runtime...")
-            runtime_handle.stop()
-            print("Runtime stopped.")
-        # Ensure the manager itself is properly shut down if it holds resources
-        # (RuntimeManager itself doesn't have an explicit stop, cleanup is via handles)
-        print("Tsercom example finished.")
+        logger.info("Server: Shutting down...")
+        # Stop the gRPC server.
+        # Note: GrpcServicePublisher's stop() is synchronous.
+        # For an async server, ensure proper async shutdown if extending this.
+        # The current stop() might block if the server is grpc.aio.server.
+        # For this example, we'll call it, but a more robust async shutdown might be needed.
+        if (
+            hasattr(service_publisher, "_GrpcServicePublisher__server")
+            and service_publisher._GrpcServicePublisher__server is not None
+        ):
+            actual_server_obj = service_publisher._GrpcServicePublisher__server
+            if isinstance(actual_server_obj, grpc.aio.Server):
+                logger.info("Server: Attempting graceful async server stop...")
+                await actual_server_obj.stop(grace=1)  # 1 second grace period
+                logger.info("Server: Async server stop completed.")
+            else:
+                # Fallback for non-async server or if direct control is not exposed as such
+                service_publisher.stop()
+                logger.info("Server: Synchronous server stop called.")
+        else:
+            logger.info(
+                "Server: Server object not found on publisher, or already stopped."
+            )
+
+        # thread_watcher.stop_all_threads() # ThreadWatcher doesn't manage thread lifecycle directly after creation.
+        logger.info("Server: Shutdown complete.")
+
+
+# --- Client-Side Implementation ---
+
+
+async def run_client() -> None:
+    """
+    Runs the gRPC client to connect to the server and make a call.
+    """
+    logger.info("Client: Initializing...")
+    server_target = f"{_SERVER_ADDRESS}:{_SERVER_PORT}"
+    # Create an insecure gRPC channel to connect to the server.
+    # 'insecure' means no encryption (TLS) is used for this example.
+    # For production, secure channels (grpc.aio.secure_channel) are recommended.
+    async with grpc.aio.insecure_channel(server_target) as channel:
+        logger.info(f"Client: Connected to server at {server_target}")
+
+        # Create an empty request message.
+        # TestConnectionCall is defined in common_pb2.proto and is an empty message.
+        request = TestConnectionCall()
+        logger.info("Client: Sending TestConnectionCall to server...")
+
+        try:
+            # Make the RPC call.
+            # channel.unary_unary indicates a simple request-response call.
+            # It requires:
+            #   - The full method path (e.g., "/servicename/methodname")
+            #   - How to serialize the request (TestConnectionCall.SerializeToString)
+            #   - How to deserialize the response (TestConnectionResponse.FromString)
+            response = await channel.unary_unary(
+                _FULL_METHOD_PATH,
+                request_serializer=TestConnectionCall.SerializeToString,
+                response_deserializer=TestConnectionResponse.FromString,
+            )(
+                request, timeout=10
+            )  # 10-second timeout for the call
+
+            # TestConnectionResponse is also an empty message in this example.
+            # In a real application, you would inspect the fields of the response.
+            logger.info(f"Client: Received response from server: {response}")
+            assert isinstance(response, TestConnectionResponse)
+            logger.info("Client: Communication successful!")
+        except grpc.aio.AioRpcError as e:
+            logger.error(
+                f"Client: gRPC call failed: {e.code()} - {e.details()}"
+            )
+        except Exception as e:
+            logger.error(f"Client: An unexpected error occurred: {e!r}")
+
+
+# --- Main Execution ---
+
+
+async def main() -> None:
+    """
+    Coordinates the server and client startup and shutdown.
+    """
+    # Set the tsercom global event loop to the current asyncio event loop
+    try:
+        current_loop = asyncio.get_running_loop()
+        set_tsercom_event_loop(current_loop)
+        logger.info("Main: Tsercom global event loop set.")
+
+        # Create an asyncio Event to signal the server to stop.
+        stop_server_event = asyncio.Event()
+
+        # Start the server in a background task.
+        logger.info("Main: Starting server task...")
+        server_task = asyncio.create_task(run_server(stop_server_event))
+
+        # Wait a moment for the server to start up.
+        # In a production system, you might use more sophisticated readiness checks.
+        await asyncio.sleep(1.0)
+
+        # Run the client.
+        logger.info("Main: Starting client task...")
+        await run_client()
+
+        # Signal the server to stop.
+        logger.info("Main: Signaling server to stop...")
+        stop_server_event.set()
+
+        # Wait for the server task to complete.
+        await server_task
+        logger.info("Main: Example finished.")
+    finally:
+        clear_tsercom_event_loop()
+        logger.info("Main: Tsercom global event loop cleared.")
 
 
 if __name__ == "__main__":
+    # Run the main asynchronous function.
     asyncio.run(main())
