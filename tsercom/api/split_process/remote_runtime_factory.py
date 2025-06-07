@@ -122,7 +122,7 @@ class RemoteRuntimeFactory(
         self,
         thread_watcher: ThreadWatcher,
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
-        grpc_channel_factory: GrpcChannelFactory | None,
+        grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         """Creates remote Runtime instance and sets up command handling.
 
@@ -132,7 +132,7 @@ class RemoteRuntimeFactory(
         Args:
             thread_watcher: ThreadWatcher to monitor component threads.
             data_handler: Data handler for the runtime.
-            grpc_channel_factory: gRPC channel factory if needed.
+            grpc_channel_factory: gRPC channel factory (required).
 
         Returns:
             Created Runtime instance, configured for remote operation.

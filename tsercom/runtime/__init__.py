@@ -10,4 +10,9 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 
 
-__all__ = ["EndpointDataProcessor", "Runtime", "RuntimeInitializer", "RuntimeDataHandler"]
+__all__ = [
+    "EndpointDataProcessor",
+    "Runtime",
+    "RuntimeInitializer",
+    "RuntimeDataHandler",
+]

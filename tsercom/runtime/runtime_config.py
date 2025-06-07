@@ -9,11 +9,11 @@ data aggregation mechanisms, timeouts, and security configurations.
 from enum import Enum
 from typing import Generic, Literal, Optional, TypeVar, overload
 
-from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.rpc.grpc_util.channel_auth_config import BaseChannelAuthConfig
 
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+# ExposedData import removed as DataTypeT is no longer bound to it here.
+DataTypeT = TypeVar("DataTypeT")
 # EventTypeT was defined but not used in this file, so removing unless needed elsewhere.
 
 
@@ -44,9 +44,8 @@ class RuntimeConfig(Generic[DataTypeT]):
     parameters or by cloning an existing `RuntimeConfig` object.
 
     Type Args:
-        DataTypeT: The specific type of `ExposedData` that runtimes configured
-            with this object will handle. This allows for type-safe interactions
-            with data aggregation components.
+        DataTypeT: The generic type of data objects that runtimes configured
+            with this object will handle.
     """
 
     @overload
