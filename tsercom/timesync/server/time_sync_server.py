@@ -141,7 +141,7 @@ class TimeSyncServer:
                             addr,
                             se,
                             data.hex(),
-                        )  # Corrected logging
+                        )
                         continue
 
                     li_vn_mode = unpacked_data[0]
@@ -153,7 +153,7 @@ class TimeSyncServer:
                             "NTP packet from %s invalid version %s.",
                             addr,
                             request_version,
-                        )  # Corrected logging
+                        )
                         continue
 
                     if request_mode != ntp_client_mode:
@@ -161,7 +161,7 @@ class TimeSyncServer:
                             "NTP packet from %s invalid mode %s.",
                             addr,
                             request_mode,
-                        )  # Corrected logging
+                        )
                         continue
 
                     current_time_ns = time.time_ns()

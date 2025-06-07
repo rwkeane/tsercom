@@ -2,7 +2,7 @@ import pytest
 import datetime
 from unittest.mock import AsyncMock, MagicMock
 import grpc  # For grpc.StatusCode
-from grpc.aio import ServicerContext  # For type hinting context
+from grpc.aio import ServicerContext
 from typing import TypeVar, Generic, List, AsyncIterator, Optional
 
 

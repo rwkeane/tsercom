@@ -1,7 +1,7 @@
 import pytest
 import datetime
 from concurrent.futures import ThreadPoolExecutor
-from collections import deque  # Corrected import
+from collections import deque
 import functools  # For checking partial
 import re  # For re.escape
 

@@ -2,11 +2,11 @@
 
 import pytest
 import asyncio
-import unittest.mock  # Added import
+import unittest.mock
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop,
     clear_tsercom_event_loop,
-    is_global_event_loop_set,  # Import added
+    is_global_event_loop_set,
 )
 
 from tsercom.runtime.client.client_runtime_data_handler import (

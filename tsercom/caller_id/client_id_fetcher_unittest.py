@@ -17,9 +17,9 @@ from tsercom.caller_id.proto import (
 
 @pytest.mark.asyncio
 class TestClientIdFetcher:
-    async def test_successful_fetch(self, mocker):  # Added mocker
+    async def test_successful_fetch(self, mocker):
         # Mock the gRPC stub
-        mock_stub = mocker.AsyncMock()  # Changed to mocker.AsyncMock
+        mock_stub = mocker.AsyncMock()
         id_string = str(uuid.uuid4())
         caller_id_msg = CallerId()
         caller_id_msg.id = id_string
@@ -34,9 +34,9 @@ class TestClientIdFetcher:
         assert str(caller_id) == id_string
         mock_stub.GetId.assert_called_once()
 
-    async def test_caching_behavior(self, mocker):  # Added mocker
+    async def test_caching_behavior(self, mocker):
         # Mock the gRPC stub
-        mock_stub = mocker.AsyncMock()  # Changed to mocker.AsyncMock
+        mock_stub = mocker.AsyncMock()
         id_string = str(uuid.uuid4())
         caller_id_msg = CallerId()
         caller_id_msg.id = id_string
@@ -59,8 +59,8 @@ class TestClientIdFetcher:
         mock_stub.GetId.assert_called_once()
         assert caller_id1 is caller_id2
 
-    async def test_correct_parsing(self, mocker):  # Added mocker
-        mock_stub = mocker.AsyncMock()  # Changed to mocker.AsyncMock
+    async def test_correct_parsing(self, mocker):
+        mock_stub = mocker.AsyncMock()
         raw_id_string = str(uuid.uuid4())
         caller_id_msg = CallerId()
         caller_id_msg.id = raw_id_string
@@ -75,8 +75,8 @@ class TestClientIdFetcher:
         assert str(caller_id) == raw_id_string
         mock_stub.GetId.assert_called_once()
 
-    async def test_fetch_failure_returns_none(self, mocker):  # Added mocker
-        mock_stub = mocker.AsyncMock()  # Changed to mocker.AsyncMock
+    async def test_fetch_failure_returns_none(self, mocker):
+        mock_stub = mocker.AsyncMock()
         mock_stub.GetId.side_effect = Exception("gRPC error")
 
         fetcher = ClientIdFetcher(mock_stub)
@@ -85,8 +85,8 @@ class TestClientIdFetcher:
         assert caller_id is None
         mock_stub.GetId.assert_called_once()
 
-    async def test_empty_id_from_server(self, mocker):  # Added mocker
-        mock_stub = mocker.AsyncMock()  # Changed to mocker.AsyncMock
+    async def test_empty_id_from_server(self, mocker):
+        mock_stub = mocker.AsyncMock()
         caller_id_msg = CallerId()
         caller_id_msg.id = ""
         mock_response = GetIdResponse()
@@ -99,10 +99,8 @@ class TestClientIdFetcher:
         assert caller_id is None
         mock_stub.GetId.assert_called_once()
 
-    async def test_concurrent_fetches_call_rpc_once(
-        self, mocker
-    ):  # Added mocker
-        mock_stub = mocker.AsyncMock()  # Changed to mocker.AsyncMock
+    async def test_concurrent_fetches_call_rpc_once(self, mocker):
+        mock_stub = mocker.AsyncMock()
         raw_id_string = str(uuid.uuid4())
         caller_id_msg = CallerId()
         caller_id_msg.id = raw_id_string
@@ -135,9 +133,9 @@ class TestClientIdFetcher:
         mock_stub.GetId.assert_called_once()
 
     # Patch decorator needs to be changed to use mocker
-    async def test_parsing_failure_returns_none(self, mocker):  # Added mocker
+    async def test_parsing_failure_returns_none(self, mocker):
         # Mock the gRPC stub
-        mock_stub = mocker.AsyncMock()  # Changed to mocker.AsyncMock
+        mock_stub = mocker.AsyncMock()
         id_for_failed_parse = "id_that_will_fail_parsing"
         caller_id_msg = CallerId()
         caller_id_msg.id = id_for_failed_parse

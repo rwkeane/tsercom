@@ -16,11 +16,7 @@ from tsercom.rpc.connection.client_reconnection_handler import (
 )
 from tsercom.rpc.grpc_util.grpc_caller import (
     delay_before_retry as default_delay_before_retry,
-)
-from tsercom.rpc.grpc_util.grpc_caller import (
     is_grpc_error as default_is_grpc_error,
-)
-from tsercom.rpc.grpc_util.grpc_caller import (
     is_server_unavailable_error as default_is_server_unavailable_error,
 )
 from tsercom.threading.aio.aio_utils import (
@@ -149,7 +145,7 @@ class ClientDisconnectionRetrier(
                     "Event loop not initialized before starting ClientDisconnectionRetrier."
                 )
 
-            self.__instance = await self._connect()  # Added await
+            self.__instance = await self._connect()
 
             if self.__instance is None:
                 raise RuntimeError(

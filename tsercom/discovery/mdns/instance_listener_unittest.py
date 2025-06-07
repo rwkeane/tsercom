@@ -77,7 +77,7 @@ FClientServiceInfo = TypeVar("FClientServiceInfo", bound=ServiceInfo)
 # just needs to inherit from it with its specific type var.
 class FakeInstanceListenerClient(
     InstanceListener.Client, Generic[FClientServiceInfo]
-):  # Made FakeInstanceListenerClient generic
+):
     def __init__(self):
         # _on_service_added_mock is an AsyncMock to spy on the _on_service_added method.
         self._on_service_added_mock: AsyncMock = AsyncMock()

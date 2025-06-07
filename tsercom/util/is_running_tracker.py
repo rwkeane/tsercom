@@ -90,7 +90,7 @@ class IsRunningTracker(Atomic[bool]):
         )
 
         # To clear the event loop and similar.
-        def clear(_future: Any) -> None:  # Renamed x to _future
+        def clear(_future: Any) -> None:
             with self.__event_loop_lock:
                 self.__running_barrier = asyncio.Event()
                 self.__stopped_barrier = asyncio.Event()
@@ -130,7 +130,7 @@ class IsRunningTracker(Atomic[bool]):
         await self.__stopped_barrier.wait()
 
     async def task_or_stopped(
-        self, call: Coroutine[Any, Any, ReturnTypeT]  # Reverted to Coroutine
+        self, call: Coroutine[Any, Any, ReturnTypeT]
     ) -> ReturnTypeT | None:
         """
         Runs |call| until completion, or until the current instance changes to
@@ -245,9 +245,7 @@ class IsRunningTracker(Atomic[bool]):
 
         def __aiter__(
             self,
-        ) -> (
-            "IsRunningTracker._IteratorWrapper[ReturnTypeT]"
-        ):  # Renamed __IteratorWrapper
+        ) -> "IsRunningTracker._IteratorWrapper[ReturnTypeT]":
             """
             Returns the iterator itself.
 
@@ -256,7 +254,7 @@ class IsRunningTracker(Atomic[bool]):
             """
             return self
 
-        async def __anext__(self) -> ReturnTypeT:  # Renamed __IteratorWrapper
+        async def __anext__(self) -> ReturnTypeT:
             """
             Retrieves the next item from the wrapped iterator.
 

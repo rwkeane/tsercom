@@ -352,7 +352,7 @@ async def test_signal_stop_impl_asserts_if_not_on_event_loop(
 
     with pytest.raises(
         AssertionError, match="Stop signal must be on event loop."
-    ):  # Corrected message
+    ):
         await tracker._DataTimeoutTracker__signal_stop_impl()
 
 
@@ -374,7 +374,7 @@ def test_unregister_calls_run_on_event_loop(
 @pytest.mark.asyncio
 async def test_unregister_impl_removes_item(
     mocker, mock_is_running_on_event_loop, mock_tracked_object
-):  # Changed fixture name
+):
     # Renamed mock_tracked_object to mock_tracked_object_fixture to avoid conflict with inner var
     tracker = DataTimeoutTracker()
     tracked1 = mock_tracked_object  # Use the fixture
@@ -402,7 +402,7 @@ async def test_unregister_impl_removes_item(
 @pytest.mark.asyncio
 async def test_unregister_impl_item_not_present_logs_warning(
     mocker, mock_is_running_on_event_loop, mock_tracked_object
-):  # Changed fixture name
+):
     tracker = DataTimeoutTracker()
     tracked1 = mock_tracked_object
     non_existent_tracked = mocker.create_autospec(
@@ -438,7 +438,7 @@ async def test_unregister_impl_asserts_if_not_on_event_loop(
 
     with pytest.raises(
         AssertionError, match="Unregistration must be on event loop."
-    ):  # Corrected message
+    ):
         await tracker._DataTimeoutTracker__unregister_impl(mock_tracked_object)
 
 
@@ -448,7 +448,7 @@ async def test_execute_periodically_stops_if_not_running_after_sleep(
     mocker,
     mock_asyncio_sleep,
     mock_tracked_object,
-    mock_is_running_on_event_loop,  # Changed fixture name
+    mock_is_running_on_event_loop,
 ):
     test_timeout = 0.1
     tracker = DataTimeoutTracker(timeout_seconds=test_timeout)
