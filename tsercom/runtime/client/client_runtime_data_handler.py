@@ -12,7 +12,6 @@ from typing import Generic, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
@@ -27,7 +26,7 @@ from tsercom.timesync.common.synchronized_clock import (
 )
 
 EventTypeT = TypeVar("EventTypeT")
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT")
 
 
 class ClientRuntimeDataHandler(
@@ -47,6 +46,10 @@ class ClientRuntimeDataHandler(
     resulting synchronized clock when creating the `EndpointDataProcessor` for
     that caller. Similarly, it notifies the `TimeSyncTracker` upon unregistering
     a caller.
+
+    Type Args:
+        DataTypeT: The generic type of data objects that this handler processes.
+        EventTypeT: The generic type of event objects that this handler processes.
     """
 
     def __init__(

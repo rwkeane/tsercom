@@ -280,7 +280,9 @@ class TestRuntimeDataHandlerBaseBehavior:
         expected_datetime = datetime.datetime.now(datetime.timezone.utc)
         mock_sync_clock.desync.return_value = expected_datetime
 
-        result_dt = await data_processor.desynchronize(mock_server_ts)
+        result_dt = await data_processor.desynchronize(
+            mock_server_ts, context=None
+        )
 
         mock_sync_clock.desync.assert_called_once()
         args, _ = mock_sync_clock.desync.call_args
@@ -290,6 +292,53 @@ class TestRuntimeDataHandlerBaseBehavior:
             == mock_server_ts.timestamp.ToDatetime.return_value
         )
         assert result_dt is expected_datetime
+
+    @pytest.mark.asyncio
+    async def test_processor_desynchronize_invalid_ts_with_context_aborts(
+        self, data_processor, mocker
+    ):
+        mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
+        mock_context = mocker.AsyncMock(spec=ServicerContext)
+
+        # Patch SynchronizedTimestamp.try_parse to return None
+        mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.SynchronizedTimestamp.try_parse",
+            return_value=None,
+        )
+
+        result = await data_processor.desynchronize(
+            mock_server_ts, context=mock_context
+        )
+
+        mock_context.abort.assert_awaited_once_with(
+            grpc.StatusCode.INVALID_ARGUMENT, "Invalid timestamp provided"
+        )
+        assert result is None
+        # Ensure desync on the clock was not called
+        # The data_processor fixture gets mock_sync_clock implicitly
+        # We need to access it via the handler that created the data_processor,
+        # or ensure the fixture setup makes it available if we need to assert on it.
+        # For this test, the primary check is abort and return None.
+        # If try_parse returns None, desync shouldn't be reached.
+
+    @pytest.mark.asyncio
+    async def test_processor_desynchronize_invalid_ts_no_context_returns_none(
+        self, data_processor, mocker
+    ):
+        mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
+
+        # Patch SynchronizedTimestamp.try_parse to return None
+        mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.SynchronizedTimestamp.try_parse",
+            return_value=None,
+        )
+
+        result = await data_processor.desynchronize(
+            mock_server_ts, context=None
+        )
+        assert result is None
+        # Similar to above, asserting abort was NOT called is tricky if no mock_context
+        # was created and passed. The main check is that it returns None and doesn't error.
 
     @pytest.mark.asyncio
     async def test_processor_deregister_caller(

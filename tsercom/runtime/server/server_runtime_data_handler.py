@@ -12,7 +12,6 @@ from typing import Generic, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
@@ -27,7 +26,7 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.time_sync_server import TimeSyncServer
 
 EventTypeT = TypeVar("EventTypeT")
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT")
 
 
 class ServerRuntimeDataHandler(
@@ -42,6 +41,10 @@ class ServerRuntimeDataHandler(
     it typically initializes a `TimeSyncServer` to provide a consistent time
     source for these clients. In testing mode, a `FakeSynchronizedClock` can
     be used instead. The server\'s own clock is considered authoritative.
+
+    Type Args:
+        DataTypeT: The generic type of data objects that this handler processes.
+        EventTypeT: The generic type of event objects that this handler processes.
     """
 
     def __init__(
