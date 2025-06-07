@@ -15,13 +15,13 @@ from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import (
+    Any,
     Generic,
     List,
-    TypeVar,
-    Any,
-    overload,
     Optional,
-)  # Added Optional
+    TypeVar,
+    overload,
+)
 
 import grpc
 
@@ -43,7 +43,6 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
-
 
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)

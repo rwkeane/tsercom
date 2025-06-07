@@ -1,9 +1,10 @@
 """Defines the base ServiceInfo class and related types."""
 
 import dataclasses
-from typing import List
-
-from typing import TypeVar  # Add TypeVar
+from typing import (
+    List,
+    TypeVar,
+)
 
 
 @dataclasses.dataclass

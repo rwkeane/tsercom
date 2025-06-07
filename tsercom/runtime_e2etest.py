@@ -1,12 +1,13 @@
 """End-to-end tests for Tsercom runtime initialization, data flow, and error handling."""
 
 import asyncio
+import datetime
+import time
 from collections.abc import Callable
 from concurrent.futures import Future
-import datetime
 from functools import partial
 from threading import Thread
-import time
+
 import pytest
 
 from tsercom.api.runtime_manager import RuntimeManager
@@ -21,7 +22,6 @@ from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-
 
 started = "STARTED"
 stopped = "STOPPED"

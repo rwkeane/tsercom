@@ -4,7 +4,7 @@ import pytest
 import tsercom.runtime.channel_factory_selector as cfs_module
 from tsercom.runtime.channel_factory_selector import ChannelFactorySelector
 from tsercom.rpc.grpc_util.channel_auth_config import (
-    BaseChannelAuthConfig,  # For UnknownConfig
+    BaseChannelAuthConfig,
     InsecureChannelConfig,
     ServerCAChannelConfig,
     PinnedServerChannelConfig,

@@ -1,7 +1,7 @@
 """EventSource for polling events from a multiprocess queue."""
 
 import threading
-from typing import Generic, TypeVar, Optional
+from typing import Generic, Optional, TypeVar
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.threading.aio.async_poller import AsyncPoller
@@ -10,7 +10,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
-
 
 EventTypeT = TypeVar("EventTypeT")
 

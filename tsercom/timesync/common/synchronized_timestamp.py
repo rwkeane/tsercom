@@ -3,8 +3,9 @@
 
 import dataclasses
 import datetime
-from typing import TypeAlias, Union, Optional
 import logging  # Preserved as it's used by try_parse
+from typing import Optional, TypeAlias, Union
+
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from tsercom.timesync.common.proto import ServerTimestamp

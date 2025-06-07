@@ -1,6 +1,6 @@
 import pytest
 
-import datetime  # Ensure datetime is imported
+import datetime
 
 # Module to be tested & whose attributes will be patched
 import tsercom.api.split_process.shim_runtime_handle as shim_module
@@ -9,7 +9,7 @@ from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.data.event_instance import EventInstance
 from tsercom.caller_id.caller_identifier import (
     CallerIdentifier,
-)  # Added import
+)
 
 # --- Fake Classes for Dependencies ---
 

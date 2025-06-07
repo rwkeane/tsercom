@@ -4,7 +4,7 @@ from unittest.mock import (
     patch,
     PropertyMock,
     AsyncMock,
-)  # Import AsyncMock
+)
 from concurrent.futures import Future
 import asyncio
 from multiprocessing import Process  # For spec in ProcessCreator mock
@@ -28,10 +28,7 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.api.runtime_handle import RuntimeHandle
 
-# Import for managing global event loop in tests
 import tsercom.threading.aio.global_event_loop as gev_loop
-
-# Import for auth_config
 
 
 async def dummy_coroutine_for_test():

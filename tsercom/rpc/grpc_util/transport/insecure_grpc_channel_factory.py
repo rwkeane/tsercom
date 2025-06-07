@@ -1,9 +1,10 @@
 """Provides InsecureGrpcChannelFactory for creating insecure gRPC channels."""
 
 import asyncio
-import grpc
 import logging
-from typing import Optional, List, Union
+from typing import List, Optional, Union
+
+import grpc
 
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 

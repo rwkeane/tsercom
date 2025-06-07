@@ -1,8 +1,8 @@
 """DataTimeoutTracker: manages/triggers periodic timeout notifications."""
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
-import asyncio
 from functools import partial
 from typing import List
 
@@ -12,7 +12,7 @@ from tsercom.threading.aio.aio_utils import (
 )
 from tsercom.util.is_running_tracker import (
     IsRunningTracker,
-)  # Add IsRunningTracker import
+)
 
 logger = logging.getLogger(__name__)
 

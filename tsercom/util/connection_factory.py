@@ -1,7 +1,7 @@
 """Defines an abstract factory for creating connections."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, List, Union, Optional
+from typing import Generic, List, Optional, TypeVar, Union
 
 ConnectionTypeT = TypeVar("ConnectionTypeT")
 

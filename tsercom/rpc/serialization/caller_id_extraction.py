@@ -1,11 +1,12 @@
 """Utilities for extracting CallerIdentifier from gRPC calls, especially from iterators."""
 
-from typing import AsyncIterator, Callable, Optional, Tuple, TypeVar
-import grpc
 import logging
+from typing import AsyncIterator, Callable, Optional, Tuple, TypeVar
 
-from tsercom.caller_id.proto import CallerId as GrpcCallerId
+import grpc
+
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.proto import CallerId as GrpcCallerId
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 TCallType = TypeVar("TCallType")

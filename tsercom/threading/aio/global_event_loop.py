@@ -16,10 +16,10 @@ Thread safety for accessing and modifying the global event loop instance is
 handled by a `threading.Lock`.
 """
 
-from asyncio import AbstractEventLoop
 import asyncio
-import threading
 import logging
+import threading
+from asyncio import AbstractEventLoop
 
 from tsercom.threading.aio.event_loop_factory import EventLoopFactory
 from tsercom.threading.thread_watcher import ThreadWatcher

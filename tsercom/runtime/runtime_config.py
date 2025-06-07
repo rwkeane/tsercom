@@ -7,9 +7,10 @@ data aggregation mechanisms, timeouts, and security configurations.
 """
 
 from enum import Enum
-from typing import Literal, Optional, TypeVar, overload, Generic
-from tsercom.data.remote_data_aggregator import RemoteDataAggregator
+from typing import Generic, Literal, Optional, TypeVar, overload
+
 from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.rpc.grpc_util.channel_auth_config import BaseChannelAuthConfig
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
@@ -53,9 +54,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         self,
         service_type: ServiceType,
         *,
-        data_aggregator_client: Optional[
-            RemoteDataAggregator.Client  # Removed [DataTypeT]
-        ] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
@@ -76,9 +75,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         self,
         service_type: Literal["Client", "Server"],
         *,
-        data_aggregator_client: Optional[
-            RemoteDataAggregator.Client  # Removed [DataTypeT]
-        ] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
@@ -111,9 +108,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         ] = None,
         *,
         other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
-        data_aggregator_client: Optional[
-            RemoteDataAggregator.Client  # Removed [DataTypeT]
-        ] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
@@ -246,7 +241,7 @@ class RuntimeConfig(Generic[DataTypeT]):
     @property
     def data_aggregator_client(
         self,
-    ) -> Optional[RemoteDataAggregator.Client]:  # Removed [DataTypeT]
+    ) -> Optional[RemoteDataAggregator.Client]:
         """The configured client for a `RemoteDataAggregator`, if any.
 
         Returns:

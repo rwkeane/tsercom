@@ -1,10 +1,10 @@
 """Defines the abstract base class for runtime factory creators."""
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Tuple, Generic
+from typing import Generic, Tuple, TypeVar
 
-from tsercom.data.exposed_data import ExposedData
 from tsercom.api.runtime_handle import RuntimeHandle
+from tsercom.data.exposed_data import ExposedData
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 

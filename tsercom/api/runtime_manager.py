@@ -17,9 +17,12 @@ from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
     LocalRuntimeFactoryFactory,
 )
-from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
-from tsercom.api.split_process.split_runtime_factory_factory import (
-    SplitRuntimeFactoryFactory,
+
+# Import TypeVars from runtime_factory_factory for consistency
+from tsercom.api.runtime_factory_factory import (
+    DataTypeT,
+    EventTypeT,
+    RuntimeFactoryFactory,
 )
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.api.runtime_manager_helpers import (
@@ -29,14 +32,16 @@ from tsercom.api.runtime_manager_helpers import (
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
-
+from tsercom.api.split_process.split_runtime_factory_factory import (
+    SplitRuntimeFactoryFactory,
+)
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.aio_utils import get_running_loop_or_none
 from tsercom.threading.aio.global_event_loop import (
+    clear_tsercom_event_loop,
     create_tsercom_event_loop_from_watcher,
     set_tsercom_event_loop,
-    clear_tsercom_event_loop,
 )
 from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -50,10 +55,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
-
-# Import TypeVars from runtime_factory_factory for consistency
-from tsercom.api.runtime_factory_factory import DataTypeT, EventTypeT
-
 
 logger = logging.getLogger(__name__)
 

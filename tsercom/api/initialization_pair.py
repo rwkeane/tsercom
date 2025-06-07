@@ -5,9 +5,8 @@ from concurrent.futures import Future
 from typing import Generic, TypeVar
 
 from tsercom.api.runtime_handle import RuntimeHandle
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.data.exposed_data import ExposedData
-
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")

@@ -1,15 +1,15 @@
-# tsercom/rpc/grpc_util/transport/client_auth_grpc_channel_factory.py
 from __future__ import annotations
 
 import asyncio
-import grpc
 import logging
 from typing import (
     Any,
-    Optional,
     List,
+    Optional,
     Union,
 )
+
+import grpc
 
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 
@@ -55,9 +55,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         self.root_ca_cert_pem_bytes: Optional[bytes]  # Declare type once
         if root_ca_cert_pem:
             if isinstance(root_ca_cert_pem, str):
-                self.root_ca_cert_pem_bytes = (  # Corrected variable name
-                    root_ca_cert_pem.encode("utf-8")
-                )
+                self.root_ca_cert_pem_bytes = root_ca_cert_pem.encode("utf-8")
             else:
                 self.root_ca_cert_pem_bytes = root_ca_cert_pem
         else:

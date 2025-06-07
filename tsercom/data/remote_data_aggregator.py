@@ -1,8 +1,8 @@
 # pylint: disable=C0301
 """Defines the RemoteDataAggregator abstract base class, an interface for aggregating and accessing data from remote sources."""
 
-from abc import ABC, abstractmethod
 import datetime
+from abc import ABC, abstractmethod
 from typing import Dict, Generic, List, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier

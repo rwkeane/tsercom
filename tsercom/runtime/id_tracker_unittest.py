@@ -1,7 +1,7 @@
 """Tests for IdTracker."""
 
 import pytest
-import re  # Import re for escaping regex characters
+import re
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.runtime.id_tracker import IdTracker

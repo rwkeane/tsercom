@@ -8,7 +8,7 @@ and time synchronization with those remote entities.
 """
 
 import logging
-from typing import Generic, TypeVar, Optional
+from typing import Generic, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
@@ -17,15 +17,14 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
-from tsercom.timesync.common.synchronized_clock import (
-    SynchronizedClock,
-)
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.threading.thread_watcher import ThreadWatcher
-
+from tsercom.timesync.common.synchronized_clock import (
+    SynchronizedClock,
+)
 
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)

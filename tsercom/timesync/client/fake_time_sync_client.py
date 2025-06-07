@@ -1,7 +1,7 @@
 """Fake TimeSyncClient implementation for testing purposes."""
 
-from typing import Deque
 import threading
+from typing import Deque
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.client_synchronized_clock import (

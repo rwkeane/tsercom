@@ -2,18 +2,18 @@
 
 import logging
 from multiprocessing import Process
-from typing import Callable, Tuple, Any, Optional
-from tsercom.threading.thread_watcher import ThreadWatcher
+from typing import Any, Callable, Optional, Tuple
+
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
+from tsercom.threading.thread_watcher import ThreadWatcher
 
 # You might need to import specific queue type if available,
 # otherwise, use 'Any' or a generic 'multiprocessing.Queue'.
-# from tsercom.threading.multiprocess.multiprocess_queue_factory import SomeQueueType
 
 logger = logging.getLogger(__name__)
 

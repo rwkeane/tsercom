@@ -6,9 +6,9 @@ CallerIdentifier) and handles data timeout tracking. It acts as a central point
 for collecting and accessing data from multiple remote endpoints.
 """
 
-from concurrent.futures import ThreadPoolExecutor
 import datetime
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Generic, List, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier

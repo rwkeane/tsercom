@@ -8,18 +8,17 @@ accessed and modified in a thread-safe manner.
 
 import threading
 from typing import (
+    Any,
     Callable,
     Dict,
     Generic,
+    Iterator,
     Optional,
     TypeVar,
     overload,
-    Iterator,
-    Any,
 )
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-
 
 TrackedDataT = TypeVar("TrackedDataT")
 

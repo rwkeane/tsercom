@@ -1,10 +1,8 @@
 """RemoteRuntimeFactory for creating Runtimes for separate processes."""
 
 from typing import Generic, TypeVar
-from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
-from tsercom.runtime.runtime_factory import RuntimeFactory
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
+
+from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
 from tsercom.api.split_process.event_source import EventSource
 from tsercom.api.split_process.runtime_command_source import (
@@ -17,8 +15,11 @@ from tsercom.data.event_instance import EventInstance
 # from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
+from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime import Runtime
-from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
+from tsercom.runtime.runtime_factory import RuntimeFactory
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -27,7 +28,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")

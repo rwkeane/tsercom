@@ -13,7 +13,6 @@ from queue import (
 )  # Exception for non-blocking get on empty queue.
 from typing import Generic, TypeVar
 
-
 # Type variable for the generic type of items in the queue.
 QueueTypeT = TypeVar("QueueTypeT")
 
