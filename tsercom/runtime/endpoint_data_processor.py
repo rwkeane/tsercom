@@ -54,7 +54,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def desynchronize(
-        self, timestamp: ServerTimestamp
+        self,
+        timestamp: ServerTimestamp,
+        context: Optional[grpc.aio.ServicerContext] = None,
     ) -> datetime | None:
         """Converts a server-side timestamp to a local, desynchronized datetime.
 
@@ -62,14 +64,21 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         connection or service, which accounts for time differences and network
         latency between the client and server.
 
+        If desynchronization fails (e.g., due to an invalid timestamp) and a
+        `context` is provided, the gRPC call associated with the context may be
+        aborted with `grpc.StatusCode.INVALID_ARGUMENT`.
+
         Args:
             timestamp: The `ServerTimestamp` (usually a protobuf message containing
                 seconds and nanos) received from the remote endpoint.
+            context: Optional. The `grpc.aio.ServicerContext` for a gRPC call.
+                If provided and desynchronization fails, the call will be aborted.
 
         Returns:
             A local `datetime` object representing the server timestamp in UTC.
-            Returns `None` if desynchronization is not possible (e.g., due to
-            an invalid input timestamp or uninitialized clock).
+            Returns `None` if desynchronization is not possible. If `context` was
+            provided and desynchronization failed, the gRPC call would have been
+            aborted before returning `None`.
         """
 
     @abstractmethod
@@ -148,21 +157,21 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         method with the data and the normalized `datetime` timestamp.
 
         Args:
-            data: The data item of type `DataTypeT` to process.
+            data: The data item (of generic type `DataTypeT`) to process.
             timestamp: The timestamp associated with the data. Can be a `datetime`
                 object, a `ServerTimestamp`, or `None` (in which case, current
                 UTC time is used). Defaults to `None`.
             context: Optional. The `grpc.aio.ServicerContext` for the current
-                gRPC call. If provided and timestamp desynchronization fails,
-                the gRPC call will be aborted.
+                gRPC call. If provided and timestamp desynchronization from a
+                `ServerTimestamp` fails, the gRPC call will be aborted.
         """
         actual_timestamp: datetime
         if timestamp is None:
             actual_timestamp = datetime.now(timezone.utc)
         elif isinstance(timestamp, ServerTimestamp):
-            maybe_timestamp = await self.desynchronize(timestamp)
+            maybe_timestamp = await self.desynchronize(timestamp, context)
             if maybe_timestamp is None:
-                if context is not None:
+                if context:
                     await context.abort(
                         grpc.StatusCode.INVALID_ARGUMENT,
                         "Invalid ServerTimestamp Provided",

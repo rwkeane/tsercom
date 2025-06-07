@@ -45,6 +45,18 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
                 "Client._on_service_added must be implemented by subclasses."
             )
 
+        @abstractmethod
+        async def _on_service_removed(self, service_name: str) -> None:
+            """Callback invoked when a service instance is removed.
+
+            Args:
+                service_name: The mDNS instance name of the removed service.
+            """
+            # This method must be implemented by concrete client classes.
+            raise NotImplementedError(
+                "Client._on_service_removed must be implemented by subclasses."
+            )
+
     def __init__(
         self,
         client: "InstanceListener.Client",
@@ -226,3 +238,23 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         run_on_event_loop(
             partial(self.__client._on_service_added, typed_service_info)
         )
+
+    def _on_service_removed(  # Matches MdnsListener.Client
+        self,
+        name: str,
+        service_type: str,
+        record_listener_uuid: str,  # pylint: disable=unused-argument
+    ) -> None:
+        """Callback from `RecordListener` when a service is removed.
+
+        Implements `MdnsListener.Client`. Notifies its own client via
+        `_on_service_removed` on the event loop.
+
+        Args:
+            name: mDNS instance name of the removed service.
+            service_type: The type of the service removed (unused).
+            record_listener_uuid: UUID of the RecordListener (unused).
+        """
+        # Client's _on_service_removed is expected to be a coroutine.
+        # pylint: disable=W0212 # Calling client's notification method
+        run_on_event_loop(partial(self.__client._on_service_removed, name))

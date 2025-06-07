@@ -7,5 +7,6 @@ to find available services.
 
 from tsercom.discovery.discovery_host import DiscoveryHost
 from tsercom.discovery.service_info import ServiceInfo
+from tsercom.discovery.service_connector import ServiceConnector
 
-__all__ = ["DiscoveryHost", "ServiceInfo"]
+__all__ = ["DiscoveryHost", "ServiceInfo", "ServiceConnector"]

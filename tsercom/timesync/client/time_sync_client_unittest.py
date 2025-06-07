@@ -293,26 +293,29 @@ class TestTimeSyncClientOperations:
         test_exception = AssertionError("Test assertion in loop")
         mock_ntp_client_fixture.request.side_effect = test_exception
         client.start_async()
-        max_wait_cycles = 10
-        cycles = 0
-        while (
-            mock_thread_watcher_fixture.on_exception_seen.call_count == 0
-            and cycles < max_wait_cycles
-        ):
-            time.sleep(0.1)  # This is a real sleep
-            cycles += 1
+
+        sync_loop_thread = client._TimeSyncClient__sync_loop_thread
+        assert sync_loop_thread is not None, "Sync loop thread not started"
+
+        # Wait for the thread to terminate, which should happen if the exception
+        # is caught and 'return' is called in the loop.
+        sync_loop_thread.join(timeout=2.0)  # Increased timeout
+        assert not sync_loop_thread.is_alive(), (
+            "Sync loop thread should have terminated after an assertion error "
+            "due to the 'return' statement in the exception handler."
+        )
+
+        # Now that the thread has terminated due to the planned exception,
+        # check if the watcher was called.
         mock_thread_watcher_fixture.on_exception_seen.assert_called_once_with(
             test_exception
         )
-        sync_loop_thread = client._TimeSyncClient__sync_loop_thread
-        if sync_loop_thread:
-            sync_loop_thread.join(timeout=1.0)
-            assert (
-                not sync_loop_thread.is_alive()
-            ), "Sync loop thread should be dead."
+
+        # is_running() reflects the state of self.__is_running tracker, which is
+        # only set to False by client.stop(). The thread dying doesn't change it.
         assert (
             client.is_running()
-        ), "is_running is True as loop crash doesn't call client.stop()."
+        ), "is_running() should still be True as client.stop() was not called."
         client.stop()
         assert not client.is_running()
 

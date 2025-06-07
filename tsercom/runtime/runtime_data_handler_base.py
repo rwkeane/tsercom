@@ -27,7 +27,6 @@ import grpc
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
@@ -45,7 +44,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 )
 
 EventTypeT = TypeVar("EventTypeT")
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT")
 
 
 # pylint: disable=arguments-differ # Handled by *args, **kwargs in actual implementation matching abstract
@@ -75,8 +74,7 @@ class RuntimeDataHandlerBase(
     define specific behaviors for client or server roles.
 
     Type Args:
-        DataTypeT: The type of data objects (bound by `ExposedData`) that this
-            handler deals with.
+        DataTypeT: The generic type of data objects that this handler deals with.
         EventTypeT: The type of event objects that this handler processes.
     """
 
@@ -500,7 +498,9 @@ class RuntimeDataHandlerBase(
             ] = data_poller
 
         async def desynchronize(
-            self, timestamp: ServerTimestamp
+            self,
+            timestamp: ServerTimestamp,
+            context: Optional[grpc.aio.ServicerContext] = None,
         ) -> Optional[datetime]:
             """Desynchronizes a `ServerTimestamp` to a local `datetime` object.
 
@@ -508,14 +508,25 @@ class RuntimeDataHandlerBase(
 
             Args:
                 timestamp: The `ServerTimestamp` to desynchronize.
+                context: Optional. The `grpc.aio.ServicerContext` for a gRPC call.
+                    If provided and `timestamp` is invalid (cannot be parsed by
+                    `SynchronizedTimestamp.try_parse`), the call will be aborted.
 
             Returns:
-                The desynchronized `datetime` object in UTC, or `None` if
-                desynchronization fails (e.g., invalid timestamp).
+                The desynchronized `datetime` object in UTC. Returns `None` if
+                `timestamp` is invalid. If `context` was provided and the
+                timestamp was invalid, the gRPC call would have been aborted
+                before returning `None`.
             """
             synchronized_ts_obj = SynchronizedTimestamp.try_parse(timestamp)
             if synchronized_ts_obj is None:
+                if context is not None:
+                    await context.abort(
+                        grpc.StatusCode.INVALID_ARGUMENT,
+                        "Invalid timestamp provided",
+                    )
                 return None
+
             return self.__clock.desync(synchronized_ts_obj)
 
         async def deregister_caller(self) -> None:
