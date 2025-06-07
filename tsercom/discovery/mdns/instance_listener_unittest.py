@@ -88,13 +88,20 @@ class FakeInstanceListenerClient(
     def __init__(self):
         # _on_service_added_mock is an AsyncMock to spy on the _on_service_added method.
         self._on_service_added_mock: AsyncMock = AsyncMock()
-        self._on_service_removed_mock: AsyncMock = AsyncMock() # Mock for removal
+        self._on_service_removed_mock: AsyncMock = (
+            AsyncMock()
+        )  # Mock for removal
         # For manual tracking if preferred.
         self.received_services: List[FClientServiceInfo] = []
-        self.removed_service_names: List[str] = [] # To store names of removed services
-        self.added_event: Optional[asyncio.Event] = None # Event for added services
-        self.removed_event: Optional[asyncio.Event] = None # Event for removed services
-
+        self.removed_service_names: List[str] = (
+            []
+        )  # To store names of removed services
+        self.added_event: Optional[asyncio.Event] = (
+            None  # Event for added services
+        )
+        self.removed_event: Optional[asyncio.Event] = (
+            None  # Event for removed services
+        )
 
     # This is the concrete implementation of the abstract method.
     async def _on_service_added(
@@ -120,7 +127,6 @@ class FakeInstanceListenerClient(
         await self._on_service_removed_mock(service_name)
         if self.removed_event:
             self.removed_event.set()
-
 
     # Kept for potential direct configuration if needed, though direct call to mock is primary.
     # def configure_mock_to_record(self):
@@ -249,7 +255,7 @@ class TestInstanceListener:
             ValueError, match="Client cannot be None for InstanceListener."
         ):
             InstanceListener(
-                client=None, # type: ignore
+                client=None,  # type: ignore
                 service_type=self.SERVICE_TYPE,
                 mdns_listener_factory=self.factory_under_test,
             )
@@ -261,7 +267,7 @@ class TestInstanceListener:
             match=r"Client must be InstanceListener\.Client, got \w+\.",
         ):  # Use regex for type name
             InstanceListener(
-                client=MagicMock(), # type: ignore
+                client=MagicMock(),  # type: ignore
                 service_type=self.SERVICE_TYPE,
                 mdns_listener_factory=self.factory_under_test,
             )
@@ -273,7 +279,7 @@ class TestInstanceListener:
         ):  # Use regex for type name
             InstanceListener(
                 client=self.mock_il_client,
-                service_type=123, # type: ignore
+                service_type=123,  # type: ignore
                 mdns_listener_factory=self.factory_under_test,
             )
 

@@ -1,6 +1,7 @@
-import grpc
 import subprocess
 from typing import TYPE_CHECKING
+
+import grpc
 
 if not TYPE_CHECKING:
     try:
@@ -23,32 +24,25 @@ if not TYPE_CHECKING:
     if False:
         pass
 
-    elif version_string == "v1_70":
-        from tsercom.rpc.proto.generated.v1_70.common_pb2 import (
-            TestConnectionCall,
-            TestConnectionResponse,
-            Tensor,
-        )
-
     elif version_string == "v1_62":
         from tsercom.rpc.proto.generated.v1_62.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
 
     elif version_string == "v1_71":
         from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
 
-    elif version_string == "v1_72":
-        from tsercom.rpc.proto.generated.v1_72.common_pb2 import (
+    elif version_string == "v1_70":
+        from tsercom.rpc.proto.generated.v1_70.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
 
     else:
@@ -61,10 +55,10 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.rpc.proto.generated.v1_72.common_pb2 import (
+    from tsercom.rpc.proto.generated.v1_70.common_pb2 import Tensor as Tensor
+    from tsercom.rpc.proto.generated.v1_70.common_pb2 import (
         TestConnectionCall as TestConnectionCall,
     )
-    from tsercom.rpc.proto.generated.v1_72.common_pb2 import (
+    from tsercom.rpc.proto.generated.v1_70.common_pb2 import (
         TestConnectionResponse as TestConnectionResponse,
     )
-    from tsercom.rpc.proto.generated.v1_72.common_pb2 import Tensor as Tensor
