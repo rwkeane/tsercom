@@ -244,8 +244,9 @@ class TestRuntimeManager:
             mock_factory_instance.auth_config = None
 
             mock_runtime_on_factory = MagicMock()
+            # Use side_effect with the async function itself
             mock_runtime_on_factory.start_async = AsyncMock(
-                return_value=dummy_coroutine_for_test()
+                side_effect=dummy_coroutine_for_test
             )
             mock_factory_instance.create.return_value = mock_runtime_on_factory
 
@@ -523,8 +524,9 @@ class TestRuntimeManager:
                 factory_mock.auth_config = None
 
                 mock_runtime_on_factory = MagicMock()
+                # Use side_effect with the async function itself
                 mock_runtime_on_factory.start_async = AsyncMock(
-                    return_value=dummy_coroutine_for_test()
+                    side_effect=dummy_coroutine_for_test
                 )
                 factory_mock.create.return_value = mock_runtime_on_factory
                 return factory_mock
