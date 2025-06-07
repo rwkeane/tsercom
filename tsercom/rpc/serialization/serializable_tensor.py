@@ -8,7 +8,7 @@ It depends on PyTorch (`torch`) for tensor operations.
 import logging
 from typing import Optional
 
-import torch  # type: ignore[import-not-found]
+import torch
 
 from tsercom.rpc.proto import Tensor as GrpcTensor
 from tsercom.timesync.common.synchronized_timestamp import (

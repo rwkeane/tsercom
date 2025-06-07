@@ -8,7 +8,7 @@ import grpc.aio  # Explicitly import grpc.aio
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
+class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):
     """
     A gRPC interceptor that handles exceptions in async server methods and
     forwards them to a provided callback.
@@ -118,7 +118,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                 # The original method for unary-stream is expected to be an async generator.
                 # However, the type hint from grpc.RpcMethodHandler is Awaitable[object].
                 # We iterate over it as if it's an async generator.
-                async for response in method(request, context):  # type: ignore
+                async for response in method(request, context):
                     yield response
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
@@ -172,7 +172,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
             try:
                 # The original method for stream-stream is an async generator
                 # that takes an async iterator.
-                async for response in method(request_iterator, context):  # type: ignore
+                async for response in method(request_iterator, context):
                     yield response
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
