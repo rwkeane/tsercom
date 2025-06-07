@@ -5,6 +5,7 @@ from typing import Generic, TypeVar
 
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
+
 # ExposedData import removed as DataTypeT is no longer bound to it here.
 # SerializableAnnotatedInstance might become unused in this file
 from tsercom.data.remote_data_reader import RemoteDataReader
