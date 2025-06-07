@@ -1,5 +1,6 @@
 """Manages mDNS service discovery and notifies clients of services."""
 
+import logging
 from typing import Callable, Dict, Generic, Optional, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -183,6 +184,48 @@ class DiscoveryHost(
         # pylint: disable=protected-access # Internal callback to client
         # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_service_added(connection_info, caller_id)
+
+    async def _on_service_removed(self, service_name: str) -> None:
+        """Handles a service being removed.
+
+        Notifies the ServiceSource.Client that a service, identified by its
+        mDNS name, is no longer available. It also removes the service's
+        CallerIdentifier from internal tracking. This method is part of the
+        InstanceListener.Client interface.
+
+        Args:
+            service_name: The mDNS instance name of the service that was removed.
+        """
+        logging.info("Service removed by DiscoveryHost: %s", service_name)
+        caller_id = self.__caller_id_map.pop(service_name, None)
+
+        if self.__client is None:
+            logging.warning(
+                "No client configured in DiscoveryHost; cannot notify of service removal: %s",
+                service_name,
+            )
+            return
+
+        if caller_id:
+            # Check if the client has the _on_service_removed method
+            if hasattr(self.__client, "_on_service_removed") and callable(
+                getattr(self.__client, "_on_service_removed")
+            ):
+                # pylint: disable=protected-access, W0212
+                await self.__client._on_service_removed(
+                    service_name, caller_id
+                )
+            else:
+                logging.warning(
+                    "Client %s does not implement _on_service_removed, cannot notify for %s.",
+                    type(self.__client).__name__,
+                    service_name,
+                )
+        else:
+            logging.warning(
+                "Service %s removed, but was not found in DiscoveryHost's caller_id_map.",
+                service_name,
+            )
 
 
 # TODO(developer/issue_id): Implement a stop_discovery() method.

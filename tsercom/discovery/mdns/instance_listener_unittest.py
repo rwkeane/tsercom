@@ -47,6 +47,13 @@ class FakeMdnsListener(MdnsListener):
         self.remove_service_calls.append(
             {"zc": zc, "type_": type_, "name": name}
         )
+        # Simulate calling the client's _on_service_removed if it exists
+        if hasattr(self.client, "_on_service_removed") and callable(
+            getattr(self.client, "_on_service_removed")
+        ):
+            # Assuming RecordListener would pass its UUID, mock or use a fixed one for tests
+            mock_uuid = "fake-record-listener-uuid"
+            self.client._on_service_removed(name, type_, mock_uuid)
 
     def add_service(self, zc: Any, type_: str, name: str) -> None:
         self.add_service_calls.append({"zc": zc, "type_": type_, "name": name})
@@ -81,8 +88,20 @@ class FakeInstanceListenerClient(
     def __init__(self):
         # _on_service_added_mock is an AsyncMock to spy on the _on_service_added method.
         self._on_service_added_mock: AsyncMock = AsyncMock()
+        self._on_service_removed_mock: AsyncMock = (
+            AsyncMock()
+        )  # Mock for removal
         # For manual tracking if preferred.
         self.received_services: List[FClientServiceInfo] = []
+        self.removed_service_names: List[str] = (
+            []
+        )  # To store names of removed services
+        self.added_event: Optional[asyncio.Event] = (
+            None  # Event for added services
+        )
+        self.removed_event: Optional[asyncio.Event] = (
+            None  # Event for removed services
+        )
 
     # This is the concrete implementation of the abstract method.
     async def _on_service_added(
@@ -95,6 +114,19 @@ class FakeInstanceListenerClient(
             connection_info
         )  # Optional: direct recording
         await self._on_service_added_mock(connection_info)
+        if self.added_event:
+            self.added_event.set()
+
+    async def _on_service_removed(self, service_name: str) -> None:
+        """Concrete implementation of the abstract method for service removal."""
+        self.removed_service_names.append(service_name)
+        # Also remove from received_services if present by mDNS name
+        self.received_services = [
+            s for s in self.received_services if s.mdns_name != service_name
+        ]
+        await self._on_service_removed_mock(service_name)
+        if self.removed_event:
+            self.removed_event.set()
 
     # Kept for potential direct configuration if needed, though direct call to mock is primary.
     # def configure_mock_to_record(self):
@@ -117,7 +149,13 @@ class FakeInstanceListenerClient(
 
     def clear_calls(self):
         self._on_service_added_mock.reset_mock()
+        self._on_service_removed_mock.reset_mock()
         self.received_services = []
+        self.removed_service_names = []
+        if self.added_event:
+            self.added_event.clear()
+        if self.removed_event:
+            self.removed_event.clear()
 
 
 class TestInstanceListener:
@@ -217,7 +255,7 @@ class TestInstanceListener:
             ValueError, match="Client cannot be None for InstanceListener."
         ):
             InstanceListener(
-                client=None,
+                client=None,  # type: ignore
                 service_type=self.SERVICE_TYPE,
                 mdns_listener_factory=self.factory_under_test,
             )
@@ -229,7 +267,7 @@ class TestInstanceListener:
             match=r"Client must be InstanceListener\.Client, got \w+\.",
         ):  # Use regex for type name
             InstanceListener(
-                client=MagicMock(),
+                client=MagicMock(),  # type: ignore
                 service_type=self.SERVICE_TYPE,
                 mdns_listener_factory=self.factory_under_test,
             )
@@ -241,7 +279,7 @@ class TestInstanceListener:
         ):  # Use regex for type name
             InstanceListener(
                 client=self.mock_il_client,
-                service_type=123,
+                service_type=123,  # type: ignore
                 mdns_listener_factory=self.factory_under_test,
             )
 
