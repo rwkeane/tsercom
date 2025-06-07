@@ -1,6 +1,7 @@
 """Listener for mDNS service records using zeroconf."""
 
 import logging
+import uuid
 
 from zeroconf import ServiceBrowser, Zeroconf
 
@@ -51,6 +52,9 @@ class RecordListener(MdnsListener):
             )
 
         self.__client: MdnsListener.Client = client
+        self._uuid_str = str(
+            uuid.uuid4()
+        )  # Unique ID for this listener instance
         self.__expected_type: str  # Declare type once
         # Determine the expected type string for zeroconf
         if service_type.endswith("._tcp.local.") or service_type.endswith(
@@ -140,8 +144,13 @@ class RecordListener(MdnsListener):
             name: The mDNS instance name of the service that was removed.
         """
         logging.info("Service removed: type='%s', name='%s'", type_, name)
-        # Placeholder for client notification or cleanup for service removal.
-        # For example, self.__client._on_service_removed(name, type_)
+        # Notify the client about the service removal.
+        # Check if the client has implemented _on_service_removed to avoid errors.
+        if hasattr(self.__client, "_on_service_removed") and callable(
+            getattr(self.__client, "_on_service_removed")
+        ):
+            # pylint: disable=W0212 # Calling client's notification method
+            self.__client._on_service_removed(name, type_, self._uuid_str)
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a new service is discovered.
