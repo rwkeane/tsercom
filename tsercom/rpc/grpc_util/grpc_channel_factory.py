@@ -1,8 +1,10 @@
 """Abstract base class defining the interface for gRPC channel factories."""
 
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Optional, List, Union
+from typing import List, Optional, Union
+
 import grpc
 
 from tsercom.util.connection_factory import ConnectionFactory

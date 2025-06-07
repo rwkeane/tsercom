@@ -1,13 +1,15 @@
 """Provides IsRunningTracker for managing running state and safe iteration."""
 
 import asyncio
+import threading
 from collections.abc import Coroutine
 from functools import partial
-import threading
-from typing import Any, AsyncIterator, TypeVar, Optional, Callable, cast
+from typing import Any, AsyncIterator, Callable, Optional, TypeVar, cast
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none as default_get_running_loop_or_none,
+)
+from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
@@ -88,7 +90,7 @@ class IsRunningTracker(Atomic[bool]):
         )
 
         # To clear the event loop and similar.
-        def clear(_future: Any) -> None:  # Renamed x to _future
+        def clear(_future: Any) -> None:
             with self.__event_loop_lock:
                 self.__running_barrier = asyncio.Event()
                 self.__stopped_barrier = asyncio.Event()
@@ -128,7 +130,7 @@ class IsRunningTracker(Atomic[bool]):
         await self.__stopped_barrier.wait()
 
     async def task_or_stopped(
-        self, call: Coroutine[Any, Any, ReturnTypeT]  # Reverted to Coroutine
+        self, call: Coroutine[Any, Any, ReturnTypeT]
     ) -> ReturnTypeT | None:
         """
         Runs |call| until completion, or until the current instance changes to
@@ -243,9 +245,7 @@ class IsRunningTracker(Atomic[bool]):
 
         def __aiter__(
             self,
-        ) -> (
-            "IsRunningTracker._IteratorWrapper[ReturnTypeT]"
-        ):  # Renamed __IteratorWrapper
+        ) -> "IsRunningTracker._IteratorWrapper[ReturnTypeT]":
             """
             Returns the iterator itself.
 
@@ -254,7 +254,7 @@ class IsRunningTracker(Atomic[bool]):
             """
             return self
 
-        async def __anext__(self) -> ReturnTypeT:  # Renamed __IteratorWrapper
+        async def __anext__(self) -> ReturnTypeT:
             """
             Retrieves the next item from the wrapped iterator.
 

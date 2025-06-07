@@ -2,7 +2,7 @@ import pytest
 import datetime
 from unittest.mock import AsyncMock, MagicMock
 import grpc  # For grpc.StatusCode
-from grpc.aio import ServicerContext  # For type hinting context
+from grpc.aio import ServicerContext
 from typing import TypeVar, Generic, List, AsyncIterator, Optional
 
 
@@ -17,12 +17,17 @@ DataTypeT = TypeVar("DataTypeT")
 EventTypeT = TypeVar("EventTypeT")
 
 
-class ConcreteTestProcessor(
+class HelperConcreteTestProcessor(
     Generic[DataTypeT, EventTypeT],
     EndpointDataProcessor[DataTypeT, EventTypeT],
 ):
-    def __init__(self, caller_id: CallerIdentifier, mocker):
+    __test__ = False  # Prevent pytest from collecting this class
+
+    def __init__(self, caller_id: CallerIdentifier):
         super().__init__(caller_id)
+        # Mocks will be initialized in setup_mocks
+
+    def setup_mocks(self, mocker):
         self._process_data_mock = mocker.AsyncMock(name="_process_data_impl")
         self.desynchronize_mock = mocker.AsyncMock(name="desynchronize_impl")
         self.deregister_caller_mock = mocker.AsyncMock(
@@ -69,7 +74,9 @@ def mock_caller_id():
 @pytest.fixture
 def processor(mock_caller_id, mocker):
     # Use object as a simple placeholder for DataTypeT and EventTypeT if not specified
-    return ConcreteTestProcessor[object, object](mock_caller_id, mocker)
+    proc = HelperConcreteTestProcessor[object, object](mock_caller_id)
+    proc.setup_mocks(mocker)
+    return proc
 
 
 @pytest.mark.asyncio

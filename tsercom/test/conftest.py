@@ -1,11 +1,13 @@
-import pytest
 import asyncio
 from typing import Generator  # Added for type hint
+
+import pytest
 from pytest import FixtureRequest  # Added for type hint
+
 from tsercom.threading.aio.global_event_loop import (
-    set_tsercom_event_loop,
     clear_tsercom_event_loop,
     is_global_event_loop_set,
+    set_tsercom_event_loop,
 )
 
 

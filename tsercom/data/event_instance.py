@@ -6,7 +6,6 @@ from typing import Generic, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
-
 DataTypeT = TypeVar("DataTypeT")
 
 

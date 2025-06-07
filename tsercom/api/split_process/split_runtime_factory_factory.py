@@ -1,18 +1,20 @@
 """Factory for creating split-process runtime factories and handles."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypeVar, Tuple
-from tsercom.data.annotated_instance import (
-    AnnotatedInstance,
-)  # Import AnnotatedInstance
-from tsercom.data.exposed_data import ExposedData
+from typing import Tuple, TypeVar
+
+from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.runtime_handle import RuntimeHandle
-from tsercom.data.event_instance import EventInstance
 from tsercom.api.split_process.remote_runtime_factory import (
     RemoteRuntimeFactory,
 )
 from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
+from tsercom.data.annotated_instance import (
+    AnnotatedInstance,
+)  # Import AnnotatedInstance
+from tsercom.data.event_instance import EventInstance
+from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
@@ -26,8 +28,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-from tsercom.api.runtime_command import RuntimeCommand
-
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")

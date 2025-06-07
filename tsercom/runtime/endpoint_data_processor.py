@@ -19,7 +19,6 @@ from tsercom.data.serializable_annotated_instance import (
 )
 from tsercom.timesync.common.proto import ServerTimestamp
 
-
 DataTypeT = TypeVar("DataTypeT")
 EventTypeT = TypeVar("EventTypeT")
 

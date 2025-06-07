@@ -3,9 +3,9 @@ that run in separate threads, monitored by a ThreadWatcher.
 """
 
 import asyncio
-from typing import Any, Optional
-import threading
 import logging
+import threading
+from typing import Any, Optional
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 

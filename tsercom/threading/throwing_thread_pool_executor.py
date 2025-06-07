@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, TypeVar, ParamSpec
+from typing import Any, ParamSpec, TypeVar
 
 # ParamSpec for capturing callable parameters
 P = ParamSpec("P")

@@ -1,11 +1,11 @@
 """Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
 
-import logging  # Add logging import
+import datetime
+import logging
+import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
-import datetime
 from functools import partial
-import threading
 from typing import Deque, Generic, List, Optional, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -74,6 +74,7 @@ class RemoteDataOrganizer(
         self.__data: Deque[DataTypeT] = Deque[DataTypeT]()
 
         # Timestamp of the most recent data item retrieved via get_new_data().
+        # Initialize with an offset-aware datetime (UTC).
         self.__last_access: datetime.datetime = datetime.datetime.min.replace(
             tzinfo=datetime.timezone.utc
         )
@@ -313,7 +314,7 @@ class RemoteDataOrganizer(
         if not self.__is_running.get():
             return
 
-        current_time = datetime.datetime.now(tz=datetime.timezone.utc)
+        current_time = datetime.datetime.now()
         timeout_delta = datetime.timedelta(seconds=timeout_seconds)
         oldest_allowed_timestamp = current_time - timeout_delta
 

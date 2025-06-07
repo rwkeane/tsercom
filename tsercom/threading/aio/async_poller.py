@@ -17,13 +17,16 @@ Key features include:
 import asyncio
 import threading
 from collections import deque  # Use collections.deque directly
+
+# Defer import of IsRunningTracker to break circular dependency
 from typing import (
+    TYPE_CHECKING,
+    AsyncIterator,
     Deque,
     Generic,
     List,
-    TypeVar,
-    AsyncIterator,
     Optional,
+    TypeVar,
 )
 
 from tsercom.threading.aio.aio_utils import (
@@ -36,9 +39,6 @@ from tsercom.threading.aio.rate_limiter import (
     RateLimiter,
     RateLimiterImpl,
 )
-
-# Defer import of IsRunningTracker to break circular dependency
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tsercom.util.is_running_tracker import IsRunningTracker
@@ -125,19 +125,31 @@ class AsyncPoller(Generic[ResultTypeT]):
         Args:
             new_instance: The item of `ResultTypeT` to make available.
         """
+        print(f"AsyncPoller.on_available: Received item {new_instance} (id: {id(new_instance)})")
         with self.__lock:
+            print(f"AsyncPoller.on_available: Queue len before add: {len(self.__responses)}")
             if len(self.__responses) >= MAX_RESPONSES:
                 self.__responses.popleft()
             self.__responses.append(new_instance)
+            print(f"AsyncPoller.on_available: Queue len after add: {len(self.__responses)}. Item: {self.__responses[-1]}")
 
         if self.__is_loop_running.get() and self.__event_loop is not None:
+            print(f"AsyncPoller.on_available: Scheduling __set_results_available: {self.__is_loop_running.get() and self.__event_loop is not None}")
             run_on_event_loop(self.__set_results_available, self.__event_loop)
+        else:
+            print(f"AsyncPoller.on_available: Not scheduling __set_results_available. Loop running: {self.__is_loop_running.get()}, Event loop set: {self.__event_loop is not None}")
+
 
     async def __set_results_available(self) -> None:
         """Internal coroutine to set the barrier event, run on the poller\'s event loop."""
-        with self.__lock:
+        print(f"AsyncPoller.__set_results_available: Running. Queue len: {len(self.__responses)}")
+        with self.__lock: # Ensure responses check is atomic with set
             if self.__responses:
+                print(f"AsyncPoller.__set_results_available: Setting barrier. Responses exist: {bool(self.__responses)}")
                 self.__barrier.set()
+            else:
+                print(f"AsyncPoller.__set_results_available: Not setting barrier, no responses. Responses exist: {bool(self.__responses)}")
+
 
     def flush(self) -> None:
         """Removes all currently queued items from the poller.
@@ -171,21 +183,26 @@ class AsyncPoller(Generic[ResultTypeT]):
                 one it was first associated with, or if no event loop is running
                 when it\'s first called.
         """
+        print(f"AsyncPoller.wait_instance: Entered. Event loop: {self.__event_loop}")
         await self.__rate_limiter.wait_for_pass()
 
         if self.__event_loop is None:
             current_loop = get_running_loop_or_none()
             if current_loop is None:
+                print("AsyncPoller.wait_instance: ERROR - No running event loop found.")
                 raise RuntimeError(
                     "AsyncPoller.wait_instance must be called from within a running asyncio event loop."
                 )
             self.__event_loop = current_loop
-            self.__is_loop_running.set(True)
+            self.__is_loop_running.set(True) # Mark as running when loop is attached
+            print(f"AsyncPoller.wait_instance: Event loop set and marked running: {self.__event_loop}")
         elif not self.__is_loop_running.get():
+            print("AsyncPoller.wait_instance: Raising RuntimeError - poller stopped (early check).")
             raise RuntimeError("AsyncPoller is stopped.")
 
         assert self.__event_loop is not None
         if not is_running_on_event_loop(self.__event_loop):
+            print("AsyncPoller.wait_instance: ERROR - Called from different event loop.")
             raise RuntimeError(
                 "AsyncPoller.wait_instance called from a different event loop "
                 "than it was initially associated with."
@@ -194,30 +211,42 @@ class AsyncPoller(Generic[ResultTypeT]):
         while self.__is_loop_running.get():
             current_batch: List[ResultTypeT] = []
             with self.__lock:
+                print(f"AsyncPoller.wait_instance: About to clear barrier. Barrier state: {self.__barrier.is_set()}")
                 self.__barrier.clear()
+                print(f"AsyncPoller.wait_instance: Barrier cleared. Barrier state: {self.__barrier.is_set()}")
+                print(f"AsyncPoller.wait_instance: Checking responses. Queue len: {len(self.__responses)}. Responses: {list(self.__responses)}")
                 if self.__responses:
                     while self.__responses:  # Drain the queue
                         current_batch.append(self.__responses.popleft())
 
             if current_batch:
+                print(f"AsyncPoller.wait_instance: Returning batch: {current_batch}")
                 return current_batch
 
+            print(f"AsyncPoller.wait_instance: Awaiting barrier. Loop running: {self.__is_loop_running.get()}")
             await self.__is_loop_running.task_or_stopped(self.__barrier.wait())
+            print(f"AsyncPoller.wait_instance: Woke from barrier. Loop running: {self.__is_loop_running.get()}. Barrier state: {self.__barrier.is_set()}")
+
 
             if not self.__is_loop_running.get():
+                print("AsyncPoller.wait_instance: Loop stopped during/after barrier wait. Checking for residual items.")
                 # If stopped during the wait, check one last time for residual items
                 # This handles a race condition where stop() is called after the while condition
                 # but before or during asyncio.wait_for, and on_available adds items just before stop.
                 with self.__lock:
+                    print(f"AsyncPoller.wait_instance (stopped): Checking responses. Queue len: {len(self.__responses)}. Responses: {list(self.__responses)}")
                     if self.__responses:
                         while self.__responses:
                             current_batch.append(self.__responses.popleft())
                 if current_batch:
+                    print(f"AsyncPoller.wait_instance (stopped): Returning residual batch: {current_batch}")
                     return current_batch
+                print("AsyncPoller.wait_instance: Raising RuntimeError - poller stopped while waiting for instance.")
                 raise RuntimeError(
                     "AsyncPoller stopped while waiting for instance."
                 )
 
+        print("AsyncPoller.wait_instance: Raising RuntimeError - poller stopped (end of method).")
         raise RuntimeError(
             "AsyncPoller is stopped."
         )  # Should be hit if loop_running was false initially

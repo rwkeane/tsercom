@@ -1,7 +1,6 @@
 import pytest
 import threading
 
-# Removed: from unittest.mock import Mock
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.caller_id.caller_id_map import CallerIdMap
@@ -13,14 +12,10 @@ def caller_id_map_instance():
     return CallerIdMap()
 
 
-def test_find_instance_new_id(
-    caller_id_map_instance: CallerIdMap, mocker
-):  # Added mocker
+def test_find_instance_new_id(caller_id_map_instance: CallerIdMap, mocker):
     map_instance = caller_id_map_instance
     caller_id = CallerIdentifier.random()
-    mock_factory = mocker.Mock(
-        return_value="new_object_from_factory"
-    )  # Changed to mocker.Mock
+    mock_factory = mocker.Mock(return_value="new_object_from_factory")
 
     returned_object = map_instance.find_instance(caller_id, mock_factory)
 
@@ -33,20 +28,16 @@ def test_find_instance_new_id(
     assert returned_object_again == "new_object_from_factory"
 
 
-def test_for_all_items_empty_map(
-    caller_id_map_instance: CallerIdMap, mocker
-):  # Added mocker
+def test_for_all_items_empty_map(caller_id_map_instance: CallerIdMap, mocker):
     map_instance = caller_id_map_instance
-    mock_func = mocker.Mock()  # Changed to mocker.Mock
+    mock_func = mocker.Mock()
 
     map_instance.for_all_items(mock_func)
 
     mock_func.assert_not_called()
 
 
-def test_for_all_items_with_items(
-    caller_id_map_instance: CallerIdMap, mocker
-):  # Added mocker
+def test_for_all_items_with_items(caller_id_map_instance: CallerIdMap, mocker):
     map_instance = caller_id_map_instance
 
     id1 = CallerIdentifier.random()
@@ -60,7 +51,7 @@ def test_for_all_items_with_items(
     map_instance.find_instance(id2, lambda: obj2)
     map_instance.find_instance(id3, lambda: obj3)
 
-    mock_func = mocker.Mock()  # Changed to mocker.Mock
+    mock_func = mocker.Mock()
     map_instance.for_all_items(mock_func)
 
     assert mock_func.call_count == 3

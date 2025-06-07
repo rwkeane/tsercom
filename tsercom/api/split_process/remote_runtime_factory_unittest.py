@@ -157,9 +157,8 @@ class FakeEventSource:
 class FakeDataReaderSink:
     _instances = []
 
-    def __init__(self, data_reader_queue_sink, is_lossy: bool = True): # Added is_lossy
+    def __init__(self, data_reader_queue_sink):
         self.data_reader_queue_sink = data_reader_queue_sink
-        self.is_lossy = is_lossy # Store it if needed, though fake might not use it
         FakeDataReaderSink._instances.append(self)
 
     @classmethod

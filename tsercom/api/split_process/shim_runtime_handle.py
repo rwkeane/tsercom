@@ -1,18 +1,18 @@
 """ShimRuntimeHandle for interacting with a separate process runtime."""
 
 import datetime
-from typing import TypeVar, Optional
+from typing import Optional, TypeVar
 
+from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.api.runtime_handle import RuntimeHandle
+from tsercom.api.split_process.data_reader_source import DataReaderSource
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.data.exposed_data import ExposedData
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
+from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.api.split_process.data_reader_source import DataReaderSource
-from tsercom.api.runtime_handle import RuntimeHandle
-from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
@@ -20,7 +20,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
@@ -108,23 +107,19 @@ class ShimRuntimeHandle(
 
         Args:
             event: The event to send.
-            caller_id: Optional `CallerIdentifier`. This ID is packaged into the
-                       `EventInstance` and sent to the remote runtime. While this
-                       shim handle itself doesn't use the ID for routing decisions
-                       before queueing, the ID is preserved for the remote runtime.
-            timestamp: Optional event timestamp. If None, `datetime.now()` is used.
-                       This timestamp is packaged into the `EventInstance`.
+            caller_id: Optional caller ID (ignored).
+            timestamp: Optional event timestamp (ignored).
         """
-        # `caller_id` and `timestamp` are packaged into the EventInstance.
-        # The ShimRuntimeHandle itself may not use them for pre-queueing logic,
-        # but they are not discarded and are sent to the remote process.
+        # `caller_id` and `timestamp` are part of RuntimeHandle interface,
+        # but shim doesn't use them when sending to queue.
+        _ = caller_id  # Preserved for clarity, not used for queue type
+        _ = timestamp  # Preserved for clarity
 
         effective_timestamp = (
             timestamp
             if timestamp is not None
             else datetime.datetime.now(tz=datetime.timezone.utc)
         )
-        # caller_id is passed directly to EventInstance.
         event_instance = EventInstance(
             data=event, caller_id=caller_id, timestamp=effective_timestamp
         )

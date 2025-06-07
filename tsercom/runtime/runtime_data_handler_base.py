@@ -10,19 +10,18 @@ Concrete implementations, such as `ClientRuntimeDataHandler` and
 `ServerRuntimeDataHandler`, inherit from this base to provide specific logic
 for client and server-side operations, respectively.
 """
-
+import logging # Added import
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import (
+    Any,
     Generic,
     List,
-    TypeVar,
-    Any,
-    overload,
     Optional,
-)  # Added Optional
-import logging  # Added for logging
+    TypeVar,
+    overload,
+)
 
 import grpc
 
@@ -45,13 +44,11 @@ from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
 
-
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
-logger = logging.getLogger(__name__)  # Added logger instance
 
-
+# pylint: disable=arguments-differ # Handled by *args, **kwargs in actual implementation matching abstract
 class RuntimeDataHandlerBase(
     Generic[DataTypeT, EventTypeT], RuntimeDataHandler[DataTypeT, EventTypeT]
 ):
@@ -124,7 +121,12 @@ class RuntimeDataHandlerBase(
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
-        run_on_event_loop(self.__dispatch_poller_data_loop)
+        if hasattr(self, "_RuntimeDataHandlerBase__dispatch_poller_data_loop"): # Ensure method exists
+            print("[RuntimeDataHandlerBase.__init__] Scheduling __dispatch_poller_data_loop")
+            run_on_event_loop(self.__dispatch_poller_data_loop)
+        else:
+            print("[RuntimeDataHandlerBase.__init__] ERROR: __dispatch_poller_data_loop not found!")
+
 
     @property
     def _id_tracker(
@@ -437,48 +439,89 @@ class RuntimeDataHandlerBase(
         # We only need the CallerIdentifier from the (CallerIdentifier, TrackedDataT) tuple
         return result_tuple[0]
 
-    def _broadcast_event_to_all_pollers(
-        self, event_item: SerializableAnnotatedInstance[EventTypeT]
-    ) -> None:
-        """Sends the event_item to all tracked pollers."""
-        all_caller_ids = self._id_tracker.get_all_caller_ids()
-        for current_caller_id in all_caller_ids:
-            id_tracker_entry = self._id_tracker.try_get(current_caller_id)
-            if id_tracker_entry is not None:
-                _address, _port, per_caller_poller = id_tracker_entry
-                if per_caller_poller is not None:
-                    per_caller_poller.on_available(event_item)
-                # else: Potentially log if poller is None for an active ID
-            # else: Potentially log if a caller_id from get_all_caller_ids is not found by try_get
-
-    def _dispatch_event_to_specific_poller(
-        self, event_item: SerializableAnnotatedInstance[EventTypeT]
-    ) -> None:
-        """Dispatches the event_item to a specific poller based on event_item.caller_id."""
-        if event_item.caller_id is None:
-            logger.error(
-                "DEVELOPER ERROR: _dispatch_event_to_specific_poller called with None caller_id."
-            )
-            return
-
-        id_tracker_entry = self._id_tracker.try_get(event_item.caller_id)
-        if id_tracker_entry is None:
-            # Potentially log this? Caller might have deregistered.
-            return
-
-        _address, _port, per_caller_poller = id_tracker_entry
-        if per_caller_poller is not None:
-            per_caller_poller.on_available(event_item)
-        # else: Potentially log if poller is None but entry existed for this specific caller_id
-
     async def __dispatch_poller_data_loop(self) -> None:
-        """Continuously polls the main event source and dispatches events."""
-        async for events_batch in self.__event_source:
-            for event_item in events_batch:
-                if event_item.caller_id is None:
-                    self._broadcast_event_to_all_pollers(event_item)
-                else:
-                    self._dispatch_event_to_specific_poller(event_item)
+        """Continuously polls the main event source and dispatches events.
+
+        This background task runs in the event loop. It asynchronously iterates
+        over events from `self.__event_source`. For each event, it looks up the
+        `CallerIdentifier` in the `IdTracker` to find the corresponding
+        per-caller `AsyncPoller`. If found, the event is put onto that
+        dedicated poller.
+        """
+        # Inside __dispatch_poller_data_loop(self) method
+        print(f"RDMBASE_DISPATCH_LOOP_ENTRY: Starting for {self}") # PRINT_A
+        if self.__event_source is None: # Moved check to ensure it's done before loop
+            print(f"RDMBASE_DISPATCH_LOOP_ENTRY: ERROR: self.__event_source is None. Exiting loop for {self}.")
+            return
+
+        try: # TRY AROUND THE ASYNC FOR LOOP
+            async for events_batch in self.__event_source: # INDENTED
+                print(f"RDMBASE_DISPATCH_LOOP: Received batch, len: {len(events_batch) if events_batch else 'empty'} for {self}") # PRINT_B
+                for event_item in events_batch: # INDENTED
+                    try: # INDENTED
+                        # Ensure event_item and its caller_id can be represented in logs safely
+                        event_data_repr = repr(getattr(event_item, 'data', 'NO_DATA'))
+                        event_caller_id_repr = repr(getattr(event_item, 'caller_id', 'NO_CALLER_ID'))
+
+                        print(f"RDMBASE_DISPATCH_LOOP: Processing event_item data: {event_data_repr}, caller_id: {event_caller_id_repr} for {self}") # PRINT_C
+
+                        actual_caller_id = event_item.caller_id # Keep this access, it's fundamental
+
+                        if actual_caller_id is None:
+                            print(f"RDMBASE_DISPATCH_LOOP: BROADCAST for event_item data: {event_data_repr} for {self}")
+                            all_caller_ids = list(self._id_tracker) # Assumes __iter__ yields CallerIdentifiers
+                            print(f"RDMBASE_DISPATCH_LOOP: Broadcasting to {len(all_caller_ids)} callers: {all_caller_ids} for {self}")
+                            if not all_caller_ids:
+                                print(f"RDMBASE_DISPATCH_LOOP: No registered callers to broadcast to for {self}.")
+
+                            for tracked_caller_id in all_caller_ids:
+                                tracked_caller_id_repr = repr(tracked_caller_id)
+                                print(f"RDMBASE_DISPATCH_LOOP: Broadcasting to tracked_caller_id: {tracked_caller_id_repr} for {self}")
+                                id_tracker_entry = self._id_tracker.try_get(tracked_caller_id)
+                                if id_tracker_entry is None:
+                                    print(f"RDMBASE_DISPATCH_LOOP: No tracker entry for {tracked_caller_id_repr} during broadcast for {self}")
+                                    continue
+
+                                _address, _port, per_caller_poller = id_tracker_entry
+                                if per_caller_poller is not None:
+                                    print(f"RDMBASE_DISPATCH_LOOP: Dispatching broadcast to poller for caller {tracked_caller_id_repr} for {self}")
+                                    per_caller_poller.on_available(event_item) # event_item is SerializableAnnotatedInstance
+                                else:
+                                    print(f"RDMBASE_DISPATCH_LOOP: No poller for broadcast caller {tracked_caller_id_repr} for {self}")
+                        else:
+                            # Specific caller
+                            print(f"RDMBASE_DISPATCH_LOOP: SPECIFIC for event_item data: {event_data_repr} to caller {event_caller_id_repr} for {self}")
+                            id_tracker_entry = self._id_tracker.try_get(actual_caller_id)
+                            if id_tracker_entry is None:
+                                print(f"RDMBASE_DISPATCH_LOOP: No tracker entry for specific caller {event_caller_id_repr} for {self}")
+                                continue # Use continue to proceed with the next event_item
+
+                            _address, _port, per_caller_poller = id_tracker_entry
+                            if per_caller_poller is not None:
+                                print(f"RDMBASE_DISPATCH_LOOP: Dispatching specific to poller for caller {event_caller_id_repr} for {self}")
+                                per_caller_poller.on_available(event_item)
+                            else:
+                                print(f"RDMBASE_DISPATCH_LOOP: No poller for specific caller {event_caller_id_repr} for {self}")
+
+                    except Exception as e: # INDENTED (inner try-except)
+                        event_item_repr_safe = "EVENT_ITEM_REPR_FAILED"
+                        try:
+                            event_item_repr_safe = repr(event_item)
+                        except Exception:
+                            pass # Keep the default safe repr
+
+                        logging.error(f"RDMBASE_DISPATCH_LOOP_EXCEPTION: Error processing event_item {event_item_repr_safe}. Error: {e} for {self}", exc_info=True)
+                        print(f"RDMBASE_DISPATCH_LOOP_EXCEPTION: Error processing event_item {event_item_repr_safe}. Error: {e} for {self}")
+                        import traceback
+                        traceback.print_exc()
+                        # Depending on desired behavior, you might 'continue' to the next event_item or 'break' the inner loop
+                        # For now, it will continue to the next event_item by default as the try-except is inside the inner loop.
+        except Exception as e_outer: # EXCEPT FOR THE ASYNC FOR LOOP
+            logging.error(f"RDMBASE_DISPATCH_LOOP_OUTER_EXCEPTION: Error in async for loop for {self}. Error: {e_outer}", exc_info=True)
+            print(f"RDMBASE_DISPATCH_LOOP_OUTER_EXCEPTION: Error in async for loop for {self}. Error: {e_outer}")
+            import traceback
+            traceback.print_exc()
+
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.

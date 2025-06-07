@@ -7,9 +7,10 @@ data aggregation mechanisms, timeouts, and security configurations.
 """
 
 from enum import Enum
-from typing import Literal, Optional, TypeVar, overload, Generic
-from tsercom.data.remote_data_aggregator import RemoteDataAggregator
+from typing import Generic, Literal, Optional, TypeVar, overload
+
 from tsercom.data.exposed_data import ExposedData
+from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.rpc.grpc_util.channel_auth_config import BaseChannelAuthConfig
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
@@ -53,29 +54,52 @@ class RuntimeConfig(Generic[DataTypeT]):
         self,
         service_type: ServiceType,
         *,
-        data_aggregator_client: Optional[
-            RemoteDataAggregator.Client  # Removed [DataTypeT]
-        ] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
-    ): ...
+    ):
+        """Initializes with ServiceType enum and optional configurations.
+
+        Args:
+            service_type: The operational mode as a `ServiceType` enum.
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Data timeout in seconds. Defaults to 60.
+            min_send_frequency_seconds: Minimum event send interval.
+            auth_config: Optional channel authentication configuration.
+        """
+        ...
 
     @overload
     def __init__(
         self,
         service_type: Literal["Client", "Server"],
         *,
-        data_aggregator_client: Optional[
-            RemoteDataAggregator.Client  # Removed [DataTypeT]
-        ] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
-    ): ...
+    ):
+        """Initializes with service type as string and optional configurations.
+
+        Args:
+            service_type: The operational mode as "Client" or "Server".
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Data timeout in seconds. Defaults to 60.
+            min_send_frequency_seconds: Minimum event send interval.
+            auth_config: Optional channel authentication configuration.
+        """
+        ...
 
     @overload
-    def __init__(self, *, other_config: "RuntimeConfig[DataTypeT]"): ...
+    def __init__(self, *, other_config: "RuntimeConfig[DataTypeT]"):
+        """Initializes by cloning settings from another RuntimeConfig instance.
+
+        Args:
+            other_config: An existing `RuntimeConfig` instance to clone.
+                All other parameters will be ignored if this is provided.
+        """
+        ...
 
     def __init__(
         self,
@@ -84,9 +108,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         ] = None,
         *,
         other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
-        data_aggregator_client: Optional[
-            RemoteDataAggregator.Client  # Removed [DataTypeT]
-        ] = None,
+        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
         timeout_seconds: Optional[int] = 60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
@@ -219,7 +241,7 @@ class RuntimeConfig(Generic[DataTypeT]):
     @property
     def data_aggregator_client(
         self,
-    ) -> Optional[RemoteDataAggregator.Client]:  # Removed [DataTypeT]
+    ) -> Optional[RemoteDataAggregator.Client]:
         """The configured client for a `RemoteDataAggregator`, if any.
 
         Returns:

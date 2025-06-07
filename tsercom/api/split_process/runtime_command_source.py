@@ -1,12 +1,12 @@
 """Receives and processes runtime commands from a queue."""
 
 import logging
-from functools import partial
 import threading
+from functools import partial
 from typing import Optional  # For Optional[ThreadWatcher]
 
-from tsercom.runtime.runtime import Runtime
 from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.runtime.runtime import Runtime
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,

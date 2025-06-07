@@ -8,12 +8,12 @@ This module provides helper functions to:
   returning a future for the result.
 """
 
-from asyncio import AbstractEventLoop
 import asyncio
+import concurrent
+from asyncio import AbstractEventLoop
 from collections.abc import Callable
 from typing import Any, Coroutine, Optional, ParamSpec, TypeVar
 
-import concurrent  # Changed import for Future
 from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
 

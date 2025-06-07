@@ -1,11 +1,12 @@
 """Provides an asynchronous gRPC server component for the GetId method."""
 
-from typing import Callable, Optional
 import logging
+from typing import Callable, Optional
+
 import grpc
 
-from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.caller_id.caller_identifier import CallerIdentifier
+from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 from tsercom.rpc.connection.client_reconnection_handler import (
     ClientReconnectionManager,
 )

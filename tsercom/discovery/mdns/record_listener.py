@@ -1,6 +1,7 @@
 """Listener for mDNS service records using zeroconf."""
 
-import logging  # Moved up
+import logging
+
 from zeroconf import ServiceBrowser, Zeroconf
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener

@@ -2,6 +2,7 @@
 
 import logging
 import threading
+
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )

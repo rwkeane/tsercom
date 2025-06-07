@@ -1,10 +1,12 @@
 """Provides utility functions for handling gRPC errors, status codes, and retry logic."""
 
 from __future__ import annotations
+
 import asyncio
-from google.rpc.status_pb2 import Status
-import grpc  # Keep grpc import at global scope
 import random
+
+import grpc  # Keep grpc import at global scope
+from google.rpc.status_pb2 import Status
 
 
 def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:

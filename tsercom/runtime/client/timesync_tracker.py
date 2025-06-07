@@ -1,6 +1,6 @@
 """Manages time synchronization with multiple IP endpoints."""
 
-import logging  # Moved to top, before typing
+import logging
 from typing import Dict
 
 from tsercom.threading.thread_watcher import ThreadWatcher
@@ -81,7 +81,7 @@ class TimeSyncTracker:
                 "IP address '%s' not found in timesync tracker during "
                 "disconnect. May have already been disconnected or "
                 "never tracked." % ip
-            )  # Shortened "It may have..."
+            )
             raise KeyError(msg)
 
         current_count, client_instance = self.__map[ip]

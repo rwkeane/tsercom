@@ -1,10 +1,8 @@
 """RemoteRuntimeFactory for creating Runtimes for separate processes."""
 
 from typing import Generic, TypeVar
-from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
-from tsercom.runtime.runtime_factory import RuntimeFactory
-from tsercom.runtime.runtime_initializer import RuntimeInitializer
+
+from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.split_process.data_reader_sink import DataReaderSink
 from tsercom.api.split_process.event_source import EventSource
 from tsercom.api.split_process.runtime_command_source import (
@@ -17,8 +15,11 @@ from tsercom.data.event_instance import EventInstance
 # from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
+from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime import Runtime
-from tsercom.api.runtime_command import RuntimeCommand
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
+from tsercom.runtime.runtime_factory import RuntimeFactory
+from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.async_poller import AsyncPoller
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -27,13 +28,9 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-import logging # Added for logging
-
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
-
-logger = logging.getLogger(__name__) # Added logger instance
 
 
 class RemoteRuntimeFactory(
@@ -104,9 +101,7 @@ class RemoteRuntimeFactory(
         # Note: Base `RuntimeFactory` expects RemoteDataReader[AnnotatedInstance[DataTypeT]].
         # DataReaderSink is compatible.
         if self.__data_reader_sink is None:
-            self.__data_reader_sink = DataReaderSink(
-                self.__data_reader_queue, is_lossy=False
-            )
+            self.__data_reader_sink = DataReaderSink(self.__data_reader_queue)
         return self.__data_reader_sink
 
     def _event_poller(
@@ -173,20 +168,4 @@ class RemoteRuntimeFactory(
             and hasattr(self.__event_source, "is_running")
             and self.__event_source.is_running
         ):
-            self.__event_source.stop()  # This should handle closing __event_source_queue
-
-        # Explicitly close and join the data_reader_queue's sink side
-        # DataReaderSink uses this queue to send data back to the main process.
-        # We need to ensure its feeder thread is joined.
-        if self.__data_reader_queue is not None:
-            try:
-                # DataReaderSink itself doesn't have a stop, so we manage its queue here.
-                # This is MultiprocessQueueSink from the perspective of the remote process
-                # (where _stop() is called).
-                self.__data_reader_queue.close()
-                self.__data_reader_queue.join_thread(timeout=4.0) # Increased timeout
-            except Exception as e:
-                logger.error(f"Error closing data_reader_queue in RemoteRuntimeFactory._stop: {e}")
-
-        # Note: RuntimeCommandSource also has a stop_async that closes its queue.
-        # EventSource.stop() also closes its queue.
+            self.__event_source.stop()

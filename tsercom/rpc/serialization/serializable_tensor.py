@@ -5,9 +5,10 @@ including their data and synchronized timestamps, for transmission over gRPC.
 It depends on PyTorch (`torch`) for tensor operations.
 """
 
-from typing import Optional
-import torch  # type: ignore[import-not-found]
 import logging
+from typing import Optional
+
+import torch  # type: ignore[import-not-found]
 
 from tsercom.rpc.proto import Tensor as GrpcTensor
 from tsercom.timesync.common.synchronized_timestamp import (

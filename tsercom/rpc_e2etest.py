@@ -1,58 +1,55 @@
 """End-to-end tests for tsercom gRPC communication, including various security scenarios and client retries."""
 
 import asyncio
-import grpc
-import pytest
-import pytest_asyncio
-import logging  # For server/client logging
 import datetime
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
-from ipaddress import ip_address  # For SANs
-from tsercom.threading.aio.global_event_loop import (
-    set_tsercom_event_loop,
-    clear_tsercom_event_loop,
-)
+import logging  # For server/client logging
 from collections.abc import (
-    Callable,
     Awaitable,
-)  # For type hinting delay_before_retry_func
-
+    Callable,
+)
+from ipaddress import ip_address  # For SANs
 from typing import (
     Optional,
     Union,
 )
 
+import grpc
+import pytest
+import pytest_asyncio
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
-from tsercom.threading.thread_watcher import ThreadWatcher
-
-from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
 from tsercom.rpc.connection.client_disconnection_retrier import (
     ClientDisconnectionRetrier,
 )
-from tsercom.util.stopable import Stopable  # Required for TInstanceType
 from tsercom.rpc.endpoints.test_connection_server import (
     AsyncTestConnectionServer,
+)
+from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
+from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
+    ClientAuthGrpcChannelFactory,
+)
+from tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory import (
+    InsecureGrpcChannelFactory,
+)
+from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory import (
+    PinnedServerAuthGrpcChannelFactory,
+)
+from tsercom.rpc.grpc_util.transport.server_auth_grpc_channel_factory import (
+    ServerAuthGrpcChannelFactory,
 )
 from tsercom.rpc.proto import (
     TestConnectionCall,
     TestConnectionResponse,
 )
-
-from tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory import (
-    InsecureGrpcChannelFactory,
+from tsercom.threading.aio.global_event_loop import (
+    clear_tsercom_event_loop,
+    set_tsercom_event_loop,
 )
-from tsercom.rpc.grpc_util.transport.server_auth_grpc_channel_factory import (
-    ServerAuthGrpcChannelFactory,
-)
-from tsercom.rpc.grpc_util.transport.pinned_server_auth_grpc_channel_factory import (
-    PinnedServerAuthGrpcChannelFactory,
-)
-from tsercom.rpc.grpc_util.transport.client_auth_grpc_channel_factory import (
-    ClientAuthGrpcChannelFactory,
-)
+from tsercom.threading.thread_watcher import ThreadWatcher
+from tsercom.util.stopable import Stopable  # Required for TInstanceType
 
 # ChannelInfo import removed as it's no longer used
 

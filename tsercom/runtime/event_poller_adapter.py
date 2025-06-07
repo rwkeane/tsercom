@@ -1,6 +1,6 @@
 """Adapter for event pollers to provide a consistent interface."""
 
-from typing import TypeVar, Generic, List, AsyncIterator
+from typing import AsyncIterator, Generic, List, TypeVar
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.serializable_annotated_instance import (
@@ -34,14 +34,17 @@ class EventToSerializableAnnInstancePollerAdapter(
         Placeholder: EventInstance to SerializableAnnotatedInstance conversion.
         Actual implementation would require proper serialization.
         """
-        # event_inst.caller_id can now be None, and it will be passed as such
-        # to SerializableAnnotatedInstance, which now supports Optional[CallerIdentifier].
+        # Allow caller_id to be None for broadcast events.
+        # SerializableAnnotatedInstance supports Optional[CallerIdentifier].
+        # The timestamp from EventInstance is a datetime object.
+        # SerializableAnnotatedInstance expects a SynchronizedTimestamp.
+        # Correct way to create SynchronizedTimestamp is via constructor.
+        sync_timestamp = SynchronizedTimestamp(event_inst.timestamp)
+
         return SerializableAnnotatedInstance(
             data=event_inst.data,
-            caller_id=event_inst.caller_id,
-            timestamp=SynchronizedTimestamp(
-                event_inst.timestamp
-            ),  # Convert datetime
+            caller_id=event_inst.caller_id,  # This can be None
+            timestamp=sync_timestamp,
         )
 
     async def __anext__(

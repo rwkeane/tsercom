@@ -8,18 +8,17 @@ accessed and modified in a thread-safe manner.
 
 import threading
 from typing import (
+    Any,
     Callable,
     Dict,
     Generic,
+    Iterator,
     Optional,
     TypeVar,
     overload,
-    Iterator,
-    Any,
 )
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-
 
 TrackedDataT = TypeVar("TrackedDataT")
 
@@ -73,12 +72,35 @@ class IdTracker(Generic[TrackedDataT]):
     @overload
     def try_get(
         self, caller_id_obj: CallerIdentifier
-    ) -> Optional[tuple[str, int, Optional[TrackedDataT]]]: ...
+    ) -> Optional[tuple[str, int, Optional[TrackedDataT]]]:
+        """Tries to get address and data by CallerIdentifier.
+
+        Args:
+            caller_id_obj: The CallerIdentifier to look up.
+
+        Returns:
+            Optional[tuple[str, int, Optional[TrackedDataT]]]:
+                A tuple (address, port, tracked_data) if found, else None.
+                `tracked_data` is None if no data_factory was used.
+        """
+        ...
 
     @overload
     def try_get(
         self, address: str, port: int
-    ) -> Optional[tuple[CallerIdentifier, Optional[TrackedDataT]]]: ...
+    ) -> Optional[tuple[CallerIdentifier, Optional[TrackedDataT]]]:
+        """Tries to get CallerIdentifier and data by address/port.
+
+        Args:
+            address: The IP address or hostname.
+            port: The port number.
+
+        Returns:
+            Optional[tuple[CallerIdentifier, Optional[TrackedDataT]]]:
+                A tuple (caller_identifier, tracked_data) if found, else None.
+                `tracked_data` is None if no data_factory was used.
+        """
+        ...
 
     def try_get(
         self, *args: Any, **kwargs: Any
@@ -219,12 +241,41 @@ class IdTracker(Generic[TrackedDataT]):
     @overload
     def get(
         self, caller_id_obj: CallerIdentifier
-    ) -> tuple[str, int, Optional[TrackedDataT]]: ...
+    ) -> tuple[str, int, Optional[TrackedDataT]]:
+        """Gets address and data by CallerIdentifier, raises KeyError if not found.
+
+        Args:
+            caller_id_obj: The CallerIdentifier to look up.
+
+        Returns:
+            tuple[str, int, Optional[TrackedDataT]]:
+                A tuple (address, port, tracked_data).
+                `tracked_data` is None if no data_factory was used.
+
+        Raises:
+            KeyError: If the `caller_id_obj` is not found.
+        """
+        ...
 
     @overload
     def get(
         self, address: str, port: int
-    ) -> tuple[CallerIdentifier, Optional[TrackedDataT]]: ...
+    ) -> tuple[CallerIdentifier, Optional[TrackedDataT]]:
+        """Gets CallerIdentifier and data by address/port, raises KeyError if not found.
+
+        Args:
+            address: The IP address or hostname.
+            port: The port number.
+
+        Returns:
+            tuple[CallerIdentifier, Optional[TrackedDataT]]:
+                A tuple (caller_identifier, tracked_data).
+                `tracked_data` is None if no data_factory was used.
+
+        Raises:
+            KeyError: If the address/port combination is not found.
+        """
+        ...
 
     def get(
         self, *args: Any, **kwargs: Any
@@ -351,16 +402,6 @@ class IdTracker(Generic[TrackedDataT]):
             # Returns an iterator over a copy of the keys to allow safe iteration
             # if modifications occur in another thread (though individual operations are locked).
             return iter(list(self.__id_to_address.keys()))
-
-    def get_all_caller_ids(self) -> list[CallerIdentifier]:
-        """Returns a list of all tracked `CallerIdentifier`s.
-
-        Returns:
-            A list containing all `CallerIdentifier` objects currently
-            tracked by this instance. Returns an empty list if no IDs are tracked.
-        """
-        with self.__lock:
-            return list(self.__id_to_address.keys())
 
     def remove(self, caller_id_obj: CallerIdentifier) -> bool:
         """Removes a `CallerIdentifier` and all its associated mappings.

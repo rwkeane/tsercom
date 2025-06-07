@@ -3,7 +3,6 @@ import pytest
 import threading
 import time
 
-# from unittest.mock import MagicMock, patch, ANY # Removed
 
 from tsercom.threading.aio.event_loop_factory import EventLoopFactory
 from tsercom.threading.thread_watcher import ThreadWatcher

@@ -24,7 +24,12 @@ class DiscoveryHost(
 
     @overload
     def __init__(self, *, service_type: str):
-        """Initializes DiscoveryHost with a specific mDNS service type."""
+        """Initializes DiscoveryHost to listen for a specific mDNS service type.
+
+        Args:
+            service_type: The mDNS service type string to discover
+                          (e.g., "_my_service._tcp.local.").
+        """
         ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
 
     @overload
@@ -36,7 +41,15 @@ class DiscoveryHost(
             InstanceListener[ServiceInfoT],
         ],
     ):
-        """Initializes DiscoveryHost with a factory for creating an InstanceListener."""
+        """Initializes DiscoveryHost with a factory for a custom InstanceListener.
+
+        This allows using a custom mDNS discovery mechanism or configuration.
+
+        Args:
+            instance_listener_factory: A callable that takes an
+                `InstanceListener.Client` (which will be this DiscoveryHost instance)
+                and returns an `InstanceListener[ServiceInfoT]` instance.
+        """
         ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
 
     def __init__(

@@ -647,6 +647,6 @@ def test_on_data_ready_invalid_data_type(mock_thread_pool):
 
     with pytest.raises(
         TypeError,
-        match=r"Expected new_data to be an instance of ExposedData, but got .*\.",  # Updated regex
+        match=r"Expected new_data to be an instance of ExposedData, but got .*\.",
     ):
         aggregator._on_data_ready(invalid_data_object)

@@ -1,7 +1,7 @@
 """Defines the abstract base class for a runtime handle."""
 
-from abc import ABC, abstractmethod
 import datetime  # Keep 'import datetime' as 'datetime.datetime' is used
+from abc import ABC, abstractmethod
 from typing import Generic, Optional, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -51,17 +51,35 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
     # Overloads for the on_event method, defining different ways to call it.
     # These guide type checkers and IDEs for better developer experience.
     @overload
-    def on_event(self, event: EventTypeT) -> None: ...
+    def on_event(self, event: EventTypeT) -> None:
+        """Sends an event to the runtime with only the event data.
+
+        Args:
+            event: The event data to send.
+        """
+        ...
 
     @overload
-    def on_event(
-        self, event: EventTypeT, caller_id: CallerIdentifier
-    ) -> None: ...
+    def on_event(self, event: EventTypeT, caller_id: CallerIdentifier) -> None:
+        """Sends an event to the runtime with event data and a caller ID.
+
+        Args:
+            event: The event data to send.
+            caller_id: ID of the caller originating the event.
+        """
+        ...
 
     @overload
     def on_event(
         self, event: EventTypeT, *, timestamp: datetime.datetime
-    ) -> None: ...
+    ) -> None:
+        """Sends an event to the runtime with event data and a specific timestamp.
+
+        Args:
+            event: The event data to send.
+            timestamp: Timestamp for the event.
+        """
+        ...
 
     @overload
     def on_event(
@@ -70,7 +88,15 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         caller_id: CallerIdentifier,
         *,
         timestamp: datetime.datetime,
-    ) -> None: ...
+    ) -> None:
+        """Sends an event with event data, caller ID, and a specific timestamp.
+
+        Args:
+            event: The event data to send.
+            caller_id: ID of the caller originating the event.
+            timestamp: Timestamp for the event.
+        """
+        ...
 
     @abstractmethod
     def on_event(

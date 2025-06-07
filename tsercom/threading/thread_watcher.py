@@ -8,8 +8,8 @@ from them for centralized error monitoring.
 """
 
 import threading
-from typing import List, Any
 from collections.abc import Callable
+from typing import Any, List
 
 from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.throwing_thread import ThrowingThread

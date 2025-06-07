@@ -1,15 +1,15 @@
-from abc import abstractmethod
 import asyncio
+import logging
+from abc import abstractmethod
 from functools import partial
 from typing import (
+    Any,
     Callable,
+    Coroutine,
     Generic,
     Optional,
     TypeVar,
-    Coroutine,
-    Any,
 )
-import logging
 
 from tsercom.rpc.connection.client_reconnection_handler import (
     ClientReconnectionManager,
@@ -145,7 +145,7 @@ class ClientDisconnectionRetrier(
                     "Event loop not initialized before starting ClientDisconnectionRetrier."
                 )
 
-            self.__instance = await self._connect()  # Added await
+            self.__instance = await self._connect()
 
             if self.__instance is None:
                 raise RuntimeError(

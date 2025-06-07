@@ -1,5 +1,5 @@
 import asyncio
-import uuid  # Added import for uuid
+import uuid
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
@@ -246,7 +246,7 @@ async def test_on_service_added_no_client():
     host._DiscoveryHost__caller_id_map = {}
 
     service_info = ServiceInfo(
-        name="SomeService",  # Added missing 'name' argument
+        name="SomeService",
         port=1234,
         addresses=["192.168.1.100"],
         mdns_name="SomeService._test_service._tcp.local.",

@@ -1,7 +1,7 @@
 """EventSource for polling events from a multiprocess queue."""
 
 import threading
-from typing import Generic, TypeVar, Optional
+from typing import Generic, Optional, TypeVar
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.threading.aio.async_poller import AsyncPoller
@@ -10,7 +10,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
-
 
 EventTypeT = TypeVar("EventTypeT")
 
@@ -58,12 +57,17 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
 
         def loop_until_exception() -> None:
             """Polls events from queue and calls on_available until stopped."""
+            print_prefix = "[EventSource.loop_until_exception]"
             while self.__is_running.get():
+                print(f"{print_prefix} Polling event_source queue...")
                 remote_instance = self.__event_source.get_blocking(timeout=1)
                 if remote_instance is not None:
+                    print(f"{print_prefix} Received remote_instance: caller_id={remote_instance.caller_id}, data_type={type(remote_instance.data)}")
                     try:
                         self.on_available(remote_instance)
+                        print(f"{print_prefix} Called self.on_available for caller_id: {remote_instance.caller_id}")
                     except Exception as e:
+                        print(f"{print_prefix} Exception calling self.on_available: {e}")
                         if self.__thread_watcher:
                             self.__thread_watcher.on_exception_seen(e)
                         # Re-raise to terminate loop, consistent with DataReaderSource

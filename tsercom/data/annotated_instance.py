@@ -5,7 +5,6 @@ from typing import Generic, TypeVar
 
 from tsercom.data.exposed_data import ExposedData
 
-
 DataTypeT = TypeVar("DataTypeT")
 
 

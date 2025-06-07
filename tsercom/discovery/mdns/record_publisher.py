@@ -1,9 +1,10 @@
 """Publishes mDNS service records using zeroconf."""
 
-import logging  # For _logger
-import asyncio  # Added import
+import asyncio
+import logging
+from asyncio import AbstractEventLoop
 from typing import Dict, Optional
-from asyncio import AbstractEventLoop  # For type hinting
+
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
@@ -55,9 +56,7 @@ class RecordPublisher(MdnsPublisher):
         self.__txt: Dict[bytes, bytes | None] = properties
         self._zc: Zeroconf | None = None
         self._loop: AbstractEventLoop | None = None
-        self._service_info: ServiceInfo | None = (
-            None  # To store for unregistering
-        )
+        self._service_info: ServiceInfo | None = None
 
         # Logging the service being published for traceability.
         # Replacing print with logging for better practice, assuming logger is configured elsewhere.
@@ -69,9 +68,8 @@ class RecordPublisher(MdnsPublisher):
             )
             # Optionally, unregister first or update. For now, assume
             # re-registering is desired or Zeroconf handles it.
-            # await self.close() # Would unregister/close before re-registering
 
-        self._service_info = ServiceInfo(  # Store service_info
+        self._service_info = ServiceInfo(
             type_=self.__ptr,
             name=self.__srv,
             addresses=get_all_addresses(),

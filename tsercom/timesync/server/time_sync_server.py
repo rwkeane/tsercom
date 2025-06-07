@@ -1,13 +1,13 @@
 """NTP based TimeSyncServer implementation."""
 
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial
-import threading
 import errno
+import logging
 import socket
 import struct
+import threading
 import time
-import logging
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -141,7 +141,7 @@ class TimeSyncServer:
                             addr,
                             se,
                             data.hex(),
-                        )  # Corrected logging
+                        )
                         continue
 
                     li_vn_mode = unpacked_data[0]
@@ -153,7 +153,7 @@ class TimeSyncServer:
                             "NTP packet from %s invalid version %s.",
                             addr,
                             request_version,
-                        )  # Corrected logging
+                        )
                         continue
 
                     if request_mode != ntp_client_mode:
@@ -161,7 +161,7 @@ class TimeSyncServer:
                             "NTP packet from %s invalid mode %s.",
                             addr,
                             request_mode,
-                        )  # Corrected logging
+                        )
                         continue
 
                     current_time_ns = time.time_ns()
