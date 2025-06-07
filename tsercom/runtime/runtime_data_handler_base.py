@@ -27,7 +27,6 @@ import grpc
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
@@ -45,7 +44,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 )
 
 EventTypeT = TypeVar("EventTypeT")
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT")
 
 
 # pylint: disable=arguments-differ # Handled by *args, **kwargs in actual implementation matching abstract

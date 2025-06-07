@@ -11,10 +11,9 @@ from typing import (
 import grpc
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.data.exposed_data import ExposedData
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 
-DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
+DataTypeT = TypeVar("DataTypeT")
 EventTypeT = TypeVar("EventTypeT")
 
 
