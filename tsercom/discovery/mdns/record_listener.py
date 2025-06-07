@@ -1,6 +1,7 @@
 """Listener for mDNS service records using zeroconf."""
 
 import logging
+import uuid
 
 from zeroconf import ServiceBrowser, Zeroconf
 
@@ -28,14 +29,6 @@ class RecordListener(MdnsListener):
         """
         if client is None:
             raise ValueError("Client cannot be None for RecordListener.")
-        # Check for method implementation (duck typing for ABC)
-        if not hasattr(client, "_on_service_added") or not callable(
-            getattr(client, "_on_service_added")
-        ):
-            # Long error message
-            raise TypeError(
-                f"Client must implement MdnsListener.Client interface (e.g., _on_service_added), got {type(client).__name__}."
-            )
 
         if service_type is None:
             raise ValueError("service_type cannot be None for RecordListener.")
@@ -51,6 +44,9 @@ class RecordListener(MdnsListener):
             )
 
         self.__client: MdnsListener.Client = client
+        self._uuid_str = str(
+            uuid.uuid4()
+        )  # Unique ID for this listener instance
         self.__expected_type: str  # Declare type once
         # Determine the expected type string for zeroconf
         if service_type.endswith("._tcp.local.") or service_type.endswith(
@@ -140,8 +136,8 @@ class RecordListener(MdnsListener):
             name: The mDNS instance name of the service that was removed.
         """
         logging.info("Service removed: type='%s', name='%s'", type_, name)
-        # Placeholder for client notification or cleanup for service removal.
-        # For example, self.__client._on_service_removed(name, type_)
+        # Notify the client about the service removal.
+        self.__client._on_service_removed(name, type_, self._uuid_str)
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a new service is discovered.
