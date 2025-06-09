@@ -11,7 +11,6 @@ readme = "README.md"
 keywords = ["ts", "time", "time series", "communication", "rpc", "serialization", "transport", "channel", "grpc"]
 description = "Time-SERies COMmunication using gRPC for data science and machine learning applications."
 classifiers = [
-  "Development Status :: 3 - Alpha",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
