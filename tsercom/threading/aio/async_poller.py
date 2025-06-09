@@ -105,7 +105,7 @@ class AsyncPoller(Generic[ResultTypeT]):
     def __event_loop_id(self) -> str:
         """Helper for debugging to get a simple ID of the event loop."""
         if self.__event_loop:
-            return str(id(self.__event_loop))[-6:] # Last 6 digits of loop id
+            return str(id(self.__event_loop))[-6:]  # Last 6 digits of loop id
         return "NoLoop"
 
     @property

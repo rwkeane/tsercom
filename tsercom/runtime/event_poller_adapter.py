@@ -39,7 +39,7 @@ class EventToSerializableAnnInstancePollerAdapter(
         return SerializableAnnotatedInstance(
             data=event_inst.data,
             caller_id=event_inst.caller_id,
-            timestamp=SynchronizedTimestamp( # Revert to constructor
+            timestamp=SynchronizedTimestamp(  # Revert to constructor
                 event_inst.timestamp
             ),
         )

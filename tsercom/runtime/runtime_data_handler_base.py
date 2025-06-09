@@ -467,11 +467,13 @@ class RuntimeDataHandlerBase(
             # This generic catch might hide issues during testing if not re-raised.
             # However, ThreadWatcher is supposed to catch and report these.
             # For now, ensure it's visible during tests.
-            print(f"CRITICAL ERROR in __dispatch_poller_data_loop: {type(e).__name__}: {e}")
+            print(
+                f"CRITICAL ERROR in __dispatch_poller_data_loop: {type(e).__name__}: {e}"
+            )
             import traceback
+
             traceback.print_exc()
             raise
-
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
