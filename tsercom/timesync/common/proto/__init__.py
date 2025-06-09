@@ -23,6 +23,11 @@ if not TYPE_CHECKING:
     if False:
         pass
 
+    elif version_string == "v1_73":
+        from tsercom.timesync.common.proto.generated.v1_73.time_pb2 import (
+            ServerTimestamp,
+        )
+
     elif version_string == "v1_71":
         from tsercom.timesync.common.proto.generated.v1_71.time_pb2 import (
             ServerTimestamp,

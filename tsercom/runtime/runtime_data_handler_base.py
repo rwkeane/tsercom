@@ -43,8 +43,14 @@ from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
 
+import logging  # Ensure logging import is present
+
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT")
+
+# Ensure logger is defined at module level or class level if not already
+if "logger" not in locals() and "logger" not in globals():
+    logger = logging.getLogger(__name__)
 
 
 # pylint: disable=arguments-differ # Handled by *args, **kwargs in actual implementation matching abstract
@@ -443,18 +449,72 @@ class RuntimeDataHandlerBase(
         """
         async for events_batch in self.__event_source:
             for event_item in events_batch:
-                # try_get by caller_id returns (address, port, data_poller) or None
-                id_tracker_entry = self._id_tracker.try_get(
-                    event_item.caller_id
-                )
-                if id_tracker_entry is None:
-                    # Potentially log this? Caller might have deregistered.
-                    continue
+                print(
+                    f"RDHB.__dispatch_poller_data_loop: Processing event_item with original caller_id: {event_item.caller_id}",
+                    flush=True,
+                )  # General print
+                if event_item.caller_id is None:  # Broadcast case
+                    print(
+                        "RDHB.__dispatch_poller_data_loop: ENTERING BROADCAST CASE",
+                        flush=True,
+                    )
+                    all_pollers_list = list(
+                        self._id_tracker.get_all_tracked_data()
+                    )
+                    print(
+                        f"RDHB.Broadcast: Found {len(all_pollers_list)} pollers. Poller object IDs: {[id(p) for p in all_pollers_list]}",
+                        flush=True,
+                    )
 
-                _address, _port, per_caller_poller = id_tracker_entry
-                if per_caller_poller is not None:
-                    per_caller_poller.on_available(event_item)
-                # else: Potentially log if poller is None but entry existed?
+                    for per_caller_poller in all_pollers_list:
+                        if per_caller_poller is not None:
+                            # Constructing a more detailed log message for the event itself
+                            event_data_summary = "N/A"
+                            event_data_type_info = str(type(event_item.data))
+                            if hasattr(event_item.data, "data") and isinstance(
+                                event_item.data.data, dict
+                            ):  # If event_item.data is FakeEvent-like
+                                event_data_summary = str(event_item.data.data)
+                            elif isinstance(event_item.data, dict):
+                                event_data_summary = str(event_item.data)
+                            elif hasattr(
+                                event_item.data, "event_value"
+                            ):  # For FakeEvent structure
+                                event_data_summary = (
+                                    event_item.data.event_value
+                                )
+
+                            print(
+                                f"RDHB.Broadcast: Calling on_available for poller id {id(per_caller_poller)}. Event data type: {event_data_type_info}, summary: {event_data_summary}",
+                                flush=True,
+                            )
+                            per_caller_poller.on_available(event_item)
+                        else:
+                            print(
+                                "RDHB.Broadcast: Encountered a None poller in IdTracker.",
+                                flush=True,
+                            )
+                    print(
+                        "RDHB.Broadcast: Finished iterating pollers.",
+                        flush=True,
+                    )
+                else:  # Specific caller
+                    print(
+                        f"RDHB.__dispatch_poller_data_loop: Specific caller case for caller_id: {event_item.caller_id}",
+                        flush=True,
+                    )
+                    # try_get by caller_id returns (address, port, data_poller) or None
+                    id_tracker_entry = self._id_tracker.try_get(
+                        event_item.caller_id
+                    )
+                    if id_tracker_entry is None:
+                        # Potentially log this? Caller might have deregistered.
+                        continue
+
+                    _address, _port, per_caller_poller = id_tracker_entry
+                    if per_caller_poller is not None:
+                        per_caller_poller.on_available(event_item)
+                    # else: Potentially log if poller is None but entry existed?
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.

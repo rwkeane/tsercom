@@ -16,6 +16,7 @@ from typing import (
     Optional,
     TypeVar,
     overload,
+    List,
 )
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -429,3 +430,12 @@ class IdTracker(Generic[TrackedDataT]):
                 del self.__address_to_id[address_port_tuple]
 
             return True
+
+    def get_all_tracked_data(self) -> List[TrackedDataT]:
+        """Gets all tracked data.
+
+        Returns:
+            A list of all tracked data.
+        """
+        with self.__lock:
+            return list(self.__data_map.values())

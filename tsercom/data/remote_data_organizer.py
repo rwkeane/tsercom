@@ -74,7 +74,10 @@ class RemoteDataOrganizer(
         self.__data: Deque[DataTypeT] = Deque[DataTypeT]()
 
         # Timestamp of the most recent data item retrieved via get_new_data().
-        self.__last_access: datetime.datetime = datetime.datetime.min
+        # Ensure this is offset-aware.
+        self.__last_access: datetime.datetime = datetime.datetime.min.replace(
+            tzinfo=datetime.timezone.utc
+        )
 
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
@@ -124,6 +127,7 @@ class RemoteDataOrganizer(
 
             most_recent_timestamp = self.__data[0].timestamp
             last_access_timestamp = self.__last_access
+            # Both should be offset-aware now.
             result = most_recent_timestamp > last_access_timestamp
 
             return result
@@ -144,13 +148,16 @@ class RemoteDataOrganizer(
                 return results
 
             for _item_idx, item in enumerate(self.__data):  # Renamed item_idx
-                if item.timestamp > self.__last_access:
+                if (
+                    item.timestamp > self.__last_access
+                ):  # Both should be offset-aware
                     results.append(item)
                 else:
                     break
 
             if results:
                 new_last_access = results[0].timestamp
+                # new_last_access is from item.timestamp, which should be offset-aware.
                 self.__last_access = new_last_access
 
             return results
@@ -174,15 +181,27 @@ class RemoteDataOrganizer(
 
         Args:
             timestamp: The specific `datetime` to find data for.
-
+                       This timestamp should be offset-aware if data timestamps are.
         Returns:
-            The `DataTypeT` item whose timestamp is the latest at or before the # Corrected TDataType in docstring
+            The `DataTypeT` item whose timestamp is the latest at or before the
             specified `timestamp`, or `None` if no such data exists (e.g., all
             data is newer, or no data at all).
         """
         with self.__data_lock:
             if not self.__data:
                 return None
+
+            # Ensure the input timestamp is compatible (aware vs naive)
+            # For this fix, we assume incoming data and thus __data[...].timestamp are aware.
+            # So, the 'timestamp' argument should also be aware.
+            if (
+                timestamp.tzinfo is None
+                and self.__data[-1].timestamp.tzinfo is not None
+            ):
+                # Or raise error, or convert 'timestamp' to UTC default
+                logger.warning(
+                    "Comparing offset-aware data with naive input timestamp in get_data_for_timestamp."
+                )
 
             # If the requested timestamp is older than the oldest data we have,
             # then no data at or before that timestamp exists.
@@ -194,8 +213,6 @@ class RemoteDataOrganizer(
                     item.timestamp <= timestamp
                 ):  # Found the most recent item at or before the timestamp
                     return item
-        # Should not be reached if timestamp >= __data[-1].timestamp and __data is not empty,
-        # but as a fallback or if logic changes, return None.
         return None
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
@@ -205,7 +222,7 @@ class RemoteDataOrganizer(
         and submits it for asynchronous processing via `__on_data_ready_impl`.
 
         Args:
-            new_data: The new data item to process.
+            new_data: The new data item to process. Its timestamp should be offset-aware.
 
         Raises:
             TypeError: If `new_data` is not an instance of `ExposedData`.
@@ -215,6 +232,11 @@ class RemoteDataOrganizer(
         if not isinstance(new_data, ExposedData):
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+            )
+
+        if new_data.timestamp.tzinfo is None:
+            logger.warning(
+                f"Received data for CallerID {self.caller_id} with naive timestamp. This may cause comparison issues."
             )
 
         # Ensure the data belongs to this organizer.
@@ -253,34 +275,15 @@ class RemoteDataOrganizer(
                         new_data_time,
                         current_most_recent_time,
                     )
-                    # DESIGN NOTE: This implementation handles new data as follows:
-                    # - If the deque is empty, the new data is added.
-                    # - If the new data's timestamp is older than the current newest data,
-                    #   it is currently discarded (see log message). For a more robust history
-                    #   that includes all out-of-order data, one might insert it in sorted order.
-                    # - If timestamps match, the existing newest item is updated.
-                    # - If the new data is strictly newer, it's added to the front.
-                    # The current approach prioritizes simplicity and focuses on the latest state
-                    # or strictly sequential data.
-                    # To implement full sorted insertion for a complete history:
-                    #   # idx = 0
-                    #   # while idx < len(self.__data) and new_data_time < self.__data[idx].timestamp:
-                    #   #     idx += 1
-                    #   # self.__data.insert(idx, new_data)
-                    #   # data_inserted_or_updated = True
-                    # pylint: disable=W0107 # Explicitly do nothing for older data as per design note
                     pass
                 elif new_data_time == current_most_recent_time:
-                    # Data with the same timestamp as the newest; update the newest.
                     self.__data[0] = new_data
                     data_inserted_or_updated = True
                 else:  # new_data_time > current_most_recent_time
-                    # New data is the absolute newest; add to the front.
                     self.__data.appendleft(new_data)
                     data_inserted_or_updated = True
 
         if data_inserted_or_updated and self.__client is not None:
-            # pylint: disable=W0212 # Calling listener's notification method
             self.__client._on_data_available(self)
 
     def _on_triggered(self, timeout_seconds: int) -> None:
@@ -307,17 +310,18 @@ class RemoteDataOrganizer(
             timeout_seconds: The timeout duration in seconds. Data older than
                              `now - timeout_seconds` will be removed.
         """
-        # Do not timeout data if the organizer is not running.
         if not self.__is_running.get():
             return
 
-        current_time = datetime.datetime.now()
+        # Ensure current_time is offset-aware for comparison
+        current_time = datetime.datetime.now(datetime.timezone.utc)
         timeout_delta = datetime.timedelta(seconds=timeout_seconds)
         oldest_allowed_timestamp = current_time - timeout_delta
 
         with self.__data_lock:
             while (
                 self.__data
-                and self.__data[-1].timestamp < oldest_allowed_timestamp
+                and self.__data[-1].timestamp
+                < oldest_allowed_timestamp  # Both should be offset-aware
             ):
                 self.__data.pop()

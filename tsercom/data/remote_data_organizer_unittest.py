@@ -139,7 +139,7 @@ def test_initialization(
     assert len(organizer_instance._RemoteDataOrganizer__data) == 0
     assert (
         organizer_instance._RemoteDataOrganizer__last_access
-        == datetime.datetime.min
+            == datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
     )
     assert (
         organizer_instance._RemoteDataOrganizer__is_running

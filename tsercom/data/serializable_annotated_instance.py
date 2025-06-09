@@ -1,6 +1,6 @@
 """SerializableAnnotatedInstance: data wrapper with ID and sync timestamp."""
 
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Optional # Add Optional
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.timesync.common.synchronized_timestamp import (
@@ -22,19 +22,19 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
     def __init__(
         self,
         data: DataTypeT,
-        caller_id: CallerIdentifier,
+        caller_id: Optional[CallerIdentifier], # Changed to Optional
         timestamp: SynchronizedTimestamp,
     ) -> None:
         """Initializes a SerializableAnnotatedInstance.
 
         Args:
             data: The actual data payload to be wrapped.
-            caller_id: The `CallerIdentifier` associated with this data.
+            caller_id: The `CallerIdentifier` associated with this data, or None.
             timestamp: The `SynchronizedTimestamp` representing when this data
                        was created or received, ensuring time consistency.
         """
         self.__data: DataTypeT = data
-        self.__caller_id: CallerIdentifier = caller_id
+        self.__caller_id: Optional[CallerIdentifier] = caller_id # Changed to Optional
         self.__timestamp: SynchronizedTimestamp = timestamp
 
     @property
@@ -47,11 +47,11 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
         return self.__data
 
     @property
-    def caller_id(self) -> CallerIdentifier:
-        """Gets the CallerIdentifier associated with this data.
+    def caller_id(self) -> Optional[CallerIdentifier]: # Changed to Optional
+        """Gets the CallerIdentifier associated with this data, or None.
 
         Returns:
-            The `CallerIdentifier` instance.
+            The `CallerIdentifier` instance, or None.
         """
         return self.__caller_id
 

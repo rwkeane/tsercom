@@ -23,6 +23,13 @@ if not TYPE_CHECKING:
     if False:
         pass
 
+    elif version_string == "v1_73":
+        from tsercom.rpc.proto.generated.v1_73.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
     elif version_string == "v1_71":
         from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
             TestConnectionCall,
