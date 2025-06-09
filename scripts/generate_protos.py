@@ -152,6 +152,90 @@ def modify_generated_file(file_path: Path) -> None:
         raise
 
 
+def _update_pyproject_version_range(versioned_dirs: list[str]) -> None:
+    """Updates pyproject.toml with the detected gRPC version range."""
+    if not versioned_dirs:
+        print(
+            "Warning: No versioned directories found. Skipping pyproject.toml update."
+        )
+        return
+
+    versions = []
+    for v_str in versioned_dirs:
+        match = re.match(r"v(\d+)_(\d+)", v_str)
+        if match:
+            major, minor = int(match.group(1)), int(match.group(2))
+            versions.append((major, minor))
+        else:
+            # Handle cases like "v1_73" if they occur, though current script produces "v1_73"
+            match_single = re.match(r"v(\d+)", v_str)
+            if match_single:
+                major = int(match_single.group(1))
+                versions.append((major, 0))  # Assume minor version 0
+            else:
+                print(f"Warning: Could not parse version string: {v_str}")
+
+    if not versions:
+        print(
+            "Warning: No valid versions parsed. Skipping pyproject.toml update."
+        )
+        return
+
+    min_version_tuple = min(versions)
+    max_version_tuple = max(versions)
+
+    min_version_str = f"{min_version_tuple[0]}.{min_version_tuple[1]}.0"
+    # For the upper bound, it's < {major}.{minor+1}.0
+    # Ensure max_version_tuple is used for calculating the upper bound correctly
+    next_minor_version_str = (
+        f"{max_version_tuple[0]}.{max_version_tuple[1] + 1}.0"
+    )
+
+    try:
+        # Attempt to find pyproject.toml relative to the script's location
+        script_dir = Path(__file__).parent.resolve()
+        pyproject_path = (
+            script_dir.parent / "pyproject.toml"
+        )  # Assumes script is in "scripts" dir
+
+        if not pyproject_path.exists():
+            # Fallback for execution from project root or other structures
+            pyproject_path = Path("pyproject.toml")
+
+        with open(pyproject_path, "r") as f:
+            pyproject_content = f.read()
+
+        # Update grpcio
+        pyproject_content = re.sub(
+            r'(grpcio\s*=\s*")[^"]*(")',
+            f"\1>={min_version_str}, <{next_minor_version_str}\2",
+            pyproject_content,
+        )
+        # Update grpcio-tools
+        pyproject_content = re.sub(
+            r'(grpcio-tools\s*=\s*")[^"]*(")',
+            f"\1>={min_version_str}, <{next_minor_version_str}\2",
+            pyproject_content,
+        )
+        # Update grpcio-status
+        pyproject_content = re.sub(
+            r'(grpcio-status\s*=\s*")[^"]*(")',
+            f"\1>={min_version_str}, <{next_minor_version_str}\2",
+            pyproject_content,
+        )
+
+        with open(pyproject_path, "w") as f:
+            f.write(pyproject_content)
+        print(
+            f"Successfully updated {pyproject_path} with gRPC versions: >={min_version_str}, <{next_minor_version_str}"
+        )
+
+    except FileNotFoundError:
+        print("Error: pyproject.toml not found at expected locations.")
+    except Exception as e:
+        print(f"Error updating pyproject.toml: {e}")
+
+
 def generate_init(
     package_dir: Path, proto_path: str, generated_path: Path
 ) -> None:
@@ -169,7 +253,7 @@ def generate_init(
     """
 
     # Helper to parse 'vX_Y' string to a sortable tuple (X, Y)
-    def _parse_ver(v_str):
+    def _parse_ver(v_str: str) -> tuple[int, int]:
         match = re.match(r"v(\d+)_(\d+)", v_str)
         if match:
             return int(match.group(1)), int(match.group(2))
@@ -200,7 +284,9 @@ if not TYPE_CHECKING:
         pass
 """
     name = Path(proto_path).name.split(".")[0]
-    versioned_dirs = []
+    versioned_dirs_data = (
+        []
+    )  # Renamed from versioned_dirs to avoid confusion with the list of names
     base_package = (
         generated_path.relative_to(package_dir)
         .__str__()
@@ -213,11 +299,14 @@ if not TYPE_CHECKING:
         if item.is_dir() and item.name.startswith("v"):
             file_path = item.joinpath(f"{name}_pb2.pyi")
             classes = get_classes_from_file(file_path)
-            versioned_dirs.append((item.name, classes))
+            versioned_dirs_data.append((item.name, classes))
+
+    # Update pyproject.toml with the detected version range
+    _update_pyproject_version_range([vd[0] for vd in versioned_dirs_data])
 
     # Sort for runtime imports in descending order of version to prioritize newer versions.
     runtime_sorted_dirs = sorted(
-        versioned_dirs, key=lambda x: _parse_ver(x[0]), reverse=True
+        versioned_dirs_data, key=lambda x: _parse_ver(x[0]), reverse=True
     )
     # Add runtime import statements for each version found.
     for versioned_dir_name, classes in runtime_sorted_dirs:
@@ -239,21 +328,21 @@ if not TYPE_CHECKING:
 else: # When TYPE_CHECKING
 """
     # Get the latest version for type checking.
-    # Assumes versioned_dirs is sorted or the last one is the newest.
+    # Assumes versioned_dirs_data is sorted or the last one is the newest.
     # TODO: Consider explicitly sorting by version if not guaranteed.
-    # Sort versioned_dirs to find the true latest version.
+    # Sort versioned_dirs_data to find the true latest version.
     # _parse_ver is now defined at the start of generate_init
 
-    if not versioned_dirs:
+    if not versioned_dirs_data:
         raise RuntimeError(
             "No versioned directories found for TYPE_CHECKING block."
         )
 
     # Sort by version: get item.name (e.g. "v1_63") from tuple, parse it, then sort
-    versioned_dirs.sort(key=lambda x: _parse_ver(x[0]))
+    versioned_dirs_data.sort(key=lambda x: _parse_ver(x[0]))
 
     # The latest version is now correctly the last one
-    versioned_dir_name, classes = versioned_dirs[-1]
+    versioned_dir_name, classes = versioned_dirs_data[-1]
     current_version = versioned_dir_name[1:]
     for clazz in classes:
         init_file_content += f"""
