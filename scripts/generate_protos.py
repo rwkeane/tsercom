@@ -167,6 +167,18 @@ def generate_init(
         generated_path: The path to the 'generated' directory where versioned
             protobuf files are located (e.g., tsercom/rpc/proto/generated).
     """
+
+    # Helper to parse 'vX_Y' string to a sortable tuple (X, Y)
+    def _parse_ver(v_str):
+        match = re.match(r"v(\d+)_(\d+)", v_str)
+        if match:
+            return int(match.group(1)), int(match.group(2))
+        # Fallback for "vX" format or other unexpected formats
+        match_single = re.match(r"v(\d+)", v_str)
+        if match_single:
+            return int(match_single.group(1)), 0  # Treat vX as vX_0
+        return (0, 0)  # Default for unparseable formats
+
     # Initial content for the __init__.py file.
     # This part handles runtime imports.
     init_file_content = """
@@ -203,8 +215,12 @@ if not TYPE_CHECKING:
             classes = get_classes_from_file(file_path)
             versioned_dirs.append((item.name, classes))
 
+    # Sort for runtime imports in descending order of version to prioritize newer versions.
+    runtime_sorted_dirs = sorted(
+        versioned_dirs, key=lambda x: _parse_ver(x[0]), reverse=True
+    )
     # Add runtime import statements for each version found.
-    for versioned_dir_name, classes in versioned_dirs:
+    for versioned_dir_name, classes in runtime_sorted_dirs:
         current_version = versioned_dir_name[1:]  # Remove the 'v' prefix
         init_file_content += f"""
     elif version_string == "v{current_version}":
@@ -222,21 +238,11 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else: # When TYPE_CHECKING
 """
-
     # Get the latest version for type checking.
     # Assumes versioned_dirs is sorted or the last one is the newest.
     # TODO: Consider explicitly sorting by version if not guaranteed.
     # Sort versioned_dirs to find the true latest version.
-    # Helper to parse 'vX_Y' string to a sortable tuple (X, Y)
-    def _parse_ver(v_str):
-        match = re.match(r"v(\d+)_(\d+)", v_str)
-        if match:
-            return int(match.group(1)), int(match.group(2))
-        # Fallback for "vX" format or other unexpected formats
-        match_single = re.match(r"v(\d+)", v_str)
-        if match_single:
-            return int(match_single.group(1)), 0  # Treat vX as vX_0
-        return (0, 0)  # Default for unparseable formats
+    # _parse_ver is now defined at the start of generate_init
 
     if not versioned_dirs:
         raise RuntimeError(

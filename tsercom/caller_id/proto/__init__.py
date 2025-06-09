@@ -23,15 +23,29 @@ if not TYPE_CHECKING:
     if False:
         pass
 
-    elif version_string == "v1_62":
-        from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
+    elif version_string == "v1_72":
+        from tsercom.caller_id.proto.generated.v1_72.caller_id_pb2 import (
             CallerId,
             GetIdRequest,
             GetIdResponse,
         )
 
-    elif version_string == "v1_64":
-        from tsercom.caller_id.proto.generated.v1_64.caller_id_pb2 import (
+    elif version_string == "v1_71":
+        from tsercom.caller_id.proto.generated.v1_71.caller_id_pb2 import (
+            CallerId,
+            GetIdRequest,
+            GetIdResponse,
+        )
+
+    elif version_string == "v1_70":
+        from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
+            CallerId,
+            GetIdRequest,
+            GetIdResponse,
+        )
+
+    elif version_string == "v1_69":
+        from tsercom.caller_id.proto.generated.v1_69.caller_id_pb2 import (
             CallerId,
             GetIdRequest,
             GetIdResponse,
@@ -51,8 +65,22 @@ if not TYPE_CHECKING:
             GetIdResponse,
         )
 
-    elif version_string == "v1_70":
-        from tsercom.caller_id.proto.generated.v1_70.caller_id_pb2 import (
+    elif version_string == "v1_66":
+        from tsercom.caller_id.proto.generated.v1_66.caller_id_pb2 import (
+            CallerId,
+            GetIdRequest,
+            GetIdResponse,
+        )
+
+    elif version_string == "v1_65":
+        from tsercom.caller_id.proto.generated.v1_65.caller_id_pb2 import (
+            CallerId,
+            GetIdRequest,
+            GetIdResponse,
+        )
+
+    elif version_string == "v1_64":
+        from tsercom.caller_id.proto.generated.v1_64.caller_id_pb2 import (
             CallerId,
             GetIdRequest,
             GetIdResponse,
@@ -65,36 +93,8 @@ if not TYPE_CHECKING:
             GetIdResponse,
         )
 
-    elif version_string == "v1_71":
-        from tsercom.caller_id.proto.generated.v1_71.caller_id_pb2 import (
-            CallerId,
-            GetIdRequest,
-            GetIdResponse,
-        )
-
-    elif version_string == "v1_69":
-        from tsercom.caller_id.proto.generated.v1_69.caller_id_pb2 import (
-            CallerId,
-            GetIdRequest,
-            GetIdResponse,
-        )
-
-    elif version_string == "v1_66":
-        from tsercom.caller_id.proto.generated.v1_66.caller_id_pb2 import (
-            CallerId,
-            GetIdRequest,
-            GetIdResponse,
-        )
-
-    elif version_string == "v1_72":
-        from tsercom.caller_id.proto.generated.v1_72.caller_id_pb2 import (
-            CallerId,
-            GetIdRequest,
-            GetIdResponse,
-        )
-
-    elif version_string == "v1_65":
-        from tsercom.caller_id.proto.generated.v1_65.caller_id_pb2 import (
+    elif version_string == "v1_62":
+        from tsercom.caller_id.proto.generated.v1_62.caller_id_pb2 import (
             CallerId,
             GetIdRequest,
             GetIdResponse,
