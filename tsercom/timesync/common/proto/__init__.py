@@ -23,8 +23,8 @@ if not TYPE_CHECKING:
     if False:
         pass
 
-    elif version_string == "v1_71":
-        from tsercom.timesync.common.proto.generated.v1_71.time_pb2 import (
+    elif version_string == "v1_73":
+        from tsercom.timesync.common.proto.generated.v1_73.time_pb2 import (
             ServerTimestamp,
         )
 
@@ -33,8 +33,48 @@ if not TYPE_CHECKING:
             ServerTimestamp,
         )
 
+    elif version_string == "v1_71":
+        from tsercom.timesync.common.proto.generated.v1_71.time_pb2 import (
+            ServerTimestamp,
+        )
+
     elif version_string == "v1_70":
         from tsercom.timesync.common.proto.generated.v1_70.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_69":
+        from tsercom.timesync.common.proto.generated.v1_69.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_68":
+        from tsercom.timesync.common.proto.generated.v1_68.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_67":
+        from tsercom.timesync.common.proto.generated.v1_67.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_66":
+        from tsercom.timesync.common.proto.generated.v1_66.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_65":
+        from tsercom.timesync.common.proto.generated.v1_65.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_64":
+        from tsercom.timesync.common.proto.generated.v1_64.time_pb2 import (
+            ServerTimestamp,
+        )
+
+    elif version_string == "v1_63":
+        from tsercom.timesync.common.proto.generated.v1_63.time_pb2 import (
             ServerTimestamp,
         )
 
@@ -53,6 +93,6 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.timesync.common.proto.generated.v1_62.time_pb2 import (
+    from tsercom.timesync.common.proto.generated.v1_73.time_pb2 import (
         ServerTimestamp as ServerTimestamp,
     )

@@ -23,8 +23,8 @@ if not TYPE_CHECKING:
     if False:
         pass
 
-    elif version_string == "v1_71":
-        from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
+    elif version_string == "v1_73":
+        from tsercom.rpc.proto.generated.v1_73.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
@@ -37,8 +37,64 @@ if not TYPE_CHECKING:
             Tensor,
         )
 
+    elif version_string == "v1_71":
+        from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
     elif version_string == "v1_70":
         from tsercom.rpc.proto.generated.v1_70.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
+    elif version_string == "v1_69":
+        from tsercom.rpc.proto.generated.v1_69.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
+    elif version_string == "v1_68":
+        from tsercom.rpc.proto.generated.v1_68.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
+    elif version_string == "v1_67":
+        from tsercom.rpc.proto.generated.v1_67.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
+    elif version_string == "v1_66":
+        from tsercom.rpc.proto.generated.v1_66.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
+    elif version_string == "v1_65":
+        from tsercom.rpc.proto.generated.v1_65.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
+    elif version_string == "v1_64":
+        from tsercom.rpc.proto.generated.v1_64.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+            Tensor,
+        )
+
+    elif version_string == "v1_63":
+        from tsercom.rpc.proto.generated.v1_63.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
@@ -61,10 +117,10 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.rpc.proto.generated.v1_62.common_pb2 import (
+    from tsercom.rpc.proto.generated.v1_73.common_pb2 import (
         TestConnectionCall as TestConnectionCall,
     )
-    from tsercom.rpc.proto.generated.v1_62.common_pb2 import (
+    from tsercom.rpc.proto.generated.v1_73.common_pb2 import (
         TestConnectionResponse as TestConnectionResponse,
     )
-    from tsercom.rpc.proto.generated.v1_62.common_pb2 import Tensor as Tensor
+    from tsercom.rpc.proto.generated.v1_73.common_pb2 import Tensor as Tensor
