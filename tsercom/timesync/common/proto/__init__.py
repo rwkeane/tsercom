@@ -88,6 +88,6 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.timesync.common.proto.generated.v1_65.time_pb2 import (
+    from tsercom.timesync.common.proto.generated.v1_72.time_pb2 import (
         ServerTimestamp as ServerTimestamp,
     )

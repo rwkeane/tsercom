@@ -110,10 +110,10 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.rpc.proto.generated.v1_65.common_pb2 import (
+    from tsercom.rpc.proto.generated.v1_72.common_pb2 import (
         TestConnectionCall as TestConnectionCall,
     )
-    from tsercom.rpc.proto.generated.v1_65.common_pb2 import (
+    from tsercom.rpc.proto.generated.v1_72.common_pb2 import (
         TestConnectionResponse as TestConnectionResponse,
     )
-    from tsercom.rpc.proto.generated.v1_65.common_pb2 import Tensor as Tensor
+    from tsercom.rpc.proto.generated.v1_72.common_pb2 import Tensor as Tensor

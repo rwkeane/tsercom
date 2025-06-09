@@ -1,4 +1,5 @@
 import ast
+import re
 import subprocess
 import os
 import sys
@@ -221,9 +222,31 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else: # When TYPE_CHECKING
 """
+
     # Get the latest version for type checking.
     # Assumes versioned_dirs is sorted or the last one is the newest.
     # TODO: Consider explicitly sorting by version if not guaranteed.
+    # Sort versioned_dirs to find the true latest version.
+    # Helper to parse 'vX_Y' string to a sortable tuple (X, Y)
+    def _parse_ver(v_str):
+        match = re.match(r"v(\d+)_(\d+)", v_str)
+        if match:
+            return int(match.group(1)), int(match.group(2))
+        # Fallback for "vX" format or other unexpected formats
+        match_single = re.match(r"v(\d+)", v_str)
+        if match_single:
+            return int(match_single.group(1)), 0  # Treat vX as vX_0
+        return (0, 0)  # Default for unparseable formats
+
+    if not versioned_dirs:
+        raise RuntimeError(
+            "No versioned directories found for TYPE_CHECKING block."
+        )
+
+    # Sort by version: get item.name (e.g. "v1_63") from tuple, parse it, then sort
+    versioned_dirs.sort(key=lambda x: _parse_ver(x[0]))
+
+    # The latest version is now correctly the last one
     versioned_dir_name, classes = versioned_dirs[-1]
     current_version = versioned_dir_name[1:]
     for clazz in classes:

@@ -110,12 +110,12 @@ if not TYPE_CHECKING:
 # It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
 
-    from tsercom.caller_id.proto.generated.v1_65.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_72.caller_id_pb2 import (
         CallerId as CallerId,
     )
-    from tsercom.caller_id.proto.generated.v1_65.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_72.caller_id_pb2 import (
         GetIdRequest as GetIdRequest,
     )
-    from tsercom.caller_id.proto.generated.v1_65.caller_id_pb2 import (
+    from tsercom.caller_id.proto.generated.v1_72.caller_id_pb2 import (
         GetIdResponse as GetIdResponse,
     )
