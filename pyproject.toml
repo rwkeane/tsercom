@@ -22,9 +22,9 @@ authors = [
   { name = "Ryan Keane" },
 ]
 dependencies = [
-  "grpcio>=1.62.0",
-  "grpcio-status>=1.62.0",
-  "grpcio-tools>=1.62.0",
+  "grpcio>=1.62.0, <1.74.0",
+  "grpcio-status>=1.62.0, <1.74.0",
+  "grpcio-tools>=1.62.0, <1.74.0",
   "ntplib>=0.4.0",
   "zeroconf>=0.135.0",
   "psutil>=5.9.0",
@@ -42,6 +42,7 @@ dev = [
     "mypy",
     "pylint",
     "cryptography", # Added
+    "mypy-protobuf",
 ]
 typing = [
     "types-psutil",
