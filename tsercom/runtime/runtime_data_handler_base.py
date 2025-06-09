@@ -441,20 +441,39 @@ class RuntimeDataHandlerBase(
         per-caller `AsyncPoller`. If found, the event is put onto that
         dedicated poller.
         """
-        async for events_batch in self.__event_source:
-            for event_item in events_batch:
-                # try_get by caller_id returns (address, port, data_poller) or None
-                id_tracker_entry = self._id_tracker.try_get(
-                    event_item.caller_id
-                )
-                if id_tracker_entry is None:
-                    # Potentially log this? Caller might have deregistered.
-                    continue
+        try:
+            async for events_batch in self.__event_source:
+                for event_item in events_batch:
+                    if event_item.caller_id is None:
+                        # Dispatch to all known pollers if caller_id is None
+                        all_pollers = self._id_tracker.get_all_tracked_data()
+                        for poller in all_pollers:
+                            if poller is not None:
+                                poller.on_available(event_item)
+                    else:
+                        # try_get by caller_id returns (address, port, data_poller) or None
+                        id_tracker_entry = self._id_tracker.try_get(
+                            event_item.caller_id
+                        )
+                        if id_tracker_entry is None:
+                            # Potentially log this? Caller might have deregistered.
+                            continue
 
-                _address, _port, per_caller_poller = id_tracker_entry
-                if per_caller_poller is not None:
-                    per_caller_poller.on_available(event_item)
-                # else: Potentially log if poller is None but entry existed?
+                        _address, _port, per_caller_poller = id_tracker_entry
+                        if per_caller_poller is not None:
+                            per_caller_poller.on_available(event_item)
+                        # else: Potentially log if poller is None but entry existed?
+        except Exception as e:
+            # This generic catch might hide issues during testing if not re-raised.
+            # However, ThreadWatcher is supposed to catch and report these.
+            # For now, ensure it's visible during tests.
+            print(
+                f"CRITICAL ERROR in __dispatch_poller_data_loop: {type(e).__name__}: {e}"
+            )
+            import traceback
+
+            traceback.print_exc()
+            raise
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.

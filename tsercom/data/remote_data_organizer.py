@@ -74,7 +74,9 @@ class RemoteDataOrganizer(
         self.__data: Deque[DataTypeT] = Deque[DataTypeT]()
 
         # Timestamp of the most recent data item retrieved via get_new_data().
-        self.__last_access: datetime.datetime = datetime.datetime.min
+        self.__last_access: datetime.datetime = datetime.datetime.min.replace(
+            tzinfo=datetime.timezone.utc
+        )
 
         self.__is_running: IsRunningTracker = IsRunningTracker()
 

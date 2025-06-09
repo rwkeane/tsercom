@@ -26,8 +26,12 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 started = "STARTED"
 stopped = "STOPPED"
 
-start_timestamp = datetime.datetime.now() - datetime.timedelta(hours=10)
-stop_timestamp = datetime.datetime.now() + datetime.timedelta(minutes=20)
+start_timestamp = datetime.datetime.now(
+    datetime.timezone.utc
+) - datetime.timedelta(hours=10)
+stop_timestamp = datetime.datetime.now(
+    datetime.timezone.utc
+) + datetime.timedelta(minutes=20)
 
 test_id = CallerIdentifier.random()
 
@@ -80,7 +84,7 @@ class FakeRuntime(Runtime):
         if not self._data_sent:
             fresh_data_value = "FRESH_SIMPLE_DATA_V2"
             fresh_data_object = FakeData(fresh_data_value)
-            fresh_timestamp = datetime.datetime.now()
+            fresh_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
             await self.__responder.process_data(
                 fresh_data_object, fresh_timestamp
@@ -182,6 +186,123 @@ def clear_loop_fixture():
     clear_tsercom_event_loop()
     yield
     clear_tsercom_event_loop()
+
+
+# New classes for broadcast test
+class BroadcastTestFakeRuntime(Runtime):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+        initial_caller_ids: list[CallerIdentifier],
+    ):
+        super().__init__()
+        self._thread_watcher = thread_watcher
+        self.__data_handler = data_handler
+        self._grpc_channel_factory = grpc_channel_factory
+        self.initial_caller_ids = initial_caller_ids
+        self._responders: dict[
+            CallerIdentifier, EndpointDataProcessor[FakeData, FakeEvent]
+        ] = {}
+        self._listener_tasks: list[asyncio.Task] = []
+
+    async def start_async(self) -> None:
+        for i, cid in enumerate(self.initial_caller_ids):
+            port = 50000 + i  # Assign a unique dummy port
+            try:
+                responder = await self.__data_handler.register_caller(
+                    cid, "0.0.0.0", port
+                )
+                if responder is None:
+                    # Handle case where responder might be None, e.g. log or skip
+                    print(f"Warning: Responder for {cid} is None.")
+                    continue
+                self._responders[cid] = responder
+                task = asyncio.create_task(
+                    self._event_listener_loop(cid, responder)
+                )
+                self._listener_tasks.append(task)
+            except Exception as e:
+                # Log or handle registration errors
+                print(
+                    f"Error registering caller {cid} or starting listener: {e}"
+                )
+
+    async def _event_listener_loop(
+        self,
+        caller_id: CallerIdentifier,
+        responder: EndpointDataProcessor[FakeData, FakeEvent],
+    ):
+        await asyncio.sleep(0.01)  # Yield control at the beginning
+        try:
+            async for event_list in responder:
+                for annotated_event in event_list:
+                    if isinstance(annotated_event.data, FakeEvent):
+                        # Ensure annotated_event.caller_id is handled if it can be None
+                        # For broadcast, original caller_id on event might be None
+                        # but we are processing for a specific responder's caller_id here.
+                        print(
+                            f"Listener for {caller_id}: Received FakeEvent. Processing..."
+                        )
+                        processed_data = FakeData(
+                            f"event_for_{str(caller_id)[:8]}"
+                        )
+                        await responder.process_data(
+                            processed_data,
+                            datetime.datetime.now(datetime.timezone.utc),
+                        )
+                        print(
+                            f"LISTENER_DBG: Listener for {caller_id} processed data for FakeEvent"
+                        )
+                        await asyncio.sleep(0)  # Yield control
+        except asyncio.CancelledError:
+            print(f"Listener for {caller_id}: Cancelled.")
+            # Log cancellation if necessary
+            pass
+        except Exception as e:
+            # Log other exceptions during event listening
+            print(f"Error in event listener for {caller_id}: {e}")
+
+    async def stop(self, exception) -> None:
+        for task in self._listener_tasks:
+            if not task.done():
+                task.cancel()
+        if self._listener_tasks:
+            await asyncio.gather(*self._listener_tasks, return_exceptions=True)
+
+        for cid, responder in self._responders.items():
+            try:
+                await responder.process_data(
+                    FakeData(f"stopped_{str(cid)[:8]}"),
+                    datetime.datetime.now(datetime.timezone.utc),
+                )
+            except Exception as e:
+                # Log error during stop processing
+                print(f"Error processing stop data for {cid}: {e}")
+
+
+class BroadcastTestFakeRuntimeInitializer(
+    RuntimeInitializer[FakeData, FakeEvent]
+):
+    def __init__(
+        self, initial_caller_ids: list[CallerIdentifier], service_type="Server"
+    ):
+        super().__init__(service_type=service_type)
+        self.initial_caller_ids = initial_caller_ids
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        return BroadcastTestFakeRuntime(
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self.initial_caller_ids,
+        )
 
 
 def __check_initialization(init_call: Callable[[RuntimeManager], None]):
@@ -909,3 +1030,129 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
             pass
         elif test_thread:  # ensure it's joined if it finished on its own
             test_thread.join(timeout=1)
+
+
+def test_event_broadcast_e2e(clear_loop_fixture):
+    """
+    Tests that an event sent with caller_id=None is broadcast to all
+    registered runtimes/callers.
+    """
+    loop_future = Future()
+
+    def _thread_loop_runner(fut: Future):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        fut.set_result(loop)
+        try:
+            loop.run_forever()
+        finally:
+            # Standard loop cleanup
+            all_tasks = asyncio.all_tasks(loop)  # Gather tasks on this loop
+            if all_tasks:
+                for task in all_tasks:
+                    if not task.done():  # Check if task is not already done
+                        task.cancel()
+            # Wait for tasks to finish after cancellation.
+            # This allows them to handle CancelledError and clean up.
+            if all_tasks:
+                loop.run_until_complete(
+                    asyncio.gather(*all_tasks, return_exceptions=True)
+                )
+
+            if (
+                not loop.is_closed()
+            ):  # Check again, loop might be stopped by gather
+                loop.call_soon_threadsafe(loop.stop)  # Ensure loop is stopped
+            loop.close()  # Now close
+
+    event_thread = Thread(
+        target=_thread_loop_runner, args=(loop_future,), daemon=True
+    )
+    event_thread.start()
+    worker_event_loop = loop_future.result(timeout=5)  # Get the loop
+
+    runtime_manager = RuntimeManager(is_testing=True)
+    runtime_handles_for_cleanup = []
+
+    try:
+        caller_id1 = CallerIdentifier.random()
+        caller_id2 = CallerIdentifier.random()
+        all_caller_ids = [caller_id1, caller_id2]
+        pending_ids_to_receive_event = {str(cid) for cid in all_caller_ids}
+
+        initializer = BroadcastTestFakeRuntimeInitializer(
+            all_caller_ids, service_type="Server"
+        )
+        handle_future = runtime_manager.register_runtime_initializer(
+            initializer
+        )
+
+        runtime_manager.start_in_process(
+            runtime_event_loop=worker_event_loop
+        )  # Use in-process
+        runtime_handle = handle_future.result(timeout=10)
+        runtime_handles_for_cleanup.append(runtime_handle)
+
+        data_aggregator = runtime_handle.data_aggregator
+        runtime_handle.start()
+
+        time.sleep(1.0)  # Initial sleep for registrations
+
+        broadcast_event = FakeEvent()
+        runtime_handle.on_event(broadcast_event, caller_id=None)
+
+        time.sleep(1.5)  # Increased sleep after event dispatch
+
+        max_wait_time = 10.0
+        poll_interval = 0.2  # Adjusted polling interval
+        waited_time = 0.0
+
+        while waited_time < max_wait_time and pending_ids_to_receive_event:
+            runtime_manager.check_for_exception()
+            for cid_obj in all_caller_ids:
+                cid_key = str(cid_obj)
+                if cid_key not in pending_ids_to_receive_event:
+                    continue
+
+                if data_aggregator.has_new_data(cid_obj):
+                    received_datas = data_aggregator.get_new_data(cid_obj)
+                    assert len(received_datas) >= 1
+
+                    event_data_found = False
+                    for item in received_datas:
+                        assert isinstance(item, AnnotatedInstance)
+                        assert isinstance(item.data, FakeData)
+                        if (
+                            item.data.value
+                            == f"event_for_{str(cid_obj)[:8]}"  # Ensure this matches
+                        ):
+                            event_data_found = True
+                            break
+
+                    if event_data_found:
+                        pending_ids_to_receive_event.remove(cid_key)
+
+            if not pending_ids_to_receive_event:
+                break
+            time.sleep(poll_interval)
+            waited_time += poll_interval
+
+        assert (
+            not pending_ids_to_receive_event
+        ), f"Not all callers received the broadcast event. Missing: {pending_ids_to_receive_event}"
+
+    finally:
+        for handle_item in runtime_handles_for_cleanup:
+            try:
+                if handle_item:  # Ensure handle_item is not None
+                    # RuntimeWrapper.stop() is synchronous and internally handles waiting for async runtime stop.
+                    handle_item.stop()
+            except Exception as e:
+                print(
+                    f"Error during handle.stop() for {handle_item}: {e}"
+                )  # Keep this error print
+                pass
+        runtime_manager.shutdown()  # This will stop the loop (if not already) and join the thread.
+        # The _thread_loop_runner's finally block will also try to clean up.
+        if event_thread.is_alive():  # Ensure thread is joined
+            event_thread.join(timeout=2)
