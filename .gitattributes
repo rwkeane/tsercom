@@ -1,0 +1,23 @@
+# Set default behavior to automatically handle text files.
+# Git will store text files with LF endings in the repo and, on checkout,
+# convert them to the OS-native line endings.
+* text=auto
+
+# Explicitly declare file types that should always be treated as text
+# and have their line endings normalized.
+*.py text
+*.md text
+*.toml text
+*.yml text
+*.yaml text
+*.txt text
+*.json text
+*.proto text
+
+# For files that must have LF endings (e.g., shell scripts)
+*.sh eol=lf
+
+# For files that should be treated as binary and never changed
+# Add any binary file extensions you have.
+# *.png binary
+# *.jpg binary
