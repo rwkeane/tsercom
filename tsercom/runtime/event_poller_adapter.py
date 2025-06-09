@@ -34,21 +34,14 @@ class EventToSerializableAnnInstancePollerAdapter(
         Placeholder: EventInstance to SerializableAnnotatedInstance conversion.
         Actual implementation would require proper serialization.
         """
-        if event_inst.caller_id is None:
-            # Events processed by this adapter must have a CallerIdentifier
-            # for conversion to SerializableAnnotatedInstance.
-            raise ValueError(
-                "EventInstance needs a CallerIdentifier "
-                "to be converted to SerializableAnnotatedInstance "
-                "by this adapter."
-            )
-
+        # For broadcast events, caller_id can be None.
+        # SerializableAnnotatedInstance supports caller_id being None.
         return SerializableAnnotatedInstance(
             data=event_inst.data,
-            caller_id=event_inst.caller_id,  # Now non-None
-            timestamp=SynchronizedTimestamp(
+            caller_id=event_inst.caller_id,
+            timestamp=SynchronizedTimestamp( # Revert to constructor
                 event_inst.timestamp
-            ),  # Convert datetime
+            ),
         )
 
     async def __anext__(

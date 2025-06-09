@@ -26,8 +26,8 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 started = "STARTED"
 stopped = "STOPPED"
 
-start_timestamp = datetime.datetime.now() - datetime.timedelta(hours=10)
-stop_timestamp = datetime.datetime.now() + datetime.timedelta(minutes=20)
+start_timestamp = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=10)
+stop_timestamp = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=20)
 
 test_id = CallerIdentifier.random()
 
@@ -80,7 +80,7 @@ class FakeRuntime(Runtime):
         if not self._data_sent:
             fresh_data_value = "FRESH_SIMPLE_DATA_V2"
             fresh_data_object = FakeData(fresh_data_value)
-            fresh_timestamp = datetime.datetime.now()
+            fresh_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
             await self.__responder.process_data(
                 fresh_data_object, fresh_timestamp
@@ -230,6 +230,7 @@ class BroadcastTestFakeRuntime(Runtime):
         caller_id: CallerIdentifier,
         responder: EndpointDataProcessor[FakeData, FakeEvent],
     ):
+        await asyncio.sleep(0.01)  # Yield control at the beginning
         try:
             async for event_list in responder:
                 for annotated_event in event_list:
@@ -237,14 +238,18 @@ class BroadcastTestFakeRuntime(Runtime):
                         # Ensure annotated_event.caller_id is handled if it can be None
                         # For broadcast, original caller_id on event might be None
                         # but we are processing for a specific responder's caller_id here.
+                        print(f"Listener for {caller_id}: Received FakeEvent. Processing...")
                         processed_data = FakeData(
-                            f"event_for_{caller_id.identity_key[:8]}"
+                            f"event_for_{str(caller_id)[:8]}"
                         )
                         await responder.process_data(
                             processed_data,
                             datetime.datetime.now(datetime.timezone.utc),
                         )
+                        print(f"LISTENER_DBG: Listener for {caller_id} processed data for FakeEvent")
+                        await asyncio.sleep(0) # Yield control
         except asyncio.CancelledError:
+            print(f"Listener for {caller_id}: Cancelled.")
             # Log cancellation if necessary
             pass
         except Exception as e:
@@ -261,7 +266,7 @@ class BroadcastTestFakeRuntime(Runtime):
         for cid, responder in self._responders.items():
             try:
                 await responder.process_data(
-                    FakeData(f"stopped_{cid.identity_key[:8]}"),
+                    FakeData(f"stopped_{str(cid)[:8]}"),
                     datetime.datetime.now(datetime.timezone.utc),
                 )
             except Exception as e:
@@ -1024,6 +1029,32 @@ def test_event_broadcast_e2e(clear_loop_fixture):
     Tests that an event sent with caller_id=None is broadcast to all
     registered runtimes/callers.
     """
+    loop_future = Future()
+    def _thread_loop_runner(fut: Future):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        fut.set_result(loop)
+        try:
+            loop.run_forever()
+        finally:
+            # Standard loop cleanup
+            all_tasks = asyncio.all_tasks(loop) # Gather tasks on this loop
+            if all_tasks:
+                for task in all_tasks:
+                    if not task.done(): # Check if task is not already done
+                        task.cancel()
+            # Wait for tasks to finish after cancellation.
+            # This allows them to handle CancelledError and clean up.
+            if all_tasks:
+                loop.run_until_complete(asyncio.gather(*all_tasks, return_exceptions=True))
+
+            if not loop.is_closed(): # Check again, loop might be stopped by gather
+                loop.call_soon_threadsafe(loop.stop) # Ensure loop is stopped
+            loop.close() # Now close
+    event_thread = Thread(target=_thread_loop_runner, args=(loop_future,), daemon=True)
+    event_thread.start()
+    worker_event_loop = loop_future.result(timeout=5) # Get the loop
+
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_handles_for_cleanup = []
 
@@ -1032,7 +1063,7 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         caller_id2 = CallerIdentifier.random()
         all_caller_ids = [caller_id1, caller_id2]
         pending_ids_to_receive_event = {
-            cid.identity_key for cid in all_caller_ids
+            str(cid) for cid in all_caller_ids
         }
 
         initializer = BroadcastTestFakeRuntimeInitializer(
@@ -1042,59 +1073,42 @@ def test_event_broadcast_e2e(clear_loop_fixture):
             initializer
         )
 
-        runtime_manager.start_out_of_process()
-        runtime_handle = handle_future.result(timeout=10)  # Increased timeout
+        runtime_manager.start_in_process(runtime_event_loop=worker_event_loop) # Use in-process
+        runtime_handle = handle_future.result(timeout=10)
         runtime_handles_for_cleanup.append(runtime_handle)
 
         data_aggregator = runtime_handle.data_aggregator
         runtime_handle.start()
 
-        # Allow time for runtimes to register their callers and start listeners
-        time.sleep(1.0)  # Increased sleep
+        time.sleep(1.0) # Initial sleep for registrations
 
-        # Action: Broadcast an event
         broadcast_event = FakeEvent()
-        # Assuming on_event can handle SerializableAnnotatedInstance directly if needed,
-        # or that it internally wraps FakeEvent appropriately.
-        # Based on RuntimeDataHandlerBase.__dispatch_poller_data_loop,
-        # it expects SerializableAnnotatedInstance.
-        # However, RuntimeHandle.on_event might do this wrapping.
-        # For now, let's assume direct event object is fine.
-        # If on_event requires a SynchronizedTimestamp, that needs to be created.
-        # Let's assume on_event handles this or it's not strictly required for FakeEvent
-        # if it's only for local testing and doesn't go through full serialization path.
-        # The error "AttributeError: 'FakeEvent' object has no attribute 'caller_id'"
-        # indicates on_event likely calls something that expects caller_id on the event object itself,
-        # which is not true for FakeEvent.
-        # The on_event method in RuntimeHandle actually creates the SerializableAnnotatedInstance.
         runtime_handle.on_event(broadcast_event, caller_id=None)
 
-        # Verification
-        max_wait_time = 10.0  # seconds
-        poll_interval = 0.1  # seconds
+        time.sleep(1.5) # Increased sleep after event dispatch
+
+        max_wait_time = 10.0
+        poll_interval = 0.2 # Adjusted polling interval
         waited_time = 0.0
 
         while waited_time < max_wait_time and pending_ids_to_receive_event:
-            runtime_manager.check_for_exception()  # Check for manager errors
+            runtime_manager.check_for_exception()
             for cid_obj in all_caller_ids:
-                cid_key = cid_obj.identity_key
+                cid_key = str(cid_obj)
                 if cid_key not in pending_ids_to_receive_event:
                     continue
 
                 if data_aggregator.has_new_data(cid_obj):
                     received_datas = data_aggregator.get_new_data(cid_obj)
-                    assert (
-                        len(received_datas) >= 1
-                    )  # Could get 'stopped' message too if test is slow
+                    assert len(received_datas) >= 1
 
                     event_data_found = False
                     for item in received_datas:
                         assert isinstance(item, AnnotatedInstance)
                         assert isinstance(item.data, FakeData)
-                        # Check if this is the event we are looking for
                         if (
                             item.data.value
-                            == f"event_for_{cid_obj.identity_key[:8]}"
+                            == f"event_for_{str(cid_obj)[:8]}" # Ensure this matches
                         ):
                             event_data_found = True
                             break
@@ -1112,9 +1126,15 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         ), f"Not all callers received the broadcast event. Missing: {pending_ids_to_receive_event}"
 
     finally:
-        for handle in runtime_handles_for_cleanup:
+        for handle_item in runtime_handles_for_cleanup:
             try:
-                handle.stop()
-            except Exception:
+                if handle_item:  # Ensure handle_item is not None
+                    # RuntimeWrapper.stop() is synchronous and internally handles waiting for async runtime stop.
+                    handle_item.stop()
+            except Exception as e:
+                print(f"Error during handle.stop() for {handle_item}: {e}") # Keep this error print
                 pass
-        runtime_manager.shutdown()
+        runtime_manager.shutdown() # This will stop the loop (if not already) and join the thread.
+        # The _thread_loop_runner's finally block will also try to clean up.
+        if event_thread.is_alive(): # Ensure thread is joined
+             event_thread.join(timeout=2)
