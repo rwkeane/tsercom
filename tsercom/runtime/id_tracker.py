@@ -13,6 +13,7 @@ from typing import (
     Dict,
     Generic,
     Iterator,
+    List,
     Optional,
     TypeVar,
     overload,
@@ -429,3 +430,16 @@ class IdTracker(Generic[TrackedDataT]):
                 del self.__address_to_id[address_port_tuple]
 
             return True
+
+    def get_all_tracked_data(self) -> List[TrackedDataT]:
+        """Retrieves all data items stored in the tracker.
+
+        This method is thread-safe. It returns a new list containing
+        all values from the internal data map.
+
+        Returns:
+            A list of all TrackedDataT items. Returns an empty list
+            if no data is tracked or if no data_factory was used.
+        """
+        with self.__lock:
+            return list(self.__data_map.values())
