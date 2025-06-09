@@ -28,6 +28,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pip-tools build setuptools-scm
 
+      - name: Verify git status is clean before build
+        run: |
+          if ! git diff --quiet; then
+            echo "Git working directory is dirty. Aborting."
+            git status
+            exit 1
+          fi
+
       - name: Build package
         run: python -m build
 
