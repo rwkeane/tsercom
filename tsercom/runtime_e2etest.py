@@ -13,9 +13,10 @@ import pytest
 
 from tsercom.api.runtime_manager import RuntimeManager
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
-from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
+from tsercom.data.serializable_annotated_instance import (
+    SerializableAnnotatedInstance,
+)
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime import Runtime
@@ -30,8 +31,12 @@ started = "STARTED"
 stopped = "STOPPED"
 FRESH_SIMPLE_DATA_V2 = "FRESH_SIMPLE_DATA_V2"
 
-start_timestamp = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=10)
-stop_timestamp = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=20)
+start_timestamp = datetime.datetime.now(
+    datetime.timezone.utc
+) - datetime.timedelta(hours=10)
+stop_timestamp = datetime.datetime.now(
+    datetime.timezone.utc
+) + datetime.timedelta(minutes=20)
 
 
 class FakeData:
@@ -45,16 +50,30 @@ class FakeData:
 
 class FakeEvent(EventInstance[dict]):
     """Fake event for testing. EventInstance.data will store a dictionary."""
-    def __init__(self, data: dict, caller_id: Optional[CallerIdentifier] = None, timestamp: Optional[datetime.datetime] = None):
+
+    def __init__(
+        self,
+        data: dict,
+        caller_id: Optional[CallerIdentifier] = None,
+        timestamp: Optional[datetime.datetime] = None,
+    ):
         super().__init__(
             data=data,
-            caller_id=caller_id if caller_id is not None else CallerIdentifier.random(),
-            timestamp=timestamp if timestamp is not None else datetime.datetime.now(datetime.timezone.utc)
+            caller_id=(
+                caller_id
+                if caller_id is not None
+                else CallerIdentifier.random()
+            ),
+            timestamp=(
+                timestamp
+                if timestamp is not None
+                else datetime.datetime.now(datetime.timezone.utc)
+            ),
         )
-        self.event_value = data.get('value', data.get('type', str(data)))
+        self.event_value = data.get("value", data.get("type", str(data)))
 
 
-class FakeRuntime(Runtime): # This is now the multi-ID capable FakeRuntime
+class FakeRuntime(Runtime):  # This is now the multi-ID capable FakeRuntime
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -67,7 +86,9 @@ class FakeRuntime(Runtime): # This is now the multi-ID capable FakeRuntime
         self.__grpc_channel_factory = grpc_channel_factory
         self.__caller_ids = caller_ids
 
-        self.__responders_map: Dict[CallerIdentifier, EndpointDataProcessor[FakeData, FakeEvent]] = {}
+        self.__responders_map: Dict[
+            CallerIdentifier, EndpointDataProcessor[FakeData, FakeEvent]
+        ] = {}
         self.__event_processing_tasks: List[asyncio.Task] = []
 
         self._start_async_called = False
@@ -78,71 +99,120 @@ class FakeRuntime(Runtime): # This is now the multi-ID capable FakeRuntime
 
     async def start_async(self) -> None:
         if self._start_async_called:
-            print(f"FakeRuntime for {self.__caller_ids}: start_async already called. Skipping.")
+            print(
+                f"FakeRuntime for {self.__caller_ids}: start_async already called. Skipping."
+            )
             return
         self._start_async_called = True
         print(f"FakeRuntime for {self.__caller_ids}: start_async called.")
 
         for cid_idx, cid in enumerate(self.__caller_ids):
-            print(f"FakeRuntime: Registering responder for CID {cid} ({cid_idx+1}/{len(self.__caller_ids)})...")
+            print(
+                f"FakeRuntime: Registering responder for CID {cid} ({cid_idx+1}/{len(self.__caller_ids)})..."
+            )
             responder = await self.__data_handler.register_caller(
                 cid, f"fake_endpoint_for_{cid}", 12345 + cid_idx
             )
             self.__responders_map[cid] = responder
             print(f"FakeRuntime: Responder registered for CID {cid}.")
 
-            print(f"FakeRuntime: Sending initial data for CID {cid}: {FRESH_SIMPLE_DATA_V2}")
+            print(
+                f"FakeRuntime: Sending initial data for CID {cid}: {FRESH_SIMPLE_DATA_V2}"
+            )
             fresh_data_object = FakeData(FRESH_SIMPLE_DATA_V2)
             fresh_timestamp = datetime.datetime.now(datetime.timezone.utc)
             await responder.process_data(fresh_data_object, fresh_timestamp)
             print(f"FakeRuntime: Initial data sent for CID {cid}.")
 
-            async def process_events_for_cid(current_cid: CallerIdentifier, current_responder: EndpointDataProcessor):
-                print(f"FakeRuntime: Event processing loop started for CID {current_cid}.")
+            async def process_events_for_cid(
+                current_cid: CallerIdentifier,
+                current_responder: EndpointDataProcessor,
+            ):
+                print(
+                    f"FakeRuntime: Event processing loop started for CID {current_cid}."
+                )
                 try:
                     while True:
                         async for event_batch in current_responder:
-                            print(f"FakeRuntime (CID {current_cid}): Received event batch: {event_batch}")
+                            print(
+                                f"FakeRuntime (CID {current_cid}): Received event batch: {event_batch}"
+                            )
                             for event_item in event_batch:
                                 received_event_payload = event_item.data
 
-                                print(f"FakeRuntime (CID {current_cid}): Raw event_item.data type: {type(received_event_payload)}")
-                                print(f"FakeRuntime (CID {current_cid}): Raw event_item.data value: {received_event_payload}")
+                                print(
+                                    f"FakeRuntime (CID {current_cid}): Raw event_item.data type: {type(received_event_payload)}"
+                                )
+                                print(
+                                    f"FakeRuntime (CID {current_cid}): Raw event_item.data value: {received_event_payload}"
+                                )
 
-                                if isinstance(received_event_payload, FakeEvent):
-                                    print(f"FakeRuntime (CID {current_cid}): It IS a FakeEvent instance.")
-                                    actual_data_dict = received_event_payload.data
-                                    print(f"FakeRuntime (CID {current_cid}): FakeEvent.data (payload_dict) type: {type(actual_data_dict)}")
-                                    print(f"FakeRuntime (CID {current_cid}): FakeEvent.data (payload_dict) value: {actual_data_dict}")
+                                if isinstance(
+                                    received_event_payload, FakeEvent
+                                ):
+                                    print(
+                                        f"FakeRuntime (CID {current_cid}): It IS a FakeEvent instance."
+                                    )
+                                    actual_data_dict = (
+                                        received_event_payload.data
+                                    )
+                                    print(
+                                        f"FakeRuntime (CID {current_cid}): FakeEvent.data (payload_dict) type: {type(actual_data_dict)}"
+                                    )
+                                    print(
+                                        f"FakeRuntime (CID {current_cid}): FakeEvent.data (payload_dict) value: {actual_data_dict}"
+                                    )
 
-                                    if isinstance(actual_data_dict, dict) and actual_data_dict.get('type') == 'broadcast_test_event':
-                                        ack_data_val = f"event_received_by_{current_cid}"
+                                    if (
+                                        isinstance(actual_data_dict, dict)
+                                        and actual_data_dict.get("type")
+                                        == "broadcast_test_event"
+                                    ):
+                                        ack_data_val = (
+                                            f"event_received_by_{current_cid}"
+                                        )
                                         ack_data = FakeData(ack_data_val)
-                                        print(f"FakeRuntime (CID {current_cid}): Broadcast FakeEvent (type='{actual_data_dict.get('type')}') received. Sending ack: {ack_data_val}")
+                                        print(
+                                            f"FakeRuntime (CID {current_cid}): Broadcast FakeEvent (type='{actual_data_dict.get('type')}') received. Sending ack: {ack_data_val}"
+                                        )
                                         await current_responder.process_data(
                                             ack_data,
-                                            datetime.datetime.now(datetime.timezone.utc),
+                                            datetime.datetime.now(
+                                                datetime.timezone.utc
+                                            ),
                                         )
                                     else:
-                                        print(f"FakeRuntime (CID {current_cid}): Is FakeEvent, but not broadcast_test_event. Type: {actual_data_dict.get('type') if isinstance(actual_data_dict, dict) else 'N/A'}")
+                                        print(
+                                            f"FakeRuntime (CID {current_cid}): Is FakeEvent, but not broadcast_test_event. Type: {actual_data_dict.get('type') if isinstance(actual_data_dict, dict) else 'N/A'}"
+                                        )
                                 else:
-                                    print(f"FakeRuntime (CID {current_cid}): It is NOT a FakeEvent instance. Type was {type(received_event_payload)}")
+                                    print(
+                                        f"FakeRuntime (CID {current_cid}): It is NOT a FakeEvent instance. Type was {type(received_event_payload)}"
+                                    )
                         await asyncio.sleep(0.01)
                 except asyncio.CancelledError:
-                    print(f"FakeRuntime (CID {current_cid}): Event processing loop cancelled.")
+                    print(
+                        f"FakeRuntime (CID {current_cid}): Event processing loop cancelled."
+                    )
                     raise
                 except Exception as e:
-                    print(f"FakeRuntime (CID {current_cid}): Exception in event processing loop: {e}")
+                    print(
+                        f"FakeRuntime (CID {current_cid}): Exception in event processing loop: {e}"
+                    )
                     await asyncio.sleep(0.1)
 
             task = asyncio.create_task(process_events_for_cid(cid, responder))
             self.__event_processing_tasks.append(task)
-            print(f"FakeRuntime: Event processing task created for CID {cid}: {task}")
+            print(
+                f"FakeRuntime: Event processing task created for CID {cid}: {task}"
+            )
 
         print(f"FakeRuntime for {self.__caller_ids}: start_async finished.")
 
     async def stop(self, exception) -> None:
-        print(f"FakeRuntime for {self.__caller_ids}: Stop called. Exception: {exception}")
+        print(
+            f"FakeRuntime for {self.__caller_ids}: Stop called. Exception: {exception}"
+        )
 
         for task in self.__event_processing_tasks:
             if not task.done():
@@ -150,11 +220,17 @@ class FakeRuntime(Runtime): # This is now the multi-ID capable FakeRuntime
                 task.cancel()
                 try:
                     await task
-                    print(f"FakeRuntime: Event processing task {task} awaited successfully after cancel.")
+                    print(
+                        f"FakeRuntime: Event processing task {task} awaited successfully after cancel."
+                    )
                 except asyncio.CancelledError:
-                    print(f"FakeRuntime: Event processing task {task} confirmed cancelled.")
+                    print(
+                        f"FakeRuntime: Event processing task {task} confirmed cancelled."
+                    )
                 except Exception as e:
-                    print(f"FakeRuntime: Exception while awaiting cancelled event task {task}: {e}")
+                    print(
+                        f"FakeRuntime: Exception while awaiting cancelled event task {task}: {e}"
+                    )
         self.__event_processing_tasks.clear()
 
         for cid, responder in self.__responders_map.items():
@@ -164,14 +240,26 @@ class FakeRuntime(Runtime): # This is now the multi-ID capable FakeRuntime
 
         print(f"FakeRuntime for {self.__caller_ids} fully stopped.")
 
-    def on_event(self, event: FakeEvent, caller_id: Optional[CallerIdentifier] = None) -> None:
-        print(f"FakeRuntime for {self.__caller_ids}: on_event directly called (caller_id: {caller_id}). This is unusual for E2E tests.")
+    def on_event(
+        self, event: FakeEvent, caller_id: Optional[CallerIdentifier] = None
+    ) -> None:
+        print(
+            f"FakeRuntime for {self.__caller_ids}: on_event directly called (caller_id: {caller_id}). This is unusual for E2E tests."
+        )
         if self.__data_handler:
-             serializable_event = SerializableAnnotatedInstance(data=event.data, caller_id=caller_id)
-             main_event_source = getattr(self.__data_handler, "_RuntimeDataHandlerBase__event_source", None)
-             if main_event_source:
-                 main_event_source.on_available(serializable_event)
-                 print(f"FakeRuntime ({self.__caller_ids}): Event directly injected to main event source for dispatch.")
+            serializable_event = SerializableAnnotatedInstance(
+                data=event.data, caller_id=caller_id
+            )
+            main_event_source = getattr(
+                self.__data_handler,
+                "_RuntimeDataHandlerBase__event_source",
+                None,
+            )
+            if main_event_source:
+                main_event_source.on_available(serializable_event)
+                print(
+                    f"FakeRuntime ({self.__caller_ids}): Event directly injected to main event source for dispatch."
+                )
 
 
 class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
@@ -182,7 +270,7 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
         raise_on_start=False,
         raise_on_event=False,
     ):
-        super().__init__(service_type=service_type) # Removed config_name
+        super().__init__(service_type=service_type)  # Removed config_name
         self._caller_ids = caller_ids
         self.raise_on_start = raise_on_start
         self.raise_on_event = raise_on_event
@@ -194,7 +282,10 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         runtime_instance = FakeRuntime(
-            thread_watcher, data_handler, grpc_channel_factory, self._caller_ids
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self._caller_ids,
         )
         return runtime_instance
 
@@ -210,7 +301,7 @@ class ErrorThrowingRuntime(Runtime):
         error_type=RuntimeError,
     ):
         super().__init__()
-        self.test_id = test_id # Keep test_id if used by ErrorThrowingRuntime logic/logging
+        self.test_id = test_id  # Keep test_id if used by ErrorThrowingRuntime logic/logging
         self.error_message = error_message
         self.error_type = error_type
         self._thread_watcher = thread_watcher
@@ -232,7 +323,7 @@ class ErrorThrowingRuntimeInitializer(RuntimeInitializer):
         error_type=RuntimeError,
         service_type="Client",
     ):
-        super().__init__(service_type=service_type) # Removed config_name
+        super().__init__(service_type=service_type)  # Removed config_name
         self._test_id = test_id
         self.error_message = error_message
         self.error_type = error_type
@@ -261,7 +352,7 @@ class FaultyCreateRuntimeInitializer(RuntimeInitializer):
         error_type=TypeError,
         service_type="Client",
     ):
-        super().__init__(service_type=service_type) # Removed config_name
+        super().__init__(service_type=service_type)  # Removed config_name
         self._test_id = test_id
         self.error_message = error_message
         self.error_type = error_type
@@ -295,7 +386,9 @@ async def test_broadcast_event_e2e(clear_loop_fixture):
     try:
         print("Registering FakeRuntimeInitializer with multiple CallerIDs...")
         runtime_future = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(caller_ids=caller_id_list, service_type="Server")
+            FakeRuntimeInitializer(
+                caller_ids=caller_id_list, service_type="Server"
+            )
         )
         print("Initializer registered.")
 
@@ -317,25 +410,36 @@ async def test_broadcast_event_e2e(clear_loop_fixture):
 
         print("Waiting for initial data from all managed CallerIDs...")
         for cid in caller_id_list:
-            await __wait_for_initial_data(data_aggregator, cid, timeout_seconds=30)
+            await __wait_for_initial_data(
+                data_aggregator, cid, timeout_seconds=30
+            )
             data_aggregator.get_new_data(cid)
             print(f"Initial data received and cleared for {cid}.")
 
         print("Sending broadcast event...")
-        broadcast_event_data = {"type": "broadcast_test_event", "content": "TestBroadcastEvent_E2E"}
+        broadcast_event_data = {
+            "type": "broadcast_test_event",
+            "content": "TestBroadcastEvent_E2E",
+        }
         broadcast_event = FakeEvent(data=broadcast_event_data)
         runtime_handle.on_event(broadcast_event, caller_id=None)
-        print(f"Broadcast event with data {broadcast_event_data} sent via runtime_handle with caller_id=None.")
+        print(
+            f"Broadcast event with data {broadcast_event_data} sent via runtime_handle with caller_id=None."
+        )
 
         print("Waiting for acknowledgements from all managed CallerIDs...")
         received_acks = {cid: False for cid in caller_id_list}
-        expected_acks = {cid: f"event_received_by_{cid}" for cid in caller_id_list}
+        expected_acks = {
+            cid: f"event_received_by_{cid}" for cid in caller_id_list
+        }
 
         start_time = time.monotonic()
         all_acks_received = False
         while time.monotonic() - start_time < 40:
             for cid in caller_id_list:
-                if not received_acks[cid] and data_aggregator.has_new_data(cid):
+                if not received_acks[cid] and data_aggregator.has_new_data(
+                    cid
+                ):
                     values = data_aggregator.get_new_data(cid)
                     for item in values:
                         if item.data.value == expected_acks[cid]:
@@ -349,7 +453,9 @@ async def test_broadcast_event_e2e(clear_loop_fixture):
             await asyncio.sleep(0.5)
 
         for cid in caller_id_list:
-            assert received_acks[cid], f"Acknowledgement '{expected_acks[cid]}' NOT received for {cid}."
+            assert received_acks[
+                cid
+            ], f"Acknowledgement '{expected_acks[cid]}' NOT received for {cid}."
         assert all_acks_received, "Not all acknowledgements were received."
         print("Assertions for acknowledgements passed.")
 
@@ -373,7 +479,9 @@ async def test_broadcast_event_e2e(clear_loop_fixture):
 async def __wait_for_initial_data(
     data_aggregator, caller_id: CallerIdentifier, timeout_seconds: float
 ):
-    print(f"__wait_for_initial_data for {caller_id} using timeout {timeout_seconds}s...")
+    print(
+        f"__wait_for_initial_data for {caller_id} using timeout {timeout_seconds}s..."
+    )
     start_time = time.monotonic()
     while time.monotonic() - start_time < timeout_seconds:
         if data_aggregator.has_new_data(caller_id):
@@ -384,29 +492,46 @@ async def __wait_for_initial_data(
                     is_initial = True
                     break
             if is_initial:
-                 print(f"Initial data '{FRESH_SIMPLE_DATA_V2}' found for {caller_id}.")
-                 return
+                print(
+                    f"Initial data '{FRESH_SIMPLE_DATA_V2}' found for {caller_id}."
+                )
+                return
             else:
-                 print(f"Data found for {caller_id} but was not initial: {[d.data.value for d in temp_data]}. Re-checking.")
+                print(
+                    f"Data found for {caller_id} but was not initial: {[d.data.value for d in temp_data]}. Re-checking."
+                )
         await asyncio.sleep(0.1)
     raise TimeoutError(
         f"Initial data '{FRESH_SIMPLE_DATA_V2}' not found for {caller_id} within {timeout_seconds}s"
     )
 
-def _wait_for_data_sync(data_aggregator, caller_id: CallerIdentifier, expected_value: str, timeout_seconds: float):
-    print(f"_wait_for_data_sync for {caller_id} expecting '{expected_value}' using timeout {timeout_seconds}s...")
+
+def _wait_for_data_sync(
+    data_aggregator,
+    caller_id: CallerIdentifier,
+    expected_value: str,
+    timeout_seconds: float,
+):
+    print(
+        f"_wait_for_data_sync for {caller_id} expecting '{expected_value}' using timeout {timeout_seconds}s..."
+    )
     start_time = time.monotonic()
     while time.monotonic() - start_time < timeout_seconds:
         if data_aggregator.has_new_data(caller_id):
             items = data_aggregator.get_new_data(caller_id)
             for item in items:
                 if item.data.value == expected_value:
-                    print(f"Found expected data '{expected_value}' for {caller_id}.")
+                    print(
+                        f"Found expected data '{expected_value}' for {caller_id}."
+                    )
                     return True
-            print(f"Data found for {caller_id} but not '{expected_value}': {[item.data.value for item in items]}")
+            print(
+                f"Data found for {caller_id} but not '{expected_value}': {[item.data.value for item in items]}"
+            )
         time.sleep(0.1)
     print(f"Timeout waiting for data '{expected_value}' for {caller_id}.")
     return False
+
 
 def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     runtime_manager = RuntimeManager(is_testing=True)
@@ -417,8 +542,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_manager.check_for_exception()
         runtime_future = runtime_manager.register_runtime_initializer(
             FakeRuntimeInitializer(
-                caller_ids=[current_test_id],
-                service_type="Server"
+                caller_ids=[current_test_id], service_type="Server"
             )
         )
 
@@ -435,16 +559,20 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         assert not data_aggregator.has_new_data(current_test_id)
         runtime_handle.start()
 
-        assert _wait_for_data_sync(data_aggregator, current_test_id, FRESH_SIMPLE_DATA_V2, 10), \
-            f"Initial data '{FRESH_SIMPLE_DATA_V2}' not received for {current_test_id}"
-        assert not data_aggregator.has_new_data(current_test_id), "Data aggregator should be empty after get_new_data."
+        assert _wait_for_data_sync(
+            data_aggregator, current_test_id, FRESH_SIMPLE_DATA_V2, 10
+        ), f"Initial data '{FRESH_SIMPLE_DATA_V2}' not received for {current_test_id}"
+        assert not data_aggregator.has_new_data(
+            current_test_id
+        ), "Data aggregator should be empty after get_new_data."
 
         runtime_manager.check_for_exception()
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        assert _wait_for_data_sync(data_aggregator, current_test_id, stopped, 10), \
-            f"'stopped' data not received for {current_test_id}"
+        assert _wait_for_data_sync(
+            data_aggregator, current_test_id, stopped, 10
+        ), f"'stopped' data not received for {current_test_id}"
         assert not data_aggregator.has_new_data(current_test_id)
 
     except Exception as e:
@@ -607,10 +735,14 @@ async def test_multiple_runtimes_out_of_process(clear_loop_fixture):
         test_id_2 = CallerIdentifier.random()
 
         runtime_future_1 = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(caller_ids=[test_id_1], service_type="Server")
+            FakeRuntimeInitializer(
+                caller_ids=[test_id_1], service_type="Server"
+            )
         )
         runtime_future_2 = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(caller_ids=[test_id_2], service_type="Server")
+            FakeRuntimeInitializer(
+                caller_ids=[test_id_2], service_type="Server"
+            )
         )
 
         assert not runtime_future_1.done()
@@ -626,7 +758,9 @@ async def test_multiple_runtimes_out_of_process(clear_loop_fixture):
 
         runtime_handle_1 = runtime_future_1.result(timeout=10)
         runtime_handle_2 = runtime_future_2.result(timeout=10)
-        runtime_handles_for_cleanup.extend([runtime_handle_1, runtime_handle_2])
+        runtime_handles_for_cleanup.extend(
+            [runtime_handle_1, runtime_handle_2]
+        )
 
         data_aggregator_1 = runtime_handle_1.data_aggregator
         data_aggregator_2 = runtime_handle_2.data_aggregator
@@ -634,22 +768,34 @@ async def test_multiple_runtimes_out_of_process(clear_loop_fixture):
         runtime_handle_1.start()
         runtime_handle_2.start()
 
-        await __wait_for_initial_data(data_aggregator_1, test_id_1, timeout_seconds=10)
+        await __wait_for_initial_data(
+            data_aggregator_1, test_id_1, timeout_seconds=10
+        )
         data_aggregator_1.get_new_data(test_id_1)
-        assert not data_aggregator_1.has_new_data(test_id_2), "Aggregator 1 should not have data for test_id_2."
+        assert not data_aggregator_1.has_new_data(
+            test_id_2
+        ), "Aggregator 1 should not have data for test_id_2."
 
-        await __wait_for_initial_data(data_aggregator_2, test_id_2, timeout_seconds=10)
+        await __wait_for_initial_data(
+            data_aggregator_2, test_id_2, timeout_seconds=10
+        )
         data_aggregator_2.get_new_data(test_id_2)
-        assert not data_aggregator_2.has_new_data(test_id_1), "Aggregator 2 should not have data for test_id_1."
+        assert not data_aggregator_2.has_new_data(
+            test_id_1
+        ), "Aggregator 2 should not have data for test_id_1."
 
         runtime_manager.check_for_exception()
 
         runtime_handle_1.stop()
-        await __wait_for_stopped_data(data_aggregator_1, test_id_1, timeout_seconds=10)
+        await __wait_for_stopped_data(
+            data_aggregator_1, test_id_1, timeout_seconds=10
+        )
         data_aggregator_1.get_new_data(test_id_1)
 
         runtime_handle_2.stop()
-        await __wait_for_stopped_data(data_aggregator_2, test_id_2, timeout_seconds=10)
+        await __wait_for_stopped_data(
+            data_aggregator_2, test_id_2, timeout_seconds=10
+        )
         data_aggregator_2.get_new_data(test_id_2)
 
         runtime_manager.check_for_exception()
@@ -662,6 +808,7 @@ async def test_multiple_runtimes_out_of_process(clear_loop_fixture):
                 pass
         runtime_manager.shutdown()
 
+
 async def __wait_for_stopped_data(data_aggregator, caller_id, timeout_seconds):
     start_time = time.monotonic()
     while time.monotonic() - start_time < timeout_seconds:
@@ -671,17 +818,29 @@ async def __wait_for_stopped_data(data_aggregator, caller_id, timeout_seconds):
                 if item.data.value == stopped:
                     expected_stop_ts = stop_timestamp
                     item_ts = item.timestamp
-                    if item_ts.tzinfo is None and expected_stop_ts.tzinfo is not None:
-                        expected_stop_ts = expected_stop_ts.replace(tzinfo=None)
-                    elif item_ts.tzinfo is not None and expected_stop_ts.tzinfo is None:
-                        expected_stop_ts = expected_stop_ts.replace(tzinfo=datetime.timezone.utc)
+                    if (
+                        item_ts.tzinfo is None
+                        and expected_stop_ts.tzinfo is not None
+                    ):
+                        expected_stop_ts = expected_stop_ts.replace(
+                            tzinfo=None
+                        )
+                    elif (
+                        item_ts.tzinfo is not None
+                        and expected_stop_ts.tzinfo is None
+                    ):
+                        expected_stop_ts = expected_stop_ts.replace(
+                            tzinfo=datetime.timezone.utc
+                        )
 
                     assert item_ts == expected_stop_ts
                     assert item.caller_id == caller_id
                     print(f"'stopped' data found for {caller_id}")
                     return
         await asyncio.sleep(0.1)
-    raise TimeoutError(f"'stopped' data not found for {caller_id} within {timeout_seconds}s")
+    raise TimeoutError(
+        f"'stopped' data not found for {caller_id} within {timeout_seconds}s"
+    )
 
 
 @pytest.mark.asyncio
@@ -713,8 +872,7 @@ async def test_client_type_runtime_in_process(clear_loop_fixture):
 
         runtime_future = runtime_manager.register_runtime_initializer(
             FakeRuntimeInitializer(
-                caller_ids=[current_test_id],
-                service_type="Client"
+                caller_ids=[current_test_id], service_type="Client"
             )
         )
 
@@ -734,7 +892,9 @@ async def test_client_type_runtime_in_process(clear_loop_fixture):
         assert not data_aggregator.has_new_data(current_test_id)
         runtime_handle.start()
 
-        await __wait_for_initial_data(data_aggregator, current_test_id, timeout_seconds=10)
+        await __wait_for_initial_data(
+            data_aggregator, current_test_id, timeout_seconds=10
+        )
         data_aggregator.get_new_data(current_test_id)
         assert not data_aggregator.has_new_data(current_test_id)
 
@@ -742,7 +902,9 @@ async def test_client_type_runtime_in_process(clear_loop_fixture):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        await __wait_for_stopped_data(data_aggregator, current_test_id, timeout_seconds=10)
+        await __wait_for_stopped_data(
+            data_aggregator, current_test_id, timeout_seconds=10
+        )
         assert not data_aggregator.has_new_data(current_test_id)
 
     finally:
@@ -796,7 +958,9 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
         runtime_manager.register_runtime_initializer(initializer)
 
         with pytest.raises(ValueError, match=error_msg):
-            runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
+            runtime_manager.start_in_process(
+                runtime_event_loop=worker_event_loop
+            )
             time.sleep(0.3)
             runtime_manager.check_for_exception()
     finally:
@@ -830,7 +994,9 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
             error_type=error_type,
             service_type="Server",
         )
-        handle_future = runtime_manager.register_runtime_initializer(initializer)
+        handle_future = runtime_manager.register_runtime_initializer(
+            initializer
+        )
         runtime_manager.start_out_of_process()
         runtime_handle = handle_future.result(timeout=5)
         runtime_handle_for_cleanup = runtime_handle
@@ -847,8 +1013,12 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
 
         result_from_thread = thread_result_queue.result(timeout=0)
 
-        assert isinstance(result_from_thread, error_type), f"Expected {error_type}, got {type(result_from_thread)}"
-        assert str(result_from_thread) == error_msg, f"Expected '{error_msg}', got '{str(result_from_thread)}'"
+        assert isinstance(
+            result_from_thread, error_type
+        ), f"Expected {error_type}, got {type(result_from_thread)}"
+        assert (
+            str(result_from_thread) == error_msg
+        ), f"Expected '{error_msg}', got '{str(result_from_thread)}'"
 
     finally:
         if runtime_handle_for_cleanup:
@@ -858,6 +1028,8 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
                 pass
         runtime_manager.shutdown()
         if test_thread and test_thread.is_alive():
-            print("Warning: Test thread for run_until_exception did not exit cleanly.")
+            print(
+                "Warning: Test thread for run_until_exception did not exit cleanly."
+            )
         elif test_thread:
             test_thread.join(timeout=1)
