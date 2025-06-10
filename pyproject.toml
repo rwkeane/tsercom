@@ -62,12 +62,13 @@ Repository = "https://github.com/rwkeane/tsercom"
 Issues = "https://github.com/rwkeane/tsercom/issues"
 
 [tool.setuptools.packages.find]
-where = ["."]  # <---  THIS IS KEY: Look in the current directory
-include = ["tsercom*"]  #  <--  Include tsercom and subpackages
+where = ["."]
+include = ["tsercom*"]
 exclude = ["docs*", "tests*", "scripts"]
 
 [tool.setuptools] # Add this section
-package-dir = {"" = "."}  #  <--  THIS IS THE KEY
+package-dir = {"" = "."}
+include-package-data = true # To let me include protos
 
 [tool.setuptools_scm]
 write_to = "tsercom/_version.py"
