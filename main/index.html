@@ -1,0 +1,347 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to tsercom’s documentation! &mdash; tsercom 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            tsercom
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Welcome to tsercom’s documentation!</a><ul>
+<li><a class="reference internal" href="#module-tsercom.api.runtime_manager">API Documentation</a><ul>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeFuturePopulator"><code class="docutils literal notranslate"><span class="pre">RuntimeFuturePopulator</span></code></a></li>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager"><code class="docutils literal notranslate"><span class="pre">RuntimeManager</span></code></a><ul>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager.check_for_exception"><code class="docutils literal notranslate"><span class="pre">RuntimeManager.check_for_exception()</span></code></a></li>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager.has_started"><code class="docutils literal notranslate"><span class="pre">RuntimeManager.has_started</span></code></a></li>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager.register_runtime_initializer"><code class="docutils literal notranslate"><span class="pre">RuntimeManager.register_runtime_initializer()</span></code></a></li>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager.run_until_exception"><code class="docutils literal notranslate"><span class="pre">RuntimeManager.run_until_exception()</span></code></a></li>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager.shutdown"><code class="docutils literal notranslate"><span class="pre">RuntimeManager.shutdown()</span></code></a></li>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager.start_in_process"><code class="docutils literal notranslate"><span class="pre">RuntimeManager.start_in_process()</span></code></a></li>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager.start_in_process_async"><code class="docutils literal notranslate"><span class="pre">RuntimeManager.start_in_process_async()</span></code></a></li>
+<li><a class="reference internal" href="#tsercom.api.runtime_manager.RuntimeManager.start_out_of_process"><code class="docutils literal notranslate"><span class="pre">RuntimeManager.start_out_of_process()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">tsercom</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Welcome to tsercom’s documentation!</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="welcome-to-tsercom-s-documentation">
+<h1>Welcome to tsercom’s documentation!<a class="headerlink" href="#welcome-to-tsercom-s-documentation" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<section id="module-tsercom.api.runtime_manager">
+<span id="api-documentation"></span><h2>API Documentation<a class="headerlink" href="#module-tsercom.api.runtime_manager" title="Link to this heading"></a></h2>
+<p>Manages the creation, lifecycle, and error monitoring of Tsercom runtimes.</p>
+<p>This module provides the <cite>RuntimeManager</cite> class, which is the primary entry point
+for applications to initialize and manage Tsercom runtimes. It supports
+starting runtimes either within the same process as the manager or in separate,
+isolated processes.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeFuturePopulator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tsercom.api.runtime_manager.</span></span><span class="sig-name descname"><span class="pre">RuntimeFuturePopulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">future</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Future</span><span class="p"><span class="pre">[</span></span><span class="pre">RuntimeHandle</span><span class="p"><span class="pre">[</span></span><span class="pre">DataTypeT</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">EventTypeT</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeFuturePopulator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Client</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">DataTypeT</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">EventTypeT</span></code>]</p>
+<p>A client that populates a Future with a RuntimeHandle once it’s ready.</p>
+<p>This class implements the <cite>RuntimeFactoryFactory.Client</cite> interface. Its primary
+role is to act as a bridge between the asynchronous creation of a <cite>RuntimeHandle</cite>
+by a <cite>RuntimeFactory</cite> and a <cite>concurrent.futures.Future</cite> that allows callers
+to synchronously or asynchronously await the availability of the handle.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tsercom.api.runtime_manager.</span></span><span class="sig-name descname"><span class="pre">RuntimeManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_testing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_watcher</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ThreadWatcher</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_runtime_factory_factory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LocalRuntimeFactoryFactory</span><span class="p"><span class="pre">[</span></span><span class="pre">DataTypeT</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">EventTypeT</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_runtime_factory_factory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SplitRuntimeFactoryFactory</span><span class="p"><span class="pre">[</span></span><span class="pre">DataTypeT</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">EventTypeT</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_creator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ProcessCreator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_error_watcher_source_factory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SplitErrorWatcherSourceFactory</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ErrorWatcher</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">DataTypeT</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">EventTypeT</span></code>]</p>
+<p>Manages the lifecycle of Tsercom runtimes, supporting in-process and out-of-process execution.</p>
+<p>This class serves as a central coordinator for initializing, starting, and
+monitoring Tsercom runtimes. Users register <cite>RuntimeInitializer</cite> instances,
+and the manager then uses appropriate factories (<cite>LocalRuntimeFactoryFactory</cite>
+or <cite>SplitRuntimeFactoryFactory</cite>) to create and launch these runtimes.</p>
+<p>Key functionalities include:
+- Registering runtime initializers and providing <cite>Future</cite> objects for their</p>
+<blockquote>
+<div><p>corresponding <a href="#id1"><span class="problematic" id="id2">`</span></a>RuntimeHandle`s.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>Starting runtimes either in the same process (sharing an event loop) or
+in a new, isolated process (for out-of-process execution).</p></li>
+<li><p>Monitoring for exceptions from managed runtimes via a <cite>ThreadWatcher</cite>
+(for in-process) or a <cite>SplitProcessErrorWatcherSource</cite> (for out-of-process).</p></li>
+<li><p>Providing methods to check for exceptions or block until an exception occurs.</p></li>
+<li><p>Handling shutdown of created processes and error watchers.</p></li>
+</ul>
+<dl>
+<dt>Type Args:</dt><dd><dl class="simple">
+<dt>DataTypeT: The type of data objects (bound by <cite>ExposedData</cite>) that the</dt><dd><p>managed runtimes will handle.</p>
+</dd>
+</dl>
+<p>EventTypeT: The type of event objects that the managed runtimes will process.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager.check_for_exception">
+<span class="sig-name descname"><span class="pre">check_for_exception</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager.check_for_exception" title="Link to this definition"></a></dt>
+<dd><p>Checks for and re-raises the first caught exception from managed runtimes.</p>
+<p>If an exception has been propagated from any runtime and caught by the
+manager’s error watching mechanisms, this method re-raises that
+exception in the calling thread. If no exceptions have been caught,
+this method does nothing. This method is thread-safe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Exception</strong> – The first exception propagated from any managed runtime, if any.</p></li>
+<li><p><strong>RuntimeError</strong> – If the manager has been started but the internal
+    <cite>ThreadWatcher</cite> is somehow not available (should not happen
+    with proper initialization).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager.has_started">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">has_started</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager.has_started" title="Link to this definition"></a></dt>
+<dd><p>Indicates whether this manager instance has been started.</p>
+<p>Once started (via <cite>start_in_process</cite> or <cite>start_out_of_process</cite>),
+new runtime initializers cannot be registered. This method is thread-safe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the manager has been started, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager.register_runtime_initializer">
+<span class="sig-name descname"><span class="pre">register_runtime_initializer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_initializer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RuntimeInitializer</span><span class="p"><span class="pre">[</span></span><span class="pre">DataTypeT</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">EventTypeT</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Future</span><span class="p"><span class="pre">[</span></span><span class="pre">RuntimeHandle</span><span class="p"><span class="pre">[</span></span><span class="pre">DataTypeT</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">EventTypeT</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager.register_runtime_initializer" title="Link to this definition"></a></dt>
+<dd><p>Registers a <cite>RuntimeInitializer</cite> to be managed and launched.</p>
+<p>This method must be called before <cite>start_in_process</cite> or
+<cite>start_out_of_process</cite>. Each registered initializer will result in the
+creation of a runtime when one of the start methods is called.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>runtime_initializer</strong> – The initializer instance that defines how to
+create a specific <cite>Runtime</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <cite>concurrent.futures.Future</cite> that will eventually be populated with
+the <cite>RuntimeHandle</cite> for the initialized runtime. The future is
+fulfilled after the corresponding runtime factory has been created
+and its handle is ready.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – If this method is called after the manager has already
+    been started.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager.run_until_exception">
+<span class="sig-name descname"><span class="pre">run_until_exception</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager.run_until_exception" title="Link to this definition"></a></dt>
+<dd><p>Blocks the calling thread until an exception is reported from any managed runtime.</p>
+<p>This method relies on the internal <cite>ThreadWatcher</cite> (for in-process runtimes)
+or the <cite>SplitProcessErrorWatcherSource</cite> (for out-of-process runtimes via
+the <cite>ThreadWatcher</cite>) to signal an exception. When an exception is caught,
+this method re-raises it in the calling thread.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Exception</strong> – The first exception propagated from any managed runtime.</p></li>
+<li><p><strong>RuntimeError</strong> – If the manager has not been started or if the
+    necessary error watching components are not available.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Shuts down the <cite>RuntimeManager</cite> and cleans up associated resources.</p>
+<p>This includes:
+- Terminating any out-of-process runtime process.
+- Stopping the <cite>SplitProcessErrorWatcherSource</cite> if it was used.
+- Clearing the Tsercom global event loop.
+- Potentially other cleanup related to the <cite>ThreadWatcher</cite> if it owned</p>
+<blockquote>
+<div><p>resources like thread pools (though ThreadWatcher itself usually
+does not own pools directly, it tracks them).</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager.start_in_process">
+<span class="sig-name descname"><span class="pre">start_in_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractEventLoop</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager.start_in_process" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts all registered runtimes in the current process.</p>
+<p>Tsercom operations for the initialized runtimes will run on the provided
+<cite>runtime_event_loop</cite>. The global Tsercom event loop is set to this loop.
+This method uses the <cite>LocalRuntimeFactoryFactory</cite> to create the necessary
+runtime factories.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><cite>RuntimeHandle`s for the started runtimes should be obtained from the
+`Future</cite> objects returned by <cite>register_runtime_initializer</cite>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>runtime_event_loop</strong> – The asyncio event loop on which Tsercom
+operations for these runtimes will execute.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – If the manager has already been started.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager.start_in_process_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start_in_process_async</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager.start_in_process_async" title="Link to this definition"></a></dt>
+<dd><p>Asynchronously creates and starts all registered runtimes in the current process.</p>
+<p>This is a convenience method that calls <cite>start_in_process</cite>, using the
+currently running asyncio event loop. Tsercom operations for these
+runtimes will execute on this loop.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><cite>RuntimeHandle`s for the started runtimes should be obtained from the
+`Future</cite> objects returned by <cite>register_runtime_initializer</cite>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – If no asyncio event loop is currently running in the
+    calling context.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tsercom.api.runtime_manager.RuntimeManager.start_out_of_process">
+<span class="sig-name descname"><span class="pre">start_out_of_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_as_daemon</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#tsercom.api.runtime_manager.RuntimeManager.start_out_of_process" title="Link to this definition"></a></dt>
+<dd><p>Creates and starts registered runtimes in a new, separate process.</p>
+<p>This method uses the <cite>SplitRuntimeFactoryFactory</cite> to prepare runtime
+factories suitable for inter-process communication. A new process is
+spawned, and the <cite>remote_process_main</cite> function from <cite>tsercom.runtime.runtime_main</cite>
+is executed in that process to initialize and run the runtimes.
+Error monitoring for the remote process is set up using a
+<cite>SplitProcessErrorWatcherSource</cite>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><cite>RuntimeHandle`s for the started runtimes should be obtained from the
+`Future</cite> objects returned by <cite>register_runtime_initializer</cite>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>start_as_daemon</strong> – If True, the new process will be a daemon process. Defaults to <cite>True</cite>.
+Daemonic processes are typically used for background tasks and
+are automatically terminated when the main program exits.
+When <cite>is_testing</cite> is also True, it remains <cite>True</cite>.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – If the manager has already been started.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, tsercom.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
