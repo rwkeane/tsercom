@@ -290,3 +290,88 @@ async def test_multiple_updates_to_same_tensor(
     assert len(demuxer_len4._TensorDemuxer__tensor_states) == 1
     assert len(mock_client.changed_tensors) == 3
     assert all(c["timestamp"] == ts for c in mock_client.changed_tensors)
+
+
+@pytest.mark.asyncio
+async def test_state_carry_forward_basic(demuxer_len4: TensorDemuxer, mock_client: FakeTensorDemuxerClient):
+    # Establish T1 state
+    await demuxer_len4.on_update_received(tensor_index=1, value=10.0, timestamp=T(1))
+    await demuxer_len4.on_update_received(tensor_index=2, value=20.0, timestamp=T(1))
+    # Expected T1: [0, 10, 20, 0]
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(1)), [0.0, 10.0, 20.0, 0.0])
+    mock_client.clear_changes()
+
+    # First update for T2 (T2 > T1), should carry state from T1
+    await demuxer_len4.on_update_received(tensor_index=0, value=5.0, timestamp=T(2))
+    # Expected T2: [5, 10, 20, 0] (index 0 updated, others carried from T1)
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(2)), [5.0, 10.0, 20.0, 0.0])
+    assert len(mock_client.changed_tensors) == 1 # One notification for T2
+
+@pytest.mark.asyncio
+async def test_state_carry_forward_no_preceding_timestamp(demuxer_len4: TensorDemuxer, mock_client: FakeTensorDemuxerClient):
+    # First update ever, for T1
+    await demuxer_len4.on_update_received(tensor_index=0, value=7.0, timestamp=T(1))
+    # Expected T1: [7, 0, 0, 0] (initialized from zeros)
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(1)), [7.0, 0.0, 0.0, 0.0])
+    assert len(mock_client.changed_tensors) == 1
+
+@pytest.mark.asyncio
+async def test_state_carry_forward_out_of_order_new_timestamp(demuxer_len4: TensorDemuxer, mock_client: FakeTensorDemuxerClient):
+    # Establish T1 state
+    await demuxer_len4.on_update_received(tensor_index=1, value=10.0, timestamp=T(1))
+    # T1 is now [0,10,0,0] due to state carry-forward from implicit ZEROS for T<1, then update.
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(1)), [0.0, 10.0, 0.0, 0.0])
+    mock_client.clear_changes() # Clear T1 updates
+
+    # Establish T3 state, which will carry from T1
+    await demuxer_len4.on_update_received(tensor_index=0, value=30.0, timestamp=T(3)) # T3 carries from T1 -> [30,10,0,0]
+    await demuxer_len4.on_update_received(tensor_index=1, value=31.0, timestamp=T(3)) # T3 updates -> [30,31,0,0]
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(3)), [30.0, 31.0, 0.0, 0.0])
+    # mock_client.clear_changes() # DO NOT Clear T3 updates, so we can check it later
+
+    # Update for new T2 (T1 < T2 < T3), should carry state from T1
+    await demuxer_len4.on_update_received(tensor_index=2, value=25.0, timestamp=T(2))
+    # Expected T2: [0, 10, 25, 0] (carried from T1: [0,10,0,0], then index 2 updated)
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(2)), [0.0, 10.0, 25.0, 0.0])
+
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(3)), [30.0, 31.0, 0.0, 0.0])
+
+
+@pytest.mark.asyncio
+async def test_state_carry_forward_multiple_updates_to_carried_state(demuxer_len4: TensorDemuxer, mock_client: FakeTensorDemuxerClient):
+    # Establish T1 state: [1,2,3,4]
+    await demuxer_len4.on_update_received(tensor_index=0, value=1.0, timestamp=T(1))
+    await demuxer_len4.on_update_received(tensor_index=1, value=2.0, timestamp=T(1))
+    await demuxer_len4.on_update_received(tensor_index=2, value=3.0, timestamp=T(1))
+    await demuxer_len4.on_update_received(tensor_index=3, value=4.0, timestamp=T(1))
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(1)), [1.0, 2.0, 3.0, 4.0])
+    mock_client.clear_changes()
+
+    # First update for T2, carries from T1, updates index 0
+    await demuxer_len4.on_update_received(tensor_index=0, value=10.0, timestamp=T(2))
+    # Expected T2: [10,2,3,4]
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(2)), [10.0, 2.0, 3.0, 4.0])
+
+    # Second update for T2, updates index 1 on the already carried-forward state
+    await demuxer_len4.on_update_received(tensor_index=1, value=20.0, timestamp=T(2))
+    # Expected T2: [10,20,3,4]
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(2)), [10.0, 20.0, 3.0, 4.0])
+
+    # Third update for T2, updates index 3
+    await demuxer_len4.on_update_received(tensor_index=3, value=40.0, timestamp=T(2))
+    # Expected T2: [10,20,3,40]
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(2)), [10.0, 20.0, 3.0, 40.0])
+
+@pytest.mark.asyncio
+async def test_state_carry_forward_from_non_zero_predecessor_all_indices_different(demuxer_len4: TensorDemuxer, mock_client: FakeTensorDemuxerClient):
+    # Establish T1 state: [1,2,3,4]
+    await demuxer_len4.on_update_received(tensor_index=0, value=1.0, timestamp=T(1))
+    await demuxer_len4.on_update_received(tensor_index=1, value=2.0, timestamp=T(1))
+    await demuxer_len4.on_update_received(tensor_index=2, value=3.0, timestamp=T(1))
+    await demuxer_len4.on_update_received(tensor_index=3, value=4.0, timestamp=T(1))
+    mock_client.clear_changes()
+
+    # Update for T2, only index 0 changes value to 5.0
+    # T2 should start as [1,2,3,4] and become [5,2,3,4]
+    await demuxer_len4.on_update_received(tensor_index=0, value=5.0, timestamp=T(2))
+    assert_tensors_equal(mock_client.get_latest_tensor_for_ts(T(2)), [5.0, 2.0, 3.0, 4.0])
