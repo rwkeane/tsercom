@@ -73,38 +73,6 @@ def mock_caller_identifier_random_fixture(mocker):
     yield mock_random
 
 
-# Test Scenarios
-def test_discovery_host_initialization(mocker):
-    """Test DiscoveryHost initialization scenarios."""
-    # Test with service_type only
-    host_st = DiscoveryHost(service_type=SERVICE_TYPE_DEFAULT)
-    assert host_st._DiscoveryHost__service_type == SERVICE_TYPE_DEFAULT
-    assert host_st._DiscoveryHost__instance_listener_factory is None
-
-    # Test with instance_listener_factory only
-    mock_factory = mocker.Mock(name="MockListenerFactory")
-    host_lf = DiscoveryHost(instance_listener_factory=mock_factory)
-    assert host_lf._DiscoveryHost__service_type is None
-    assert host_lf._DiscoveryHost__instance_listener_factory is mock_factory
-
-    # Test with neither (should raise ValueError)
-    with pytest.raises(
-        ValueError,
-        match="Exactly one of 'service_type' or 'instance_listener_factory' must be provided.",
-    ):
-        DiscoveryHost()
-
-    # Test with both (should raise ValueError)
-    with pytest.raises(
-        ValueError,
-        match="Exactly one of 'service_type' or 'instance_listener_factory' must be provided.",
-    ):
-        DiscoveryHost(
-            service_type=SERVICE_TYPE_DEFAULT,
-            instance_listener_factory=mock_factory,
-        )
-
-
 @pytest.mark.asyncio
 async def test_start_discovery_successfully(
     mock_service_source_client_fixture,

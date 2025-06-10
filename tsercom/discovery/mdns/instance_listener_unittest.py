@@ -38,6 +38,9 @@ class FakeMdnsListener(MdnsListener):
         self.remove_service_calls: List[Dict[str, Any]] = []
         self.add_service_calls: List[Dict[str, Any]] = []
 
+    def start(self) -> None:
+        pass
+
     def update_service(self, zc: Any, type_: str, name: str) -> None:
         self.update_service_calls.append(
             {"zc": zc, "type_": type_, "name": name}

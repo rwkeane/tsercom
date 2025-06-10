@@ -15,6 +15,9 @@ from tsercom.discovery.service_info import (
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 
 
+MdnsListenerFactory = Callable[[MdnsListener.Client, str], MdnsListener]
+
+
 class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
     """Listens for mDNS service instances and notifies a client.
 
@@ -62,9 +65,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         client: "InstanceListener.Client",
         service_type: str,
         *,
-        mdns_listener_factory: Optional[
-            Callable[[MdnsListener.Client, str], MdnsListener]
-        ] = None,
+        mdns_listener_factory: Optional[MdnsListenerFactory] = None,
     ) -> None:
         """Initializes the InstanceListener.
 
@@ -104,6 +105,8 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         else:
             # Use provided factory
             self.__listener = mdns_listener_factory(self, service_type)
+
+        self.__listener.start()
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)

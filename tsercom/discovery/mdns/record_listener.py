@@ -65,7 +65,11 @@ class RecordListener(MdnsListener):
             "Starting mDNS scan for services of type: %s", self.__expected_type
         )
         # pylint: disable=W0238 # __browser is used by zeroconf for its lifecycle
-        self.__browser: ServiceBrowser = ServiceBrowser(
+        self.__browser: ServiceBrowser | None = None
+
+    def start(self) -> None:
+        # pylint: disable=W0238 # __browser is used by zeroconf for its lifecycle
+        self.__browser = ServiceBrowser(
             self.__mdns, self.__expected_type, self
         )
 
@@ -136,7 +140,6 @@ class RecordListener(MdnsListener):
             name: The mDNS instance name of the service that was removed.
         """
         logging.info("Service removed: type='%s', name='%s'", type_, name)
-        # Notify the client about the service removal.
         self.__client._on_service_removed(name, type_, self._uuid_str)
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:

@@ -15,6 +15,15 @@ class MdnsListener(ServiceListener):
     implement `zeroconf.ServiceListener` methods and use `Client` interface.
     """
 
+    @abstractmethod
+    def start(self) -> None:
+        """
+        Starts listening for mDNS services.
+        """
+        raise NotImplementedError(
+            "MdnsListener.start must be implemented by subclasses."
+        )
+
     # pylint: disable=R0903 # Internal helper/callback class for zeroconf
     class Client(ABC):
         """Interface for `MdnsListener` clients.
@@ -56,5 +65,3 @@ class MdnsListener(ServiceListener):
                 service_type: The type of the service that was removed.
                 record_listener_uuid: The UUID of the RecordListener instance.
             """
-            # This method can be optionally implemented by concrete client classes.
-            pass

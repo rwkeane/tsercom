@@ -4,7 +4,10 @@ import logging
 from typing import Callable, Dict, Generic, Optional, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.discovery.mdns.instance_listener import InstanceListener
+from tsercom.discovery.mdns.instance_listener import (
+    InstanceListener,
+    MdnsListenerFactory,
+)
 from tsercom.discovery.service_info import ServiceInfoT
 from tsercom.discovery.service_source import ServiceSource
 
@@ -53,6 +56,21 @@ class DiscoveryHost(
         """
         ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
 
+    @overload
+    def __init__(
+        self,
+        *,
+        mdns_listener_factory: MdnsListenerFactory,
+    ):
+        """Initializes DiscoveryHost with a factory for a custom InstanceListener.
+
+        This allows using a custom mDNS discovery mechanism or configuration.
+
+        Args:
+            mdns_listener_factory: A callable to create a new MdnsListener.
+        """
+        ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
+
     def __init__(
         self,
         *,
@@ -63,6 +81,7 @@ class DiscoveryHost(
                 InstanceListener[ServiceInfoT],
             ]
         ] = None,
+        mdns_listener_factory: Optional[MdnsListenerFactory] = None,
     ) -> None:
         """Initializes DiscoveryHost. Overloaded: use one keyword arg.
 
@@ -81,14 +100,33 @@ class DiscoveryHost(
             raise ValueError(
                 "Exactly one of 'service_type' or 'instance_listener_factory' must be provided."
             )
+        if (instance_listener_factory is not None) and (
+            mdns_listener_factory is not None
+        ):
+            # Long error message
+            raise ValueError(
+                "'instance_listener_factory' and 'mdns_listener_factory' cannot both be set."
+            )
 
-        self.__service_type: Optional[str] = service_type
-        self.__instance_listener_factory: Optional[
-            Callable[
-                [InstanceListener.Client],
-                InstanceListener[ServiceInfoT],
-            ]
-        ] = instance_listener_factory
+        self.__instance_listener_factory: Callable[
+            [InstanceListener.Client],
+            InstanceListener[ServiceInfoT],
+        ]
+        if instance_listener_factory is not None:
+            self.__instance_listener_factory = instance_listener_factory
+        else:
+            assert service_type is not None
+
+            def instance_factory(
+                client: InstanceListener.Client,
+            ) -> InstanceListener[ServiceInfoT]:
+                return InstanceListener[ServiceInfoT](
+                    client,
+                    service_type,
+                    mdns_listener_factory=mdns_listener_factory,
+                )
+
+            self.__instance_listener_factory = instance_factory
 
         # mDNS instance listener; initialized in __start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[ServiceInfoT]] = None
@@ -133,16 +171,7 @@ class DiscoveryHost(
             raise RuntimeError("Discovery has already been started.")
 
         self.__client = client
-        if self.__instance_listener_factory is not None:
-            self.__discoverer = self.__instance_listener_factory(self)
-        else:
-            # This assertion is safe due to the __init__ constructor logic.
-            assert (
-                self.__service_type is not None
-            ), "Service type must be set if no factory is provided."
-            self.__discoverer = InstanceListener[ServiceInfoT](
-                self, self.__service_type
-            )
+        self.__discoverer = self.__instance_listener_factory(self)
         # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener)
         # requires an explicit start() method to be called after instantiation.
         # If so, it should be called here. For example:

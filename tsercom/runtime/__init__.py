@@ -8,6 +8,7 @@ from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
+from tsercom.runtime.runtime_config import ServiceType
 
 
 __all__ = [
@@ -15,4 +16,5 @@ __all__ = [
     "Runtime",
     "RuntimeInitializer",
     "RuntimeDataHandler",
+    "ServiceType",
 ]
