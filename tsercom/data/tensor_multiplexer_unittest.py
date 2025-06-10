@@ -97,7 +97,16 @@ def test_simple_update_scenario1(
     )  # Changes at index 2 and 4
     multiplexer.process_tensor(tensor2, T2)
 
-    expected_calls = [(2, 99.0, T2), (4, 88.0, T2)]
+    # Updated expectation: Since T2 is a new timestamp (T2 > T1),
+    # and TensorMultiplexer now diffs against zeros for new timestamps,
+    # all elements of tensor2 are emitted.
+    expected_calls = [
+        (0, 1.0, T2),
+        (1, 2.0, T2),
+        (2, 99.0, T2),
+        (3, 4.0, T2),
+        (4, 88.0, T2),
+    ]
     # Sort for comparison if order isn't guaranteed, though it should be by index
     assert sorted(mock_client.calls) == sorted(expected_calls)
 
@@ -112,8 +121,16 @@ def test_process_identical_tensor(
     multiplexer.process_tensor(
         tensor1.clone(), T2
     )  # Same tensor data, different timestamp
-    # No changes compared to T1's data, so no calls
-    assert mock_client.calls == []
+    # Updated expectation: Since T2 is a new timestamp (T2 > T1),
+    # TensorMultiplexer now diffs against zeros, so all elements are emitted.
+    expected_calls = [
+        (0, 1.0, T2),
+        (1, 2.0, T2),
+        (2, 3.0, T2),
+        (3, 4.0, T2),
+        (4, 5.0, T2),
+    ]
+    assert sorted(mock_client.calls) == sorted(expected_calls)
 
 
 def test_process_identical_tensor_same_timestamp(

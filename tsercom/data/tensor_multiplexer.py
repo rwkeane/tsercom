@@ -210,9 +210,28 @@ class TensorMultiplexer:  # Removed pylint disable from here
         ):
             self._latest_processed_timestamp = timestamp
 
-        # State before the newly inserted tensor
-        prev_tensor = self._get_tensor_state_before(timestamp)
-        self._emit_diff(prev_tensor, tensor, timestamp)
+        # Determine the tensor to diff against for the newly inserted snapshot.
+        base_tensor_for_diff = torch.zeros_like(
+            tensor
+        )  # Default: treat as new, diff against zeros.
+        if insertion_point > 0:
+            # If there was a tensor just before this one in the sorted history
+            # prev_ts_in_history, prev_tensor_val_in_history = self._history[insertion_point - 1] # Unused
+            # true_prev_tensor_val = self._get_tensor_state_before(timestamp) # Unused
+
+            # Correct logic for this specific block (new snapshot, not duplicate ts):
+            # If the timestamp of the tensor immediately preceding this newly inserted one
+            # is older than the current tensor's timestamp, then the current tensor
+            # starts a new time segment (from demuxer's perspective) and should be diffed against zeros.
+            # Otherwise (e.g., if multiple distinct tensors were allowed at the exact same timestamp
+            # and inserted sequentially without being 'updates'), diff against the actual preceding one.
+            if self._history[insertion_point - 1][0] < timestamp:
+                base_tensor_for_diff = torch.zeros_like(tensor)
+            else:  # This means self._history[insertion_point-1][0] == timestamp
+                base_tensor_for_diff = self._history[insertion_point - 1][1]
+        # else: insertion_point is 0 (it's the first tensor ever), so diff against zeros (already default)
+
+        self._emit_diff(base_tensor_for_diff, tensor, timestamp)
 
         # If this was an out-of-order insertion (i.e., not appended at the end),
         # we need to re-evaluate the diff for the *next* tensor in sequence,
