@@ -42,9 +42,10 @@ class DemuxerOutputHandler(TensorDemuxer.Client):
         self.reconstructed_tensors: Dict[datetime.datetime, torch.Tensor] = {}
         self.call_log: List[Tuple[torch.Tensor, datetime.datetime]] = []
 
-    def on_tensor_changed(self, tensor: torch.Tensor, timestamp: datetime.datetime) -> None:
+    async def on_tensor_changed(self, tensor: torch.Tensor, timestamp: datetime.datetime) -> None: # Async
         self.reconstructed_tensors[timestamp] = tensor.clone()
         self.call_log.append((tensor.clone(), timestamp))
+        # No actual async op for mock, but signature must match
 
     def get_tensor_at_ts(self, timestamp: datetime.datetime) -> torch.Tensor | None:
         return self.reconstructed_tensors.get(timestamp)

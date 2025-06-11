@@ -14,11 +14,12 @@ class MockTensorDemuxerClient(TensorDemuxer.Client):
         self.calls: List[CapturedTensorChange] = []
         self.call_count = 0
 
-    def on_tensor_changed(
+    async def on_tensor_changed( # Changed to async def
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
         self.calls.append((tensor.clone(), timestamp))
         self.call_count += 1
+        # No actual async op for mock, but signature must match
 
     def clear_calls(self) -> None:
         self.calls = []
@@ -461,3 +462,41 @@ async def test_timeout_behavior_cleanup_order(
     tensor_t2, ts_t2 = mc.get_last_call()
     assert torch.equal(tensor_t2, torch.tensor([3.0, 0.0, 0.0, 0.0]))
     assert ts_t2 == T2_std
+
+
+@pytest.mark.asyncio
+async def test_get_tensor_at_timestamp(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient]
+):
+    d, mc = await demuxer
+    tensor_t1_data = torch.tensor([1.0, 2.0, 3.0, 4.0])
+    tensor_t2_data = torch.tensor([5.0, 6.0, 7.0, 8.0])
+
+    # Process some updates
+    await d.on_update_received(0, 1.0, T1_std)
+    await d.on_update_received(1, 2.0, T1_std)
+    await d.on_update_received(2, 3.0, T1_std)
+    await d.on_update_received(3, 4.0, T1_std) # T1_std is [1,2,3,4]
+
+    await d.on_update_received(0, 5.0, T2_std) # T2_std should start from T1_std: [1,2,3,4] -> [5,2,3,4]
+    await d.on_update_received(1, 6.0, T2_std) # T2_std -> [5,6,3,4]
+
+    mc.clear_calls() # Clear calls from on_update_received
+
+    # Test get_tensor_at_timestamp
+    retrieved_t1 = await d.get_tensor_at_timestamp(T1_std)
+    assert retrieved_t1 is not None
+    assert torch.equal(retrieved_t1, tensor_t1_data)
+    assert id(retrieved_t1) != id(tensor_t1_data) # Ensure it's a clone
+
+    retrieved_t2 = await d.get_tensor_at_timestamp(T2_std)
+    assert retrieved_t2 is not None
+    expected_t2_state = torch.tensor([5.0, 6.0, 3.0, 4.0]) # Based on T1 then updated
+    assert torch.equal(retrieved_t2, expected_t2_state)
+
+    # Test non-existent timestamp
+    retrieved_t0 = await d.get_tensor_at_timestamp(T0_std)
+    assert retrieved_t0 is None
+
+    # Ensure get_tensor_at_timestamp does not trigger client calls
+    assert mc.call_count == 0
