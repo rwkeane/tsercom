@@ -261,8 +261,12 @@ def test_on_data_ready_impl_ignores_older_data(
     mock_client.reset_mock()
     organizer._RemoteDataOrganizer__on_data_ready_impl(data_older)
 
-    assert len(organizer._RemoteDataOrganizer__data) == 1
+    # With the new logic, older data is inserted.
+    assert len(organizer._RemoteDataOrganizer__data) == 2
+    # The order should be newest first.
     assert organizer._RemoteDataOrganizer__data[0] == data_current_first
+    assert organizer._RemoteDataOrganizer__data[1] == data_older
+    # Client should still not be called for out-of-order older data.
     mock_client._on_data_available.assert_not_called()
 
 
@@ -590,3 +594,447 @@ def test_timeout_old_data_does_nothing_if_not_running(
         len(organizer._RemoteDataOrganizer__data) == 1
     ), "Data should not have been removed"
     internal_mock_is_running_tracker.get.assert_called_once()  # Should be called once at the start of __timeout_old_data
+
+
+# --- Tests for Out-of-Order Data Handling ---
+
+
+def test_on_data_ready_impl_inserts_out_of_order_data_correctly(
+    organizer, mock_caller_id, mock_is_running_tracker
+):
+    """
+    Tests that __on_data_ready_impl correctly inserts out-of-order data
+    while maintaining reverse chronological order.
+    """
+    mock_is_running_tracker.get.return_value = True
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    data_t2 = create_data(mock_caller_id, now, value_id=2)
+    data_t4 = create_data(
+        mock_caller_id, now + datetime.timedelta(seconds=20), value_id=4
+    )
+    data_t3 = create_data(
+        mock_caller_id, now + datetime.timedelta(seconds=10), value_id=3
+    )
+    data_t1 = create_data(
+        mock_caller_id, now - datetime.timedelta(seconds=10), value_id=1
+    )
+
+    # Add t2, then t4 (newest)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t2)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t4)
+    # Current order: [data_t4, data_t2]
+
+    # Add t3 (out-of-order, between t4 and t2)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t3)
+    # Expected order: [data_t4, data_t3, data_t2]
+
+    # Add t1 (out-of-order, oldest)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t1)
+    # Expected order: [data_t4, data_t3, data_t2, data_t1]
+
+    expected_order = [data_t4, data_t3, data_t2, data_t1]
+    actual_order = list(organizer._RemoteDataOrganizer__data)
+
+    assert len(actual_order) == len(expected_order)
+    for expected, actual in zip(expected_order, actual_order):
+        assert (
+            expected.timestamp == actual.timestamp
+        ), f"Timestamp mismatch: expected {expected.timestamp}, got {actual.timestamp}"
+        assert (
+            expected.value == actual.value
+        ), f"Value mismatch: expected {expected.value}, got {actual.value}"
+
+
+def test_on_data_ready_impl_no_callback_for_older_data(
+    organizer, mock_client, mock_caller_id, mock_is_running_tracker
+):
+    """
+    Tests that the client callback (_on_data_available) is NOT called when
+    older, out-of-order data is inserted.
+    """
+    mock_is_running_tracker.get.return_value = True
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    data_t2 = create_data(mock_caller_id, now, value_id=2)
+    # Initial data, should trigger callback
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t2)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+    mock_client.reset_mock()
+
+    # Insert older data
+    data_t1 = create_data(
+        mock_caller_id, now - datetime.timedelta(seconds=10), value_id=1
+    )
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t1)
+    mock_client._on_data_available.assert_not_called()
+
+    # Insert another older data point, but newer than t1
+    data_t1_5 = create_data(
+        mock_caller_id, now - datetime.timedelta(seconds=5), value_id=15
+    )
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t1_5)
+    mock_client._on_data_available.assert_not_called()  # Still not called since reset
+
+    # Verify final order to be sure: [data_t2, data_t1_5, data_t1]
+    expected_order = [data_t2, data_t1_5, data_t1]
+    actual_order = list(organizer._RemoteDataOrganizer__data)
+    assert len(actual_order) == len(expected_order)
+    for i, item in enumerate(expected_order):
+        assert item.value == actual_order[i].value
+
+
+def test_on_data_ready_impl_callback_for_new_or_same_timestamp_data(
+    organizer, mock_client, mock_caller_id, mock_is_running_tracker
+):
+    """
+    Tests that the client callback (_on_data_available) IS called for
+    new data or data with the same timestamp as the current newest.
+    """
+    mock_is_running_tracker.get.return_value = True
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    # 1. Initial data
+    data_t1 = create_data(mock_caller_id, now, value_id=1)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t1)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+    mock_client.reset_mock()
+
+    # 2. Newer data
+    data_t2_ts = now + datetime.timedelta(seconds=10)
+    data_t2 = create_data(mock_caller_id, data_t2_ts, value_id=2)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t2)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+    mock_client.reset_mock()
+
+    # 3. Data with same timestamp as current newest (data_t2)
+    data_t2_updated = create_data(
+        mock_caller_id, data_t2_ts, value_id=3
+    )  # Same ts, different value
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t2_updated)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+
+    # Verify final state of data
+    # Expected: [data_t2_updated, data_t1]
+    # (data_t2 was replaced by data_t2_updated)
+    expected_data_state = [data_t2_updated, data_t1]
+    actual_data_state = list(organizer._RemoteDataOrganizer__data)
+    assert len(actual_data_state) == len(expected_data_state)
+    for i, item in enumerate(expected_data_state):
+        assert item.value == actual_data_state[i].value
+
+
+# --- More Complex Out-of-Order Scenarios ---
+
+
+def test_batch_old_then_newer_then_oldest(
+    organizer, mock_client, mock_caller_id, mock_is_running_tracker
+):
+    mock_is_running_tracker.get.return_value = True
+    base_ts = datetime.datetime(
+        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
+    )
+
+    data_t0 = create_data(mock_caller_id, base_ts, value_id=0)
+    data_t1 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=1), value_id=1
+    )
+    data_t2 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=2), value_id=2
+    )
+    data_t3 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=3), value_id=3
+    )
+    data_t5 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=5), value_id=5
+    )
+    data_t6 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=6), value_id=6
+    )
+    data_t7 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=7), value_id=7
+    )
+    data_t8 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=8), value_id=8
+    )
+
+    # Initial: Add data_t5, then data_t6
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t5)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t6)
+    assert mock_client._on_data_available.call_count == 2
+    assert list(organizer._RemoteDataOrganizer__data) == [data_t6, data_t5]
+    mock_client.reset_mock()
+
+    # Batch 1 (out-of-order): Add data_t2, then data_t3
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t2)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t3)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t6,
+        data_t5,
+        data_t3,
+        data_t2,
+    ]
+
+    # Batch 2 (new): Add data_t7, then data_t8
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t7)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t8)
+    assert mock_client._on_data_available.call_count == 2
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t8,
+        data_t7,
+        data_t6,
+        data_t5,
+        data_t3,
+        data_t2,
+    ]
+    mock_client.reset_mock()
+
+    # Batch 3 (out-of-order, oldest): Add data_t0, then data_t1
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t0)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t1)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t8,
+        data_t7,
+        data_t6,
+        data_t5,
+        data_t3,
+        data_t2,
+        data_t1,
+        data_t0,
+    ]
+
+
+def test_interspersed_new_and_out_of_order_data(
+    organizer, mock_client, mock_caller_id, mock_is_running_tracker
+):
+    mock_is_running_tracker.get.return_value = True
+    base_ts = datetime.datetime(
+        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
+    )
+
+    data_t3 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=3), value_id=3
+    )
+    data_t5 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=5), value_id=5
+    )
+    data_t7 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=7), value_id=7
+    )
+    data_t10 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=10), value_id=10
+    )
+    data_t12 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=12), value_id=12
+    )
+    data_t12_replace = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=12), value_id=120
+    )  # Same timestamp as data_t12, different value
+
+    # 1. Add data_t10
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t10)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+    assert list(organizer._RemoteDataOrganizer__data) == [data_t10]
+    mock_client.reset_mock()
+
+    # 2. Add data_t5 (old)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t5)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [data_t10, data_t5]
+
+    # 3. Add data_t12 (new)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t12)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t12,
+        data_t10,
+        data_t5,
+    ]
+    mock_client.reset_mock()
+
+    # 4. Add data_t3 (old)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t3)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t12,
+        data_t10,
+        data_t5,
+        data_t3,
+    ]
+
+    # 5. Add data_t7 (old, between t5 and t10)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t7)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t12,
+        data_t10,
+        data_t7,
+        data_t5,
+        data_t3,
+    ]
+
+    # 6. Add data_t12_replace (same as newest)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t12_replace)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t12_replace,
+        data_t10,
+        data_t7,
+        data_t5,
+        data_t3,
+    ]
+
+
+def test_out_of_order_data_with_duplicate_timestamps_inserted_among_existing(
+    organizer, mock_client, mock_caller_id, mock_is_running_tracker
+):
+    mock_is_running_tracker.get.return_value = True
+    base_ts = datetime.datetime(
+        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
+    )
+
+    t10 = base_ts + datetime.timedelta(seconds=10)
+    t30 = base_ts + datetime.timedelta(seconds=30)
+    t50 = base_ts + datetime.timedelta(seconds=50)
+    t100 = base_ts + datetime.timedelta(seconds=100)
+
+    data_t10 = create_data(mock_caller_id, t10, value_id=10)
+    data_t30a = create_data(
+        mock_caller_id, t30, value_id=301
+    )  # First item with t30
+    data_t30b = create_data(
+        mock_caller_id, t30, value_id=302
+    )  # Second item with t30
+    data_t50 = create_data(mock_caller_id, t50, value_id=50)
+    data_t50_replace = create_data(
+        mock_caller_id, t50, value_id=500
+    )  # Replacement for t50
+    data_t100 = create_data(mock_caller_id, t100, value_id=100)
+
+    # Initial: Add data_t10, data_t50, data_t100
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t10)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t50)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t100)
+    assert mock_client._on_data_available.call_count == 3
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t100,
+        data_t50,
+        data_t10,
+    ]
+    mock_client.reset_mock()
+
+    # Add data_t30a (old, should be inserted between t50 and t10)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t30a)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t100,
+        data_t50,
+        data_t30a,
+        data_t10,
+    ]
+
+    # Add data_t30b (old, same timestamp as t30a).
+    # bisect_right places it before existing t30a when thinking ascending.
+    # So, in descending deque, it will be after the original t30a from the "left" side.
+    # Deque index: len(self.__data) - insertion_idx_ascending
+    # timestamps_ascending: [t10, t30a, t50, t100]
+    # bisect_right(timestamps_ascending, t30) -> index 2 (after t30a)
+    # deque_index = 4 - 2 = 2. self.__data.insert(2, data_t30b)
+    # Initial: [t100, t50, t30a, t10]
+    # Insert at index 2: [t100, t50, data_t30b, t30a, t10]
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t30b)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t100,
+        data_t50,
+        data_t30b,  # data_t30b is inserted before data_t30a due to bisect_right logic
+        data_t30a,
+        data_t10,
+    ]
+
+    # Add data_t50_replace (old, because t100 is newest; ts same as t50)
+    # bisect_right places it before existing t50 when thinking ascending.
+    # So, in descending deque, it will be after the original t50 from the "left" side.
+    # timestamps_ascending: [t10, t30a, t30b, t50, t100]
+    # bisect_right(timestamps_ascending, t50) -> index 4 (after t50)
+    # deque_index = 5 - 4 = 1. self.__data.insert(1, data_t50_replace)
+    # Initial: [t100, t50, data_t30b, t30a, t10]
+    # Insert at index 1: [t100, data_t50_replace, t50, data_t30b, t30a, t10]
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t50_replace)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t100,
+        data_t50_replace,  # data_t50_replace is inserted before data_t50
+        data_t50,
+        data_t30b,
+        data_t30a,
+        data_t10,
+    ]
+
+
+def test_adding_data_becomes_new_oldest_item_repeatedly(
+    organizer, mock_client, mock_caller_id, mock_is_running_tracker
+):
+    mock_is_running_tracker.get.return_value = True
+    base_ts = datetime.datetime(
+        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
+    )
+
+    data_t2 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=2), value_id=2
+    )
+    data_t3 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=3), value_id=3
+    )
+    data_t4 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=4), value_id=4
+    )
+    data_t5 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=5), value_id=5
+    )
+    data_t6 = create_data(
+        mock_caller_id, base_ts + datetime.timedelta(seconds=6), value_id=6
+    )
+
+    # Initial: Add data_t5
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t5)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+    assert list(organizer._RemoteDataOrganizer__data) == [data_t5]
+    mock_client.reset_mock()
+
+    # Add data_t4 (old)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t4)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [data_t5, data_t4]
+
+    # Add data_t3 (old)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t3)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t5,
+        data_t4,
+        data_t3,
+    ]
+
+    # Add data_t2 (old)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t2)
+    mock_client._on_data_available.assert_not_called()
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t5,
+        data_t4,
+        data_t3,
+        data_t2,
+    ]
+
+    # Add data_t6 (new)
+    organizer._RemoteDataOrganizer__on_data_ready_impl(data_t6)
+    mock_client._on_data_available.assert_called_once_with(organizer)
+    assert list(organizer._RemoteDataOrganizer__data) == [
+        data_t6,
+        data_t5,
+        data_t4,
+        data_t3,
+        data_t2,
+    ]
