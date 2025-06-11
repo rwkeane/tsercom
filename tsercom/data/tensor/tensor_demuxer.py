@@ -85,9 +85,22 @@ class TensorDemuxer:
 
     async def on_update_received(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
-    ) -> None:  # Already async
+    ) -> None:
+        """
+        Processes a single tensor element update.
+
+        This method is the primary entry point for new data. It updates the
+        internal state for the given timestamp and triggers notifications to the
+        client if a tensor state changes. It also handles cascading updates to
+        subsequent tensor states if an older state is modified.
+
+        Args:
+            tensor_index: The index in the tensor that is being updated.
+            value: The new float value for the tensor element.
+            timestamp: The timestamp of this update.
+        """
         async with self._lock:  # Added lock
-            if not (0 <= tensor_index < self.__tensor_length):
+            if not 0 <= tensor_index < self.__tensor_length: # C0325: Removed unnecessary parens
                 return
 
             if (
@@ -265,3 +278,15 @@ class TensorDemuxer:
                 # Return from the calculated tensor state (second element of the tuple)
                 return self._tensor_states[i][1].clone()
             return None
+
+    @property
+    def _client(self) -> "TensorDemuxer.Client":  # Forward reference as string
+        return self.__client
+
+    @property
+    def _tensor_length(self) -> int:
+        return self.__tensor_length
+
+    @property
+    def _data_timeout_seconds(self) -> float:
+        return self.__data_timeout_seconds
