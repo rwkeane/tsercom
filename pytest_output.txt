@@ -1,0 +1,19 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, timeout-2.4.0, mock-3.14.1, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 6 items
+
+tsercom/data/tensor/tensor_multiplexing_component_test.py ......         [100%]
+
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tsercom/data/tensor/tensor_multiplexing_component_test.py::test_simple_tensor_pass_through
+PASSED tsercom/data/tensor/tensor_multiplexing_component_test.py::test_sequential_tensors_pass_through
+PASSED tsercom/data/tensor/tensor_multiplexing_component_test.py::test_out_of_order_pass_through_mux_cascade_effect
+PASSED tsercom/data/tensor/tensor_multiplexing_component_test.py::test_out_of_order_scenario2_e2e_mux_cascade
+PASSED tsercom/data/tensor/tensor_multiplexing_component_test.py::test_mux_cascade_three_deep_e2e
+PASSED tsercom/data/tensor/tensor_multiplexing_component_test.py::test_data_timeout_e2e
+============================== 6 passed in 4.09s ===============================

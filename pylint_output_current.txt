@@ -1,0 +1,46 @@
+************* Module tsercom._version
+tsercom/_version.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+************* Module tsercom.data.tensor.tensor_multiplexer
+tsercom/data/tensor/tensor_multiplexer.py:129:4: C0116: Missing function or method docstring (missing-function-docstring)
+tsercom/data/tensor/tensor_multiplexer.py:129:4: R0914: Too many local variables (16/15) (too-many-locals)
+tsercom/data/tensor/tensor_multiplexer.py:140:16: R1731: Consider using 'effective_cleanup_ref_ts = max(effective_cleanup_ref_ts, max_history_ts)' instead of unnecessary if block (consider-using-max-builtin)
+tsercom/data/tensor/tensor_multiplexer.py:129:4: R0912: Too many branches (13/12) (too-many-branches)
+************* Module tsercom.data.tensor
+tsercom/data/tensor/__init__.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+************* Module tsercom.data.tensor.tensor_demuxer
+tsercom/data/tensor/tensor_demuxer.py:90:0: C0325: Unnecessary parens after 'not' keyword (superfluous-parens)
+tsercom/data/tensor/tensor_demuxer.py:86:4: C0116: Missing function or method docstring (missing-function-docstring)
+tsercom/data/tensor/tensor_demuxer.py:86:4: R0914: Too many local variables (22/15) (too-many-locals)
+tsercom/data/tensor/tensor_demuxer.py:86:4: R0912: Too many branches (23/12) (too-many-branches)
+tsercom/data/tensor/tensor_demuxer.py:86:4: R0915: Too many statements (63/50) (too-many-statements)
+************* Module tsercom.api.runtime_manager
+tsercom/api/runtime_manager.py:62:0: R0902: Too many instance attributes (10/7) (too-many-instance-attributes)
+tsercom/api/runtime_manager.py:86:4: R0913: Too many arguments (7/5) (too-many-arguments)
+tsercom/api/runtime_manager.py:487:0: R0903: Too few public methods (0/2) (too-few-public-methods)
+************* Module tsercom.discovery.service_connector
+tsercom/discovery/service_connector.py:62:4: R0903: Too few public methods (0/2) (too-few-public-methods)
+************* Module tsercom.discovery.mdns.record_listener
+tsercom/discovery/mdns/record_listener.py:143:8: W0212: Access to a protected member _on_service_removed of a client class (protected-access)
+************* Module tsercom.threading.aio.async_poller
+tsercom/threading/aio/async_poller.py:101:12: C0415: Import outside toplevel (tsercom.util.is_running_tracker.IsRunningTracker) (import-outside-toplevel)
+tsercom/threading/aio/async_poller.py:105:4: W0238: Unused private member `AsyncPoller.__event_loop_id(self)` (unused-private-member)
+************* Module tsercom.threading.aio.rate_limiter
+tsercom/threading/aio/rate_limiter.py:14:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+tsercom/threading/aio/rate_limiter.py:35:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+tsercom/threading/aio/rate_limiter.py:86:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module tsercom.runtime.runtime_main
+tsercom/runtime/runtime_main.py:245:11: W0718: Catching too general exception Exception (broad-exception-caught)
+************* Module tsercom.runtime.runtime_data_handler_base
+tsercom/runtime/runtime_data_handler_base.py:149:4: R0912: Too many branches (18/12) (too-many-branches)
+tsercom/runtime/runtime_data_handler_base.py:473:12: C0415: Import outside toplevel (traceback) (import-outside-toplevel)
+************* Module tsercom.runtime.runtime_data_handler
+tsercom/runtime/runtime_data_handler.py:20:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module tsercom.runtime.runtime_config
+tsercom/runtime/runtime_config.py:52:4: R0913: Too many arguments (6/5) (too-many-arguments)
+tsercom/runtime/runtime_config.py:73:4: R0913: Too many arguments (6/5) (too-many-arguments)
+tsercom/runtime/runtime_config.py:103:4: R0913: Too many arguments (7/5) (too-many-arguments)
+************* Module tsercom.runtime.client.client_runtime_data_handler
+tsercom/runtime/client/client_runtime_data_handler.py:55:4: R0913: Too many arguments (6/5) (too-many-arguments)
+
+------------------------------------------------------------------
+Your code has been rated at 9.91/10 (previous run: 9.91/10, +0.00)
