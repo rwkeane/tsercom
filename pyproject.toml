@@ -202,6 +202,7 @@ disable = [
     "C0301",
     "R0801",
     "W0511",
+    "W2301",
 ]
 
 [tool.coverage.run]

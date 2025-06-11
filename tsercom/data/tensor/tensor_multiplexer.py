@@ -1,15 +1,16 @@
 """Multiplexes tensor updates into granular, serializable messages."""
 
 import abc
-import asyncio  # Added for asyncio.Lock
+import asyncio
+import bisect  # Already used by previous version, good for get_tensor_at_timestamp
 import datetime
 from typing import (
     List,
     Tuple,
     Optional,
 )
+
 import torch
-import bisect  # Already used by previous version, good for get_tensor_at_timestamp
 
 
 # Using a type alias for clarity

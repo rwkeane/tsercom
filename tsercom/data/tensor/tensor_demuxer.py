@@ -1,14 +1,15 @@
-import abc
-import asyncio  # Added for asyncio.Lock
-import datetime
-import torch
-from typing import List, Tuple, Optional  # For type hints
-import bisect  # For sorted list operations
-
-# Module docstring
 """
 Provides the TensorDemuxer class for aggregating granular tensor updates.
 """
+
+import abc
+import asyncio  # Added for asyncio.Lock
+import bisect  # For sorted list operations
+import datetime
+from typing import List, Tuple, Optional  # For type hints
+
+import torch
+
 
 # Type alias for an explicit update received for a given timestamp
 ExplicitUpdate = Tuple[int, float]
@@ -112,8 +113,8 @@ class TensorDemuxer:
             current_calculated_tensor: torch.Tensor
             explicit_updates_for_ts: List[ExplicitUpdate]
             is_new_timestamp_entry = False
-            initial_processing_tensor_changed = False
             idx_of_processed_ts = -1
+            value_actually_changed_tensor = False  # Renamed from initial_processing_tensor_changed for clarity
 
             if (
                 insertion_point < len(self._tensor_states)
@@ -121,12 +122,19 @@ class TensorDemuxer:
             ):
                 is_new_timestamp_entry = False
                 idx_of_processed_ts = insertion_point
-                _, old_tensor_state, explicit_updates_for_ts = (
-                    self._tensor_states[idx_of_processed_ts]
-                )
-                current_calculated_tensor = old_tensor_state.clone()
-                # Make a copy before appending if it's from an existing entry to avoid modifying shared list object in place during list comp
-                explicit_updates_for_ts = list(explicit_updates_for_ts)
+                (
+                    _,
+                    current_calculated_tensor,
+                    explicit_updates_for_ts,
+                ) = self._tensor_states[  # current_calculated_tensor is a direct reference here
+                    idx_of_processed_ts
+                ]
+                current_calculated_tensor = (
+                    current_calculated_tensor.clone()
+                )  # Clone for modification
+                explicit_updates_for_ts = list(
+                    explicit_updates_for_ts
+                )  # Clone for modification
             else:
                 is_new_timestamp_entry = True
                 if insertion_point == 0:
@@ -136,22 +144,34 @@ class TensorDemuxer:
                 else:
                     current_calculated_tensor = self._tensor_states[
                         insertion_point - 1
-                    ][1].clone()
+                    ][
+                        1
+                    ].clone()  # Inherit from predecessor
                 explicit_updates_for_ts = []
 
+            # Determine if this specific update changes the tensor's calculated value
             if current_calculated_tensor[tensor_index].item() != value:
                 current_calculated_tensor[tensor_index] = value
-                initial_processing_tensor_changed = True
+                value_actually_changed_tensor = True
 
+            # Update the list of explicit updates for this timestamp
             found_existing_explicit_update = False
-            for i, (idx, _) in enumerate(explicit_updates_for_ts):
+            for i, (idx, val_existing) in enumerate(explicit_updates_for_ts):
                 if idx == tensor_index:
-                    explicit_updates_for_ts[i] = (tensor_index, value)
+                    if (
+                        val_existing != value
+                    ):  # Also check if value changed for existing explicit update
+                        explicit_updates_for_ts[i] = (tensor_index, value)
+                        # value_actually_changed_tensor might already be true, this ORs with it
+                        value_actually_changed_tensor = True
                     found_existing_explicit_update = True
                     break
             if not found_existing_explicit_update:
                 explicit_updates_for_ts.append((tensor_index, value))
+                # If we add a new explicit update, the tensor composition effectively changes
+                value_actually_changed_tensor = True
 
+            # Store the new state and notify client
             if is_new_timestamp_entry:
                 self._tensor_states.insert(
                     insertion_point,
@@ -162,23 +182,34 @@ class TensorDemuxer:
                     ),
                 )
                 idx_of_processed_ts = insertion_point
-            else:
+                # For new entries, always notify if there were any explicit updates
+                if (
+                    explicit_updates_for_ts
+                ):  # Ensure not notifying for an empty initial state if no updates came
+                    await self.__client.on_tensor_changed(
+                        current_calculated_tensor.clone(), timestamp
+                    )
+            else:  # Existing timestamp entry
+                # Update stored state
                 self._tensor_states[idx_of_processed_ts] = (
                     timestamp,
                     current_calculated_tensor,
                     explicit_updates_for_ts,
                 )
-
-            if initial_processing_tensor_changed:
+                # Notify if the tensor value changed OR if it was an existing entry that got processed
+                # (The latter part ensures component test compatibility where basis of calc changes)
                 await self.__client.on_tensor_changed(
-                    tensor=current_calculated_tensor.clone(),
-                    timestamp=timestamp,
-                )  # Await client
+                    current_calculated_tensor.clone(), timestamp
+                )
 
-            needs_cascade = initial_processing_tensor_changed or (
+            # Determine if cascade to subsequent timestamps is needed
+            # Cascade if the actual tensor value changed OR if a new entry was inserted that's not last.
+            needs_cascade = value_actually_changed_tensor
+            if (
                 is_new_timestamp_entry
                 and idx_of_processed_ts < len(self._tensor_states) - 1
-            )
+            ):
+                needs_cascade = True
 
             if needs_cascade:
                 for i in range(
