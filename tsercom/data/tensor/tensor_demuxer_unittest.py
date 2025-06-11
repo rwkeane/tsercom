@@ -5,7 +5,6 @@ from typing import List, Tuple  # For type hints
 
 from tsercom.data.tensor.tensor_demuxer import TensorDemuxer  # Absolute import
 
-# Helper type for captured calls by the mock client
 CapturedTensorChange = Tuple[torch.Tensor, datetime.datetime]
 
 
@@ -19,7 +18,10 @@ class MockTensorDemuxerClient(TensorDemuxer.Client):
     ) -> None:
         self.calls.append((tensor.clone(), timestamp))
         self.call_count += 1
-        # No actual async op for mock, but signature must match
+
+    async def on_tensor_removed(self, timestamp: datetime.datetime) -> None:
+        """Mocked method for when a tensor is removed."""
+        pass
 
     def clear_calls(self) -> None:
         self.calls = []

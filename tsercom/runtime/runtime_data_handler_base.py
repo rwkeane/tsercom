@@ -11,6 +11,7 @@ Concrete implementations, such as `ClientRuntimeDataHandler` and
 for client and server-side operations, respectively.
 """
 
+import traceback # Moved import here
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
@@ -470,7 +471,7 @@ class RuntimeDataHandlerBase(
             print(
                 f"CRITICAL ERROR in __dispatch_poller_data_loop: {type(e).__name__}: {e}"
             )
-            import traceback
+            # import traceback # Moved to top level
 
             traceback.print_exc()
             raise
