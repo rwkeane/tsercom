@@ -189,7 +189,7 @@ def clear_loop_fixture():
 
 
 # New classes for broadcast test
-class BroadcastTestFakeRuntime(Runtime):
+class BroadcastFakeRuntime(Runtime):
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -282,9 +282,7 @@ class BroadcastTestFakeRuntime(Runtime):
                 print(f"Error processing stop data for {cid}: {e}")
 
 
-class BroadcastTestFakeRuntimeInitializer(
-    RuntimeInitializer[FakeData, FakeEvent]
-):
+class BroadcastFakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
     def __init__(
         self, initial_caller_ids: list[CallerIdentifier], service_type="Server"
     ):
@@ -297,7 +295,7 @@ class BroadcastTestFakeRuntimeInitializer(
         data_handler: RuntimeDataHandler[FakeData, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        return BroadcastTestFakeRuntime(
+        return BroadcastFakeRuntime(
             thread_watcher,
             data_handler,
             grpc_channel_factory,
@@ -1080,7 +1078,7 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         all_caller_ids = [caller_id1, caller_id2]
         pending_ids_to_receive_event = {str(cid) for cid in all_caller_ids}
 
-        initializer = BroadcastTestFakeRuntimeInitializer(
+        initializer = BroadcastFakeRuntimeInitializer(
             all_caller_ids, service_type="Server"
         )
         handle_future = runtime_manager.register_runtime_initializer(
