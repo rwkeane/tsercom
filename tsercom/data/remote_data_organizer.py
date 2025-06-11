@@ -1,5 +1,6 @@
 """Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
 
+import bisect
 import datetime
 import logging
 import threading
@@ -241,45 +242,32 @@ class RemoteDataOrganizer(
 
         data_inserted_or_updated = False
         with self.__data_lock:
-            if not self.__data:  # No data yet, just append.
+            if not self.__data:
                 self.__data.append(new_data)
                 data_inserted_or_updated = True
-            else:
-                current_most_recent_time = self.__data[0].timestamp
-                new_data_time = new_data.timestamp
-
-                if new_data_time < current_most_recent_time:
-                    logger.debug(
-                        "CallerID %s: Discarding out-of-order older data (ts: %s, newest_is: %s).",
-                        self.caller_id,
-                        new_data_time,
-                        current_most_recent_time,
+            elif new_data.timestamp >= self.__data[0].timestamp:
+                if new_data.timestamp == self.__data[0].timestamp:
+                    self.__data[0] = (
+                        new_data  # Update existing entry with same timestamp
                     )
-                    # DESIGN NOTE: This implementation handles new data as follows:
-                    # - If the deque is empty, the new data is added.
-                    # - If the new data's timestamp is older than the current newest data,
-                    #   it is currently discarded (see log message). For a more robust history
-                    #   that includes all out-of-order data, one might insert it in sorted order.
-                    # - If timestamps match, the existing newest item is updated.
-                    # - If the new data is strictly newer, it's added to the front.
-                    # The current approach prioritizes simplicity and focuses on the latest state
-                    # or strictly sequential data.
-                    # To implement full sorted insertion for a complete history:
-                    #   # idx = 0
-                    #   # while idx < len(self.__data) and new_data_time < self.__data[idx].timestamp:
-                    #   #     idx += 1
-                    #   # self.__data.insert(idx, new_data)
-                    #   # data_inserted_or_updated = True
-                    # pylint: disable=W0107 # Explicitly do nothing for older data as per design note
-                    pass
-                elif new_data_time == current_most_recent_time:
-                    # Data with the same timestamp as the newest; update the newest.
-                    self.__data[0] = new_data
-                    data_inserted_or_updated = True
-                else:  # new_data_time > current_most_recent_time
-                    # New data is the absolute newest; add to the front.
+                else:  # new_data.timestamp > self.__data[0].timestamp
                     self.__data.appendleft(new_data)
-                    data_inserted_or_updated = True
+                data_inserted_or_updated = True
+            else:  # Incoming data is older than the current newest (out-of-order)
+                timestamps_ascending = [
+                    d.timestamp for d in reversed(self.__data)
+                ]
+                insertion_idx_ascending = bisect.bisect_right(
+                    timestamps_ascending, new_data.timestamp
+                )
+                # The deque `self.__data` is ordered most-recent-first (descending timestamps).
+                # `bisect_right` gives an index for an ascending list.
+                # So, `len - idx` converts to an index suitable for `insert()` into our descending deque.
+                deque_index = len(self.__data) - insertion_idx_ascending
+                self.__data.insert(deque_index, new_data)
+                # Design choice: Do not notify clients for historical (out-of-order) data insertions.
+                # To enable notification for such cases, set data_inserted_or_updated = True here.
+                data_inserted_or_updated = False
 
         if data_inserted_or_updated and self.__client is not None:
             # pylint: disable=W0212 # Calling listener's notification method
