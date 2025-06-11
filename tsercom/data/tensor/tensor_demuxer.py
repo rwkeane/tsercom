@@ -100,7 +100,9 @@ class TensorDemuxer:
             timestamp: The timestamp of this update.
         """
         async with self._lock:  # Added lock
-            if not 0 <= tensor_index < self.__tensor_length: # C0325: Removed unnecessary parens
+            if (
+                not 0 <= tensor_index < self.__tensor_length
+            ):  # C0325: Removed unnecessary parens
                 return
 
             if (
@@ -281,12 +283,24 @@ class TensorDemuxer:
 
     @property
     def _client(self) -> "TensorDemuxer.Client":  # Forward reference as string
+        """The client to notify of tensor changes.
+
+        Protected access for subclasses.
+        """
         return self.__client
 
     @property
     def _tensor_length(self) -> int:
+        """The expected length of the tensors being reconstructed.
+
+        Protected access for subclasses.
+        """
         return self.__tensor_length
 
     @property
     def _data_timeout_seconds(self) -> float:
+        """Timeout in seconds for keeping stale tensor data.
+
+        Protected access for subclasses.
+        """
         return self.__data_timeout_seconds

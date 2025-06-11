@@ -2,52 +2,113 @@
 Provides the SmoothedTensorDemuxer class for generating smoothed tensor data
 based on incoming real keyframes.
 """
+
 import asyncio
 import bisect
 import datetime
-import logging # Standard library imports first
+import logging  # Standard library imports first
 from typing import (
     List,
     Tuple,
     Optional,
 )  # AsyncGenerator might be adjusted later
 
-import torch # Third-party imports
-from tsercom.data.tensor.tensor_demuxer import TensorDemuxer # First-party imports
+import torch  # Third-party imports
+from tsercom.data.tensor.tensor_demuxer import (
+    TensorDemuxer,
+)  # First-party imports
 
 
 # Configure basic logging for demonstration; in a real app, this would be more structured
 logging.basicConfig(level=logging.INFO)
 
 
-class SmoothedTensorDemuxer(TensorDemuxer):
-    """
-    Extends TensorDemuxer to provide smoothed tensor data.
+class SmoothedTensorDemuxer(
+    TensorDemuxer
+):  # pylint: disable=too-many-instance-attributes
+    """Extends TensorDemuxer to provide smoothed tensor data streams.
 
-    It receives real tensor states (keyframes) from the underlying TensorDemuxer
-    via an adapter and then generates interpolated ("smoothed") tensor states
-    at a regular interval defined by `smoothing_period_seconds`.
+    This class receives real-time tensor updates, which are first processed by
+    the base `TensorDemuxer` to form discrete "keyframe" tensors at specific
+    timestamps. `SmoothedTensorDemuxer` then uses these keyframes to generate
+    a continuous stream of interpolated tensors at a regular frequency defined
+    by `smoothing_period_seconds`.
+
+    This is useful for applications that require smooth, continuous tensor data
+    even when the underlying data arrives sporadically or out of order.
+
+    Attributes:
+        _actual_downstream_client (TensorDemuxer.Client): The client that will receive
+            the smoothed tensor data.
+        _base_client_adapter (_BaseProcessorClient): An internal adapter that receives
+            keyframe tensors from the base TensorDemuxer.
+        _smoothing_period_seconds (float): The time interval, in seconds, at which
+            smoothed (interpolated) tensors are generated and emitted.
+        _keyframes (List[Tuple[datetime.datetime, torch.Tensor]]): A sorted list
+            of (timestamp, tensor) tuples representing the real keyframes received.
+        _keyframe_lock (asyncio.Lock): A lock to protect access to `_keyframes`.
+        _last_synthetic_emitted_at (Optional[datetime.datetime]): The timestamp of
+            the last synthetically generated tensor that was emitted. This is used
+            to determine the timestamp of the next synthetic tensor.
+        _interpolation_loop_task (asyncio.Task): The background task that runs
+            the interpolation worker loop.
+        _loop (asyncio.AbstractEventLoop): The event loop on which the interpolation
+            task is scheduled.
     """
 
     class _BaseProcessorClient(TensorDemuxer.Client):
+        """Internal client adapter to receive keyframe tensors from TensorDemuxer.
+
+        This class acts as the client for the base `TensorDemuxer`. When the base
+        demuxer reconstructs a tensor (a keyframe), it calls `on_tensor_changed`
+        on this adapter, which then passes the keyframe to the
+        `SmoothedTensorDemuxer` for processing.
         """
-        Internal client adapter to receive keyframes from the base TensorDemuxer.
-        """
+
         def __init__(self, outer_instance: "SmoothedTensorDemuxer"):
+            """Initializes the _BaseProcessorClient.
+
+            Args:
+                outer_instance: A reference to the outer SmoothedTensorDemuxer instance.
+            """
             self._outer_instance = outer_instance
 
         async def on_tensor_changed(
             self, tensor: torch.Tensor, timestamp: datetime.datetime
         ) -> None:
+            """Handles a new keyframe tensor from the base TensorDemuxer.
+
+            This method is called by the base `TensorDemuxer` when a complete
+            tensor for a given timestamp (a keyframe) is available. It passes
+            this keyframe to the outer `SmoothedTensorDemuxer`'s
+            `_handle_real_keyframe` method.
+
+            Args:
+                tensor: The reconstructed keyframe tensor.
+                timestamp: The timestamp of the keyframe tensor.
+            """
             await self._outer_instance._handle_real_keyframe(timestamp, tensor)
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         client: TensorDemuxer.Client,
         tensor_length: int,
         smoothing_period_seconds: float = 1.0,
         data_timeout_seconds: float = 60.0,
     ):
+        """Initializes the SmoothedTensorDemuxer.
+
+        Args:
+            client: The client to notify of smoothed tensor changes.
+            tensor_length: The expected length of the tensors.
+            smoothing_period_seconds: The target interval for emitting smoothed
+                tensors. Must be positive.
+            data_timeout_seconds: How long the base TensorDemuxer should keep
+                data for a specific timestamp before it's considered stale.
+
+        Raises:
+            ValueError: If smoothing_period_seconds is not positive.
+        """
         self._actual_downstream_client = client
         self._base_client_adapter = SmoothedTensorDemuxer._BaseProcessorClient(
             self
@@ -78,6 +139,26 @@ class SmoothedTensorDemuxer(TensorDemuxer):
     async def _handle_real_keyframe(
         self, timestamp: datetime.datetime, tensor: torch.Tensor
     ) -> None:
+        """Processes and stores a new keyframe tensor.
+
+        This method is called by the `_BaseProcessorClient` when a new keyframe
+        is received from the base `TensorDemuxer`. It acquires a lock, inserts
+        or updates the keyframe in the sorted `_keyframes` list, and determines
+        if the `_last_synthetic_emitted_at` timestamp needs to be reset to
+        trigger recalculation of synthetic tensors.
+
+        Recalculation is triggered if:
+        - A keyframe is inserted at the beginning of the sequence.
+        - An out-of-order keyframe arrives that is earlier than the last emitted
+          synthetic point.
+        - The system has just received enough keyframes (>=2) to start interpolation
+          for the first time and `_last_synthetic_emitted_at` was None (due to
+          `is_new_insertion` on the second keyframe making `keyframe_updated_or_inserted_out_of_order` true).
+
+        Args:
+            timestamp: The timestamp of the new keyframe.
+            tensor: The tensor data of the new keyframe.
+        """
         async with self._keyframe_lock:
             new_keyframe = (timestamp, tensor.clone())
 
@@ -90,7 +171,9 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
             keyframe_updated_or_inserted_out_of_order = False
             is_new_insertion = False
-            old_len_keyframes = len(self._keyframes) # Track length before modification
+            old_len_keyframes = len(
+                self._keyframes
+            )  # Track length before modification
 
             if (
                 insert_idx < len(self._keyframes)
@@ -112,80 +195,106 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
             # If we just added the second keyframe, and it was a new insertion,
             # consider it a scenario that needs to re-evaluate emission point.
-            if is_new_insertion and old_len_keyframes < 2 and len(self._keyframes) >= 2:
+            if (
+                is_new_insertion
+                and old_len_keyframes < 2
+                and len(self._keyframes) >= 2
+            ):
                 keyframe_updated_or_inserted_out_of_order = True
-
 
             # Determine if recalculation trigger is needed
             # This happens if:
             # 1. An existing keyframe was updated.
-            # 2. A new keyframe was inserted somewhere not at the end.
+            # 2. A new keyframe was inserted somewhere not at the end (captured by keyframe_updated_or_inserted_out_of_order).
             # 3. The timestamp of the new/updated keyframe is older than the last synthetic emission.
             #    (This covers cases where a very old keyframe arrives late).
+
+            # Restructure conditions to help Mypy with type narrowing for _last_synthetic_emitted_at
+            lsea = self._last_synthetic_emitted_at
+
+            cond2_reset = False
+            if lsea is not None and is_new_insertion: # Swapped order for R1716
+                if timestamp < lsea:
+                    cond2_reset = True
+
+            cond3_reset = False
+            # For R1716, ensure 'lsea is not None' is evaluated early if other conditions depend on 'lsea' being non-None.
+            if lsea is not None and not is_new_insertion and keyframe_updated_or_inserted_out_of_order:
+                if timestamp <= lsea:
+                    cond3_reset = True
+
             should_reset_emission_point = (
                 keyframe_updated_or_inserted_out_of_order
-                or (
-                    is_new_insertion
-                    and (
-                        self._last_synthetic_emitted_at
-                        and timestamp < self._last_synthetic_emitted_at
-                    )
-                )
-                or (
-                    not is_new_insertion
-                    and keyframe_updated_or_inserted_out_of_order
-                    and (
-                        self._last_synthetic_emitted_at
-                        and timestamp <= self._last_synthetic_emitted_at
-                    )
-                )
-            )
+                or cond2_reset
+                or cond3_reset
+            ) # Ensure no trailing whitespace on line 220
 
             if should_reset_emission_point:
-                initial_lsea_was_none = self._last_synthetic_emitted_at is None
+                current_lsea = self._last_synthetic_emitted_at
 
-                if insert_idx == 0 or \
-                   (not initial_lsea_was_none and timestamp < self._last_synthetic_emitted_at):
+                if insert_idx == 0:
                     # Case 1: Change at the very beginning (new first keyframe).
-                    # Case 2: Out-of-order update before the last point we emitted.
                     self._last_synthetic_emitted_at = None
-                elif initial_lsea_was_none and len(self._keyframes) >= 2:
-                    # Case 3: We hadn't emitted anything (_LSEA was None), and now we have enough
-                    # keyframes to start. Keep _LSEA as None so worker emits first_kf_ts.
-                    # This handles the scenario where `is_new_insertion` might be False for the
-                    # final component of the second keyframe, but _LSEA was still None.
+                elif current_lsea is None:
+                    # Case 2: LSEA was None.
+                    if len(self._keyframes) >= 2: # And now we have enough points to interpolate. Ensure no trailing whitespace on line 240
+                        # Keep LSEA as None so worker emits first_kf_ts.
+                        self._last_synthetic_emitted_at = None
+                    # else: (len(_keyframes) < 2 and current_lsea is None and insert_idx != 0)
+                    # _last_synthetic_emitted_at remains None. No action needed.
+                elif timestamp < current_lsea: # current_lsea is not None here
+                    # Case 3: Out-of-order update before the last point we emitted.
                     self._last_synthetic_emitted_at = None
-                elif insert_idx > 0:
+                elif insert_idx > 0: # current_lsea is not None, and timestamp >= current_lsea
                     # Case 4: In-order update, or out-of-order but still after current emission point.
-                    # Reset to the keyframe prior to the change to force re-evaluation from there.
+                    # Reset to the keyframe prior to the change.
                     self._last_synthetic_emitted_at = self._keyframes[insert_idx - 1][0]
-                # Fall-through: If none of these specific reset conditions are met but
-                # should_reset_emission_point was true, _LSEA might not change.
-                # This could happen if e.g. the tensor value of the *last* keyframe changes,
-                # and _LSEA was already pointing to the one before it. No change needed to _LSEA.
-                # In this case, self._last_synthetic_emitted_at might not need to change,
-                # or if it does (e.g. an update to the keyframe it was based on),
-                # the current logic of resetting to [insert_idx-1][0] is generally fine.
-                # However, consider if the updated keyframe *was* _last_synthetic_emitted_at.
-                # If keyframe at self._last_synthetic_emitted_at is *updated*,
-                # insert_idx would point to it. Then _last_synthetic_emitted_at becomes keyframes[insert_idx-1][0].
-                # This is correct for re-evaluating from that point.
-
-                # If the list becomes very small (e.g. < 2 keyframes after deletions/cleanup not shown here),
-                # _last_synthetic_emitted_at = None might also be appropriate.
-                # Current logic assumes _cleanup_old_data in base class handles TensorDemuxer's states,
-                # and SmoothedTensorDemuxer might need its own keyframe cleanup eventually.
-                # For now, this reset logic is focused on reacting to new/updated data.
+                # Fall-through: current_lsea is not None, timestamp >= current_lsea, and insert_idx is 0.
+                # This case is covered by the first `if insert_idx == 0`.
+                # If no condition met (e.g. update to last keyframe, LSEA was already prior), LSEA doesn't change.
 
     async def on_update_received(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
     ) -> None:
+        """Handles raw tensor updates from the upstream provider.
+
+        This method overrides the base class method to simply pass through
+        the raw updates. The base `TensorDemuxer` will process these updates,
+        form keyframes, and then notify this `SmoothedTensorDemuxer` via the
+        `_BaseProcessorClient` adapter.
+
+        Args:
+            tensor_index: The index in the tensor that is being updated.
+            value: The new float value for the tensor element.
+            timestamp: The timestamp of this update.
+        """
         # This method is called by the ultimate upstream provider of raw updates.
         # It delegates to the TensorDemuxer base class, which will eventually call
         # our _BaseProcessorClient.on_tensor_changed with a "real" tensor.
         await super().on_update_received(tensor_index, value, timestamp)
 
     async def _interpolation_worker(self) -> None:
+        """The main background worker loop for generating interpolated tensors.
+
+        This loop periodically:
+        1. Checks if there are enough keyframes (at least 2) to perform interpolation.
+        2. Determines the timestamp for the next synthetic tensor based on
+           `_last_synthetic_emitted_at` and `_smoothing_period_seconds`.
+        3. If the next synthetic timestamp is within the range of known keyframes
+           and is genuinely after the last emitted point (or if it's the first point):
+            a. Finds the two keyframes that bracket the synthetic timestamp.
+            b. Performs linear interpolation between these two keyframes.
+            c. If the synthetic timestamp exactly matches a keyframe, that keyframe's
+               tensor is used directly.
+            d. Emits the resulting tensor to the `_actual_downstream_client`.
+            e. Updates `_last_synthetic_emitted_at`.
+        4. Sleeps for a short duration if work was done, or a longer duration
+           (a fraction of the smoothing period) if no work was done.
+
+        The loop continues until the task is cancelled (e.g., by the `close` method).
+        It includes error handling for `asyncio.CancelledError` (expected on shutdown)
+        and other unexpected exceptions.
+        """
         try:
             while True:
                 processed_in_iteration = False
@@ -206,6 +315,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                                     seconds=self._smoothing_period_seconds
                                 )
                             )
+
                         # R1731: Consider using 'next_synthetic_ts = max(next_synthetic_ts, first_kf_ts)'
                         next_synthetic_ts = max(next_synthetic_ts, first_kf_ts)
 
@@ -301,7 +411,9 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         except Exception as e: # pylint: disable=broad-except # Keep for worker resilience
             # W1203: Use lazy % formatting in logging functions
             logging.error(
-                "Unexpected error in interpolation worker: %s", e, exc_info=True
+                "Unexpected error in interpolation worker: %s",
+                e,
+                exc_info=True,
             )
             raise
 
@@ -323,7 +435,9 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                 logging.info("Interpolation loop task successfully cancelled.")
             except Exception as e: # pylint: disable=broad-except # Shutdown should be robust
                 # W1203: Use lazy % formatting in logging functions
-                logging.error("Error during interpolation task shutdown: %s", e)
+                logging.error(
+                    "Error during interpolation task shutdown: %s", e
+                )
         # If TensorDemuxer base class had an async close method:
         # if hasattr(super(), 'close') and asyncio.iscoroutinefunction(super().close):
         #     await super().close()
