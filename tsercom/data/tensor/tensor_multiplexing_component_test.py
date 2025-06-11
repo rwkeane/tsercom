@@ -359,3 +359,108 @@ async def test_data_timeout_e2e():
     task = asyncio.create_task(demuxer.on_update_received(0, 99.0, T_COMP_0))
     await asyncio.gather(task)
     assert await demuxer_client.get_tensor_at_ts(T_COMP_0) is None
+
+
+@pytest.mark.asyncio
+async def test_deep_cascade_on_early_update_e2e():
+    """
+    Tests that an update to an early tensor in a sequence correctly
+    cascades its effects through multiple subsequent tensors in both
+    the multiplexer (re-emitting diffs) and the demuxer (recalculating states).
+    """
+    tensor_length = 3
+    demuxer_client = DemuxerOutputHandler()
+    demuxer = TensorDemuxer(
+        client=demuxer_client,
+        tensor_length=tensor_length,
+        data_timeout_seconds=120,  # Sufficiently long timeout
+    )
+    demuxer_client.set_demuxer_instance(
+        demuxer
+    )  # Important for client to get actual state
+    multiplexer_client = MultiplexerOutputHandler(demuxer)
+    multiplexer = TensorMultiplexer(
+        client=multiplexer_client,
+        tensor_length=tensor_length,
+        data_timeout_seconds=120,
+    )
+
+    # Timestamps for clarity in this test
+    TS_A, TS_B, TS_C, TS_D = T_COMP_0, T_COMP_1, T_COMP_2, T_COMP_3
+
+    # Initial tensor values
+    tensor_A_v1 = torch.tensor([1.0, 1.0, 1.0])
+    tensor_B_v1 = torch.tensor([2.0, 2.0, 2.0])
+    tensor_C_v1 = torch.tensor([3.0, 3.0, 3.0])
+    tensor_D_v1 = torch.tensor([4.0, 4.0, 4.0])
+
+    # 1. Process initial tensors sequentially
+    await multiplexer.process_tensor(tensor_A_v1, TS_A)
+    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_A
+
+    await multiplexer.process_tensor(tensor_B_v1, TS_B)
+    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_B
+
+    await multiplexer.process_tensor(tensor_C_v1, TS_C)
+    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_C
+
+    await multiplexer.process_tensor(tensor_D_v1, TS_D)
+    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_D
+
+    # Verify initial states in Demuxer
+    assert torch.equal(
+        await demuxer_client.get_tensor_at_ts(TS_A), tensor_A_v1
+    ), "Initial TS_A failed"
+    assert torch.equal(
+        await demuxer_client.get_tensor_at_ts(TS_B), tensor_B_v1
+    ), "Initial TS_B failed"
+    assert torch.equal(
+        await demuxer_client.get_tensor_at_ts(TS_C), tensor_C_v1
+    ), "Initial TS_C failed"
+    assert torch.equal(
+        await demuxer_client.get_tensor_at_ts(TS_D), tensor_D_v1
+    ), "Initial TS_D failed"
+
+    # 2. Update tensor_A (triggering cascade)
+    tensor_A_v2 = torch.tensor([1.0, 5.0, 1.0])  # Changed value from [1,1,1]
+    await multiplexer.process_tensor(tensor_A_v2, TS_A)
+    await multiplexer_client.flush_tasks()  # Ensure all cascaded updates are processed by Demuxer
+
+    # 3. Verification of final states in Demuxer
+    final_A = await demuxer_client.get_tensor_at_ts(TS_A)
+    final_B = await demuxer_client.get_tensor_at_ts(TS_B)
+    final_C = await demuxer_client.get_tensor_at_ts(TS_C)
+    final_D = await demuxer_client.get_tensor_at_ts(TS_D)
+
+    assert final_A is not None, "Final TS_A is None"
+    assert torch.equal(
+        final_A, tensor_A_v2
+    ), f"Final TS_A mismatch. Expected {tensor_A_v2}, Got {final_A}"
+
+    # The cascade logic in TensorMultiplexer re-emits diffs.
+    # TensorDemuxer's cascade logic applies these diffs to the *new* preceding state.
+    # If tensor_A changes from [1,1,1] to [1,5,1]:
+    # - Mux emits diff for A_v2 vs 0.
+    # - Mux then emits diff for B_v1 vs A_v2.
+    # - Mux then emits diff for C_v1 vs B_v1 (which was based on A_v2).
+    # - Mux then emits diff for D_v1 vs C_v1 (which was based on B_v1, based on A_v2).
+    # Demuxer gets these updates:
+    # - Demuxer processes A_v2. Stores A_v2.
+    # - Demuxer processes updates for B_v1 based on A_v2. The *values* of B_v1 ([2,2,2]) are absolute.
+    #   So, if B_v1 = [2,2,2] and its new predecessor A_v2 is [1,5,1], the diffs sent by Mux are for B_v1 vs A_v2.
+    #   Demuxer takes A_v2 state, applies diffs, should result in B_v1.
+    # This means B, C, D should remain their original values if the cascade is perfect.
+    assert final_B is not None, "Final TS_B is None"
+    assert torch.equal(
+        final_B, tensor_B_v1
+    ), f"Final TS_B mismatch. Expected {tensor_B_v1}, Got {final_B}"
+
+    assert final_C is not None, "Final TS_C is None"
+    assert torch.equal(
+        final_C, tensor_C_v1
+    ), f"Final TS_C mismatch. Expected {tensor_C_v1}, Got {final_C}"
+
+    assert final_D is not None, "Final TS_D is None"
+    assert torch.equal(
+        final_D, tensor_D_v1
+    ), f"Final TS_D mismatch. Expected {tensor_D_v1}, Got {final_D}"
