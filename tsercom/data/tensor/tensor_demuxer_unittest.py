@@ -1,6 +1,7 @@
 import datetime
 import torch
-import pytest  # Using pytest conventions
+import pytest
+import pytest_asyncio  # Using pytest conventions
 from typing import List, Tuple  # For type hints
 
 from tsercom.data.tensor.tensor_demuxer import TensorDemuxer  # Absolute import
@@ -47,27 +48,27 @@ class MockTensorDemuxerClient(TensorDemuxer.Client):
         return [(t.tolist(), ts) for t, ts in self.calls]
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_client() -> MockTensorDemuxerClient:
     return MockTensorDemuxerClient()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def demuxer(
     mock_client: MockTensorDemuxerClient,
 ) -> Tuple[TensorDemuxer, MockTensorDemuxerClient]:
-    actual_mock_client = await mock_client
+    actual_mock_client = mock_client
     demuxer_instance = TensorDemuxer(
         client=actual_mock_client, tensor_length=4, data_timeout_seconds=60.0
     )
     return demuxer_instance, actual_mock_client
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def demuxer_short_timeout(
     mock_client: MockTensorDemuxerClient,
 ) -> Tuple[TensorDemuxer, MockTensorDemuxerClient]:
-    actual_mock_client = await mock_client
+    actual_mock_client = mock_client
     demuxer_instance = TensorDemuxer(
         client=actual_mock_client, tensor_length=4, data_timeout_seconds=0.1
     )
@@ -100,7 +101,7 @@ def test_constructor_validations():
 async def test_first_update(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    d, mc = await demuxer
+    d, mc = demuxer
     await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
 
     assert mc.call_count == 1
@@ -117,7 +118,7 @@ async def test_first_update(
 async def test_sequential_updates_same_timestamp(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    d, mc = await demuxer
+    d, mc = demuxer
     await d.on_update_received(tensor_index=1, value=10.0, timestamp=T1_std)
     await d.on_update_received(tensor_index=3, value=40.0, timestamp=T1_std)
 
@@ -139,7 +140,7 @@ async def test_sequential_updates_same_timestamp(
 async def test_updates_different_timestamps(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    d, mc = await demuxer
+    d, mc = demuxer
     await d.on_update_received(
         tensor_index=0, value=5.0, timestamp=T1_std  # tensor_length = 4
     )
@@ -179,7 +180,7 @@ async def test_state_propagation_on_new_sequential_timestamp(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
     """Explicitly tests user's scenario for state propagation to a new sequential timestamp."""
-    d, mc = await demuxer  # tensor_length is 4 from fixture
+    d, mc = demuxer  # tensor_length is 4 from fixture
 
     # Step 1 & 2: Establish a baseline state at Timestamp T1
     await d.on_update_received(tensor_index=1, value=50.0, timestamp=T1_std)
@@ -230,7 +231,7 @@ async def test_state_propagation_on_new_sequential_timestamp(
 async def test_out_of_order_scenario_from_prompt(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    d, mc = await demuxer
+    d, mc = demuxer
 
     # Helper to check if timestamp is in the list of tuples
     def _is_ts_present(states_list, target_ts):
@@ -315,7 +316,7 @@ async def test_complex_out_of_order_state_inheritance(
     Tests the user-provided complex out-of-order scenario.
     T1 < TS2 < TS3 < TS4 (using TS1, TS2, TS3, TS4)
     """
-    d, mc = await demuxer
+    d, mc = demuxer
 
     # Step 1: Establish baseline state at TS1 = [1, 2, 3, 4]
     await d.on_update_received(0, 1.0, TS1)
@@ -395,7 +396,7 @@ async def test_complex_out_of_order_state_inheritance(
 async def test_data_timeout(
     demuxer_short_timeout: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    dmx_instance, mc = await demuxer_short_timeout
+    dmx_instance, mc = demuxer_short_timeout
 
     await dmx_instance.on_update_received(
         tensor_index=0, value=1.0, timestamp=T0_std
@@ -431,7 +432,7 @@ async def test_data_timeout(
 async def test_index_out_of_bounds(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    d, mc = await demuxer
+    d, mc = demuxer
 
     def _is_ts_present(states_list, target_ts):
         return any(ts == target_ts for ts, _ in states_list)
@@ -449,7 +450,7 @@ async def test_index_out_of_bounds(
 async def test_update_no_value_change(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    d, mc = await demuxer
+    d, mc = demuxer
     await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
     assert mc.call_count == 1
 
@@ -467,7 +468,7 @@ async def test_update_no_value_change(
 async def test_timeout_behavior_cleanup_order(
     demuxer_short_timeout: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    dmx_instance, mc = await demuxer_short_timeout
+    dmx_instance, mc = demuxer_short_timeout
 
     await dmx_instance.on_update_received(0, 1.0, T1_std)
 
@@ -497,7 +498,7 @@ async def test_timeout_behavior_cleanup_order(
 async def test_get_tensor_at_timestamp(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    d, mc = await demuxer
+    d, mc = demuxer
     tensor_t1_data = torch.tensor([1.0, 2.0, 3.0, 4.0])
     tensor_t2_data = torch.tensor([5.0, 6.0, 7.0, 8.0])
 
