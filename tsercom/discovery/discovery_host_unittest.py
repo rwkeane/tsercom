@@ -342,13 +342,13 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
         actual_self: ActualInstanceListener[ServiceInfo],
         client: ActualInstanceListener.Client,
         service_type: str,
-        mdns_listener_factory_arg: typing.Optional[MdnsListenerFactory] = None,
+        mdns_listener_factory: typing.Optional[MdnsListenerFactory] = None,
     ) -> None:
         original_instance_listener_init(
             actual_self,
             client,
             service_type,
-            mdns_listener_factory=mdns_listener_factory_arg,
+            mdns_listener_factory=mdns_listener_factory,
         )
         created_instance_holder["instance"] = actual_self
 
