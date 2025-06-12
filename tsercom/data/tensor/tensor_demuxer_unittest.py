@@ -100,7 +100,9 @@ async def test_first_update(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
     # d, mc = await demuxer # This was the previous error source for tests
-    d, mc = demuxer # Corrected: demuxer fixture itself is awaited by pytest-asyncio
+    d, mc = (
+        demuxer  # Corrected: demuxer fixture itself is awaited by pytest-asyncio
+    )
     await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
 
     assert mc.call_count == 1
