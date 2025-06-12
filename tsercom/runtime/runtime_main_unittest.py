@@ -74,7 +74,7 @@ class TestInitializeRuntimes:
         )
 
         mock_runtime_instance = mocker.Mock(spec=Runtime)
-        mock_runtime_instance.start_async = mocker.Mock(
+        mock_runtime_instance.start_async = mocker.AsyncMock(
             name="start_async_method"
         )
         mock_client_factory.create.return_value = mock_runtime_instance
@@ -183,7 +183,7 @@ class TestInitializeRuntimes:
         )
 
         mock_runtime_instance = mocker.Mock(spec=Runtime)
-        mock_runtime_instance.start_async = mocker.Mock(
+        mock_runtime_instance.start_async = mocker.AsyncMock(
             name="start_async_method"
         )
         mock_server_factory.create.return_value = mock_runtime_instance
@@ -290,7 +290,7 @@ class TestInitializeRuntimes:
             mock_client_event_poller_actual_instance_multi
         )
         mock_client_runtime = mocker.Mock(spec=Runtime, name="client_runtime")
-        mock_client_runtime.start_async = mocker.Mock(
+        mock_client_runtime.start_async = mocker.AsyncMock(
             name="client_start_async"
         )
         mock_client_factory.create.return_value = mock_client_runtime
@@ -312,7 +312,7 @@ class TestInitializeRuntimes:
             mock_server_event_poller_actual_instance_multi
         )
         mock_server_runtime = mocker.Mock(spec=Runtime, name="server_runtime")
-        mock_server_runtime.start_async = mocker.Mock(
+        mock_server_runtime.start_async = mocker.AsyncMock(
             name="server_start_async"
         )
         mock_server_factory.create.return_value = mock_server_runtime
