@@ -190,6 +190,8 @@ def clear_loop_fixture():
 
 # New classes for broadcast test
 class BroadcastTestFakeRuntime(Runtime):
+    __test__ = False  # Tell pytest this is not a test class
+
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -285,6 +287,8 @@ class BroadcastTestFakeRuntime(Runtime):
 class BroadcastTestFakeRuntimeInitializer(
     RuntimeInitializer[FakeData, FakeEvent]
 ):
+    __test__ = False  # Tell pytest this is not a test class
+
     def __init__(
         self, initial_caller_ids: list[CallerIdentifier], service_type="Server"
     ):
