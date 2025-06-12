@@ -37,6 +37,8 @@ from tsercom.runtime.id_tracker import IdTracker
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.aio.async_poller import AsyncPoller
+from tsercom.threading.thread_watcher import ThreadWatcher
+import concurrent.futures
 from tsercom.timesync.common.proto import ServerTimestamp
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.common.synchronized_timestamp import (
@@ -82,6 +84,7 @@ class RuntimeDataHandlerBase(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        thread_watcher: ThreadWatcher,
         min_send_frequency_seconds: float | None = None,
     ):
         """Initializes the RuntimeDataHandlerBase.
@@ -98,6 +101,7 @@ class RuntimeDataHandlerBase(
                 polling frequency of `AsyncPoller` is used.
         """
         super().__init__()
+        self._thread_watcher: ThreadWatcher = thread_watcher
         self.__data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]] = (
             data_reader
         )
@@ -119,7 +123,18 @@ class RuntimeDataHandlerBase(
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
-        run_on_event_loop(self.__dispatch_poller_data_loop)
+            # Store the future returned by run_on_event_loop
+            future = run_on_event_loop(self.__dispatch_poller_data_loop)
+
+            # Define a callback to handle the future's completion
+            def _poller_loop_done_callback(f: concurrent.futures.Future[Any]):
+                if not f.cancelled():
+                    exc = f.exception()
+                    if exc:
+                        # pylint: disable=protected-access # Accessing protected member
+                        self._thread_watcher.on_exception_seen(exc)
+
+            future.add_done_callback(_poller_loop_done_callback)
 
     @property
     def _id_tracker(

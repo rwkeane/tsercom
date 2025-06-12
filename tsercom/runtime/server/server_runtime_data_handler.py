@@ -19,6 +19,7 @@ from tsercom.data.serializable_annotated_instance import (
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.threading.aio.async_poller import AsyncPoller
+from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
@@ -51,6 +52,7 @@ class ServerRuntimeDataHandler(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        thread_watcher: ThreadWatcher,
         min_send_frequency_seconds: Optional[float] = None,
         *,
         is_testing: bool = False,
@@ -69,7 +71,9 @@ class ServerRuntimeDataHandler(
                 source. Otherwise, a `TimeSyncServer` is started to provide
                 time synchronization to clients.
         """
-        super().__init__(data_reader, event_source, min_send_frequency_seconds)
+        super().__init__(
+            data_reader, event_source, thread_watcher, min_send_frequency_seconds
+        )
 
         self.__clock: SynchronizedClock
         self.__server: Optional[TimeSyncServer] = (

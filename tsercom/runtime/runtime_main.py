@@ -137,6 +137,7 @@ def initialize_runtimes(
                     initializer_factory.min_send_frequency_seconds
                 ),
                 is_testing=is_testing,
+                thread_watcher=thread_watcher,
             )
         else:
             # This case should ideally be prevented by RuntimeFactory design.

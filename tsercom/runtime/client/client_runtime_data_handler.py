@@ -78,7 +78,9 @@ class ClientRuntimeDataHandler(
                 `TimeSyncTracker` to use test-specific behaviors (e.g.,
                 a fake time synchronization mechanism).
         """
-        super().__init__(data_reader, event_source, min_send_frequency_seconds)
+        super().__init__(
+            data_reader, event_source, thread_watcher, min_send_frequency_seconds
+        )
 
         self.__clock_tracker: TimeSyncTracker = TimeSyncTracker(
             thread_watcher, is_testing=is_testing
