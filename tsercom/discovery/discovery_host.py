@@ -95,19 +95,20 @@ class DiscoveryHost(
             ValueError: If neither or both args provided.
         """
         # Ensure exclusive provision of service_type or factory
-        if (service_type is None) == (instance_listener_factory is None):
-            # Long error message
-            raise ValueError(
-                "Exactly one of 'service_type' or 'instance_listener_factory' must be provided."
-            )
-        if (instance_listener_factory is not None) and (
-            mdns_listener_factory is not None
-        ):
-            # Long error message
-            raise ValueError(
-                "'instance_listener_factory' and 'mdns_listener_factory' cannot both be set."
-            )
+        # Corrected validation: Exactly one configuration method must be provided.
+        num_modes_selected = sum(
+            [
+                bool(service_type),
+                bool(instance_listener_factory),
+                bool(mdns_listener_factory),
+            ]
+        )
 
+        if num_modes_selected != 1:
+            raise ValueError(
+                "Exactly one of 'service_type', 'instance_listener_factory', "
+                "or 'mdns_listener_factory' must be provided."
+            )
         self.__instance_listener_factory: Callable[
             [InstanceListener.Client],
             InstanceListener[ServiceInfoT],
@@ -115,14 +116,20 @@ class DiscoveryHost(
         if instance_listener_factory is not None:
             self.__instance_listener_factory = instance_listener_factory
         else:
-            assert service_type is not None
 
             def instance_factory(
                 client: InstanceListener.Client,
             ) -> InstanceListener[ServiceInfoT]:
+                # If service_type was not provided during __init__ (e.g. using mdns_listener_factory mode),
+                # provide a default service_type for the InstanceListener, as it requires a string.
+                effective_service_type = (
+                    service_type
+                    if service_type is not None
+                    else "_internal_default._tcp.local."
+                )
                 return InstanceListener[ServiceInfoT](
                     client,
-                    service_type,
+                    effective_service_type,
                     mdns_listener_factory=mdns_listener_factory,
                 )
 
