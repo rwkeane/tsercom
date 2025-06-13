@@ -3,23 +3,20 @@ from tsercom.rpc.serialization.caller_id_extraction import (
     extract_id_from_first_call,  # noqa: F401
 )
 
-al = [
-    "extract_id_from_call",
-    "extract_id_from_first_call",
-]
-
-import subprocess  # noqa: E402
-
 try:
-    import grpc
+    import torch  # noqa: F401
 
-    version = grpc.__version__
-    major_minor_version = ".".join(version.split(".")[:2])
+    from tsercom.rpc.serialization.serializable_tensor import (
+        SerializableTensor,
+    )  # noqa: F401
 
-    al += [
+    __all__ = [
         "SerializableTensor",
+        "extract_id_from_call",
+        "extract_id_from_first_call",
     ]
-except (AttributeError, subprocess.CalledProcessError, FileNotFoundError):
-    pass
-
-__all__ = al
+except Exception:
+    __all__ = [
+        "extract_id_from_call",
+        "extract_id_from_first_call",
+    ]
