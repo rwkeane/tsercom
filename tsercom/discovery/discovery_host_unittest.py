@@ -137,7 +137,10 @@ async def test_on_service_added_new_service(
     mock_ss_client._on_service_added.assert_awaited_once_with(
         service_info, expected_random_id_instance
     )
-    assert host._DiscoveryHost__caller_id_map[service_info.mdns_name] is expected_random_id_instance  # type: ignore[attr-defined]
+    assert (
+        host._DiscoveryHost__caller_id_map[service_info.mdns_name]
+        is expected_random_id_instance
+    )  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -166,7 +169,10 @@ async def test_on_service_added_existing_service(
     mock_ss_client._on_service_added.assert_awaited_once_with(
         service_info_updated, pre_existing_id
     )
-    assert host._DiscoveryHost__caller_id_map[existing_mdns_name] is pre_existing_id  # type: ignore[attr-defined]
+    assert (
+        host._DiscoveryHost__caller_id_map[existing_mdns_name]
+        is pre_existing_id
+    )  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -189,7 +195,7 @@ async def test_on_service_added_no_client() -> None:
 def test_init_with_both_service_type_and_factory(mocker: Mock) -> None:
     with pytest.raises(
         ValueError,
-        match="Exactly one of 'service_type' or 'instance_listener_factory' must be provided.",
+        match="Exactly one of 'service_type', 'instance_listener_factory', or 'mdns_listener_factory' must be provided.",
     ):
         ExpectedInstanceListenerFactory = typing.Callable[
             [ActualInstanceListener.Client],
@@ -206,7 +212,7 @@ def test_init_with_both_service_type_and_factory(mocker: Mock) -> None:
 def test_init_with_neither_service_type_nor_factory() -> None:
     with pytest.raises(
         ValueError,
-        match="Exactly one of 'service_type' or 'instance_listener_factory' must be provided.",
+        match="Exactly one of 'service_type', 'instance_listener_factory', or 'mdns_listener_factory' must be provided.",
     ):
         DiscoveryHost[ServiceInfo]()  # type: ignore[call-overload]
 
@@ -276,7 +282,10 @@ async def test_on_service_added_new_service_whitebox(
     mock_client_internal._on_service_added.assert_awaited_once_with(
         mock_service_info, expected_caller_id
     )
-    assert host._DiscoveryHost__caller_id_map[mock_service_info.mdns_name] is expected_caller_id  # type: ignore[attr-defined]
+    assert (
+        host._DiscoveryHost__caller_id_map[mock_service_info.mdns_name]
+        is expected_caller_id
+    )  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -310,7 +319,10 @@ async def test_on_service_added_existing_service_whitebox(
     mock_client_internal._on_service_added.assert_awaited_once_with(
         mock_service_info, mock_existing_caller_id
     )
-    assert host._DiscoveryHost__caller_id_map[mock_service_info.mdns_name] is mock_existing_caller_id  # type: ignore[attr-defined]
+    assert (
+        host._DiscoveryHost__caller_id_map[mock_service_info.mdns_name]
+        is mock_existing_caller_id
+    )  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -325,7 +337,7 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
     mock_mdns_factory: Mock = mocker.Mock(return_value=mock_listener_product)
 
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
-        service_type="test.service",
+        service_type=None,  # Changed: Use mdns_listener_factory as the sole configuration
         mdns_listener_factory=typing.cast(
             MdnsListenerFactory, mock_mdns_factory
         ),
@@ -362,17 +374,22 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
         mock_il_init.assert_called_once()
         call_args = mock_il_init.call_args
         assert call_args.args[1] is host
-        assert call_args.args[2] == "test.service"
+        assert call_args.args[2] == "_internal_default._tcp.local."
         assert call_args.kwargs["mdns_listener_factory"] is mock_mdns_factory
 
         mock_mdns_factory.assert_called_once()
         assert mock_mdns_factory.call_args.args[
             0
         ] is created_instance_holder.get("instance")
-        assert mock_mdns_factory.call_args.args[1] == "test.service"
+        assert (
+            mock_mdns_factory.call_args.args[1]
+            == "_internal_default._tcp.local."
+        )
 
         mock_listener_product.start.assert_called_once()
-        assert host._DiscoveryHost__discoverer is created_instance_holder.get("instance")  # type: ignore[attr-defined]
+        assert host._DiscoveryHost__discoverer is created_instance_holder.get(
+            "instance"
+        )  # type: ignore[attr-defined]
         assert host._DiscoveryHost__discoverer is not None  # type: ignore[attr-defined]
 
 
@@ -386,7 +403,7 @@ async def test_discovery_host_handles_mdns_factory_exception_gracefully(
     )
 
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
-        service_type="test.service.fail.factory",
+        service_type=None,  # Changed: Use mdns_listener_factory as the sole configuration
         mdns_listener_factory=typing.cast(
             MdnsListenerFactory, mock_failing_mdns_factory
         ),
@@ -397,7 +414,7 @@ async def test_discovery_host_handles_mdns_factory_exception_gracefully(
         mock_failing_mdns_factory.assert_called_once()
         assert (
             mock_failing_mdns_factory.call_args.args[1]
-            == "test.service.fail.factory"
+            == "_internal_default._tcp.local."
         )
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
@@ -423,7 +440,7 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
     )
 
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
-        service_type="test.service.fail.start",
+        service_type=None,  # Changed: Use mdns_listener_factory as the sole configuration
         mdns_listener_factory=typing.cast(
             MdnsListenerFactory, mock_mdns_factory_arg
         ),
@@ -434,7 +451,7 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
         mock_mdns_factory_arg.assert_called_once()
         assert (
             mock_mdns_factory_arg.call_args.args[1]
-            == "test.service.fail.start"
+            == "_internal_default._tcp.local."
         )
         mock_listener_product_failing_start.start.assert_called_once()
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
@@ -442,4 +459,51 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
         assert (
             "Failed to initialize discovery listener: Listener start boom!"
             in mock_log_error.call_args.args[0]
+        )
+
+
+# Note: MdnsListenerFactory and DiscoveryHost should already be imported in the target file.
+# If not, ruff/black might help, or they need to be added manually if this causes issues.
+
+
+def test_discovery_host_init_with_only_mdns_factory(mocker):
+    """
+    Tests that DiscoveryHost can be initialized with only an mdns_listener_factory.
+    This scenario (service_type=None, instance_listener_factory=None, mdns_listener_factory=mock)
+    was causing a ValueError due to the boolean check.
+    """
+    # mocker fixture is used to create mock objects
+    from tsercom.discovery.mdns.instance_listener import (
+        MdnsListenerFactory,
+    )  # Explicit import for clarity
+    from tsercom.discovery.discovery_host import (
+        DiscoveryHost,
+    )  # Explicit import for clarity
+
+    mock_mdns_listener_factory = mocker.MagicMock(spec=MdnsListenerFactory)
+
+    try:
+        # Explicitly pass None for the other two main factory/type args
+        host = DiscoveryHost(
+            service_type=None,
+            instance_listener_factory=None,
+            mdns_listener_factory=mock_mdns_listener_factory,
+        )
+        # If we reach here, the ValueError was not raised, which is the primary point.
+        assert host is not None
+
+        # Further checks for internal consistency:
+        # The `_DiscoveryHost__instance_listener_factory` should be the *generated*
+        # internal factory, not a directly passed `instance_listener_factory`.
+        assert callable(host._DiscoveryHost__instance_listener_factory)
+        # This internal factory should be the one named 'instance_factory' inside __init__
+        assert (
+            host._DiscoveryHost__instance_listener_factory.__name__
+            == "instance_factory"
+        )
+
+    except ValueError as e:
+        pytest.fail(
+            "DiscoveryHost raised an unexpected ValueError when initialized "
+            f"only with mdns_listener_factory (service_type=None, instance_listener_factory=None): {e}"
         )
