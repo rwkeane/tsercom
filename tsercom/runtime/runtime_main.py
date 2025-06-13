@@ -48,9 +48,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-from tsercom.runtime.event_poller_adapter import (
-    EventToSerializableAnnInstancePollerAdapter,
-)
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 
 logger = logging.getLogger(__name__)
@@ -107,23 +104,22 @@ def initialize_runtimes(
         # pylint: disable=protected-access # Accessing factory internals for setup
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
-        # pylint: enable=protected-access
 
         auth_config = initializer_factory.auth_config
         channel_factory = channel_factory_selector.create_factory(auth_config)
 
-        # Adapt the raw event poller from the factory to one that yields
-        # SerializableAnnotatedInstance, as expected by data handlers.
-        adapted_event_poller = EventToSerializableAnnInstancePollerAdapter(
-            event_poller
-        )
+        # The event poller from the factory should now be directly compatible
+        # with RuntimeDataHandlerBase, which expects AsyncPoller[EventInstance[EventTypeT]].
+        # The conversion to SerializableAnnotatedInstance is handled within _DataProcessorImpl.
+        #     event_poller
+        # )
 
         data_handler: RuntimeDataHandler[Any, Any]
         if initializer_factory.is_client():
             data_handler = ClientRuntimeDataHandler(
                 thread_watcher=thread_watcher,
                 data_reader=data_reader,
-                event_source=adapted_event_poller,
+                event_source=event_poller,  # Use the original event_poller
                 min_send_frequency_seconds=(
                     initializer_factory.min_send_frequency_seconds
                 ),
@@ -132,7 +128,7 @@ def initialize_runtimes(
         elif initializer_factory.is_server():
             data_handler = ServerRuntimeDataHandler(
                 data_reader=data_reader,
-                event_source=adapted_event_poller,
+                event_source=event_poller,  # Use the original event_poller
                 min_send_frequency_seconds=(
                     initializer_factory.min_send_frequency_seconds
                 ),
@@ -151,10 +147,8 @@ def initialize_runtimes(
         )
         created_runtimes.append(runtime_instance)
 
-    # Schedule the start_async method for all created runtimes.
     for runtime in created_runtimes:
         active_loop = get_global_event_loop()
-        # runtime.start_async() is a coroutine that needs to be run.
         future: concurrent.futures.Future[Any] = run_on_event_loop(
             runtime.start_async, event_loop=active_loop
         )
@@ -220,13 +214,11 @@ def remote_process_main(
         is_testing: If True, configures components (passed to
             `initialize_runtimes`) for testing-specific behaviors.
     """
-    # Ensure a clean slate for the event loop in the new process.
     clear_tsercom_event_loop(
         try_stop_loop=False
     )  # try_stop_loop=False as no loop should be running yet.
 
     thread_watcher = ThreadWatcher()
-    # Create and set the global event loop for this process.
     create_tsercom_event_loop_from_watcher(thread_watcher)
 
     # Error sink to report exceptions from this process to the parent.
@@ -263,7 +255,6 @@ def remote_process_main(
 
     logger.info("Remote process cleanup complete.")
 
-    # Wait for all stop calls to return or time out.
     try:
         asyncs_task.result()
     except Exception as e:  # pylint: disable=broad-exception-caught

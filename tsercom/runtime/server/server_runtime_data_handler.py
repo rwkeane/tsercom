@@ -13,9 +13,7 @@ from typing import Generic, Optional, TypeVar
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.data.serializable_annotated_instance import (
-    SerializableAnnotatedInstance,
-)
+from tsercom.data.event_instance import EventInstance
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.threading.aio.async_poller import AsyncPoller
@@ -50,7 +48,7 @@ class ServerRuntimeDataHandler(
     def __init__(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
-        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        event_source: AsyncPoller[EventInstance[EventTypeT]],
         min_send_frequency_seconds: Optional[float] = None,
         *,
         is_testing: bool = False,
@@ -106,7 +104,6 @@ class ServerRuntimeDataHandler(
             with the registered client caller, using the server\'s authoritative clock.
         """
         self._id_tracker.add(caller_id, endpoint, port)
-        # Server uses its own clock as the source of truth for clients.
         return self._create_data_processor(caller_id, self.__clock)
 
     async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
@@ -124,8 +121,5 @@ class ServerRuntimeDataHandler(
         Returns:
             False, indicating the caller is not actively removed by this method.
         """
-        # Server-side might not remove IDs immediately to allow for re-connections
-        # or for other tracking purposes. Current behavior is no-op.
         # To fully remove, one might call:
-        # return self._id_tracker.remove(caller_id)
         return False

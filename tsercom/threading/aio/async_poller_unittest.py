@@ -219,8 +219,12 @@ class TestAsyncPollerWaitInstanceStopped:
         """Test wait_instance raises RuntimeError if poller is already stopped."""
         poller = AsyncPoller[str]()
         poller._AsyncPoller__event_loop = asyncio.get_running_loop()
+        # Simulate stop AFTER on_available but BEFORE first wait_instance
         poller._AsyncPoller__is_loop_running.set(False)
+        # Ensure barrier is also set as stop() would do if loop was known
+        poller._AsyncPoller__barrier.set()  # stop() would set this if loop known
 
+        # Poller is stopped and presumed empty, should raise RuntimeError immediately
         with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
             await poller.wait_instance()
 
@@ -252,8 +256,16 @@ class TestAsyncPollerWaitInstanceStopped:
         poller.on_available("test_data_should_not_be_retrieved")
 
         poller._AsyncPoller__event_loop = asyncio.get_running_loop()
-        poller._AsyncPoller__is_loop_running.set(False)
+        poller._AsyncPoller__is_loop_running.set(False)  # Poller is stopped
+        # Ensure barrier is also set as stop() would do if loop was known
+        poller._AsyncPoller__barrier.set()
 
+        # First call should now return the data due to the drain-on-stop logic
+        results = await poller.wait_instance()
+        assert results == ["test_data_should_not_be_retrieved"]
+        assert len(poller) == 0
+
+        # Subsequent calls should raise RuntimeError
         with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
             await poller.wait_instance()
 
@@ -265,11 +277,17 @@ class TestAsyncPollerWaitInstanceStopped:
         poller.on_available("some_data")
 
         poller._AsyncPoller__is_loop_running.set(False)
+        # Ensure barrier is also set as stop() would do
+        poller._AsyncPoller__barrier.set()
 
+        # First call should now return the data
+        results = await poller.wait_instance()
+        assert results == ["some_data"]
+        assert len(poller) == 0  # Item should be consumed
+
+        # Subsequent calls should raise RuntimeError
         with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
             await poller.wait_instance()
-
-        assert len(poller._AsyncPoller__responses) == 1
 
     async def test_multiple_wait_calls_on_stopped_poller(self):
         """Ensure subsequent calls to wait_instance on a stopped poller also raise."""
@@ -293,14 +311,25 @@ class TestAsyncPollerWaitInstanceStopped:
 
         assert poller._AsyncPoller__event_loop is not None
         poller._AsyncPoller__is_loop_running.set(False)
-        poller._AsyncPoller__barrier.set()
+        poller._AsyncPoller__barrier.set()  # Simulate stop() setting the barrier
 
+        # This call should still raise RuntimeError as no new data was added before stop
+        # and the previous data was consumed. Or, if the barrier being set by stop
+        # could be misconstrued as new data if responses is empty, this might need thought.
+        # The current drain logic: if stopped and responses empty, it raises.
         with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
             await poller.wait_instance()
 
-        poller.on_available("data2")
+        poller.on_available(
+            "data2"
+        )  # Item added after poller is logically stopped
+        # but before a wait_instance call that would consume it.
+
+        # The next call to wait_instance should retrieve "data2" due to drain-on-stop logic
+        results2 = await poller.wait_instance()
+        assert results2 == ["data2"]
+        assert len(poller) == 0
+
+        # And now, subsequent calls should fail as it's stopped and empty.
         with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
             await poller.wait_instance()
-
-        assert len(poller._AsyncPoller__responses) == 1
-        assert poller._AsyncPoller__responses[0] == "data2"

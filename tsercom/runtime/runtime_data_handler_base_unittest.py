@@ -8,6 +8,7 @@ from tsercom.threading.aio.global_event_loop import (
     is_global_event_loop_set,
 )
 import grpc.aio  # For ServicerContext
+import uuid  # Added for UUID object creation
 
 from typing import (
     Optional,
@@ -43,10 +44,20 @@ import grpc  # For grpc.StatusCode
 from grpc.aio import ServicerContext
 
 
+from datetime import timezone  # datetime was already imported
+from unittest.mock import AsyncMock, MagicMock, patch  # Added
+from tsercom.data.event_instance import EventInstance  # Added
+from tsercom.timesync.common.fake_synchronized_clock import (
+    FakeSynchronizedClock,
+)  # Added
+
+# SerializableAnnotatedInstance, CallerIdentifier, AsyncPoller, SynchronizedTimestamp, RuntimeDataHandlerBase
+# were already imported or their modules were. Let's ensure specific classes are available.
+
+
 DataType = TypeVar("DataType")
 
 
-# Helper class for mocking async iterators in tests
 class MockAsyncIterator(
     AsyncIterator[List[Any]]
 ):  # Type with List[Any] for batches
@@ -65,7 +76,6 @@ class MockAsyncIterator(
             raise StopAsyncIteration
 
 
-# Test Subclass of RuntimeDataHandlerBase
 class TestableRuntimeDataHandler(RuntimeDataHandlerBase[DataType, Any]):
     __test__ = False
 
@@ -136,7 +146,6 @@ class TestRuntimeDataHandlerBaseBehavior:
             ):
                 if loop.is_running():  # pragma: no cover
                     loop.call_soon_threadsafe(loop.stop)
-                # loop.close() # Avoid closing if it might be pytest-asyncio's
 
     @pytest.fixture
     def mock_data_reader(self, mocker):
@@ -207,7 +216,6 @@ class TestRuntimeDataHandlerBaseBehavior:
             test_caller_id_instance, mock_sync_clock
         )
 
-    # --- Tests for RuntimeDataHandlerBase direct methods ---
     def test_constructor(self, handler, mock_data_reader, mock_event_source):
         assert handler._RuntimeDataHandlerBase__data_reader is mock_data_reader  # type: ignore
         assert handler._RuntimeDataHandlerBase__event_source is mock_event_source  # type: ignore
@@ -227,16 +235,11 @@ class TestRuntimeDataHandlerBaseBehavior:
         async for item_batch in handler:
             collected_items.extend(item_batch)  # Assuming items are in a list
         assert collected_items == [item1, item2]
-        # __anext__ is called for each item + one more for StopAsyncIteration
         assert mock_event_source.__anext__.call_count == 3
         # The handler's __aiter__ is called, which then uses the event_source.
-        # Direct check on mock_event_source.__aiter__ might be tricky if handler is the primary iterator.
         # The important part is that __anext__ on the source was called as expected.
         # If handler.__aiter__ simply returns self.__event_source, then __aiter__ on event_source would be called.
         # RuntimeDataHandlerBase.__aiter__ returns self.
-        # RuntimeDataHandlerBase.__anext__ calls self.__event_source.__anext__().
-        # So, mock_event_source.__aiter__ is NOT called by `async for item_batch in handler`.
-        # The assertion mock_event_source.__aiter__.assert_called_once() is incorrect.
         # We are asserting the behavior of handler as an async iterator.
 
     def test_check_for_caller_id(self, handler, mock_caller_id):
@@ -262,7 +265,6 @@ class TestRuntimeDataHandlerBaseBehavior:
             mock_annotated_instance
         )
 
-    # --- Tests for _RuntimeDataHandlerBase__DataProcessorImpl (inner class) ---
     # These tests use the data_processor fixture
 
     @pytest.mark.asyncio
@@ -270,7 +272,6 @@ class TestRuntimeDataHandlerBaseBehavior:
         self, data_processor, mock_sync_clock, mocker
     ):
         mock_server_ts = mocker.MagicMock(spec=ServerTimestamp)
-        # Ensure the mock_server_ts.timestamp has ToDatetime if it's accessed
         mock_grpc_ts = mocker.MagicMock(spec=GrpcTimestamp)
         mock_grpc_ts.ToDatetime.return_value = datetime.datetime.now(
             datetime.timezone.utc
@@ -317,7 +318,6 @@ class TestRuntimeDataHandlerBaseBehavior:
         # Ensure desync on the clock was not called
         # The data_processor fixture gets mock_sync_clock implicitly
         # We need to access it via the handler that created the data_processor,
-        # or ensure the fixture setup makes it available if we need to assert on it.
         # For this test, the primary check is abort and return None.
         # If try_parse returns None, desync shouldn't be reached.
 
@@ -337,7 +337,6 @@ class TestRuntimeDataHandlerBaseBehavior:
             mock_server_ts, context=None
         )
         assert result is None
-        # Similar to above, asserting abort was NOT called is tricky if no mock_context
         # was created and passed. The main check is that it returns None and doesn't error.
 
     @pytest.mark.asyncio
@@ -428,11 +427,17 @@ class TestRuntimeDataHandlerBaseBehavior:
         assert annotated_instance.caller_id is test_caller_id_instance
         assert annotated_instance.timestamp == fixed_now
 
-    # --- Tests for __dispatch_poller_data_loop ---
     @pytest.mark.asyncio
     async def test_dispatch_loop_event_for_known_caller(self, handler, mocker):
         test_caller_id = CallerIdentifier.random()
-        mock_event_item = mocker.MagicMock(spec=SerializableAnnotatedInstance)
+        mock_event_item = mocker.MagicMock(
+            spec=SerializableAnnotatedInstance
+        )  # This was EventInstance before fix.
+        # If __event_source yields EventInstance, this should be EventInstance.
+        # However, __dispatch_poller_data_loop iterates __event_source
+        # which now yields EventInstance.
+        # The item put on per_caller_poller should be EventInstance.
+        # Let's assume mock_event_item is of type EventInstance based on recent changes.
         mock_event_item.caller_id = test_caller_id
 
         # Use the custom MockAsyncIterator
@@ -457,7 +462,9 @@ class TestRuntimeDataHandlerBaseBehavior:
     async def test_dispatch_loop_event_for_unknown_caller(
         self, handler, mocker
     ):
-        mock_event_item = mocker.MagicMock(spec=SerializableAnnotatedInstance)
+        mock_event_item = mocker.MagicMock(
+            spec=EventInstance
+        )  # Changed to EventInstance
         mock_event_item.caller_id = CallerIdentifier.random()
 
         mock_event_batches = [[mock_event_item]]
@@ -473,7 +480,9 @@ class TestRuntimeDataHandlerBaseBehavior:
     async def test_dispatch_loop_event_caller_found_poller_none(
         self, handler, mocker
     ):
-        mock_event_item = mocker.MagicMock(spec=SerializableAnnotatedInstance)
+        mock_event_item = mocker.MagicMock(
+            spec=EventInstance
+        )  # Changed to EventInstance
         mock_event_item.caller_id = CallerIdentifier.random()
 
         mock_event_batches = [[mock_event_item]]
@@ -485,7 +494,6 @@ class TestRuntimeDataHandlerBaseBehavior:
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
         handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
 
-    # --- Tests for _create_data_processor error conditions ---
     def test_create_data_processor_id_not_in_tracker(self, handler, mocker):
         test_caller_id = CallerIdentifier.random()
         mock_clock = mocker.MagicMock(spec=SynchronizedClock)
@@ -516,7 +524,6 @@ class TestRuntimeDataHandlerBaseBehavior:
         handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(test_caller_id)  # type: ignore
 
 
-# Minimal concrete implementation for testing register_caller argument parsing
 class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):
     __test__ = False  # Not a test class itself
 
@@ -558,7 +565,6 @@ def mock_data_reader_fixture(mocker):
 @pytest.fixture
 def mock_event_source_fixture(mocker):
     # Use a basic AsyncMock. __aiter__ and __anext__ will be AsyncMocks by default.
-    # Tests using this fixture for iteration need to configure __anext__.side_effect.
     mock_poller = mocker.AsyncMock()
     return mock_poller  # Corrected indentation
 
@@ -599,8 +605,6 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
 
         if request.node.get_closest_marker("asyncio"):
             # If it's an asyncio test, conftest.manage_tsercom_loop should handle it.
-            # This fixture instance should then do nothing further with set/clear for tsercom global loop.
-            # It might still provide 'loop' to the test if the test requests it directly,
             # which would be the loop from pytest-asyncio.
             try:
                 loop = asyncio.get_running_loop()  # Loop from pytest-asyncio
@@ -609,7 +613,6 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             except RuntimeError:  # Should not happen in an async test
                 pass  # Fall through to sync test logic if really no loop
 
-        # For non-asyncio tests in this class, or if above failed (should not for async)
         loop = None
         initial_loop_was_set_by_this_fixture = False
         try:
@@ -638,7 +641,6 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             ):
                 if loop.is_running():
                     loop.call_soon_threadsafe(loop.stop)
-                # loop.close()
 
     @pytest.mark.asyncio
     async def test_register_caller_with_endpoint_port_success(
@@ -828,3 +830,68 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
         mock_get_ip.assert_not_called()
         mock_get_port.assert_not_called()
         handler_fixture._register_caller_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_data_processor_impl_produces_serializable_with_synchronized_timestamp() -> (
+    None
+):
+    """Tests that _DataProcessorImpl.__aiter__ correctly converts EventInstance
+    to SerializableAnnotatedInstance with a SynchronizedTimestamp using the provided clock.
+    """
+    mock_parent_data_handler = MagicMock(spec=RuntimeDataHandlerBase)
+    test_uuid = uuid.UUID(
+        "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+    )  # Use a valid UUID string
+    caller_id = CallerIdentifier(id_value=test_uuid)  # Pass the UUID object
+
+    fake_clock = FakeSynchronizedClock()
+    original_sync_method = fake_clock.sync
+    mock_sync = MagicMock(wraps=original_sync_method)
+    fake_clock.sync = mock_sync
+
+    mock_data_poller = AsyncPoller[
+        EventInstance[str]
+    ]()  # Using str as EventTypeT
+
+    processor_instance = RuntimeDataHandlerBase._DataProcessorImpl[str, str](
+        data_handler=mock_parent_data_handler,
+        caller_id=caller_id,
+        clock=fake_clock,  # Use the fake_clock
+        data_poller=mock_data_poller,
+    )
+
+    original_dt = datetime.datetime.now(timezone.utc)  # Use timezone.utc
+    event_data = "test_event_data"
+    event_instance = EventInstance(
+        data=event_data, caller_id=caller_id, timestamp=original_dt
+    )
+
+    # AsyncPoller.on_available takes a single item T.
+    # The poller itself will batch these items and yield List[T].
+    mock_data_poller.on_available(event_instance)
+    mock_data_poller.stop()  # Stop poller after one batch for controlled test
+
+    results: list[SerializableAnnotatedInstance[str]] = []
+    async for batch in processor_instance:
+        results.extend(batch)
+
+    assert len(results) == 1
+    processed_event = results[0]
+
+    assert isinstance(processed_event, SerializableAnnotatedInstance)
+    assert processed_event.data == event_data
+    assert processed_event.caller_id == caller_id
+
+    assert isinstance(processed_event.timestamp, SynchronizedTimestamp)
+
+    mock_sync.assert_called_once_with(original_dt)
+
+    # Default offset is 0.
+    expected_synced_ts = original_sync_method(
+        original_dt
+    )  # Get what it should be
+    assert (
+        processed_event.timestamp.as_datetime()
+        == expected_synced_ts.as_datetime()
+    )
