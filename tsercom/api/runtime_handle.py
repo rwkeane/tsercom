@@ -1,6 +1,6 @@
 """Defines the abstract base class for a runtime handle."""
 
-import datetime  # Keep 'import datetime' as 'datetime.datetime' is used
+import datetime
 from abc import ABC, abstractmethod
 from typing import Generic, Optional, TypeVar, overload
 

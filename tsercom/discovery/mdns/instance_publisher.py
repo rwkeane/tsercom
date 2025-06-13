@@ -95,12 +95,12 @@ class InstancePublisher:
 
         txt_record = self._make_txt_record()
         # This check is defensive; _make_txt_record should always return a dict.
-        if txt_record is None:  # Should ideally not be reachable
+        if txt_record is None:
             raise RuntimeError(
                 "_make_txt_record failed to produce TXT record."
             )
 
-        self.__record_publisher: MdnsPublisher  # Declare type once
+        self.__record_publisher: MdnsPublisher
         if mdns_publisher_factory is None:
             # Default factory creates RecordPublisher
             def default_mdns_publisher_factory(
@@ -115,7 +115,6 @@ class InstancePublisher:
                 effective_instance_name, base_service_type, port, txt_record
             )
         else:
-            # Use provided factory
             self.__record_publisher = mdns_publisher_factory(
                 effective_instance_name, base_service_type, port, txt_record
             )
@@ -159,7 +158,6 @@ class InstancePublisher:
                     exc_info=True,
                 )
         else:
-            # Long but readable debug message
             _logger.debug(
                 "Record publisher does not have a close method or it's not callable."
             )

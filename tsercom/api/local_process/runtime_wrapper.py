@@ -37,7 +37,7 @@ class RuntimeWrapper(
         event_poller: AsyncPoller[EventInstance[EventTypeT]],
         data_aggregator: RemoteDataAggregatorImpl[
             AnnotatedInstance[DataTypeT]
-        ],  # Changed DataTypeT
+        ],
         bridge: RuntimeCommandBridge,
     ) -> None:
         """Initializes the RuntimeWrapper.

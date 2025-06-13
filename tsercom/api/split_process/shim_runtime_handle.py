@@ -147,7 +147,6 @@ class ShimRuntimeHandle(
         Args:
             new_data: New data item from remote runtime.
         """
-        # Data from DataReaderSource (from data_queue).
         # This handle (as RemoteDataReader) gets data from DataReaderSource
         # and forwards to the __data_aggregator from init.
         # pylint: disable=W0212 # Internal callback for client data readiness

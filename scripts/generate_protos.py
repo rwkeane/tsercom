@@ -223,6 +223,12 @@ def _update_pyproject_version_range(versioned_dirs: list[str]) -> None:
             f"\1>={min_version_str}, <{next_minor_version_str}\2",
             pyproject_content,
         )
+        # Update grpcio-health-checking
+        pyproject_content = re.sub(
+            r'(grpcio-health-checking\s*=\s*")[^"]*(")',
+            f"\1>={min_version_str}, <{next_minor_version_str}\2",
+            pyproject_content,
+        )
 
         with open(pyproject_path, "w") as f:
             f.write(pyproject_content)
