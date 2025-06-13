@@ -1,13 +1,10 @@
 """Provides GrpcServicePublisher for hosting gRPC services."""
 
-import asyncio
 import logging
-from functools import partial
 from typing import Callable, Iterable
 
 import grpc
 
-from tsercom.threading.aio.aio_utils import run_on_event_loop
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings
 
@@ -53,11 +50,11 @@ class GrpcServicePublisher:
     async def start_async(self, connect_call: AddServicerCB) -> None:
         """
         Starts an asynchronous server and waits for it to be serving.
+        Runs on the event loop this coroutine is scheduled on.
         """
-        cf_future = run_on_event_loop(
-            partial(self.__start_async_impl, connect_call)
-        )
-        await asyncio.wrap_future(cf_future)
+        # __start_async_impl is an async method, so it can be directly awaited.
+        # It will run on the same event loop that start_async is currently running on.
+        await self.__start_async_impl(connect_call)
 
     async def __start_async_impl(self, connect_call: AddServicerCB) -> None:
         """Internal implementation to start the asynchronous gRPC server.
@@ -68,6 +65,7 @@ class GrpcServicePublisher:
             connect_call: Callback to add servicer implementations to the server.
         """
         # Moved import here to break potential circular dependency
+        # pylint: disable=import-outside-toplevel
         from tsercom.rpc.grpc_util.async_grpc_exception_interceptor import (
             AsyncGrpcExceptionInterceptor,
         )
@@ -99,16 +97,26 @@ class GrpcServicePublisher:
                     f"{address}:{self.__port}"
                 )
                 logging.info(
-                    f"Running gRPC Server on {address}:{port_out} (expected: {self.__port})"
+                    "Running gRPC Server on %s:%s (expected: %s)",
+                    address,
+                    port_out,
+                    self.__port,
                 )
                 worked += 1
-            except Exception as e:
-                if isinstance(e, AssertionError):
+            except (
+                RuntimeError
+            ) as e:  # More specific for port binding/setup issues
+                if isinstance(
+                    e, AssertionError
+                ):  # AssertionError is a RuntimeError subtype
                     self.__watcher.on_exception_seen(e)
                     raise e
                 # Log other exceptions that prevent binding to a specific address
                 logging.warning(
-                    f"Failed to bind gRPC server to {address}:{self.__port}. Error: {e}"
+                    "Failed to bind gRPC server to %s:%s. Error: %s",
+                    address,
+                    self.__port,
+                    e,
                 )
                 continue
 
@@ -120,11 +128,66 @@ class GrpcServicePublisher:
     def stop(self) -> None:
         """
         Stops the server.
+        For grpc.aio.Server, use stop_async() instead.
+        This method is intended for synchronous grpc.server.
         """
-        # TODO(review): The current synchronous stop() may not correctly handle
-        # graceful shutdown for an asyncio gRPC server (if __server is grpc.aio.Server).
-        # Consider making this method async or adding a separate stop_async().
         if self.__server is None:
-            raise RuntimeError("Server not started")
-        self.__server.stop()  # This is a blocking call for non-async server
-        logging.info("gRPC Server stopped.")
+            logging.warning(
+                "GrpcServicePublisher: Server not started or already stopped when calling stop()."
+            )
+            return
+
+        if isinstance(self.__server, grpc.aio.Server):
+            logging.error(
+                "GrpcServicePublisher: Synchronous stop() called on an grpc.aio.Server. "
+                "This is incorrect and will not stop the server gracefully. "
+                "Use stop_async() instead."
+            )
+            return
+
+        logging.info(
+            "GrpcServicePublisher: Attempting to stop gRPC Server (sync call)..."
+        )
+        try:
+            self.__server.stop(
+                0
+            )  # For grpc.Server, argument is grace period in seconds
+        except TypeError:
+            self.__server.stop()  # Fallback
+        logging.info("GrpcServicePublisher: gRPC Server stopped (sync call).")
+
+    async def stop_async(self) -> None:
+        """
+        Stops the asynchronous gRPC server gracefully.
+        """
+        if self.__server is None:
+            logging.warning(
+                "GrpcServicePublisher: Server not started or already stopped when calling stop_async()."
+            )
+            return
+
+        if not isinstance(self.__server, grpc.aio.Server):
+            logging.warning(
+                "GrpcServicePublisher: stop_async() called on a non-aio server. "
+                "Attempting to use its synchronous stop() method."
+            )
+            try:
+                self.__server.stop(0)
+            except TypeError:
+                self.__server.stop()  # Fallback
+            return
+
+        logging.info(
+            "GrpcServicePublisher: Attempting to stop gRPC Server gracefully (async)..."
+        )
+        try:
+            await self.__server.stop(
+                grace=1.0
+            )  # For grpc.aio.Server, keyword is 'grace'
+            logging.info("GrpcServicePublisher: gRPC Server stopped (async).")
+        except Exception as e:
+            # Log the full exception for better debugging
+            logging.exception(
+                "GrpcServicePublisher: Exception during async server stop: %r",
+                e,
+            )
