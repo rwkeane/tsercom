@@ -50,7 +50,6 @@ class DataTimeoutTracker:
         self.__timeout_seconds: int = timeout_seconds
         self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
         self.__is_running: IsRunningTracker = IsRunningTracker()
-        self.__periodic_task: asyncio.Task[None] | None = None # Typed Task
 
     def register(self, tracked: Tracked) -> None:
         """Registers a 'Tracked' object to be monitored for timeouts.
@@ -84,68 +83,20 @@ class DataTimeoutTracker:
             RuntimeError: If the tracker is already running.
         """
         self.__is_running.start()
-        # Store the task
-        future = run_on_event_loop(self.__execute_periodically)
-        if asyncio.isfuture(future) and not isinstance(future, asyncio.Task):
-            # If run_on_event_loop returns a non-Task future (e.g. concurrent.futures.Future)
-            # it needs to be wrapped in a task to be awaitable in __signal_stop_impl if needed,
-            # or ensure run_on_event_loop itself creates an asyncio.Task.
-            # For simplicity, assuming run_on_event_loop can give us something awaitable
-            # or we adjust run_on_event_loop.
-            # If run_on_event_loop schedules on a different loop and returns a concurrent.futures.Future,
-            # direct awaiting from __signal_stop_impl (on potentially another loop) is complex.
-            # Given aio_utils.run_on_event_loop likely uses loop.call_soon_threadsafe -> asyncio.create_task,
-            # the future it returns should be an asyncio.Task or similar.
-            self.__periodic_task = future
-        elif isinstance(future, asyncio.Task):
-            self.__periodic_task = future
+        run_on_event_loop(self.__execute_periodically)
 
     def stop(self) -> None:
         """Signals periodic timeout execution to stop. Thread-safe."""
         if self.__is_running.get():  # Check if running before trying to stop
-            # run_on_event_loop returns a future that we can use to wait for completion
-            stop_future = run_on_event_loop(self.__signal_stop_impl)
-            # If called from a non-event loop thread, we might want to wait for the stop to complete.
-            # This requires run_on_event_loop to return a future that can be waited on.
-            if stop_future and not is_running_on_event_loop():
-                try:
-                    # Timeout to prevent indefinite blocking if something goes wrong
-                    stop_future.result(timeout=5.0)
-                except TimeoutError:
-                    logger.error(
-                        "Timeout waiting for DataTimeoutTracker stop to complete."
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Error waiting for DataTimeoutTracker stop: {e}"
-                    )
+            run_on_event_loop(self.__signal_stop_impl)
 
     async def __signal_stop_impl(self) -> None:
         """Internal implementation to signal stop on the event loop."""
+        # Ensure this runs on the loop, though run_on_event_loop handles it.
         assert is_running_on_event_loop(), "Stop signal must be on event loop."
-        if self.__is_running.get():
-            self.__is_running.stop()  # Signal the loop to stop
+        if self.__is_running.get():  # Double check on the loop
+            self.__is_running.stop()
             logger.info("DataTimeoutTracker stop signaled.")
-            if self.__periodic_task:
-                try:
-                    # Wait for the periodic task to finish.
-                    # Add a timeout to prevent hanging indefinitely.
-                    await asyncio.wait_for(
-                        self.__periodic_task,
-                        timeout=self.__timeout_seconds + 1,
-                    )
-                except asyncio.TimeoutError:
-                    logger.error(
-                        "Timeout waiting for __execute_periodically to stop."
-                    )
-                except asyncio.CancelledError:
-                    logger.info("__execute_periodically was cancelled.")
-                except Exception as e:
-                    logger.error(
-                        f"Exception while waiting for __execute_periodically to stop: {e}"
-                    )
-                finally:
-                    self.__periodic_task = None  # Clear the task
         else:
             logger.info(
                 "DataTimeoutTracker already stopped or stop signal processed."

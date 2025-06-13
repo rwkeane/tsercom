@@ -64,12 +64,14 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         # This will track the last emission for its single smoothed output stream.
         self._last_synthetic_emitted_at: Optional[datetime.datetime] = None
 
-        self._interpolation_loop_task: Optional[asyncio.Task[None]] = None # Typed Task
+        self._interpolation_loop_task: Optional[asyncio.Task[None]] = (
+            None  # Typed Task
+        )
         self._stop_event = (
             asyncio.Event()
         )  # Used to signal the interpolation loop to stop
 
-    async def start(self) -> None: # Added return type
+    async def start(self) -> None:  # Added return type
         """Starts the interpolation loop task if not already running."""
         if (
             self._interpolation_loop_task is None
@@ -83,7 +85,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             # or if the object is destroyed without calling close().
             # asyncio.create_task returns a Task object that can be cancelled.
 
-    async def close(self) -> None: # Added return type
+    async def close(self) -> None:  # Added return type
         """
         Stops the interpolation loop and cleans up resources.
         This method should be called to ensure graceful shutdown.
@@ -119,7 +121,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         # elif hasattr(super(), 'close'):
         #    super().close()
 
-    async def _interpolation_worker(self) -> None: # Added return type
+    async def _interpolation_worker(self) -> None:  # Added return type
         """
         Periodically generates and emits interpolated tensors.
         Periodically generates and emits interpolated tensors."""
@@ -218,7 +220,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                                             idx_t1 < 0
                                         ):  # Should not happen if next_emission_timestamp was advanced from a valid t1
                                             # pass # Go to finally: W0107 unnecessary-pass
-                                            pass # Retaining pass as it's a valid no-op placeholder in this complex conditional.
+                                            pass  # Retaining pass as it's a valid no-op placeholder in this complex conditional.
                                         else:
                                             t1, v1 = self._keyframes[idx_t1]
 
@@ -323,7 +325,9 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             )
         except Exception as e:  # pylint: disable=broad-except
             logging.error(
-                "SmoothedDemuxer: Interpolation worker crashed: %s", e, exc_info=True
+                "SmoothedDemuxer: Interpolation worker crashed: %s",
+                e,
+                exc_info=True,
             )
         finally:
             if self._keyframe_lock.locked():

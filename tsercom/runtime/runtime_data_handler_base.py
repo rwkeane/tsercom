@@ -10,7 +10,6 @@ Concrete implementations, such as `ClientRuntimeDataHandler` and
 `ServerRuntimeDataHandler`, inherit from this base to provide specific logic
 for client and server-side operations, respectively.
 """
-import asyncio
 
 from abc import abstractmethod
 from collections.abc import AsyncIterator
@@ -120,23 +119,7 @@ class RuntimeDataHandlerBase(
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
-        self.__dispatch_task: asyncio.Task | None = run_on_event_loop(  # type: ignore
-            self.__dispatch_poller_data_loop
-        )
-
-    async def stop_dispatch_loop(self) -> None:
-        """Stops the event dispatch loop."""
-        if self.__dispatch_task and not self.__dispatch_task.done():
-            self.__dispatch_task.cancel()
-            try:
-                await self.__dispatch_task
-            except asyncio.CancelledError:
-                # This is expected
-                pass
-            except Exception as e:
-                # Log other exceptions if needed
-                print(f"Exception while stopping dispatch loop: {e}")
-        self.__dispatch_task = None
+        run_on_event_loop(self.__dispatch_poller_data_loop)
 
     @property
     def _id_tracker(

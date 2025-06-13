@@ -6,8 +6,9 @@
 import asyncio
 import datetime
 from typing import List, Tuple, Any, Optional  # Optional was missing
+
 # from unittest.mock import AsyncMock  # For mocking the client - Removed
-import pytest_asyncio # Added
+import pytest_asyncio  # Added
 
 import pytest
 import torch
@@ -64,12 +65,12 @@ class FakeClient(TensorDemuxer.Client):
         return self.received_tensors[-1]
 
 
-@pytest_asyncio.fixture # Changed
+@pytest_asyncio.fixture  # Changed
 async def fake_client() -> FakeClient:
     return FakeClient()
 
 
-@pytest_asyncio.fixture # Changed
+@pytest_asyncio.fixture  # Changed
 async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
     # Default tensor_length=3, smoothing_period=1.0s
     demuxer = SmoothedTensorDemuxer(
@@ -80,7 +81,7 @@ async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
     await demuxer.close()  # Ensure cleanup
 
 
-@pytest_asyncio.fixture # Changed
+@pytest_asyncio.fixture  # Changed
 async def sm_demuxer_custom(fake_client: FakeClient):
     """Fixture to create a demuxer with custom params passed via a factory function."""
     demuxers_to_clean = []
