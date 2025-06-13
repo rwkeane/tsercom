@@ -6,7 +6,7 @@ from tsercom.api.local_process.runtime_command_bridge import (
     RuntimeCommandBridge,
 )
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
+from tsercom.data.event_instance import EventInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.runtime.runtime import Runtime
@@ -33,7 +33,7 @@ class LocalRuntimeFactory(
         self,
         initializer: RuntimeInitializer[DataTypeT, EventTypeT],
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
-        event_poller: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        event_poller: AsyncPoller[EventInstance[EventTypeT]],
         bridge: RuntimeCommandBridge,
     ) -> None:
         """Initializes a LocalRuntimeFactory.
@@ -90,7 +90,7 @@ class LocalRuntimeFactory(
 
     def _event_poller(
         self,
-    ) -> AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]:
+    ) -> AsyncPoller[EventInstance[EventTypeT]]:
         """Provides the event poller for the runtime.
 
         Part of `RuntimeFactory` contract to make event poller available.
@@ -110,6 +110,6 @@ class LocalRuntimeFactory(
     @property
     def event_poller(
         self,
-    ) -> AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]:
+    ) -> AsyncPoller[EventInstance[EventTypeT]]:
         """Gets AsyncPoller for runtimes by this factory (handles events)."""
         return self._event_poller()

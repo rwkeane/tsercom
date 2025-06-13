@@ -9,18 +9,12 @@ from tsercom.api.local_process.runtime_command_bridge import (
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.aio.async_poller import AsyncPoller
-
-from tsercom.data.serializable_annotated_instance import (
-    SerializableAnnotatedInstance,
-)
-from tsercom.timesync.common.synchronized_timestamp import (
-    SynchronizedTimestamp,
-)
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
@@ -40,7 +34,7 @@ class RuntimeWrapper(
 
     def __init__(
         self,
-        event_poller: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        event_poller: AsyncPoller[EventInstance[EventTypeT]],
         data_aggregator: RemoteDataAggregatorImpl[
             AnnotatedInstance[DataTypeT]
         ],  # Changed DataTypeT
@@ -53,9 +47,9 @@ class RuntimeWrapper(
             data_aggregator: A RemoteDataAggregatorImpl to manage data.
             bridge: A RuntimeCommandBridge to send commands to the runtime.
         """
-        self.__event_poller: AsyncPoller[
-            SerializableAnnotatedInstance[EventTypeT]
-        ] = event_poller
+        self.__event_poller: AsyncPoller[EventInstance[EventTypeT]] = (
+            event_poller
+        )
         self.__aggregator: RemoteDataAggregatorImpl[
             AnnotatedInstance[DataTypeT]
         ] = data_aggregator
@@ -86,16 +80,8 @@ class RuntimeWrapper(
         if timestamp is None:
             timestamp = datetime.now()
 
-        # Convert datetime to SynchronizedTimestamp
-        synchronized_timestamp = SynchronizedTimestamp(timestamp)
-
-        # Wrap in SerializableAnnotatedInstance
-        serializable_event = SerializableAnnotatedInstance(
-            data=event,
-            caller_id=caller_id,
-            timestamp=synchronized_timestamp,
-        )
-        self.__event_poller.on_available(serializable_event)
+        wrapped_event = EventInstance(event, caller_id, timestamp)
+        self.__event_poller.on_available(wrapped_event)
 
     def _on_data_ready(self, new_data: AnnotatedInstance[DataTypeT]) -> None:
         """Callback method invoked when new data is ready from the runtime.

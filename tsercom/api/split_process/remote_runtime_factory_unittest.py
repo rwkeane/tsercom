@@ -8,7 +8,6 @@ import tsercom.api.split_process.remote_runtime_factory as remote_runtime_factor
 from tsercom.api.split_process.remote_runtime_factory import (
     RemoteRuntimeFactory,
 )
-from tsercom.runtime.event_poller_adapter import EventToSerializableAnnInstancePollerAdapter # Added import
 from tsercom.runtime.runtime_config import ServiceType
 from tsercom.rpc.grpc_util.grpc_channel_factory import (
     GrpcChannelFactory,
@@ -393,19 +392,17 @@ def test_create_method(
         # Event poller and data reader are not passed to initializer by RRF.create
     )
 
-    # Assert FakeEventSource interactions
+    # Assert FakeEventSource interactions (now it's event_poller_instance)
     assert event_poller_instance is not None
-    # event_poller_instance is now the adapter, check its source poller
-    assert hasattr(event_poller_instance, "_source_poller")
-    assert event_poller_instance._source_poller is FakeEventSource.get_last_instance()
+    assert event_poller_instance is FakeEventSource.get_last_instance()
     assert (
-        event_poller_instance._source_poller.event_source_queue # Access through _source_poller
+        event_poller_instance.event_source_queue
         is factory._RemoteRuntimeFactory__event_source_queue
     )
     # create() calls self.__event_source.start() if self.__event_source exists.
-    assert event_poller_instance._source_poller.start_call_count == 1 # Access through _source_poller
-    assert event_poller_instance._source_poller.start_called_with is fake_thread_watcher # Access through _source_poller
-    assert factory._RemoteRuntimeFactory__event_source is event_poller_instance._source_poller # Compare with _source_poller
+    assert event_poller_instance.start_call_count == 1
+    assert event_poller_instance.start_called_with is fake_thread_watcher
+    assert factory._RemoteRuntimeFactory__event_source is event_poller_instance
 
     # Assert FakeDataReaderSink interactions (now it's data_reader_instance)
     assert data_reader_instance is not None
@@ -470,11 +467,9 @@ def test_event_poller_method(
 
     # _event_poller() will create the instance on first call
     actual_source = factory._event_poller()
-    assert isinstance(actual_source, EventToSerializableAnnInstancePollerAdapter)
-    assert hasattr(actual_source, "_source_poller")
-    assert isinstance(actual_source._source_poller, FakeEventSource)
-    assert actual_source._source_poller is FakeEventSource.get_last_instance()
-    assert actual_source._source_poller is factory._RemoteRuntimeFactory__event_source
+    assert isinstance(actual_source, FakeEventSource)
+    assert actual_source is FakeEventSource.get_last_instance()
+    assert actual_source is factory._RemoteRuntimeFactory__event_source
 
 
 def test_stop_method(

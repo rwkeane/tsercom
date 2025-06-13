@@ -48,8 +48,9 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance # For type hint
-from tsercom.threading.aio.async_poller import AsyncPoller # For type hint
+from tsercom.runtime.event_poller_adapter import (
+    EventToSerializableAnnInstancePollerAdapter,
+)
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 
 logger = logging.getLogger(__name__)
@@ -105,21 +106,25 @@ def initialize_runtimes(
     for initializer_factory in initializers:
         # pylint: disable=protected-access # Accessing factory internals for setup
         data_reader = initializer_factory._remote_data_reader()
-        event_poller: AsyncPoller[SerializableAnnotatedInstance[Any]] = initializer_factory._event_poller()
+        event_poller = initializer_factory._event_poller()
         # pylint: enable=protected-access
 
         auth_config = initializer_factory.auth_config
         channel_factory = channel_factory_selector.create_factory(auth_config)
 
-        # The event_poller from the factory should now directly provide
-        # SerializableAnnotatedInstance, so the adapter is no longer needed.
+        # The event poller from the factory should now be directly compatible
+        # with RuntimeDataHandlerBase, which expects AsyncPoller[EventInstance[EventTypeT]].
+        # The conversion to SerializableAnnotatedInstance is handled within _DataProcessorImpl.
+        # adapted_event_poller = EventToSerializableAnnInstancePollerAdapter(
+        #     event_poller
+        # )
 
         data_handler: RuntimeDataHandler[Any, Any]
         if initializer_factory.is_client():
             data_handler = ClientRuntimeDataHandler(
                 thread_watcher=thread_watcher,
                 data_reader=data_reader,
-                event_source=event_poller, # Use the poller directly
+                event_source=event_poller, # Use the original event_poller
                 min_send_frequency_seconds=(
                     initializer_factory.min_send_frequency_seconds
                 ),
@@ -128,7 +133,7 @@ def initialize_runtimes(
         elif initializer_factory.is_server():
             data_handler = ServerRuntimeDataHandler(
                 data_reader=data_reader,
-                event_source=event_poller, # Use the poller directly
+                event_source=event_poller, # Use the original event_poller
                 min_send_frequency_seconds=(
                     initializer_factory.min_send_frequency_seconds
                 ),

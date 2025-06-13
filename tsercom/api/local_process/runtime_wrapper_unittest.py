@@ -1,27 +1,12 @@
 import pytest
 import datetime
 import importlib
-from unittest.mock import (
-    MagicMock,
-)  # Added for specific mock needs if FakeAsyncPoller is not enough
 
 from tsercom.api.local_process.runtime_wrapper import RuntimeWrapper
+from tsercom.data.event_instance import EventInstance
 from tsercom.caller_id.caller_identifier import (
     CallerIdentifier,
 )  # For creating test_caller_id
-from tsercom.data.serializable_annotated_instance import (
-    SerializableAnnotatedInstance,
-)
-from tsercom.timesync.common.synchronized_timestamp import (
-    SynchronizedTimestamp,
-)
-from tsercom.threading.aio.async_poller import AsyncPoller  # For spec matching
-from tsercom.data.remote_data_aggregator_impl import (
-    RemoteDataAggregatorImpl,
-)  # For spec matching
-from tsercom.api.local_process.runtime_command_bridge import (
-    RuntimeCommandBridge,
-)  # For spec matching
 
 
 class FakeAsyncPoller:
@@ -155,33 +140,26 @@ def test_on_event_only_event(wrapper, fake_poller, patch_datetime_now):
 
     assert fake_poller.on_available_called
     assert fake_poller.on_available_call_count == 1
-    received_event_instance = fake_poller.on_available_arg
-    assert isinstance(received_event_instance, SerializableAnnotatedInstance)
-    assert received_event_instance.data == test_event_data
-    assert received_event_instance.caller_id is None
-    assert isinstance(received_event_instance.timestamp, SynchronizedTimestamp)
-    # Convert SynchronizedTimestamp to datetime for comparison with patched_datetime_now
+    event_instance = fake_poller.on_available_arg
+    assert isinstance(event_instance, EventInstance)
+    assert event_instance.data == test_event_data
+    assert event_instance.caller_id is None
     assert (
-        received_event_instance.timestamp.as_datetime().replace(tzinfo=None)
-        == patch_datetime_now
-    )
+        event_instance.timestamp == patch_datetime_now
+    )  # Exact match due to patching
 
 
 def test_on_event_with_caller_id(wrapper, fake_poller, patch_datetime_now):
     test_event_data = "event_with_caller"
-    test_caller_id = CallerIdentifier.random()
+    test_caller_id = CallerIdentifier.random()  # Corrected initialization
     wrapper.on_event(test_event_data, test_caller_id)
 
     assert fake_poller.on_available_called
-    received_event_instance = fake_poller.on_available_arg
-    assert isinstance(received_event_instance, SerializableAnnotatedInstance)
-    assert received_event_instance.data == test_event_data
-    assert received_event_instance.caller_id is test_caller_id
-    assert isinstance(received_event_instance.timestamp, SynchronizedTimestamp)
-    assert (
-        received_event_instance.timestamp.as_datetime().replace(tzinfo=None)
-        == patch_datetime_now
-    )
+    event_instance = fake_poller.on_available_arg
+    assert isinstance(event_instance, EventInstance)
+    assert event_instance.data == test_event_data
+    assert event_instance.caller_id is test_caller_id
+    assert event_instance.timestamp == patch_datetime_now
 
 
 def test_on_event_with_explicit_timestamp(wrapper, fake_poller):
@@ -190,72 +168,27 @@ def test_on_event_with_explicit_timestamp(wrapper, fake_poller):
     wrapper.on_event(test_event_data, timestamp=fixed_timestamp)
 
     assert fake_poller.on_available_called
-    received_event_instance = fake_poller.on_available_arg
-    assert isinstance(received_event_instance, SerializableAnnotatedInstance)
-    assert received_event_instance.data == test_event_data
-    assert received_event_instance.caller_id is None
-    assert isinstance(received_event_instance.timestamp, SynchronizedTimestamp)
-    assert received_event_instance.timestamp.as_datetime() == fixed_timestamp
+    event_instance = fake_poller.on_available_arg
+    assert isinstance(event_instance, EventInstance)
+    assert event_instance.data == test_event_data
+    assert event_instance.caller_id is None
+    assert event_instance.timestamp == fixed_timestamp
 
 
 def test_on_event_with_caller_id_and_timestamp(wrapper, fake_poller):
     test_event_data = "event_all_args"
-    test_caller_id = CallerIdentifier.random()
+    test_caller_id = CallerIdentifier.random()  # Corrected initialization
     fixed_timestamp = datetime.datetime(2022, 1, 1, 0, 0, 0)
     wrapper.on_event(
         test_event_data, test_caller_id, timestamp=fixed_timestamp
     )
 
     assert fake_poller.on_available_called
-    received_event_instance = fake_poller.on_available_arg
-    assert isinstance(received_event_instance, SerializableAnnotatedInstance)
-    assert received_event_instance.data == test_event_data
-    assert received_event_instance.caller_id is test_caller_id
-    assert isinstance(received_event_instance.timestamp, SynchronizedTimestamp)
-    assert received_event_instance.timestamp.as_datetime() == fixed_timestamp
-
-
-# Test for ensuring the correct type is passed to the event poller after recent changes
-def test_event_pipeline_produces_correct_serializable_type(
-    fake_poller, fake_aggregator, fake_bridge
-):
-    # Test Setup
-    # Re-create RuntimeWrapper with specific generic types if necessary,
-    # or ensure the existing fixture 'wrapper' is suitable.
-    # For this test, EventTypeT can be str. DataTypeT can be MagicMock or any suitable type.
-    runtime_wrapper = RuntimeWrapper[MagicMock, str](
-        event_poller=fake_poller,  # fake_poller is an instance of FakeAsyncPoller
-        data_aggregator=fake_aggregator,
-        bridge=fake_bridge,
-    )
-
-    test_event_data = "test_event_serializable"
-    test_caller_id = CallerIdentifier.random() # Corrected instantiation
-    # Use a timezone-aware datetime object for SynchronizedTimestamp consistency
-    test_timestamp = datetime.datetime.now(datetime.timezone.utc)
-
-    # Test Action
-    runtime_wrapper.on_event(
-        event=test_event_data,
-        caller_id=test_caller_id,
-        timestamp=test_timestamp,
-    )
-
-    # Test Assertion
-    assert fake_poller.on_available_call_count == 1
-    received_event_instance = fake_poller.on_available_arg
-
-    assert isinstance(received_event_instance, SerializableAnnotatedInstance), \
-        "Event passed to poller should be SerializableAnnotatedInstance"
-    assert isinstance(received_event_instance.timestamp, SynchronizedTimestamp), \
-        "Timestamp in event should be SynchronizedTimestamp"
-    assert received_event_instance.data == test_event_data
-    assert received_event_instance.caller_id == test_caller_id
-    # Check if the datetime part of SynchronizedTimestamp matches the original datetime
-    # SynchronizedTimestamp stores microseconds, ensure comparison is fair
-    assert received_event_instance.timestamp.as_datetime() == test_timestamp.replace(
-        microsecond=received_event_instance.timestamp.as_datetime().microsecond
-    )
+    event_instance = fake_poller.on_available_arg
+    assert isinstance(event_instance, EventInstance)
+    assert event_instance.data == test_event_data
+    assert event_instance.caller_id is test_caller_id
+    assert event_instance.timestamp == fixed_timestamp
 
 
 # Test _on_data_ready()
@@ -272,9 +205,3 @@ def test_on_data_ready(wrapper, fake_aggregator):
 def test_get_remote_data_aggregator(wrapper, fake_aggregator):
     retrieved_aggregator = wrapper._get_remote_data_aggregator()
     assert retrieved_aggregator is fake_aggregator
-
-
-# Test data_aggregator property
-def test_data_aggregator_property(wrapper, fake_aggregator):
-    """Tests the data_aggregator property."""
-    assert wrapper.data_aggregator is fake_aggregator

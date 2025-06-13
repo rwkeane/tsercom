@@ -55,22 +55,20 @@ async def mock_client() -> MockTensorDemuxerClient:
 async def demuxer(
     mock_client: MockTensorDemuxerClient,
 ) -> Tuple[TensorDemuxer, MockTensorDemuxerClient]:
-    actual_mock_client = mock_client  # Removed await
     demuxer_instance = TensorDemuxer(
-        client=actual_mock_client, tensor_length=4, data_timeout_seconds=60.0
+        client=mock_client, tensor_length=4, data_timeout_seconds=60.0
     )
-    return demuxer_instance, actual_mock_client
+    return demuxer_instance, mock_client
 
 
 @pytest_asyncio.fixture
 async def demuxer_short_timeout(
     mock_client: MockTensorDemuxerClient,
 ) -> Tuple[TensorDemuxer, MockTensorDemuxerClient]:
-    actual_mock_client = mock_client  # Removed await
     demuxer_instance = TensorDemuxer(
-        client=actual_mock_client, tensor_length=4, data_timeout_seconds=0.1
+        client=mock_client, tensor_length=4, data_timeout_seconds=0.1
     )
-    return demuxer_instance, actual_mock_client
+    return demuxer_instance, mock_client
 
 
 # Timestamps for general testing (10s apart)
@@ -99,10 +97,8 @@ def test_constructor_validations():
 async def test_first_update(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
-    # d, mc = await demuxer # This was the previous error source for tests
-    d, mc = (
-        demuxer  # Corrected: demuxer fixture itself is awaited by pytest-asyncio
-    )
+    d, mc = demuxer
+
     await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
 
     assert mc.call_count == 1

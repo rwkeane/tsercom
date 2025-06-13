@@ -13,7 +13,7 @@ from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.data.annotated_instance import (
     AnnotatedInstance,
 )  # Import AnnotatedInstance
-from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
+from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_factory import RuntimeFactory
@@ -73,13 +73,11 @@ class LocalRuntimeFactoryFactory(
                 # pylint: disable=W0511,C0301 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
             )
-        event_poller = AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]()
+        event_poller = AsyncPoller[EventInstance[EventTypeT]]()
         bridge = RuntimeCommandBridge()
         factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
             initializer, data_aggregator, event_poller, bridge
         )
-        handle: RuntimeWrapper[DataTypeT, EventTypeT] = RuntimeWrapper(
-            event_poller, data_aggregator, bridge
-        )
+        handle = RuntimeWrapper(event_poller, data_aggregator, bridge)
 
         return handle, factory

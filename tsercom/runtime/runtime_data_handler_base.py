@@ -31,6 +31,7 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
+from tsercom.data.event_instance import EventInstance
 from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.id_tracker import IdTracker
@@ -81,7 +82,7 @@ class RuntimeDataHandlerBase(
     def __init__(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
-        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        event_source: AsyncPoller[EventInstance[EventTypeT]],
         min_send_frequency_seconds: float | None = None,
     ):
         """Initializes the RuntimeDataHandlerBase.
@@ -101,21 +102,19 @@ class RuntimeDataHandlerBase(
         self.__data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]] = (
             data_reader
         )
-        self.__event_source: AsyncPoller[
-            SerializableAnnotatedInstance[EventTypeT]
-        ] = event_source
+        self.__event_source: AsyncPoller[EventInstance[EventTypeT]] = (
+            event_source
+        )
 
         # Define a properly typed factory for the IdTracker
-        def _poller_factory() -> (
-            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
-        ):
+        def _poller_factory() -> AsyncPoller[EventInstance[EventTypeT]]:
             return AsyncPoller(
                 min_poll_frequency_seconds=min_send_frequency_seconds
             )
 
-        self.__id_tracker = IdTracker[
-            AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]
-        ](_poller_factory)
+        self.__id_tracker = IdTracker[AsyncPoller[EventInstance[EventTypeT]]](
+            _poller_factory
+        )
 
         # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
@@ -124,7 +123,7 @@ class RuntimeDataHandlerBase(
     @property
     def _id_tracker(
         self,
-    ) -> IdTracker[AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]]:
+    ) -> IdTracker[AsyncPoller[EventInstance[EventTypeT]]]:
         """Provides access to the internal `IdTracker` instance.
 
         The `IdTracker` manages mappings between `CallerIdentifier` objects,
@@ -352,7 +351,7 @@ class RuntimeDataHandlerBase(
 
     async def __anext__(
         self,
-    ) -> List[SerializableAnnotatedInstance[EventTypeT]]:
+    ) -> List[EventInstance[EventTypeT]]:
         """Retrieves the next batch of events from the main event source.
 
         This method makes `RuntimeDataHandlerBase` an asynchronous iterator,
@@ -368,7 +367,7 @@ class RuntimeDataHandlerBase(
 
     def __aiter__(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+    ) -> AsyncIterator[List[EventInstance[EventTypeT]]]:
         """Returns self as the asynchronous iterator for events.
 
         This allows `RuntimeDataHandlerBase` instances to be used directly in
@@ -491,9 +490,7 @@ class RuntimeDataHandlerBase(
             data_handler: "RuntimeDataHandlerBase[DataTypeT, EventTypeT]",
             caller_id: CallerIdentifier,
             clock: SynchronizedClock,
-            data_poller: AsyncPoller[
-                SerializableAnnotatedInstance[EventTypeT]
-            ],
+            data_poller: AsyncPoller[EventInstance[EventTypeT]],
         ):
             """Initializes the `_DataProcessorImpl`.
 
@@ -512,9 +509,9 @@ class RuntimeDataHandlerBase(
                 "RuntimeDataHandlerBase[DataTypeT, EventTypeT]"
             ) = data_handler
             self.__clock: SynchronizedClock = clock
-            self.__data_poller: AsyncPoller[
-                SerializableAnnotatedInstance[EventTypeT]
-            ] = data_poller
+            self.__data_poller: AsyncPoller[EventInstance[EventTypeT]] = (
+                data_poller
+            )
 
         async def desynchronize(
             self,
@@ -578,8 +575,22 @@ class RuntimeDataHandlerBase(
             # pylint: disable=protected-access # Calling protected method of parent/owner
             await self.__data_handler._on_data_ready(wrapped_data)
 
-        def __aiter__(
+        async def __aiter__(
             self,
         ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
             """Returns an asynchronous iterator for events from the dedicated per-caller poller."""
-            return self.__data_poller.__aiter__()
+            async for event_instance_batch in self.__data_poller:
+                processed_batch: List[
+                    SerializableAnnotatedInstance[EventTypeT]
+                ] = []
+                for event_instance in event_instance_batch:
+                    synchronized_ts = self.__clock.sync(
+                        event_instance.timestamp
+                    )
+                    serializable_event = SerializableAnnotatedInstance(
+                        data=event_instance.data,
+                        caller_id=event_instance.caller_id,
+                        timestamp=synchronized_ts,
+                    )
+                    processed_batch.append(serializable_event)
+                yield processed_batch

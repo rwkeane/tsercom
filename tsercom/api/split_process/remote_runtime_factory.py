@@ -9,9 +9,10 @@ from tsercom.api.split_process.runtime_command_source import (
     RuntimeCommandSource,
 )
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.event_instance import EventInstance # Still needed for EventSource and queues
-from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
-from tsercom.runtime.event_poller_adapter import EventToSerializableAnnInstancePollerAdapter
+from tsercom.data.event_instance import EventInstance
+
+# SerializableAnnotatedInstance will be removed
+# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
@@ -71,10 +72,6 @@ class RemoteRuntimeFactory(
             DataReaderSink[AnnotatedInstance[DataTypeT]] | None
         ) = None
         self.__event_source: EventSource[EventTypeT] | None = None
-        # Cache for the adapted poller
-        self.__adapted_event_poller: AsyncPoller[
-            SerializableAnnotatedInstance[EventTypeT]
-        ] | None = None
         self.__command_source: RuntimeCommandSource | None = None
 
     @property
@@ -87,7 +84,7 @@ class RemoteRuntimeFactory(
     @property
     def event_poller(
         self,
-    ) -> AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]:
+    ) -> AsyncPoller[EventInstance[EventTypeT]]:
         """Gets the `EventSource` for polling events from remote runtime."""
         return self._event_poller()
 
@@ -109,26 +106,17 @@ class RemoteRuntimeFactory(
 
     def _event_poller(
         self,
-    ) -> AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]:
+    ) -> AsyncPoller[EventInstance[EventTypeT]]:
         """Provides the event poller for events from remote runtime.
 
-        Lazily initializes an `EventSource` and wraps it with an adapter
-        to produce `SerializableAnnotatedInstance`.
+        Lazily initializes and returns an `EventSource`.
 
         Returns:
             An `EventSource` instance.
         """
-        if self.__adapted_event_poller is None:
-            if self.__event_source is None:
-                self.__event_source = EventSource(self.__event_source_queue)
-            # Ensure EventSource is started if it's going to be wrapped and used.
-            # The create() method handles starting it, but good to be mindful.
-            self.__adapted_event_poller = (
-                EventToSerializableAnnInstancePollerAdapter(
-                    self.__event_source
-                )
-            )
-        return self.__adapted_event_poller
+        if self.__event_source is None:
+            self.__event_source = EventSource(self.__event_source_queue)
+        return self.__event_source
 
     def create(
         self,
@@ -154,17 +142,16 @@ class RemoteRuntimeFactory(
             data_handler=data_handler,
             grpc_channel_factory=grpc_channel_factory,
         )
-        # Ensure the event poller (and underlying EventSource) is initialized.
-        self._event_poller()
-
-        # Now, operate on the actual EventSource instance stored in self.__event_source.
-        if self.__event_source is not None: # Should be initialized by _event_poller()
-            if not self.__event_source.is_running:
-                self.__event_source.start(thread_watcher)
+        current_event_poller = (
+            self._event_poller()
+        )  # This will initialize EventSource if None
+        if isinstance(current_event_poller, EventSource):
+            if not current_event_poller.is_running:
+                current_event_poller.start(thread_watcher)
         else:
-            # This case would indicate an issue with _event_poller initialization logic.
-            # Consider logging an error if self.__event_source is still None here.
-            pass
+            # This case should not happen if _event_poller always returns EventSource
+            # or raises. Consider logging if None/wrong type.
+            pass  # Or logger.error("Event poller not EventSource post-creation")
 
         self.__command_source = RuntimeCommandSource(
             self.__command_source_queue

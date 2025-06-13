@@ -8,6 +8,7 @@ from tsercom.threading.aio.global_event_loop import (
     is_global_event_loop_set,
 )
 import grpc.aio  # For ServicerContext
+import uuid  # Added for UUID object creation
 
 from typing import (
     Optional,
@@ -41,6 +42,18 @@ from tsercom.timesync.common.proto import ServerTimestamp
 
 import grpc  # For grpc.StatusCode
 from grpc.aio import ServicerContext
+
+
+# Added imports for the new test
+from datetime import timezone  # datetime was already imported
+from unittest.mock import AsyncMock, MagicMock, patch  # Added
+from tsercom.data.event_instance import EventInstance  # Added
+from tsercom.timesync.common.fake_synchronized_clock import (
+    FakeSynchronizedClock,
+)  # Added
+
+# SerializableAnnotatedInstance, CallerIdentifier, AsyncPoller, SynchronizedTimestamp, RuntimeDataHandlerBase
+# were already imported or their modules were. Let's ensure specific classes are available.
 
 
 DataType = TypeVar("DataType")
@@ -432,7 +445,14 @@ class TestRuntimeDataHandlerBaseBehavior:
     @pytest.mark.asyncio
     async def test_dispatch_loop_event_for_known_caller(self, handler, mocker):
         test_caller_id = CallerIdentifier.random()
-        mock_event_item = mocker.MagicMock(spec=SerializableAnnotatedInstance)
+        mock_event_item = mocker.MagicMock(
+            spec=SerializableAnnotatedInstance
+        )  # This was EventInstance before fix.
+        # If __event_source yields EventInstance, this should be EventInstance.
+        # However, __dispatch_poller_data_loop iterates __event_source
+        # which now yields EventInstance.
+        # The item put on per_caller_poller should be EventInstance.
+        # Let's assume mock_event_item is of type EventInstance based on recent changes.
         mock_event_item.caller_id = test_caller_id
 
         # Use the custom MockAsyncIterator
@@ -457,7 +477,9 @@ class TestRuntimeDataHandlerBaseBehavior:
     async def test_dispatch_loop_event_for_unknown_caller(
         self, handler, mocker
     ):
-        mock_event_item = mocker.MagicMock(spec=SerializableAnnotatedInstance)
+        mock_event_item = mocker.MagicMock(
+            spec=EventInstance
+        )  # Changed to EventInstance
         mock_event_item.caller_id = CallerIdentifier.random()
 
         mock_event_batches = [[mock_event_item]]
@@ -473,7 +495,9 @@ class TestRuntimeDataHandlerBaseBehavior:
     async def test_dispatch_loop_event_caller_found_poller_none(
         self, handler, mocker
     ):
-        mock_event_item = mocker.MagicMock(spec=SerializableAnnotatedInstance)
+        mock_event_item = mocker.MagicMock(
+            spec=EventInstance
+        )  # Changed to EventInstance
         mock_event_item.caller_id = CallerIdentifier.random()
 
         mock_event_batches = [[mock_event_item]]
@@ -828,3 +852,91 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
         mock_get_ip.assert_not_called()
         mock_get_port.assert_not_called()
         handler_fixture._register_caller_mock.assert_not_called()
+
+
+# Make sure this test is an async def if using async for
+@pytest.mark.asyncio
+async def test_data_processor_impl_produces_serializable_with_synchronized_timestamp() -> (
+    None
+):
+    """Tests that _DataProcessorImpl.__aiter__ correctly converts EventInstance
+    to SerializableAnnotatedInstance with a SynchronizedTimestamp using the provided clock.
+    """
+    # 1. Setup
+    mock_parent_data_handler = MagicMock(spec=RuntimeDataHandlerBase)
+    # caller_id = CallerIdentifier(uuid="test_caller_uuid", name="test_caller") # Incorrect usage
+    test_uuid = uuid.UUID(
+        "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+    )  # Use a valid UUID string
+    caller_id = CallerIdentifier(id_value=test_uuid)  # Pass the UUID object
+
+    # Mock the clock
+    # Using FakeSynchronizedClock to have a concrete SynchronizedClock impl
+    # that behaves predictably for testing.
+    fake_clock = FakeSynchronizedClock()
+    # We can spy on its sync method if needed, or trust FakeSynchronizedClock's behavior.
+    # For this test, we mainly care that *a* SynchronizedTimestamp is produced.
+    # Let's also mock sync to check it's called correctly.
+    original_sync_method = fake_clock.sync
+    mock_sync = MagicMock(wraps=original_sync_method)
+    fake_clock.sync = mock_sync
+
+    # Mock the input AsyncPoller for _DataProcessorImpl
+    # This poller should yield EventInstance objects
+    mock_data_poller = AsyncPoller[
+        EventInstance[str]
+    ]()  # Using str as EventTypeT
+
+    # Create an instance of _DataProcessorImpl
+    # Need to access the inner class correctly.
+    # We can instantiate it directly for testing if its dependencies are met.
+    processor_instance = RuntimeDataHandlerBase._DataProcessorImpl[str, str](
+        data_handler=mock_parent_data_handler,
+        caller_id=caller_id,
+        clock=fake_clock,  # Use the fake_clock
+        data_poller=mock_data_poller,
+    )
+
+    # Prepare data to be emitted by the mock_data_poller
+    original_dt = datetime.datetime.now(timezone.utc)  # Use timezone.utc
+    event_data = "test_event_data"
+    event_instance = EventInstance(
+        data=event_data, caller_id=caller_id, timestamp=original_dt
+    )
+
+    # AsyncPoller.on_available takes a single item T.
+    # The poller itself will batch these items and yield List[T].
+    mock_data_poller.on_available(event_instance)
+    mock_data_poller.stop()  # Stop poller after one batch for controlled test
+
+    # 2. Test Action: Iterate through the processor
+    results: list[SerializableAnnotatedInstance[str]] = []
+    async for batch in processor_instance:
+        results.extend(batch)
+
+    # 3. Test Assertions
+    assert len(results) == 1
+    processed_event = results[0]
+
+    assert isinstance(processed_event, SerializableAnnotatedInstance)
+    assert processed_event.data == event_data
+    assert processed_event.caller_id == caller_id
+
+    # Check timestamp type and that clock.sync was called
+    assert isinstance(processed_event.timestamp, SynchronizedTimestamp)
+
+    # Check that fake_clock.sync was called with the original datetime
+    mock_sync.assert_called_once_with(original_dt)
+
+    # Check that the timestamp from processed_event is what fake_clock.sync would return
+    # FakeSynchronizedClock adds a fixed offset (or none if not configured),
+    # so we can predict the output if needed, or just rely on the type check and call verification.
+    # For FakeSynchronizedClock, sync(dt) = SynchronizedTimestamp(dt + self._offset).
+    # Default offset is 0.
+    expected_synced_ts = original_sync_method(
+        original_dt
+    )  # Get what it should be
+    assert (
+        processed_event.timestamp.as_datetime()
+        == expected_synced_ts.as_datetime()
+    )

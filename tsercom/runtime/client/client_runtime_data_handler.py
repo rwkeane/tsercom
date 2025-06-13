@@ -16,6 +16,7 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
+from tsercom.data.event_instance import EventInstance
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
@@ -56,7 +57,7 @@ class ClientRuntimeDataHandler(
         self,
         thread_watcher: ThreadWatcher,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
-        event_source: AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
+        event_source: AsyncPoller[EventInstance[EventTypeT]],
         min_send_frequency_seconds: Optional[float] = None,
         *,
         is_testing: bool = False,

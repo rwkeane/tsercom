@@ -100,6 +100,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         if not TYPE_CHECKING:
             from tsercom.util.is_running_tracker import IsRunningTracker
         self.__is_loop_running: "IsRunningTracker" = IsRunningTracker()
+        self.__is_loop_running.start()  # Start the poller as running by default
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
     def __event_loop_id(self) -> str:
@@ -186,11 +187,27 @@ class AsyncPoller(Generic[ResultTypeT]):
                     "AsyncPoller.wait_instance must be called from within a running asyncio event loop."
                 )
             self.__event_loop = current_loop
-            self.__is_loop_running.set(True)
-        elif not self.__is_loop_running.get():
+            # self.__is_loop_running.set(True) # Removed: __is_loop_running now started in __init__
+            # and IsRunningTracker manages its own loop sync.
+        # elif not self.__is_loop_running.get(): # This check is now effectively done below
+        #    raise RuntimeError("AsyncPoller is stopped.")
+
+        if (
+            not self.__is_loop_running.get()
+        ):  # Check if stopped before loop association or after
+            # If stopped, attempt to drain any residual items before raising error
+            current_batch_on_stop: List[ResultTypeT] = []
+            with self.__lock:
+                if self.__responses:
+                    while self.__responses:
+                        current_batch_on_stop.append(
+                            self.__responses.popleft()
+                        )
+            if current_batch_on_stop:
+                return current_batch_on_stop
             raise RuntimeError("AsyncPoller is stopped.")
 
-        assert self.__event_loop is not None
+        assert self.__event_loop is not None  # Loop must be set if running
         if not is_running_on_event_loop(self.__event_loop):
             raise RuntimeError(
                 "AsyncPoller.wait_instance called from a different event loop "
@@ -281,8 +298,14 @@ class AsyncPoller(Generic[ResultTypeT]):
         if was_running:
             self.__is_loop_running.set(False)
 
-        if was_running and self.__event_loop is not None:
-            # Schedule setting the barrier on the poller's event loop
-            # to ensure any task awaiting it is woken up correctly.
-            # This helps __anext__ break out of its loop if it's waiting on the barrier.
-            run_on_event_loop(self.__set_results_available, self.__event_loop)
+        if was_running:  # Only process if it was running
+            # self.__is_loop_running.set(False) was already called if was_running is true.
+            # This ensures the IsRunningTracker's __stopped_barrier is scheduled.
+
+            if self.__event_loop is not None:
+                # Unconditionally set the main barrier to ensure wait_instance unblocks.
+                # Use call_soon_threadsafe as stop() might be called from another thread.
+                self.__event_loop.call_soon_threadsafe(self.__barrier.set)
+            # If self.__event_loop is None, wait_instance() hasn't run yet.
+            # When it does, it will check self.__is_loop_running.get() which is now False,
+            # and it should raise RuntimeError("AsyncPoller is stopped.") before waiting on __barrier.
