@@ -64,12 +64,19 @@ class TensorDemuxer:
         self.__client = client
         self.__tensor_length = tensor_length
         self.__data_timeout_seconds = data_timeout_seconds
-
         self._tensor_states: List[
             Tuple[datetime.datetime, torch.Tensor, List[ExplicitUpdate]]
         ] = []
         self._latest_update_timestamp: Optional[datetime.datetime] = None
-        self._lock = asyncio.Lock()  # Added lock
+        self._lock: asyncio.Lock = asyncio.Lock()
+
+    @property
+    def _client(self) -> "TensorDemuxer.Client":
+        return self.__client
+
+    @property
+    def _tensor_length(self) -> int:
+        return self.__tensor_length
 
     def _cleanup_old_data(self) -> None:
         # Internal method, assumes lock is held by caller
@@ -86,8 +93,15 @@ class TensorDemuxer:
     async def on_update_received(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
     ) -> None:  # Already async
+        """
+        Handles a granular update to a specific index of the tensor at a given timestamp.
+
+        Updates internal tensor states, notifies client of changes, and handles
+        out-of-order updates by cascading changes to subsequent tensor states.
+        Old data beyond the timeout window is cleaned up.
+        """
         async with self._lock:  # Added lock
-            if not (0 <= tensor_index < self.__tensor_length):
+            if not 0 <= tensor_index < self.__tensor_length:  # C0325 fix
                 return
 
             if (
