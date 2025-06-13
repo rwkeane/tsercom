@@ -108,14 +108,9 @@ class TestInitializeRuntimes:
         assert (
             kw_args["data_reader"] is mock_client_data_reader_actual_instance
         )
-        assert isinstance(
-            kw_args["event_source"],
-            EventToSerializableAnnInstancePollerAdapter,
-        )
-        assert (
-            kw_args["event_source"]._source_poller
-            is mock_client_event_poller_actual_instance
-        )
+        # The adapter is no longer used in runtime_main.py,
+        # as factories are expected to return the correct poller type.
+        assert kw_args["event_source"] is mock_client_event_poller_actual_instance
         assert (
             kw_args["min_send_frequency_seconds"]
             == mock_client_factory.min_send_frequency_seconds
@@ -216,14 +211,8 @@ class TestInitializeRuntimes:
         assert (
             kw_args["data_reader"] is mock_server_data_reader_actual_instance
         )
-        assert isinstance(
-            kw_args["event_source"],
-            EventToSerializableAnnInstancePollerAdapter,
-        )
-        assert (
-            kw_args["event_source"]._source_poller
-            is mock_server_event_poller_actual_instance
-        )
+        # The adapter is no longer used in runtime_main.py
+        assert kw_args["event_source"] is mock_server_event_poller_actual_instance
         assert (
             kw_args["min_send_frequency_seconds"]
             == mock_server_factory.min_send_frequency_seconds
@@ -360,14 +349,8 @@ class TestInitializeRuntimes:
             kw_client_args["data_reader"]
             is mock_client_data_reader_actual_instance_multi
         )
-        assert isinstance(
-            kw_client_args["event_source"],
-            EventToSerializableAnnInstancePollerAdapter,
-        )
-        assert (
-            kw_client_args["event_source"]._source_poller
-            is mock_client_event_poller_actual_instance_multi
-        )
+        # The adapter is no longer used in runtime_main.py
+        assert kw_client_args["event_source"] is mock_client_event_poller_actual_instance_multi
         assert (
             kw_client_args["min_send_frequency_seconds"]
             == mock_client_factory.min_send_frequency_seconds
@@ -388,14 +371,8 @@ class TestInitializeRuntimes:
             kw_server_args["data_reader"]
             is mock_server_data_reader_actual_instance_multi
         )
-        assert isinstance(
-            kw_server_args["event_source"],
-            EventToSerializableAnnInstancePollerAdapter,
-        )
-        assert (
-            kw_server_args["event_source"]._source_poller
-            is mock_server_event_poller_actual_instance_multi
-        )
+        # The adapter is no longer used in runtime_main.py
+        assert kw_server_args["event_source"] is mock_server_event_poller_actual_instance_multi
         assert (
             kw_server_args["min_send_frequency_seconds"]
             == mock_server_factory.min_send_frequency_seconds

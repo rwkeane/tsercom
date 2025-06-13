@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.event_instance import EventInstance
+from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 
 # ExposedData import removed as DataTypeT is no longer bound to it here.
 # SerializableAnnotatedInstance might become unused in this file
@@ -45,7 +45,7 @@ class RuntimeFactory(
     @abstractmethod
     def event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[EventTypeT]]:
+    ) -> AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]:
         """Provides an `AsyncPoller` for receiving event instances.
 
         Subclasses must implement this property.
@@ -66,7 +66,7 @@ class RuntimeFactory(
     @abstractmethod
     def _event_poller(
         self,
-    ) -> AsyncPoller[EventInstance[EventTypeT]]:
+    ) -> AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]:
         """Internal abstract method by subclasses to provide the event poller.
 
         This method is typically called by the `event_poller` property.
