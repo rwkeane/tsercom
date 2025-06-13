@@ -190,7 +190,6 @@ class AsyncPoller(Generic[ResultTypeT]):
             # self.__is_loop_running.set(True) # Removed: __is_loop_running now started in __init__
             # and IsRunningTracker manages its own loop sync.
         # elif not self.__is_loop_running.get(): # This check is now effectively done below
-        #    raise RuntimeError("AsyncPoller is stopped.")
 
         if (
             not self.__is_loop_running.get()
@@ -228,7 +227,6 @@ class AsyncPoller(Generic[ResultTypeT]):
             await self.__is_loop_running.task_or_stopped(self.__barrier.wait())
 
             if not self.__is_loop_running.get():
-                # If stopped during the wait, check one last time for residual items
                 # This handles a race condition where stop() is called after the while condition
                 # but before or during asyncio.wait_for, and on_available adds items just before stop.
                 with self.__lock:

@@ -109,7 +109,9 @@ class TestInitializeRuntimes:
             kw_args["data_reader"] is mock_client_data_reader_actual_instance
         )
         # Check that event_source is the direct poller instance
-        assert kw_args["event_source"] is mock_client_event_poller_actual_instance
+        assert (
+            kw_args["event_source"] is mock_client_event_poller_actual_instance
+        )
         assert (
             kw_args["min_send_frequency_seconds"]
             == mock_client_factory.min_send_frequency_seconds
@@ -211,7 +213,9 @@ class TestInitializeRuntimes:
             kw_args["data_reader"] is mock_server_data_reader_actual_instance
         )
         # Check that event_source is the direct poller instance
-        assert kw_args["event_source"] is mock_server_event_poller_actual_instance
+        assert (
+            kw_args["event_source"] is mock_server_event_poller_actual_instance
+        )
         assert (
             kw_args["min_send_frequency_seconds"]
             == mock_server_factory.min_send_frequency_seconds
@@ -349,7 +353,10 @@ class TestInitializeRuntimes:
             is mock_client_data_reader_actual_instance_multi
         )
         # Check that event_source is the direct poller instance
-        assert kw_client_args["event_source"] is mock_client_event_poller_actual_instance_multi
+        assert (
+            kw_client_args["event_source"]
+            is mock_client_event_poller_actual_instance_multi
+        )
         assert (
             kw_client_args["min_send_frequency_seconds"]
             == mock_client_factory.min_send_frequency_seconds
@@ -371,7 +378,10 @@ class TestInitializeRuntimes:
             is mock_server_data_reader_actual_instance_multi
         )
         # Check that event_source is the direct poller instance
-        assert kw_server_args["event_source"] is mock_server_event_poller_actual_instance_multi
+        assert (
+            kw_server_args["event_source"]
+            is mock_server_event_poller_actual_instance_multi
+        )
         assert (
             kw_server_args["min_send_frequency_seconds"]
             == mock_server_factory.min_send_frequency_seconds

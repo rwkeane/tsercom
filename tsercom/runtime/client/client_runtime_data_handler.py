@@ -13,9 +13,6 @@ from typing import Generic, Optional, TypeVar
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.data.serializable_annotated_instance import (
-    SerializableAnnotatedInstance,
-)
 from tsercom.data.event_instance import EventInstance
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
@@ -110,13 +107,10 @@ class ClientRuntimeDataHandler(
             that endpoint.
         """
         # Add to IdTracker (from base class) to associate caller_id with address
-        # and to get a dedicated AsyncPoller for its events.
         self._id_tracker.add(caller_id, endpoint, port)
 
-        # Establish time synchronization for this specific endpoint
         clock: SynchronizedClock = self.__clock_tracker.on_connect(endpoint)
 
-        # Create the data processor using the synchronized clock for this endpoint
         return self._create_data_processor(caller_id, clock)
 
     async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
@@ -151,8 +145,6 @@ class ClientRuntimeDataHandler(
         was_removed_from_id_tracker = self._id_tracker.remove(caller_id)
 
         if not was_removed_from_id_tracker:
-            # This case should ideally not be reached if id_tracker_entry was found,
-            # but included for robustness.
             logging.warning(
                 "Failed to remove caller_id %s from IdTracker, though it was initially found. "
                 "Skipping clock_tracker.on_disconnect.",

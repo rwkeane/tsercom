@@ -106,7 +106,6 @@ class RuntimeDataHandlerBase(
             event_source
         )
 
-        # Define a properly typed factory for the IdTracker
         def _poller_factory() -> AsyncPoller[EventInstance[EventTypeT]]:
             return AsyncPoller(
                 min_poll_frequency_seconds=min_send_frequency_seconds
@@ -116,7 +115,6 @@ class RuntimeDataHandlerBase(
             _poller_factory
         )
 
-        # Start the background task for dispatching events from the main event_source
         # to individual caller-specific pollers managed by the IdTracker.
         run_on_event_loop(self.__dispatch_poller_data_loop)
 
@@ -399,10 +397,8 @@ class RuntimeDataHandlerBase(
                 an internal state inconsistency).
         """
         # The IdTracker is configured to store AsyncPoller instances as TrackedDataT.
-        # get() by ID returns (address, port, data_poller_instance)
         _address, _port, data_poller = self.__id_tracker.get(caller_id)
         if data_poller is None:
-            # This should ideally not happen if add() correctly uses the data_factory
             raise ValueError(
                 f"No data poller found in IdTracker for {caller_id}"
             )
@@ -424,11 +420,9 @@ class RuntimeDataHandlerBase(
             The `CallerIdentifier` if a mapping exists for the given endpoint
             and port, otherwise `None`.
         """
-        # try_get(address, port) returns (CallerIdentifier, TrackedDataT) or None
         result_tuple = self.__id_tracker.try_get(endpoint, port)
         if result_tuple is None:
             return None
-        # We only need the CallerIdentifier from the (CallerIdentifier, TrackedDataT) tuple
         return result_tuple[0]
 
     async def __dispatch_poller_data_loop(self) -> None:
@@ -444,7 +438,6 @@ class RuntimeDataHandlerBase(
             async for events_batch in self.__event_source:
                 for event_item in events_batch:
                     if event_item.caller_id is None:
-                        # Dispatch to all known pollers if caller_id is None
                         all_pollers = self._id_tracker.get_all_tracked_data()
                         for poller in all_pollers:
                             if poller is not None:
@@ -463,9 +456,7 @@ class RuntimeDataHandlerBase(
                             per_caller_poller.on_available(event_item)
                         # else: Potentially log if poller is None but entry existed?
         except Exception as e:
-            # This generic catch might hide issues during testing if not re-raised.
             # However, ThreadWatcher is supposed to catch and report these.
-            # For now, ensure it's visible during tests.
             print(
                 f"CRITICAL ERROR in __dispatch_poller_data_loop: {type(e).__name__}: {e}"
             )
