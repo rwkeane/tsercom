@@ -266,6 +266,9 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         Raises:
             RuntimeError: If the manager has already been started.
         """
+        assert (
+            runtime_event_loop is not None
+        ), "runtime_event_loop cannot be None"
         if self.has_started:
             raise RuntimeError("RuntimeManager has already been started.")
         self.__has_started.start()
