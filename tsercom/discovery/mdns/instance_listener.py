@@ -27,7 +27,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
     """
 
     # pylint: disable=R0903 # Abstract listener client interface
-    class Client(ABC):  # Removed Generic[TServiceInfo]
+    class Client(ABC):
         """Interface for `InstanceListener` clients.
 
         Notified when a complete service instance, matching the type
@@ -103,7 +103,6 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
             self.__listener = default_mdns_listener_factory(self, service_type)
         else:
-            # Use provided factory
             self.__listener = mdns_listener_factory(self, service_type)
 
         self.__listener.start()
@@ -112,10 +111,10 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
         # to build a cohesive ServiceInfo object representing a discovered service.
         self,
-        record_name: str,  # Typically the mDNS instance name
+        record_name: str,
         port: int,
-        addresses: List[bytes],  # List of raw IP addresses (binary format)
-        txt_record: Dict[bytes, bytes | None],  # Raw TXT record data
+        addresses: List[bytes],
+        txt_record: Dict[bytes, bytes | None],
     ) -> Optional[ServiceInfo]:
         """Constructs a `ServiceInfo` object from raw mDNS record data.
 
@@ -151,7 +150,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
                     record_name,
                     e,
                 )
-                continue  # Skip this address.
+                continue
 
         if not addresses_out:
             logging.warning(
@@ -192,7 +191,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
         Args:
             service_info: Base `ServiceInfo` from mDNS records.
-            _txt_record: Raw TXT data for populating `ServiceInfoT`. (Unused)
+            _txt_record: Raw TXT data for populating `ServiceInfoT`.
 
         Returns:
             Instance of `ServiceInfoT`. Must be overridden if `ServiceInfoT`
@@ -205,12 +204,12 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # and its "correctness" depends on how ServiceInfoT is defined by the subclass.
         return service_info  # type: ignore[return-value]
 
-    def _on_service_added(  # Parameter 'name' now matches MdnsListener.Client
+    def _on_service_added(
         self,
-        name: str,  # mDNS instance name
-        port: int,  # Service port from SRV record
-        addresses: List[bytes],  # IP addresses from A/AAAA records (binary)
-        txt_record: Dict[bytes, bytes | None],  # Parsed TXT record
+        name: str,
+        port: int,
+        addresses: List[bytes],
+        txt_record: Dict[bytes, bytes | None],
     ) -> None:
         """Callback from `RecordListener` with mDNS records for a service.
 
@@ -228,7 +227,6 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             name, port, addresses, txt_record
         )
         if base_service_info is None:
-            # If essential info couldn't be populated, do not proceed.
             return
 
         # This step allows subclasses to create more specialized info objects.
@@ -242,7 +240,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             partial(self.__client._on_service_added, typed_service_info)
         )
 
-    def _on_service_removed(  # Matches MdnsListener.Client
+    def _on_service_removed(
         self,
         name: str,
         service_type: str,
@@ -261,3 +259,15 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # Client's _on_service_removed is expected to be a coroutine.
         # pylint: disable=W0212 # Calling client's notification method
         run_on_event_loop(partial(self.__client._on_service_removed, name))
+
+    async def async_stop(self) -> None:
+        # Stops the listener and cleans up resources.
+        if hasattr(self.__listener, "close") and callable(
+            getattr(self.__listener, "close")
+        ):
+            await self.__listener.close()
+        elif hasattr(self.__listener, "stop") and callable(
+            getattr(self.__listener, "stop")
+        ):
+            self.__listener.stop()
+        logging.info("InstanceListener stopped.")

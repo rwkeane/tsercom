@@ -95,7 +95,6 @@ class DiscoveryHost(
             ValueError: If neither or both args provided.
         """
         # Ensure exclusive provision of service_type or factory
-        # Corrected validation: Exactly one configuration method must be provided.
         num_modes_selected = sum(
             [
                 bool(service_type),
@@ -135,11 +134,8 @@ class DiscoveryHost(
 
             self.__instance_listener_factory = instance_factory
 
-        # mDNS instance listener; initialized in __start_discovery_impl.
         self.__discoverer: Optional[InstanceListener[ServiceInfoT]] = None
         self.__client: Optional[ServiceSource.Client] = None
-
-        # Maps mDNS instance names to CallerIdentifiers.
         self.__caller_id_map: Dict[str, CallerIdentifier] = {}
 
     async def start_discovery(self, client: ServiceSource.Client) -> None:
@@ -178,18 +174,14 @@ class DiscoveryHost(
             raise RuntimeError("Discovery has already been started.")
 
         self.__client = client
-        try:
-            self.__discoverer = self.__instance_listener_factory(self)
-        except Exception as e:
-            logging.error(f"Failed to initialize discovery listener: {e}")
-            self.__discoverer = None
+        self.__discoverer = self.__instance_listener_factory(self)
         # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener)
         # requires an explicit start() method to be called after instantiation.
         # If so, it should be called here. For example:
         # if hasattr(self.__discoverer, "start") and callable(self.__discoverer.start):
         #     # await self.__discoverer.start() # If async
         #     # self.__discoverer.start() # If sync
-        #     pass  # Actual call depends on InstanceListener's API
+        #     pass
 
     async def _on_service_added(self, connection_info: ServiceInfoT) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
@@ -206,12 +198,10 @@ class DiscoveryHost(
         """
         if self.__client is None:
             # Programming error: discovery should have been started with a client.
-            # Long error message
             raise RuntimeError(
                 "DiscoveryHost client not set; discovery may not have been started correctly."
             )
 
-        # Use mDNS instance name as key for CallerId mapping.
         service_mdns_name = connection_info.mdns_name
 
         caller_id: CallerIdentifier
@@ -247,7 +237,6 @@ class DiscoveryHost(
             return
 
         if caller_id:
-            # Check if the client has the _on_service_removed method
             if hasattr(self.__client, "_on_service_removed") and callable(
                 getattr(self.__client, "_on_service_removed")
             ):
@@ -267,7 +256,19 @@ class DiscoveryHost(
                 service_name,
             )
 
-
-# TODO(developer/issue_id): Implement a stop_discovery() method.
-# This method should handle stopping self.__discoverer (InstanceListener)
-# if it has stop(), and potentially clear client, discoverer, and map.
+    async def stop_discovery(self) -> None:
+        # Stops service discovery and cleans up resources.
+        logging.info("Stopping DiscoveryHost...")
+        if self.__discoverer is not None:
+            if hasattr(self.__discoverer, "async_stop") and callable(
+                getattr(self.__discoverer, "async_stop")
+            ):
+                await self.__discoverer.async_stop()
+            elif hasattr(self.__discoverer, "stop") and callable(
+                getattr(self.__discoverer, "stop")
+            ):
+                self.__discoverer.stop()
+            self.__discoverer = None
+        self.__client = None
+        self.__caller_id_map.clear()
+        logging.info("DiscoveryHost stopped.")

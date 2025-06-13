@@ -69,7 +69,7 @@ class ServiceConnector(
         @abstractmethod
         async def _on_channel_connected(
             self,
-            connection_info: SourceServiceInfoT,  # Use imported SourceServiceInfoT
+            connection_info: SourceServiceInfoT,
             caller_id: CallerIdentifier,
             channel: ChannelTypeT,
         ) -> None:
@@ -111,14 +111,14 @@ class ServiceConnector(
             connection_factory
         )
 
-        self.__callers: Set[CallerIdentifier] = set()  # Using typing.Set
+        self.__callers: Set[CallerIdentifier] = set()
 
         # The event loop is captured on the first relevant async operation,
         # typically in _on_service_added, to ensure subsequent operations
         # are scheduled on the same loop for consistency.
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
-        super().__init__()  # Call ServiceSource.Client.__init__
+        super().__init__()
 
     async def start(self) -> None:
         """Starts the service discovery process.
@@ -170,14 +170,13 @@ class ServiceConnector(
         if not is_running_on_event_loop(self.__event_loop):
             # Schedule the implementation to run on the captured event loop.
             # The future returned by run_on_event_loop is not awaited here,
-            # as mark_client_failed is fire-and-forget from the caller\'s perspective.
+            # as mark_client_failed is fire-and-forget from the caller's perspective.
             run_on_event_loop(
                 partial(self._mark_client_failed_impl, caller_id),
                 self.__event_loop,
             )
             return
 
-        # Already on the correct loop, execute directly.
         await self._mark_client_failed_impl(caller_id)
 
     async def _mark_client_failed_impl(
@@ -284,3 +283,30 @@ class ServiceConnector(
             caller_id,
             channel,
         )
+
+    async def stop(self) -> None:
+        logging.info("Stopping ServiceConnector...")
+
+        if hasattr(self.__service_source, "stop_discovery") and callable(
+            getattr(self.__service_source, "stop_discovery")
+        ):
+            try:
+                await self.__service_source.stop_discovery()
+            except Exception as e:  # pylint: disable=broad-except
+                logging.error(
+                    "Error during service_source.stop_discovery(): %s",
+                    e,
+                    exc_info=True,
+                )
+        else:
+            logging.debug(
+                "Service source does not have stop_discovery method."
+            )
+
+        self.__callers.clear()
+
+        # Note: Channel closing logic would go here if ServiceConnector directly managed channels.
+        # In the current structure, the client of ServiceConnector receives the channel
+        # and is responsible for its lifecycle.
+
+        logging.info("ServiceConnector stopped.")
