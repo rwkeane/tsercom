@@ -98,6 +98,7 @@ async def test_first_update(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
     d, mc = demuxer
+
     await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
 
     assert mc.call_count == 1
