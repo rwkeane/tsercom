@@ -11,25 +11,19 @@ from tsercom.discovery.mdns.instance_listener import (
     MdnsListenerFactory,
 )
 import typing
-from tsercom.threading.aio.global_event_loop import (
-    set_tsercom_event_loop_to_current_thread,
-    clear_tsercom_event_loop,
-    is_global_event_loop_set,
-)
+# Imports for event loop management are now handled by the manage_tsercom_loop fixture
+# from tsercom.threading.aio.global_event_loop import (
+#     set_tsercom_event_loop_to_current_thread,
+#     clear_tsercom_event_loop,
+#     is_global_event_loop_set,
+# )
+from tsercom.test.loop_fixtures import manage_tsercom_loop # Auto-use fixture for event loop
 
 SERVICE_TYPE_DEFAULT = "_test_service._tcp.local."
 
 
-@pytest.fixture(autouse=True)
-def manage_tsercom_global_event_loop_fixture(
-    request: pytest.FixtureRequest,
-) -> typing.Iterator[None]:
-    if not is_global_event_loop_set():
-        set_tsercom_event_loop_to_current_thread()
-    try:
-        yield
-    finally:
-        clear_tsercom_event_loop()
+# The local manage_tsercom_global_event_loop_fixture has been removed.
+# Event loop management is now handled by the imported manage_tsercom_loop (autouse=True).
 
 
 @pytest.fixture

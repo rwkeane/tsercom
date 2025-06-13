@@ -11,19 +11,44 @@ from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.service_info import ServiceInfo
 
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
-# Imports for tsercom global event loop are no longer needed here if manage_tsercom_loop handles it
-# from tsercom.threading.aio.global_event_loop import (
-# clear_tsercom_event_loop,
-# set_tsercom_event_loop,
-# )
-
-# Fixtures and classes moved from this file
-from tsercom.test.discovery_fixtures import DiscoveryTestClient, SelectiveDiscoveryClient, UpdateTestClient, MultiDiscoveryTestClient
-from tsercom.test.loop_fixtures import manage_tsercom_loop # Replaces manage_tsercom_global_event_loop
+from tsercom.threading.aio.global_event_loop import (
+    clear_tsercom_event_loop,
+    set_tsercom_event_loop,
+)
 
 
-# Definitions for DiscoveryTestClient, manage_tsercom_global_event_loop, etc., have been removed.
-# Tests will now use these from the imported locations.
+class DiscoveryTestClient(InstanceListener.Client):
+    __test__ = False
+
+    def __init__(
+        self, discovery_event: asyncio.Event, discovered_services: list
+    ):
+        super().__init__()
+        self._discovery_event = discovery_event
+        self._discovered_services = discovered_services
+
+    async def _on_service_added(self, connection_info: ServiceInfo):
+        self._discovered_services.append(connection_info)
+        self._discovery_event.set()
+
+    async def _on_service_removed(self, service_name: str):
+        # Basic implementation for existing tests, can be expanded if needed
+        print(
+            f"Service removed (not actively handled in this client): {service_name}"
+        )
+        pass
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def manage_tsercom_global_event_loop():
+    """Ensures tsercom's global event loop is set for asyncio tests."""
+    try:
+        loop = asyncio.get_running_loop()
+        set_tsercom_event_loop(loop)
+        yield
+    finally:
+        clear_tsercom_event_loop()
+
 
 @pytest.mark.asyncio
 async def test_successful_registration_and_discovery():
@@ -97,6 +122,44 @@ async def test_successful_registration_and_discovery():
 
     # Small sleep to allow background tasks to settle, if necessary.
     await asyncio.sleep(0.1)
+
+
+class SelectiveDiscoveryClient(InstanceListener.Client):
+    __test__ = False
+
+    def __init__(self):
+        super().__init__()
+        self.service_added_event = asyncio.Event()
+        self.service_removed_event = asyncio.Event()
+        self.discovered_services: list[ServiceInfo] = []
+        self.removed_service_names: list[str] = []
+        self._lock = asyncio.Lock()
+
+    async def _on_service_added(self, connection_info: ServiceInfo):
+        async with self._lock:
+            # Avoid duplicates if service already in list by mdns_name
+            if not any(
+                s.mdns_name == connection_info.mdns_name
+                for s in self.discovered_services
+            ):
+                self.discovered_services.append(connection_info)
+            # Set event even if it's a duplicate, signifies an add event occurred
+            self.service_added_event.set()
+
+    async def _on_service_removed(self, service_name: str):
+        async with self._lock:
+            self.removed_service_names.append(service_name)
+            # Remove from discovered_services if present
+            self.discovered_services = [
+                s
+                for s in self.discovered_services
+                if s.mdns_name != service_name
+            ]
+            self.service_removed_event.set()
+
+    def clear_events(self):
+        self.service_added_event.clear()
+        self.service_removed_event.clear()
 
 
 @pytest.mark.asyncio
@@ -239,6 +302,37 @@ async def test_concurrent_publishing_with_selective_unpublish():
         gc.collect()
 
     await asyncio.sleep(0.1)  # Final small sleep
+
+
+class UpdateTestClient(InstanceListener.Client):
+    __test__ = False
+
+    def __init__(
+        self, events: list[asyncio.Event], services_list: list[ServiceInfo]
+    ):
+        super().__init__()
+        self.events = events
+        self.services_list = services_list
+        self.call_count = 0
+
+    async def _on_service_added(self, connection_info: ServiceInfo) -> None:
+        self.services_list.append(connection_info)
+        if self.call_count < len(self.events):
+            self.events[self.call_count].set()
+        self.call_count += 1
+        # Note: mDNS can sometimes send multiple "added" events for the same service initially.
+        # This test relies on the new publication with the same instance name causing a new
+        # "added" event after the old one might have been removed or TTL expired.
+        # Robust handling might require `_on_service_removed` and more complex logic
+        # if the underlying zeroconf library guarantees remove-then-add for updates.
+        # For this test, we assume two distinct "added" events for V1 and V2.
+
+    async def _on_service_removed(self, service_name: str):
+        # Basic implementation for existing tests, can be expanded if needed
+        print(
+            f"Service removed (not actively handled in this client): {service_name}"
+        )
+        pass
 
 
 @pytest.mark.asyncio
@@ -452,6 +546,43 @@ async def test_instance_unpublishing():
     ), f"Service list not empty. Found {len(discovered_services2)} services after unpublishing. Details: {discovered_services2}"
 
     await asyncio.sleep(0.1)
+
+
+class MultiDiscoveryTestClient(InstanceListener.Client):
+    __test__ = False
+
+    def __init__(
+        self,
+        services_list: list[ServiceInfo],
+        expected_discoveries: int,
+        all_discovered_event: asyncio.Event,
+    ):
+        super().__init__()
+        self.services_list = services_list
+        self.expected_discoveries = expected_discoveries
+        self.all_discovered_event = all_discovered_event
+        self.lock = asyncio.Lock()  # To protect access to shared list & event
+
+    async def _on_service_added(self, connection_info: ServiceInfo) -> None:
+        async with self.lock:
+            # Avoid duplicates if mDNS sends multiple add notifications for the same service instance
+            if not any(
+                s.mdns_name == connection_info.mdns_name
+                for s in self.services_list
+            ):
+                self.services_list.append(connection_info)
+                if len(self.services_list) >= self.expected_discoveries:
+                    if not self.all_discovered_event.is_set():
+                        self.all_discovered_event.set()
+
+    async def _on_service_removed(self, service_name: str):
+        # Basic implementation for existing tests, can be expanded if needed
+        print(
+            f"Service removed (not actively handled in this client): {service_name}"
+        )
+        # Potentially remove from self.services_list if necessary for test logic
+        # For now, keeping it simple as these tests focus on additions.
+        pass
 
 
 @pytest.mark.asyncio

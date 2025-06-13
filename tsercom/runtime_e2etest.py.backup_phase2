@@ -10,7 +10,6 @@ from threading import Thread
 
 import pytest
 
-# Imports from this project
 from tsercom.api.runtime_manager import RuntimeManager
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
@@ -20,13 +19,9 @@ from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.global_event_loop import (
-    clear_tsercom_event_loop, # Keep this specific import if clear_loop_fixture used it directly
+    clear_tsercom_event_loop,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
-
-# Imports from test fixtures
-from tsercom.test.runtime_fixtures import FakeData, FakeEvent, FakeRuntime, FakeRuntimeInitializer, ErrorThrowingRuntime, ErrorThrowingRuntimeInitializer, FaultyCreateRuntimeInitializer, BroadcastTestFakeRuntime, BroadcastTestFakeRuntimeInitializer
-from tsercom.test.loop_fixtures import clear_loop_fixture # This fixture is used by tests in this file
 
 started = "STARTED"
 stopped = "STOPPED"
@@ -41,8 +36,277 @@ stop_timestamp = datetime.datetime.now(
 test_id = CallerIdentifier.random()
 
 
-# Definitions for FakeData, FakeEvent, FakeRuntime, etc. and clear_loop_fixture have been moved.
-# Tests will now use these from tsercom.test.runtime_fixtures and tsercom.test.loop_fixtures
+class FakeData:
+    def __init__(self, val: str):
+        self.__val = val
+
+    @property
+    def value(self):
+        return self.__val
+
+
+class FakeEvent:
+    pass
+
+
+class FakeRuntime(Runtime):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+        test_id: CallerIdentifier,
+    ):
+        self.__thread_watcher = thread_watcher
+        self.__data_handler = data_handler
+        self.__grpc_channel_factory = grpc_channel_factory
+        self.__test_id = test_id
+        self.__responder: EndpointDataProcessor[FakeData] | None = None
+        self._data_sent = False
+
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f"<FakeRuntime instance at {id(self)}>"
+
+    async def start_async(self) -> None:
+        try:
+            asyncio.current_task()
+        except RuntimeError:
+            pass
+
+        await asyncio.sleep(0.01)
+
+        self.__responder = await self.__data_handler.register_caller(
+            self.__test_id, "0.0.0.0", 443
+        )
+
+        if not self._data_sent:
+            fresh_data_value = "FRESH_SIMPLE_DATA_V2"
+            fresh_data_object = FakeData(fresh_data_value)
+            fresh_timestamp = datetime.datetime.now(datetime.timezone.utc)
+
+            await self.__responder.process_data(
+                fresh_data_object, fresh_timestamp
+            )
+            self._data_sent = True
+
+    async def stop(self, exception) -> None:
+        assert self.__responder is not None
+        await self.__responder.process_data(FakeData(stopped), stop_timestamp)
+
+
+class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
+    def __init__(self, test_id: CallerIdentifier, service_type="Client"):
+        super().__init__(service_type=service_type)
+        self._test_id = test_id
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        return FakeRuntime(
+            thread_watcher, data_handler, grpc_channel_factory, self._test_id
+        )
+
+
+class ErrorThrowingRuntime(Runtime):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler,
+        grpc_channel_factory: GrpcChannelFactory,
+        error_message="TestError",
+        error_type=RuntimeError,
+    ):
+        super().__init__()
+        self.error_message = error_message
+        self.error_type = error_type
+        self._thread_watcher = thread_watcher
+        self._data_handler = data_handler
+        self._grpc_channel_factory = grpc_channel_factory
+
+    async def start_async(self) -> None:
+        raise self.error_type(self.error_message)
+
+    async def stop(self, exception) -> None:
+        pass
+
+
+class ErrorThrowingRuntimeInitializer(RuntimeInitializer):
+    def __init__(
+        self,
+        error_message="TestError",
+        error_type=RuntimeError,
+        service_type="Client",
+    ):
+        super().__init__(service_type=service_type)
+        self.error_message = error_message
+        self.error_type = error_type
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler,
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        return ErrorThrowingRuntime(
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self.error_message,
+            self.error_type,
+        )
+
+
+class FaultyCreateRuntimeInitializer(RuntimeInitializer):
+    def __init__(
+        self,
+        error_message="CreateFailed",
+        error_type=TypeError,
+        service_type="Client",
+    ):
+        super().__init__(service_type=service_type)
+        self.error_message = error_message
+        self.error_type = error_type
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler,
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        raise self.error_type(self.error_message)
+
+
+@pytest.fixture
+def clear_loop_fixture():
+    clear_tsercom_event_loop()
+    yield
+    clear_tsercom_event_loop()
+
+
+# New classes for broadcast test
+class BroadcastTestFakeRuntime(Runtime):
+    __test__ = False  # Tell pytest this is not a test class
+
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+        initial_caller_ids: list[CallerIdentifier],
+    ):
+        super().__init__()
+        self._thread_watcher = thread_watcher
+        self.__data_handler = data_handler
+        self._grpc_channel_factory = grpc_channel_factory
+        self.initial_caller_ids = initial_caller_ids
+        self._responders: dict[
+            CallerIdentifier, EndpointDataProcessor[FakeData, FakeEvent]
+        ] = {}
+        self._listener_tasks: list[asyncio.Task] = []
+
+    async def start_async(self) -> None:
+        for i, cid in enumerate(self.initial_caller_ids):
+            port = 50000 + i  # Assign a unique dummy port
+            try:
+                responder = await self.__data_handler.register_caller(
+                    cid, "0.0.0.0", port
+                )
+                if responder is None:
+                    # Handle case where responder might be None, e.g. log or skip
+                    print(f"Warning: Responder for {cid} is None.")
+                    continue
+                self._responders[cid] = responder
+                task = asyncio.create_task(
+                    self._event_listener_loop(cid, responder)
+                )
+                self._listener_tasks.append(task)
+            except Exception as e:
+                # Log or handle registration errors
+                print(
+                    f"Error registering caller {cid} or starting listener: {e}"
+                )
+
+    async def _event_listener_loop(
+        self,
+        caller_id: CallerIdentifier,
+        responder: EndpointDataProcessor[FakeData, FakeEvent],
+    ):
+        await asyncio.sleep(0.01)  # Yield control at the beginning
+        try:
+            async for event_list in responder:
+                for annotated_event in event_list:
+                    if isinstance(annotated_event.data, FakeEvent):
+                        # Ensure annotated_event.caller_id is handled if it can be None
+                        # For broadcast, original caller_id on event might be None
+                        # but we are processing for a specific responder's caller_id here.
+                        print(
+                            f"Listener for {caller_id}: Received FakeEvent. Processing..."
+                        )
+                        processed_data = FakeData(
+                            f"event_for_{str(caller_id)[:8]}"
+                        )
+                        await responder.process_data(
+                            processed_data,
+                            datetime.datetime.now(datetime.timezone.utc),
+                        )
+                        print(
+                            f"LISTENER_DBG: Listener for {caller_id} processed data for FakeEvent"
+                        )
+                        await asyncio.sleep(0)  # Yield control
+        except asyncio.CancelledError:
+            print(f"Listener for {caller_id}: Cancelled.")
+            # Log cancellation if necessary
+            pass
+        except Exception as e:
+            # Log other exceptions during event listening
+            print(f"Error in event listener for {caller_id}: {e}")
+
+    async def stop(self, exception) -> None:
+        for task in self._listener_tasks:
+            if not task.done():
+                task.cancel()
+        if self._listener_tasks:
+            await asyncio.gather(*self._listener_tasks, return_exceptions=True)
+
+        for cid, responder in self._responders.items():
+            try:
+                await responder.process_data(
+                    FakeData(f"stopped_{str(cid)[:8]}"),
+                    datetime.datetime.now(datetime.timezone.utc),
+                )
+            except Exception as e:
+                # Log error during stop processing
+                print(f"Error processing stop data for {cid}: {e}")
+
+
+class BroadcastTestFakeRuntimeInitializer(
+    RuntimeInitializer[FakeData, FakeEvent]
+):
+    __test__ = False  # Tell pytest this is not a test class
+
+    def __init__(
+        self, initial_caller_ids: list[CallerIdentifier], service_type="Server"
+    ):
+        super().__init__(service_type=service_type)
+        self.initial_caller_ids = initial_caller_ids
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[FakeData, FakeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        return BroadcastTestFakeRuntime(
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self.initial_caller_ids,
+        )
 
 
 def __check_initialization(init_call: Callable[[RuntimeManager], None]):
