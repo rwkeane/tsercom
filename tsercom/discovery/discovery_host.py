@@ -174,7 +174,17 @@ class DiscoveryHost(
             raise RuntimeError("Discovery has already been started.")
 
         self.__client = client
-        self.__discoverer = self.__instance_listener_factory(self)
+        try:
+            self.__discoverer = self.__instance_listener_factory(self)
+            # The InstanceListener constructor should handle starting the underlying listener.
+            # If self.__discoverer is successfully created, it implies the listener
+            # (and its factory) also succeeded up to the point of starting.
+        except Exception as e:
+            logging.error(
+                f"Failed to initialize discovery listener: {e}", exc_info=True
+            )
+            self.__discoverer = None  # Ensure discoverer is None if init fails
+
         # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener)
         # requires an explicit start() method to be called after instantiation.
         # If so, it should be called here. For example:

@@ -95,6 +95,7 @@ Tsercom relies on several key libraries:
 *   `zeroconf`: For mDNS-based service discovery (used by the `tsercom.discovery` module).
 *   `ntplib`: Used by the `tsercom.timesync` module for network time synchronization.
 *   `psutil`: For system utilities, which can be used internally for process management or monitoring.
+*   `grpcio-health-checking`: For gRPC health checking services.
 *   `typing-extensions`: Provides access to newer typing features for older Python versions.
 
 **Optional Dependencies:**
