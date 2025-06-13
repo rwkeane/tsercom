@@ -38,6 +38,7 @@ dev = [
     "pytest-mock", 
     "pytest-timeout",
     "pre-commit",
+    "isort>=6.0.1",
     "ruff",
     "black",
     "mypy",
