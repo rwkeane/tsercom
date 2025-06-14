@@ -1,8 +1,11 @@
 """Factory for creating split-process runtime factories and handles."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, TypeVar
+from typing import Tuple, TypeVar, get_args # Standard library imports
 
+import torch # Third-party imports
+
+# First-party imports (tsercom)
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.runtime_handle import RuntimeHandle
@@ -12,14 +15,18 @@ from tsercom.api.split_process.remote_runtime_factory import (
 from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
 from tsercom.data.annotated_instance import (
     AnnotatedInstance,
-)  # Import AnnotatedInstance
+)
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
-    create_multiprocess_queues,
+    DefaultMultiprocessQueueFactory,
+    MultiprocessQueueFactory,
+)
+from tsercom.threading.multiprocess.torch_queue_factory import (
+    TorchMultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -74,19 +81,101 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         Returns:
             A tuple: (ShimRuntimeHandle, RemoteRuntimeFactory).
         """
+        # --- Dynamic queue factory selection ---
+        resolved_data_type = None
+        resolved_event_type = None
+
+        # Attempt to get generic arguments from __orig_class__ if initializer is directly parameterized
+        if hasattr(initializer, "__orig_class__"):
+            # Check if __orig_class__ itself is a direct instance of RuntimeInitializer generic
+            # or if it's a subclass that was parameterized.
+            # We are interested in the arguments provided to RuntimeInitializer.
+            # If initializer is an instance of RuntimeInitializer[SpecificDataType, SpecificEventType]
+            # then initializer.__orig_class__ would be RuntimeInitializer[SpecificDataType, SpecificEventType]
+            # If initializer is an instance of MyInitializer(RuntimeInitializer[SpecificDataType, SpecificEventType])
+            # then initializer.__orig_class__ would be MyInitializer
+
+            # We need to find the base that is RuntimeInitializer[..., ...]
+            # Let's refine this logic to check bases.
+            pass  # Placeholder for refined logic below
+
+        # Iterate __orig_bases__ to find RuntimeInitializer and its type arguments
+        # This is more robust if 'initializer' is an instance of a class that
+        # inherits from RuntimeInitializer[SpecificTypeA, SpecificTypeB].
+        for base in getattr(initializer, "__orig_bases__", []):
+            # Check if the base is a specialization of RuntimeInitializer
+            origin_base = getattr(base, "__origin__", None)
+            if origin_base is RuntimeInitializer:
+                generic_args = get_args(base)
+                if generic_args and len(generic_args) == 2:
+                    resolved_data_type, resolved_event_type = generic_args
+                    break
+
+        # Fallback: If not found in __orig_bases__ (e.g., direct instantiation of RuntimeInitializer itself)
+        if (
+            resolved_data_type is None or resolved_event_type is None
+        ) and hasattr(initializer, "__orig_class__"):
+            origin_class = getattr(
+                initializer.__orig_class__, "__origin__", None
+            )
+            if origin_class is RuntimeInitializer:
+                generic_args = get_args(initializer.__orig_class__)
+                if generic_args and len(generic_args) == 2:
+                    resolved_data_type, resolved_event_type = generic_args
+
+        # Prioritize inspecting the initializer's direct __orig_class__
+        # This should be the GenericFakeRuntimeInitializer[torch.Tensor, str] itself
+        if hasattr(initializer, '__orig_class__'): # Note: This was duplicated logic, removed one block
+            generic_args = get_args(initializer.__orig_class__)
+            if generic_args and len(generic_args) == 2:
+                if not isinstance(generic_args[0], TypeVar):
+                    resolved_data_type = generic_args[0]
+                if not isinstance(generic_args[1], TypeVar):
+                    resolved_event_type = generic_args[1]
+
+        # Fallback: Iterate __orig_bases__ to find the RuntimeInitializer[SpecificA, SpecificB]
+        if resolved_data_type is None or resolved_event_type is None:
+            for base in getattr(initializer, '__orig_bases__', []):
+                if hasattr(base, '__origin__') and base.__origin__ is RuntimeInitializer:
+                    base_generic_args = get_args(base)
+                    if base_generic_args and len(base_generic_args) == 2:
+                        if resolved_data_type is None and not isinstance(base_generic_args[0], TypeVar):
+                            resolved_data_type = base_generic_args[0]
+                        if resolved_event_type is None and not isinstance(base_generic_args[1], TypeVar):
+                            resolved_event_type = base_generic_args[1]
+                        if resolved_data_type is not None and resolved_event_type is not None:
+                            break
+
+        # Declare data_event_queue_factory with the base type for mypy
+        data_event_queue_factory: MultiprocessQueueFactory
+        # The actual check for torch.Tensor
+        uses_torch_tensor = False
+        if resolved_data_type is torch.Tensor or resolved_event_type is torch.Tensor:
+            uses_torch_tensor = True
+
+        if uses_torch_tensor: # No trailing whitespace
+            data_event_queue_factory = TorchMultiprocessQueueFactory()
+        else:
+            data_event_queue_factory = DefaultMultiprocessQueueFactory()
+
+        # Command queues always use the default factory
+        command_queue_factory = DefaultMultiprocessQueueFactory()
+        # --- End dynamic queue factory selection ---
+
         event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]
         event_source: MultiprocessQueueSource[EventInstance[EventTypeT]]
-        event_sink, event_source = create_multiprocess_queues()
+        event_sink, event_source = data_event_queue_factory.create_queues()
 
         data_sink: MultiprocessQueueSink[AnnotatedInstance[DataTypeT]]
         data_source: MultiprocessQueueSource[AnnotatedInstance[DataTypeT]]
-        data_sink, data_source = create_multiprocess_queues()
+        data_sink, data_source = data_event_queue_factory.create_queues()
 
         runtime_command_sink: MultiprocessQueueSink[RuntimeCommand]
         runtime_command_source: MultiprocessQueueSource[RuntimeCommand]
         runtime_command_sink, runtime_command_source = (
-            create_multiprocess_queues()
+            command_queue_factory.create_queues()
         )
+
         factory = RemoteRuntimeFactory[DataTypeT, EventTypeT](
             initializer, event_source, data_sink, runtime_command_source
         )
