@@ -1,5 +1,6 @@
 """Listener for mDNS service records using zeroconf."""
 
+import asyncio # Added import
 import logging
 import uuid
 from zeroconf import Zeroconf
@@ -71,21 +72,21 @@ class RecordListener(MdnsListener):
             self.__mdns.zeroconf, [self.__expected_type], listener=self
         )
 
-    async def update_service(  # type: ignore[override] # pylint: disable=invalid-overridden-method
-        self, zc: Zeroconf, type_: str, name: str
-    ) -> None:
-        """Called by `zeroconf` when a service's info (e.g., TXT) is updated.
+    # --- ServiceListener interface methods ---
 
-        Part of `zeroconf.ServiceListener`. Retrieves updated service info
-        and notifies the client.
-
-        Args:
-            zc: `Zeroconf` instance.
-            type_: Service type updated.
-            name: mDNS name of updated service.
-        """
+    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        """Called by `zeroconf` when a service's info (e.g., TXT) is updated."""
         logging.info(
-            "Service updated or added (via update_service): type='%s', name='%s'",
+            "Sync update_service called: type='%s', name='%s'. Scheduling async handler.",
+            type_,
+            name,
+        )
+        asyncio.create_task(self._handle_update_service(type_, name))
+
+    async def _handle_update_service(self, type_: str, name: str) -> None:
+        """Async handler for service updates."""
+        logging.info(
+            "Async handler _handle_update_service started for: type='%s', name='%s'",
             type_,
             name,
         )
@@ -98,7 +99,8 @@ class RecordListener(MdnsListener):
             )
             return
 
-        info = await zc.async_get_service_info(type_, name)
+        # Use self.__mdns (AsyncZeroconf instance) for async operations
+        info = await self.__mdns.async_get_service_info(type_, name)
         if info is None:
             logging.error(
                 "Failed to get info for updated service '%s' type '%s'.",
@@ -126,39 +128,57 @@ class RecordListener(MdnsListener):
             info.addresses,
             info.properties,  # Pass `name` from args, not info.name
         )
-
-    async def remove_service(  # type: ignore[override] # pylint: disable=invalid-overridden-method
-        self, zc: Zeroconf, type_: str, name: str
-    ) -> None:
-        """Called by `zeroconf` when a service is removed from the network.
-
-        This method is part of the `zeroconf.ServiceListener` interface.
-        Currently, it only logs the removal.
-
-        Args:
-            zc: The `Zeroconf` instance.
-            type_: The type of the service that was removed.
-            name: The mDNS instance name of the service that was removed.
-        """
-        logging.info("Service removed: type='%s', name='%s'", type_, name)
-        await self.__client._on_service_removed(name, type_, self._uuid_str)
-
-    async def add_service(  # type: ignore[override] # pylint: disable=invalid-overridden-method
-        self, zc: Zeroconf, type_: str, name: str
-    ) -> None:
-        """Called by `zeroconf` when a new service is discovered.
-
-        Part of `zeroconf.ServiceListener`. Retrieves new service info,
-        notifies client. `zeroconf` might also call `update_service` for new
-        services; this handles if `add_service` is the first callback.
-
-        Args:
-            zc: `Zeroconf` instance.
-            type_: Discovered service type.
-            name: mDNS name of discovered service.
-        """
         logging.info(
-            "Service added (via add_service): type='%s', name='%s'",
+            "Async handler _handle_update_service completed for: type='%s', name='%s'",
+            type_,
+            name,
+        )
+
+    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        """Called by `zeroconf` when a service is removed from the network."""
+        logging.info(
+            "Sync remove_service called: type='%s', name='%s'. Scheduling async handler.",
+            type_,
+            name,
+        )
+        asyncio.create_task(self._handle_remove_service(type_, name))
+
+    async def _handle_remove_service(self, type_: str, name: str) -> None:
+        """Async handler for service removal."""
+        # Note: The original `remove_service` didn't check type_ == self.__expected_type
+        # but it's good practice for handlers. However, the client notification might
+        # be for any service if the listener was registered for multiple types by some means.
+        # For now, let's assume client is interested in removal of this specific type.
+        logging.info(
+            "Async handler _handle_remove_service started for: type='%s', name='%s'",
+            type_,
+            name,
+        )
+        # if type_ != self.__expected_type: # Consider if this check is needed here
+        #     logging.debug("Ignoring removal for '%s', type '%s'. Expected '%s'.", name, type_, self.__expected_type)
+        #     return
+
+        # pylint: disable=W0212 # Calling listener's notification method
+        await self.__client._on_service_removed(name, type_, self._uuid_str)
+        logging.info(
+            "Async handler _handle_remove_service completed for: type='%s', name='%s'",
+            type_,
+            name,
+        )
+
+    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        """Called by `zeroconf` when a new service is discovered."""
+        logging.info(
+            "Sync add_service called: type='%s', name='%s'. Scheduling async handler.",
+            type_,
+            name,
+        )
+        asyncio.create_task(self._handle_add_service(type_, name))
+
+    async def _handle_add_service(self, type_: str, name: str) -> None:
+        """Async handler for service additions."""
+        logging.info(
+            "Async handler _handle_add_service started for: type='%s', name='%s'",
             type_,
             name,
         )
@@ -171,7 +191,8 @@ class RecordListener(MdnsListener):
             )
             return
 
-        info = await zc.async_get_service_info(type_, name)
+        # Use self.__mdns (AsyncZeroconf instance) for async operations
+        info = await self.__mdns.async_get_service_info(type_, name)
         if info is None:
             logging.error(
                 "Failed to get info for added service '%s' type '%s'.",
@@ -199,12 +220,17 @@ class RecordListener(MdnsListener):
             info.addresses,
             info.properties,
         )
+        logging.info(
+            "Async handler _handle_add_service completed for: type='%s', name='%s'",
+            type_,
+            name,
+        )
 
     async def close(self) -> None:
         # Closes the mDNS listener and the underlying AsyncZeroconf instance.
         if self.__browser:
             logging.info(
-                "Cleaning up AsyncServiceBrowser in RecordListener for %s",  # Changed ServiceBrowser to AsyncServiceBrowser
+                "Cleaning up AsyncServiceBrowser in RecordListener for %s",
                 self.__expected_type,
             )
             # For AsyncServiceBrowser, cancellation is typically handled when

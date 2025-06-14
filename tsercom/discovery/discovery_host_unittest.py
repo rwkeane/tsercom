@@ -432,7 +432,7 @@ async def test_discovery_host_handles_mdns_factory_exception_gracefully(
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
         assert (
-            "Failed to initialize discovery listener: Factory boom!"
+                "Failed to initialize or start discovery listener: Factory boom!"
             in mock_log_error.call_args.args[0]
         )
 
