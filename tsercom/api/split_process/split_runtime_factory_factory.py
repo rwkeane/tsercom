@@ -85,47 +85,8 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         resolved_data_type = None
         resolved_event_type = None
 
-        # Attempt to get generic arguments from __orig_class__ if initializer is directly parameterized
-        if hasattr(initializer, "__orig_class__"):
-            # Check if __orig_class__ itself is a direct instance of RuntimeInitializer generic
-            # or if it's a subclass that was parameterized.
-            # We are interested in the arguments provided to RuntimeInitializer.
-            # If initializer is an instance of RuntimeInitializer[SpecificDataType, SpecificEventType]
-            # then initializer.__orig_class__ would be RuntimeInitializer[SpecificDataType, SpecificEventType]
-            # If initializer is an instance of MyInitializer(RuntimeInitializer[SpecificDataType, SpecificEventType])
-            # then initializer.__orig_class__ would be MyInitializer
-
-            # We need to find the base that is RuntimeInitializer[..., ...]
-            # Let's refine this logic to check bases.
-            pass  # Placeholder for refined logic below
-
-        # Iterate __orig_bases__ to find RuntimeInitializer and its type arguments
-        # This is more robust if 'initializer' is an instance of a class that
-        # inherits from RuntimeInitializer[SpecificTypeA, SpecificTypeB].
-        for base in getattr(initializer, "__orig_bases__", []):
-            # Check if the base is a specialization of RuntimeInitializer
-            origin_base = getattr(base, "__origin__", None)
-            if origin_base is RuntimeInitializer:
-                generic_args = get_args(base)
-                if generic_args and len(generic_args) == 2:
-                    resolved_data_type, resolved_event_type = generic_args
-                    break
-
-        # Fallback: If not found in __orig_bases__ (e.g., direct instantiation of RuntimeInitializer itself)
-        if (
-            resolved_data_type is None or resolved_event_type is None
-        ) and hasattr(initializer, "__orig_class__"):
-            origin_class = getattr(
-                initializer.__orig_class__, "__origin__", None
-            )
-            if origin_class is RuntimeInitializer:
-                generic_args = get_args(initializer.__orig_class__)
-                if generic_args and len(generic_args) == 2:
-                    resolved_data_type, resolved_event_type = generic_args
-
-        # Prioritize inspecting the initializer's direct __orig_class__
-        # This should be the GenericFakeRuntimeInitializer[torch.Tensor, str] itself
-        if hasattr(initializer, '__orig_class__'): # Note: This was duplicated logic, removed one block
+        # Prioritize inspecting the initializer's direct __orig_class__ (e.g., for MyInitializer[torch.Tensor, str])
+        if hasattr(initializer, '__orig_class__'):
             generic_args = get_args(initializer.__orig_class__)
             if generic_args and len(generic_args) == 2:
                 if not isinstance(generic_args[0], TypeVar):
@@ -148,12 +109,12 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
         # Declare data_event_queue_factory with the base type for mypy
         data_event_queue_factory: MultiprocessQueueFactory
-        # The actual check for torch.Tensor
+
         uses_torch_tensor = False
         if resolved_data_type is torch.Tensor or resolved_event_type is torch.Tensor:
             uses_torch_tensor = True
 
-        if uses_torch_tensor: # No trailing whitespace
+        if uses_torch_tensor:
             data_event_queue_factory = TorchMultiprocessQueueFactory()
         else:
             data_event_queue_factory = DefaultMultiprocessQueueFactory()

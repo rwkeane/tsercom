@@ -542,7 +542,7 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
 
         assert not runtime_future.done()
         assert not runtime_manager.has_started
-        runtime_manager.start_out_of_process()  # Using out-of-process
+        runtime_manager.start_out_of_process()
         assert runtime_manager.has_started
         assert runtime_future.done()
 
@@ -596,9 +596,9 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
         runtime_manager.check_for_exception()
 
         stopped_data_arrived = False
-        waited_time = 0.0  # Reset wait time
+        waited_time = 0.0
         received_stopped_annotated_instance = None
-        while waited_time < max_wait_time:  # Reuse max_wait_time
+        while waited_time < max_wait_time:
             if data_aggregator.has_new_data(current_test_id):
                 all_stopped_data = data_aggregator.get_new_data(
                     current_test_id

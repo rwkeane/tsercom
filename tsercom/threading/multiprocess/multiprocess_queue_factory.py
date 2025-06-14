@@ -28,7 +28,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 
-# Type variable for the generic type of the queue.
 QueueTypeT = TypeVar("QueueTypeT")
 
 
@@ -98,7 +97,6 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory):
         return MpQueue()
 
 
-# Factory function to create a pair of connected multiprocess queue sink and source.
 # This function can be considered for deprecation in favor of DefaultMultiprocessQueueFactory.
 def create_multiprocess_queues() -> tuple[
     MultiprocessQueueSink[QueueTypeT],

@@ -15,7 +15,7 @@
 """Unit tests for DefaultMultiprocessQueueFactory."""
 
 import unittest
-import multiprocessing as std_mp  # Standard multiprocessing
+import multiprocessing as std_mp
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
 )
@@ -33,7 +33,6 @@ class DefaultMultiprocessQueueFactoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up class method to get standard queue type once."""
-        # Get the type of a standard multiprocessing.Queue
         cls.expected_standard_queue_type = type(std_mp.Queue())
 
     def test_create_queues_returns_sink_and_source_with_standard_queues(self):
@@ -68,7 +67,6 @@ class DefaultMultiprocessQueueFactoryTest(unittest.TestCase):
             "Source's internal queue is not a standard multiprocessing.Queue",
         )
 
-        # Test non-tensor data transfer
         data_to_send = {"key": "value", "number": 123}
         try:
             put_successful = sink.put_blocking(data_to_send, timeout=1)
@@ -97,7 +95,6 @@ class DefaultMultiprocessQueueFactoryTest(unittest.TestCase):
             "Queue is not a standard multiprocessing.Queue",
         )
 
-        # Test non-tensor data transfer for the raw queue
         data_to_send = "hello world"
         try:
             q.put(data_to_send, timeout=1)

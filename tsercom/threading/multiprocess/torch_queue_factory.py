@@ -29,14 +29,17 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 
 
 class TorchMultiprocessQueueFactory(MultiprocessQueueFactory):
-    """A factory for creating torch.multiprocessing queues.
+    """
+    Provides an implementation of `MultiprocessQueueFactory` specialized for
+    `torch.Tensor` objects.
 
-    This class implements the MultiprocessQueueFactory interface.
-    The `create_queues` method provides queues wrapped in Sink/Source
-    that are optimized for transferring torch.Tensor objects between
-    processes. It uses torch.multiprocessing.Queue, which can leverage
-    shared memory for tensor data.
-    The `create_queue` method returns a raw torch.multiprocessing.Queue.
+    It utilizes `torch.multiprocessing.Queue` instances, which are chosen
+    for their ability to leverage shared memory, thereby optimizing the
+    inter-process transfer of tensor data by potentially avoiding costly
+    serialization and deserialization. The `create_queues` method returns
+    these torch queues wrapped in the standard `MultiprocessQueueSink` and
+    `MultiprocessQueueSource` for interface consistency, while `create_queue`
+    provides direct access to a raw `torch.multiprocessing.Queue`.
     """
 
     def __init__(self, ctx_method: str = "spawn"):
@@ -63,12 +66,9 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory):
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
         """
-        # Create a single torch.multiprocessing queue to be shared by Sink and Source
         torch_queue = self._mp_context.Queue()
-
-        # Wrap the torch_queue with Sink and Source
-        # Note: MultiprocessQueueSink and MultiprocessQueueSource are generic,
-        # they will work with torch.multiprocessing.Queue as well.
+        # MultiprocessQueueSink and MultiprocessQueueSource are generic and compatible
+        # with torch.multiprocessing.Queue, allowing consistent queue interaction.
         sink = MultiprocessQueueSink[Any](torch_queue)
         source = MultiprocessQueueSource[Any](torch_queue)
         return sink, source

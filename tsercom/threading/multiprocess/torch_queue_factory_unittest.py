@@ -44,7 +44,7 @@ class TorchMultiprocessQueueFactoryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up class method to get torch queue type once."""
-        # We need a context for torch multiprocessing queues
+        # Torch multiprocessing queues require a specific context for creation.
         ctx = mp.get_context("spawn")
         cls.expected_torch_queue_type = type(ctx.Queue())
 
@@ -85,7 +85,6 @@ class TorchMultiprocessQueueFactoryTest(unittest.TestCase):
             "Source's internal queue is not a torch.multiprocessing.Queue",
         )
 
-        # Test tensor transfer
         tensor_to_send = torch.randn(2, 3)
         try:
             put_successful = sink.put_blocking(tensor_to_send, timeout=1)
@@ -113,36 +112,11 @@ class TorchMultiprocessQueueFactoryTest(unittest.TestCase):
             "Queue is not a torch.multiprocessing.Queue",
         )
 
-    # This test is now covered by test_create_queues_returns_sink_and_source_with_torch_queues
-    # and test_single_queue_handles_torch_tensors. So it can be removed or refactored.
-    # For now, I'll keep test_single_queue_handles_torch_tensors for the raw queue.
-    # def test_queues_handle_torch_tensors(self):
-    #     """Tests that the created queues can handle torch.Tensor objects."""
-    #     factory = TorchMultiprocessQueueFactory()
-    #     # The create_queues now returns Sink/Source, so this test would need adjustment
-    #     # to use sink.put and source.get, which is done in the new test method.
-    #     # q1, _ = factory.create_queues() # This q1 is now a Sink
-    #
-    #     # Create a sample tensor
-    #     tensor_to_send = torch.randn(2, 3)
-    #
-    #     try:
-    #         # Test putting and getting from the same queue (q1)
-    #         # q1.put(tensor_to_send) # q1 is Sink, this is fine
-    #         # received_tensor_q1 = q1.get(timeout=1) # q1 is Sink, does not have .get()
-    #         # self.assertTrue(torch.equal(tensor_to_send, received_tensor_q1),
-    #         #                 "Tensor sent and received from the same queue are not equal.")
-    #         pass # Test logic moved to test_create_queues_returns_sink_and_source_with_torch_queues
-    #
-    #     except Exception as e:
-    #         self.fail(f"Tensor transfer in q1 failed with exception: {e}")
-
     def test_single_queue_handles_torch_tensors(self):
         """Tests that a single created queue can handle torch.Tensor objects."""
         factory = TorchMultiprocessQueueFactory()
         q = factory.create_queue()
 
-        # Create a sample tensor
         tensor_to_send = torch.tensor([1.0, 2.0, 3.0])
 
         try:
