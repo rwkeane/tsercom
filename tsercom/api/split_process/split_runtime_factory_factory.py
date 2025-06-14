@@ -22,11 +22,9 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.threading.multiprocess.multiprocess_queue_factory import (
-    DefaultMultiprocessQueueFactory,
-    MultiprocessQueueFactory,
-)
-from tsercom.threading.multiprocess.torch_queue_factory import (
+from tsercom.threading.multiprocess.default_queue_factory import DefaultMultiprocessQueueFactory
+from tsercom.threading.multiprocess.multiprocess_queue_factory import MultiprocessQueueFactory
+from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
     TorchMultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (

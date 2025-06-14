@@ -4,7 +4,7 @@ import pytest  # For pytest.fail
 import torch
 import torch.multiprocessing as mp
 
-from tsercom.threading.multiprocess.torch_queue_factory import (
+from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
     TorchMultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (

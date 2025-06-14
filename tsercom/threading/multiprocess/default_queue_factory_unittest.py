@@ -3,9 +3,7 @@
 import pytest  # For pytest.fail
 import multiprocessing as std_mp
 
-from tsercom.threading.multiprocess.multiprocess_queue_factory import (
-    DefaultMultiprocessQueueFactory,
-)
+from tsercom.threading.multiprocess.default_queue_factory import DefaultMultiprocessQueueFactory
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )

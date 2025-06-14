@@ -473,7 +473,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         assert first.data.value == stopped
         assert (
             first.timestamp == stop_timestamp
-        )  # This might be flaky if stop_timestamp is global and runtime uses its own now()
+        )
         assert first.caller_id == current_test_id
 
         assert not data_aggregator.has_new_data(current_test_id)
