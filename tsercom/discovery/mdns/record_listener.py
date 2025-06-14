@@ -6,7 +6,6 @@ import asyncio
 from zeroconf import Zeroconf
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
 
-# Removed import of async_get_service_info as it's a method of AsyncZeroconf
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 
 
@@ -38,9 +37,7 @@ class RecordListener(MdnsListener):
             raise TypeError(
                 f"service_type must be str, got {type(service_type).__name__}."
             )
-        # mDNS service types usually start with an underscore.
         if not service_type.startswith("_"):
-            # Long error message
             raise ValueError(
                 f"service_type must start with '_', got '{service_type}'."
             )
@@ -95,7 +92,6 @@ class RecordListener(MdnsListener):
             )
             return
 
-        # Schedule the asynchronous handling of the service event
         asyncio.create_task(
             self._async_handle_service_event(type_, name, is_update=True)
         )
@@ -142,7 +138,6 @@ class RecordListener(MdnsListener):
             )
             return
 
-        # Schedule the asynchronous handling of the service event
         asyncio.create_task(
             self._async_handle_service_event(type_, name, is_update=False)
         )
@@ -160,7 +155,6 @@ class RecordListener(MdnsListener):
         )
 
         # Use a timeout for async_get_service_info to prevent indefinite blocking
-        # Corrected: Call as a method of self.__mdns (AsyncZeroconf instance)
         info = await self.__mdns.async_get_service_info(
             type_, name, timeout=3000
         )  # timeout in ms
@@ -210,7 +204,6 @@ async def close(self: "RecordListener") -> None:
             "Cleaning up AsyncServiceBrowser in RecordListener for %s",
             self.__expected_type,
         )
-        # The AsyncServiceBrowser's async_cancel() method should be used.
         await self.__browser.async_cancel()
         self.__browser = None
 

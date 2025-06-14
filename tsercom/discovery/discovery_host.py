@@ -175,18 +175,26 @@ class DiscoveryHost(
 
         self.__client = client
         try:
-            self.__discoverer = self.__instance_listener_factory(self)
-            if self.__discoverer:  # If factory returned a discoverer
-                await self.__discoverer.start()  # Explicitly start the discoverer
-            # The InstanceListener constructor should handle starting the underlying listener.
-            # If self.__discoverer is successfully created, it implies the listener
-            # (and its factory) also succeeded up to the point of starting.
+            logging.debug("Attempting to create discoverer via factory.")
+            discoverer_candidate = self.__instance_listener_factory(self)
+            logging.debug(f"Factory returned: {discoverer_candidate}")
+            self.__discoverer = discoverer_candidate
+            if self.__discoverer:
+                logging.debug(
+                    f"Discoverer is truthy, attempting to start: {self.__discoverer}"
+                )
+                await self.__discoverer.start()
+                logging.debug("Discoverer start awaited.")
+            else:
+                logging.warning("Discoverer is falsey after factory call.")
         except Exception as e:
             logging.error(
                 f"Failed to initialize or start discovery listener: {e}",
                 exc_info=True,
             )
-            self.__discoverer = None  # Ensure discoverer is None if init fails
+            self.__discoverer = (
+                None  # Ensure discoverer is None if init or start fails
+            )
 
     async def _on_service_added(self, connection_info: ServiceInfoT) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.

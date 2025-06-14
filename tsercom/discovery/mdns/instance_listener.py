@@ -1,6 +1,6 @@
 """mDNS instance listener, builds on RecordListener."""
 
-import asyncio  # Added import for asyncio.iscoroutinefunction
+import asyncio  # Make sure asyncio is imported
 import logging
 import socket
 from abc import ABC, abstractmethod
@@ -80,8 +80,9 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         """
         if client is None:
             raise ValueError("Client cannot be None for InstanceListener.")
-        if not isinstance(client, InstanceListener.Client):
-            # Long error message
+        if not isinstance(
+            client, self.Client
+        ):  # Use self.Client for the isinstance check
             raise TypeError(
                 f"Client must be InstanceListener.Client, got {type(client).__name__}."
             )
@@ -106,7 +107,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         else:
             self.__listener = mdns_listener_factory(self, service_type)
 
-        # self.__listener.start() # Removed: Start will be called explicitly by DiscoveryHost or other users.
+        # self.__listener.start()
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
