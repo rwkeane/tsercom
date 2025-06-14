@@ -107,7 +107,6 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         else:
             self.__listener = mdns_listener_factory(self, service_type)
 
-        # self.__listener.start()
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)

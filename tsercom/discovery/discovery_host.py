@@ -192,9 +192,7 @@ class DiscoveryHost(
                 f"Failed to initialize or start discovery listener: {e}",
                 exc_info=True,
             )
-            self.__discoverer = (
-                None  # Ensure discoverer is None if init or start fails
-            )
+            self.__discoverer = None
 
     async def _on_service_added(self, connection_info: ServiceInfoT) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
