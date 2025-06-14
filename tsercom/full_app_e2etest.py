@@ -27,9 +27,12 @@ from tsercom.threading.atomic import Atomic
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
+from zeroconf.asyncio import AsyncZeroconf  # Added import
 
 if TYPE_CHECKING:
-    from zeroconf import Zeroconf
+    pass  # This can remain for type checking if it's used elsewhere, or be removed if AsyncZeroconf replaces all uses.
+
+    # For FakeMdnsListener methods, we'll use AsyncZeroconf.
 
 
 has_been_hit = Atomic[bool](False)
@@ -39,8 +42,13 @@ class FakeMdnsListener(MdnsListener):
     __test__ = False  # To prevent pytest from collecting it as a test
 
     def __init__(
-        self, client: MdnsListener.Client, service_type: str, port: int
+        self,
+        client: MdnsListener.Client,
+        service_type: str,
+        port: int,
+        zc_instance: Optional[AsyncZeroconf] = None,  # Added zc_instance
     ):
+        # zc_instance is accepted for signature compatibility but not used by this Fake
         # super().__init__() # MdnsListener's parent (ServiceListener) has no __init__
         self.__client = client
         self.__service_type = service_type
@@ -49,7 +57,7 @@ class FakeMdnsListener(MdnsListener):
             f"FakeMdnsListener initialized for service type '{self.__service_type}' on port {self.__port}"
         )
 
-    def start(self) -> None:
+    async def start(self) -> None:  # Changed to async def
         logging.info(
             f"FakeMdnsListener: Faking service addition for service type '{self.__service_type}' on port {self.__port}"
         )
@@ -68,7 +76,7 @@ class FakeMdnsListener(MdnsListener):
 
         fake_ip_address_bytes = socket.inet_aton("127.0.0.1")
 
-        self.__client._on_service_added(
+        await self.__client._on_service_added(  # Changed to await
             name=fake_mdns_instance_name,
             port=self.__port,
             addresses=[fake_ip_address_bytes],
@@ -78,19 +86,25 @@ class FakeMdnsListener(MdnsListener):
             f"FakeMdnsListener: _on_service_added called for {fake_mdns_instance_name}"
         )
 
-    def add_service(self, zc: "Zeroconf", type_: str, name: str) -> None:
+    async def add_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         logging.debug(
             f"FakeMdnsListener: add_service called for {name} type {type_}, no action."
         )
         pass
 
-    def update_service(self, zc: "Zeroconf", type_: str, name: str) -> None:
+    async def update_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         logging.debug(
             f"FakeMdnsListener: update_service called for {name}, no action."
         )
         pass
 
-    def remove_service(self, zc: "Zeroconf", type_: str, name: str) -> None:
+    async def remove_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         logging.debug(
             f"FakeMdnsListener: remove_service called for {name}, no action."
         )
@@ -260,13 +274,20 @@ class GenericServerRuntimeInitializer(
             # The service_type_arg in the lambda is what DiscoveryHost would pass to the factory.
             # FakeMdnsListener will use this service_type_arg.
             def fake_factory(
-                client: MdnsListener.Client, service_type_arg: str
+                client: MdnsListener.Client,
+                service_type_arg: str,
+                zc_instance_arg: Optional[
+                    AsyncZeroconf
+                ] = None,  # Added zc_instance_arg
             ) -> FakeMdnsListener:
                 return FakeMdnsListener(
-                    client, service_type_arg, self.__fake_service_port
+                    client,
+                    service_type_arg,
+                    self.__fake_service_port,
+                    zc_instance=zc_instance_arg,  # Pass it through
                 )
 
-            actual_mdns_listener_factory = fake_factory  # type: ignore
+            actual_mdns_listener_factory = fake_factory  # type: ignore[assignment]
         else:
             actual_mdns_listener_factory = self.__listener_factory
 
