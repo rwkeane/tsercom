@@ -3,9 +3,15 @@
 from multiprocessing import Queue as MpQueue
 from typing import Tuple, Any
 
-from tsercom.threading.multiprocess.multiprocess_queue_factory import MultiprocessQueueFactory
-from tsercom.threading.multiprocess.multiprocess_queue_sink import MultiprocessQueueSink
-from tsercom.threading.multiprocess.multiprocess_queue_source import MultiprocessQueueSource
+from tsercom.threading.multiprocess.multiprocess_queue_factory import (
+    MultiprocessQueueFactory,
+)
+from tsercom.threading.multiprocess.multiprocess_queue_sink import (
+    MultiprocessQueueSink,
+)
+from tsercom.threading.multiprocess.multiprocess_queue_source import (
+    MultiprocessQueueSource,
+)
 
 
 class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory):

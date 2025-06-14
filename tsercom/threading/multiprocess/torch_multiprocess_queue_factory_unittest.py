@@ -1,6 +1,6 @@
 """Unit tests for TorchMultiprocessQueueFactory."""
 
-import pytest  # For pytest.fail
+import pytest
 import torch
 import torch.multiprocessing as mp
 
@@ -21,9 +21,7 @@ class TestTorchMultiprocessQueueFactory:
     expected_torch_queue_type = None
 
     @classmethod
-    def setup_class(
-        cls,
-    ):  # Pytest automatically calls methods named setup_class for class-level setup
+    def setup_class(cls): # Pytest automatically calls methods named setup_class for class-level setup
         """Set up class method to get torch queue type once."""
         # Torch multiprocessing queues require a specific context for creation.
         ctx = mp.get_context("spawn")
@@ -89,9 +87,8 @@ class TestTorchMultiprocessQueueFactory:
         q = factory.create_queue()
 
         tensor_to_send = torch.tensor([1.0, 2.0, 3.0])
-
         try:
-            q.put(tensor_to_send)
+            q.put(tensor_to_send, timeout=1) # Use blocking put for safety in tests
             received_tensor = q.get(timeout=1)
             assert torch.equal(
                 tensor_to_send, received_tensor

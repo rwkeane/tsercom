@@ -59,7 +59,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory):
         source = MultiprocessQueueSource[Any](torch_queue)
         return sink, source
 
-    def create_queue(self) -> mp.Queue:
+    def create_queue(self) -> mp.Queue: # type: ignore[type-var]
         """Creates a single torch.multiprocessing queue.
 
         This queue is suitable for inter-process communication, especially

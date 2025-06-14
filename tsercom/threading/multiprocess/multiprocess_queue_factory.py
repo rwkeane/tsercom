@@ -1,6 +1,8 @@
-"""
-Defines the base interface for multiprocess queue factories and provides a
-factory function for creating standard multiprocess queue pairs.
+"""Defines the abstract base class for multiprocess queue factories and a deprecated factory function.
+
+This module provides the `MultiprocessQueueFactory` ABC, which defines the interface
+for queue factories. It also contains the `create_multiprocess_queues` function,
+which is considered for deprecation in favor of concrete factory implementations.
 """
 
 from abc import ABC, abstractmethod
