@@ -136,31 +136,39 @@ class RecordListener(MdnsListener):
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a service is removed from the network."""
-        logging.info(
+        logging.info( # Existing log
             "Sync remove_service called: type='%s', name='%s'. Scheduling async handler.",
             type_,
             name,
         )
+        # Log entry added as per instruction, though it's similar to above.
+        logging.info("[REC_LISTENER] remove_service (sync) called for name: %s, type: %s", name, type_)
         asyncio.create_task(self._handle_remove_service(type_, name))
 
     async def _handle_remove_service(self, type_: str, name: str) -> None:
         """Async handler for service removal."""
+        logging.info(
+            "[REC_LISTENER] _handle_remove_service (async) started for name: %s, type: %s",
+            name,
+            type_,
+        )
         # Note: The original `remove_service` didn't check type_ == self.__expected_type
         # but it's good practice for handlers. However, the client notification might
         # be for any service if the listener was registered for multiple types by some means.
         # For now, let's assume client is interested in removal of this specific type.
-        logging.info(
-            "Async handler _handle_remove_service started for: type='%s', name='%s'",
-            type_,
-            name,
-        )
         # if type_ != self.__expected_type: # Consider if this check is needed here
         #     logging.debug("Ignoring removal for '%s', type '%s'. Expected '%s'.", name, type_, self.__expected_type)
         #     return
 
         # pylint: disable=W0212 # Calling listener's notification method
+        logging.info(
+            "[REC_LISTENER] _handle_remove_service: About to call client._on_service_removed for %s", name
+        )
         await self.__client._on_service_removed(name, type_, self._uuid_str)
         logging.info(
+            "[REC_LISTENER] _handle_remove_service: Returned from client._on_service_removed for %s", name
+        )
+        logging.info( # Existing log
             "Async handler _handle_remove_service completed for: type='%s', name='%s'",
             type_,
             name,

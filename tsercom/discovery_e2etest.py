@@ -10,11 +10,15 @@ from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.service_info import ServiceInfo
 
+import logging # Added import
+
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
 from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
     set_tsercom_event_loop,
 )
+
+_logger = logging.getLogger(__name__)
 
 
 class DiscoveryTestClient(InstanceListener.Client):
@@ -152,6 +156,7 @@ class SelectiveDiscoveryClient(InstanceListener.Client):
             self.service_added_event.set()
 
     async def _on_service_removed(self, service_name: str):
+        _logger.info("[E2E_CLIENT] _on_service_removed called for: %s", service_name)
         async with self._lock:
             self.removed_service_names.append(service_name)
             # Remove from discovered_services if present
@@ -160,7 +165,15 @@ class SelectiveDiscoveryClient(InstanceListener.Client):
                 for s in self.discovered_services
                 if s.mdns_name != service_name
             ]
+            _logger.info(
+                "[E2E_CLIENT] _on_service_removed: About to set service_removed_event for %s",
+                service_name,
+            )
             self.service_removed_event.set()
+            _logger.info(
+                "[E2E_CLIENT] _on_service_removed: service_removed_event set for %s",
+                service_name,
+            )
 
     def clear_events(self):
         self.service_added_event.clear()

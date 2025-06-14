@@ -87,10 +87,19 @@ class RecordPublisher(MdnsPublisher):
             )
             try:
                 if self._service_info:  # Ensure service was registered
+                    _logger.info(
+                        "Attempting to unregister service: %s", self.__srv
+                    )
                     await self._zc.async_unregister_service(self._service_info)
-                    _logger.info("Service %s unregistered.", self.__srv)
+                    _logger.info("Service %s successfully unregistered.", self.__srv)
+                else:
+                    _logger.warning(
+                        "No service_info to unregister for %s, skipping unregister.",
+                        self.__srv,
+                    )
+                _logger.info("Attempting to close Zeroconf instance for %s.", self.__srv)
                 await self._zc.async_close()
-                _logger.debug("Zeroconf instance for %s closed.", self.__srv)
+                _logger.info("Zeroconf instance for %s successfully closed.", self.__srv)
             # pylint: disable=W0718 # Catch all exceptions to keep publish loop alive
             except Exception as e:
                 # Long log line
