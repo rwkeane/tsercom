@@ -2,27 +2,61 @@
 
 from abc import ABC, abstractmethod
 from typing import Dict, List
-
 from zeroconf import ServiceListener
+
+# AsyncServiceListener does not seem to exist in zeroconf.asyncio
+# The listener for AsyncServiceBrowser is expected to be an object
+# with async methods: update_service, remove_service, add_service,
+# but it must still formally be a subclass of zeroconf.ServiceListener.
 
 
 # pylint: disable=W0223 # Relies on InstanceListener fulfilling ServiceListener contract
-class MdnsListener(ServiceListener):
+class MdnsListener(ServiceListener, ABC):
     """ABC for mDNS service listeners.
 
-    Extends `zeroconf.ServiceListener`, defines `Client` interface for
-    notifying clients about discovered raw service details. Subclasses should
-    implement `zeroconf.ServiceListener` methods and use `Client` interface.
+    Extends `zeroconf.ServiceListener` and defines an `ABC` for async mDNS listeners.
+    Defines `Client` interface for notifying clients about discovered raw
+    service details. Subclasses should implement async methods for service
+    discovery callbacks (update_service, remove_service, add_service)
+    if they are to be used with `zeroconf.asyncio.AsyncServiceBrowser`.
     """
 
     @abstractmethod
-    def start(self) -> None:
+    async def start(self) -> None:
         """
         Starts listening for mDNS services.
         """
         raise NotImplementedError(
             "MdnsListener.start must be implemented by subclasses."
         )
+
+    @abstractmethod
+    async def close(self) -> None:
+        """
+        Stops listening for mDNS services and cleans up resources.
+        """
+        raise NotImplementedError(
+            "MdnsListener.close must be implemented by subclasses."
+        )
+
+    # Listener methods expected by AsyncServiceBrowser (and ServiceBrowser).
+    # These are defined in zeroconf.ServiceListener synchronously.
+    # Subclasses like RecordListener will implement these as async,
+    # which is compatible with AsyncServiceBrowser.
+    # MyPy will complain about overriding sync with async if we redeclare them here
+    # as abstract async methods. So, we rely on ServiceListener's definitions
+    # and ensure RecordListener implements them as async.
+    # @abstractmethod
+    # async def update_service(self, zc: "AsyncZeroconf", type_: str, name: str) -> None: # type: ignore # noqa: F821
+    #     pass
+    #
+    # @abstractmethod
+    # async def remove_service(self, zc: "AsyncZeroconf", type_: str, name: str) -> None: # type: ignore # noqa: F821
+    #     pass
+    #
+    # @abstractmethod
+    # async def add_service(self, zc: "AsyncZeroconf", type_: str, name: str) -> None: # type: ignore # noqa: F821
+    #     pass
 
     # pylint: disable=R0903 # Internal helper/callback class for zeroconf
     class Client(ABC):
@@ -33,7 +67,7 @@ class MdnsListener(ServiceListener):
         """
 
         @abstractmethod
-        def _on_service_added(
+        async def _on_service_added(
             self,
             name: str,  # mDNS instance name of the service.
             port: int,  # Service port number.
@@ -55,7 +89,7 @@ class MdnsListener(ServiceListener):
             )
 
         @abstractmethod
-        def _on_service_removed(
+        async def _on_service_removed(
             self, name: str, service_type: str, record_listener_uuid: str
         ) -> None:
             """Callback for service removal.

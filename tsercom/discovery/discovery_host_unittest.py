@@ -46,10 +46,14 @@ def mock_service_source_client_fixture(
 @pytest.fixture
 def mock_actual_instance_listener_fixture(
     mocker: Mock,
-) -> typing.Iterator[typing.Tuple[MagicMock, MagicMock]]:
-    mock_listener_instance: MagicMock = mocker.MagicMock(
-        spec=ActualInstanceListener,
+) -> typing.Iterator[typing.Tuple[MagicMock, AsyncMock]]:
+    mock_listener_instance: AsyncMock = mocker.create_autospec(
+        ActualInstanceListener,
+        instance=True,
         name="MockedActualInstanceListenerInstance",
+    )
+    mock_listener_instance.start = AsyncMock(
+        name="mock_listener_instance_start"
     )
     MockListenerClass_patch: MagicMock = mocker.patch(
         "tsercom.discovery.mdns.instance_listener.InstanceListener",
@@ -76,8 +80,11 @@ def mock_caller_identifier_random_fixture(
 async def test_start_discovery_with_listener_factory(
     mock_service_source_client_fixture: AsyncMock, mocker: Mock
 ) -> None:
-    mock_listener_from_factory: MagicMock = mocker.create_autospec(
+    mock_listener_from_factory: AsyncMock = mocker.create_autospec(
         ActualInstanceListener, instance=True
+    )
+    mock_listener_from_factory.start = AsyncMock(
+        name="mock_listener_from_factory_start"
     )
     ExpectedInstanceListenerFactory = typing.Callable[
         [ActualInstanceListener.Client], ActualInstanceListener[ServiceInfo]
@@ -94,6 +101,7 @@ async def test_start_discovery_with_listener_factory(
     await host.start_discovery(mock_ss_client)
     mock_factory.assert_called_once_with(host)
     assert host._DiscoveryHost__discoverer is mock_listener_from_factory
+    mock_listener_from_factory.start.assert_awaited_once()
     assert host._DiscoveryHost__client is mock_ss_client
 
 
@@ -228,25 +236,26 @@ async def test_start_discovery_multiple_times(
         mock_service_source_client_fixture  # Renamed arg
     )
 
-    mock_listener_instance: AsyncMock = mocker.AsyncMock(
-        spec=ActualInstanceListener
+    mock_listener_instance: AsyncMock = mocker.create_autospec(
+        ActualInstanceListener, instance=True
+    )
+    mock_listener_instance.start = AsyncMock(
+        name="mock_listener_instance_start_method"
     )
 
     # Patch the factory directly on the host instance
-    host._DiscoveryHost__instance_listener_factory = (
-        mocker.Mock(  # Use standard Mock
-            return_value=mock_listener_instance,
-            name="MockedInstanceListenerFactoryOnHostInstance",
-        )
+    mock_factory_on_host: Mock = mocker.Mock(
+        return_value=mock_listener_instance,
+        name="MockedInstanceListenerFactoryOnHostInstance",
     )
+    host._DiscoveryHost__instance_listener_factory = mock_factory_on_host
 
     await host.start_discovery(mock_client_arg)  # Use renamed arg
 
-    host._DiscoveryHost__instance_listener_factory.assert_called_once_with(
-        host
-    )
+    mock_factory_on_host.assert_called_once_with(host)
+    mock_listener_instance.start.assert_awaited_once()
 
-    assert host._DiscoveryHost__discoverer is mock_listener_instance  # type: ignore[attr-defined]
+    assert host._DiscoveryHost__discoverer is mock_listener_instance
 
     with pytest.raises(
         RuntimeError, match="Discovery has already been started."
@@ -330,10 +339,13 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
     mocker: Mock, mock_service_source_client_fixture: AsyncMock
 ) -> None:
     mock_service_source_client: AsyncMock = mock_service_source_client_fixture
-    mock_listener_product: MagicMock = mocker.MagicMock(
-        spec=ActualInstanceListener
+    mock_listener_product: AsyncMock = (
+        mocker.create_autospec(  # Changed to AsyncMock
+            ActualInstanceListener,
+            instance=True,  # Ensure it's an instance spec
+        )
     )
-    mock_listener_product.start = MagicMock()
+    mock_listener_product.start = AsyncMock()  # Ensure start is an AsyncMock
     mock_mdns_factory: Mock = mocker.Mock(return_value=mock_listener_product)
 
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
@@ -386,10 +398,20 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
             == "_internal_default._tcp.local."
         )
 
-        mock_listener_product.start.assert_called_once()
+        # This assertion is now on the InstanceListener's start, which calls the RecordListener's start
+        # The mock_listener_product is the RecordListener in this context of mdns_listener_factory
+        # The created_instance_holder["instance"] is the InstanceListener
+        # So we need to check that the InstanceListener's start was awaited,
+        # which internally awaits the RecordListener's start.
+        assert (
+            created_instance_holder["instance"]._InstanceListener__listener
+            is mock_listener_product
+        )
+        mock_listener_product.start.assert_awaited_once()  # Check RecordListener's start
+
         assert host._DiscoveryHost__discoverer is created_instance_holder.get(
             "instance"
-        )  # type: ignore[attr-defined]
+        )
         assert host._DiscoveryHost__discoverer is not None  # type: ignore[attr-defined]
 
 
@@ -419,7 +441,7 @@ async def test_discovery_host_handles_mdns_factory_exception_gracefully(
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
         assert (
-            "Failed to initialize discovery listener: Factory boom!"
+                "Failed to initialize or start discovery listener: Factory boom!"
             in mock_log_error.call_args.args[0]
         )
 
@@ -429,10 +451,13 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
     mocker: Mock, mock_service_source_client_fixture: AsyncMock
 ) -> None:
     mock_service_source_client: AsyncMock = mock_service_source_client_fixture
-    mock_listener_product_failing_start: MagicMock = mocker.MagicMock(
-        spec=ActualInstanceListener
+    # This mock_listener_product_failing_start represents the product of the mdns_listener_factory,
+    # which is a RecordListener (or compatible). Its start method is what fails.
+    mock_listener_product_failing_start: AsyncMock = mocker.create_autospec(
+        ActualInstanceListener,
+        instance=True,  # Use a compatible spec, RecordListener would be better if defined
     )
-    mock_listener_product_failing_start.start = MagicMock(
+    mock_listener_product_failing_start.start = AsyncMock(  # start is async
         side_effect=RuntimeError("Listener start boom!")
     )
     mock_mdns_factory_arg: Mock = mocker.Mock(
@@ -453,11 +478,16 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
             mock_mdns_factory_arg.call_args.args[1]
             == "_internal_default._tcp.local."
         )
-        mock_listener_product_failing_start.start.assert_called_once()
-        assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
+        # The InstanceListener's start method will call the (failing) start method of the
+        # RecordListener produced by mock_mdns_factory_arg.
+        # So, mock_listener_product_failing_start.start should have been awaited.
+        mock_listener_product_failing_start.start.assert_awaited_once()
+        assert host._DiscoveryHost__discoverer is None
         mock_log_error.assert_called_once()
+        # The error message now comes from the DiscoveryHost's try-except block that calls
+        # discoverer.start()
         assert (
-            "Failed to initialize discovery listener: Listener start boom!"
+            "Failed to initialize or start discovery listener: Listener start boom!"
             in mock_log_error.call_args.args[0]
         )
 
