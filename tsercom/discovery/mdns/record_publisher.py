@@ -11,6 +11,17 @@ from tsercom.util.ip import get_all_addresses
 
 _logger = logging.getLogger(__name__)
 
+# Note on mDNS Name Reuse with Shared AsyncZeroconf:
+# When using a shared AsyncZeroconf instance across multiple RecordPublisher
+# instances or for rapid unregister/re-register sequences of the same service
+# instance name, `python-zeroconf` might exhibit caching behaviors or require
+# a delay for the name to be fully released. Attempting to re-register the
+# exact same service instance name immediately after unregistration on the same
+# shared AsyncZeroconf instance can lead to `NonUniqueNameException`.
+# For service "updates" in such scenarios, consider using slightly varied
+# instance names (e.g., appending a version identifier) if immediate
+# re-registration with the same logical service identity is critical.
+
 
 class RecordPublisher(MdnsPublisher):
     """Publishes a service to mDNS with specific record details.
@@ -153,3 +164,27 @@ class RecordPublisher(MdnsPublisher):
                 _logger.debug(f"RecordPublisher for {self.__srv} fully cleaned up (service_info, _zc, _owned_zc are None).")
             else:
                 _logger.debug(f"RecordPublisher for {self.__srv} post-close state: _service_info is {'None' if not self._service_info else 'Present'}, _zc is {'None' if not self._zc else 'Present'}, _owned_zc is {'None' if not self.__owned_zc else 'Present'}")
+
+# === Developer Note: mDNS Name Reuse with python-zeroconf ===
+# Observations during testing (e.g., in `discovery_e2etest.py::test_instance_update_reflects_changes`)
+# suggest that when using a shared `AsyncZeroconf` instance, or even with separate
+# instances in rapid succession, `python-zeroconf` can exhibit sensitivities
+# to unregistering a service instance name and then immediately re-registering
+# the exact same name. This can lead to `zeroconf._exceptions.NonUniqueNameException`
+# or `zeroconf._exceptions.NotRunningException` if the shared instance's state
+# becomes problematic after the first unregistration.
+#
+# Workarounds for tests or applications needing to simulate service "updates"
+# by replacing an old service with a new one under the same logical identity include:
+#   1. Using slightly different mDNS instance names for the "updated" service
+#      (e.g., appending a version suffix like "_v2").
+#   2. Ensuring the old `AsyncZeroconf` instance used for the original service
+#      is completely closed, and a new `AsyncZeroconf` instance is used for
+#      the listener and the "updated" service publisher, if strict name reuse
+#      is attempted. This was the pattern adopted to fix `test_instance_update_reflects_changes`.
+#   3. Introducing significant delays between unregistration and re-registration,
+#      though the necessary duration can be unreliable.
+#
+# This behavior appears related to internal caching or state management within
+# `python-zeroconf` concerning service name lifecycle.
+# =====================================================================

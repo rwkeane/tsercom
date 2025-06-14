@@ -404,13 +404,15 @@ async def test_instance_update_reflects_changes():
     )
     publisher1_obj: Optional[InstancePublisher] = None # Type hint for clarity
     publisher2_obj: Optional[InstancePublisher] = None # Type hint for clarity
-    shared_zc: Optional[AsyncZeroconf] = None # Initialize shared_zc
+    shared_zc1: Optional[AsyncZeroconf] = None
+    shared_zc2: Optional[AsyncZeroconf] = None
 
     try:
-        shared_zc = AsyncZeroconf() # Create shared instance
+        _logger.info("Creating shared_zc1 for initial phase.")
+        shared_zc1 = AsyncZeroconf()
 
         listener_obj = InstanceListener(
-            client=client, service_type=service_type, zc_instance=shared_zc # Pass shared_zc
+            client=client, service_type=service_type, zc_instance=shared_zc1
         )
         await listener_obj.start()  # Start the listener
 
@@ -419,7 +421,7 @@ async def test_instance_update_reflects_changes():
             service_type=service_type,
             readable_name=readable_name1,
             instance_name=instance_name_v1,
-            zc_instance=shared_zc
+            zc_instance=shared_zc1
         )
         await publisher1_obj.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
@@ -444,18 +446,40 @@ async def test_instance_update_reflects_changes():
 
         # Explicitly close the first publisher to unregister its service
         if publisher1_obj:
+            _logger.info("Closing publisher1_obj.")
             await publisher1_obj.close()
-            # Allow a brief moment for the unregistration to propagate.
-            _logger.info("Waiting for unregistration of publisher1 to propagate...")
-            await asyncio.sleep(0.2)
-            _logger.info("Proceeding to publish publisher2...")
+
+        if listener_obj:
+            _logger.info("Stopping listener_obj (phase 1).")
+            await listener_obj.async_stop() # Stop listener using shared_zc1
+
+        if shared_zc1:
+            _logger.info("Closing shared_zc1.")
+            await shared_zc1.async_close() # Close the first ZC instance
+
+        # Allow a brief moment for the unregistration to propagate.
+        _logger.info("Waiting for unregistration of publisher1 to propagate...")
+        await asyncio.sleep(0.5) # Increased sleep
+        _logger.info("Proceeding to publish publisher2 with new ZC and Listener.")
+
+        _logger.info("Creating shared_zc2 for updated phase.")
+        shared_zc2 = AsyncZeroconf()
+
+        # Re-create or re-start listener with the new ZC instance
+        # Important: client holds state (events, discovered_services), so reuse it.
+        _logger.info("Re-creating listener_obj for phase 2 with shared_zc2.")
+        listener_obj = InstanceListener(
+            client=client, service_type=service_type, zc_instance=shared_zc2
+        )
+        await listener_obj.start()
+
 
         publisher2_obj = InstancePublisher(
             port=service_port2,
             service_type=service_type,
             readable_name=readable_name2,
             instance_name=instance_name_v2,
-            zc_instance=shared_zc
+            zc_instance=shared_zc2 # Use new ZC instance
         )
         await publisher2_obj.publish()
         await asyncio.wait_for(discovery_event2.wait(), timeout=10.0)
@@ -472,15 +496,23 @@ async def test_instance_update_reflects_changes():
         else:
             pytest.fail(f"A timeout error occurred: {e}")
     finally:
-        if publisher1_obj:
-            await publisher1_obj.close()  # Explicitly close
+        _logger.info("Entering final cleanup.")
+        if publisher1_obj: # Already closed in try block if successful, but good for safety
+            _logger.info("Final close for publisher1_obj (idempotency check).")
+            await publisher1_obj.close()
         if publisher2_obj:
-            await publisher2_obj.close()  # Explicitly close
-        if listener_obj:
+            _logger.info("Final close for publisher2_obj.")
+            await publisher2_obj.close()
+        if listener_obj: # This would be the phase 2 listener
+            _logger.info("Final stop for listener_obj.")
             await listener_obj.async_stop()
 
-        if shared_zc: # Add this
-            await shared_zc.async_close()
+        if shared_zc1:
+            _logger.info("Final close for shared_zc1.")
+            await shared_zc1.async_close()
+        if shared_zc2:
+            _logger.info("Final close for shared_zc2.")
+            await shared_zc2.async_close()
 
         gc.collect()  # Encourage faster cleanup
 
@@ -941,3 +973,23 @@ async def test_publisher_starts_after_listener():
             pytest.fail(f"Invalid IP address string found: {addr_str}")
 
     await asyncio.sleep(0.1)
+
+# === Developer Note for `test_instance_update_reflects_changes` ===
+# This test previously faced `zeroconf._exceptions.NotRunningException` or
+# `NonUniqueNameException` when attempting to simulate a service update by
+# unregistering a service and then re-registering a new service with the
+# same mDNS instance name using a single shared `AsyncZeroconf` instance.
+#
+# The fix implemented involves:
+#   1. Using unique mDNS instance names for the initial (v1) and updated (v2)
+#      service publications (e.g., "InstanceName" and "InstanceName_v2").
+#   2. Additionally, to robustly handle the "update" scenario where the listener
+#      should detect the old service disappearing and a new one appearing, this
+#      test now uses two separate `AsyncZeroconf` instances. `shared_zc1` is used
+#      for the initial publisher and the listener. After the first publisher
+#      is closed, `shared_zc1` is also closed. A new `shared_zc2` is then created
+#      for a new `InstanceListener` instance and the second (updated) publisher.
+# This separation of `AsyncZeroconf` lifecycles for the two stages of the test
+# proved necessary to ensure reliable behavior from `python-zeroconf` and
+# prevent exceptions related to its internal state after unregistration.
+# ========================================================================

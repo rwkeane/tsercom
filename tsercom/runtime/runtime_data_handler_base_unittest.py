@@ -1,5 +1,6 @@
 import asyncio
 import pytest
+import pytest_asyncio # Added import
 
 # Import missing functions as well
 from tsercom.threading.aio.global_event_loop import (
@@ -113,39 +114,40 @@ class TestableRuntimeDataHandler(RuntimeDataHandlerBase[DataType, Any]):
 
 class TestRuntimeDataHandlerBaseBehavior:
 
-    @pytest.fixture(autouse=True)
-    def manage_event_loop(self):
-        loop = None
-        try:
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_closed():
-                    raise RuntimeError("existing loop is closed")
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            initial_loop_was_set_by_this_fixture = False
-            if not is_global_event_loop_set():  # Check before setting
-                set_tsercom_event_loop(loop)
-                initial_loop_was_set_by_this_fixture = True
-
-            yield loop
-        finally:
-            if (
-                initial_loop_was_set_by_this_fixture
-            ):  # Only clear if this fixture set it
-                clear_tsercom_event_loop()
-
-            # Loop closing logic - be cautious with loops from pytest-asyncio
-            if (
-                loop
-                and not getattr(loop, "_default_loop", False)
-                and not loop.is_closed()
-                and initial_loop_was_set_by_this_fixture  # Only manage loops this fixture created/set policy for
-            ):
-                if loop.is_running():  # pragma: no cover
-                    loop.call_soon_threadsafe(loop.stop)
+    # Removed local manage_event_loop fixture to rely on conftest.py version
+    # @pytest.fixture(autouse=True)
+    # def manage_event_loop(self):
+    #     loop = None
+    #     try:
+    #         try:
+    #             loop = asyncio.get_event_loop()
+    #             if loop.is_closed():
+    #                 raise RuntimeError("existing loop is closed")
+    #         except RuntimeError:
+    #             loop = asyncio.new_event_loop()
+    #             asyncio.set_event_loop(loop)
+    #
+    #         initial_loop_was_set_by_this_fixture = False
+    #         if not is_global_event_loop_set():  # Check before setting
+    #             set_tsercom_event_loop(loop)
+    #             initial_loop_was_set_by_this_fixture = True
+    #
+    #         yield loop
+    #     finally:
+    #         if (
+    #             initial_loop_was_set_by_this_fixture
+    #         ):  # Only clear if this fixture set it
+    #             clear_tsercom_event_loop()
+    #
+    #         # Loop closing logic - be cautious with loops from pytest-asyncio
+    #         if (
+    #             loop
+    #             and not getattr(loop, "_default_loop", False)
+    #             and not loop.is_closed()
+    #             and initial_loop_was_set_by_this_fixture  # Only manage loops this fixture created/set policy for
+    #         ):
+    #             if loop.is_running():  # pragma: no cover
+    #                 loop.call_soon_threadsafe(loop.stop)
 
     @pytest.fixture
     def mock_data_reader(self, mocker):
@@ -173,15 +175,22 @@ class TestRuntimeDataHandlerBaseBehavior:
         context.peer = mocker.MagicMock(return_value="ipv4:127.0.0.1:12345")
         return context
 
-    @pytest.fixture
-    def handler(self, mock_data_reader, mock_event_source, mocker):
+    @pytest_asyncio.fixture # Changed
+    async def handler(self, mock_data_reader, mock_event_source, mocker):
         # Patch run_on_event_loop called by RuntimeDataHandlerBase.__init__
+        # This patching might be hiding actual task creation issues if run_on_event_loop
+        # was intended for the dispatch_poller_data_loop.
+        # However, __dispatch_poller_data_loop is started via loop.create_task directly
+        # in __start_dispatch_loop if is_global_event_loop_set is true.
         mocker.patch(
             "tsercom.runtime.runtime_data_handler_base.run_on_event_loop"
         )
-        return TestableRuntimeDataHandler(
+        h = TestableRuntimeDataHandler(
             mock_data_reader, mock_event_source, mocker
         )
+        yield h
+        # Async cleanup by calling the new async_close method
+        await h.async_close()
 
     @pytest.fixture
     def mock_sync_clock(self, mocker):
@@ -195,16 +204,17 @@ class TestRuntimeDataHandlerBaseBehavior:
     ):
         return CallerIdentifier.random()
 
-    @pytest.fixture
-    def data_processor(
+    @pytest_asyncio.fixture # Changed
+    async def data_processor( # Changed
         self,
-        handler,  # Uses the handler fixture from TestRuntimeDataHandlerBaseBehavior
+        handler,  # handler is an async fixture, pytest will provide the yielded value
         test_caller_id_instance,
         mock_sync_clock,
         mocker,
     ):
         mock_poller_for_dp = mocker.MagicMock(spec=AsyncPoller)
         # Mock the get method on the actual IdTracker instance used by the handler
+        # 'handler' here is the actual TestableRuntimeDataHandler instance.
         handler._RuntimeDataHandlerBase__id_tracker.get = mocker.MagicMock(  # type: ignore
             return_value=(
                 "dummy_ip",
@@ -212,11 +222,12 @@ class TestRuntimeDataHandlerBaseBehavior:
                 mock_poller_for_dp,
             )
         )
-        return handler._create_data_processor(
+        return handler._create_data_processor( # This method is synchronous
             test_caller_id_instance, mock_sync_clock
         )
 
-    def test_constructor(self, handler, mock_data_reader, mock_event_source):
+    @pytest.mark.asyncio
+    async def test_constructor(self, handler, mock_data_reader, mock_event_source):
         assert handler._RuntimeDataHandlerBase__data_reader is mock_data_reader  # type: ignore
         assert handler._RuntimeDataHandlerBase__event_source is mock_event_source  # type: ignore
 
@@ -242,7 +253,8 @@ class TestRuntimeDataHandlerBaseBehavior:
         # RuntimeDataHandlerBase.__aiter__ returns self.
         # We are asserting the behavior of handler as an async iterator.
 
-    def test_check_for_caller_id(self, handler, mock_caller_id):
+    @pytest.mark.asyncio
+    async def test_check_for_caller_id(self, handler, mock_caller_id):
         endpoint_str = "test_ep"
         port_num = 1122
         handler.mock_try_get_caller_id.return_value = mock_caller_id
@@ -494,7 +506,8 @@ class TestRuntimeDataHandlerBaseBehavior:
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
         handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
 
-    def test_create_data_processor_id_not_in_tracker(self, handler, mocker):
+    @pytest.mark.asyncio
+    async def test_create_data_processor_id_not_in_tracker(self, handler, mocker):
         test_caller_id = CallerIdentifier.random()
         mock_clock = mocker.MagicMock(spec=SynchronizedClock)
 
@@ -505,7 +518,8 @@ class TestRuntimeDataHandlerBaseBehavior:
             handler._create_data_processor(test_caller_id, mock_clock)
         handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(test_caller_id)  # type: ignore
 
-    def test_create_data_processor_poller_is_none_in_tracker(
+    @pytest.mark.asyncio
+    async def test_create_data_processor_poller_is_none_in_tracker(
         self, handler, mocker
     ):
         test_caller_id = CallerIdentifier.random()

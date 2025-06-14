@@ -10,7 +10,8 @@ Concrete implementations, such as `ClientRuntimeDataHandler` and
 `ServerRuntimeDataHandler`, inherit from this base to provide specific logic
 for client and server-side operations, respectively.
 """
-
+import asyncio
+import logging # Added import
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
@@ -47,6 +48,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT")
 
+_logger = logging.getLogger(__name__) # Added logger
 
 # pylint: disable=arguments-differ # Handled by *args, **kwargs in actual implementation matching abstract
 class RuntimeDataHandlerBase(
@@ -115,8 +117,65 @@ class RuntimeDataHandlerBase(
             _poller_factory
         )
 
-        # to individual caller-specific pollers managed by the IdTracker.
-        run_on_event_loop(self.__dispatch_poller_data_loop)
+        self.__dispatch_task: Optional[asyncio.Task] = None
+        # Import get_global_event_loop and is_global_event_loop_set locally to avoid circular dependency issues at module level
+        from tsercom.threading.aio.global_event_loop import (
+            is_global_event_loop_set,
+            get_global_event_loop,
+        )
+        if is_global_event_loop_set():
+            self._loop_on_init = get_global_event_loop() # Store loop used at init
+            self.__dispatch_task = self._loop_on_init.create_task(
+                self.__dispatch_poller_data_loop()
+            )
+            _logger.debug(f"__dispatch_task {self.__dispatch_task} created on loop {id(self._loop_on_init)}.")
+        else:
+            self._loop_on_init = None # Explicitly set if no loop
+            _logger.warning(
+                "No global event loop set during RuntimeDataHandlerBase init. "
+                "__dispatch_poller_data_loop will not start."
+            )
+
+
+    async def async_close(self) -> None:
+        """Cancels and awaits the background dispatch task."""
+        current_loop = asyncio.get_running_loop()
+        _logger.info(f"RuntimeDataHandlerBase async_close called. Current loop: {id(current_loop)}")
+
+        if hasattr(self, '_RuntimeDataHandlerBase__dispatch_task') and self.__dispatch_task:
+            task = self.__dispatch_task
+            # Ensure task loop retrieval is safe
+            task_loop = None
+            try:
+                task_loop = task.get_loop()
+            except RuntimeError: # Can happen if task is done and loop is closed
+                 _logger.warning(f"Could not get loop for task {task} during async_close, it might be done and its loop closed.")
+
+            task_loop_id = id(task_loop) if task_loop else 'N/A'
+            _logger.debug(f"Attempting to close __dispatch_task: {task} (created on loop: {id(self._loop_on_init) if self._loop_on_init else 'N/A'}, current task loop: {task_loop_id})")
+
+            if not task.done():
+                # It's crucial that task.cancel() and await task happen on the loop the task is running on.
+                # If self._loop_on_init is different from current_loop, this might be an issue.
+                # However, pytest-asyncio and conftest should ensure fixture teardown runs on the same loop as test.
+                if self._loop_on_init and self._loop_on_init is not current_loop:
+                    _logger.warning(f"Potential loop mismatch in async_close: task loop {task_loop_id} (init_loop {id(self._loop_on_init)}) vs current_loop {id(current_loop)}. This might cause issues.")
+
+                _logger.debug(f"Cancelling dispatch_task: {task}")
+                task.cancel()
+                try:
+                    await task
+                    _logger.debug(f"Dispatch_task {task} awaited after cancellation (processed CancelledError).")
+                except asyncio.CancelledError:
+                    _logger.info(f"Dispatch_task {task} successfully cancelled and handled CancelledError.")
+                except Exception as e:
+                    _logger.error(f"Exception while awaiting cancelled dispatch_task {task}: {e}", exc_info=True)
+            else:
+                _logger.debug(f"Dispatch_task {task} was already done.")
+            self.__dispatch_task = None
+        else:
+            _logger.debug("No __dispatch_task found or already cleared in async_close.")
+
 
     @property
     def _id_tracker(
@@ -308,7 +367,7 @@ class RuntimeDataHandlerBase(
         self.__data_reader._on_data_ready(data)
 
     @abstractmethod
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-differ # Matches Pylint directive in existing code
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
@@ -434,6 +493,7 @@ class RuntimeDataHandlerBase(
         per-caller `AsyncPoller`. If found, the event is put onto that
         dedicated poller.
         """
+        _logger.info("Starting __dispatch_poller_data_loop.")
         try:
             async for events_batch in self.__event_source:
                 for event_item in events_batch:
@@ -455,15 +515,20 @@ class RuntimeDataHandlerBase(
                         if per_caller_poller is not None:
                             per_caller_poller.on_available(event_item)
                         # else: Potentially log if poller is None but entry existed?
+                await asyncio.sleep(0) # Yield control occasionally
+        except asyncio.CancelledError:
+            _logger.info("__dispatch_poller_data_loop received CancelledError.")
+            raise # Important to propagate for the awaiter
         except Exception as e:
-            # However, ThreadWatcher is supposed to catch and report these.
-            print(
-                f"CRITICAL ERROR in __dispatch_poller_data_loop: {type(e).__name__}: {e}"
+            # This logging was originally just print(), changed to _logger.critical
+            _logger.critical(
+                f"CRITICAL ERROR in __dispatch_poller_data_loop: {type(e).__name__}: {e}", exc_info=True
             )
-            import traceback
-
-            traceback.print_exc()
+            # Consider how to report this to ThreadWatcher if applicable
             raise
+        finally:
+            _logger.info("__dispatch_poller_data_loop finished.")
+
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
         """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
