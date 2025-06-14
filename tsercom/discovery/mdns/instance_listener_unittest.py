@@ -97,9 +97,9 @@ class FakeInstanceListenerClient(
         )  # Mock for removal
         # For manual tracking if preferred.
         self.received_services: List[FClientServiceInfo] = []
-        self.removed_service_names: List[str] = (
-            []
-        )  # To store names of removed services
+        self.removed_service_names: List[
+            str
+        ] = []  # To store names of removed services
         self.added_event: Optional[asyncio.Event] = (
             None  # Event for added services
         )
@@ -207,9 +207,9 @@ class TestInstanceListener:
             service_type=self.SERVICE_TYPE,
             mdns_listener_factory=self.factory_under_test,
         )
-        assert (
-            TestInstanceListener.captured_fake_mdns_listener is not None
-        ), "Factory was not called or did not capture listener"
+        assert TestInstanceListener.captured_fake_mdns_listener is not None, (
+            "Factory was not called or did not capture listener"
+        )
         # Check that the client of the FakeMdnsListener is the InstanceListener instance
         assert (
             TestInstanceListener.captured_fake_mdns_listener.client

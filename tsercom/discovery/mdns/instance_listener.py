@@ -77,10 +77,17 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         """
         if client is None:
             raise ValueError("Client cannot be None for InstanceListener.")
-        if not isinstance(client, InstanceListener.Client):
-            # Long error message
+
+        # Get the .Client attribute from the actual class of self.
+        # This can be more robust with generics than a direct module-level reference.
+        client_interface_type = getattr(type(self), "Client", None)
+        if client_interface_type is None or not isinstance(
+            client, client_interface_type
+        ):
+            # The error message still refers to the conceptual "InstanceListener.Client"
+            # as that's what the user would code against.
             raise TypeError(
-                f"Client must be InstanceListener.Client, got {type(client).__name__}."
+                f"Client must be an InstanceListener.Client, got {type(client).__name__}."
             )
         if not isinstance(service_type, str):
             raise TypeError(
