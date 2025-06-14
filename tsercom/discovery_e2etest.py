@@ -399,12 +399,15 @@ async def test_instance_update_reflects_changes():
     listener_obj: InstanceListener | None = (
         None  # Initialize for finally block
     )
-    publisher1_obj = None  # Initialize for finally block
-    publisher2_obj = None  # Initialize for finally block
+    publisher1_obj: Optional[InstancePublisher] = None # Type hint for clarity
+    publisher2_obj: Optional[InstancePublisher] = None # Type hint for clarity
+    shared_zc: Optional[AsyncZeroconf] = None # Initialize shared_zc
 
     try:
+        shared_zc = AsyncZeroconf() # Create shared instance
+
         listener_obj = InstanceListener(
-            client=client, service_type=service_type
+            client=client, service_type=service_type, zc_instance=shared_zc # Pass shared_zc
         )
         await listener_obj.start()  # Start the listener
 
@@ -413,6 +416,7 @@ async def test_instance_update_reflects_changes():
             service_type=service_type,
             readable_name=readable_name1,
             instance_name=instance_name,
+            zc_instance=shared_zc # Pass shared_zc
         )
         await publisher1_obj.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
@@ -440,13 +444,16 @@ async def test_instance_update_reflects_changes():
         if publisher1_obj:
             await publisher1_obj.close()
             # Allow a brief moment for the unregistration to propagate.
-            await asyncio.sleep(0.2)
+            _logger.info("Waiting for unregistration of publisher1 to propagate...")
+            await asyncio.sleep(2.0) # Increased sleep from 0.2 to 2.0 seconds
+            _logger.info("Proceeding to publish publisher2...")
 
         publisher2_obj = InstancePublisher(
             port=service_port2,
             service_type=service_type,
             readable_name=readable_name2,
             instance_name=instance_name,  # SAME instance_name
+            zc_instance=shared_zc # Pass shared_zc
         )
         await publisher2_obj.publish()
         await asyncio.wait_for(discovery_event2.wait(), timeout=10.0)
@@ -469,6 +476,10 @@ async def test_instance_update_reflects_changes():
             await publisher2_obj.close()  # Explicitly close
         if listener_obj:
             await listener_obj.async_stop()
+
+        if shared_zc: # Add this
+            await shared_zc.async_close()
+
         gc.collect()  # Encourage faster cleanup
 
     assert discovery_event2.is_set(), (
