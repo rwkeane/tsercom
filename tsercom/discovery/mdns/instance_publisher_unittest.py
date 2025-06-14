@@ -1,8 +1,6 @@
 import pytest
-from unittest.mock import patch, MagicMock
-from typing import Dict, Optional, Callable, Any, cast
-from uuid import getnode as get_mac
-import datetime  # For checking 'published_on'
+from unittest.mock import patch
+from typing import Dict, Optional, Callable
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
@@ -34,6 +32,7 @@ class FakeMdnsPublisher(MdnsPublisher):
         self.txt_record: Optional[Dict[bytes, bytes | None]] = txt_record
         self.publish_called: bool = False
         self.publish_call_count: int = 0
+        self.close_called: bool = False  # Added
 
     async def publish(self) -> None:
         self.publish_called = True
@@ -42,6 +41,10 @@ class FakeMdnsPublisher(MdnsPublisher):
     def clear_simulation_history(self) -> None:
         self.publish_called = False
         self.publish_call_count = 0
+        self.close_called = False  # Added
+
+    async def close(self) -> None:  # Added
+        self.close_called = True
 
 
 class TestInstancePublisher:
@@ -229,7 +232,9 @@ class TestInstancePublisher:
     # Test type errors for constructor arguments
     @pytest.mark.parametrize("invalid_port", [None, "12345", 123.45])
     def test_init_invalid_port_type(self, invalid_port):
-        with pytest.raises(TypeError if invalid_port != None else ValueError):
+        with pytest.raises(
+            TypeError if invalid_port is not None else ValueError
+        ):
             InstancePublisher(
                 port=invalid_port, service_type=self.SERVICE_TYPE
             )
@@ -237,7 +242,7 @@ class TestInstancePublisher:
     @pytest.mark.parametrize("invalid_service_type", [None, 123, {}])
     def test_init_invalid_service_type_type(self, invalid_service_type):
         with pytest.raises(
-            TypeError if invalid_service_type != None else ValueError
+            TypeError if invalid_service_type is not None else ValueError
         ):
             InstancePublisher(
                 port=self.PORT, service_type=invalid_service_type

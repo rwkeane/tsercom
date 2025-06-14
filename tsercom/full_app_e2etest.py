@@ -49,7 +49,7 @@ class FakeMdnsListener(MdnsListener):
             f"FakeMdnsListener initialized for service type '{self.__service_type}' on port {self.__port}"
         )
 
-    def start(self) -> None:
+    async def start(self) -> None:
         logging.info(
             f"FakeMdnsListener: Faking service addition for service type '{self.__service_type}' on port {self.__port}"
         )
@@ -68,7 +68,7 @@ class FakeMdnsListener(MdnsListener):
 
         fake_ip_address_bytes = socket.inet_aton("127.0.0.1")
 
-        self.__client._on_service_added(
+        await self.__client._on_service_added(
             name=fake_mdns_instance_name,
             port=self.__port,
             addresses=[fake_ip_address_bytes],

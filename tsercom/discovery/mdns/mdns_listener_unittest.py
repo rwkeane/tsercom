@@ -10,7 +10,7 @@ from tsercom.discovery.mdns.mdns_listener import (
 
 # A mock client for the listener, conforming to MdnsListener.Client interface
 class MockMdnsClient(IMdnsListenerClientProto.Client):
-    def _on_service_added(
+    async def _on_service_added(
         self,
         name: str,
         port: int,
@@ -19,7 +19,7 @@ class MockMdnsClient(IMdnsListenerClientProto.Client):
     ) -> None:
         pass
 
-    def _on_service_removed(
+    async def _on_service_removed(
         self, name: str, service_type: str, record_listener_uuid: str
     ) -> None:
         pass

@@ -284,7 +284,36 @@ class ServiceConnector(
             channel,
         )
 
+    async def _on_service_removed(
+        self, service_name: str, caller_id: CallerIdentifier
+    ) -> None:
+        """Handles previously discovered service being removed.
+
+        This method is called by the `ServiceSource` when a service instance
+        is no longer available. It removes the service from the active callers list.
+
+        Args:
+            service_name: The name of the service that was removed.
+            caller_id: The `CallerIdentifier` of the service instance.
+        """
+        logging.info(
+            "Service %s (CallerIdentifier: %s) removed.",
+            service_name,
+            caller_id,
+        )
+        if caller_id in self.__callers:
+            self.__callers.remove(caller_id)
+        else:
+            logging.warning(
+                "Received remove notification for untracked CallerIdentifier %s (Service: %s).",
+                caller_id,
+                service_name,
+            )
+        # Further actions, like notifying this ServiceConnector's client, could be added here
+        # if the client interface (ServiceConnector.Client) had an _on_channel_disconnected method.
+
     async def stop(self) -> None:
+        """Stops the ServiceConnector and the underlying service discovery mechanism."""
         logging.info("Stopping ServiceConnector...")
 
         if hasattr(self.__service_source, "stop_discovery") and callable(

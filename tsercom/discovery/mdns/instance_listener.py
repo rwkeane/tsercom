@@ -1,5 +1,6 @@
 """mDNS instance listener, builds on RecordListener."""
 
+import asyncio  # Added import for asyncio.iscoroutinefunction
 import logging
 import socket
 from abc import ABC, abstractmethod
@@ -105,7 +106,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         else:
             self.__listener = mdns_listener_factory(self, service_type)
 
-        self.__listener.start()
+        # self.__listener.start() # Removed: Start will be called explicitly by DiscoveryHost or other users.
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
@@ -204,7 +205,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # and its "correctness" depends on how ServiceInfoT is defined by the subclass.
         return service_info  # type: ignore[return-value]
 
-    def _on_service_added(
+    async def _on_service_added(
         self,
         name: str,
         port: int,
@@ -240,7 +241,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             partial(self.__client._on_service_added, typed_service_info)
         )
 
-    def _on_service_removed(
+    async def _on_service_removed(
         self,
         name: str,
         service_type: str,
@@ -260,8 +261,21 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # pylint: disable=W0212 # Calling client's notification method
         run_on_event_loop(partial(self.__client._on_service_removed, name))
 
+    async def start(self) -> None:
+        """Starts the underlying mDNS listener.
+
+        This method should be called to begin the discovery process after
+        the InstanceListener has been initialized.
+        """
+        # Underlying listener's start() method might be sync or async.
+        if asyncio.iscoroutinefunction(self.__listener.start):
+            await self.__listener.start()
+        else:
+            self.__listener.start()
+        logging.info("InstanceListener started via async start().")
+
     async def async_stop(self) -> None:
-        # Stops the listener and cleans up resources.
+        """Stops the listener and cleans up resources."""
         if hasattr(self.__listener, "close") and callable(
             getattr(self.__listener, "close")
         ):

@@ -176,22 +176,17 @@ class DiscoveryHost(
         self.__client = client
         try:
             self.__discoverer = self.__instance_listener_factory(self)
+            if self.__discoverer:  # If factory returned a discoverer
+                await self.__discoverer.start()  # Explicitly start the discoverer
             # The InstanceListener constructor should handle starting the underlying listener.
             # If self.__discoverer is successfully created, it implies the listener
             # (and its factory) also succeeded up to the point of starting.
         except Exception as e:
             logging.error(
-                f"Failed to initialize discovery listener: {e}", exc_info=True
+                f"Failed to initialize or start discovery listener: {e}",
+                exc_info=True,
             )
             self.__discoverer = None  # Ensure discoverer is None if init fails
-
-        # TODO(developer/issue_id): Verify if self.__discoverer (InstanceListener)
-        # requires an explicit start() method to be called after instantiation.
-        # If so, it should be called here. For example:
-        # if hasattr(self.__discoverer, "start") and callable(self.__discoverer.start):
-        #     # await self.__discoverer.start() # If async
-        #     # self.__discoverer.start() # If sync
-        #     pass
 
     async def _on_service_added(self, connection_info: ServiceInfoT) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
@@ -267,7 +262,7 @@ class DiscoveryHost(
             )
 
     async def stop_discovery(self) -> None:
-        # Stops service discovery and cleans up resources.
+        """Stops service discovery and cleans up resources."""
         logging.info("Stopping DiscoveryHost...")
         if self.__discoverer is not None:
             if hasattr(self.__discoverer, "async_stop") and callable(

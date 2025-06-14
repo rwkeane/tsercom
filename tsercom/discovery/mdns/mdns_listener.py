@@ -33,7 +33,7 @@ class MdnsListener(ServiceListener):
         """
 
         @abstractmethod
-        def _on_service_added(
+        async def _on_service_added(
             self,
             name: str,  # mDNS instance name of the service.
             port: int,  # Service port number.
@@ -55,7 +55,7 @@ class MdnsListener(ServiceListener):
             )
 
         @abstractmethod
-        def _on_service_removed(
+        async def _on_service_removed(
             self, name: str, service_type: str, record_listener_uuid: str
         ) -> None:
             """Callback for service removal.

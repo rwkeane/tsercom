@@ -2,11 +2,11 @@
 
 import logging
 import uuid
-from zeroconf import (
-    ServiceBrowser,
-    Zeroconf,
-)
-from zeroconf.asyncio import AsyncZeroconf
+import asyncio
+from zeroconf import Zeroconf
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncZeroconf
+
+# Removed import of async_get_service_info as it's a method of AsyncZeroconf
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 
 
@@ -62,11 +62,11 @@ class RecordListener(MdnsListener):
             "Starting mDNS scan for services of type: %s (AsyncZeroconf with sync ServiceBrowser, default interfaces/IPVersion)",
             self.__expected_type,
         )
-        self.__browser: ServiceBrowser | None = None
+        self.__browser: AsyncServiceBrowser | None = None
 
     def start(self) -> None:
         # Use sync ServiceBrowser, pass the underlying sync Zeroconf instance from AsyncZeroconf
-        self.__browser = ServiceBrowser(
+        self.__browser = AsyncServiceBrowser(
             self.__mdns.zeroconf, [self.__expected_type], listener=self
         )
 
@@ -95,33 +95,9 @@ class RecordListener(MdnsListener):
             )
             return
 
-        info = zc.get_service_info(type_, name)
-        if info is None:
-            logging.error(
-                "Failed to get info for updated service '%s' type '%s'.",
-                name,
-                type_,
-            )
-            return
-
-        if info.port is None:
-            logging.error(
-                "No port for updated service '%s' type '%s'.", name, type_
-            )
-            return
-
-        if not info.addresses:
-            logging.warning(
-                "No addresses for updated service '%s' type '%s'.", name, type_
-            )
-            # Decide if to proceed; currently proceeds.
-
-        # pylint: disable=W0212 # Calling listener's notification method
-        self.__client._on_service_added(
-            name,
-            info.port,
-            info.addresses,
-            info.properties,  # Pass `name` from args, not info.name
+        # Schedule the asynchronous handling of the service event
+        asyncio.create_task(
+            self._async_handle_service_event(type_, name, is_update=True)
         )
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
@@ -136,7 +112,9 @@ class RecordListener(MdnsListener):
             name: The mDNS instance name of the service that was removed.
         """
         logging.info("Service removed: type='%s', name='%s'", type_, name)
-        self.__client._on_service_removed(name, type_, self._uuid_str)
+        asyncio.create_task(
+            self.__client._on_service_removed(name, type_, self._uuid_str)
+        )
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a new service is discovered.
@@ -164,10 +142,33 @@ class RecordListener(MdnsListener):
             )
             return
 
-        info = zc.get_service_info(type_, name)
+        # Schedule the asynchronous handling of the service event
+        asyncio.create_task(
+            self._async_handle_service_event(type_, name, is_update=False)
+        )
+
+    async def _async_handle_service_event(
+        self, type_: str, name: str, is_update: bool
+    ) -> None:
+        """Asynchronously fetches service info and notifies the client."""
+        event_type = "updated" if is_update else "added"
+        logging.debug(
+            "Async handling %s service event: type='%s', name='%s'",
+            event_type,
+            type_,
+            name,
+        )
+
+        # Use a timeout for async_get_service_info to prevent indefinite blocking
+        # Corrected: Call as a method of self.__mdns (AsyncZeroconf instance)
+        info = await self.__mdns.async_get_service_info(
+            type_, name, timeout=3000
+        )  # timeout in ms
+
         if info is None:
             logging.error(
-                "Failed to get info for added service '%s' type '%s'.",
+                "Failed to get info for %s service '%s' type '%s'.",
+                event_type,
                 name,
                 type_,
             )
@@ -175,19 +176,27 @@ class RecordListener(MdnsListener):
 
         if info.port is None:
             logging.error(
-                "No port for added service '%s' type '%s'.", name, type_
+                "No port for %s service '%s' type '%s'.",
+                event_type,
+                name,
+                type_,
             )
             return
 
         if not info.addresses:
             logging.warning(
-                "No addresses for added service '%s' type '%s'.", name, type_
+                "No addresses for %s service '%s' type '%s'.",
+                event_type,
+                name,
+                type_,
             )
-            # As with update_service, decide whether to proceed or return.
+            # Decide if to proceed; currently proceeds.
 
         # pylint: disable=W0212 # Calling listener's notification method
-        self.__client._on_service_added(
-            name,
+        # InstanceListener's _on_service_added handles calling the actual client's
+        # method on the correct event loop.
+        await self.__client._on_service_added(
+            name,  # Pass 'name' from args, not info.name (though usually same)
             info.port,
             info.addresses,
             info.properties,
@@ -195,20 +204,18 @@ class RecordListener(MdnsListener):
 
 
 async def close(self: "RecordListener") -> None:
-    # Closes the mDNS listener and the underlying AsyncZeroconf instance.
-    if self.__browser:
+    """Closes the mDNS listener and the underlying AsyncZeroconf instance."""
+    if self.__browser is not None:
         logging.info(
-            "Cleaning up ServiceBrowser in RecordListener for %s",
+            "Cleaning up AsyncServiceBrowser in RecordListener for %s",
             self.__expected_type,
         )
-        # The ServiceBrowser was initialized with self.__mdns.zeroconf.
-        # We need to remove self (the RecordListener instance) as a listener
-        # from that Zeroconf instance.
-        if self.__mdns and self.__mdns.zeroconf:
-            # The ServiceBrowser's cancel() method should be used to stop it.
-            self.__browser.cancel()
+        # The AsyncServiceBrowser's async_cancel() method should be used.
+        await self.__browser.async_cancel()
         self.__browser = None
 
+    # self.__mdns is AsyncZeroconf, always expected to be present.
+    # If it were None, earlier operations like start() would have failed.
     if self.__mdns:
         try:
             await self.__mdns.async_close()  # AsyncZeroconf handles closing its sync_zeroconf

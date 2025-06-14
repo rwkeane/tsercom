@@ -65,6 +65,7 @@ async def test_successful_registration_and_discovery():
     # Listener needs to be started before publisher to catch the announcement
     # Assign to specific variable names to manage lifecycle explicitly in finally block
     listener_obj = InstanceListener(client=client, service_type=service_type)
+    await listener_obj.start()  # Start the listener
     publisher_obj = None  # Initialize to None for the finally block
 
     try:
@@ -177,6 +178,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
         listener_obj = InstanceListener(
             client=client, service_type=service_type
         )
+        await listener_obj.start()  # Start the listener
 
         # Create two InstancePublisher instances
         publisher1_port = 50010
@@ -352,6 +354,7 @@ async def test_instance_update_reflects_changes():
         [discovery_event1, discovery_event2], discovered_services
     )
     listener_obj = InstanceListener(client=client, service_type=service_type)
+    await listener_obj.start()  # Start the listener
 
     publisher1_obj = None  # Initialize for finally block
     publisher2_obj = None  # Initialize for finally block
@@ -465,6 +468,7 @@ async def test_instance_unpublishing():
     # Use the original DiscoveryTestClient for simplicity in this phase
     client1 = DiscoveryTestClient(discovery_event1, discovered_services1)
     listener1 = InstanceListener(client=client1, service_type=service_type)
+    await listener1.start()  # Start the listener
 
     publisher = InstancePublisher(
         port=service_port,
@@ -518,6 +522,7 @@ async def test_instance_unpublishing():
     client2 = DiscoveryTestClient(discovery_event2, discovered_services2)
     # Create a new listener to ensure it's not using cached data from the old one (if any such cache existed)
     listener2 = InstanceListener(client=client2, service_type=service_type)
+    await listener2.start()  # Start the listener
 
     try:
         # Wait for a shorter period, as we expect a timeout (no service found).
@@ -599,6 +604,7 @@ async def test_multiple_publishers_one_listener():
         all_discovered_event=all_discovered_event,
     )
     listener = InstanceListener(client=client, service_type=service_type)
+    await listener.start()  # Start the listener
 
     publishers = []
     expected_service_details = []
@@ -703,6 +709,7 @@ async def test_one_publisher_multiple_listeners():
 
     listeners_data = []
     tasks = []
+    # Listener objects will be started below, right after creation
 
     try:
         await publisher.publish()
@@ -719,6 +726,8 @@ async def test_one_publisher_multiple_listeners():
             all_discovered_event=listener1_event,
         )
         listener1 = InstanceListener(client=client1, service_type=service_type)
+        # This was missing await listener1.start() - added it based on pattern in other tests
+        await listener1.start()
         listeners_data.append(
             {
                 "event": listener1_event,
@@ -739,6 +748,8 @@ async def test_one_publisher_multiple_listeners():
             all_discovered_event=listener2_event,
         )
         listener2 = InstanceListener(client=client2, service_type=service_type)
+        # Corrected: Start listener2, not listener1 again.
+        await listener2.start()  # Start the listener
         listeners_data.append(
             {
                 "event": listener2_event,
@@ -809,6 +820,7 @@ async def test_publisher_starts_after_listener():
     try:
         # Start the listener first
         listener = InstanceListener(client=client, service_type=service_type)
+        await listener.start()  # Start the listener
         # Give the listener a moment to fully initialize and start listening.
         # This is crucial for mDNS, as the ServiceBrowser needs to be active.
         await asyncio.sleep(1.0)

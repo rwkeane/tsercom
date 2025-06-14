@@ -51,6 +51,12 @@ def mock_actual_instance_listener_fixture(
         spec=ActualInstanceListener,
         name="MockedActualInstanceListenerInstance",
     )
+    mock_listener_instance.start = AsyncMock(
+        name="MockedActualInstanceListenerInstance.start"
+    )
+    mock_listener_instance.async_stop = AsyncMock(
+        name="MockedActualInstanceListenerInstance.async_stop"
+    )
     MockListenerClass_patch: MagicMock = mocker.patch(
         "tsercom.discovery.mdns.instance_listener.InstanceListener",
         return_value=mock_listener_instance,
@@ -419,7 +425,7 @@ async def test_discovery_host_handles_mdns_factory_exception_gracefully(
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
         assert (
-            "Failed to initialize discovery listener: Factory boom!"
+            "Failed to initialize or start discovery listener: Factory boom!"
             in mock_log_error.call_args.args[0]
         )
 
@@ -457,7 +463,7 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
         assert (
-            "Failed to initialize discovery listener: Listener start boom!"
+            "Failed to initialize or start discovery listener: Listener start boom!"
             in mock_log_error.call_args.args[0]
         )
 

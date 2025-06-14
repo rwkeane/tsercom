@@ -1,14 +1,13 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import socket
-from typing import Generic, TypeVar, Callable, List, Dict, Optional, cast, Any
+from typing import Generic, TypeVar, List, Dict, Optional, Any
 import asyncio  # For asyncio.sleep if needed, though mock usually suffices
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.instance_listener import (
     InstanceListener,
     ServiceInfo,
-    ServiceInfoT,
 )
 from tsercom.discovery.mdns.record_listener import (
     RecordListener,
@@ -46,7 +45,7 @@ class FakeMdnsListener(MdnsListener):
             {"zc": zc, "type_": type_, "name": name}
         )
 
-    def remove_service(self, zc: Any, type_: str, name: str) -> None:
+    async def remove_service(self, zc: Any, type_: str, name: str) -> None:
         self.remove_service_calls.append(
             {"zc": zc, "type_": type_, "name": name}
         )
@@ -56,12 +55,13 @@ class FakeMdnsListener(MdnsListener):
         ):
             # Assuming RecordListener would pass its UUID, mock or use a fixed one for tests
             mock_uuid = "fake-record-listener-uuid"
-            self.client._on_service_removed(name, type_, mock_uuid)
+            # InstanceListener._on_service_removed is now async
+            await self.client._on_service_removed(name, type_, mock_uuid)
 
     def add_service(self, zc: Any, type_: str, name: str) -> None:
         self.add_service_calls.append({"zc": zc, "type_": type_, "name": name})
 
-    def simulate_service_added(
+    async def simulate_service_added(
         self,
         name: str,
         port: int,
@@ -69,7 +69,10 @@ class FakeMdnsListener(MdnsListener):
         txt_record: Dict[bytes, bytes | None],
     ) -> None:
         if self.client:
-            self.client._on_service_added(name, port, addresses, txt_record)
+            # InstanceListener._on_service_added is now async
+            await self.client._on_service_added(
+                name, port, addresses, txt_record
+            )
         else:
             raise RuntimeError("FakeMdnsListener.client is not set.")
 
@@ -295,6 +298,7 @@ class TestInstanceListener:
             mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
+        await instance_listener.start()  # Start the listener
 
         record_name = "TestServiceInstance"
         port = 8080
@@ -302,7 +306,7 @@ class TestInstanceListener:
         ip_bytes = str_to_ip_bytes(ip_str)
         txt_record = {b"name": b"My Readable Name", b"version": b"1.0"}
 
-        TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+        await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
             record_name, port, [ip_bytes], txt_record
         )
 
@@ -328,7 +332,8 @@ class TestInstanceListener:
             mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
-        TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+        await instance_listener.start()  # Start the listener
+        await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
             "NoIPService", 8080, [], {b"name": b"No IP"}
         )
         await asyncio.sleep(0)  # Allow event loop to process potential tasks
@@ -343,11 +348,12 @@ class TestInstanceListener:
             mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
+        await instance_listener.start()  # Start the listener
         invalid_ip_bytes = b"this is not an ip"
         with patch(
             "socket.inet_ntoa", side_effect=socket.error("Invalid IP format")
         ):
-            TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+            await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
                 "InvalidIPService",
                 8080,
                 [invalid_ip_bytes],
@@ -365,6 +371,7 @@ class TestInstanceListener:
             mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
+        await instance_listener.start()  # Start the listener
 
         valid_ip_str = "192.168.1.101"
         valid_ip_bytes = str_to_ip_bytes(valid_ip_str)
@@ -376,7 +383,7 @@ class TestInstanceListener:
             raise socket.error("Invalid IP")
 
         with patch("socket.inet_ntoa", side_effect=mock_inet_ntoa):
-            TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+            await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
                 "MixedIPService",
                 8080,
                 [invalid_ip_bytes, valid_ip_bytes],
@@ -398,12 +405,13 @@ class TestInstanceListener:
             mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
+        await instance_listener.start()  # Start the listener
 
         record_name = "UTF8ErrorService"
         ip_bytes = str_to_ip_bytes("192.168.1.102")
         txt_record_invalid_utf8 = {b"name": b"\xff\xfe"}  # Invalid UTF-8
 
-        TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+        await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
             record_name, 8080, [ip_bytes], txt_record_invalid_utf8
         )
 
@@ -422,12 +430,13 @@ class TestInstanceListener:
             mdns_listener_factory=self.factory_under_test,
         )
         assert TestInstanceListener.captured_fake_mdns_listener is not None
+        await instance_listener.start()  # Start the listener
 
         record_name = "NoNameService"
         ip_bytes = str_to_ip_bytes("192.168.1.103")
         txt_record_no_name = {b"other_key": b"other_value"}
 
-        TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+        await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
             record_name, 8080, [ip_bytes], txt_record_no_name
         )
 

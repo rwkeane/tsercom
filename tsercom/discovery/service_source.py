@@ -30,6 +30,19 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
                 caller_id: Unique ID for the discovered service instance.
             """
 
+        @abstractmethod
+        async def _on_service_removed(
+            self, service_name: str, caller_id: CallerIdentifier
+        ) -> None:
+            """Called when a previously discovered service is no longer available.
+
+            Args:
+                service_name: The mDNS name (or other unique identifier) of the
+                              service that was removed.
+                caller_id: The `CallerIdentifier` of the service instance that
+                           was removed.
+            """
+
     @abstractmethod
     async def start_discovery(self, client: "ServiceSource.Client") -> None:
         """Starts service discovery.
