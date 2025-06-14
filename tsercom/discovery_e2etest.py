@@ -2,6 +2,7 @@ import asyncio
 import gc  # Moved import gc to top level
 import ipaddress
 import uuid
+from typing import Optional  # Added import
 
 import pytest
 import pytest_asyncio
@@ -10,9 +11,9 @@ from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.service_info import ServiceInfo
 
-import logging # Added import
+import logging  # Added import
 
-from zeroconf.asyncio import AsyncZeroconf # Added import
+from zeroconf.asyncio import AsyncZeroconf  # Added import
 
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
 from tsercom.threading.aio.global_event_loop import (
@@ -158,7 +159,9 @@ class SelectiveDiscoveryClient(InstanceListener.Client):
             self.service_added_event.set()
 
     async def _on_service_removed(self, service_name: str):
-        _logger.info("[E2E_CLIENT] _on_service_removed called for: %s", service_name)
+        _logger.info(
+            "[E2E_CLIENT] _on_service_removed called for: %s", service_name
+        )
         async with self._lock:
             self.removed_service_names.append(service_name)
             # Remove from discovered_services if present
@@ -190,15 +193,17 @@ async def test_concurrent_publishing_with_selective_unpublish():
     publisher1_obj = None
     publisher2_obj = None
     listener_obj = None
-    shared_zc: Optional[AsyncZeroconf] = None # Initialize shared_zc
+    shared_zc: Optional[AsyncZeroconf] = None  # Initialize shared_zc
 
     try:
-        shared_zc = AsyncZeroconf() # Create shared instance
+        shared_zc = AsyncZeroconf()  # Create shared instance
 
         # Create Client
         client = SelectiveDiscoveryClient()
         listener_obj = InstanceListener(
-            client=client, service_type=service_type, zc_instance=shared_zc # Pass shared_zc
+            client=client,
+            service_type=service_type,
+            zc_instance=shared_zc,  # Pass shared_zc
         )
         await listener_obj.start()  # Start the listener
 
@@ -211,7 +216,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
             service_type=service_type,
             readable_name=publisher1_readable_name,
             instance_name=publisher1_instance_name,
-            zc_instance=shared_zc # Pass shared_zc
+            zc_instance=shared_zc,  # Pass shared_zc
         )
 
         publisher2_port = 50011
@@ -222,7 +227,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
             service_type=service_type,
             readable_name=publisher2_readable_name,
             instance_name=publisher2_instance_name,
-            zc_instance=shared_zc # Pass shared_zc
+            zc_instance=shared_zc,  # Pass shared_zc
         )
 
         # Publish concurrently
@@ -336,7 +341,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
         if listener_obj:
             await listener_obj.async_stop()
 
-        if shared_zc: # Add this
+        if shared_zc:  # Add this
             await shared_zc.async_close()
 
         gc.collect()

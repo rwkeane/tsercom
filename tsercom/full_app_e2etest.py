@@ -46,7 +46,7 @@ class FakeMdnsListener(MdnsListener):
         client: MdnsListener.Client,
         service_type: str,
         port: int,
-        zc_instance: Optional[AsyncZeroconf] = None, # Added zc_instance
+        zc_instance: Optional[AsyncZeroconf] = None,  # Added zc_instance
     ):
         # zc_instance is accepted for signature compatibility but not used by this Fake
         # super().__init__() # MdnsListener's parent (ServiceListener) has no __init__
@@ -276,16 +276,18 @@ class GenericServerRuntimeInitializer(
             def fake_factory(
                 client: MdnsListener.Client,
                 service_type_arg: str,
-                zc_instance_arg: Optional[AsyncZeroconf] = None, # Added zc_instance_arg
+                zc_instance_arg: Optional[
+                    AsyncZeroconf
+                ] = None,  # Added zc_instance_arg
             ) -> FakeMdnsListener:
                 return FakeMdnsListener(
                     client,
                     service_type_arg,
                     self.__fake_service_port,
-                    zc_instance=zc_instance_arg, # Pass it through
+                    zc_instance=zc_instance_arg,  # Pass it through
                 )
 
-            actual_mdns_listener_factory = fake_factory # type: ignore[assignment]
+            actual_mdns_listener_factory = fake_factory  # type: ignore[assignment]
         else:
             actual_mdns_listener_factory = self.__listener_factory
 

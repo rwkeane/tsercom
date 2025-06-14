@@ -3,7 +3,7 @@
 import asyncio  # Added import
 import logging
 import uuid
-from typing import Optional # Added import
+from typing import Optional  # Added import
 from zeroconf import Zeroconf
 from zeroconf.asyncio import (
     AsyncServiceBrowser,
@@ -23,7 +23,7 @@ class RecordListener(MdnsListener):
         self,
         client: MdnsListener.Client,
         service_type: str,
-        zc_instance: Optional[AsyncZeroconf] = None, # Added
+        zc_instance: Optional[AsyncZeroconf] = None,  # Added
     ) -> None:
         """Initializes the RecordListener.
 
@@ -65,7 +65,7 @@ class RecordListener(MdnsListener):
         else:
             self.__expected_type = f"{service_type}._tcp.local."
 
-        self.__mdns: AsyncZeroconf # Declare type hint once
+        self.__mdns: AsyncZeroconf  # Declare type hint once
         self.__is_shared_zc: bool = zc_instance is not None
         if zc_instance:
             self.__mdns = zc_instance
@@ -152,19 +152,29 @@ class RecordListener(MdnsListener):
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a service is removed from the network."""
-        logging.info( # Existing log
+        logging.info(  # Existing log
             "Sync remove_service called: type='%s', name='%s'. Scheduling async handler.",
             type_,
             name,
         )
         # Log entry added as per instruction, though it's similar to above.
-        logging.info("[REC_LISTENER] remove_service (sync) called for name: %s, type: %s", name, type_)
-        asyncio.create_task(self._handle_remove_service_wrapper(type_, name)) # Changed to call a wrapper
+        logging.info(
+            "[REC_LISTENER] remove_service (sync) called for name: %s, type: %s",
+            name,
+            type_,
+        )
+        asyncio.create_task(
+            self._handle_remove_service_wrapper(type_, name)
+        )  # Changed to call a wrapper
 
-    async def _handle_remove_service_wrapper(self, type_: str, name: str) -> None:
+    async def _handle_remove_service_wrapper(
+        self, type_: str, name: str
+    ) -> None:
         """Wrapper to ensure a small sleep after task creation from sync context."""
         await self._handle_remove_service(type_, name)
-        await asyncio.sleep(0) # Yield control to allow the task to potentially start
+        await asyncio.sleep(
+            0
+        )  # Yield control to allow the task to potentially start
 
     async def _handle_remove_service(self, type_: str, name: str) -> None:
         """Async handler for service removal."""
@@ -183,13 +193,15 @@ class RecordListener(MdnsListener):
 
         # pylint: disable=W0212 # Calling listener's notification method
         logging.info(
-            "[REC_LISTENER] _handle_remove_service: About to call client._on_service_removed for %s", name
+            "[REC_LISTENER] _handle_remove_service: About to call client._on_service_removed for %s",
+            name,
         )
         await self.__client._on_service_removed(name, type_, self._uuid_str)
         logging.info(
-            "[REC_LISTENER] _handle_remove_service: Returned from client._on_service_removed for %s", name
+            "[REC_LISTENER] _handle_remove_service: Returned from client._on_service_removed for %s",
+            name,
         )
-        logging.info( # Existing log
+        logging.info(  # Existing log
             "Async handler _handle_remove_service completed for: type='%s', name='%s'",
             type_,
             name,
@@ -266,10 +278,15 @@ class RecordListener(MdnsListener):
             # the AsyncZeroconf instance it's tied to is closed via async_close().
             # AsyncServiceBrowser itself does not have a cancel() or async_cancel() method.
             # We just set it to None here as its tasks will be cancelled by AsyncZeroconf.
-            self.__browser = None # Browser is cancelled by closing AsyncZeroconf
+            self.__browser = (
+                None  # Browser is cancelled by closing AsyncZeroconf
+            )
 
         if not self.__is_shared_zc and self.__mdns:
-            logging.info("Closing owned AsyncZeroconf instance for RecordListener, type: %s", self.__expected_type)
+            logging.info(
+                "Closing owned AsyncZeroconf instance for RecordListener, type: %s",
+                self.__expected_type,
+            )
             try:
                 await self.__mdns.async_close()
             except Exception as e:  # pylint: disable=broad-except
@@ -280,7 +297,10 @@ class RecordListener(MdnsListener):
                     exc_info=True,
                 )
         elif self.__is_shared_zc:
-            logging.info("Not closing shared AsyncZeroconf instance for RecordListener, type: %s", self.__expected_type)
+            logging.info(
+                "Not closing shared AsyncZeroconf instance for RecordListener, type: %s",
+                self.__expected_type,
+            )
 
-        self.__mdns = None # type: ignore # Ensure it's cleared, will be an issue if start is called again
+        self.__mdns = None  # type: ignore # Ensure it's cleared, will be an issue if start is called again
         logging.info("RecordListener closed for %s", self.__expected_type)

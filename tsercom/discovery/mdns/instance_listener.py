@@ -5,16 +5,16 @@ import socket
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, Generic, List, Optional
 
+from zeroconf.asyncio import AsyncZeroconf  # Moved up
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.discovery.service_info import (
     ServiceInfo,
     ServiceInfoT,
 )
-from zeroconf.asyncio import AsyncZeroconf # Added import
 
 
-MdnsListenerFactory = Callable[ # Updated signature
+MdnsListenerFactory = Callable[  # Updated signature
     [MdnsListener.Client, str, Optional[AsyncZeroconf]], MdnsListener
 ]
 
@@ -67,7 +67,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         service_type: str,
         *,
         mdns_listener_factory: Optional[MdnsListenerFactory] = None,
-        zc_instance: Optional[AsyncZeroconf] = None, # Added
+        zc_instance: Optional[AsyncZeroconf] = None,  # Added
     ) -> None:
         """Initializes the InstanceListener.
 
@@ -108,14 +108,18 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             def default_mdns_listener_factory(
                 listener_client: MdnsListener.Client,
                 s_type: str,
-                zc: Optional[AsyncZeroconf], # Added zc to factory signature
+                zc: Optional[AsyncZeroconf],  # Added zc to factory signature
             ) -> MdnsListener:
                 return RecordListener(listener_client, s_type, zc_instance=zc)
 
-            self.__listener = default_mdns_listener_factory(self, service_type, zc_instance)
+            self.__listener = default_mdns_listener_factory(
+                self, service_type, zc_instance
+            )
         else:
             # User-provided factory now needs to handle zc_instance
-            self.__listener = mdns_listener_factory(self, service_type, zc_instance)
+            self.__listener = mdns_listener_factory(
+                self, service_type, zc_instance
+            )
 
         # self.__listener.start() # Removed from __init__
 
