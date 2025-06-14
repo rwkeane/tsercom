@@ -302,5 +302,5 @@ class RecordListener(MdnsListener):
                 self.__expected_type,
             )
 
-        self.__mdns = None  # type: ignore # Ensure it's cleared, will be an issue if start is called again
-        logging.info("RecordListener closed for %s", self.__expected_type)
+        # self.__mdns = None  # type: ignore # Let the ZC instance be managed externally or by its owner
+        logging.info("RecordListener close method finished for %s", self.__expected_type)

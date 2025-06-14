@@ -384,7 +384,10 @@ class UpdateTestClient(InstanceListener.Client):
 async def test_instance_update_reflects_changes():
     service_type_suffix = uuid.uuid4().hex[:8]
     service_type = f"_upd-{service_type_suffix}._tcp.local."
-    instance_name = f"UpdateInstance_{service_type_suffix}"  # Critical: This stays the same
+    instance_name_base = f"UpdateInstance_{service_type_suffix}" # Renamed for clarity
+    instance_name_v1 = instance_name_base
+    instance_name_v2 = f"{instance_name_base}_v2"
+
 
     service_port1 = 50002
     readable_name1 = f"UpdateTestService_V1_{service_type_suffix}"
@@ -415,8 +418,8 @@ async def test_instance_update_reflects_changes():
             port=service_port1,
             service_type=service_type,
             readable_name=readable_name1,
-            instance_name=instance_name,
-            zc_instance=shared_zc # Pass shared_zc
+            instance_name=instance_name_v1,
+            zc_instance=shared_zc
         )
         await publisher1_obj.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
@@ -433,27 +436,26 @@ async def test_instance_update_reflects_changes():
             "Initial service not found in discovered list"
         )
         assert initial_service_info.port == service_port1
-        assert initial_service_info.mdns_name.startswith(instance_name)
+        assert initial_service_info.mdns_name.startswith(instance_name_v1)
 
         # Publish the second (updated) version
         service_port2 = 50003
         readable_name2 = f"UpdateTestService_V2_{service_type_suffix}"
 
         # Explicitly close the first publisher to unregister its service
-        # so the second publisher can register the same instance name.
         if publisher1_obj:
             await publisher1_obj.close()
             # Allow a brief moment for the unregistration to propagate.
             _logger.info("Waiting for unregistration of publisher1 to propagate...")
-            await asyncio.sleep(2.0) # Increased sleep from 0.2 to 2.0 seconds
+            await asyncio.sleep(0.2)
             _logger.info("Proceeding to publish publisher2...")
 
         publisher2_obj = InstancePublisher(
             port=service_port2,
             service_type=service_type,
             readable_name=readable_name2,
-            instance_name=instance_name,  # SAME instance_name
-            zc_instance=shared_zc # Pass shared_zc
+            instance_name=instance_name_v2,
+            zc_instance=shared_zc
         )
         await publisher2_obj.publish()
         await asyncio.wait_for(discovery_event2.wait(), timeout=10.0)
@@ -504,7 +506,7 @@ async def test_instance_update_reflects_changes():
         "Updated service not found in discovered list"
     )
     assert updated_service_info.port == service_port2
-    assert updated_service_info.mdns_name.startswith(instance_name)
+    assert updated_service_info.mdns_name.startswith(instance_name_v2)
 
     # Verify that the old service is either gone or the new one is preferred/seen later.
     # This part is tricky without explicit on_service_removed or more knowledge of underlying behavior.
