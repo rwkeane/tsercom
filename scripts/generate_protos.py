@@ -3,6 +3,7 @@ import re
 import subprocess
 import os
 import sys
+import shutil # Added for rmtree
 from pathlib import Path
 from typing import Dict, Iterable
 
@@ -25,6 +26,10 @@ def generate_proto_file(
     absolute_proto_path = Path.joinpath(package_dir, proto_file_path)
     output_dir = make_versioned_output_dir(absolute_proto_path.parent)
 
+    # Check if the proto file contains service definitions.
+    proto_content = absolute_proto_path.read_text()
+    has_services = bool(re.search(r"^\s*service\s+\w+\s*\{", proto_content, re.MULTILINE))
+
     # Construct the protoc command.
     command = [
         sys.executable,  # Path to the Python interpreter.
@@ -35,8 +40,10 @@ def generate_proto_file(
         ],  # Include paths for proto imports.
         f"--python_out={output_dir}",  # Output directory for generated Python code.
         f"--mypy_out={output_dir}",  # Output directory for generated mypy stubs.
-        str(absolute_proto_path),  # The .proto file to compile.
     ]
+    if has_services:
+        command.append(f"--grpc_python_out={output_dir}")
+    command.append(str(absolute_proto_path)) # The .proto file to compile.
     print(f"Running command: {' '.join(command)}")
 
     # Ensure plugins are in PATH
@@ -67,6 +74,9 @@ def generate_proto_file(
     # String substitution.
     modify_generated_file(pb2_file)
     modify_generated_file(pyi_file)
+    grpc_file = Path.joinpath(output_dir, f"{name}_pb2_grpc.py")
+    if grpc_file.exists():  # Only modify if it exists (services are optional)
+        modify_generated_file(grpc_file)
 
 
 def make_versioned_output_dir(base_dir: Path) -> Path:
@@ -103,9 +113,14 @@ def make_versioned_output_dir(base_dir: Path) -> Path:
 
     # --- Create Versioned Output Directory ---
     generated_dir = Path.joinpath(base_dir, kGeneratedDir)
-    os.makedirs(generated_dir, exist_ok=True)
+    # Do not create generated_dir here, let versioned_output_base handle it.
+
     versioned_output_base = Path.joinpath(generated_dir, f"{version_string}")
-    os.makedirs(versioned_output_base, exist_ok=True)
+
+    # Clean existing versioned directory before generating new files
+    if versioned_output_base.exists():
+        shutil.rmtree(versioned_output_base)
+    os.makedirs(versioned_output_base) # Creates generated_dir if not exists, and versioned_output_base
 
     return versioned_output_base
 
@@ -258,6 +273,12 @@ def generate_init(
             protobuf files are located (e.g., tsercom/rpc/proto/generated).
     """
 
+    # Helper function to convert snake_case to CamelCase
+    def _snake_to_camel_case(snake_case_name: str) -> str:
+        return "".join(
+            word.capitalize() for word in snake_case_name.split("_")
+        )
+
     # Helper to parse 'vX_Y' string to a sortable tuple (X, Y)
     def _parse_ver(v_str: str) -> tuple[int, int]:
         match = re.match(r"v(\d+)_(\d+)", v_str)
@@ -321,6 +342,25 @@ if not TYPE_CHECKING:
     elif version_string == "v{current_version}":
         from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {", ".join(classes)}
 """
+        # --- Add gRPC service imports (if service file exists) ---
+        grpc_module_name = f"{name}_pb2_grpc"
+        # generated_path is like 'tsercom/rpc/proto/generated'
+        grpc_file_check_path = (
+            generated_path / versioned_dir_name / (grpc_module_name + ".py")
+        )
+        if grpc_file_check_path.exists():
+            service_name_camel = _snake_to_camel_case(
+                name
+            )  # 'name' is like 'e2e_test_service'
+            stub_name = f"{service_name_camel}Stub"
+            servicer_name = f"{service_name_camel}Servicer"
+            add_servicer_fn_name = (
+                f"add_{service_name_camel}Servicer_to_server"
+            )
+            init_file_content += (
+                f"\n        from tsercom.{base_package}.{versioned_dir_name}."
+                f"{grpc_module_name} import {stub_name}, {servicer_name}, {add_servicer_fn_name}"
+            )
     # Add a fallback else clause for runtime if no matching version is found.
     init_file_content += """
     else:
@@ -353,6 +393,32 @@ else: # When TYPE_CHECKING
     for clazz in classes:
         init_file_content += f"""
     from tsercom.{base_package}.{versioned_dir_name}.{name}_pb2 import {clazz} as {clazz}"""
+
+    # --- Add gRPC service imports for TYPE_CHECKING ---
+    # 'name', 'base_package', 'versioned_dir_name' are from the latest version context here.
+    grpc_module_name_tc = f"{name}_pb2_grpc"
+    grpc_file_check_path_tc = (
+        generated_path / versioned_dir_name / (grpc_module_name_tc + ".py")
+    )  # versioned_dir_name is latest
+    if grpc_file_check_path_tc.exists():
+        service_name_camel_tc = _snake_to_camel_case(name)
+        stub_name_tc = f"{service_name_camel_tc}Stub"
+        servicer_name_tc = f"{service_name_camel_tc}Servicer"
+        add_servicer_fn_name_tc = (
+            f"add_{service_name_camel_tc}Servicer_to_server"
+        )
+        init_file_content += (
+            f"\n    from tsercom.{base_package}.{versioned_dir_name}."
+            f"{grpc_module_name_tc} import {stub_name_tc} as {stub_name_tc}"
+        )
+        init_file_content += (
+            f"\n    from tsercom.{base_package}.{versioned_dir_name}."
+            f"{grpc_module_name_tc} import {servicer_name_tc} as {servicer_name_tc}"
+        )
+        init_file_content += (
+            f"\n    from tsercom.{base_package}.{versioned_dir_name}."
+            f"{grpc_module_name_tc} import {add_servicer_fn_name_tc} as {add_servicer_fn_name_tc}"
+        )
 
     # Write the generated __init__.py content.
     # The __init__.py is placed one level up from the 'generated' directory,
@@ -418,6 +484,11 @@ def generate_protos(project_root: Path) -> None:
         package_dir,
         "rpc/proto/common.proto",
         ["caller_id/proto", "rpc/proto", "timesync/common/proto"],
+    )
+    generate_proto_file(
+        package_dir,
+        "test/proto/e2e_test_service.proto",
+        ["test/proto"],
     )
 
 

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package tsercom.test.e2e;
+
+// Option to generate a separate file for each message, if desired.
+// option java_multiple_files = true;
+// option java_package = "com.example.tsercom.test.e2e";
+// option java_outer_classname = "E2ETestServiceProto";
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string response = 1;
+}
+
+message StreamDataRequest {
+  int32 data_id = 1;
+}
+
+message StreamDataResponse {
+  string data_chunk = 1;
+  int32 sequence_number = 2;
+}
+
+service E2ETestService {
+  // A simple unary RPC for echo functionality.
+  rpc Echo(EchoRequest) returns (EchoResponse);
+
+  // A server-streaming RPC.
+  rpc ServerStreamData(StreamDataRequest) returns (stream StreamDataResponse);
+
+  // A client-streaming RPC.
+  rpc ClientStreamData(stream StreamDataRequest) returns (EchoResponse);
+
+  // A bidirectional-streaming RPC.
+  rpc BidirectionalStreamData(stream StreamDataRequest) returns (stream StreamDataResponse);
+}
