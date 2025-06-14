@@ -153,7 +153,7 @@ class TestServiceConnector:
         )
         assert connector._ServiceConnector__client is mock_client
         assert (
-            connector._ServiceConnector__connection_factory  # Updated attribute
+            connector._ServiceConnector__connection_factory
             is mock_connection_factory
         )
         assert (

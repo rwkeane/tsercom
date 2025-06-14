@@ -299,6 +299,3 @@ class TestInstancePublisher:
         assert captured_pub.txt_record is not None
         assert b"name" not in captured_pub.txt_record
         assert b"published_on" in captured_pub.txt_record
-
-
-# Ensure no trailing characters or syntax errors exist beyond this point.

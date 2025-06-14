@@ -232,9 +232,7 @@ async def test_start_discovery_multiple_times(
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
         service_type=SERVICE_TYPE_DEFAULT
     )
-    mock_client_arg: AsyncMock = (
-        mock_service_source_client_fixture  # Renamed arg
-    )
+    mock_client_arg: AsyncMock = mock_service_source_client_fixture
 
     mock_listener_instance: AsyncMock = mocker.create_autospec(
         ActualInstanceListener, instance=True
@@ -243,7 +241,6 @@ async def test_start_discovery_multiple_times(
         name="mock_listener_instance_start_method"
     )
 
-    # Patch the factory directly on the host instance
     mock_factory_on_host: Mock = mocker.Mock(
         return_value=mock_listener_instance,
         name="MockedInstanceListenerFactoryOnHostInstance",
@@ -339,17 +336,15 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
     mocker: Mock, mock_service_source_client_fixture: AsyncMock
 ) -> None:
     mock_service_source_client: AsyncMock = mock_service_source_client_fixture
-    mock_listener_product: AsyncMock = (
-        mocker.create_autospec(  # Changed to AsyncMock
-            ActualInstanceListener,
-            instance=True,  # Ensure it's an instance spec
-        )
+    mock_listener_product: AsyncMock = mocker.create_autospec(
+        ActualInstanceListener,
+        instance=True,
     )
-    mock_listener_product.start = AsyncMock()  # Ensure start is an AsyncMock
+    mock_listener_product.start = AsyncMock()
     mock_mdns_factory: Mock = mocker.Mock(return_value=mock_listener_product)
 
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
-        service_type=None,  # Changed: Use mdns_listener_factory as the sole configuration
+        service_type=None,
         mdns_listener_factory=typing.cast(
             MdnsListenerFactory, mock_mdns_factory
         ),
@@ -425,7 +420,7 @@ async def test_discovery_host_handles_mdns_factory_exception_gracefully(
     )
 
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
-        service_type=None,  # Changed: Use mdns_listener_factory as the sole configuration
+        service_type=None,
         mdns_listener_factory=typing.cast(
             MdnsListenerFactory, mock_failing_mdns_factory
         ),
@@ -465,7 +460,7 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
     )
 
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
-        service_type=None,  # Changed: Use mdns_listener_factory as the sole configuration
+        service_type=None,
         mdns_listener_factory=typing.cast(
             MdnsListenerFactory, mock_mdns_factory_arg
         ),
@@ -492,23 +487,18 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
         )
 
 
-# Note: MdnsListenerFactory and DiscoveryHost should already be imported in the target file.
-# If not, ruff/black might help, or they need to be added manually if this causes issues.
-
-
 def test_discovery_host_init_with_only_mdns_factory(mocker):
     """
     Tests that DiscoveryHost can be initialized with only an mdns_listener_factory.
     This scenario (service_type=None, instance_listener_factory=None, mdns_listener_factory=mock)
     was causing a ValueError due to the boolean check.
     """
-    # mocker fixture is used to create mock objects
     from tsercom.discovery.mdns.instance_listener import (
         MdnsListenerFactory,
-    )  # Explicit import for clarity
+    )
     from tsercom.discovery.discovery_host import (
         DiscoveryHost,
-    )  # Explicit import for clarity
+    )
 
     mock_mdns_listener_factory = mocker.MagicMock(spec=MdnsListenerFactory)
 
