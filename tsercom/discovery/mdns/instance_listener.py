@@ -78,7 +78,6 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         if client is None:
             raise ValueError("Client cannot be None for InstanceListener.")
         if not isinstance(client, InstanceListener.Client):
-            # Long error message
             raise TypeError(
                 f"Client must be InstanceListener.Client, got {type(client).__name__}."
             )

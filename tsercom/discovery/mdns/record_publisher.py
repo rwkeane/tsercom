@@ -41,7 +41,6 @@ class RecordPublisher(MdnsPublisher):
             TypeError: If args are not of expected types (implicit check).
         """
         if type_ is None or not type_.startswith("_"):
-            # Long error message
             raise ValueError(
                 f"Service type_ must start with an underscore (e.g., '_myservice'), got '{type_}'."
             )
@@ -96,7 +95,6 @@ class RecordPublisher(MdnsPublisher):
                 )
             # pylint: disable=W0718 # Catch all exceptions to keep publish loop alive
             except Exception as e:
-                # Long log line
                 _logger.error(
                     "Error closing AsyncZeroconf for %s: %s", self.__srv, e
                 )
@@ -104,7 +102,6 @@ class RecordPublisher(MdnsPublisher):
                 self._zc = None
                 self._service_info = None
         else:
-            # Long log line
             _logger.debug(
                 "Zeroconf for %s already closed or not initialized.",
                 self.__srv,

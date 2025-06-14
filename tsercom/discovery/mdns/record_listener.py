@@ -1,9 +1,9 @@
 """Listener for mDNS service records using zeroconf."""
 
-import asyncio # Added import asyncio
+import asyncio
 import logging
 import uuid
-from zeroconf import Zeroconf  # Import Zeroconf
+from zeroconf import Zeroconf
 from zeroconf.asyncio import (
     AsyncServiceBrowser,
     AsyncZeroconf,
