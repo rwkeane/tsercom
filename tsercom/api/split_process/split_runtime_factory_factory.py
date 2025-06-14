@@ -1,9 +1,11 @@
 """Factory for creating split-process runtime factories and handles."""
 
-from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, TypeVar, get_args # Standard library imports
+from concurrent.futures import (
+    ThreadPoolExecutor,
+)  # Standard library imports first
+from typing import Tuple, TypeVar, get_args
 
-import torch # Third-party imports
+import torch  # Third-party imports
 
 # First-party imports (tsercom)
 from tsercom.api.runtime_command import RuntimeCommand
@@ -86,7 +88,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         resolved_event_type = None
 
         # Prioritize inspecting the initializer's direct __orig_class__ (e.g., for MyInitializer[torch.Tensor, str])
-        if hasattr(initializer, '__orig_class__'):
+        if hasattr(initializer, "__orig_class__"):
             generic_args = get_args(initializer.__orig_class__)
             if generic_args and len(generic_args) == 2:
                 if not isinstance(generic_args[0], TypeVar):
@@ -96,22 +98,35 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
         # Fallback: Iterate __orig_bases__ to find the RuntimeInitializer[SpecificA, SpecificB]
         if resolved_data_type is None or resolved_event_type is None:
-            for base in getattr(initializer, '__orig_bases__', []):
-                if hasattr(base, '__origin__') and base.__origin__ is RuntimeInitializer:
+            for base in getattr(initializer, "__orig_bases__", []):
+                if (
+                    hasattr(base, "__origin__")
+                    and base.__origin__ is RuntimeInitializer
+                ):
                     base_generic_args = get_args(base)
                     if base_generic_args and len(base_generic_args) == 2:
-                        if resolved_data_type is None and not isinstance(base_generic_args[0], TypeVar):
+                        if resolved_data_type is None and not isinstance(
+                            base_generic_args[0], TypeVar
+                        ):
                             resolved_data_type = base_generic_args[0]
-                        if resolved_event_type is None and not isinstance(base_generic_args[1], TypeVar):
+                        if resolved_event_type is None and not isinstance(
+                            base_generic_args[1], TypeVar
+                        ):
                             resolved_event_type = base_generic_args[1]
-                        if resolved_data_type is not None and resolved_event_type is not None:
+                        if (
+                            resolved_data_type is not None
+                            and resolved_event_type is not None
+                        ):
                             break
 
         # Declare data_event_queue_factory with the base type for mypy
         data_event_queue_factory: MultiprocessQueueFactory
 
         uses_torch_tensor = False
-        if resolved_data_type is torch.Tensor or resolved_event_type is torch.Tensor:
+        if (
+            resolved_data_type is torch.Tensor
+            or resolved_event_type is torch.Tensor
+        ):
             uses_torch_tensor = True
 
         if uses_torch_tensor:

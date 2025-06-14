@@ -1,4 +1,4 @@
-import pytest
+import pytest  # No specific header to remove, starts with imports
 from unittest.mock import MagicMock
 
 # Module to be tested & whose attributes will be patched
@@ -69,7 +69,7 @@ LocalEventTypeT = TypeVar("LocalEventTypeT")
 
 class GenericFakeRuntimeInitializer(
     RuntimeInitializer[LocalDataTypeT, LocalEventTypeT],
-    Generic[LocalDataTypeT, LocalEventTypeT]
+    Generic[LocalDataTypeT, LocalEventTypeT],
 ):
     def __init__(
         self,
@@ -83,8 +83,11 @@ class GenericFakeRuntimeInitializer(
             timeout_seconds=timeout_seconds,
         )
 
-    def create(self, thread_watcher, data_handler, grpc_channel_factory) -> Any:
+    def create(
+        self, thread_watcher, data_handler, grpc_channel_factory
+    ) -> Any:
         return MagicMock()
+
 
 # Globals to store instances of patched classes
 g_fake_remote_runtime_factory_instances = []
@@ -428,9 +431,7 @@ def test_dynamic_queue_selection(
     factory_factory._create_pair(specific_initializer)
 
     expected_default_init_calls = 0
-    if (
-        expected_default_data_event_calls > 0
-    ):
+    if expected_default_data_event_calls > 0:
         expected_default_init_calls += 1
     expected_default_init_calls += 1
 
@@ -505,9 +506,7 @@ def test_create_pair_aggregator_no_timeout(
     factory_factory._create_pair(initializer_no_timeout)
     mock_aggregator_init.assert_called_once()
 
-    assert (
-        mock_queue_factories["default_create_queues"].call_count == 3
-    )
+    assert mock_queue_factories["default_create_queues"].call_count == 3
 
     created_aggregator_instance = g_fake_remote_data_aggregator_instances[0]
     assert created_aggregator_instance.timeout is None
