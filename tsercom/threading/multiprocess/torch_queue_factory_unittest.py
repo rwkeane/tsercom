@@ -1,17 +1,8 @@
 """Unit tests for TorchMultiprocessQueueFactory."""
 
-import unittest
+import pytest  # For pytest.fail
 import torch
 import torch.multiprocessing as mp
-
-# No specific import for Queue type needed here, will use mp.Queue directly
-# as it should refer to the type when used in isinstance after an instance is created,
-# or we might need to get the type dynamically.
-# For now, let's assume mp.Queue can be used if it's the class itself.
-# A safer way is type(mp.Queue()) but that requires creating a queue first.
-# Let's try using mp.Queue and see if it resolves.
-# If not, will use type(factory.create_queue()) for the check.
-# The most direct way is to use torch.multiprocessing.Queue if that's the class.
 
 from tsercom.threading.multiprocess.torch_queue_factory import (
     TorchMultiprocessQueueFactory,
@@ -24,11 +15,15 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 
 
-class TorchMultiprocessQueueFactoryTest(unittest.TestCase):
+class TestTorchMultiprocessQueueFactory:
     """Tests for the TorchMultiprocessQueueFactory class."""
 
+    expected_torch_queue_type = None
+
     @classmethod
-    def setUpClass(cls):
+    def setup_class(
+        cls,
+    ):  # Pytest automatically calls methods named setup_class for class-level setup
         """Set up class method to get torch queue type once."""
         # Torch multiprocessing queues require a specific context for creation.
         ctx = mp.get_context("spawn")
@@ -43,16 +38,12 @@ class TorchMultiprocessQueueFactoryTest(unittest.TestCase):
         factory = TorchMultiprocessQueueFactory()
         sink, source = factory.create_queues()
 
-        self.assertIsInstance(
-            sink,
-            MultiprocessQueueSink,
-            "First item is not a MultiprocessQueueSink",
-        )
-        self.assertIsInstance(
-            source,
-            MultiprocessQueueSource,
-            "Second item is not a MultiprocessQueueSource",
-        )
+        assert isinstance(
+            sink, MultiprocessQueueSink
+        ), "First item is not a MultiprocessQueueSink"
+        assert isinstance(
+            source, MultiprocessQueueSource
+        ), "Second item is not a MultiprocessQueueSource"
 
         # Check that the internal queues are of the expected torch queue type.
         # This uses name mangling to access the private __queue attribute,
@@ -60,31 +51,27 @@ class TorchMultiprocessQueueFactoryTest(unittest.TestCase):
         # MultiprocessQueueSink and MultiprocessQueueSource.
         # A less fragile way would be if Sink/Source exposed queue type,
         # but that's outside this subtask's scope.
-        self.assertIsInstance(
-            sink._MultiprocessQueueSink__queue,
-            self.expected_torch_queue_type,
-            "Sink's internal queue is not a torch.multiprocessing.Queue",
-        )
-        self.assertIsInstance(
+        assert isinstance(
+            sink._MultiprocessQueueSink__queue, self.expected_torch_queue_type
+        ), "Sink's internal queue is not a torch.multiprocessing.Queue"
+        assert isinstance(
             source._MultiprocessQueueSource__queue,
             self.expected_torch_queue_type,
-            "Source's internal queue is not a torch.multiprocessing.Queue",
-        )
+        ), "Source's internal queue is not a torch.multiprocessing.Queue"
 
         tensor_to_send = torch.randn(2, 3)
         try:
             put_successful = sink.put_blocking(tensor_to_send, timeout=1)
-            self.assertTrue(put_successful, "sink.put_blocking failed")
+            assert put_successful, "sink.put_blocking failed"
             received_tensor = source.get_blocking(timeout=1)
-            self.assertIsNotNone(
-                received_tensor, "source.get_blocking returned None (timeout)"
-            )
-            self.assertTrue(
-                torch.equal(tensor_to_send, received_tensor),
-                "Tensor sent and received via Sink/Source are not equal.",
-            )
+            assert (
+                received_tensor is not None
+            ), "source.get_blocking returned None (timeout)"
+            assert torch.equal(
+                tensor_to_send, received_tensor
+            ), "Tensor sent and received via Sink/Source are not equal."
         except Exception as e:
-            self.fail(
+            pytest.fail(
                 f"Tensor transfer via Sink/Source failed with exception: {e}"
             )
 
@@ -92,11 +79,9 @@ class TorchMultiprocessQueueFactoryTest(unittest.TestCase):
         """Tests that create_queue returns a raw torch.multiprocessing.Queue."""
         factory = TorchMultiprocessQueueFactory()
         q = factory.create_queue()
-        self.assertIsInstance(
-            q,
-            self.expected_torch_queue_type,
-            "Queue is not a torch.multiprocessing.Queue",
-        )
+        assert isinstance(
+            q, self.expected_torch_queue_type
+        ), "Queue is not a torch.multiprocessing.Queue"
 
     def test_single_queue_handles_torch_tensors(self):
         """Tests that a single created queue can handle torch.Tensor objects."""
@@ -108,15 +93,10 @@ class TorchMultiprocessQueueFactoryTest(unittest.TestCase):
         try:
             q.put(tensor_to_send)
             received_tensor = q.get(timeout=1)
-            self.assertTrue(
-                torch.equal(tensor_to_send, received_tensor),
-                "Tensor sent and received are not equal.",
-            )
+            assert torch.equal(
+                tensor_to_send, received_tensor
+            ), "Tensor sent and received are not equal."
         except Exception as e:
-            self.fail(
+            pytest.fail(
                 f"Single queue tensor transfer failed with exception: {e}"
             )
-
-
-if __name__ == "__main__":
-    unittest.main()

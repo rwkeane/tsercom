@@ -1,7 +1,8 @@
 """Unit tests for DefaultMultiprocessQueueFactory."""
 
-import unittest
+import pytest  # For pytest.fail
 import multiprocessing as std_mp
+
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
 )
@@ -13,11 +14,15 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 
 
-class DefaultMultiprocessQueueFactoryTest(unittest.TestCase):
+class TestDefaultMultiprocessQueueFactory:
     """Tests for the DefaultMultiprocessQueueFactory class."""
 
+    expected_standard_queue_type = None
+
     @classmethod
-    def setUpClass(cls):
+    def setup_class(
+        cls,
+    ):  # Pytest automatically calls methods named setup_class
         """Set up class method to get standard queue type once."""
         cls.expected_standard_queue_type = type(std_mp.Queue())
 
@@ -30,44 +35,36 @@ class DefaultMultiprocessQueueFactoryTest(unittest.TestCase):
         factory = DefaultMultiprocessQueueFactory()
         sink, source = factory.create_queues()
 
-        self.assertIsInstance(
-            sink,
-            MultiprocessQueueSink,
-            "First item is not a MultiprocessQueueSink",
-        )
-        self.assertIsInstance(
-            source,
-            MultiprocessQueueSource,
-            "Second item is not a MultiprocessQueueSource",
-        )
+        assert isinstance(
+            sink, MultiprocessQueueSink
+        ), "First item is not a MultiprocessQueueSink"
+        assert isinstance(
+            source, MultiprocessQueueSource
+        ), "Second item is not a MultiprocessQueueSource"
 
         # Check internal queue type using name mangling (fragile, see note in torch test)
-        self.assertIsInstance(
+        assert isinstance(
             sink._MultiprocessQueueSink__queue,
             self.expected_standard_queue_type,
-            "Sink's internal queue is not a standard multiprocessing.Queue",
-        )
-        self.assertIsInstance(
+        ), "Sink's internal queue is not a standard multiprocessing.Queue"
+        assert isinstance(
             source._MultiprocessQueueSource__queue,
             self.expected_standard_queue_type,
-            "Source's internal queue is not a standard multiprocessing.Queue",
-        )
+        ), "Source's internal queue is not a standard multiprocessing.Queue"
 
         data_to_send = {"key": "value", "number": 123}
         try:
             put_successful = sink.put_blocking(data_to_send, timeout=1)
-            self.assertTrue(put_successful, "sink.put_blocking failed")
+            assert put_successful, "sink.put_blocking failed"
             received_data = source.get_blocking(timeout=1)
-            self.assertIsNotNone(
-                received_data, "source.get_blocking returned None (timeout)"
-            )
-            self.assertEqual(
-                data_to_send,
-                received_data,
-                "Data sent and received via Sink/Source are not equal.",
-            )
+            assert (
+                received_data is not None
+            ), "source.get_blocking returned None (timeout)"
+            assert (
+                data_to_send == received_data
+            ), "Data sent and received via Sink/Source are not equal."
         except Exception as e:
-            self.fail(
+            pytest.fail(
                 f"Data transfer via Sink/Source failed with exception: {e}"
             )
 
@@ -75,26 +72,18 @@ class DefaultMultiprocessQueueFactoryTest(unittest.TestCase):
         """Tests that create_queue returns a standard multiprocessing.Queue."""
         factory = DefaultMultiprocessQueueFactory()
         q = factory.create_queue()
-        self.assertIsInstance(
-            q,
-            self.expected_standard_queue_type,
-            "Queue is not a standard multiprocessing.Queue",
-        )
+        assert isinstance(
+            q, self.expected_standard_queue_type
+        ), "Queue is not a standard multiprocessing.Queue"
 
         data_to_send = "hello world"
         try:
             q.put(data_to_send, timeout=1)
             received_data = q.get(timeout=1)
-            self.assertEqual(
-                data_to_send,
-                received_data,
-                "Data sent and received via raw queue are not equal.",
-            )
+            assert (
+                data_to_send == received_data
+            ), "Data sent and received via raw queue are not equal."
         except Exception as e:
-            self.fail(
+            pytest.fail(
                 f"Data transfer via raw queue failed with exception: {e}"
             )
-
-
-if __name__ == "__main__":
-    unittest.main()
