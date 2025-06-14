@@ -1,10 +1,10 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
-from typing import Tuple, Any  # Standard library imports first
-import torch.multiprocessing as mp  # Third-party imports next
+from typing import Tuple, Any
+import torch.multiprocessing as mp
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
-    MultiprocessQueueFactory,  # First-party imports last
+    MultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,

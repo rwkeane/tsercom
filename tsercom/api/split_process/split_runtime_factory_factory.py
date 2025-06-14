@@ -2,12 +2,11 @@
 
 from concurrent.futures import (
     ThreadPoolExecutor,
-)  # Standard library imports first
+)
 from typing import Tuple, TypeVar, get_args
 
-import torch  # Third-party imports
+import torch
 
-# First-party imports (tsercom)
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.runtime_handle import RuntimeHandle

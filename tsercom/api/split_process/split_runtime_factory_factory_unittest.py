@@ -1,4 +1,4 @@
-import pytest  # No specific header to remove, starts with imports
+import pytest
 from unittest.mock import MagicMock
 
 # Module to be tested & whose attributes will be patched
@@ -10,7 +10,6 @@ from tsercom.api.runtime_factory_factory import (
     RuntimeFactoryFactory as BaseRuntimeFactoryFactory,
 )
 
-# New imports for dynamic queue selection testing
 import torch
 import multiprocessing as std_mp
 import torch.multiprocessing as torch_mp

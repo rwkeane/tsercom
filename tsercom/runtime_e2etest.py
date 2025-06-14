@@ -1,6 +1,6 @@
 """End-to-end tests for Tsercom runtime initialization, data flow, and error handling."""
 
-import asyncio  # No specific header to remove, starts with imports (after docstring)
+import asyncio
 import datetime
 import time
 from collections.abc import Callable
