@@ -7,6 +7,7 @@ from uuid import getnode as get_mac
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
+from zeroconf.asyncio import AsyncZeroconf # Added import
 
 _logger = logging.getLogger(__name__)
 
@@ -27,11 +28,18 @@ class InstancePublisher:
         instance_name: str | None = None,
         *,
         mdns_publisher_factory: Optional[
-            Callable[
-                [str, str, int, Optional[Dict[bytes, bytes | None]]],
+            Callable[ # Updated signature for factory
+                [
+                    str,
+                    str,
+                    int,
+                    Optional[Dict[bytes, bytes | None]],
+                    Optional[AsyncZeroconf], # Added zc_instance
+                ],
                 MdnsPublisher,
             ]
         ] = None,
+        zc_instance: Optional[AsyncZeroconf] = None, # Added zc_instance parameter
     ) -> None:
         """Initializes the InstancePublisher.
 
@@ -108,15 +116,17 @@ class InstancePublisher:
                 s_type: str,
                 p: int,
                 txt: Optional[Dict[bytes, bytes | None]],
+                zc: Optional[AsyncZeroconf], # Added zc to factory signature
             ) -> MdnsPublisher:
-                return RecordPublisher(eff_inst_name, s_type, p, txt)
+                return RecordPublisher(eff_inst_name, s_type, p, txt, zc_instance=zc)
 
             self.__record_publisher = default_mdns_publisher_factory(
-                effective_instance_name, base_service_type, port, txt_record
+                effective_instance_name, base_service_type, port, txt_record, zc_instance
             )
         else:
+            # User-provided factory now needs to handle zc_instance
             self.__record_publisher = mdns_publisher_factory(
-                effective_instance_name, base_service_type, port, txt_record
+                effective_instance_name, base_service_type, port, txt_record, zc_instance
             )
 
     def _make_txt_record(self) -> dict[bytes, bytes | None]:

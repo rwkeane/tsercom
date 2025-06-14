@@ -12,6 +12,7 @@ from tsercom.discovery.mdns.instance_listener import (
 from tsercom.discovery.mdns.record_listener import (
     RecordListener,
 )  # For default factory test
+from zeroconf.asyncio import AsyncZeroconf # Added import
 
 # FakeMdnsListener is defined below in this file.
 
@@ -179,8 +180,11 @@ class TestInstanceListener:
 
         # This factory will be called by InstanceListener.__init__
         def fake_mdns_listener_factory(
-            listener_client: MdnsListener.Client, service_type_arg: str
+            listener_client: MdnsListener.Client,
+            service_type_arg: str,
+            zc_instance: Optional[AsyncZeroconf] = None,  # Added zc_instance
         ) -> FakeMdnsListener:
+            # zc_instance is ignored by FakeMdnsListener but needed for signature match
             # listener_client will be the InstanceListener instance itself
             # service_type_arg will be self.SERVICE_TYPE
             fake_listener = FakeMdnsListener(

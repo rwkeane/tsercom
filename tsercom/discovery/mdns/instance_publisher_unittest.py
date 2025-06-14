@@ -9,6 +9,7 @@ from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.mdns.record_publisher import (
     RecordPublisher,
 )  # For default factory test
+from zeroconf.asyncio import AsyncZeroconf # Added import
 
 # FakeMdnsPublisher is defined below in this file.
 
@@ -62,7 +63,14 @@ class TestInstancePublisher:
     def _get_fake_mdns_publisher_factory(
         self,
     ) -> Callable[
-        [str, str, int, Optional[Dict[bytes, bytes | None]]], FakeMdnsPublisher
+        [
+            str,
+            str,
+            int,
+            Optional[Dict[bytes, bytes | None]],
+            Optional[AsyncZeroconf], # Added zc_instance to factory type hint
+        ],
+        FakeMdnsPublisher,
     ]:
         """Returns a factory function that captures the created FakeMdnsPublisher."""
 
@@ -71,7 +79,9 @@ class TestInstancePublisher:
             s_type: str,
             p: int,
             txt_rec: Optional[Dict[bytes, bytes | None]],
+            zc_instance: Optional[AsyncZeroconf] = None,  # Added zc_instance
         ) -> FakeMdnsPublisher:
+            # zc_instance is ignored by FakeMdnsPublisher but needed for signature match
             fake_pub = FakeMdnsPublisher(inst_name, s_type, p, txt_rec)
             TestInstancePublisher.captured_fake_publisher_instance = fake_pub
             return fake_pub

@@ -11,9 +11,12 @@ from tsercom.discovery.service_info import (
     ServiceInfo,
     ServiceInfoT,
 )
+from zeroconf.asyncio import AsyncZeroconf # Added import
 
 
-MdnsListenerFactory = Callable[[MdnsListener.Client, str], MdnsListener]
+MdnsListenerFactory = Callable[ # Updated signature
+    [MdnsListener.Client, str, Optional[AsyncZeroconf]], MdnsListener
+]
 
 
 class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
@@ -64,6 +67,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         service_type: str,
         *,
         mdns_listener_factory: Optional[MdnsListenerFactory] = None,
+        zc_instance: Optional[AsyncZeroconf] = None, # Added
     ) -> None:
         """Initializes the InstanceListener.
 
@@ -102,13 +106,16 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
             def default_mdns_listener_factory(
-                listener_client: MdnsListener.Client, s_type: str
+                listener_client: MdnsListener.Client,
+                s_type: str,
+                zc: Optional[AsyncZeroconf], # Added zc to factory signature
             ) -> MdnsListener:
-                return RecordListener(listener_client, s_type)
+                return RecordListener(listener_client, s_type, zc_instance=zc)
 
-            self.__listener = default_mdns_listener_factory(self, service_type)
+            self.__listener = default_mdns_listener_factory(self, service_type, zc_instance)
         else:
-            self.__listener = mdns_listener_factory(self, service_type)
+            # User-provided factory now needs to handle zc_instance
+            self.__listener = mdns_listener_factory(self, service_type, zc_instance)
 
         # self.__listener.start() # Removed from __init__
 
