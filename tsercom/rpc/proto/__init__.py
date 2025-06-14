@@ -12,11 +12,9 @@ if not TYPE_CHECKING:
         FileNotFoundError,
     ) as e:
         print(
-            f"Warning: Failed to get grpc.__version__ ({e}), defaulting to 1.71 for proto loading."
+            f"Warning: Failed to get grpc.__version__ ({e}), defaulting to a common version for proto loading."
         )
-        major_minor_version = (
-            "1.71"  # Default to a version used in TYPE_CHECKING
-        )
+        major_minor_version = "1.62"  # Fallback version
 
     version_string = f"v{major_minor_version.replace('.', '_')}"
 
@@ -29,94 +27,80 @@ if not TYPE_CHECKING:
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_72":
         from tsercom.rpc.proto.generated.v1_72.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_71":
         from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_70":
         from tsercom.rpc.proto.generated.v1_70.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_69":
         from tsercom.rpc.proto.generated.v1_69.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_68":
         from tsercom.rpc.proto.generated.v1_68.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_67":
         from tsercom.rpc.proto.generated.v1_67.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_66":
         from tsercom.rpc.proto.generated.v1_66.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_65":
         from tsercom.rpc.proto.generated.v1_65.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_64":
         from tsercom.rpc.proto.generated.v1_64.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_63":
         from tsercom.rpc.proto.generated.v1_63.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     elif version_string == "v1_62":
         from tsercom.rpc.proto.generated.v1_62.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
             Tensor,
         )
-
     else:
+        # The 'name' variable for the error message is 'common'
+        # The 'available_versions' for the error message is ['v1_62', 'v1_63', 'v1_64', 'v1_65', 'v1_66', 'v1_67', 'v1_68', 'v1_69', 'v1_70', 'v1_71', 'v1_72', 'v1_73']
         raise ImportError(
-            f"No pre-generated protobuf code found for grpcio version: {version}.\n"
-            f"Please generate the code for your grpcio version by running 'python scripts/build.py'."
+            f"Error: No code for version {version}, name 'common', available_versions ['v1_62', 'v1_63', 'v1_64', 'v1_65', 'v1_66', 'v1_67', 'v1_68', 'v1_69', 'v1_70', 'v1_71', 'v1_72', 'v1_73'], version_string {version_string}."
         )
 
-# This part handles type hinting for static analysis (e.g., mypy).
-# It imports symbols from the latest available version.
 else:  # When TYPE_CHECKING
-
     from tsercom.rpc.proto.generated.v1_73.common_pb2 import (
         TestConnectionCall as TestConnectionCall,
     )
