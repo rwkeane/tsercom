@@ -58,16 +58,19 @@ class SerializableTensor:
         Returns:
             A `GrpcTensor` protobuf message.
         """
-        size = list(self.__tensor.size())
+        tensor_to_serialize = self.__tensor
+        if self.__tensor.is_cuda:
+            tensor_to_serialize = self.__tensor.to("cpu")
+        size = list(tensor_to_serialize.size())
         # Flatten the tensor for serialization.
-        entries = self.__tensor.reshape(-1).tolist()
+        entries = tensor_to_serialize.reshape(-1).tolist()
         return GrpcTensor(
             timestamp=self.__timestamp.to_grpc_type(), size=size, array=entries
         )
 
     @classmethod
     def try_parse(
-        cls, grpc_type: GrpcTensor
+        cls, grpc_type: GrpcTensor, device: Optional[str] = None
     ) -> Optional["SerializableTensor"]:
         """Attempts to parse a `GrpcTensor` protobuf message into a SerializableTensor.
 
@@ -76,6 +79,7 @@ class SerializableTensor:
 
         Args:
             grpc_type: The `GrpcTensor` protobuf message to parse.
+            device: Optional target device for the tensor (e.g., "cuda:0").
 
         Returns:
             A `SerializableTensor` instance if parsing is successful,
@@ -117,12 +121,15 @@ class SerializableTensor:
             )
             if not is_zero_element_shape:
                 logging.warning(
-                    f"GrpcTensor has empty 'array' data but 'size' {grpc_size_list} implies non-zero elements."
+                    "GrpcTensor has empty 'array' data but 'size' %s implies non-zero elements.",
+                    grpc_size_list,
                 )
                 return None
         elif len(grpc_array_list) > MAX_TENSOR_ELEMENTS:
             logging.warning(
-                f"GrpcTensor 'array' length {len(grpc_array_list)} exceeds MAX_TENSOR_ELEMENTS {MAX_TENSOR_ELEMENTS}."
+                "GrpcTensor 'array' length %s exceeds MAX_TENSOR_ELEMENTS %s.",
+                len(grpc_array_list),
+                MAX_TENSOR_ELEMENTS,
             )
             return None
 
@@ -140,7 +147,9 @@ class SerializableTensor:
 
         if len(grpc_size_list) > MAX_TENSOR_DIMS:
             logging.warning(
-                f"GrpcTensor 'size' (dimensions) {len(grpc_size_list)} exceeds MAX_TENSOR_DIMS {MAX_TENSOR_DIMS}."
+                "GrpcTensor 'size' (dimensions) %s exceeds MAX_TENSOR_DIMS %s.",
+                len(grpc_size_list),
+                MAX_TENSOR_DIMS,
             )
             return None
 
@@ -154,7 +163,8 @@ class SerializableTensor:
                 num_elements_from_shape > 1
             ):  # Should not happen if previous checks passed
                 logging.warning(
-                    f"GrpcTensor with empty 'size' has {num_elements_from_shape} elements in 'array', expected 0 or 1."
+                    "GrpcTensor with empty 'size' has %s elements in 'array', expected 0 or 1.",
+                    num_elements_from_shape,
                 )
                 return None
         else:  # Shape is not empty, e.g. [2,3] or [0] or [5,0,10]
@@ -166,7 +176,9 @@ class SerializableTensor:
                     or d_val > MAX_INDIVIDUAL_DIM_SIZE
                 ):
                     logging.warning(
-                        f"GrpcTensor 'size' dimension {d_val} is invalid or exceeds MAX_INDIVIDUAL_DIM_SIZE {MAX_INDIVIDUAL_DIM_SIZE}."
+                        "GrpcTensor 'size' dimension %s is invalid or exceeds MAX_INDIVIDUAL_DIM_SIZE %s.",
+                        d_val,
+                        MAX_INDIVIDUAL_DIM_SIZE,
                     )
                     return None
                 if d_val == 0:
@@ -176,8 +188,10 @@ class SerializableTensor:
 
         if num_elements_from_shape != len(grpc_array_list):
             logging.warning(
-                f"Tensor shape {grpc_size_list} product {num_elements_from_shape} "
-                f"does not match data array length {len(grpc_array_list)}."
+                "Tensor shape %s product %s does not match data array length %s.",
+                grpc_size_list,
+                num_elements_from_shape,
+                len(grpc_array_list),
             )
             return None
 
@@ -201,10 +215,23 @@ class SerializableTensor:
             else:
                 tensor = tensor_data.reshape(original_size)
 
+            if device is not None:
+                try:
+                    tensor = tensor.to(device)
+                except (RuntimeError, TypeError, ValueError) as e:
+                    logging.error(
+                        "Error moving tensor to device %s during parsing: %s",
+                        device,
+                        e,
+                        exc_info=True,
+                    )
+                    return None
             return SerializableTensor(tensor, timestamp)
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, IndexError) as e:
             logging.error(
-                f"Error deserializing Tensor from grpc_type {grpc_type}: {e}",
+                "Error deserializing Tensor from grpc_type %s: %s",
+                grpc_type,
+                e,
                 exc_info=True,
             )
             return None
