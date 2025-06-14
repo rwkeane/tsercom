@@ -27,9 +27,12 @@ from tsercom.threading.atomic import Atomic
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
+from zeroconf.asyncio import AsyncZeroconf  # Added import
 
 if TYPE_CHECKING:
-    from zeroconf import Zeroconf
+    pass  # This can remain for type checking if it's used elsewhere, or be removed if AsyncZeroconf replaces all uses.
+
+    # For FakeMdnsListener methods, we'll use AsyncZeroconf.
 
 
 has_been_hit = Atomic[bool](False)
@@ -49,7 +52,7 @@ class FakeMdnsListener(MdnsListener):
             f"FakeMdnsListener initialized for service type '{self.__service_type}' on port {self.__port}"
         )
 
-    def start(self) -> None:
+    async def start(self) -> None:  # Changed to async def
         logging.info(
             f"FakeMdnsListener: Faking service addition for service type '{self.__service_type}' on port {self.__port}"
         )
@@ -68,7 +71,7 @@ class FakeMdnsListener(MdnsListener):
 
         fake_ip_address_bytes = socket.inet_aton("127.0.0.1")
 
-        self.__client._on_service_added(
+        await self.__client._on_service_added(  # Changed to await
             name=fake_mdns_instance_name,
             port=self.__port,
             addresses=[fake_ip_address_bytes],
@@ -78,19 +81,25 @@ class FakeMdnsListener(MdnsListener):
             f"FakeMdnsListener: _on_service_added called for {fake_mdns_instance_name}"
         )
 
-    def add_service(self, zc: "Zeroconf", type_: str, name: str) -> None:
+    async def add_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         logging.debug(
             f"FakeMdnsListener: add_service called for {name} type {type_}, no action."
         )
         pass
 
-    def update_service(self, zc: "Zeroconf", type_: str, name: str) -> None:
+    async def update_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         logging.debug(
             f"FakeMdnsListener: update_service called for {name}, no action."
         )
         pass
 
-    def remove_service(self, zc: "Zeroconf", type_: str, name: str) -> None:
+    async def remove_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         logging.debug(
             f"FakeMdnsListener: remove_service called for {name}, no action."
         )

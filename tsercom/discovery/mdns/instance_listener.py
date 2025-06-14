@@ -3,7 +3,6 @@
 import logging
 import socket
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Callable, Dict, Generic, List, Optional
 
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
@@ -12,7 +11,6 @@ from tsercom.discovery.service_info import (
     ServiceInfo,
     ServiceInfoT,
 )
-from tsercom.threading.aio.aio_utils import run_on_event_loop
 
 
 MdnsListenerFactory = Callable[[MdnsListener.Client, str], MdnsListener]
@@ -105,7 +103,17 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         else:
             self.__listener = mdns_listener_factory(self, service_type)
 
-        self.__listener.start()
+        # self.__listener.start() # Removed from __init__
+
+    async def start(self) -> None:
+        """Starts the underlying mDNS listener."""
+        if self.__listener:
+            await self.__listener.start()  # Changed to await
+        else:
+            # This case should ideally not be reached if __init__ ensures __listener is set.
+            logging.error(
+                "InstanceListener cannot start: __listener is not initialized."
+            )
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
@@ -204,7 +212,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # and its "correctness" depends on how ServiceInfoT is defined by the subclass.
         return service_info  # type: ignore[return-value]
 
-    def _on_service_added(
+    async def _on_service_added(
         self,
         name: str,
         port: int,
@@ -236,11 +244,9 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
         # Client's _on_service_added is expected to be a coroutine.
         # pylint: disable=W0212 # Calling client's notification method
-        run_on_event_loop(
-            partial(self.__client._on_service_added, typed_service_info)
-        )
+        await self.__client._on_service_added(typed_service_info)
 
-    def _on_service_removed(
+    async def _on_service_removed(
         self,
         name: str,
         service_type: str,
@@ -258,7 +264,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         """
         # Client's _on_service_removed is expected to be a coroutine.
         # pylint: disable=W0212 # Calling client's notification method
-        run_on_event_loop(partial(self.__client._on_service_removed, name))
+        await self.__client._on_service_removed(name)
 
     async def async_stop(self) -> None:
         # Stops the listener and cleans up resources.

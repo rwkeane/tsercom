@@ -29,6 +29,26 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
                 connection_info: Info about the discovered service.
                 caller_id: Unique ID for the discovered service instance.
             """
+            raise NotImplementedError(
+                "ServiceSource.Client._on_service_added must be implemented by subclasses."
+            )
+
+        @abstractmethod
+        async def _on_service_removed(
+            self,
+            service_name: str,
+            caller_id: CallerIdentifier,
+        ) -> None:
+            """Callback invoked when a previously discovered service is removed.
+
+            Args:
+                service_name: The mDNS instance name of the removed service.
+                caller_id: The unique ID that was associated with the service
+                           when it was added.
+            """
+            raise NotImplementedError(
+                "ServiceSource.Client._on_service_removed must be implemented by subclasses."
+            )
 
     @abstractmethod
     async def start_discovery(self, client: "ServiceSource.Client") -> None:

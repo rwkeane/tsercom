@@ -64,10 +64,17 @@ async def test_successful_registration_and_discovery():
 
     # Listener needs to be started before publisher to catch the announcement
     # Assign to specific variable names to manage lifecycle explicitly in finally block
-    listener_obj = InstanceListener(client=client, service_type=service_type)
+    listener_obj: InstanceListener | None = (
+        None  # Initialize for finally block
+    )
     publisher_obj = None  # Initialize to None for the finally block
 
     try:
+        listener_obj = InstanceListener(
+            client=client, service_type=service_type
+        )
+        await listener_obj.start()  # Start the listener
+
         publisher_obj = InstancePublisher(
             port=service_port,
             service_type=service_type,
@@ -88,10 +95,8 @@ async def test_successful_registration_and_discovery():
         # relying on __del__ in publisher for unpublishing.
         if publisher_obj:
             await publisher_obj.close()  # Explicitly close
-        if (
-            listener_obj
-        ):  # listener_obj is always created if this block is reached
-            del listener_obj
+        if listener_obj:
+            await listener_obj.async_stop()
         gc.collect()  # Encourage faster cleanup
 
     assert discovery_event.is_set(), "Discovery event was not set"
@@ -177,6 +182,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
         listener_obj = InstanceListener(
             client=client, service_type=service_type
         )
+        await listener_obj.start()  # Start the listener
 
         # Create two InstancePublisher instances
         publisher1_port = 50010
@@ -298,7 +304,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
         if publisher2_obj:
             await publisher2_obj.close()
         if listener_obj:
-            del listener_obj  # Rely on __del__ for cleanup
+            await listener_obj.async_stop()
         gc.collect()
 
     await asyncio.sleep(0.1)  # Final small sleep
@@ -351,12 +357,18 @@ async def test_instance_update_reflects_changes():
     client = UpdateTestClient(
         [discovery_event1, discovery_event2], discovered_services
     )
-    listener_obj = InstanceListener(client=client, service_type=service_type)
-
+    listener_obj: InstanceListener | None = (
+        None  # Initialize for finally block
+    )
     publisher1_obj = None  # Initialize for finally block
     publisher2_obj = None  # Initialize for finally block
 
     try:
+        listener_obj = InstanceListener(
+            client=client, service_type=service_type
+        )
+        await listener_obj.start()  # Start the listener
+
         publisher1_obj = InstancePublisher(
             port=service_port1,
             service_type=service_type,
@@ -416,8 +428,8 @@ async def test_instance_update_reflects_changes():
             await publisher1_obj.close()  # Explicitly close
         if publisher2_obj:
             await publisher2_obj.close()  # Explicitly close
-        if listener_obj:  # listener_obj is always created
-            del listener_obj
+        if listener_obj:
+            await listener_obj.async_stop()
         gc.collect()  # Encourage faster cleanup
 
     assert (
@@ -464,16 +476,19 @@ async def test_instance_unpublishing():
     discovered_services1 = []
     # Use the original DiscoveryTestClient for simplicity in this phase
     client1 = DiscoveryTestClient(discovery_event1, discovered_services1)
-    listener1 = InstanceListener(client=client1, service_type=service_type)
-
-    publisher = InstancePublisher(
-        port=service_port,
-        service_type=service_type,
-        readable_name=readable_name,
-        instance_name=instance_name,
-    )
+    listener1: InstanceListener | None = None  # Initialize for finally
+    publisher: InstancePublisher | None = None  # Initialize for finally
 
     try:
+        listener1 = InstanceListener(client=client1, service_type=service_type)
+        await listener1.start()  # Start the listener
+
+        publisher = InstancePublisher(
+            port=service_port,
+            service_type=service_type,
+            readable_name=readable_name,
+            instance_name=instance_name,
+        )
         await publisher.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
     except asyncio.TimeoutError:
@@ -481,10 +496,12 @@ async def test_instance_unpublishing():
             f"Service {readable_name} (instance {instance_name}) not discovered during initial publishing phase."
         )
     finally:
-        # No explicit stop for listener1 as per instructions, rely on GC
+        # Publisher is closed later. Listener1 is handled here.
+        if listener1:
+            await listener1.async_stop()  # Stop listener1 after its phase
         # No explicit unpublish for publisher yet.
         # Publisher is closed in the new finally block below.
-        pass
+        pass  # Keep publisher alive for next phase of test logic below
 
     assert discovery_event1.is_set(), "Initial discovery event was not set."
     assert (
@@ -494,8 +511,8 @@ async def test_instance_unpublishing():
         discovered_services1[0].name == readable_name
     ), "Incorrect service name discovered initially."
 
-    # Clean up listener1 by removing reference. Actual cleanup depends on GC and InstanceListener's __del__ if any.
-    del listener1
+    # Clean up listener1 by removing reference.
+    # listener1 is already stopped. del listener1 is not strictly needed for resource cleanup now.
     # If InstanceListener held onto client1, that also needs to be considered.
     # For this test, we assume client1 is simple and listener1 going out of scope is enough for its mDNS parts.
 
@@ -516,10 +533,13 @@ async def test_instance_unpublishing():
     discovery_event2 = asyncio.Event()
     discovered_services2 = []
     client2 = DiscoveryTestClient(discovery_event2, discovered_services2)
-    # Create a new listener to ensure it's not using cached data from the old one (if any such cache existed)
-    listener2 = InstanceListener(client=client2, service_type=service_type)
+    listener2: InstanceListener | None = None  # Initialize for finally
 
     try:
+        # Create a new listener to ensure it's not using cached data from the old one (if any such cache existed)
+        listener2 = InstanceListener(client=client2, service_type=service_type)
+        await listener2.start()  # Start the new listener
+
         # Wait for a shorter period, as we expect a timeout (no service found).
         await asyncio.wait_for(discovery_event2.wait(), timeout=5.0)
         # If the event is set, it means the service was discovered, which is a failure for this test phase.
@@ -534,8 +554,8 @@ async def test_instance_unpublishing():
         # This is the expected outcome: the service was not found, so wait_for timed out.
         pass
     finally:
-        # No explicit stop for listener2, rely on GC
-        del listener2  # Clean up listener2
+        if listener2:  # Clean up listener2
+            await listener2.async_stop()
         gc.collect()
 
     assert (
@@ -598,52 +618,54 @@ async def test_multiple_publishers_one_listener():
         expected_discoveries=2,
         all_discovered_event=all_discovered_event,
     )
-    listener = InstanceListener(client=client, service_type=service_type)
-
-    publishers = []
-    expected_service_details = []
-
-    # Publisher 1
-    p1_port = 50005
-    p1_readable_name = f"MultiPubService1_{service_type_suffix}"
-    p1_instance_name = f"MultiPubInstance1_{service_type_suffix}"
-    publisher1 = InstancePublisher(
-        port=p1_port,
-        service_type=service_type,
-        readable_name=p1_readable_name,
-        instance_name=p1_instance_name,
-    )
-    publishers.append(publisher1)
-    expected_service_details.append(
-        {
-            "name": p1_readable_name,
-            "port": p1_port,
-            "instance_prefix": p1_instance_name,
-        }
-    )
-
-    # Publisher 2
-    p2_port = 50006
-    p2_readable_name = f"MultiPubService2_{service_type_suffix}"
-    p2_instance_name = (
-        f"MultiPubInstance2_{service_type_suffix}"  # Different instance name
-    )
-    publisher2 = InstancePublisher(
-        port=p2_port,
-        service_type=service_type,
-        readable_name=p2_readable_name,
-        instance_name=p2_instance_name,
-    )
-    publishers.append(publisher2)
-    expected_service_details.append(
-        {
-            "name": p2_readable_name,
-            "port": p2_port,
-            "instance_prefix": p2_instance_name,
-        }
-    )
+    listener: InstanceListener | None = None  # Initialize for finally
+    publishers = (
+        []
+    )  # Keep this outside try if publishers are cleaned up in finally regardless of try success
+    expected_service_details = []  # Keep this outside try as it's setup data
 
     try:
+        listener = InstanceListener(client=client, service_type=service_type)
+        await listener.start()  # Start the listener
+
+        # Publisher 1
+        p1_port = 50005
+        p1_readable_name = f"MultiPubService1_{service_type_suffix}"
+        p1_instance_name = f"MultiPubInstance1_{service_type_suffix}"
+        publisher1 = InstancePublisher(
+            port=p1_port,
+            service_type=service_type,
+            readable_name=p1_readable_name,
+            instance_name=p1_instance_name,
+        )
+        publishers.append(publisher1)
+        expected_service_details.append(
+            {
+                "name": p1_readable_name,
+                "port": p1_port,
+                "instance_prefix": p1_instance_name,
+            }
+        )
+
+        # Publisher 2
+        p2_port = 50006
+        p2_readable_name = f"MultiPubService2_{service_type_suffix}"
+        p2_instance_name = f"MultiPubInstance2_{service_type_suffix}"  # Different instance name
+        publisher2 = InstancePublisher(
+            port=p2_port,
+            service_type=service_type,
+            readable_name=p2_readable_name,
+            instance_name=p2_instance_name,
+        )
+        publishers.append(publisher2)
+        expected_service_details.append(
+            {
+                "name": p2_readable_name,
+                "port": p2_port,
+                "instance_prefix": p2_instance_name,
+            }
+        )
+
         for p in publishers:
             await p.publish()
 
@@ -656,7 +678,8 @@ async def test_multiple_publishers_one_listener():
         for p in publishers:  # Close all publishers
             if p:
                 await p.close()
-        del listener
+        if listener:
+            await listener.async_stop()
         # import gc # gc is now imported at top level
         gc.collect()
 
@@ -719,6 +742,7 @@ async def test_one_publisher_multiple_listeners():
             all_discovered_event=listener1_event,
         )
         listener1 = InstanceListener(client=client1, service_type=service_type)
+        await listener1.start()  # Start listener1
         listeners_data.append(
             {
                 "event": listener1_event,
@@ -739,6 +763,7 @@ async def test_one_publisher_multiple_listeners():
             all_discovered_event=listener2_event,
         )
         listener2 = InstanceListener(client=client2, service_type=service_type)
+        await listener2.start()  # Start listener2
         listeners_data.append(
             {
                 "event": listener2_event,
@@ -754,7 +779,7 @@ async def test_one_publisher_multiple_listeners():
         for i, data in enumerate(listeners_data):
             if not data["event"].is_set():
                 pytest.fail(
-                    f"Listener {i+1} did not discover the service within timeout."
+                    f"Listener {i + 1} did not discover the service within timeout."
                 )
         # If gather fails due to timeout, this part might not be reached directly,
         # but individual timeouts in tasks will raise TimeoutError.
@@ -762,27 +787,28 @@ async def test_one_publisher_multiple_listeners():
         if publisher:
             await publisher.close()
         for data in listeners_data:
-            del data["listener_obj"]  # Remove reference to listener
+            if data["listener_obj"]:
+                await data["listener_obj"].async_stop()
         # import gc # gc is now imported at top level
         gc.collect()
 
     for i, data in enumerate(listeners_data):
         assert data[
             "event"
-        ].is_set(), f"Listener {i+1}'s discovery event was not set."
+        ].is_set(), f"Listener {i + 1}'s discovery event was not set."
         assert (
             len(data["services"]) == 1
-        ), f"Listener {i+1} discovered {len(data['services'])} services, expected 1."
+        ), f"Listener {i + 1} discovered {len(data['services'])} services, expected 1."
         service_info = data["services"][0]
         assert (
             service_info.name == readable_name
-        ), f"Listener {i+1} discovered name {service_info.name}, expected {readable_name}."
+        ), f"Listener {i + 1} discovered name {service_info.name}, expected {readable_name}."
         assert (
             service_info.port == service_port
-        ), f"Listener {i+1} discovered port {service_info.port}, expected {service_port}."
+        ), f"Listener {i + 1} discovered port {service_info.port}, expected {service_port}."
         assert service_info.mdns_name.startswith(
             instance_name
-        ), f"Listener {i+1} discovered mdns_name {service_info.mdns_name}, expected to start with {instance_name}."
+        ), f"Listener {i + 1} discovered mdns_name {service_info.mdns_name}, expected to start with {instance_name}."
 
     await asyncio.sleep(0.1)
 
@@ -809,9 +835,12 @@ async def test_publisher_starts_after_listener():
     try:
         # Start the listener first
         listener = InstanceListener(client=client, service_type=service_type)
+        await listener.start()  # Start the listener
         # Give the listener a moment to fully initialize and start listening.
         # This is crucial for mDNS, as the ServiceBrowser needs to be active.
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(
+            1.0
+        )  # This sleep might still be useful for mDNS propagation
 
         # Then, start the publisher
         publisher = InstancePublisher(
@@ -832,7 +861,8 @@ async def test_publisher_starts_after_listener():
     finally:
         if publisher:
             await publisher.close()
-        del listener
+        if listener:
+            await listener.async_stop()
         # import gc # gc is now imported at top level
         gc.collect()
 

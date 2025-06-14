@@ -40,6 +40,9 @@ def mock_service_source_client_fixture(
         ServiceSource.Client, instance=True, name="MockServiceSourceClient"
     )
     client._on_service_added = AsyncMock(name="client_on_service_added_method")
+    client._on_service_removed = AsyncMock(
+        name="client_on_service_removed_method"
+    )
     return client
 
 
@@ -51,6 +54,10 @@ def mock_actual_instance_listener_fixture(
         spec=ActualInstanceListener,
         name="MockedActualInstanceListenerInstance",
     )
+    # Add async start and async_stop mocks to the instance
+    mock_listener_instance.start = AsyncMock(name="start")
+    mock_listener_instance.async_stop = AsyncMock(name="async_stop")
+
     MockListenerClass_patch: MagicMock = mocker.patch(
         "tsercom.discovery.mdns.instance_listener.InstanceListener",
         return_value=mock_listener_instance,
@@ -79,6 +86,7 @@ async def test_start_discovery_with_listener_factory(
     mock_listener_from_factory: MagicMock = mocker.create_autospec(
         ActualInstanceListener, instance=True
     )
+    mock_listener_from_factory.start = AsyncMock()  # Add start mock
     ExpectedInstanceListenerFactory = typing.Callable[
         [ActualInstanceListener.Client], ActualInstanceListener[ServiceInfo]
     ]
@@ -93,6 +101,7 @@ async def test_start_discovery_with_listener_factory(
     mock_ss_client: AsyncMock = mock_service_source_client_fixture
     await host.start_discovery(mock_ss_client)
     mock_factory.assert_called_once_with(host)
+    mock_listener_from_factory.start.assert_awaited_once()  # Assert start was awaited
     assert host._DiscoveryHost__discoverer is mock_listener_from_factory
     assert host._DiscoveryHost__client is mock_ss_client
 
@@ -231,6 +240,9 @@ async def test_start_discovery_multiple_times(
     mock_listener_instance: AsyncMock = mocker.AsyncMock(
         spec=ActualInstanceListener
     )
+    mock_listener_instance.start = (
+        AsyncMock()
+    )  # Add start mock for this instance
 
     # Patch the factory directly on the host instance
     host._DiscoveryHost__instance_listener_factory = (
@@ -241,6 +253,7 @@ async def test_start_discovery_multiple_times(
     )
 
     await host.start_discovery(mock_client_arg)  # Use renamed arg
+    mock_listener_instance.start.assert_awaited_once()  # Assert start was awaited
 
     host._DiscoveryHost__instance_listener_factory.assert_called_once_with(
         host
@@ -333,7 +346,7 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
     mock_listener_product: MagicMock = mocker.MagicMock(
         spec=ActualInstanceListener
     )
-    mock_listener_product.start = MagicMock()
+    mock_listener_product.start = AsyncMock()  # Changed to AsyncMock
     mock_mdns_factory: Mock = mocker.Mock(return_value=mock_listener_product)
 
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
@@ -386,7 +399,7 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
             == "_internal_default._tcp.local."
         )
 
-        mock_listener_product.start.assert_called_once()
+        mock_listener_product.start.assert_awaited_once()  # Changed to assert_awaited_once
         assert host._DiscoveryHost__discoverer is created_instance_holder.get(
             "instance"
         )  # type: ignore[attr-defined]
@@ -432,8 +445,10 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
     mock_listener_product_failing_start: MagicMock = mocker.MagicMock(
         spec=ActualInstanceListener
     )
-    mock_listener_product_failing_start.start = MagicMock(
-        side_effect=RuntimeError("Listener start boom!")
+    mock_listener_product_failing_start.start = (
+        AsyncMock(  # Changed to AsyncMock
+            side_effect=RuntimeError("Listener start boom!")
+        )
     )
     mock_mdns_factory_arg: Mock = mocker.Mock(
         return_value=mock_listener_product_failing_start
@@ -453,11 +468,12 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
             mock_mdns_factory_arg.call_args.args[1]
             == "_internal_default._tcp.local."
         )
-        mock_listener_product_failing_start.start.assert_called_once()
+        mock_listener_product_failing_start.start.assert_awaited_once()  # Assert awaited
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
+        # The error message now includes "or start"
         assert (
-            "Failed to initialize discovery listener: Listener start boom!"
+            "Failed to initialize or start discovery listener: Listener start boom!"
             in mock_log_error.call_args.args[0]
         )
 
@@ -507,3 +523,49 @@ def test_discovery_host_init_with_only_mdns_factory(mocker):
             "DiscoveryHost raised an unexpected ValueError when initialized "
             f"only with mdns_listener_factory (service_type=None, instance_listener_factory=None): {e}"
         )
+
+
+@pytest.mark.asyncio
+async def test_stop_discovery_calls_listener_async_stop(
+    mock_actual_instance_listener_fixture: typing.Tuple[MagicMock, MagicMock],
+    mock_service_source_client_fixture: AsyncMock,
+) -> None:
+    """Tests that stop_discovery calls async_stop on the underlying InstanceListener."""
+    MockListenerClass_patch, mock_listener_instance = (
+        mock_actual_instance_listener_fixture
+    )
+    host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
+        service_type=SERVICE_TYPE_DEFAULT
+    )
+    mock_ss_client: AsyncMock = mock_service_source_client_fixture
+
+    await host.start_discovery(mock_ss_client)
+    # Ensure the patched InstanceListener was used and its start was called
+    MockListenerClass_patch.assert_called_once()
+    mock_listener_instance.start.assert_awaited_once()
+
+    await host.stop_discovery()
+    mock_listener_instance.async_stop.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_on_service_removed_notifies_client(
+    mock_service_source_client_fixture: AsyncMock,
+) -> None:
+    """Tests that _on_service_removed correctly notifies the ServiceSource.Client."""
+    host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
+        service_type=SERVICE_TYPE_DEFAULT
+    )
+    mock_ss_client: AsyncMock = mock_service_source_client_fixture
+    host._DiscoveryHost__client = mock_ss_client  # type: ignore[attr-defined]
+
+    test_service_name = "removed_service._test._tcp.local."
+    test_caller_id = CallerIdentifier.random()
+    host._DiscoveryHost__caller_id_map = {test_service_name: test_caller_id}  # type: ignore[attr-defined]
+
+    await host._on_service_removed(test_service_name)
+
+    mock_ss_client._on_service_removed.assert_awaited_once_with(
+        test_service_name, test_caller_id
+    )
+    assert test_service_name not in host._DiscoveryHost__caller_id_map  # type: ignore[attr-defined]
