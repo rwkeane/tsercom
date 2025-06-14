@@ -9,7 +9,7 @@ from functools import partial
 from threading import Thread
 
 import pytest
-import torch  # Added for torch.Tensor transport test
+import torch
 
 from tsercom.api.runtime_manager import RuntimeManager
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -120,12 +120,11 @@ class TorchTensorRuntime(Runtime):
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[
-            torch.Tensor, FakeEvent
-        ],  # DataTypeT is torch.Tensor
+        data_handler: RuntimeDataHandler[torch.Tensor, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
         test_id: CallerIdentifier,
     ):
+        super().__init__()
         self.__thread_watcher = thread_watcher
         self.__data_handler = data_handler
         self.__grpc_channel_factory = grpc_channel_factory
@@ -133,12 +132,11 @@ class TorchTensorRuntime(Runtime):
         self.__responder: EndpointDataProcessor[torch.Tensor] | None = None
         self.sent_tensor: torch.Tensor | None = None
         self.stopped_tensor: torch.Tensor | None = None
-        super().__init__()
 
     async def start_async(self) -> None:
-        await asyncio.sleep(0.01)  # Ensure event loop is running
+        await asyncio.sleep(0.01)
         self.__responder = await self.__data_handler.register_caller(
-            self.__test_id, "0.0.0.0", 444  # Different port for clarity
+            self.__test_id, "0.0.0.0", 444
         )
         assert self.__responder is not None
 
@@ -149,7 +147,6 @@ class TorchTensorRuntime(Runtime):
     async def stop(self, exception) -> None:
         assert self.__responder is not None
         self.stopped_tensor = torch.tensor([[-1.0, -1.0]])
-        # Use a fixed stop_timestamp for consistent testing if this runtime uses it
         fixed_stop_ts = datetime.datetime.now(datetime.timezone.utc)
         await self.__responder.process_data(self.stopped_tensor, fixed_stop_ts)
 
@@ -160,7 +157,6 @@ class TorchTensorRuntimeInitializer(
     def __init__(self, test_id: CallerIdentifier, service_type="Client"):
         super().__init__(service_type=service_type)
         self._test_id = test_id
-        # Store expected tensors for assertion in the test
         self.expected_sent_tensor = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         self.expected_stopped_tensor = torch.tensor([[-1.0, -1.0]])
 
@@ -170,16 +166,126 @@ class TorchTensorRuntimeInitializer(
         data_handler: RuntimeDataHandler[torch.Tensor, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        runtime_instance = TorchTensorRuntime(
+        return TorchTensorRuntime(
             thread_watcher, data_handler, grpc_channel_factory, self._test_id
         )
-        # Link expected tensors to the instance for test retrieval if needed,
-        # though the test will compare against its own expected values.
-        # Storing them on initializer is simpler for this test structure.
-        return runtime_instance
 
 
 # --- End Torch Tensor Runtime and Initializer ---
+
+
+# --- String Data, Torch Event Runtime and Initializer ---
+class StrDataTorchEventRuntime(Runtime):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[str, torch.Tensor],
+        grpc_channel_factory: GrpcChannelFactory,
+        test_id: CallerIdentifier,
+    ):
+        super().__init__()
+        self.__thread_watcher = thread_watcher
+        self.__data_handler = data_handler
+        self.__grpc_channel_factory = grpc_channel_factory
+        self.__test_id = test_id
+        self.__responder: EndpointDataProcessor[str, torch.Tensor] | None = (
+            None
+        )
+        self._listener_task: asyncio.Task | None = None
+        self.expected_event_tensor_sum_str: str | None = (
+            None  # For test verification
+        )
+
+    async def _event_listener_loop(self):
+        if self.__responder is None:
+            print(
+                f"ERROR: {self.__class__.__name__} responder not initialized for event loop."
+            )
+            return
+
+        print(
+            f"DEBUG: {self.__class__.__name__} starting event listener loop for {self.__test_id}"
+        )
+        try:
+            async for event_list in self.__responder:
+                for annotated_event in event_list:
+                    print(
+                        f"DEBUG: {self.__class__.__name__} received event: {type(annotated_event.data)}"
+                    )
+                    if isinstance(annotated_event.data, torch.Tensor):
+                        event_tensor = annotated_event.data
+                        self.expected_event_tensor_sum_str = f"processed_tensor_event_{event_tensor.sum().item()}"
+                        print(
+                            f"DEBUG: {self.__class__.__name__} processing tensor event, sum str: {self.expected_event_tensor_sum_str}"
+                        )
+                        if self.__responder:
+                            await self.__responder.process_data(
+                                self.expected_event_tensor_sum_str,
+                                datetime.datetime.now(datetime.timezone.utc),
+                            )
+                            print(
+                                f"DEBUG: {self.__class__.__name__} sent data response: {self.expected_event_tensor_sum_str}"
+                            )
+        except asyncio.CancelledError:
+            print(
+                f"DEBUG: {self.__class__.__name__} event listener loop cancelled for {self.__test_id}"
+            )
+        except Exception as e:
+            print(
+                f"ERROR: {self.__class__.__name__} exception in event_listener_loop: {e}"
+            )
+
+    async def start_async(self) -> None:
+        await asyncio.sleep(0.01)
+        self.__responder = await self.__data_handler.register_caller(
+            self.__test_id, "0.0.0.0", 446  # Unique port
+        )
+        assert (
+            self.__responder is not None
+        ), f"{self.__class__.__name__} failed to register caller."
+        self._listener_task = asyncio.create_task(self._event_listener_loop())
+        print(f"DEBUG: {self.__class__.__name__} started for {self.__test_id}")
+
+    async def stop(self, exception) -> None:
+        if self._listener_task and not self._listener_task.done():
+            self._listener_task.cancel()
+            try:
+                await self._listener_task
+            except asyncio.CancelledError:
+                pass
+
+        if self.__responder:
+            try:
+                await self.__responder.process_data(
+                    f"stopped_{self.__class__.__name__}",
+                    datetime.datetime.now(datetime.timezone.utc),
+                )
+            except Exception as e:
+                print(
+                    f"ERROR: {self.__class__.__name__} error during stop's process_data: {e}"
+                )
+        print(f"DEBUG: {self.__class__.__name__} stopped for {self.__test_id}")
+
+
+class StrDataTorchEventRuntimeInitializer(
+    RuntimeInitializer[str, torch.Tensor]
+):
+    def __init__(self, test_id: CallerIdentifier, service_type="Server"):
+        super().__init__(service_type=service_type)
+        self._test_id = test_id
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[str, torch.Tensor],
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        return StrDataTorchEventRuntime(
+            thread_watcher, data_handler, grpc_channel_factory, self._test_id
+        )
+
+
+# --- End String Data, Torch Event Runtime and Initializer ---
 
 
 class ErrorThrowingRuntime(Runtime):
@@ -431,7 +537,6 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         assert isinstance(first, AnnotatedInstance)
         assert isinstance(first.data, FakeData)
         expected_fresh_value = "FRESH_SIMPLE_DATA_V2"
-        # actual_value_for_log was removed as it was unused
         assert first.data.value == expected_fresh_value
         assert isinstance(first.timestamp, datetime.datetime)
         assert first.caller_id == current_test_id
@@ -444,9 +549,8 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
 
         time.sleep(0.5)  # Initial sleep
 
-        # Add a wait loop for the "stopped" data
         stopped_data_arrived = False
-        max_wait_stopped_data = 3.0  # Wait up to 3 seconds for stopped data
+        max_wait_stopped_data = 3.0
         poll_interval_stopped = 0.1
         waited_time_stopped = 0.0
         while waited_time_stopped < max_wait_stopped_data:
@@ -459,9 +563,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         assert (
             stopped_data_arrived
         ), f"Aggregator did not receive 'stopped' data for test_id ({current_test_id}) within {max_wait_stopped_data}s"
-        assert data_aggregator.has_new_data(
-            current_test_id
-        )  # Now this should be true
+        assert data_aggregator.has_new_data(current_test_id)
 
         values = data_aggregator.get_new_data(current_test_id)
         assert isinstance(values, list)
@@ -527,7 +629,6 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_handle_for_cleanup = None
     current_test_id = CallerIdentifier.random()
-    # The initializer will store the expected tensors
     initializer = TorchTensorRuntimeInitializer(
         test_id=current_test_id, service_type="Server"
     )
@@ -552,16 +653,15 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
         assert not data_aggregator.has_new_data(current_test_id)
         runtime_handle.start()
 
-        # Verify initial sent tensor
         data_arrived = False
-        max_wait_time = 5.0  # Increased wait time for potential tensor serialization overhead
+        max_wait_time = 5.0
         poll_interval = 0.1
         waited_time = 0.0
         received_annotated_instance = None
         while waited_time < max_wait_time:
             if data_aggregator.has_new_data(current_test_id):
                 all_data = data_aggregator.get_new_data(current_test_id)
-                if all_data:  # Ensure data is not empty
+                if all_data:
                     received_annotated_instance = all_data[0]
                     data_arrived = True
                     break
@@ -585,11 +685,8 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
             received_annotated_instance.timestamp, datetime.datetime
         )
         assert received_annotated_instance.caller_id == current_test_id
-        assert not data_aggregator.has_new_data(
-            current_test_id
-        )  # Ensure queue is now empty
+        assert not data_aggregator.has_new_data(current_test_id)
 
-        # Verify "stopped" tensor
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
@@ -623,7 +720,6 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
             received_stopped_annotated_instance.data,
             initializer.expected_stopped_tensor,
         ), f"Received stopped tensor {received_stopped_annotated_instance.data} does not match expected {initializer.expected_stopped_tensor}"
-        # Timestamp for stopped tensor might be less deterministic, so not strictly compared to a global like stop_timestamp
         assert isinstance(
             received_stopped_annotated_instance.timestamp, datetime.datetime
         )
@@ -635,7 +731,100 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
             try:
                 runtime_handle_for_cleanup.stop()
             except Exception:
-                pass  # Ignore errors during cleanup
+                pass
+        runtime_manager.shutdown()
+
+
+@pytest.mark.usefixtures("clear_loop_fixture")
+def test_out_of_process_torch_event_transport(
+    clear_loop_fixture,
+):  # Match fixture name
+    """Validates torch.Tensor transport for EventTypeT with an out-of-process runtime."""
+    runtime_manager = RuntimeManager(is_testing=True)
+    runtime_handle_for_cleanup = None
+    current_test_id = CallerIdentifier.random()
+
+    initializer = StrDataTorchEventRuntimeInitializer(
+        test_id=current_test_id, service_type="Server"
+    )
+    expected_event_tensor = torch.tensor([10.0, 20.0, 30.0])
+    # Calculate expected sum string based on the tensor to be sent
+    expected_sum_val = expected_event_tensor.sum().item()
+    expected_response_str = f"processed_tensor_event_{expected_sum_val}"
+
+    try:
+        runtime_manager.check_for_exception()
+        runtime_future = runtime_manager.register_runtime_initializer(
+            initializer
+        )
+
+        assert not runtime_future.done()
+        runtime_manager.start_out_of_process()
+        assert runtime_future.done()
+
+        runtime_handle = runtime_future.result(timeout=5)  # Increased timeout
+        runtime_handle_for_cleanup = runtime_handle
+        data_aggregator = runtime_handle.data_aggregator
+
+        runtime_handle.start()
+
+        # Allow some time for the runtime to fully start and register its listener
+        time.sleep(0.5)
+
+        # Send Tensor Event
+        event_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        print(
+            f"DEBUG_TEST: Sending event: {expected_event_tensor} to {current_test_id}"
+        )
+        runtime_handle.on_event(
+            expected_event_tensor, current_test_id, timestamp=event_timestamp
+        )
+
+        # Verify String Data Reception
+        data_arrived = False
+        max_wait_time = 10.0  # Increased wait time
+        poll_interval = 0.2
+        waited_time = 0.0
+        received_annotated_instance = None
+
+        while waited_time < max_wait_time:
+            runtime_manager.check_for_exception()  # Check for runtime errors
+            if data_aggregator.has_new_data(current_test_id):
+                all_data = data_aggregator.get_new_data(current_test_id)
+                if all_data:
+                    # Look for the specific response string
+                    for item in all_data:
+                        if (
+                            isinstance(item.data, str)
+                            and item.data == expected_response_str
+                        ):
+                            received_annotated_instance = item
+                            data_arrived = True
+                            break
+                    if data_arrived:
+                        break
+            time.sleep(poll_interval)
+            waited_time += poll_interval
+
+        assert (
+            data_arrived
+        ), f"Aggregator did not receive expected string data '{expected_response_str}' for test_id ({current_test_id}) within {max_wait_time}s. Last data: {data_aggregator.get_new_data(current_test_id) if data_aggregator.has_new_data(current_test_id) else 'None'}"
+
+        assert received_annotated_instance is not None
+        assert isinstance(received_annotated_instance, AnnotatedInstance)
+        assert isinstance(received_annotated_instance.data, str)
+        assert received_annotated_instance.data == expected_response_str
+        assert isinstance(
+            received_annotated_instance.timestamp, datetime.datetime
+        )
+        assert received_annotated_instance.caller_id == current_test_id
+
+    finally:
+        if runtime_handle_for_cleanup:
+            try:
+                runtime_handle_for_cleanup.stop()
+            except Exception as e:
+                print(f"Error during cleanup stop: {e}")
         runtime_manager.shutdown()
 
 
@@ -832,15 +1021,7 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
             data_arrived_2
         ), f"Aggregator 2 did not receive data for test_id_2 ({test_id_2}) within {max_wait_time}s"
         assert data_aggregator_2.has_new_data(test_id_2)
-        # It's possible data_aggregator_1 and data_aggregator_2 are the same instance if not differentiated by handle.
-        # The key is that get_new_data(test_id_X) filters correctly.
-        # If they are truly separate aggregator instances, this check is fine.
-        # If runtime_handle.data_aggregator returns a shared one, the previous check on data_aggregator_1
-        # for test_id_2 is more relevant. Let's assume for now they could be distinct or shared.
-        # The critical part is that data for test_id_1 is not mixed with test_id_2 when querying by ID.
-        if (
-            data_aggregator_1 is not data_aggregator_2
-        ):  # Only if they are different instances
+        if data_aggregator_1 is not data_aggregator_2:
             assert not data_aggregator_2.has_new_data(
                 test_id_1
             ), "Aggregator 2 should not have data for test_id_1"
@@ -887,9 +1068,7 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
         stopped_data_arrived_2 = False
         waited_time = 0.0
         while waited_time < max_wait_time:
-            if data_aggregator_2.has_new_data(
-                test_id_2
-            ):  # Check aggregator 2 for test_id_2
+            if data_aggregator_2.has_new_data(test_id_2):
                 stopped_data_arrived_2 = True
                 break
             time.sleep(poll_interval)
@@ -915,15 +1094,11 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
             try:
                 handle.stop()
             except Exception:
-                pass  # Ignore errors during cleanup stop
+                pass
         runtime_manager.shutdown()
 
 
 def test_client_type_runtime_in_process(clear_loop_fixture):
-    """
-    Verify the E2E lifecycle for an in-process runtime explicitly configured
-    as service_type="Client".
-    """
     loop_future = Future()
 
     def _thread_loop_runner(fut: Future):
@@ -949,7 +1124,6 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
         current_test_id = CallerIdentifier.random()
         runtime_manager.check_for_exception()
 
-        # Key difference: service_type="Client"
         runtime_future = runtime_manager.register_runtime_initializer(
             FakeRuntimeInitializer(
                 test_id=current_test_id, service_type="Client"
@@ -972,7 +1146,6 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
         assert not data_aggregator.has_new_data(current_test_id)
         runtime_handle.start()
 
-        # Wait for "FRESH_SIMPLE_DATA_V2"
         data_arrived = False
         max_wait_time = 5.0
         poll_interval = 0.1
@@ -1001,16 +1174,12 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
         assert not data_aggregator.has_new_data(current_test_id)
 
         runtime_manager.check_for_exception()
-
-        # Stop runtime and verify "stopped" data
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
         stopped_data_arrived = False
         waited_time = 0.0
-        while (
-            waited_time < max_wait_time
-        ):  # Using max_wait_time, can be adjusted
+        while waited_time < max_wait_time:
             if data_aggregator.has_new_data(current_test_id):
                 stopped_data_arrived = True
                 break
@@ -1037,20 +1206,14 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
             try:
                 runtime_handle_for_cleanup.stop()
             except Exception:
-                pass  # Ignore errors during cleanup stop
+                pass
         runtime_manager.shutdown()
-        if (
-            worker_event_loop.is_running()
-        ):  # Ensure event loop from thread is stopped
+        if worker_event_loop.is_running():
             worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
         event_thread.join(timeout=1)
 
 
 def test_in_process_initializer_create_error(clear_loop_fixture):
-    """
-    Verify error propagation when RuntimeInitializer.create() fails for an
-    in-process runtime.
-    """
     loop_future = Future()
 
     def _thread_loop_runner(fut: Future):
@@ -1063,11 +1226,11 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
             all_tasks = asyncio.all_tasks(loop)
             if all_tasks:
                 for task in all_tasks:
-                    task.cancel()  # pragma: no cover
+                    task.cancel()
             if not loop.is_closed():
                 if loop.is_running():
-                    loop.call_soon_threadsafe(loop.stop)  # pragma: no cover
-            loop.close()  # pragma: no cover (covered by other tests or difficult to ensure hit in all conditions)
+                    loop.call_soon_threadsafe(loop.stop)
+            loop.close()
 
     event_thread = Thread(
         target=_thread_loop_runner, args=(loop_future,), daemon=True
@@ -1086,17 +1249,8 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
             service_type="Client",
         )
         runtime_manager.register_runtime_initializer(initializer)
-
-        # As per current understanding, for in-process, create() error propagates from start_in_process.
-        # However, implementing as per new request to check via check_for_exception.
-        # This implies initialize_runtimes or start_in_process would internally catch this
-        # and report to ThreadWatcher, which is not its current behavior for this specific error.
-        # This test, as requested, will likely fail if the error is raised directly by start_in_process.
-
         runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
-
-        # If start_in_process did not raise the error directly (which it currently does):
-        time.sleep(0.3)  # Allow time for ThreadWatcher to pick up the error
+        time.sleep(0.3)
 
         with pytest.raises(ValueError, match=error_msg):
             called_check_for_exception = True
@@ -1107,21 +1261,13 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
         ), "check_for_exception was expected to be called and raise."
 
     except ValueError as e:
-        # This block is to catch the error if start_in_process raises it directly,
-        # which would mean the pytest.raises(ValueError) block above for check_for_exception
-        # would not be hit as intended by the new request's logic.
         if str(e) == error_msg and not called_check_for_exception:
             print(
                 f"Caught expected error '{error_msg}' directly from start_in_process, not from check_for_exception as test was re-specified."
             )
-            # This path means the test, as re-specified, would fail because check_for_exception wasn't the raiser.
-            # For the test to pass *as specified in the new request*, start_in_process must NOT raise.
-            # This contradicts current known behavior.
-            # For now, let this path indicate that the direct raise happened.
-            # The test will fail on "assert called_check_for_exception" if this path is taken.
             pass
         else:
-            raise  # Re-raise unexpected ValueError
+            raise
 
     finally:
         runtime_manager.shutdown()
@@ -1131,25 +1277,17 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
 
 
 def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
-    """
-    Directly test the blocking behavior of RuntimeManager.run_until_exception()
-    with an erroring out-of-process runtime, ensuring it has a timeout.
-    """
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "DirectBlockError"
-    error_type = ConnectionError  # Using a different error type for variety
-    thread_result_queue = (
-        Future()
-    )  # Using Future to get result/exception from thread
+    error_type = ConnectionError
+    thread_result_queue = Future()
 
     def target_for_thread():
         try:
             runtime_manager.run_until_exception()
-            thread_result_queue.set_result(
-                None
-            )  # Should not complete normally
+            thread_result_queue.set_result(None)
         except Exception as e:
-            thread_result_queue.set_result(e)  # Store the exception
+            thread_result_queue.set_result(e)
 
     test_thread = None
     runtime_handle_for_cleanup = None
@@ -1163,34 +1301,21 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
         handle_future = runtime_manager.register_runtime_initializer(
             initializer
         )
-
         runtime_manager.start_out_of_process()
-
-        runtime_handle = handle_future.result(
-            timeout=2
-        )  # Increased timeout slightly
+        runtime_handle = handle_future.result(timeout=2)
         runtime_handle_for_cleanup = runtime_handle
-        runtime_handle.start()  # This triggers the error in the remote process
+        runtime_handle.start()
 
-        time.sleep(
-            1.5
-        )  # Allow time for error to propagate from remote to manager's queue
+        time.sleep(1.5)
 
         test_thread = Thread(target=target_for_thread, daemon=True)
         test_thread.start()
-
-        test_thread.join(timeout=5.0)  # Timeout for run_until_exception
+        test_thread.join(timeout=5.0)
 
         if test_thread.is_alive():
             pytest.fail("run_until_exception timed out / deadlocked.")
 
-        # Check the result from the thread
-        # Future.result() will re-raise the exception if set_exception was called,
-        # or return the result if set_result was called.
-        # If an exception was stored via set_result(e):
-        result_from_thread = thread_result_queue.result(
-            timeout=0
-        )  # Should not block here
+        result_from_thread = thread_result_queue.result(timeout=0)
 
         assert isinstance(
             result_from_thread, error_type
@@ -1204,29 +1329,18 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
             try:
                 runtime_handle_for_cleanup.stop()
             except Exception:
-                pass  # Ignore errors during cleanup stop
+                pass
         runtime_manager.shutdown()
         if test_thread and test_thread.is_alive():
-            # This should ideally not happen if join() timed out and failed the test.
-            # But as a safeguard:
-            # Note: Directly stopping/killing threads is generally unsafe.
-            # This is a test scenario; in real code, ensure threads exit gracefully.
             print(
                 "Warning: Test thread for run_until_exception did not exit cleanly."
             )
-            # For daemon threads, they will exit when main thread exits if not joined.
-            # If it were non-daemon, more aggressive cleanup might be attempted,
-            # but that's beyond typical test cleanup for daemon threads.
             pass
-        elif test_thread:  # ensure it's joined if it finished on its own
+        elif test_thread:
             test_thread.join(timeout=1)
 
 
 def test_event_broadcast_e2e(clear_loop_fixture):
-    """
-    Tests that an event sent with caller_id=None is broadcast to all
-    registered runtimes/callers.
-    """
     loop_future = Future()
 
     def _thread_loop_runner(fut: Future):
@@ -1236,30 +1350,24 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         try:
             loop.run_forever()
         finally:
-            # Standard loop cleanup
-            all_tasks = asyncio.all_tasks(loop)  # Gather tasks on this loop
+            all_tasks = asyncio.all_tasks(loop)
             if all_tasks:
                 for task in all_tasks:
-                    if not task.done():  # Check if task is not already done
+                    if not task.done():
                         task.cancel()
-            # Wait for tasks to finish after cancellation.
-            # This allows them to handle CancelledError and clean up.
             if all_tasks:
                 loop.run_until_complete(
                     asyncio.gather(*all_tasks, return_exceptions=True)
                 )
-
-            if (
-                not loop.is_closed()
-            ):  # Check again, loop might be stopped by gather
-                loop.call_soon_threadsafe(loop.stop)  # Ensure loop is stopped
-            loop.close()  # Now close
+            if not loop.is_closed():
+                loop.call_soon_threadsafe(loop.stop)
+            loop.close()
 
     event_thread = Thread(
         target=_thread_loop_runner, args=(loop_future,), daemon=True
     )
     event_thread.start()
-    worker_event_loop = loop_future.result(timeout=5)  # Get the loop
+    worker_event_loop = loop_future.result(timeout=5)
 
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_handles_for_cleanup = []
@@ -1276,25 +1384,20 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         handle_future = runtime_manager.register_runtime_initializer(
             initializer
         )
-
-        runtime_manager.start_in_process(
-            runtime_event_loop=worker_event_loop
-        )  # Use in-process
+        runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
         runtime_handle = handle_future.result(timeout=10)
         runtime_handles_for_cleanup.append(runtime_handle)
 
         data_aggregator = runtime_handle.data_aggregator
         runtime_handle.start()
-
-        time.sleep(1.0)  # Initial sleep for registrations
+        time.sleep(1.0)
 
         broadcast_event = FakeEvent()
         runtime_handle.on_event(broadcast_event, caller_id=None)
-
-        time.sleep(1.5)  # Increased sleep after event dispatch
+        time.sleep(1.5)
 
         max_wait_time = 10.0
-        poll_interval = 0.2  # Adjusted polling interval
+        poll_interval = 0.2
         waited_time = 0.0
 
         while waited_time < max_wait_time and pending_ids_to_receive_event:
@@ -1307,44 +1410,32 @@ def test_event_broadcast_e2e(clear_loop_fixture):
                 if data_aggregator.has_new_data(cid_obj):
                     received_datas = data_aggregator.get_new_data(cid_obj)
                     assert len(received_datas) >= 1
-
                     event_data_found = False
                     for item in received_datas:
                         assert isinstance(item, AnnotatedInstance)
                         assert isinstance(item.data, FakeData)
-                        if (
-                            item.data.value
-                            == f"event_for_{str(cid_obj)[:8]}"  # Ensure this matches
-                        ):
+                        if item.data.value == f"event_for_{str(cid_obj)[:8]}":
                             event_data_found = True
                             break
-
                     if event_data_found:
                         pending_ids_to_receive_event.remove(cid_key)
-
             if not pending_ids_to_receive_event:
                 break
             time.sleep(poll_interval)
             waited_time += poll_interval
-
         assert (
             not pending_ids_to_receive_event
         ), f"Not all callers received the broadcast event. Missing: {pending_ids_to_receive_event}"
-
     finally:
         for handle_item in runtime_handles_for_cleanup:
             try:
-                if handle_item:  # Ensure handle_item is not None
-                    # RuntimeWrapper.stop() is synchronous and internally handles waiting for async runtime stop.
+                if handle_item:
                     handle_item.stop()
             except Exception as e:
-                print(
-                    f"Error during handle.stop() for {handle_item}: {e}"
-                )  # Keep this error print
+                print(f"Error during handle.stop() for {handle_item}: {e}")
                 pass
-        runtime_manager.shutdown()  # This will stop the loop (if not already) and join the thread.
-        # The _thread_loop_runner's finally block will also try to clean up.
-        if event_thread.is_alive():  # Ensure thread is joined
+        runtime_manager.shutdown()
+        if event_thread.is_alive():
             event_thread.join(timeout=2)
 
 
