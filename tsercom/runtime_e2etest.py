@@ -9,6 +9,7 @@ from functools import partial
 from threading import Thread
 
 import pytest
+import torch  # Added for torch.Tensor transport test
 
 from tsercom.api.runtime_manager import RuntimeManager
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -33,7 +34,9 @@ stop_timestamp = datetime.datetime.now(
     datetime.timezone.utc
 ) + datetime.timedelta(minutes=20)
 
-test_id = CallerIdentifier.random()
+test_id = (
+    CallerIdentifier.random()
+)  # This global test_id seems to be for general use, will create specific ones in tests
 
 
 class FakeData:
@@ -110,6 +113,73 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
         return FakeRuntime(
             thread_watcher, data_handler, grpc_channel_factory, self._test_id
         )
+
+
+# --- Torch Tensor Runtime and Initializer ---
+class TorchTensorRuntime(Runtime):
+    def __init__(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[
+            torch.Tensor, FakeEvent
+        ],  # DataTypeT is torch.Tensor
+        grpc_channel_factory: GrpcChannelFactory,
+        test_id: CallerIdentifier,
+    ):
+        self.__thread_watcher = thread_watcher
+        self.__data_handler = data_handler
+        self.__grpc_channel_factory = grpc_channel_factory
+        self.__test_id = test_id
+        self.__responder: EndpointDataProcessor[torch.Tensor] | None = None
+        self.sent_tensor: torch.Tensor | None = None
+        self.stopped_tensor: torch.Tensor | None = None
+        super().__init__()
+
+    async def start_async(self) -> None:
+        await asyncio.sleep(0.01)  # Ensure event loop is running
+        self.__responder = await self.__data_handler.register_caller(
+            self.__test_id, "0.0.0.0", 444  # Different port for clarity
+        )
+        assert self.__responder is not None
+
+        self.sent_tensor = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+        timestamp = datetime.datetime.now(datetime.timezone.utc)
+        await self.__responder.process_data(self.sent_tensor, timestamp)
+
+    async def stop(self, exception) -> None:
+        assert self.__responder is not None
+        self.stopped_tensor = torch.tensor([[-1.0, -1.0]])
+        # Use a fixed stop_timestamp for consistent testing if this runtime uses it
+        fixed_stop_ts = datetime.datetime.now(datetime.timezone.utc)
+        await self.__responder.process_data(self.stopped_tensor, fixed_stop_ts)
+
+
+class TorchTensorRuntimeInitializer(
+    RuntimeInitializer[torch.Tensor, FakeEvent]
+):
+    def __init__(self, test_id: CallerIdentifier, service_type="Client"):
+        super().__init__(service_type=service_type)
+        self._test_id = test_id
+        # Store expected tensors for assertion in the test
+        self.expected_sent_tensor = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+        self.expected_stopped_tensor = torch.tensor([[-1.0, -1.0]])
+
+    def create(
+        self,
+        thread_watcher: ThreadWatcher,
+        data_handler: RuntimeDataHandler[torch.Tensor, FakeEvent],
+        grpc_channel_factory: GrpcChannelFactory,
+    ) -> Runtime:
+        runtime_instance = TorchTensorRuntime(
+            thread_watcher, data_handler, grpc_channel_factory, self._test_id
+        )
+        # Link expected tensors to the instance for test retrieval if needed,
+        # though the test will compare against its own expected values.
+        # Storing them on initializer is simpler for this test structure.
+        return runtime_instance
+
+
+# --- End Torch Tensor Runtime and Initializer ---
 
 
 class ErrorThrowingRuntime(Runtime):
@@ -315,10 +385,11 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     try:
         current_test_id = CallerIdentifier.random()
         runtime_manager.check_for_exception()
+        initializer = FakeRuntimeInitializer(
+            test_id=current_test_id, service_type="Server"
+        )
         runtime_future = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(
-                test_id=current_test_id, service_type="Server"
-            )
+            initializer
         )
 
         assert not runtime_future.done()
@@ -449,6 +520,123 @@ def test_in_process_init(clear_loop_fixture):
     if worker_event_loop.is_running():
         worker_event_loop.call_soon_threadsafe(worker_event_loop.stop)
     event_thread.join(timeout=1)
+
+
+def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
+    """Validates torch.Tensor transport with an out-of-process runtime."""
+    runtime_manager = RuntimeManager(is_testing=True)
+    runtime_handle_for_cleanup = None
+    current_test_id = CallerIdentifier.random()
+    # The initializer will store the expected tensors
+    initializer = TorchTensorRuntimeInitializer(
+        test_id=current_test_id, service_type="Server"
+    )
+
+    try:
+        runtime_manager.check_for_exception()
+        runtime_future = runtime_manager.register_runtime_initializer(
+            initializer
+        )
+
+        assert not runtime_future.done()
+        assert not runtime_manager.has_started
+        runtime_manager.start_out_of_process()
+        assert runtime_manager.has_started
+        assert runtime_future.done()
+
+        runtime_manager.check_for_exception()
+        runtime_handle = runtime_future.result()
+        runtime_handle_for_cleanup = runtime_handle
+        data_aggregator = runtime_handle.data_aggregator
+
+        assert not data_aggregator.has_new_data(current_test_id)
+        runtime_handle.start()
+
+        # Verify initial sent tensor
+        data_arrived = False
+        max_wait_time = 5.0  # Increased wait time for potential tensor serialization overhead
+        poll_interval = 0.1
+        waited_time = 0.0
+        received_annotated_instance = None
+        while waited_time < max_wait_time:
+            if data_aggregator.has_new_data(current_test_id):
+                all_data = data_aggregator.get_new_data(current_test_id)
+                if all_data:  # Ensure data is not empty
+                    received_annotated_instance = all_data[0]
+                    data_arrived = True
+                    break
+            time.sleep(poll_interval)
+            waited_time += poll_interval
+
+        runtime_manager.check_for_exception()
+        assert (
+            data_arrived
+        ), f"Aggregator did not receive tensor data for test_id ({current_test_id}) within {max_wait_time}s"
+
+        assert received_annotated_instance is not None
+        assert isinstance(received_annotated_instance, AnnotatedInstance)
+        assert isinstance(
+            received_annotated_instance.data, torch.Tensor
+        ), f"Received data is not a torch.Tensor, type: {type(received_annotated_instance.data)}"
+        assert torch.equal(
+            received_annotated_instance.data, initializer.expected_sent_tensor
+        ), f"Received tensor {received_annotated_instance.data} does not match expected {initializer.expected_sent_tensor}"
+        assert isinstance(
+            received_annotated_instance.timestamp, datetime.datetime
+        )
+        assert received_annotated_instance.caller_id == current_test_id
+        assert not data_aggregator.has_new_data(
+            current_test_id
+        )  # Ensure queue is now empty
+
+        # Verify "stopped" tensor
+        runtime_handle.stop()
+        runtime_manager.check_for_exception()
+
+        stopped_data_arrived = False
+        waited_time = 0.0
+        received_stopped_annotated_instance = None
+        while waited_time < max_wait_time:
+            if data_aggregator.has_new_data(current_test_id):
+                all_stopped_data = data_aggregator.get_new_data(
+                    current_test_id
+                )
+                if all_stopped_data:
+                    received_stopped_annotated_instance = all_stopped_data[0]
+                    stopped_data_arrived = True
+                    break
+            time.sleep(poll_interval)
+            waited_time += poll_interval
+
+        assert (
+            stopped_data_arrived
+        ), f"Aggregator did not receive 'stopped' tensor data for test_id ({current_test_id}) within {max_wait_time}s"
+
+        assert received_stopped_annotated_instance is not None
+        assert isinstance(
+            received_stopped_annotated_instance, AnnotatedInstance
+        )
+        assert isinstance(
+            received_stopped_annotated_instance.data, torch.Tensor
+        ), f"Received 'stopped' data is not a torch.Tensor, type: {type(received_stopped_annotated_instance.data)}"
+        assert torch.equal(
+            received_stopped_annotated_instance.data,
+            initializer.expected_stopped_tensor,
+        ), f"Received stopped tensor {received_stopped_annotated_instance.data} does not match expected {initializer.expected_stopped_tensor}"
+        # Timestamp for stopped tensor might be less deterministic, so not strictly compared to a global like stop_timestamp
+        assert isinstance(
+            received_stopped_annotated_instance.timestamp, datetime.datetime
+        )
+        assert received_stopped_annotated_instance.caller_id == current_test_id
+        assert not data_aggregator.has_new_data(current_test_id)
+
+    finally:
+        if runtime_handle_for_cleanup:
+            try:
+                runtime_handle_for_cleanup.stop()
+            except Exception:
+                pass  # Ignore errors during cleanup
+        runtime_manager.shutdown()
 
 
 def test_out_of_process_error_check_for_exception(clear_loop_fixture):
@@ -928,8 +1116,6 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
             )
             # This path means the test, as re-specified, would fail because check_for_exception wasn't the raiser.
             # For the test to pass *as specified in the new request*, start_in_process must NOT raise.
-            # To make the test pass as per the new specific instructions, we'd have to assume start_in_process
-            # *doesn't* raise, and the error *is* caught by ThreadWatcher.
             # This contradicts current known behavior.
             # For now, let this path indicate that the direct raise happened.
             # The test will fail on "assert called_check_for_exception" if this path is taken.
@@ -1160,3 +1346,6 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         # The _thread_loop_runner's finally block will also try to clean up.
         if event_thread.is_alive():  # Ensure thread is joined
             event_thread.join(timeout=2)
+
+
+# Ensure a newline at the end of the file

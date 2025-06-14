@@ -20,7 +20,9 @@ class TestDefaultMultiprocessQueueFactory:
     expected_standard_queue_type = None
 
     @classmethod
-    def setup_class(cls): # Pytest automatically calls methods named setup_class
+    def setup_class(
+        cls,
+    ):  # Pytest automatically calls methods named setup_class
         """Set up class method to get standard queue type once."""
         cls.expected_standard_queue_type = type(std_mp.Queue())
 
@@ -76,7 +78,9 @@ class TestDefaultMultiprocessQueueFactory:
 
         data_to_send = "hello world"
         try:
-            q.put(data_to_send, timeout=1) # Use blocking put for safety in tests
+            q.put(
+                data_to_send, timeout=1
+            )  # Use blocking put for safety in tests
             received_data = q.get(timeout=1)
             assert (
                 data_to_send == received_data
