@@ -256,7 +256,7 @@ class TestInstanceListener:
         """Test __init__ with invalid client type raises TypeError."""
         with pytest.raises(
             TypeError,
-            match=r"Client must be InstanceListener\.Client, got \w+\.",
+            match=r"Client must be an InstanceListener\.Client, got \w+\.",  # Added "an"
         ):  # Use regex for type name
             InstanceListener(
                 client=MagicMock(),  # type: ignore

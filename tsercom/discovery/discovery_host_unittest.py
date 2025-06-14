@@ -527,25 +527,37 @@ def test_discovery_host_init_with_only_mdns_factory(mocker):
 
 @pytest.mark.asyncio
 async def test_stop_discovery_calls_listener_async_stop(
-    mock_actual_instance_listener_fixture: typing.Tuple[MagicMock, MagicMock],
+    mocker: Mock,  # Added mocker
     mock_service_source_client_fixture: AsyncMock,
 ) -> None:
     """Tests that stop_discovery calls async_stop on the underlying InstanceListener."""
-    MockListenerClass_patch, mock_listener_instance = (
-        mock_actual_instance_listener_fixture
-    )
     host: DiscoveryHost[ServiceInfo] = DiscoveryHost(
-        service_type=SERVICE_TYPE_DEFAULT
+        service_type=SERVICE_TYPE_DEFAULT  # This will use the default internal factory initially
     )
     mock_ss_client: AsyncMock = mock_service_source_client_fixture
 
+    # Create a specific mock for InstanceListener for this test
+    mock_listener_for_test = mocker.create_autospec(
+        ActualInstanceListener, instance=True, name="MockListenerForStopTest"
+    )
+    mock_listener_for_test.start = AsyncMock(name="listener_start")
+    mock_listener_for_test.async_stop = AsyncMock(name="listener_async_stop")
+
+    # Replace host's internal factory with a mock that returns this instance
+    host._DiscoveryHost__instance_listener_factory = mocker.Mock(
+        return_value=mock_listener_for_test, name="HostSpecificMockFactory"
+    )
+
     await host.start_discovery(mock_ss_client)
-    # Ensure the patched InstanceListener was used and its start was called
-    MockListenerClass_patch.assert_called_once()
-    mock_listener_instance.start.assert_awaited_once()
+
+    # Assertions for the factory and start method
+    host._DiscoveryHost__instance_listener_factory.assert_called_once_with(
+        host
+    )
+    mock_listener_for_test.start.assert_awaited_once()
 
     await host.stop_discovery()
-    mock_listener_instance.async_stop.assert_awaited_once()
+    mock_listener_for_test.async_stop.assert_awaited_once()
 
 
 @pytest.mark.asyncio
