@@ -1,30 +1,34 @@
-"""Defines the abstract base class for tensor multiplexers."""
-
+"""
+This file defines the TensorMultiplexer abstract base class and its Client interface.
+"""
 import abc
 import asyncio
 import bisect
 import datetime
 from typing import (
     List,
-    Tuple,
     Optional,
+    Tuple,
 )
 
 import torch
 
-# Using a type alias for clarity, though not strictly necessary for the ABC itself
-TensorHistoryValue = torch.Tensor
-TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue]
+# Using a type alias for clarity, though not strictly necessary for the base class alone
+# it's good for context when subclasses use it.
+TimestampedTensor = Tuple[datetime.datetime, torch.Tensor]
 
 
 class TensorMultiplexer(abc.ABC):
     """
     Abstract base class for multiplexing tensor updates.
+    Subclasses will handle specific strategies (e.g., sparse, dense).
     """
 
-    class Client(abc.ABC):
+    class Client(abc.ABC):  # pylint: disable=too-few-public-methods
         """
         Client interface for TensorMultiplexer to report index updates.
+        This interface is used by SparseTensorMultiplexer. Other multiplexers
+        might define their own client interfaces or extend this one if needed.
         """
 
         @abc.abstractmethod
@@ -34,34 +38,15 @@ class TensorMultiplexer(abc.ABC):
             """
             Called when an index in the tensor has a new value at a given timestamp.
             """
-            raise NotImplementedError
+            pass
 
-    def __init__(
-        self,
-        client: "TensorMultiplexer.Client",
-        tensor_length: int,
-        data_timeout_seconds: float = 60.0,
-    ):
+    def __init__(self):
         """
-        Initializes the TensorMultiplexer.
-
-        Args:
-            client: The client to notify of index updates.
-            tensor_length: The expected length of the tensors.
-            data_timeout_seconds: How long to keep tensor data (subclass responsibility).
+        Initializes common attributes for tensor multiplexers, specifically
+        the history list and the lock for concurrent access.
         """
-        if tensor_length <= 0:
-            raise ValueError("Tensor length must be positive.")
-        if data_timeout_seconds <= 0:
-            raise ValueError("Data timeout must be positive.")
-
-        self._client = client
-        self._tensor_length = tensor_length
-        self._data_timeout_seconds = data_timeout_seconds  # For subclasses to use
-        self._lock = asyncio.Lock()
-        # Placeholder for type hinting and get_tensor_at_timestamp.
-        # Subclasses are responsible for managing the actual history.
         self._history: List[TimestampedTensor] = []
+        self._lock = asyncio.Lock()
 
     @abc.abstractmethod
     async def process_tensor(
@@ -69,19 +54,18 @@ class TensorMultiplexer(abc.ABC):
     ) -> None:
         """
         Processes a new tensor snapshot at a given timestamp.
-        Subclasses must implement how the tensor is processed and how diffs are emitted.
+        Subclasses must implement the logic for how this tensor is processed
+        and how updates are generated.
         """
-        raise NotImplementedError
+        pass
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
     ) -> Optional[torch.Tensor]:
         """
-        Retrieves a clone of the tensor snapshot for a specific timestamp.
-
-        This method assumes that `self._history` is a list of tuples
-        (timestamp, tensor_data), sorted by timestamp. Subclasses are
-        responsible for maintaining `self._history` in this manner.
+        Retrieves a clone of the tensor snapshot for a specific timestamp
+        from the internal history. This method is concrete and assumes
+        subclasses will populate self._history appropriately.
 
         Args:
             timestamp: The exact timestamp to look for.
@@ -91,7 +75,6 @@ class TensorMultiplexer(abc.ABC):
         """
         async with self._lock:
             # Use bisect_left with a key to compare timestamp with the first element of the tuples
-            # self._history is expected to be sorted by timestamp.
             i = bisect.bisect_left(
                 self._history, timestamp, key=lambda x: x[0]
             )
