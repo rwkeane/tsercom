@@ -1,26 +1,27 @@
 """Multiplexes tensor updates into granular, serializable messages for sparse tensors."""
 
-import asyncio # Required for lock if not inherited, but lock is inherited
 import bisect
 import datetime
 from typing import (
-    List,
     Tuple,
     Optional,
 )
 
 import torch
 
-# Import the base class
 from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer
 
 
 # Using a type alias for clarity (consistent with base and original)
-TensorHistoryValue = torch.Tensor # Retaining this alias as it's used in this file
-TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue] # Retaining this alias
+TensorHistoryValue = (
+    torch.Tensor
+)  # Retaining this alias as it's used in this file
+TimestampedTensor = Tuple[
+    datetime.datetime, TensorHistoryValue
+]  # Retaining this alias
 
 
-class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultiplexer
+class SparseTensorMultiplexer(TensorMultiplexer):
     """
     Multiplexes sparse tensor updates into granular, serializable messages.
 
@@ -30,11 +31,9 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
     relative to their new predecessors.
     """
 
-    # Client inner class is now inherited from TensorMultiplexer.
-
     def __init__(
         self,
-        client: TensorMultiplexer.Client,  # Type hint refers to base class's Client
+        client: TensorMultiplexer.Client,
         tensor_length: int,
         data_timeout_seconds: float = 60.0,
     ):
@@ -46,19 +45,17 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
             tensor_length: The expected length of the tensors.
             data_timeout_seconds: How long to keep tensor data before it's considered stale.
         """
-        super().__init__()  # Initializes _history and _lock from the base class
+        super().__init__()
 
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
         if data_timeout_seconds <= 0:
             raise ValueError("Data timeout must be positive.")
 
-        self.__client = client  # Client specific to this multiplexer's logic
+        self.__client = client
         self.__tensor_length = tensor_length
         self.__data_timeout_seconds = data_timeout_seconds
-        # self._history is initialized by super()
         self._latest_processed_timestamp: Optional[datetime.datetime] = None
-        # self._lock is initialized by super()
 
     def _cleanup_old_data(
         self, current_max_timestamp: datetime.datetime
@@ -68,7 +65,6 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
         timeout_delta = datetime.timedelta(seconds=self.__data_timeout_seconds)
         cutoff_timestamp = current_max_timestamp - timeout_delta
 
-        # Find the first index to keep
         keep_from_index = 0
         for i, (ts, _) in enumerate(self._history):
             if ts >= cutoff_timestamp:
@@ -78,13 +74,13 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
             # If loop completed without break, all items are older than cutoff_timestamp
             # or history was empty. If all items are old, clear history.
             if self._history and self._history[-1][0] < cutoff_timestamp:
-                self._history = []
+                self._history.clear()
                 return
             # If history was empty or last item not older, keep_from_index remains 0, so nothing is removed.
             # This also handles the case where no items are older than cutoff.
 
         if keep_from_index > 0:
-            self._history = self._history[keep_from_index:]
+            self._history[:] = self._history[keep_from_index:]
 
     def _find_insertion_point(self, timestamp: datetime.datetime) -> int:
         return bisect.bisect_left(self._history, timestamp, key=lambda x: x[0])
@@ -109,7 +105,10 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
         new_tensor: TensorHistoryValue,
         timestamp: datetime.datetime,
     ) -> None:
-        if len(old_tensor) != self.__tensor_length or len(new_tensor) != self.__tensor_length:
+        if (
+            len(old_tensor) != self.__tensor_length
+            or len(new_tensor) != self.__tensor_length
+        ):
             # This might indicate an issue, consider logging or specific error handling
             return
 
@@ -124,7 +123,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        async with self._lock:
+        async with self.lock:
             if len(tensor) != self.__tensor_length:
                 raise ValueError(
                     f"Input tensor length {len(tensor)} does not match expected length {self.__tensor_length}"
@@ -164,7 +163,9 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
                 needs_full_cascade_re_emission = True
                 idx_of_change = insertion_point
             else:
-                self._history.insert(insertion_point, (timestamp, tensor.clone()))
+                self._history.insert(
+                    insertion_point, (timestamp, tensor.clone())
+                )
                 base_tensor_for_diff = self._get_tensor_state_before(
                     timestamp, current_insertion_point=insertion_point
                 )
@@ -183,17 +184,17 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
                 ):
                     self._latest_processed_timestamp = potential_latest_ts
             elif timestamp:
-                 self._latest_processed_timestamp = timestamp
+                self._latest_processed_timestamp = timestamp
 
             if needs_full_cascade_re_emission and idx_of_change >= 0:
                 for i in range(idx_of_change + 1, len(self._history)):
-                    ts_current_in_cascade, tensor_current_in_cascade = self._history[i]
-                    tensor_predecessor_for_cascade = self._history[i-1][1] # Corrected line
+                    ts_current_in_cascade, tensor_current_in_cascade = (
+                        self._history[i]
+                    )
+                    tensor_predecessor_for_cascade = self._history[i - 1][1]
 
                     await self._emit_diff(
                         tensor_predecessor_for_cascade,
                         tensor_current_in_cascade,
                         ts_current_in_cascade,
                     )
-
-    # get_tensor_at_timestamp is inherited from TensorMultiplexer.

@@ -1,6 +1,7 @@
 """
 This file defines the TensorMultiplexer abstract base class and its Client interface.
 """
+
 import abc
 import asyncio
 import bisect
@@ -38,15 +39,22 @@ class TensorMultiplexer(abc.ABC):
             """
             Called when an index in the tensor has a new value at a given timestamp.
             """
-            pass
+            ...
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes common attributes for tensor multiplexers, specifically
         the history list and the lock for concurrent access.
         """
-        self._history: List[TimestampedTensor] = []
-        self._lock = asyncio.Lock()
+        self._history: List[TimestampedTensor] = []  # Reverted to _history
+        self.__lock = asyncio.Lock()
+
+    @property
+    def lock(self) -> asyncio.Lock:
+        """Provides access to the internal asyncio Lock."""
+        return self.__lock
+
+    # Removed history property
 
     @abc.abstractmethod
     async def process_tensor(
@@ -57,7 +65,7 @@ class TensorMultiplexer(abc.ABC):
         Subclasses must implement the logic for how this tensor is processed
         and how updates are generated.
         """
-        pass
+        ...
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
@@ -73,10 +81,9 @@ class TensorMultiplexer(abc.ABC):
         Returns:
             A clone of the tensor if the timestamp exists in history, else None.
         """
-        async with self._lock:
-            # Use bisect_left with a key to compare timestamp with the first element of the tuples
+        async with self.__lock: # lock remains name-mangled and accessed via property if needed by external, or __lock internally
             i = bisect.bisect_left(
-                self._history, timestamp, key=lambda x: x[0]
+                self._history, timestamp, key=lambda x: x[0] # Use _history
             )
             if i != len(self._history) and self._history[i][0] == timestamp:
                 return self._history[i][1].clone()
