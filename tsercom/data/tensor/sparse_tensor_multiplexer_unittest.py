@@ -35,7 +35,9 @@ def mock_client() -> MockSparseTensorMultiplexerClient:
 
 
 @pytest.fixture
-def multiplexer(mock_client: MockSparseTensorMultiplexerClient) -> SparseTensorMultiplexer:
+def multiplexer(
+    mock_client: MockSparseTensorMultiplexerClient,
+) -> SparseTensorMultiplexer:
     return SparseTensorMultiplexer(
         client=mock_client, tensor_length=5, data_timeout_seconds=60.0
     )
@@ -72,7 +74,8 @@ async def test_constructor_validations():  # Async
 
 @pytest.mark.asyncio
 async def test_process_first_tensor(  # Async
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     tensor1 = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     await multiplexer.process_tensor(tensor1, T1)  # Await
@@ -88,7 +91,8 @@ async def test_process_first_tensor(  # Async
 
 @pytest.mark.asyncio
 async def test_simple_update_scenario1(  # Async
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     tensor1 = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     await multiplexer.process_tensor(tensor1, T1)  # Await
@@ -107,7 +111,8 @@ async def test_simple_update_scenario1(  # Async
 
 @pytest.mark.asyncio
 async def test_process_identical_tensor(  # Async
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     tensor1 = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     await multiplexer.process_tensor(tensor1, T1)  # Await
@@ -123,7 +128,8 @@ async def test_process_identical_tensor(  # Async
 
 @pytest.mark.asyncio
 async def test_process_identical_tensor_same_timestamp(  # Async
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     tensor1 = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     await multiplexer.process_tensor(tensor1, T1)  # Await
@@ -136,7 +142,8 @@ async def test_process_identical_tensor_same_timestamp(  # Async
 
 @pytest.mark.asyncio
 async def test_update_at_same_timestamp_different_data(  # Async
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     tensor1 = torch.tensor([1.0, 0.0, 0.0, 0.0, 0.0])  # Base state for T1
     await multiplexer.process_tensor(tensor1, T1)  # Await
@@ -161,7 +168,8 @@ async def test_update_at_same_timestamp_different_data(  # Async
 
 @pytest.mark.asyncio
 async def test_out_of_order_update_scenario2_full_cascade(  # Async
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     # Initial state: T2 is processed first
     tensor_T2_val = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
@@ -193,7 +201,8 @@ async def test_out_of_order_update_scenario2_full_cascade(  # Async
 
 @pytest.mark.asyncio
 async def test_multiple_out_of_order_insertions_full_cascade(  # Async
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     # T4 arrives first
     tensor_T4 = torch.tensor([4.0] * 5)
@@ -238,7 +247,8 @@ async def test_multiple_out_of_order_insertions_full_cascade(  # Async
 
 @pytest.mark.asyncio
 async def test_update_existing_then_cascade(  # Async
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     tensor_T1 = torch.tensor([1.0] * 5)
     tensor_T2 = torch.tensor([2.0] * 5)
@@ -327,7 +337,8 @@ async def test_input_tensor_wrong_length(
 # New test for get_tensor_at_timestamp
 @pytest.mark.asyncio
 async def test_get_tensor_at_timestamp(
-    multiplexer: SparseTensorMultiplexer, mock_client: MockSparseTensorMultiplexerClient
+    multiplexer: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
 ):  # Async
     tensor_t1 = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     tensor_t2 = torch.tensor([6.0, 7.0, 8.0, 9.0, 10.0])

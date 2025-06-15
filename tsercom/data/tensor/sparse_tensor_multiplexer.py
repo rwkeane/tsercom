@@ -1,18 +1,17 @@
 """Multiplexes tensor updates into granular, serializable messages."""
 
-import abc
-import asyncio
 import bisect  # Already used by previous version, good for get_tensor_at_timestamp
 import datetime
 from typing import (
-    List,
     Tuple,
     Optional,
 )
 
 import torch
 
-from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer # Import base class
+from tsercom.data.tensor.tensor_multiplexer import (
+    TensorMultiplexer,
+)  # Import base class
 
 
 # Using a type alias for clarity
@@ -35,7 +34,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
 
     def __init__(
         self,
-        client: "TensorMultiplexer.Client", # Use base class client
+        client: "TensorMultiplexer.Client",  # Use base class client
         tensor_length: int,
         data_timeout_seconds: float = 60.0,
     ):
@@ -62,7 +61,9 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         # This is an internal method, not directly locked, assumes lock is held by caller (process_tensor)
         if not self._history:
             return
-        timeout_delta = datetime.timedelta(seconds=self._data_timeout_seconds) # Use base class attribute
+        timeout_delta = datetime.timedelta(
+            seconds=self._data_timeout_seconds
+        )  # Use base class attribute
         cutoff_timestamp = current_max_timestamp - timeout_delta
         keep_from_index = 0
         for i, (ts, _) in enumerate(self._history):
@@ -94,7 +95,9 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             else self._find_insertion_point(timestamp)
         )
         if idx_of_timestamp_entry == 0:
-            return torch.zeros(self._tensor_length, dtype=torch.float32) # Use base class attribute
+            return torch.zeros(
+                self._tensor_length, dtype=torch.float32
+            )  # Use base class attribute
         return self._history[idx_of_timestamp_entry - 1][1]
 
     async def _emit_diff(  # Changed to async def to await client call
@@ -117,8 +120,8 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        async with self._lock: # Lock from base class
-            if len(tensor) != self._tensor_length: # Use base class attribute
+        async with self._lock:  # Lock from base class
+            if len(tensor) != self._tensor_length:  # Use base class attribute
                 raise ValueError(
                     f"Input tensor length {len(tensor)} does not match expected length {self._tensor_length}"
                 )

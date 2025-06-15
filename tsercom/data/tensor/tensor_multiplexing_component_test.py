@@ -6,6 +6,9 @@ from typing import Dict, List, Tuple, Optional
 
 from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer
 from tsercom.data.tensor.tensor_demuxer import TensorDemuxer
+from tsercom.data.tensor.complete_tensor_multiplexer import (
+    CompleteTensorMultiplexer,
+)
 
 # Timestamps for testing consistency
 T_COMP_BASE = datetime.datetime(2024, 3, 10, 10, 0, 0)
@@ -87,7 +90,7 @@ async def test_simple_tensor_pass_through():
     demuxer = TensorDemuxer(client=demuxer_client, tensor_length=tensor_length)
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client, tensor_length=tensor_length
     )
     await multiplexer.process_tensor(original_tensor, timestamp)
@@ -104,7 +107,7 @@ async def test_sequential_tensors_pass_through():
     demuxer = TensorDemuxer(client=demuxer_client, tensor_length=tensor_length)
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client, tensor_length=tensor_length
     )
     tensor_t1 = torch.tensor([1.0, 1.0, 1.0])
@@ -136,7 +139,7 @@ async def test_out_of_order_pass_through_mux_cascade_effect():
     )
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=120,
@@ -209,7 +212,7 @@ async def test_out_of_order_scenario2_e2e_mux_cascade():
     )
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=120,
@@ -249,7 +252,7 @@ async def test_mux_cascade_three_deep_e2e():
     )
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=120,
@@ -311,7 +314,7 @@ async def test_data_timeout_e2e():
     )
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=timeout_sec,
@@ -379,7 +382,7 @@ async def test_deep_cascade_on_early_update_e2e():
         demuxer
     )  # Important for client to get actual state
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=120,

@@ -57,7 +57,9 @@ class TensorMultiplexer(abc.ABC):
 
         self._client = client
         self._tensor_length = tensor_length
-        self._data_timeout_seconds = data_timeout_seconds  # For subclasses to use
+        self._data_timeout_seconds = (
+            data_timeout_seconds  # For subclasses to use
+        )
         self._lock = asyncio.Lock()
         # Placeholder for type hinting and get_tensor_at_timestamp.
         # Subclasses are responsible for managing the actual history.

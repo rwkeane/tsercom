@@ -1,6 +1,5 @@
 """Multiplexes complete tensor snapshots."""
 
-import asyncio
 import bisect
 import datetime
 from typing import (
@@ -60,11 +59,20 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
 
         # Determine effective cleanup reference timestamp (outside lock for this part)
         current_max_timestamp_for_cleanup = timestamp
-        if self._history and self._history[-1][0] > current_max_timestamp_for_cleanup:
+        if (
+            self._history
+            and self._history[-1][0] > current_max_timestamp_for_cleanup
+        ):
             current_max_timestamp_for_cleanup = self._history[-1][0]
 
-        if self._latest_processed_timestamp and self._latest_processed_timestamp > current_max_timestamp_for_cleanup:
-            current_max_timestamp_for_cleanup = self._latest_processed_timestamp
+        if (
+            self._latest_processed_timestamp
+            and self._latest_processed_timestamp
+            > current_max_timestamp_for_cleanup
+        ):
+            current_max_timestamp_for_cleanup = (
+                self._latest_processed_timestamp
+            )
 
         # Lock acquisition should happen before _cleanup_old_data if it modifies _history
         # and also before other history modifications and client calls.
@@ -84,7 +92,9 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
                 self._history[insertion_point] = (timestamp, tensor.clone())
             else:
                 # Insert new tensor
-                self._history.insert(insertion_point, (timestamp, tensor.clone()))
+                self._history.insert(
+                    insertion_point, (timestamp, tensor.clone())
+                )
 
             # Update latest_processed_timestamp
             if self._history:
@@ -92,7 +102,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
                 # The potential_latest_ts should consider the current timestamp being processed
                 # especially if it's inserted at the end or history was empty.
                 potential_latest_ts = max(current_max_ts_in_history, timestamp)
-            else: # Should not happen if we just inserted, but good for robustness
+            else:  # Should not happen if we just inserted, but good for robustness
                 potential_latest_ts = timestamp
 
             if (
@@ -130,7 +140,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             # This means all items are older than cutoff_timestamp if history is not empty
             if self._history and self._history[-1][0] < cutoff_timestamp:
                 self._history = []
-                return # All cleared
+                return  # All cleared
             # If history was empty, keep_from_index remains 0, history remains []
 
         if keep_from_index > 0:
