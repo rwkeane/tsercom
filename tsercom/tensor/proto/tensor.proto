@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package tsercom.tensor.proto;
+
+import "time.proto"; // Corrected: Relative to an include path
+
+message Tensor {
+    dtp.ServerTimestamp timestamp = 1; // Qualified with package name
+    repeated int32 size = 2;
+    repeated float array = 3;
+}
