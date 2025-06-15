@@ -2,9 +2,11 @@ import datetime
 import torch
 import pytest
 import asyncio
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 
-from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer
+from tsercom.data.tensor.complete_tensor_multiplexer import (
+    CompleteTensorMultiplexer,
+)
 from tsercom.data.tensor.tensor_demuxer import TensorDemuxer
 
 # Timestamps for testing consistency
@@ -16,11 +18,11 @@ T_COMP_3 = T_COMP_BASE + datetime.timedelta(seconds=30)
 T_COMP_4 = T_COMP_BASE + datetime.timedelta(seconds=40)  # For deeper cascade
 
 
-class MultiplexerOutputHandler(TensorMultiplexer.Client):
-    def __init__(self, demuxer: TensorDemuxer):
+class MultiplexerOutputHandler(CompleteTensorMultiplexer.Client):
+    def __init__(self, demuxer: TensorDemuxer) -> None:
         self.demuxer = demuxer
         self.raw_updates: List[Tuple[int, float, datetime.datetime]] = []
-        self._tasks: List[asyncio.Task] = []  # Store tasks to await them
+        self._tasks: List[asyncio.Task[Any]] = []  # Store tasks to await them
 
     async def on_index_update(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
@@ -32,23 +34,23 @@ class MultiplexerOutputHandler(TensorMultiplexer.Client):
         )
         self._tasks.append(task)
 
-    async def flush_tasks(self):
+    async def flush_tasks(self) -> None:
         """Waits for all scheduled demuxer updates to complete."""
         if self._tasks:
             await asyncio.gather(*self._tasks)
             self._tasks = []
 
-    def clear_updates(self):
+    def clear_updates(self) -> None:
         self.raw_updates = []
 
 
 class DemuxerOutputHandler(TensorDemuxer.Client):
-    def __init__(self):
+    def __init__(self) -> None:
         self.reconstructed_tensors: Dict[datetime.datetime, torch.Tensor] = {}
         self.call_log: List[Tuple[torch.Tensor, datetime.datetime]] = []
         self._demuxer_instance: Optional[TensorDemuxer] = None
 
-    def set_demuxer_instance(self, demuxer: TensorDemuxer):
+    def set_demuxer_instance(self, demuxer: TensorDemuxer) -> None:
         self._demuxer_instance = demuxer
 
     async def on_tensor_changed(
@@ -73,13 +75,13 @@ class DemuxerOutputHandler(TensorDemuxer.Client):
             return actual_tensor
         return self.reconstructed_tensors.get(timestamp)
 
-    def clear(self):
+    def clear(self) -> None:
         self.reconstructed_tensors.clear()
         self.call_log.clear()
 
 
 @pytest.mark.asyncio
-async def test_simple_tensor_pass_through():
+async def test_simple_tensor_pass_through() -> None:
     tensor_length = 4
     original_tensor = torch.tensor([1.0, 2.0, 3.0, 4.0])
     timestamp = T_COMP_1
@@ -87,24 +89,24 @@ async def test_simple_tensor_pass_through():
     demuxer = TensorDemuxer(client=demuxer_client, tensor_length=tensor_length)
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client, tensor_length=tensor_length
     )
     await multiplexer.process_tensor(original_tensor, timestamp)
     await multiplexer_client.flush_tasks()
     reconstructed = await demuxer_client.get_tensor_at_ts(timestamp)
     assert reconstructed is not None
-    assert torch.equal(original_tensor, reconstructed)
+    assert torch.equal(reconstructed, original_tensor)
 
 
 @pytest.mark.asyncio
-async def test_sequential_tensors_pass_through():
+async def test_sequential_tensors_pass_through() -> None:
     tensor_length = 3
     demuxer_client = DemuxerOutputHandler()
     demuxer = TensorDemuxer(client=demuxer_client, tensor_length=tensor_length)
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client, tensor_length=tensor_length
     )
     tensor_t1 = torch.tensor([1.0, 1.0, 1.0])
@@ -113,19 +115,19 @@ async def test_sequential_tensors_pass_through():
     await multiplexer_client.flush_tasks()
     reconstructed_t1 = await demuxer_client.get_tensor_at_ts(T_COMP_1)
     assert reconstructed_t1 is not None
-    assert torch.equal(tensor_t1, reconstructed_t1)
+    assert torch.equal(reconstructed_t1, tensor_t1)
     await multiplexer.process_tensor(tensor_t2, T_COMP_2)
     await multiplexer_client.flush_tasks()
     reconstructed_t2 = await demuxer_client.get_tensor_at_ts(T_COMP_2)
     assert reconstructed_t2 is not None
-    assert torch.equal(tensor_t2, reconstructed_t2)
+    assert torch.equal(reconstructed_t2, tensor_t2)
     reconstructed_t1_again = await demuxer_client.get_tensor_at_ts(T_COMP_1)
     assert reconstructed_t1_again is not None
-    assert torch.equal(tensor_t1, reconstructed_t1_again)
+    assert torch.equal(reconstructed_t1_again, tensor_t1)
 
 
 @pytest.mark.asyncio
-async def test_out_of_order_pass_through_mux_cascade_effect():
+async def test_out_of_order_pass_through_mux_cascade_effect() -> None:
     """Tests out-of-order affecting subsequent tensor reconstruction due to Mux cascade."""
     tensor_length = 4
     demuxer_client = DemuxerOutputHandler()
@@ -136,7 +138,7 @@ async def test_out_of_order_pass_through_mux_cascade_effect():
     )
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=120,
@@ -156,12 +158,12 @@ async def test_out_of_order_pass_through_mux_cascade_effect():
     await multiplexer_client.flush_tasks()
 
     # Verify initial T1 and T3 states in Demuxer
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(T_COMP_1), tensor_t1
-    )
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(T_COMP_3), tensor_t3
-    )
+    reconstructed_t1_initial = await demuxer_client.get_tensor_at_ts(T_COMP_1)
+    assert reconstructed_t1_initial is not None
+    assert torch.equal(reconstructed_t1_initial, tensor_t1)
+    reconstructed_t3_initial = await demuxer_client.get_tensor_at_ts(T_COMP_3)
+    assert reconstructed_t3_initial is not None
+    assert torch.equal(reconstructed_t3_initial, tensor_t3)
 
     demuxer_client.clear()  # Clear call log to focus on post-cascade effects
     multiplexer_client.clear_updates()
@@ -176,7 +178,7 @@ async def test_out_of_order_pass_through_mux_cascade_effect():
     reconstructed_t2 = await demuxer_client.get_tensor_at_ts(T_COMP_2)
     assert reconstructed_t2 is not None, "T2 not reconstructed"
     assert torch.equal(
-        tensor_t2, reconstructed_t2
+        reconstructed_t2, tensor_t2
     ), f"T2 mismatch: {tensor_t2} vs {reconstructed_t2}"
 
     # Check T3 in Demuxer - Demuxer should have processed T3's re-diffed updates from Mux.
@@ -184,22 +186,22 @@ async def test_out_of_order_pass_through_mux_cascade_effect():
     # Mux sent T3 vs T2. Demuxer's T3 should update based on its T2 state + (T3 vs T2 diffs).
     # If T2 = [2,2,2,2] and T3_orig = [3,3,3,3], then diff(T3_orig,T2) is all 3s.
     # Demuxer T3 state starts as T2 state [2,2,2,2], applies diffs, becomes [3,3,3,3].
-    reconstructed_t3 = await demuxer_client.get_tensor_at_ts(T_COMP_3)
+    reconstructed_t3_final = await demuxer_client.get_tensor_at_ts(T_COMP_3)
     assert (
-        reconstructed_t3 is not None
+        reconstructed_t3_final is not None
     ), "T3 not reconstructed after T2 insertion"
     assert torch.equal(
-        tensor_t3, reconstructed_t3
-    ), f"T3 mismatch: {tensor_t3} vs {reconstructed_t3}"
+        reconstructed_t3_final, tensor_t3
+    ), f"T3 mismatch: {tensor_t3} vs {reconstructed_t3_final}"
 
     # Ensure T1 is still correct
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(T_COMP_1), tensor_t1
-    )
+    reconstructed_t1_final = await demuxer_client.get_tensor_at_ts(T_COMP_1)
+    assert reconstructed_t1_final is not None
+    assert torch.equal(reconstructed_t1_final, tensor_t1)
 
 
 @pytest.mark.asyncio
-async def test_out_of_order_scenario2_e2e_mux_cascade():
+async def test_out_of_order_scenario2_e2e_mux_cascade() -> None:
     tensor_length = 5
     demuxer_client = DemuxerOutputHandler()
     demuxer = TensorDemuxer(
@@ -209,7 +211,7 @@ async def test_out_of_order_scenario2_e2e_mux_cascade():
     )
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=120,
@@ -218,9 +220,9 @@ async def test_out_of_order_scenario2_e2e_mux_cascade():
     tensor_T2_val = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     await multiplexer.process_tensor(tensor_T2_val, T_COMP_2)  # Mux: T2 vs 0s
     await multiplexer_client.flush_tasks()
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(T_COMP_2), tensor_T2_val
-    )
+    reconstructed_T2_initial = await demuxer_client.get_tensor_at_ts(T_COMP_2)
+    assert reconstructed_T2_initial is not None
+    assert torch.equal(reconstructed_T2_initial, tensor_T2_val)
 
     tensor_T1_val = torch.tensor([1.0, 4.0, 4.0, 4.0, 4.0])
     await multiplexer.process_tensor(
@@ -230,15 +232,15 @@ async def test_out_of_order_scenario2_e2e_mux_cascade():
 
     reconstructed_T1 = await demuxer_client.get_tensor_at_ts(T_COMP_1)
     assert reconstructed_T1 is not None
-    assert torch.equal(tensor_T1_val, reconstructed_T1)
+    assert torch.equal(reconstructed_T1, tensor_T1_val)
 
     final_reconstructed_T2 = await demuxer_client.get_tensor_at_ts(T_COMP_2)
     assert final_reconstructed_T2 is not None
-    assert torch.equal(tensor_T2_val, final_reconstructed_T2)
+    assert torch.equal(final_reconstructed_T2, tensor_T2_val)
 
 
 @pytest.mark.asyncio
-async def test_mux_cascade_three_deep_e2e():
+async def test_mux_cascade_three_deep_e2e() -> None:
     """Tests Mux cascade: T1, T3, T4 arrive. Then T2 arrives (T1<T2<T3<T4)."""
     tensor_length = 3
     demuxer_client = DemuxerOutputHandler()
@@ -249,7 +251,7 @@ async def test_mux_cascade_three_deep_e2e():
     )
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=120,
@@ -272,9 +274,15 @@ async def test_mux_cascade_three_deep_e2e():
     )  # Mux: T4 vs T3. Demuxer: T4 based on T3 -> [4,4,4]
     await multiplexer_client.flush_tasks()
 
-    assert torch.equal(await demuxer_client.get_tensor_at_ts(T_COMP_1), t1_val)
-    assert torch.equal(await demuxer_client.get_tensor_at_ts(T_COMP_3), t3_val)
-    assert torch.equal(await demuxer_client.get_tensor_at_ts(T_COMP_4), t4_val)
+    reconstructed_t1_initial = await demuxer_client.get_tensor_at_ts(T_COMP_1)
+    assert reconstructed_t1_initial is not None
+    assert torch.equal(reconstructed_t1_initial, t1_val)
+    reconstructed_t3_initial = await demuxer_client.get_tensor_at_ts(T_COMP_3)
+    assert reconstructed_t3_initial is not None
+    assert torch.equal(reconstructed_t3_initial, t3_val)
+    reconstructed_t4_initial = await demuxer_client.get_tensor_at_ts(T_COMP_4)
+    assert reconstructed_t4_initial is not None
+    assert torch.equal(reconstructed_t4_initial, t4_val)
 
     # Insert T2
     t2_val = torch.tensor([2.0, 2.0, 2.0])
@@ -285,22 +293,29 @@ async def test_mux_cascade_three_deep_e2e():
     await multiplexer_client.flush_tasks()
 
     # Verify all states in Demuxer are correct
+    reconstructed_t1_final = await demuxer_client.get_tensor_at_ts(T_COMP_1)
+    assert reconstructed_t1_final is not None
+    assert torch.equal(reconstructed_t1_final, t1_val), "T1 state changed"
+
+    reconstructed_t2_final = await demuxer_client.get_tensor_at_ts(T_COMP_2)
+    assert reconstructed_t2_final is not None
+    assert torch.equal(reconstructed_t2_final, t2_val), "T2 incorrect"
+
+    reconstructed_t3_final = await demuxer_client.get_tensor_at_ts(T_COMP_3)
+    assert reconstructed_t3_final is not None
     assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(T_COMP_1), t1_val
-    ), "T1 state changed"
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(T_COMP_2), t2_val
-    ), "T2 incorrect"
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(T_COMP_3), t3_val
+        reconstructed_t3_final, t3_val
     ), "T3 incorrect after T2 insertion"
+
+    reconstructed_t4_final = await demuxer_client.get_tensor_at_ts(T_COMP_4)
+    assert reconstructed_t4_final is not None
     assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(T_COMP_4), t4_val
+        reconstructed_t4_final, t4_val
     ), "T4 incorrect after T2 insertion"
 
 
 @pytest.mark.asyncio
-async def test_data_timeout_e2e():
+async def test_data_timeout_e2e() -> None:
     tensor_length = 2
     timeout_sec = 0.1
     demuxer_client = DemuxerOutputHandler()
@@ -311,7 +326,7 @@ async def test_data_timeout_e2e():
     )
     demuxer_client.set_demuxer_instance(demuxer)
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=timeout_sec,
@@ -325,7 +340,9 @@ async def test_data_timeout_e2e():
     assert await demuxer_client.get_tensor_at_ts(T_COMP_0) is not None
 
     # Helper to check if timestamp is in the list of tuples
-    def _is_ts_present_in_demuxer_states(demuxer_instance, target_ts):
+    def _is_ts_present_in_demuxer_states(
+        demuxer_instance: TensorDemuxer, target_ts: datetime.datetime
+    ) -> bool:
         return any(
             ts == target_ts for ts, _, _ in demuxer_instance._tensor_states
         )
@@ -352,17 +369,19 @@ async def test_data_timeout_e2e():
 
     reconstructed_t1 = await demuxer_client.get_tensor_at_ts(T_COMP_1)
     assert reconstructed_t1 is not None
-    assert torch.equal(tensor_t1, reconstructed_t1)
+    assert torch.equal(reconstructed_t1, tensor_t1)
 
     demuxer_client.clear()
     # Manually poke demuxer with an old update (should be ignored due to its own timeout logic)
-    task = asyncio.create_task(demuxer.on_update_received(0, 99.0, T_COMP_0))
+    task: asyncio.Task[Any] = asyncio.create_task(
+        demuxer.on_update_received(0, 99.0, T_COMP_0)
+    )
     await asyncio.gather(task)
     assert await demuxer_client.get_tensor_at_ts(T_COMP_0) is None
 
 
 @pytest.mark.asyncio
-async def test_deep_cascade_on_early_update_e2e():
+async def test_deep_cascade_on_early_update_e2e() -> None:
     """
     Tests that an update to an early tensor in a sequence correctly
     cascades its effects through multiple subsequent tensors in both
@@ -379,7 +398,7 @@ async def test_deep_cascade_on_early_update_e2e():
         demuxer
     )  # Important for client to get actual state
     multiplexer_client = MultiplexerOutputHandler(demuxer)
-    multiplexer = TensorMultiplexer(
+    multiplexer = CompleteTensorMultiplexer(
         client=multiplexer_client,
         tensor_length=tensor_length,
         data_timeout_seconds=120,
@@ -408,18 +427,21 @@ async def test_deep_cascade_on_early_update_e2e():
     await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_D
 
     # Verify initial states in Demuxer
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(TS_A), tensor_A_v1
-    ), "Initial TS_A failed"
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(TS_B), tensor_B_v1
-    ), "Initial TS_B failed"
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(TS_C), tensor_C_v1
-    ), "Initial TS_C failed"
-    assert torch.equal(
-        await demuxer_client.get_tensor_at_ts(TS_D), tensor_D_v1
-    ), "Initial TS_D failed"
+    reconstructed_A_v1 = await demuxer_client.get_tensor_at_ts(TS_A)
+    assert reconstructed_A_v1 is not None
+    assert torch.equal(reconstructed_A_v1, tensor_A_v1), "Initial TS_A failed"
+
+    reconstructed_B_v1 = await demuxer_client.get_tensor_at_ts(TS_B)
+    assert reconstructed_B_v1 is not None
+    assert torch.equal(reconstructed_B_v1, tensor_B_v1), "Initial TS_B failed"
+
+    reconstructed_C_v1 = await demuxer_client.get_tensor_at_ts(TS_C)
+    assert reconstructed_C_v1 is not None
+    assert torch.equal(reconstructed_C_v1, tensor_C_v1), "Initial TS_C failed"
+
+    reconstructed_D_v1 = await demuxer_client.get_tensor_at_ts(TS_D)
+    assert reconstructed_D_v1 is not None
+    assert torch.equal(reconstructed_D_v1, tensor_D_v1), "Initial TS_D failed"
 
     # 2. Update tensor_A (triggering cascade)
     tensor_A_v2 = torch.tensor([1.0, 5.0, 1.0])  # Changed value from [1,1,1]
