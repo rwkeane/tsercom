@@ -3,7 +3,7 @@ import re
 import subprocess
 import os
 import sys
-import shutil # Added for rmtree
+import shutil  # Added for rmtree
 from pathlib import Path
 from typing import Dict, Iterable
 
@@ -28,7 +28,9 @@ def generate_proto_file(
 
     # Check if the proto file contains service definitions.
     proto_content = absolute_proto_path.read_text()
-    has_services = bool(re.search(r"^\s*service\s+\w+\s*\{", proto_content, re.MULTILINE))
+    has_services = bool(
+        re.search(r"^\s*service\s+\w+\s*\{", proto_content, re.MULTILINE)
+    )
 
     # Construct the protoc command.
     command = [
@@ -43,7 +45,7 @@ def generate_proto_file(
     ]
     if has_services:
         command.append(f"--grpc_python_out={output_dir}")
-    command.append(str(absolute_proto_path)) # The .proto file to compile.
+    command.append(str(absolute_proto_path))  # The .proto file to compile.
     print(f"Running command: {' '.join(command)}")
 
     # Ensure plugins are in PATH
@@ -120,7 +122,9 @@ def make_versioned_output_dir(base_dir: Path) -> Path:
     # Clean existing versioned directory before generating new files
     if versioned_output_base.exists():
         shutil.rmtree(versioned_output_base)
-    os.makedirs(versioned_output_base) # Creates generated_dir if not exists, and versioned_output_base
+    os.makedirs(
+        versioned_output_base
+    )  # Creates generated_dir if not exists, and versioned_output_base
 
     return versioned_output_base
 
