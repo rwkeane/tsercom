@@ -540,7 +540,7 @@ async def test_instance_unpublishing():
 
     assert (
         not discovery_event2.is_set()
-    ), f"Discovery event was unexpectedly set for unpublished service. Call count: {client2._call_count}"
+    ), "Discovery event was unexpectedly set for unpublished service."
     assert (
         len(discovered_services2) == 0
     ), f"Service list not empty. Found {len(discovered_services2)} services after unpublishing. Details: {discovered_services2}"

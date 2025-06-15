@@ -11,7 +11,7 @@ from tsercom.rpc.serialization.serializable_tensor import SerializableTensor
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
-from tsercom.rpc.proto import Tensor as GrpcTensor
+from tsercom.tensor.proto import Tensor as GrpcTensor
 
 FIXED_DATETIME_NOW = datetime.datetime.now(datetime.timezone.utc).replace(
     microsecond=0
