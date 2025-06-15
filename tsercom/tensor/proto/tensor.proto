@@ -1,11 +1,46 @@
 syntax = "proto3";
-
 package tsercom.tensor.proto;
 
-import "time.proto"; // Corrected: Relative to an include path
+import "time.proto"; // Verify this import path and the timestamp type below are correct
 
+// Wrapper messages for repeated fields in oneof, which is a required pattern in proto3
+message FloatData { repeated float data = 1; }
+message DoubleData { repeated double data = 1; }
+message Int32Data { repeated int32 data = 1; }
+message Int64Data { repeated int64 data = 1; }
+message BoolData { bytes data = 2; } // Use bytes for efficient bool packing
+
+// For dense tensors
+message DenseTensorData {
+  repeated int64 shape = 1;
+  oneof data_type {
+    FloatData float_data = 2;
+    DoubleData double_data = 3;
+    Int32Data int32_data = 4;
+    Int64Data int64_data = 5;
+    BoolData bool_data = 6;
+  }
+}
+
+// For sparse COO (coordinate format) tensors
+message SparseCooTensorData {
+  repeated int64 shape = 1;
+  // Indices are a 2D array [ndim, nnz] flattened into a 1D list.
+  repeated int64 indices = 2;
+  oneof data_type {
+    FloatData float_values = 3;
+    DoubleData double_values = 4;
+    Int32Data int32_values = 5;
+    Int64Data int64_values = 6;
+    BoolData bool_values = 7;
+  }
+}
+
+// Top-level message
 message Tensor {
-    dtp.ServerTimestamp timestamp = 1; // Qualified with package name
-    repeated int32 size = 2;
-    repeated float array = 3;
+  dtp.ServerTimestamp timestamp = 1; // Verify this type name is correct
+  oneof data_representation {
+    DenseTensorData dense_tensor = 2;
+    SparseCooTensorData sparse_coo_tensor = 3;
+  }
 }
