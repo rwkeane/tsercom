@@ -3,26 +3,51 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List
 
-from zeroconf import ServiceListener
+from zeroconf import ServiceListener, Zeroconf
 
 
-# pylint: disable=W0223 # Relies on InstanceListener fulfilling ServiceListener contract
+# MdnsListener now inherits from zeroconf.ServiceListener
 class MdnsListener(ServiceListener):
     """ABC for mDNS service listeners.
 
-    Extends `zeroconf.ServiceListener`, defines `Client` interface for
-    notifying clients about discovered raw service details. Subclasses should
-    implement `zeroconf.ServiceListener` methods and use `Client` interface.
+    Extends `zeroconf.ServiceListener` and defines an async lifecycle
+    (`start`, `close`) and a client notification interface.
+    Subclasses will implement the async methods and ServiceListener methods.
     """
 
     @abstractmethod
-    def start(self) -> None:
+    async def start(self) -> None:
         """
         Starts listening for mDNS services.
         """
         raise NotImplementedError(
             "MdnsListener.start must be implemented by subclasses."
         )
+
+    # add_service, update_service, remove_service are part of ServiceListener.
+    # Subclasses (like RecordListener) will override them with `async def`
+    # and use # type: ignore[override] if MyPy complains.
+    # We declare them here as abstract to ensure subclasses implement them,
+    # matching the synchronous signatures from ServiceListener.
+    @abstractmethod
+    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        """Called when a new service is discovered."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        """Called when a service is removed."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        """Called when a service is updated."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Stops listening and cleans up resources."""
+        raise NotImplementedError()
 
     # pylint: disable=R0903 # Internal helper/callback class for zeroconf
     class Client(ABC):
@@ -33,7 +58,7 @@ class MdnsListener(ServiceListener):
         """
 
         @abstractmethod
-        def _on_service_added(
+        async def _on_service_added(
             self,
             name: str,  # mDNS instance name of the service.
             port: int,  # Service port number.
@@ -55,7 +80,7 @@ class MdnsListener(ServiceListener):
             )
 
         @abstractmethod
-        def _on_service_removed(
+        async def _on_service_removed(
             self, name: str, service_type: str, record_listener_uuid: str
         ) -> None:
             """Callback for service removal.

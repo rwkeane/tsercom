@@ -1,5 +1,5 @@
 # Filename: tsercom/discovery/mdns/mdns_listener_unittest.py
-from zeroconf import Zeroconf
+from zeroconf.asyncio import AsyncZeroconf  # Changed import
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 
 # Use an alias for MdnsListener.Client for clarity in type hints
@@ -10,7 +10,7 @@ from tsercom.discovery.mdns.mdns_listener import (
 
 # A mock client for the listener, conforming to MdnsListener.Client interface
 class MockMdnsClient(IMdnsListenerClientProto.Client):
-    def _on_service_added(
+    async def _on_service_added(  # Changed to async def
         self,
         name: str,
         port: int,
@@ -19,7 +19,7 @@ class MockMdnsClient(IMdnsListenerClientProto.Client):
     ) -> None:
         pass
 
-    def _on_service_removed(
+    async def _on_service_removed(  # Changed to async def
         self, name: str, service_type: str, record_listener_uuid: str
     ) -> None:
         pass
@@ -35,16 +35,22 @@ class FaultyCustomListener(MdnsListener):
         self._service_type = service_type
 
     # Required ABC methods for instantiation
-    def start(self) -> None:
+    async def start(self) -> None:  # Changed to async def
         pass
 
-    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    async def add_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         pass
 
-    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    async def remove_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         pass
 
-    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    async def update_service(
+        self, zc: AsyncZeroconf, type_: str, name: str
+    ) -> None:  # Changed to async, type hint updated
         pass
 
 
