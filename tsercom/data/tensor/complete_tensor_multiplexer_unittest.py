@@ -132,9 +132,9 @@ async def test_process_first_tensor(
     assert mock_client.get_all_calls_sorted() == expected_calls_for_tensor(
         TENSOR_A_VAL, T1
     )
-    assert len(multiplexer._history) == 1
-    assert multiplexer._history[0][0] == T1
-    assert torch.equal(multiplexer._history[0][1], TENSOR_A)
+    assert len(multiplexer.history) == 1
+    assert multiplexer.history[0][0] == T1
+    assert torch.equal(multiplexer.history[0][1], TENSOR_A)
 
 
 @pytest.mark.asyncio
@@ -149,7 +149,7 @@ async def test_process_second_tensor_different_values(
     assert mock_client.get_all_calls_sorted() == expected_calls_for_tensor(
         TENSOR_B_VAL, T2
     )
-    assert len(multiplexer._history) == 2
+    assert len(multiplexer.history) == 2
 
 
 @pytest.mark.asyncio
@@ -166,7 +166,7 @@ async def test_process_identical_tensor_different_timestamp(
     assert mock_client.get_all_calls_sorted() == expected_calls_for_tensor(
         TENSOR_A_VAL, T2
     )
-    assert len(multiplexer._history) == 2
+    assert len(multiplexer.history) == 2
 
 
 @pytest.mark.asyncio
@@ -186,7 +186,7 @@ async def test_process_identical_tensor_same_timestamp(
     )  # Process identical tensor again
     assert mock_client.calls == []  # No new calls should be made
     assert (
-        len(multiplexer._history) == 1
+        len(multiplexer.history) == 1
     )  # History should still have only one entry for T1
 
 
@@ -203,9 +203,9 @@ async def test_update_tensor_at_existing_timestamp(
     assert mock_client.get_all_calls_sorted() == expected_calls_for_tensor(
         TENSOR_B_VAL, T1
     )
-    assert len(multiplexer._history) == 1
-    assert multiplexer._history[0][0] == T1
-    assert torch.equal(multiplexer._history[0][1], TENSOR_B)
+    assert len(multiplexer.history) == 1
+    assert multiplexer.history[0][0] == T1
+    assert torch.equal(multiplexer.history[0][1], TENSOR_B)
 
 
 @pytest.mark.asyncio
@@ -223,11 +223,11 @@ async def test_out_of_order_processing(
     calls_for_T1 = mock_client.get_all_calls_sorted()
     assert calls_for_T1 == expected_calls_for_tensor(TENSOR_A_VAL, T1)
 
-    assert len(multiplexer._history) == 2
-    assert multiplexer._history[0][0] == T1
-    assert torch.equal(multiplexer._history[0][1], TENSOR_A)
-    assert multiplexer._history[1][0] == T2
-    assert torch.equal(multiplexer._history[1][1], TENSOR_B)
+    assert len(multiplexer.history) == 2
+    assert multiplexer.history[0][0] == T1
+    assert torch.equal(multiplexer.history[0][1], TENSOR_A)
+    assert multiplexer.history[1][0] == T2
+    assert torch.equal(multiplexer.history[1][1], TENSOR_B)
 
 
 @pytest.mark.asyncio
@@ -238,7 +238,7 @@ async def test_data_timeout_simple(
     """Tests data cleanup based on timeout."""
     mpx = multiplexer_short_timeout
     await mpx.process_tensor(TENSOR_A, T0)  # Process at T0
-    assert len(mpx._history) == 1
+    assert len(mpx.history) == 1
     mock_client.clear_calls()
 
     # Simulate waiting longer than timeout by processing a tensor much later
@@ -248,9 +248,9 @@ async def test_data_timeout_simple(
     assert mock_client.get_all_calls_sorted() == expected_calls_for_tensor(
         TENSOR_B_VAL, T3
     )
-    assert len(mpx._history) == 1  # T0 should have been cleaned up
-    assert mpx._history[0][0] == T3
-    assert torch.equal(mpx._history[0][1], TENSOR_B)
+    assert len(mpx.history) == 1  # T0 should have been cleaned up
+    assert mpx.history[0][0] == T3
+    assert torch.equal(mpx.history[0][1], TENSOR_B)
 
 
 @pytest.mark.asyncio
@@ -314,8 +314,8 @@ async def test_data_timeout_out_of_order_arrival_cleanup(
 
     # T2 arrives: History = [(T2, B)]
     await mpx.process_tensor(TENSOR_B, T2)
-    assert len(mpx._history) == 1
-    assert mpx._history[0][0] == T2
+    assert len(mpx.history) == 1
+    assert mpx.history[0][0] == T2
     # _latest_processed_timestamp = T2
     mock_client.clear_calls()
 
@@ -324,9 +324,9 @@ async def test_data_timeout_out_of_order_arrival_cleanup(
     # cleanup(T2) will be called. T2 - 0.1s > T0. So T0 should be fine.
     # T0 is T_BASE - 20s. T2 is T_BASE. T2 - 0.1s is still way after T0.
     await mpx.process_tensor(TENSOR_A, T0)
-    assert len(mpx._history) == 2
-    assert mpx._history[0][0] == T0
-    assert mpx._history[1][0] == T2
+    assert len(mpx.history) == 2
+    assert mpx.history[0][0] == T0
+    assert mpx.history[1][0] == T2
     # _latest_processed_timestamp should still be T2 (max(T0, T2))
     assert mpx._latest_processed_timestamp == T2
     mock_client.clear_calls()
@@ -337,9 +337,9 @@ async def test_data_timeout_out_of_order_arrival_cleanup(
     # T0 (T_BASE - 20s) < T3 - 0.1s. T0 is cleaned.
     # T2 (T_BASE)     < T3 - 0.1s. T2 is cleaned.
     await mpx.process_tensor(TENSOR_C, T3)
-    assert len(mpx._history) == 1
-    assert mpx._history[0][0] == T3
-    assert torch.equal(mpx._history[0][1], TENSOR_C)
+    assert len(mpx.history) == 1
+    assert mpx.history[0][0] == T3
+    assert torch.equal(mpx.history[0][1], TENSOR_C)
     assert mpx._latest_processed_timestamp == T3
     assert mock_client.get_all_calls_sorted() == expected_calls_for_tensor(
         TENSOR_C_VAL, T3
@@ -360,8 +360,8 @@ async def test_cleanup_respects_latest_processed_timestamp(
     # T3 arrives: History = [(T3,C)] because T0 is cleaned up. _latest_processed_timestamp = T3
     # effective_cleanup_ref_ts = max(T3, T0, T0) = T3. cleanup(T3) removes T0.
     await mpx.process_tensor(TENSOR_C, T3)
-    assert len(mpx._history) == 1
-    assert mpx._history[0][0] == T3
+    assert len(mpx.history) == 1
+    assert mpx.history[0][0] == T3
     mock_client.clear_calls()
 
     # T1 arrives (older than T3 but newer than T0): History should be [(T1,B), (T3,C)]
@@ -370,9 +370,9 @@ async def test_cleanup_respects_latest_processed_timestamp(
     # T1 (T_BASE - 10s) is NOT older than T3 - 0.1s. So T1 is kept.
     # T3 is also kept.
     await mpx.process_tensor(TENSOR_B, T1)
-    assert len(mpx._history) == 2
-    assert mpx._history[0][0] == T1
-    assert mpx._history[1][0] == T3
+    assert len(mpx.history) == 2
+    assert mpx.history[0][0] == T1
+    assert mpx.history[1][0] == T3
     assert mpx._latest_processed_timestamp == T3  # max(T1, T3)
     assert mock_client.get_all_calls_sorted() == expected_calls_for_tensor(
         TENSOR_B_VAL, T1
@@ -383,10 +383,10 @@ async def test_cleanup_respects_latest_processed_timestamp(
     # T0 is inserted. T1 is removed by cleanup. T3 remains. History: T0, T3
     mock_client.clear_calls()
     await mpx.process_tensor(TENSOR_A, T0)  # T0 is T_BASE - 20s
-    assert len(mpx._history) == 2
-    assert mpx._history[0][0] == T0
-    # assert mpx._history[1][0] == T1 # T1 is removed
-    assert mpx._history[1][0] == T3
+    assert len(mpx.history) == 2
+    assert mpx.history[0][0] == T0
+    # assert mpx.history[1][0] == T1 # T1 is removed
+    assert mpx.history[1][0] == T3
     assert mpx._latest_processed_timestamp == T3  # max(T0, T3)
     assert mock_client.get_all_calls_sorted() == expected_calls_for_tensor(
         TENSOR_A_VAL, T0

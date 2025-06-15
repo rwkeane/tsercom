@@ -238,11 +238,11 @@ async def test_multiple_out_of_order_insertions_full_cascade(  # Async
     )
     assert sorted(mock_client.calls) == expected_after_T2
 
-    assert len(multiplexer._history) == 4
-    assert multiplexer._history[0][0] == T1
-    assert multiplexer._history[1][0] == T2
-    assert multiplexer._history[2][0] == T3
-    assert multiplexer._history[3][0] == T4
+    assert len(multiplexer.history) == 4
+    assert multiplexer.history[0][0] == T1
+    assert multiplexer.history[1][0] == T2
+    assert multiplexer.history[2][0] == T3
+    assert multiplexer.history[3][0] == T4
 
 
 @pytest.mark.asyncio
@@ -289,8 +289,8 @@ async def test_data_timeout_simple(  # Async
     # T0 is timed out. T1 is diffed against zeros.
     expected_calls_t1_vs_zeros = [(i, 2.0, T1) for i in range(5)]
     assert sorted(mock_client.calls) == sorted(expected_calls_t1_vs_zeros)
-    assert len(mpx._history) == 1
-    assert mpx._history[0][0] == T1
+    assert len(mpx.history) == 1
+    assert mpx.history[0][0] == T1
 
 
 @pytest.mark.asyncio
@@ -318,8 +318,8 @@ async def test_data_timeout_out_of_order_arrival(  # Async
 
     expected_calls_t3_vs_zeros = [(i, 4.0, T3) for i in range(5)]
     assert sorted(mock_client.calls) == sorted(expected_calls_t3_vs_zeros)
-    assert len(mpx._history) == 1
-    assert mpx._history[0][0] == T3
+    assert len(mpx.history) == 1
+    assert mpx.history[0][0] == T3
 
 
 @pytest.mark.asyncio

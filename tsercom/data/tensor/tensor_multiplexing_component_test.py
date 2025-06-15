@@ -336,7 +336,7 @@ async def test_data_timeout_e2e():
     assert _is_ts_present_in_demuxer_states(
         demuxer, T_COMP_0
     )  # Check Demuxer internal state
-    assert T_COMP_0 == multiplexer._history[0][0]
+    assert T_COMP_0 == multiplexer.history[0][0]
 
     await asyncio.sleep(timeout_sec + 0.05)
 
@@ -344,7 +344,7 @@ async def test_data_timeout_e2e():
     await multiplexer_client.flush_tasks()
 
     assert not any(
-        ts == T_COMP_0 for ts, _ in multiplexer._history
+        ts == T_COMP_0 for ts, _ in multiplexer.history
     ), "T0 Mux history"
     assert (
         await demuxer_client.get_tensor_at_ts(T_COMP_0) is None

@@ -126,18 +126,21 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             )
 
             # Update the AggregateTensorMultiplexer's own history
-            async with aggregator._lock:
+            async with aggregator.lock:  # Use property
                 # Determine effective cleanup reference timestamp for the aggregator's history
                 # This should ideally be managed by a central processing loop in AggregateTensorMultiplexer
                 # but for now, we'll use the current timestamp for simplicity if no history exists.
                 current_max_ts_for_cleanup = timestamp
                 if (
-                    aggregator._history
-                    and aggregator._history[-1][0] > current_max_ts_for_cleanup
+                    aggregator.history  # Use property
+                    and aggregator.history[-1][0]
+                    > current_max_ts_for_cleanup  # Use property
                 ):
-                    current_max_ts_for_cleanup = aggregator._history[-1][0]
+                    current_max_ts_for_cleanup = aggregator.history[-1][
+                        0
+                    ]  # Use property
                 if (
-                    aggregator._latest_processed_timestamp
+                    aggregator._latest_processed_timestamp  # This is specific to AggregateTensorMultiplexer
                     and aggregator._latest_processed_timestamp
                     > current_max_ts_for_cleanup
                 ):
@@ -149,19 +152,24 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 # single index update might be inefficient. Typically, cleanup is done before
                 # processing a batch of updates or a new "external" tensor.
                 # For now, we'll assume it's handled by a higher level call or periodically.
-                aggregator._cleanup_old_data(
+                aggregator._cleanup_old_data(  # This method will be updated to use self.history
                     current_max_ts_for_cleanup
                 )  # Potentially deferred
 
-                history_idx = aggregator._find_insertion_point(timestamp)
+                history_idx = aggregator._find_insertion_point(
+                    timestamp
+                )  # This method will be updated to use self.history
                 current_tensor_state: Optional[torch.Tensor] = None
 
                 if (
-                    0 <= history_idx < len(aggregator._history)
-                    and aggregator._history[history_idx][0] == timestamp
+                    0 <= history_idx < len(aggregator.history)  # Use property
+                    and aggregator.history[history_idx][0]
+                    == timestamp  # Use property
                 ):
                     # Existing tensor for this timestamp, clone it
-                    current_tensor_state = aggregator._history[history_idx][
+                    current_tensor_state = aggregator.history[
+                        history_idx
+                    ][  # Use property
                         1
                     ].clone()
                 else:
@@ -196,25 +204,28 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                         # Consider not proceeding with this update or raising an error.
                         return
 
-                    # Replace or insert the updated tensor snapshot back into aggregator._history
+                    # Replace or insert the updated tensor snapshot back into aggregator.history
                     if (
-                        0 <= history_idx < len(aggregator._history)
-                        and aggregator._history[history_idx][0] == timestamp
+                        0
+                        <= history_idx
+                        < len(aggregator.history)  # Use property
+                        and aggregator.history[history_idx][0]
+                        == timestamp  # Use property
                     ):
-                        aggregator._history[history_idx] = (
+                        aggregator.history[history_idx] = (  # Use property
                             timestamp,
                             current_tensor_state,
                         )
                     else:
                         # This case implies we created a new tensor, so insert it.
                         # _find_insertion_point should give correct index for new timestamp.
-                        aggregator._history.insert(
+                        aggregator.history.insert(  # Use property
                             history_idx, (timestamp, current_tensor_state)
                         )
 
                 # Update latest_processed_timestamp for the aggregator
-                if aggregator._history:
-                    max_hist_ts = aggregator._history[-1][0]
+                if aggregator.history:  # Use property
+                    max_hist_ts = aggregator.history[-1][0]  # Use property
                     potential_latest_ts = max(max_hist_ts, timestamp)
                 else:
                     potential_latest_ts = timestamp
@@ -274,11 +285,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         )
 
         # Manages its own history of aggregated tensors
-        self._history: List[TimestampedTensor] = (
-            []
-        )  # Initialized in super, re-typed here for clarity
         self._latest_processed_timestamp: Optional[datetime.datetime] = None
-        # self._lock is inherited from TensorMultiplexer
         # self._client is the main client for the aggregate tensor
 
     @overload
@@ -332,7 +339,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         Adds a publisher to the aggregation. The publisher's tensor data will either
         be appended to the aggregate tensor or mapped to a specific range within it.
         """
-        async with self._lock:
+        async with self.lock:  # Use property
             start_index: int
             current_tensor_len: int
             sparse: bool = kwargs.get("sparse", False)
@@ -532,32 +539,38 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         than data_timeout_seconds relative to the current_max_timestamp.
         Assumes lock is held by the caller.
         """
-        if not self._history:
+        if not self.history:  # Use property
             return
         timeout_delta = datetime.timedelta(seconds=self._data_timeout_seconds)
         cutoff_timestamp = current_max_timestamp - timeout_delta
 
         keep_from_index = 0
-        for i, (ts, _) in enumerate(self._history):
+        for i, (ts, _) in enumerate(self.history):  # Use property
             if ts >= cutoff_timestamp:
                 keep_from_index = i
                 break
         else:
-            if self._history and self._history[-1][0] < cutoff_timestamp:
-                self._history = []
+            if (
+                self.history and self.history[-1][0] < cutoff_timestamp
+            ):  # Use property
+                self.history[:] = []  # Use property to clear
                 return
 
         if keep_from_index > 0:
-            self._history = self._history[keep_from_index:]
+            self.history[:] = self.history[
+                keep_from_index:
+            ]  # Use property for slice assignment
 
     def _find_insertion_point(self, timestamp: datetime.datetime) -> int:
         """
-        Finds the insertion point for a new timestamp in the sorted _history list.
+        Finds the insertion point for a new timestamp in the sorted self.history list.
         Assumes lock is held by the caller or method is otherwise protected.
         """
-        return bisect.bisect_left(self._history, timestamp, key=lambda x: x[0])
+        return bisect.bisect_left(
+            self.history, timestamp, key=lambda x: x[0]
+        )  # Use property
 
-    # get_tensor_at_timestamp is inherited and will use self._history and self._lock
+    # get_tensor_at_timestamp is inherited and will use self.history and self.lock
 
     # _InternalClient definition will go here or be defined earlier if preferred.
     # For now, its methods that would be called by internal multiplexers are not yet defined.
