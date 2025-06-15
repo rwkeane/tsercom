@@ -1,10 +1,8 @@
 """Multiplexes complete tensor snapshots."""
 
-import asyncio
 import bisect
 import datetime
 from typing import (
-    List,
     Tuple,
     Optional,
 )
@@ -39,10 +37,8 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             data_timeout_seconds: How long to keep tensor data before it's considered stale.
         """
         super().__init__(client, tensor_length, data_timeout_seconds)
-        # self._history is already declared in the base class (TensorMultiplexer)
-        # and is initialized as an empty list there.
-        # We are just confirming its type here for this specific implementation.
-        self._history: List[TimestampedTensor] = []
+        # self.history is provided by the base class.
+        # Child classes should use self.history to access/manipulate it.
         self._latest_processed_timestamp: Optional[datetime.datetime] = None
 
     async def process_tensor(
@@ -60,39 +56,51 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
 
         # Determine effective cleanup reference timestamp (outside lock for this part)
         current_max_timestamp_for_cleanup = timestamp
-        if self._history and self._history[-1][0] > current_max_timestamp_for_cleanup:
-            current_max_timestamp_for_cleanup = self._history[-1][0]
+        if (
+            self.history
+            and self.history[-1][0] > current_max_timestamp_for_cleanup
+        ):
+            current_max_timestamp_for_cleanup = self.history[-1][0]
 
-        if self._latest_processed_timestamp and self._latest_processed_timestamp > current_max_timestamp_for_cleanup:
-            current_max_timestamp_for_cleanup = self._latest_processed_timestamp
+        if (
+            self._latest_processed_timestamp
+            and self._latest_processed_timestamp
+            > current_max_timestamp_for_cleanup
+        ):
+            current_max_timestamp_for_cleanup = (
+                self._latest_processed_timestamp
+            )
 
-        # Lock acquisition should happen before _cleanup_old_data if it modifies _history
+        # Lock acquisition should happen before _cleanup_old_data if it modifies history
         # and also before other history modifications and client calls.
-        async with self._lock:
-            self._cleanup_old_data(current_max_timestamp_for_cleanup)
+        async with self.lock:  # Use property
+            self._cleanup_old_data(
+                current_max_timestamp_for_cleanup
+            )  # Calls method that uses self.history
 
-            insertion_point = self._find_insertion_point(timestamp)
+            insertion_point = self._find_insertion_point(
+                timestamp
+            )  # Calls method that uses self.history
 
             # Handle existing tensor at the same timestamp
             if (
-                0 <= insertion_point < len(self._history)
-                and self._history[insertion_point][0] == timestamp
+                0 <= insertion_point < len(self.history)
+                and self.history[insertion_point][0] == timestamp
             ):
-                if torch.equal(self._history[insertion_point][1], tensor):
+                if torch.equal(self.history[insertion_point][1], tensor):
                     return  # No change, no need to re-send
-                # Update existing tensor
-                self._history[insertion_point] = (timestamp, tensor.clone())
+                self.history[insertion_point] = (timestamp, tensor.clone())
             else:
-                # Insert new tensor
-                self._history.insert(insertion_point, (timestamp, tensor.clone()))
+                self.history.insert(
+                    insertion_point, (timestamp, tensor.clone())
+                )
 
-            # Update latest_processed_timestamp
-            if self._history:
-                current_max_ts_in_history = self._history[-1][0]
+            if self.history:
+                current_max_ts_in_history = self.history[-1][0]
                 # The potential_latest_ts should consider the current timestamp being processed
                 # especially if it's inserted at the end or history was empty.
                 potential_latest_ts = max(current_max_ts_in_history, timestamp)
-            else: # Should not happen if we just inserted, but good for robustness
+            else:  # Should not happen if we just inserted, but good for robustness
                 potential_latest_ts = timestamp
 
             if (
@@ -101,7 +109,6 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             ):
                 self._latest_processed_timestamp = potential_latest_ts
 
-            # Emit all indices for the current tensor
             for i in range(self._tensor_length):
                 await self._client.on_index_update(
                     tensor_index=i, value=tensor[i].item(), timestamp=timestamp
@@ -115,33 +122,38 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
         relative to the current_max_timestamp.
         Assumes lock is held by the caller.
         """
-        if not self._history:
+        if not self.history:  # Use property
             return
         timeout_delta = datetime.timedelta(seconds=self._data_timeout_seconds)
         cutoff_timestamp = current_max_timestamp - timeout_delta
 
-        # Find the first item to keep
         keep_from_index = 0
-        for i, (ts, _) in enumerate(self._history):
+        for i, (ts, _) in enumerate(self.history):  # Use property
             if ts >= cutoff_timestamp:
                 keep_from_index = i
                 break
         else:
             # This means all items are older than cutoff_timestamp if history is not empty
-            if self._history and self._history[-1][0] < cutoff_timestamp:
-                self._history = []
-                return # All cleared
+            if (
+                self.history and self.history[-1][0] < cutoff_timestamp
+            ):  # Use property
+                self.history[:] = []
+                return
             # If history was empty, keep_from_index remains 0, history remains []
 
         if keep_from_index > 0:
-            self._history = self._history[keep_from_index:]
+            self.history[:] = self.history[
+                keep_from_index:
+            ]  # Slice assignment via property
 
     def _find_insertion_point(self, timestamp: datetime.datetime) -> int:
         """
-        Finds the insertion point for a new timestamp in the sorted _history list.
+        Finds the insertion point for a new timestamp in the sorted self.history list.
         Assumes lock is held by the caller or method is otherwise protected.
         """
         # bisect_left finds the insertion point for timestamp to maintain sorted order.
         # The key argument tells bisect_left to compare timestamp with the first element
-        # (timestamp) of the tuples in self._history.
-        return bisect.bisect_left(self._history, timestamp, key=lambda x: x[0])
+        # (timestamp) of the tuples in self.history.
+        return bisect.bisect_left(
+            self.history, timestamp, key=lambda x: x[0]
+        )  # Use property

@@ -22,7 +22,7 @@ class TensorMultiplexer(abc.ABC):
     Abstract base class for multiplexing tensor updates.
     """
 
-    class Client(abc.ABC):
+    class Client(abc.ABC):  # pylint: disable=too-few-public-methods
         """
         Client interface for TensorMultiplexer to report index updates.
         """
@@ -57,11 +57,23 @@ class TensorMultiplexer(abc.ABC):
 
         self._client = client
         self._tensor_length = tensor_length
-        self._data_timeout_seconds = data_timeout_seconds  # For subclasses to use
-        self._lock = asyncio.Lock()
+        self._data_timeout_seconds = (
+            data_timeout_seconds  # For subclasses to use
+        )
+        self.__lock = asyncio.Lock()
         # Placeholder for type hinting and get_tensor_at_timestamp.
         # Subclasses are responsible for managing the actual history.
-        self._history: List[TimestampedTensor] = []
+        self.__history: List[TimestampedTensor] = []
+
+    @property
+    def lock(self) -> asyncio.Lock:
+        """Provides access to the asyncio Lock for synchronization."""
+        return self.__lock
+
+    @property
+    def history(self) -> List[TimestampedTensor]:
+        """Provides access to the tensor history list."""
+        return self.__history
 
     @abc.abstractmethod
     async def process_tensor(
@@ -89,12 +101,12 @@ class TensorMultiplexer(abc.ABC):
         Returns:
             A clone of the tensor if the timestamp exists in history, else None.
         """
-        async with self._lock:
+        async with self.__lock:
             # Use bisect_left with a key to compare timestamp with the first element of the tuples
-            # self._history is expected to be sorted by timestamp.
+            # self.__history is expected to be sorted by timestamp.
             i = bisect.bisect_left(
-                self._history, timestamp, key=lambda x: x[0]
+                self.__history, timestamp, key=lambda x: x[0]
             )
-            if i != len(self._history) and self._history[i][0] == timestamp:
-                return self._history[i][1].clone()
+            if i != len(self.__history) and self.__history[i][0] == timestamp:
+                return self.__history[i][1].clone()
             return None
