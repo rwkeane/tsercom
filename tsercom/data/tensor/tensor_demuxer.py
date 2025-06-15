@@ -78,6 +78,10 @@ class TensorDemuxer:
     def _tensor_length(self) -> int:
         return self.__tensor_length
 
+    @property
+    def _data_timeout_seconds(self) -> float:
+        return self.__data_timeout_seconds
+
     def _cleanup_old_data(self) -> None:
         # Internal method, assumes lock is held by caller
         if not self._latest_update_timestamp or not self._tensor_states:

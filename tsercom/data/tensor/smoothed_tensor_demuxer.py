@@ -17,6 +17,10 @@ from typing import List, Tuple, Optional
 import torch
 
 from tsercom.data.tensor.tensor_demuxer import TensorDemuxer  # Absolute import
+from tsercom.data.tensor.smoothing_strategies import (
+    SmoothingStrategy,
+    LinearInterpolationStrategy,
+)
 
 
 class SmoothedTensorDemuxer(TensorDemuxer):
@@ -28,6 +32,9 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         self,
         client: TensorDemuxer.Client,  # Client for the smoothed output
         tensor_length: int,
+        smoothing_strategy: Optional[
+            SmoothingStrategy
+        ] = None,  # New parameter
         smoothing_period_seconds: float = 1.0,
         data_timeout_seconds: Optional[float] = None,  # For super().__init__
     ):
@@ -40,6 +47,11 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                 else {"data_timeout_seconds": data_timeout_seconds}
             ),
         )
+        self._smoothing_strategy: SmoothingStrategy
+        if smoothing_strategy is None:
+            self._smoothing_strategy = LinearInterpolationStrategy()
+        else:
+            self._smoothing_strategy = smoothing_strategy
 
         if smoothing_period_seconds <= 0:
             raise ValueError("Smoothing period must be positive.")
@@ -258,8 +270,8 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                                             time_ratio = max(
                                                 0.0, min(time_ratio, 1.0)
                                             )
-                                            v_synthetic = (
-                                                v1 + (v2 - v1) * time_ratio
+                                            v_synthetic = self._smoothing_strategy.interpolate(
+                                                v1, v2, time_ratio
                                             )
 
                                             current_synthetic_value = (

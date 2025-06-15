@@ -5,10 +5,19 @@
 
 import asyncio
 import datetime
-from typing import List, Tuple, Any, Optional  # Optional was missing
+from typing import (
+    List,
+    Tuple,
+    Any,
+    Optional,
+    AsyncGenerator,
+    Callable,
+    Coroutine,
+)  # Optional was missing
 
 # from unittest.mock import AsyncMock  # For mocking the client - Removed
 import pytest_asyncio  # Added
+from pytest_mock.plugin import MockerFixture
 
 import pytest
 import torch
@@ -16,6 +25,11 @@ import torch
 # Absolute imports as required
 from tsercom.data.tensor.tensor_demuxer import TensorDemuxer
 from tsercom.data.tensor.smoothed_tensor_demuxer import SmoothedTensorDemuxer
+from tsercom.data.tensor.smoothing_strategies import (
+    SmoothingStrategy,
+    LinearInterpolationStrategy,
+)
+from unittest.mock import MagicMock
 
 
 # Helper for creating timestamps
@@ -32,7 +46,7 @@ def ts_at(
 class FakeClient(TensorDemuxer.Client):
     """A fake client to capture outputs from SmoothedTensorDemuxer."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.received_tensors: List[Tuple[torch.Tensor, datetime.datetime]] = (
             []
         )
@@ -52,7 +66,7 @@ class FakeClient(TensorDemuxer.Client):
         )
         # print(f"FakeClient received tensor at {timestamp} with shape {tensor.shape} and values {tensor.tolist()}")
 
-    def clear(self):
+    def clear(self) -> None:
         self.received_tensors.clear()
         self.call_log.clear()
 
@@ -66,15 +80,20 @@ class FakeClient(TensorDemuxer.Client):
 
 
 @pytest_asyncio.fixture  # Changed
-async def fake_client() -> FakeClient:
+async def fake_client() -> FakeClient:  # Already correctly typed
     return FakeClient()
 
 
 @pytest_asyncio.fixture  # Changed
-async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+async def sm_demuxer(
+    fake_client: FakeClient,
+) -> AsyncGenerator[SmoothedTensorDemuxer, None]:
     # Default tensor_length=3, smoothing_period=1.0s
     demuxer = SmoothedTensorDemuxer(
-        client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        client=fake_client,
+        tensor_length=3,
+        smoothing_strategy=LinearInterpolationStrategy(),  # Added
+        smoothing_period_seconds=1.0,
     )
     await demuxer.start()  # Start the interpolation worker
     yield demuxer
@@ -82,16 +101,21 @@ async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
 
 
 @pytest_asyncio.fixture  # Changed
-async def sm_demuxer_custom(fake_client: FakeClient):
+async def sm_demuxer_custom(
+    fake_client: FakeClient,
+) -> AsyncGenerator[
+    Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], None
+]:
     """Fixture to create a demuxer with custom params passed via a factory function."""
-    demuxers_to_clean = []
+    demuxers_to_clean: List[SmoothedTensorDemuxer] = []
 
     async def _factory(
         tensor_length: int, smoothing_period_seconds: float
-    ) -> SmoothedTensorDemuxer:
+    ) -> SmoothedTensorDemuxer:  # Inner factory type hint
         demuxer = SmoothedTensorDemuxer(
             client=fake_client,
             tensor_length=tensor_length,
+            smoothing_strategy=LinearInterpolationStrategy(),  # Added
             smoothing_period_seconds=smoothing_period_seconds,
         )
         await demuxer.start()
@@ -110,17 +134,21 @@ class TestSmoothedTensorDemuxer:
     """
 
     @pytest.mark.asyncio
-    async def test_initialization(self, fake_client: FakeClient):
+    async def test_initialization(self, fake_client: FakeClient) -> None:
         tensor_length = 5
         smoothing_period = 0.5
         demuxer = SmoothedTensorDemuxer(
             client=fake_client,
             tensor_length=tensor_length,
+            smoothing_strategy=LinearInterpolationStrategy(),  # Added
             smoothing_period_seconds=smoothing_period,
         )
         assert demuxer._sm_client == fake_client
         assert demuxer._tensor_length == tensor_length  # Accessed via property
         assert demuxer._smoothing_period_seconds == smoothing_period
+        assert isinstance(
+            demuxer._smoothing_strategy, LinearInterpolationStrategy
+        )
         assert not demuxer._keyframes
         assert not demuxer._keyframe_explicit_updates
         assert (
@@ -138,7 +166,7 @@ class TestSmoothedTensorDemuxer:
     @pytest.mark.asyncio
     async def test_start_and_close_idempotency(
         self, sm_demuxer: SmoothedTensorDemuxer
-    ):
+    ) -> None:
         # Initial start is done by fixture
         assert sm_demuxer._interpolation_loop_task is not None
         task_id_1 = id(sm_demuxer._interpolation_loop_task)
@@ -170,7 +198,7 @@ class TestSmoothedTensorDemuxer:
     @pytest.mark.asyncio
     async def test_simple_interpolation_two_keyframes(
         self, sm_demuxer: SmoothedTensorDemuxer, fake_client: FakeClient
-    ):
+    ) -> None:
         # sm_demuxer: tensor_length=3, smoothing_period_seconds=1.0
         t0 = ts_at(0)
         # Keyframe 2 is 2.0 seconds after t0, so one synthetic point should be generated at t0 + 1.0s
@@ -248,7 +276,7 @@ class TestSmoothedTensorDemuxer:
     @pytest.mark.asyncio
     async def test_no_interpolation_lt_two_keyframes(
         self, sm_demuxer: SmoothedTensorDemuxer, fake_client: FakeClient
-    ):
+    ) -> None:
         t0 = ts_at(0)
         # Only one keyframe
         await sm_demuxer.on_update_received(
@@ -266,8 +294,12 @@ class TestSmoothedTensorDemuxer:
 
     @pytest.mark.asyncio
     async def test_interpolation_multiple_points(
-        self, sm_demuxer_custom: Any, fake_client: FakeClient
-    ):
+        self,
+        sm_demuxer_custom: Callable[
+            ..., Coroutine[Any, Any, SmoothedTensorDemuxer]
+        ],
+        fake_client: FakeClient,
+    ) -> None:
         # Use custom demuxer for specific timing control
         period = 0.5  # seconds
         tensor_len = 2
@@ -324,8 +356,12 @@ class TestSmoothedTensorDemuxer:
 
     @pytest.mark.asyncio
     async def test_cascading_recalculation_out_of_order_real_data(
-        self, sm_demuxer_custom: Any, fake_client: FakeClient
-    ):
+        self,
+        sm_demuxer_custom: Callable[
+            ..., Coroutine[Any, Any, SmoothedTensorDemuxer]
+        ],
+        fake_client: FakeClient,
+    ) -> None:
         # Use a custom demuxer: tensor_length=2, smoothing_period_seconds=1.0
         # This makes values easier to track: T=[v0, v1]
         period = 1.0
@@ -459,6 +495,8 @@ class TestSmoothedTensorDemuxer:
     @pytest.mark.asyncio
     async def test_smoothing_period_zero(
         self, fake_client: FakeClient
+    ) -> (
+        None
     ):  # Removed sm_demuxer_custom as it's not used for direct __init__ test
         # With smoothing_period_seconds = 0, the behavior might be to pass through data
         # as fast as possible, or simply not interpolate and only emit real keyframes
@@ -487,9 +525,10 @@ class TestSmoothedTensorDemuxer:
         with pytest.raises(
             ValueError, match="Smoothing period must be positive"
         ):
-            direct_demuxer = SmoothedTensorDemuxer(
+            SmoothedTensorDemuxer(
                 client=fake_client,  # Need a client instance
                 tensor_length=tensor_len,
+                smoothing_strategy=LinearInterpolationStrategy(),  # Added
                 smoothing_period_seconds=0.0,
             )
             # await direct_demuxer.start() # Not reached
@@ -499,16 +538,88 @@ class TestSmoothedTensorDemuxer:
         with pytest.raises(
             ValueError, match="Smoothing period must be positive"
         ):
-            direct_demuxer_neg = SmoothedTensorDemuxer(
+            SmoothedTensorDemuxer(
                 client=fake_client,
                 tensor_length=tensor_len,
+                smoothing_strategy=LinearInterpolationStrategy(),  # Added
                 smoothing_period_seconds=-1.0,
             )
 
     @pytest.mark.asyncio
+    async def test_custom_smoothing_strategy(
+        self, fake_client: FakeClient, mocker: MockerFixture
+    ) -> None:
+        tensor_len = 3
+        period = 1.0
+
+        # Create a mock smoothing strategy
+        mock_strategy = MagicMock(spec=SmoothingStrategy)
+        # Configure the mock's interpolate method to return a specific tensor
+        # This also allows us to check if it was called.
+        expected_interpolated_tensor = torch.tensor([-1.0, -2.0, -3.0])
+        mock_strategy.interpolate.return_value = expected_interpolated_tensor
+
+        demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_len,
+            smoothing_strategy=mock_strategy,  # Pass the mock strategy
+            smoothing_period_seconds=period,
+        )
+        await demuxer.start()
+
+        # Setup: Provide two keyframes to trigger interpolation
+        t0 = ts_at(0)
+        t_kf2 = ts_at(
+            2.0
+        )  # 2s apart, period is 1s, so one interpolation expected
+
+        await demuxer.on_update_received(0, 0.0, t0)  # KF1: [0,0,0] at t0
+        await demuxer.on_update_received(1, 0.0, t0)
+        await demuxer.on_update_received(2, 0.0, t0)
+
+        await demuxer.on_update_received(
+            0, 20.0, t_kf2
+        )  # KF2: [20,20,20] at t_kf2 (values don't matter much for this test)
+        await demuxer.on_update_received(1, 20.0, t_kf2)
+        await demuxer.on_update_received(2, 20.0, t_kf2)
+
+        # Wait for interpolation worker to run
+        await asyncio.sleep(period + 0.5)
+
+        # Assertions
+        assert (
+            len(fake_client.received_tensors) >= 1
+        ), "Should have received at least one tensor"
+
+        # Check that the mock strategy's interpolate method was called
+        mock_strategy.interpolate.assert_called()
+
+        # Check that the tensor received by the client is the one from our mock strategy
+        received_tensor, _ = fake_client.received_tensors[0]
+        assert torch.equal(
+            received_tensor, expected_interpolated_tensor
+        ), "Tensor received by client should be the one returned by the mock strategy"
+
+        # Check some details about the call to interpolate (optional, but good)
+        # Example: Check it was called with expected tensor shapes and ratio
+        # Note: v1 and v2 are actual tensors from keyframes.
+        # Ratio should be 0.5 because t_kf2-t0 = 2s, period = 1s, so target is t0+1s.
+        args, _ = mock_strategy.interpolate.call_args
+        assert isinstance(args[0], torch.Tensor)  # start_tensor
+        assert args[0].shape == (tensor_len,)
+        assert isinstance(args[1], torch.Tensor)  # end_tensor
+        assert args[1].shape == (tensor_len,)
+        assert isinstance(args[2], float)  # ratio
+        assert args[2] == pytest.approx(
+            0.5
+        )  # ratio for (t0+1s) between t0 and t0+2s
+
+        await demuxer.close()
+
+    @pytest.mark.asyncio
     async def test_on_update_received_creates_new_keyframes(
         self, sm_demuxer: SmoothedTensorDemuxer
-    ):
+    ) -> None:
         # sm_demuxer fixture has tensor_length = 3
         t0 = ts_at(0)
         t1 = ts_at(1)
@@ -566,7 +677,7 @@ class TestSmoothedTensorDemuxer:
     @pytest.mark.asyncio
     async def test_on_update_received_updates_existing_keyframe(
         self, sm_demuxer: SmoothedTensorDemuxer
-    ):
+    ) -> None:
         t0 = ts_at(0)
         await sm_demuxer.on_update_received(
             tensor_index=0, value=1.0, timestamp=t0
@@ -601,8 +712,10 @@ class TestSmoothedTensorDemuxer:
 
     @pytest.mark.asyncio
     async def test_on_update_received_out_of_bounds_index(
-        self, sm_demuxer: SmoothedTensorDemuxer, caplog
-    ):
+        self,
+        sm_demuxer: SmoothedTensorDemuxer,
+        caplog: Any,  # Using Any for caplog as type is LogCaptureFixture
+    ) -> None:
         # sm_demuxer has tensor_length = 3
         t0 = ts_at(0)
         # Index 3 is out of bounds for tensor_length 3 (valid indices 0, 1, 2)
@@ -624,7 +737,7 @@ class TestSmoothedTensorDemuxer:
     @pytest.mark.asyncio
     async def test_on_update_received_internal_cascade(
         self, sm_demuxer: SmoothedTensorDemuxer
-    ):
+    ) -> None:
         # Test cascading update within _keyframes, similar to base TensorDemuxer
         # sm_demuxer has tensor_length = 3
         t0 = ts_at(0)
