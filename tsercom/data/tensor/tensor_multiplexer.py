@@ -39,7 +39,7 @@ class TensorMultiplexer(abc.ABC):
             """
             Called when an index in the tensor has a new value at a given timestamp.
             """
-            pass
+            ...
 
     def __init__(self) -> None:
         """
@@ -58,7 +58,7 @@ class TensorMultiplexer(abc.ABC):
         Subclasses must implement the logic for how this tensor is processed
         and how updates are generated.
         """
-        pass
+        ...
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime

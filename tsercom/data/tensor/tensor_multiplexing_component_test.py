@@ -177,7 +177,9 @@ async def test_out_of_order_pass_through_mux_cascade_effect() -> None:
     # Check T2 in Demuxer - should be correct based on T1
     reconstructed_t2 = await demuxer_client.get_tensor_at_ts(T_COMP_2)
     assert reconstructed_t2 is not None, "T2 not reconstructed"
-    assert torch.equal(reconstructed_t2, tensor_t2), f"T2 mismatch: {tensor_t2} vs {reconstructed_t2}"
+    assert torch.equal(
+        reconstructed_t2, tensor_t2
+    ), f"T2 mismatch: {tensor_t2} vs {reconstructed_t2}"
 
     # Check T3 in Demuxer - Demuxer should have processed T3's re-diffed updates from Mux.
     # Demuxer's T3 was [3,3,3,3] (based on T1).
@@ -301,11 +303,15 @@ async def test_mux_cascade_three_deep_e2e() -> None:
 
     reconstructed_t3_final = await demuxer_client.get_tensor_at_ts(T_COMP_3)
     assert reconstructed_t3_final is not None
-    assert torch.equal(reconstructed_t3_final, t3_val), "T3 incorrect after T2 insertion"
+    assert torch.equal(
+        reconstructed_t3_final, t3_val
+    ), "T3 incorrect after T2 insertion"
 
     reconstructed_t4_final = await demuxer_client.get_tensor_at_ts(T_COMP_4)
     assert reconstructed_t4_final is not None
-    assert torch.equal(reconstructed_t4_final, t4_val), "T4 incorrect after T2 insertion"
+    assert torch.equal(
+        reconstructed_t4_final, t4_val
+    ), "T4 incorrect after T2 insertion"
 
 
 @pytest.mark.asyncio
@@ -334,7 +340,9 @@ async def test_data_timeout_e2e() -> None:
     assert await demuxer_client.get_tensor_at_ts(T_COMP_0) is not None
 
     # Helper to check if timestamp is in the list of tuples
-    def _is_ts_present_in_demuxer_states(demuxer_instance: TensorDemuxer, target_ts: datetime.datetime) -> bool:
+    def _is_ts_present_in_demuxer_states(
+        demuxer_instance: TensorDemuxer, target_ts: datetime.datetime
+    ) -> bool:
         return any(
             ts == target_ts for ts, _, _ in demuxer_instance._tensor_states
         )
@@ -365,7 +373,9 @@ async def test_data_timeout_e2e() -> None:
 
     demuxer_client.clear()
     # Manually poke demuxer with an old update (should be ignored due to its own timeout logic)
-    task: asyncio.Task[Any] = asyncio.create_task(demuxer.on_update_received(0, 99.0, T_COMP_0))
+    task: asyncio.Task[Any] = asyncio.create_task(
+        demuxer.on_update_received(0, 99.0, T_COMP_0)
+    )
     await asyncio.gather(task)
     assert await demuxer_client.get_tensor_at_ts(T_COMP_0) is None
 
@@ -445,7 +455,9 @@ async def test_deep_cascade_on_early_update_e2e() -> None:
     final_D = await demuxer_client.get_tensor_at_ts(TS_D)
 
     assert final_A is not None, "Final TS_A is None"
-    assert torch.equal(final_A, tensor_A_v2), f"Final TS_A mismatch. Expected {tensor_A_v2}, Got {final_A}"
+    assert torch.equal(
+        final_A, tensor_A_v2
+    ), f"Final TS_A mismatch. Expected {tensor_A_v2}, Got {final_A}"
 
     # The cascade logic in TensorMultiplexer re-emits diffs.
     # TensorDemuxer's cascade logic applies these diffs to the *new* preceding state.
@@ -461,10 +473,16 @@ async def test_deep_cascade_on_early_update_e2e() -> None:
     #   Demuxer takes A_v2 state, applies diffs, should result in B_v1.
     # This means B, C, D should remain their original values if the cascade is perfect.
     assert final_B is not None, "Final TS_B is None"
-    assert torch.equal(final_B, tensor_B_v1), f"Final TS_B mismatch. Expected {tensor_B_v1}, Got {final_B}"
+    assert torch.equal(
+        final_B, tensor_B_v1
+    ), f"Final TS_B mismatch. Expected {tensor_B_v1}, Got {final_B}"
 
     assert final_C is not None, "Final TS_C is None"
-    assert torch.equal(final_C, tensor_C_v1), f"Final TS_C mismatch. Expected {tensor_C_v1}, Got {final_C}"
+    assert torch.equal(
+        final_C, tensor_C_v1
+    ), f"Final TS_C mismatch. Expected {tensor_C_v1}, Got {final_C}"
 
     assert final_D is not None, "Final TS_D is None"
-    assert torch.equal(final_D, tensor_D_v1), f"Final TS_D mismatch. Expected {tensor_D_v1}, Got {final_D}"
+    assert torch.equal(
+        final_D, tensor_D_v1
+    ), f"Final TS_D mismatch. Expected {tensor_D_v1}, Got {final_D}"
