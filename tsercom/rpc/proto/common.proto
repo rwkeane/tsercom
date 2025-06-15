@@ -17,9 +17,3 @@ python3 -m grpc_tools.protoc \
 
 message TestConnectionCall {}
 message TestConnectionResponse {}
-
-message Tensor {
-    ServerTimestamp timestamp = 1;
-    repeated int32 size = 2;
-    repeated float array = 3;
-}

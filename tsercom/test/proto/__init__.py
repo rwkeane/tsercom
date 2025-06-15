@@ -1,26 +1,16 @@
 import grpc
-import subprocess
+import subprocess  # noqa: F401
 from typing import TYPE_CHECKING
 
 if not TYPE_CHECKING:
     try:
         version = grpc.__version__
         major_minor_version = ".".join(version.split(".")[:2])
-    except (
-        AttributeError,
-        subprocess.CalledProcessError,
-        FileNotFoundError,
-    ) as e:
-        print(
-            f"Warning: Failed to get grpc.__version__ ({e}), defaulting to a common version for proto loading."
-        )
-        major_minor_version = "1.62"  # Fallback version
-
+    except Exception:
+        major_minor_version = "1.62"
     version_string = f"v{major_minor_version.replace('.', '_')}"
-
     if False:
         pass
-
     elif version_string == "v1_73":
         from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2 import (
             EchoRequest,
@@ -35,13 +25,10 @@ if not TYPE_CHECKING:
             E2ETestService,
         )
     else:
-        # The 'name' variable for the error message is 'e2e_test_service'
-        # The 'available_versions' for the error message is ['v1_73']
         raise ImportError(
-            f"Error: No code for version {version}, name 'e2e_test_service', available_versions ['v1_73'], version_string {version_string}."
+            f"No code for gRPC {version} ('{version_string}') for 'e2e_test_service'. Avail: ['v1_73']"
         )
-
-else:  # When TYPE_CHECKING
+else:  # TYPE_CHECKING
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2 import (
         EchoRequest as EchoRequest,
     )

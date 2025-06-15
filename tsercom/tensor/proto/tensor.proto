@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package tsercom.tensor.proto;
+
+// Assuming ServerTimestamp is in time.proto and time.proto will be in include path
+import "time.proto";
+
+message Tensor {
+    dtp.ServerTimestamp timestamp = 1;
+    repeated int32 size = 2;
+    repeated float array = 3;
+}

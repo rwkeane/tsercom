@@ -1,17 +1,21 @@
 """Unit tests for the SerializableTensor class."""
 
-import pytest
+import datetime  # Standard library
+from typing import List, Any  # Standard library
 
-torch = pytest.importorskip("torch")
+import pytest  # Third-party
 
-import datetime
-from typing import List, Any
+torch = pytest.importorskip(
+    "torch"
+)  # Special testing line / third-party related
 
-from tsercom.rpc.serialization.serializable_tensor import SerializableTensor
-from tsercom.timesync.common.synchronized_timestamp import (
+from tsercom.rpc.serialization.serializable_tensor import (  # noqa: E402
+    SerializableTensor,
+)
+from tsercom.timesync.common.synchronized_timestamp import (  # noqa: E402
     SynchronizedTimestamp,
 )
-from tsercom.rpc.proto import Tensor as GrpcTensor
+from tsercom.tensor.proto import Tensor as GrpcTensor  # noqa: E402
 
 FIXED_DATETIME_NOW = datetime.datetime.now(datetime.timezone.utc).replace(
     microsecond=0
@@ -66,7 +70,6 @@ if not hasattr(torch, "bfloat16"):
 
 
 class TestSerializableTensor:
-
     def test_init_stores_data_correctly(self):
         tensor_data, _ = create_tensor_and_list([2, 3], torch.float32)
         timestamp_obj = SynchronizedTimestamp(FIXED_DATETIME_NOW)
@@ -83,10 +86,7 @@ class TestSerializableTensor:
         input_tensor, expected_array_list = create_tensor_and_list(
             shape, dtype
         )
-        if dtype == torch.float16 or dtype == torch.bfloat16:
-            expected_array_list = (
-                input_tensor.to(torch.float32).reshape(-1).tolist()
-            )
+        # expected_array_list removed as it was unused
 
         st = SerializableTensor(input_tensor, FIXED_SYNC_TIMESTAMP)
         grpc_tensor_msg = st.to_grpc_type()
@@ -204,19 +204,19 @@ class TestSerializableTensor:
         st_gpu = SerializableTensor(original_tensor_gpu, FIXED_SYNC_TIMESTAMP)
 
         grpc_msg = st_gpu.to_grpc_type()
-        assert (
-            grpc_msg is not None
-        ), "to_grpc_type should return a message for GPU tensor"
+        assert grpc_msg is not None, (
+            "to_grpc_type should return a message for GPU tensor"
+        )
 
         # Deserialize back to GPU
         parsed_st_gpu = SerializableTensor.try_parse(grpc_msg, device="cuda")
         assert parsed_st_gpu is not None, "Failed to parse back to GPU"
-        assert (
-            parsed_st_gpu.tensor.is_cuda
-        ), "Deserialized tensor should be on CUDA device"
-        assert (
-            parsed_st_gpu.tensor.device.type == "cuda"
-        ), "Device type should be CUDA"
+        assert parsed_st_gpu.tensor.is_cuda, (
+            "Deserialized tensor should be on CUDA device"
+        )
+        assert parsed_st_gpu.tensor.device.type == "cuda", (
+            "Device type should be CUDA"
+        )
 
         # Compare data by moving both to CPU for a canonical comparison
         assert torch.equal(
@@ -235,23 +235,23 @@ class TestSerializableTensor:
         st_gpu = SerializableTensor(original_tensor_gpu, FIXED_SYNC_TIMESTAMP)
 
         grpc_msg = st_gpu.to_grpc_type()
-        assert (
-            grpc_msg is not None
-        ), "to_grpc_type should return a message for GPU tensor"
+        assert grpc_msg is not None, (
+            "to_grpc_type should return a message for GPU tensor"
+        )
 
         # Deserialize back to CPU (by not providing device argument)
         parsed_st_cpu = SerializableTensor.try_parse(grpc_msg)
         assert parsed_st_cpu is not None, "Failed to parse back to CPU"
-        assert (
-            not parsed_st_cpu.tensor.is_cuda
-        ), "Deserialized tensor should be on CPU"
-        assert (
-            parsed_st_cpu.tensor.device.type == "cpu"
-        ), "Device type should be CPU"
+        assert not parsed_st_cpu.tensor.is_cuda, (
+            "Deserialized tensor should be on CPU"
+        )
+        assert parsed_st_cpu.tensor.device.type == "cpu", (
+            "Device type should be CPU"
+        )
 
-        assert torch.equal(
-            parsed_st_cpu.tensor, original_tensor_gpu.cpu()
-        ), "Data mismatch after GPU -> CPU cycle"
+        assert torch.equal(parsed_st_cpu.tensor, original_tensor_gpu.cpu()), (
+            "Data mismatch after GPU -> CPU cycle"
+        )
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
     def test_parse_to_specific_gpu_device(self):
@@ -266,9 +266,9 @@ class TestSerializableTensor:
         # Attempt to parse to 'cuda' (default cuda device)
         parsed_st_gpu = SerializableTensor.try_parse(grpc_msg, device="cuda")
         assert parsed_st_gpu is not None, "Failed to parse to GPU"
-        assert (
-            parsed_st_gpu.tensor.is_cuda
-        ), "Deserialized tensor should be on CUDA"
+        assert parsed_st_gpu.tensor.is_cuda, (
+            "Deserialized tensor should be on CUDA"
+        )
         assert parsed_st_gpu.tensor.device.type == "cuda"
         # Check if the device index is 0, assuming 'cuda' maps to 'cuda:0'
         if (
@@ -279,9 +279,9 @@ class TestSerializableTensor:
                 == torch.cuda.current_device()
             ), "Tensor not on default CUDA device"
 
-        assert torch.equal(
-            parsed_st_gpu.tensor.cpu(), cpu_tensor
-        ), "Data mismatch after CPU -> GPU parse"
+        assert torch.equal(parsed_st_gpu.tensor.cpu(), cpu_tensor), (
+            "Data mismatch after CPU -> GPU parse"
+        )
 
     def test_parse_to_cpu_explicitly(self):
         """Tests deserialization to CPU when device='cpu' is explicitly passed."""
@@ -290,13 +290,13 @@ class TestSerializableTensor:
         grpc_msg = st_cpu.to_grpc_type()
 
         parsed_st_cpu = SerializableTensor.try_parse(grpc_msg, device="cpu")
-        assert (
-            parsed_st_cpu is not None
-        ), "Failed to parse to CPU with explicit device='cpu'"
+        assert parsed_st_cpu is not None, (
+            "Failed to parse to CPU with explicit device='cpu'"
+        )
         assert not parsed_st_cpu.tensor.is_cuda, "Tensor should be on CPU"
-        assert (
-            parsed_st_cpu.tensor.device.type == "cpu"
-        ), "Device type should be CPU"
-        assert torch.equal(
-            parsed_st_cpu.tensor, cpu_tensor
-        ), "Data mismatch after CPU -> CPU (explicit) cycle"
+        assert parsed_st_cpu.tensor.device.type == "cpu", (
+            "Device type should be CPU"
+        )
+        assert torch.equal(parsed_st_cpu.tensor, cpu_tensor), (
+            "Data mismatch after CPU -> CPU (explicit) cycle"
+        )
