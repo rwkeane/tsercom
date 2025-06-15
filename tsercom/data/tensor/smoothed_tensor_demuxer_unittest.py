@@ -16,6 +16,12 @@ import torch
 # Absolute imports as required
 from tsercom.data.tensor.tensor_demuxer import TensorDemuxer
 from tsercom.data.tensor.smoothed_tensor_demuxer import SmoothedTensorDemuxer
+from tsercom.data.tensor.smoothing_strategies import (
+    SmoothingStrategy,
+    LinearInterpolationStrategy,
+)
+
+# from unittest.mock import MagicMock # For the new test (Using mocker from pytest-mock instead)
 
 
 # Helper for creating timestamps
@@ -74,7 +80,10 @@ async def fake_client() -> FakeClient:
 async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
     # Default tensor_length=3, smoothing_period=1.0s
     demuxer = SmoothedTensorDemuxer(
-        client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        client=fake_client,
+        tensor_length=3,
+        smoothing_period_seconds=1.0,
+        smoothing_strategy=LinearInterpolationStrategy(),  # Added
     )
     await demuxer.start()  # Start the interpolation worker
     yield demuxer
@@ -93,6 +102,7 @@ async def sm_demuxer_custom(fake_client: FakeClient):
             client=fake_client,
             tensor_length=tensor_length,
             smoothing_period_seconds=smoothing_period_seconds,
+            smoothing_strategy=LinearInterpolationStrategy(),  # Added
         )
         await demuxer.start()
         demuxers_to_clean.append(demuxer)
@@ -117,10 +127,14 @@ class TestSmoothedTensorDemuxer:
             client=fake_client,
             tensor_length=tensor_length,
             smoothing_period_seconds=smoothing_period,
+            smoothing_strategy=LinearInterpolationStrategy(),  # Added
         )
         assert demuxer._sm_client == fake_client
         assert demuxer._tensor_length == tensor_length  # Accessed via property
         assert demuxer._smoothing_period_seconds == smoothing_period
+        assert isinstance(
+            demuxer._smoothing_strategy, LinearInterpolationStrategy
+        )
         assert not demuxer._keyframes
         assert not demuxer._keyframe_explicit_updates
         assert (
@@ -134,6 +148,19 @@ class TestSmoothedTensorDemuxer:
             demuxer._interpolation_loop_task is None
             or demuxer._interpolation_loop_task.done()
         )
+
+        # Also test the default strategy initialization:
+        default_demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_length,
+            smoothing_period_seconds=smoothing_period,
+            # No strategy passed, should default
+        )
+        assert isinstance(
+            default_demuxer._smoothing_strategy, LinearInterpolationStrategy
+        )
+        await default_demuxer.start()  # Start it before close
+        await default_demuxer.close()  # Clean up
 
     @pytest.mark.asyncio
     async def test_start_and_close_idempotency(
@@ -491,6 +518,7 @@ class TestSmoothedTensorDemuxer:
                 client=fake_client,  # Need a client instance
                 tensor_length=tensor_len,
                 smoothing_period_seconds=0.0,
+                # smoothing_strategy=LinearInterpolationStrategy() # Not needed for this check
             )
             # await direct_demuxer.start() # Not reached
             # await direct_demuxer.close() # Not reached
@@ -503,6 +531,7 @@ class TestSmoothedTensorDemuxer:
                 client=fake_client,
                 tensor_length=tensor_len,
                 smoothing_period_seconds=-1.0,
+                # smoothing_strategy=LinearInterpolationStrategy() # Not needed for this check
             )
 
     @pytest.mark.asyncio
@@ -675,3 +704,71 @@ class TestSmoothedTensorDemuxer:
             assert torch.equal(
                 sm_demuxer._keyframes[2][1], torch.tensor([10.0, 2.0, 3.0])
             )
+
+    @pytest.mark.asyncio
+    async def test_custom_smoothing_strategy(
+        self, fake_client: FakeClient, mocker: Any  # mocker from pytest-mock
+    ):
+        tensor_length = 3
+        smoothing_period = 0.1  # Faster for test
+
+        # Create a mock strategy object
+        mock_strategy = mocker.MagicMock(spec=SmoothingStrategy)
+        # Configure the mock interpolate method to return a dummy tensor
+        # It must match the expected tensor shape and type.
+        dummy_interpolated_tensor = torch.tensor(
+            [0.5, 1.5, 2.5], dtype=torch.float32
+        )
+        mock_strategy.interpolate = mocker.MagicMock(
+            return_value=dummy_interpolated_tensor
+        )
+
+        demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_length,
+            smoothing_period_seconds=smoothing_period,
+            smoothing_strategy=mock_strategy,
+        )
+        await demuxer.start()
+
+        # Add two keyframes to trigger interpolation
+        t0 = ts_at(0)
+        t1 = ts_at(smoothing_period * 2)  # e.g., 0.2s
+
+        await demuxer.on_update_received(0, 0.0, t0)
+        await demuxer.on_update_received(1, 1.0, t0)
+        await demuxer.on_update_received(
+            2, 2.0, t0
+        )  # Keyframe 1: [0,1,2] at t0
+
+        await demuxer.on_update_received(0, 1.0, t1)
+        await demuxer.on_update_received(1, 2.0, t1)
+        await demuxer.on_update_received(
+            2, 3.0, t1
+        )  # Keyframe 2: [1,2,3] at t1 (0.2s later)
+
+        # Wait for the interpolation worker to call the strategy
+        # Expected synthetic point at t0 + smoothing_period = 0.1s
+        await asyncio.sleep(
+            smoothing_period * 2.5
+        )  # Wait a bit longer (e.g., 0.25s)
+
+        # Assert that the mock strategy's interpolate method was called
+        assert (
+            mock_strategy.interpolate.called
+        ), "Mock strategy's interpolate method was not called"
+
+        # Assert it was called at least once. Depending on exact timing, it might be called more.
+        mock_strategy.interpolate.assert_called()
+
+        # Check that the client received the tensor returned by the mock strategy
+        assert (
+            len(fake_client.received_tensors) >= 1
+        ), "Client should have received a tensor"
+        if fake_client.received_tensors:
+            received_tensor, _ = fake_client.received_tensors[0]
+            assert torch.equal(
+                received_tensor, dummy_interpolated_tensor
+            ), "Client did not receive the tensor from the mock strategy"
+
+        await demuxer.close()

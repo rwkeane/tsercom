@@ -12,11 +12,19 @@ import asyncio
 import bisect
 import datetime
 import logging  # Added logging
-from typing import List, Tuple, Optional
+from typing import (
+    List,
+    Tuple,
+    Optional,
+)  # Ensure Optional is imported if not already
 
-import torch
+import torch  # Moved up
 
-from tsercom.data.tensor.tensor_demuxer import TensorDemuxer  # Absolute import
+from tsercom.data.tensor.smoothing_strategies import (  # First-party import
+    SmoothingStrategy,
+    LinearInterpolationStrategy,
+)
+from tsercom.data.tensor.tensor_demuxer import TensorDemuxer  # First-party import
 
 
 class SmoothedTensorDemuxer(TensorDemuxer):
@@ -30,6 +38,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         tensor_length: int,
         smoothing_period_seconds: float = 1.0,
         data_timeout_seconds: Optional[float] = None,  # For super().__init__
+        smoothing_strategy: Optional[SmoothingStrategy] = None,
     ):
         super().__init__(
             client=client,  # Pass the same client to base.
@@ -43,6 +52,12 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
         if smoothing_period_seconds <= 0:
             raise ValueError("Smoothing period must be positive.")
+
+        self._smoothing_strategy: SmoothingStrategy
+        if smoothing_strategy is None:
+            self._smoothing_strategy = LinearInterpolationStrategy()
+        else:
+            self._smoothing_strategy = smoothing_strategy
 
         self._sm_client: TensorDemuxer.Client = (
             client  # Client for smoothed data
@@ -258,8 +273,8 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                                             time_ratio = max(
                                                 0.0, min(time_ratio, 1.0)
                                             )
-                                            v_synthetic = (
-                                                v1 + (v2 - v1) * time_ratio
+                                            v_synthetic = self._smoothing_strategy.interpolate(
+                                                v1, v2, time_ratio
                                             )
 
                                             current_synthetic_value = (
@@ -356,7 +371,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         """
         async with self._keyframe_lock:
             # 1. Validate tensor_index (using property from base class)
-            if not (0 <= tensor_index < self._tensor_length):
+            if not 0 <= tensor_index < self._tensor_length:  # Removed superfluous parens
                 logging.warning(
                     "SmoothedTensorDemuxer: Invalid tensor_index %s for tensor_length %s. Update ignored.",
                     tensor_index,
