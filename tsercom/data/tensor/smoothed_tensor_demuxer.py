@@ -235,7 +235,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
                                         if not (
                                             t1 < next_emission_timestamp < t2
-                                        ):
+                                        ):  # C0325: No parens needed
                                             logging.debug(
                                                 "SmoothedDemuxer: next_emission_timestamp %s not strictly between t1=%s and t2=%s for interpolation.",
                                                 next_emission_timestamp,
@@ -356,7 +356,9 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         """
         async with self._keyframe_lock:
             # 1. Validate tensor_index (using property from base class)
-            if not (0 <= tensor_index < self._tensor_length):
+            if (
+                not 0 <= tensor_index < self._tensor_length
+            ):  # C0325: No parens needed
                 logging.warning(
                     "SmoothedTensorDemuxer: Invalid tensor_index %s for tensor_length %s. Update ignored.",
                     tensor_index,
