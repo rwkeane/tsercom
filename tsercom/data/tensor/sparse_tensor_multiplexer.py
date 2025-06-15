@@ -1,10 +1,8 @@
 """Multiplexes tensor updates into granular, serializable messages for sparse tensors."""
 
-import asyncio # Required for lock if not inherited, but lock is inherited
 import bisect
 import datetime
 from typing import (
-    List,
     Tuple,
     Optional,
 )
@@ -16,11 +14,17 @@ from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer
 
 
 # Using a type alias for clarity (consistent with base and original)
-TensorHistoryValue = torch.Tensor # Retaining this alias as it's used in this file
-TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue] # Retaining this alias
+TensorHistoryValue = (
+    torch.Tensor
+)  # Retaining this alias as it's used in this file
+TimestampedTensor = Tuple[
+    datetime.datetime, TensorHistoryValue
+]  # Retaining this alias
 
 
-class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultiplexer
+class SparseTensorMultiplexer(
+    TensorMultiplexer
+):  # Inherits from TensorMultiplexer
     """
     Multiplexes sparse tensor updates into granular, serializable messages.
 
@@ -109,7 +113,10 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
         new_tensor: TensorHistoryValue,
         timestamp: datetime.datetime,
     ) -> None:
-        if len(old_tensor) != self.__tensor_length or len(new_tensor) != self.__tensor_length:
+        if (
+            len(old_tensor) != self.__tensor_length
+            or len(new_tensor) != self.__tensor_length
+        ):
             # This might indicate an issue, consider logging or specific error handling
             return
 
@@ -164,7 +171,9 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
                 needs_full_cascade_re_emission = True
                 idx_of_change = insertion_point
             else:
-                self._history.insert(insertion_point, (timestamp, tensor.clone()))
+                self._history.insert(
+                    insertion_point, (timestamp, tensor.clone())
+                )
                 base_tensor_for_diff = self._get_tensor_state_before(
                     timestamp, current_insertion_point=insertion_point
                 )
@@ -183,12 +192,16 @@ class SparseTensorMultiplexer(TensorMultiplexer):  # Inherits from TensorMultipl
                 ):
                     self._latest_processed_timestamp = potential_latest_ts
             elif timestamp:
-                 self._latest_processed_timestamp = timestamp
+                self._latest_processed_timestamp = timestamp
 
             if needs_full_cascade_re_emission and idx_of_change >= 0:
                 for i in range(idx_of_change + 1, len(self._history)):
-                    ts_current_in_cascade, tensor_current_in_cascade = self._history[i]
-                    tensor_predecessor_for_cascade = self._history[i-1][1] # Corrected line
+                    ts_current_in_cascade, tensor_current_in_cascade = (
+                        self._history[i]
+                    )
+                    tensor_predecessor_for_cascade = self._history[i - 1][
+                        1
+                    ]  # Corrected line
 
                     await self._emit_diff(
                         tensor_predecessor_for_cascade,

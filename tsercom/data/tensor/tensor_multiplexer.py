@@ -1,6 +1,7 @@
 """
 This file defines the TensorMultiplexer abstract base class and its Client interface.
 """
+
 import abc
 import asyncio
 import bisect
@@ -40,7 +41,7 @@ class TensorMultiplexer(abc.ABC):
             """
             pass
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes common attributes for tensor multiplexers, specifically
         the history list and the lock for concurrent access.

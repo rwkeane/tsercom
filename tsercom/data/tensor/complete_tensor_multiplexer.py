@@ -1,11 +1,12 @@
-import asyncio
 import datetime
-from typing import Optional, List, Tuple # Add List, Tuple for _history
+from typing import Optional, Tuple  # Add List, Tuple for _history
 
 import torch
-import bisect # For potential future use with history/get_tensor_at_timestamp
+import bisect  # For potential future use with history/get_tensor_at_timestamp
 
-from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer # Absolute import
+from tsercom.data.tensor.tensor_multiplexer import (
+    TensorMultiplexer,
+)  # Absolute import
 
 # Using a type alias for clarity (consistent with base and sparse)
 TensorHistoryValue = torch.Tensor
@@ -43,76 +44,81 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
         if data_timeout_seconds <= 0:
             raise ValueError("Data timeout must be positive.")
 
-        self._client = client # Changed from __client
-        self._tensor_length = tensor_length # Changed from __tensor_length
-        self._data_timeout_seconds = data_timeout_seconds # Changed from __data_timeout_seconds
+        self._client = client  # Changed from __client
+        self._tensor_length = tensor_length  # Changed from __tensor_length
+        self._data_timeout_seconds = (
+            data_timeout_seconds  # Changed from __data_timeout_seconds
+        )
         self._latest_processed_timestamp: Optional[datetime.datetime] = None
         # _history (List[TimestampedTensor]) and _lock are initialized by super().__init__()
 
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-            async with self._lock: # Ensure thread safety for history and _latest_processed_timestamp
+        async with (
+            self._lock
+        ):  # Ensure thread safety for history and _latest_processed_timestamp
             if len(tensor) != self._tensor_length:
                 raise ValueError(
                     f"Input tensor length {len(tensor)} does not match expected length {self._tensor_length}"
                 )
 
-                # Determine effective timestamp for cleanup reference
-                effective_cleanup_ref_ts = timestamp
-                if self._history:
-                    # Ensure history is not empty before accessing its last element
-                    max_history_ts = self._history[-1][0]
-                    if max_history_ts > effective_cleanup_ref_ts:
-                        effective_cleanup_ref_ts = max_history_ts
+            # Determine effective timestamp for cleanup reference
+            effective_cleanup_ref_ts = timestamp
+            if self._history:
+                # Ensure history is not empty before accessing its last element
+                max_history_ts = self._history[-1][0]
+                if max_history_ts > effective_cleanup_ref_ts:
+                    effective_cleanup_ref_ts = max_history_ts
 
-                if (
-                    self._latest_processed_timestamp
-                    and self._latest_processed_timestamp > effective_cleanup_ref_ts
-                ):
-                    effective_cleanup_ref_ts = self._latest_processed_timestamp
+            if (
+                self._latest_processed_timestamp
+                and self._latest_processed_timestamp > effective_cleanup_ref_ts
+            ):
+                effective_cleanup_ref_ts = self._latest_processed_timestamp
 
-                self._cleanup_old_data(effective_cleanup_ref_ts)
+            self._cleanup_old_data(effective_cleanup_ref_ts)
 
-                # Manage history for get_tensor_at_timestamp
-                insertion_point = self._find_insertion_point(timestamp)
+            # Manage history for get_tensor_at_timestamp
+            insertion_point = self._find_insertion_point(timestamp)
 
-                if (
-                    0 <= insertion_point < len(self._history)
-                    and self._history[insertion_point][0] == timestamp
-                ):
-                    # Update existing tensor if timestamp matches.
-                    # Cloning ensures that the history does not hold a reference to the input tensor.
-                    self._history[insertion_point] = (timestamp, tensor.clone())
-                else:
-                    # Insert new tensor if timestamp is new.
-                    self._history.insert(
-                        insertion_point, (timestamp, tensor.clone())
-                    )
+            if (
+                0 <= insertion_point < len(self._history)
+                and self._history[insertion_point][0] == timestamp
+            ):
+                # Update existing tensor if timestamp matches.
+                # Cloning ensures that the history does not hold a reference to the input tensor.
+                self._history[insertion_point] = (timestamp, tensor.clone())
+            else:
+                # Insert new tensor if timestamp is new.
+                self._history.insert(
+                    insertion_point, (timestamp, tensor.clone())
+                )
 
-                # Update the latest processed timestamp
-                # This should consider the current tensor's timestamp and the latest in history (if any)
-                if self._history:
-                    current_max_ts_in_history = self._history[-1][0] # History is guaranteed not empty here
-                    potential_latest_ts = max(current_max_ts_in_history, timestamp)
-                else: # History might be empty if all old data was cleaned up and this is the first new item
-                      # or if it was empty to begin with.
-                    potential_latest_ts = timestamp
+            # Update the latest processed timestamp
+            # This should consider the current tensor's timestamp and the latest in history (if any)
+            if self._history:
+                current_max_ts_in_history = self._history[-1][
+                    0
+                ]  # History is guaranteed not empty here
+                potential_latest_ts = max(current_max_ts_in_history, timestamp)
+            else:  # History might be empty if all old data was cleaned up and this is the first new item
+                # or if it was empty to begin with.
+                potential_latest_ts = timestamp
 
-                if (
-                    self._latest_processed_timestamp is None
-                    or potential_latest_ts > self._latest_processed_timestamp
-                ):
-                    self._latest_processed_timestamp = potential_latest_ts
+            if (
+                self._latest_processed_timestamp is None
+                or potential_latest_ts > self._latest_processed_timestamp
+            ):
+                self._latest_processed_timestamp = potential_latest_ts
 
-                # Core logic for CompleteTensorMultiplexer: emit all indices
-                for i in range(self._tensor_length):
-                    await self._client.on_index_update(
-                        tensor_index=i,
-                        value=tensor[i].item(),
-                        timestamp=timestamp,
-                    )
-
+            # Core logic for CompleteTensorMultiplexer: emit all indices
+            for i in range(self._tensor_length):
+                await self._client.on_index_update(
+                    tensor_index=i,
+                    value=tensor[i].item(),
+                    timestamp=timestamp,
+                )
 
     def _cleanup_old_data(
         self, current_max_timestamp: datetime.datetime
@@ -136,7 +142,6 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
 
         if keep_from_index > 0:
             self._history = self._history[keep_from_index:]
-
 
     def _find_insertion_point(self, timestamp: datetime.datetime) -> int:
         """Finds the insertion point for a timestamp in the history."""
