@@ -190,3 +190,113 @@ class TestSerializableTensor:
         parsed_st = SerializableTensor.try_parse(grpc_tensor_msg_reshape_error)
 
         assert parsed_st is None
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+    def test_gpu_tensor_to_grpc_and_parse_to_gpu(self):
+        """Tests serialization of a GPU tensor and deserialization back to GPU."""
+        # This check inside the test is redundant due to skipif but good for clarity or direct runs
+        if not torch.cuda.is_available():
+            pytest.skip("CUDA not available for this test")
+
+        original_tensor_gpu = torch.randn(
+            2, 3, device="cuda", dtype=torch.float32
+        )
+        st_gpu = SerializableTensor(original_tensor_gpu, FIXED_SYNC_TIMESTAMP)
+
+        grpc_msg = st_gpu.to_grpc_type()
+        assert (
+            grpc_msg is not None
+        ), "to_grpc_type should return a message for GPU tensor"
+
+        # Deserialize back to GPU
+        parsed_st_gpu = SerializableTensor.try_parse(grpc_msg, device="cuda")
+        assert parsed_st_gpu is not None, "Failed to parse back to GPU"
+        assert (
+            parsed_st_gpu.tensor.is_cuda
+        ), "Deserialized tensor should be on CUDA device"
+        assert (
+            parsed_st_gpu.tensor.device.type == "cuda"
+        ), "Device type should be CUDA"
+
+        # Compare data by moving both to CPU for a canonical comparison
+        assert torch.equal(
+            parsed_st_gpu.tensor.cpu(), original_tensor_gpu.cpu()
+        ), "Data mismatch after GPU -> GPU cycle"
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+    def test_gpu_tensor_to_grpc_and_parse_to_cpu(self):
+        """Tests serialization of a GPU tensor and deserialization to CPU."""
+        if not torch.cuda.is_available():
+            pytest.skip("CUDA not available for this test")
+
+        original_tensor_gpu = torch.randn(
+            3, 4, device="cuda", dtype=torch.float64
+        )
+        st_gpu = SerializableTensor(original_tensor_gpu, FIXED_SYNC_TIMESTAMP)
+
+        grpc_msg = st_gpu.to_grpc_type()
+        assert (
+            grpc_msg is not None
+        ), "to_grpc_type should return a message for GPU tensor"
+
+        # Deserialize back to CPU (by not providing device argument)
+        parsed_st_cpu = SerializableTensor.try_parse(grpc_msg)
+        assert parsed_st_cpu is not None, "Failed to parse back to CPU"
+        assert (
+            not parsed_st_cpu.tensor.is_cuda
+        ), "Deserialized tensor should be on CPU"
+        assert (
+            parsed_st_cpu.tensor.device.type == "cpu"
+        ), "Device type should be CPU"
+
+        assert torch.equal(
+            parsed_st_cpu.tensor, original_tensor_gpu.cpu()
+        ), "Data mismatch after GPU -> CPU cycle"
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+    def test_parse_to_specific_gpu_device(self):
+        """Tests deserialization to a specific GPU device (e.g., 'cuda' or 'cuda:0')."""
+        if not torch.cuda.is_available():
+            pytest.skip("CUDA not available for this test")
+
+        cpu_tensor = torch.randn(1, 5, dtype=torch.float32)
+        st_cpu = SerializableTensor(cpu_tensor, FIXED_SYNC_TIMESTAMP)
+        grpc_msg = st_cpu.to_grpc_type()
+
+        # Attempt to parse to 'cuda' (default cuda device)
+        parsed_st_gpu = SerializableTensor.try_parse(grpc_msg, device="cuda")
+        assert parsed_st_gpu is not None, "Failed to parse to GPU"
+        assert (
+            parsed_st_gpu.tensor.is_cuda
+        ), "Deserialized tensor should be on CUDA"
+        assert parsed_st_gpu.tensor.device.type == "cuda"
+        # Check if the device index is 0, assuming 'cuda' maps to 'cuda:0'
+        if (
+            torch.cuda.device_count() > 0
+        ):  # Should be true if cuda is available
+            assert (
+                parsed_st_gpu.tensor.device.index
+                == torch.cuda.current_device()
+            ), "Tensor not on default CUDA device"
+
+        assert torch.equal(
+            parsed_st_gpu.tensor.cpu(), cpu_tensor
+        ), "Data mismatch after CPU -> GPU parse"
+
+    def test_parse_to_cpu_explicitly(self):
+        """Tests deserialization to CPU when device='cpu' is explicitly passed."""
+        cpu_tensor = torch.randn(2, 2, dtype=torch.float32)
+        st_cpu = SerializableTensor(cpu_tensor, FIXED_SYNC_TIMESTAMP)
+        grpc_msg = st_cpu.to_grpc_type()
+
+        parsed_st_cpu = SerializableTensor.try_parse(grpc_msg, device="cpu")
+        assert (
+            parsed_st_cpu is not None
+        ), "Failed to parse to CPU with explicit device='cpu'"
+        assert not parsed_st_cpu.tensor.is_cuda, "Tensor should be on CPU"
+        assert (
+            parsed_st_cpu.tensor.device.type == "cpu"
+        ), "Device type should be CPU"
+        assert torch.equal(
+            parsed_st_cpu.tensor, cpu_tensor
+        ), "Data mismatch after CPU -> CPU (explicit) cycle"
