@@ -23,9 +23,17 @@ class Tensor(google.protobuf.message.Message):
     @property
     def timestamp(self) -> time_pb2.ServerTimestamp: ...
     @property
-    def size(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    def size(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.int
+    ]: ...
     @property
-    def array(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.float]: ...
+    def array(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.float
+    ]: ...
     def __init__(
         self,
         *,
@@ -33,7 +41,14 @@ class Tensor(google.protobuf.message.Message):
         size: collections.abc.Iterable[builtins.int] | None = ...,
         array: collections.abc.Iterable[builtins.float] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["array", b"array", "size", b"size", "timestamp", b"timestamp"]) -> None: ...
+    def HasField(
+        self, field_name: typing.Literal["timestamp", b"timestamp"]
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "array", b"array", "size", b"size", "timestamp", b"timestamp"
+        ],
+    ) -> None: ...
 
 global___Tensor = Tensor
