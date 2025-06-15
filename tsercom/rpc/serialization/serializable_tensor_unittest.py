@@ -1,17 +1,29 @@
 """Unit tests for the SerializableTensor class."""
 
 import pytest
+import torch  # Direct import for type hinting
 
-torch = pytest.importorskip("torch")
+# torch = pytest.importorskip("torch") # Keep for runtime skip logic if needed, MyPy uses direct import.
+# It's common to have pytest.importorskip and also a direct import if types are needed.
+# For simplicity here, if torch import fails, tests relying on it would fail anyway.
+# If pytest.importorskip is essential for some other behavior, it can be kept.
 
 import datetime
-from typing import List, Any
+from typing import List, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # This helps MyPy understand torch.Tensor and torch.dtype
+    # while still allowing pytest.importorskip to handle runtime availability.
+    # However, the direct `import torch` above is usually sufficient.
+    # If issues persist, this explicit block can be used.
+    # For now, relying on direct `import torch`.
+    pass
 
 from tsercom.rpc.serialization.serializable_tensor import SerializableTensor
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
-from tsercom.rpc.proto import Tensor as GrpcTensor
+from tsercom.tensor.proto import Tensor as GrpcTensor
 
 FIXED_DATETIME_NOW = datetime.datetime.now(datetime.timezone.utc).replace(
     microsecond=0
@@ -26,7 +38,7 @@ def create_tensor_and_list(
     high: float = 10.0,
 ) -> tuple[torch.Tensor, List[Any]]:
     if dtype.is_floating_point:
-        tensor = (
+        tensor_val = (  # Renamed to avoid conflict with torch.Tensor type hint
             torch.randn(shape, dtype=torch.float64).to(dtype) * (high - low)
             + low
         )
@@ -37,21 +49,23 @@ def create_tensor_and_list(
         imag_part = (
             torch.randn(shape, dtype=torch.float64) * (high - low) + low
         )
-        tensor = torch.complex(real_part, imag_part).to(dtype)
+        tensor_val = torch.complex(real_part, imag_part).to(dtype)  # Renamed
     else:
-        tensor = torch.randint(
+        tensor_val = torch.randint(  # Renamed
             int(low), int(high), shape, dtype=torch.int64
         ).to(dtype)
 
     if dtype == torch.float16:
-        list_representation = tensor.to(torch.float32).reshape(-1).tolist()
+        list_representation = tensor_val.to(torch.float32).reshape(-1).tolist()
     elif dtype == torch.bfloat16:
-        list_representation = tensor.to(torch.float32).reshape(-1).tolist()
+        list_representation = tensor_val.to(torch.float32).reshape(-1).tolist()
     elif dtype.is_complex:
-        list_representation = tensor.view(torch.float32).reshape(-1).tolist()
+        list_representation = (
+            tensor_val.view(torch.float32).reshape(-1).tolist()
+        )
     else:
-        list_representation = tensor.reshape(-1).tolist()
-    return tensor, list_representation
+        list_representation = tensor_val.reshape(-1).tolist()
+    return tensor_val, list_representation
 
 
 tensor_params = [
@@ -67,7 +81,7 @@ if not hasattr(torch, "bfloat16"):
 
 class TestSerializableTensor:
 
-    def test_init_stores_data_correctly(self):
+    def test_init_stores_data_correctly(self) -> None:
         tensor_data, _ = create_tensor_and_list([2, 3], torch.float32)
         timestamp_obj = SynchronizedTimestamp(FIXED_DATETIME_NOW)
 
@@ -76,19 +90,23 @@ class TestSerializableTensor:
         assert st.tensor is tensor_data
         assert st.timestamp is timestamp_obj
 
-    @pytest.mark.parametrize("shape, dtype", tensor_params)
+    @pytest.mark.parametrize("shape, dtype", tensor_params)  # type: ignore[misc]
     def test_to_grpc_type_correct_conversion(
         self, shape: List[int], dtype: torch.dtype
-    ):
-        input_tensor, expected_array_list = create_tensor_and_list(
+    ) -> None:
+        input_tensor_val, expected_array_list = create_tensor_and_list(
             shape, dtype
         )
         if dtype == torch.float16 or dtype == torch.bfloat16:
             expected_array_list = (
-                input_tensor.to(torch.float32).reshape(-1).tolist()
+                input_tensor_val.to(torch.float32)
+                .reshape(-1)
+                .tolist()  # Renamed
             )
 
-        st = SerializableTensor(input_tensor, FIXED_SYNC_TIMESTAMP)
+        st = SerializableTensor(
+            input_tensor_val, FIXED_SYNC_TIMESTAMP
+        )  # Renamed
         grpc_tensor_msg = st.to_grpc_type()
 
         assert isinstance(grpc_tensor_msg, GrpcTensor)
@@ -103,10 +121,12 @@ class TestSerializableTensor:
             == FIXED_DATETIME_NOW
         )
 
-        assert list(grpc_tensor_msg.size) == list(input_tensor.shape)
+        assert list(grpc_tensor_msg.size) == list(
+            input_tensor_val.shape
+        )  # Renamed
 
         expected_array_for_proto = (
-            input_tensor.to(torch.float32).reshape(-1).tolist()
+            input_tensor_val.to(torch.float32).reshape(-1).tolist()  # Renamed
         )
 
         assert len(grpc_tensor_msg.array) == len(expected_array_for_proto)
@@ -115,19 +135,25 @@ class TestSerializableTensor:
         ):
             pytest.approx(val_grpc, rel=1e-6) == val_expected
 
-    @pytest.mark.parametrize("shape, dtype", tensor_params)
-    def test_try_parse_successful(self, shape: List[int], dtype: torch.dtype):
-        original_tensor, original_array_list = create_tensor_and_list(
+    @pytest.mark.parametrize("shape, dtype", tensor_params)  # type: ignore[misc]
+    def test_try_parse_successful(
+        self, shape: List[int], dtype: torch.dtype
+    ) -> None:
+        original_tensor_val, original_array_list = create_tensor_and_list(
             shape, dtype
         )
 
         if dtype == torch.float16 or dtype == torch.bfloat16:
             array_for_grpc_tensor = (
-                original_tensor.to(torch.float32).reshape(-1).tolist()
+                original_tensor_val.to(torch.float32)
+                .reshape(-1)
+                .tolist()  # Renamed
             )
         else:
             array_for_grpc_tensor = (
-                original_tensor.to(torch.float32).reshape(-1).tolist()
+                original_tensor_val.to(torch.float32)
+                .reshape(-1)
+                .tolist()  # Renamed
             )
 
         grpc_timestamp_proto = FIXED_SYNC_TIMESTAMP.to_grpc_type()
@@ -139,7 +165,7 @@ class TestSerializableTensor:
 
         grpc_tensor_msg = GrpcTensor(
             timestamp=grpc_timestamp_proto,
-            size=list(original_tensor.shape),
+            size=list(original_tensor_val.shape),  # Renamed
             array=array_for_grpc_tensor,
         )
         parsed_st = SerializableTensor.try_parse(grpc_tensor_msg)
@@ -154,9 +180,13 @@ class TestSerializableTensor:
             == FIXED_DATETIME_NOW
         )
 
-        assert torch.equal(parsed_st.tensor, original_tensor.to(torch.float32))
+        assert torch.equal(
+            parsed_st.tensor, original_tensor_val.to(torch.float32)
+        )  # Renamed
 
-    def test_try_parse_failure_bad_timestamp(self, mocker):
+    def test_try_parse_failure_bad_timestamp(
+        self, mocker: Any
+    ) -> None:  # Added mocker type, return type
         mock_ts_try_parse = mocker.patch.object(
             SynchronizedTimestamp, "try_parse", return_value=None
         )
@@ -174,7 +204,7 @@ class TestSerializableTensor:
         mock_ts_try_parse.assert_called_once_with(dummy_grpc_timestamp_proto)
         assert parsed_st is None
 
-    def test_try_parse_failure_tensor_reshape_error(self):
+    def test_try_parse_failure_tensor_reshape_error(self) -> None:
         grpc_timestamp_proto = FIXED_SYNC_TIMESTAMP.to_grpc_type()
 
         if not callable(GrpcTensor):
@@ -191,8 +221,8 @@ class TestSerializableTensor:
 
         assert parsed_st is None
 
-    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
-    def test_gpu_tensor_to_grpc_and_parse_to_gpu(self):
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")  # type: ignore[misc]
+    def test_gpu_tensor_to_grpc_and_parse_to_gpu(self) -> None:
         """Tests serialization of a GPU tensor and deserialization back to GPU."""
         # This check inside the test is redundant due to skipif but good for clarity or direct runs
         if not torch.cuda.is_available():
@@ -223,8 +253,8 @@ class TestSerializableTensor:
             parsed_st_gpu.tensor.cpu(), original_tensor_gpu.cpu()
         ), "Data mismatch after GPU -> GPU cycle"
 
-    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
-    def test_gpu_tensor_to_grpc_and_parse_to_cpu(self):
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")  # type: ignore[misc]
+    def test_gpu_tensor_to_grpc_and_parse_to_cpu(self) -> None:
         """Tests serialization of a GPU tensor and deserialization to CPU."""
         if not torch.cuda.is_available():
             pytest.skip("CUDA not available for this test")
@@ -253,8 +283,8 @@ class TestSerializableTensor:
             parsed_st_cpu.tensor, original_tensor_gpu.cpu()
         ), "Data mismatch after GPU -> CPU cycle"
 
-    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
-    def test_parse_to_specific_gpu_device(self):
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")  # type: ignore[misc]
+    def test_parse_to_specific_gpu_device(self) -> None:
         """Tests deserialization to a specific GPU device (e.g., 'cuda' or 'cuda:0')."""
         if not torch.cuda.is_available():
             pytest.skip("CUDA not available for this test")
@@ -283,7 +313,7 @@ class TestSerializableTensor:
             parsed_st_gpu.tensor.cpu(), cpu_tensor
         ), "Data mismatch after CPU -> GPU parse"
 
-    def test_parse_to_cpu_explicitly(self):
+    def test_parse_to_cpu_explicitly(self) -> None:
         """Tests deserialization to CPU when device='cpu' is explicitly passed."""
         cpu_tensor = torch.randn(2, 2, dtype=torch.float32)
         st_cpu = SerializableTensor(cpu_tensor, FIXED_SYNC_TIMESTAMP)

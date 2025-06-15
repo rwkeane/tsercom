@@ -397,6 +397,11 @@ def generate_protos(project_root: Path) -> None:
     generate_proto_file(
         package_dir, "test/proto/e2e_test_service.proto", ["test/proto"]
     )
+    generate_proto_file(
+        package_dir,
+        "tensor/proto/tensor.proto",
+        ["tensor/proto", "timesync/common/proto"],
+    )
 
 
 if __name__ == "__main__":

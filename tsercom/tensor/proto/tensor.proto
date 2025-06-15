@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package tsercom.tensor.proto;
+
+// Assuming time.proto is a local project import, similar to how it was in common.proto
+// If this path is incorrect, the proto generation step will fail, and we can correct it.
+import "time.proto"; // This might need adjustment based on actual location of time.proto
+
+message Tensor {
+    dtp.ServerTimestamp timestamp = 1;
+    repeated int32 size = 2;
+    repeated float array = 3;
+}
