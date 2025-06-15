@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package tsercom.tensor.proto;
+
+import "time.proto"; // Corrected import
+
+// For dense tensors
+// Wrapper messages for repeated fields in oneof
+message FloatData { repeated float data = 1; }
+message DoubleData { repeated double data = 1; }
+message Int32Data { repeated int32 data = 1; }
+message Int64Data { repeated int64 data = 1; }
+
+message DenseTensorData {
+  repeated int64 shape = 1;
+  oneof data_type {
+    FloatData float_data = 2;
+    DoubleData double_data = 3;
+    Int32Data int32_data = 4;
+    Int64Data int64_data = 5;
+    // Add other common dtypes if necessary after reviewing torch dtypes
+    // For now, these cover common numeric types.
+    // Consider bytes for bool, uint8, int8, potentially strings if ever needed.
+  }
+}
+
+// For sparse COO (coordinate format) tensors
+message SparseCooTensorData {
+  repeated int64 shape = 1;
+  // Indices are a 2D array flattened into 1D. E.g., [[0,1,1],[2,0,2]] becomes [0,1,1,2,0,2]
+  // The number of columns in the original 2D array is shape.size() (i.e. tensor rank/ndim)
+  repeated int64 indices = 2;
+  oneof data_type {
+    FloatData float_values = 3;
+    DoubleData double_values = 4;
+    Int32Data int32_values = 5;
+    Int64Data int64_values = 6;
+    // Add other common dtypes corresponding to DenseTensorData
+  }
+}
+
+// Top-level message
+message Tensor {
+  dtp.ServerTimestamp timestamp = 1; // Corrected type
+  oneof data_representation {
+    DenseTensorData dense_tensor = 2;
+    SparseCooTensorData sparse_coo_tensor = 3;
+  }
+}
