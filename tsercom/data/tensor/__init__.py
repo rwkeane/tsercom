@@ -1,3 +1,9 @@
+"""Tsercom Tensor Data Utilities.
+
+This package contains classes for managing, multiplexing, and demultiplexing
+tensor data streams, particularly for time-series data.
+"""
+
 from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer
 from tsercom.data.tensor.sparse_tensor_multiplexer import (
     SparseTensorMultiplexer,

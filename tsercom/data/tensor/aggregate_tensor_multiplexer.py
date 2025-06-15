@@ -35,6 +35,7 @@ class Publisher:
     A source of tensor data that can be registered with AggregateTensorMultiplexer.
     """
 
+    # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         """Initializes the Publisher."""
         # Using a WeakSet to allow AggregateTensorMultiplexer instances to be garbage collected
@@ -89,24 +90,27 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         and updates the AggregateTensorMultiplexer's own history.
         """
 
+        # pylint: disable=too-few-public-methods,protected-access
         def __init__(
             self,
             # main_aggregator_client: TensorMultiplexer.Client, # This is self._client of the parent
-            aggregator_ref: weakref.ref["AggregateTensorMultiplexer"],  # weakref.ref to parent
+            aggregator_ref: weakref.ref[
+                "AggregateTensorMultiplexer"
+            ],  # weakref.ref to parent
             publisher_start_index: int,
             # publisher_info_index: int, # To identify which publisher_info this client belongs to
         ):
             # self._main_aggregator_client = main_aggregator_client # This is aggregator._client
-            self._aggregator_ref = (
-                aggregator_ref
-            )
+            self._aggregator_ref = aggregator_ref
             self._publisher_start_index = publisher_start_index
             # self._publisher_info_index = publisher_info_index
 
         async def on_index_update(
             self, tensor_index: int, value: float, timestamp: datetime.datetime
         ) -> None:
-            aggregator: Optional[AggregateTensorMultiplexer] = self._aggregator_ref()
+            aggregator: Optional[AggregateTensorMultiplexer] = (
+                self._aggregator_ref()
+            )
             if not aggregator:
                 # Aggregator has been garbage collected, nothing to do.
                 # This might happen if the AggregateTensorMultiplexer is deleted
@@ -321,8 +325,8 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
     async def add_to_aggregation(
         self,
         publisher: Publisher,
-        *args: Any, # Catch tensor_length OR index_range, tensor_length
-        **kwargs: Any, # Catch sparse
+        *args: Any,  # Catch tensor_length OR index_range, tensor_length
+        **kwargs: Any,  # Catch sparse
     ) -> None:
         """
         Adds a publisher to the aggregation. The publisher's tensor data will either
@@ -336,41 +340,54 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             arg1: Union[int, range]
             arg2: Optional[int] = None
 
-            if len(args) == 1 and isinstance(args[0], int): # Overload 1: (publisher, tensor_length, *, sparse)
-                arg1 = args[0] # tensor_length
-                # arg2 remains None
-                if kwargs.get("tensor_length", None) is not None or kwargs.get("index_range", None) is not None:
-                     raise TypeError("Invalid keyword arguments for append mode.")
-
-            elif len(args) == 2 and isinstance(args[0], range) and isinstance(args[1], int): # Overload 2: (publisher, index_range, tensor_length, *, sparse)
-                arg1 = args[0] # index_range
-                arg2 = args[1] # tensor_length
-                if kwargs.get("tensor_length", None) is not None or kwargs.get("index_range", None) is not None:
-                    raise TypeError("Invalid keyword arguments for specific range mode.")
+            if len(args) == 1 and isinstance(args[0], int):  # Overload 1
+                arg1 = args[0]
+                if (
+                    kwargs.get("tensor_length") is not None
+                    or kwargs.get("index_range") is not None
+                ):
+                    raise TypeError(
+                        "Invalid keyword arguments for append mode."
+                    )
+            elif (
+                len(args) == 2
+                and isinstance(args[0], range)
+                and isinstance(args[1], int)
+            ):  # Overload 2
+                arg1 = args[0]
+                arg2 = args[1]
+                if (
+                    kwargs.get("tensor_length") is not None
+                    or kwargs.get("index_range") is not None
+                ):
+                    raise TypeError(
+                        "Invalid keyword arguments for specific range mode."
+                    )
             else:
-                # This should ideally be caught by MyPy via overloads, but as a runtime check:
-                raise TypeError(f"Invalid arguments to add_to_aggregation: {args}")
+                raise TypeError(
+                    f"Invalid arguments to add_to_aggregation: {args}"
+                )
 
-
-            if isinstance(
-                arg1, int
-            ):  # Append mode (from Overload 1)
+            if isinstance(arg1, int):  # Append mode (from Overload 1)
                 # arg2 should be None here from parsing logic above
                 if arg2 is not None:
                     # This case should ideally not be reached if overload logic is correct
-                    raise ValueError("Internal error: arg2 should be None for append mode.")
+                    raise ValueError(
+                        "Internal error: arg2 should be None for append mode."
+                    )
                 current_tensor_len = arg1
                 start_index = self._current_max_index
                 self._current_max_index += current_tensor_len
                 self._tensor_length = self._current_max_index
-
             elif isinstance(
                 arg1, range
             ):  # Specific range mode (from Overload 2)
                 # arg2 should be an int (tensor_length) here
                 if arg2 is None:
                     # This case should ideally not be reached
-                    raise ValueError("Internal error: arg2 (tensor_length) is missing for specific range mode.")
+                    raise ValueError(
+                        "Internal error: arg2 (tensor_length) is missing for specific range mode."
+                    )
                 current_tensor_len = arg2
                 index_range = arg1
 
@@ -420,7 +437,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
 
             typed_self: AggregateTensorMultiplexer = self
             internal_client = self._InternalClient(
-                aggregator_ref=weakref.ref(typed_self),  # Pass weakref to self
+                aggregator_ref=weakref.ref(typed_self),
                 publisher_start_index=start_index,
             )
 

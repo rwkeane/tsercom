@@ -128,8 +128,9 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             effective_cleanup_ref_ts = timestamp
             if self._history:
                 max_history_ts = self._history[-1][0]
-                if max_history_ts > effective_cleanup_ref_ts:
-                    effective_cleanup_ref_ts = max_history_ts
+                effective_cleanup_ref_ts = max(
+                    effective_cleanup_ref_ts, max_history_ts
+                )
             if (
                 self._latest_processed_timestamp
                 and self._latest_processed_timestamp > effective_cleanup_ref_ts
