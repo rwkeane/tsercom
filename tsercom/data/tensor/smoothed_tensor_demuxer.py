@@ -1,10 +1,8 @@
 import asyncio
-import bisect
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import (
     Dict,
-    List,
     Optional,
     Tuple,
     Union,
@@ -71,7 +69,7 @@ class SmoothedTensorDemuxer:
         self._max_keyframe_history_per_index = max_keyframe_history_per_index
 
         self.__per_index_keyframes: Dict[
-            Tuple[int, ...], List[Tuple[datetime, float]]
+            Tuple[int, ...], Tuple[torch.Tensor, torch.Tensor]
         ] = {}
         self._keyframes_lock = asyncio.Lock()
 
@@ -107,23 +105,71 @@ class SmoothedTensorDemuxer:
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=timezone.utc)
 
+        new_timestamp_float = (
+            timestamp.timestamp()
+        )  # Convert to Unix timestamp
+
         async with self._keyframes_lock:
             if index not in self.__per_index_keyframes:
-                self.__per_index_keyframes[index] = []
+                # Initialize with empty tensors if index is new
+                timestamps_tensor = torch.empty((0,), dtype=torch.float64)
+                values_tensor = torch.empty((0,), dtype=torch.float32)
+                self.__per_index_keyframes[index] = (
+                    timestamps_tensor,
+                    values_tensor,
+                )
+            else:
+                timestamps_tensor, values_tensor = self.__per_index_keyframes[
+                    index
+                ]
 
-            keyframes_for_index = self.__per_index_keyframes[index]
-            new_keyframe = (timestamp, value)
-            insert_pos = bisect.bisect_left(keyframes_for_index, new_keyframe)
-            keyframes_for_index.insert(insert_pos, new_keyframe)
+            # Create new timestamp and value scalars as tensors
+            new_ts_tensor = torch.tensor(
+                [new_timestamp_float], dtype=torch.float64
+            )
+            new_val_tensor = torch.tensor([value], dtype=torch.float32)
 
-            if len(keyframes_for_index) > self._max_keyframe_history_per_index:
+            # Find insertion position
+            # Explicitly cast to int for Mypy
+            insert_pos: int = int(
+                torch.searchsorted(
+                    timestamps_tensor, new_ts_tensor
+                ).item()
+            )
+
+            # Insert new data
+            updated_timestamps = torch.cat(
+                (
+                    timestamps_tensor[:insert_pos],
+                    new_ts_tensor,
+                    timestamps_tensor[insert_pos:],
+                )
+            )
+            updated_values = torch.cat(
+                (
+                    values_tensor[:insert_pos],
+                    new_val_tensor,
+                    values_tensor[insert_pos:],
+                )
+            )
+
+            # Pruning logic
+            if len(updated_timestamps) > self._max_keyframe_history_per_index:
                 num_to_prune = (
-                    len(keyframes_for_index)
+                    len(updated_timestamps)
                     - self._max_keyframe_history_per_index
                 )
-                self.__per_index_keyframes[index] = keyframes_for_index[
-                    num_to_prune:
-                ]
+                pruned_timestamps = updated_timestamps[num_to_prune:]
+                pruned_values = updated_values[num_to_prune:]
+                self.__per_index_keyframes[index] = (
+                    pruned_timestamps,
+                    pruned_values,
+                )
+            else:
+                self.__per_index_keyframes[index] = (
+                    updated_timestamps,
+                    updated_values,
+                )
 
     async def _interpolation_worker(self) -> None:
         logger.info(f"[{self.name}] Interpolation worker started.")
@@ -175,23 +221,43 @@ class SmoothedTensorDemuxer:
 
                 async with self._keyframes_lock:
                     for index_tuple in np.ndindex(self._tensor_shape):
-                        keyframes_for_index = self.__per_index_keyframes.get(
-                            index_tuple, []
-                        )
-                        if keyframes_for_index:
-                            interpolated_values = (
-                                self._smoothing_strategy.interpolate_series(
-                                    keyframes_for_index,
-                                    [next_output_timestamp],
-                                )
+                        timestamp_tensor, value_tensor = (
+                            self.__per_index_keyframes.get(
+                                index_tuple,
+                                (
+                                    torch.empty((0,), dtype=torch.float64),
+                                    torch.empty((0,), dtype=torch.float32),
+                                ),
                             )
-                            if (
-                                interpolated_values
-                                and interpolated_values[0] is not None
-                            ):
-                                output_tensor[index_tuple] = float(
-                                    interpolated_values[0]
-                                )
+                        )
+
+                        if timestamp_tensor.numel() == 0:
+                            continue
+
+                        # Convert next_output_timestamp to Unix timestamp float
+                        next_output_ts_float = (
+                            next_output_timestamp.timestamp()
+                        )
+                        required_ts_tensor = torch.tensor(
+                            [next_output_ts_float], dtype=torch.float64
+                        )
+
+                        # Call smoothing strategy
+                        interpolated_values_tensor = (
+                            self._smoothing_strategy.interpolate_series(
+                                timestamp_tensor,
+                                value_tensor,
+                                required_ts_tensor,
+                            )
+                        )
+
+                        if (
+                            interpolated_values_tensor.numel() > 0
+                            and not torch.isnan(interpolated_values_tensor[0])
+                        ):
+                            output_tensor[index_tuple] = (
+                                interpolated_values_tensor[0].item()
+                            )
 
                 await self._output_client.push_tensor_update(
                     self.tensor_name,
