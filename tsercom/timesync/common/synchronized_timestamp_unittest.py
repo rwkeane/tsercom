@@ -75,8 +75,13 @@ def test_try_parse_none():
 def test_try_parse_grpc_timestamp(mocker):
     """Tests try_parse with a valid google.protobuf.timestamp_pb2.Timestamp."""
     mock_grpc_ts = mocker.MagicMock(spec=timestamp_pb2.Timestamp)
-    expected_datetime = datetime.datetime(2023, 1, 1, 10, 0, 0)
-    mock_grpc_ts.ToDatetime.return_value = expected_datetime
+    # Make expected_datetime timezone-aware (UTC)
+    expected_datetime = datetime.datetime(
+        2023, 1, 1, 10, 0, 0, tzinfo=datetime.timezone.utc
+    )
+    mock_grpc_ts.ToDatetime.return_value = (
+        expected_datetime  # This mock will now return an aware dt
+    )
 
     result = SynchronizedTimestamp.try_parse(mock_grpc_ts)
     assert isinstance(result, SynchronizedTimestamp)
@@ -86,7 +91,10 @@ def test_try_parse_grpc_timestamp(mocker):
 
 def test_try_parse_server_timestamp():
     """Tests try_parse with a valid ServerTimestamp."""
-    expected_datetime = datetime.datetime(2023, 1, 1, 11, 0, 0)
+    # Make expected_datetime timezone-aware (UTC)
+    expected_datetime = datetime.datetime(
+        2023, 1, 1, 11, 0, 0, tzinfo=datetime.timezone.utc
+    )
 
     # Create a real inner google.protobuf.timestamp_pb2.Timestamp
     real_inner_ts = timestamp_pb2.Timestamp()
