@@ -10,6 +10,9 @@ from tsercom.discovery.mdns.instance_listener import (
     InstanceListener as ActualInstanceListener,
     MdnsListenerFactory,
 )
+from tsercom.discovery.mdns.mdns_listener import (
+    MdnsListener as ActualMdnsListener,
+)
 import typing
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop_to_current_thread,
@@ -344,7 +347,7 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
 ) -> None:
     mock_service_source_client: AsyncMock = mock_service_source_client_fixture
     mock_listener_product: MagicMock = mocker.MagicMock(
-        spec=ActualInstanceListener
+        spec=ActualMdnsListener
     )
     mock_listener_product.start = AsyncMock()  # Changed to AsyncMock
     mock_mdns_factory: Mock = mocker.Mock(return_value=mock_listener_product)
@@ -443,7 +446,7 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
 ) -> None:
     mock_service_source_client: AsyncMock = mock_service_source_client_fixture
     mock_listener_product_failing_start: MagicMock = mocker.MagicMock(
-        spec=ActualInstanceListener
+        spec=ActualMdnsListener  # Changed spec here
     )
     mock_listener_product_failing_start.start = (
         AsyncMock(  # Changed to AsyncMock
