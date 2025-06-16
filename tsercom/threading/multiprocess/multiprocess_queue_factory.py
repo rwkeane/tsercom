@@ -6,8 +6,7 @@ which is considered for deprecation in favor of concrete factory implementations
 """
 
 from abc import ABC, abstractmethod
-from multiprocessing import Queue as MpQueue
-from typing import TypeVar, Tuple, Any
+from typing import TypeVar, Tuple, Generic
 
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -19,7 +18,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 QueueTypeT = TypeVar("QueueTypeT")
 
 
-class MultiprocessQueueFactory(ABC):
+class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
     """
     Abstract base class for multiprocess queue factories.
 
@@ -28,7 +27,11 @@ class MultiprocessQueueFactory(ABC):
     """
 
     @abstractmethod
-    def create_queues(self) -> Tuple[Any, Any]:
+    def create_queues(
+        self,
+    ) -> Tuple[
+        MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]
+    ]:
         """
         Creates a pair of queues for inter-process communication.
 
@@ -37,41 +40,3 @@ class MultiprocessQueueFactory(ABC):
             queues will depend on the specific implementation.
         """
         ...
-
-    @abstractmethod
-    def create_queue(self) -> Any:
-        """
-        Creates a single queue for inter-process communication.
-
-        Returns:
-            A queue instance. The exact type of this queue will depend
-            on the specific implementation.
-        """
-        ...
-
-
-# This function can be considered for deprecation in favor of DefaultMultiprocessQueueFactory.
-def create_multiprocess_queues() -> tuple[
-    MultiprocessQueueSink[QueueTypeT],
-    MultiprocessQueueSource[QueueTypeT],
-]:
-    """
-    Creates a connected pair of MultiprocessQueueSink and MultiprocessQueueSource
-    using standard multiprocessing.Queue.
-
-    These queues are based on `multiprocessing.Queue` and allow for sending
-    and receiving data between processes.
-
-    Returns:
-        tuple[
-            MultiprocessQueueSink[QueueTypeT],
-            MultiprocessQueueSource[QueueTypeT],
-        ]: A tuple with the sink (for putting) and source (for getting)
-           for the created multiprocess queue.
-    """
-    queue: "MpQueue[QueueTypeT]" = MpQueue()
-
-    sink = MultiprocessQueueSink[QueueTypeT](queue)
-    source = MultiprocessQueueSource[QueueTypeT](queue)
-
-    return sink, source
