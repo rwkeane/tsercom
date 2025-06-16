@@ -39,9 +39,7 @@ class InstancePublisher:
                 MdnsPublisher,
             ]
         ] = None,
-        zc_instance: Optional[
-            AsyncZeroconf
-        ] = None,
+        zc_instance: Optional[AsyncZeroconf] = None,
     ) -> None:
         """Initializes the InstancePublisher.
 
@@ -112,6 +110,7 @@ class InstancePublisher:
 
         self.__record_publisher: MdnsPublisher
         if mdns_publisher_factory is None:
+
             def default_mdns_publisher_factory(
                 eff_inst_name: str,
                 s_type: str,

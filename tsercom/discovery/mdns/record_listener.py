@@ -158,9 +158,7 @@ class RecordListener(MdnsListener):
             name,
             type_,
         )
-        asyncio.create_task(
-            self._handle_remove_service_wrapper(type_, name)
-        )
+        asyncio.create_task(self._handle_remove_service_wrapper(type_, name))
 
     async def _handle_remove_service_wrapper(
         self, type_: str, name: str
