@@ -3,6 +3,7 @@
 import pytest
 import torch
 import torch.multiprocessing as mp
+
 # TorchMpQueueType will now refer to torch.multiprocessing.Queue directly
 from typing import Type, Any, ClassVar
 
@@ -20,12 +21,16 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 class TestTorchMultiprocessQueueFactory:
     """Tests for the TorchMultiprocessQueueFactory class."""
 
-    expected_torch_queue_type: ClassVar[Type[mp.Queue]] # Changed from TorchMpQueueType[Any]
+    expected_torch_queue_type: ClassVar[
+        Type[mp.Queue]
+    ]  # Changed from TorchMpQueueType[Any]
 
     @classmethod
     def setup_class(
         cls,
-    ) -> None:  # Pytest automatically calls methods named setup_class for class-level setup
+    ) -> (
+        None
+    ):  # Pytest automatically calls methods named setup_class for class-level setup
         """Set up class method to get torch queue type once."""
         # Torch multiprocessing queues require a specific context for creation.
         ctx = mp.get_context("spawn")

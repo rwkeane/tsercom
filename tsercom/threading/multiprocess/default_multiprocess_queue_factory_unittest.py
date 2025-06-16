@@ -19,7 +19,9 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 class TestDefaultMultiprocessQueueFactory:
     """Tests for the DefaultMultiprocessQueueFactory class."""
 
-    expected_standard_queue_type: ClassVar[Type[MpQueueType]] # Changed from MpQueueType[Any]
+    expected_standard_queue_type: ClassVar[
+        Type[MpQueueType]
+    ]  # Changed from MpQueueType[Any]
 
     @classmethod
     def setup_class(cls) -> None:

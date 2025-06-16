@@ -9,7 +9,10 @@ from concurrent.futures import Future
 import asyncio
 from multiprocessing import Process  # For spec in ProcessCreator mock
 import functools  # For checking functools.partial
-from typing import Any, Generator # Using Generator for pytest fixtures if they yield
+from typing import (
+    Any,
+    Generator,
+)  # Using Generator for pytest fixtures if they yield
 
 from tsercom.api.runtime_manager import RuntimeManager, RuntimeFuturePopulator
 from tsercom.api.runtime_manager_helpers import (
@@ -38,7 +41,7 @@ async def dummy_coroutine_for_test() -> None:
 
 
 @pytest.fixture
-def mock_thread_watcher(mocker: Any) -> Any: # Changed to Any
+def mock_thread_watcher(mocker: Any) -> Any:  # Changed to Any
     mock = mocker.MagicMock(spec=ThreadWatcher)
     # Mock the create_tracked_thread_pool_executor to return a mock executor
     mock.create_tracked_thread_pool_executor.return_value = mocker.MagicMock()
@@ -46,24 +49,24 @@ def mock_thread_watcher(mocker: Any) -> Any: # Changed to Any
 
 
 @pytest.fixture
-def mock_local_rff(mocker: Any) -> Any: # Changed to Any
+def mock_local_rff(mocker: Any) -> Any:  # Changed to Any
     return mocker.MagicMock(spec=LocalRuntimeFactoryFactory)
 
 
 @pytest.fixture
-def mock_split_rff(mocker: Any) -> Any: # Changed to Any
+def mock_split_rff(mocker: Any) -> Any:  # Changed to Any
     return mocker.MagicMock(spec=SplitRuntimeFactoryFactory)
 
 
 @pytest.fixture
-def mock_process_creator(mocker: Any) -> Any: # Changed to Any
+def mock_process_creator(mocker: Any) -> Any:  # Changed to Any
     mock = mocker.MagicMock(spec=ProcessCreator)
     mock.create_process.return_value = mocker.MagicMock(spec=Process)
     return mock
 
 
 @pytest.fixture
-def mock_split_ewsf(mocker: Any) -> Any: # Changed to Any
+def mock_split_ewsf(mocker: Any) -> Any:  # Changed to Any
     mock = mocker.MagicMock(spec=SplitErrorWatcherSourceFactory)
     mock.create.return_value = mocker.MagicMock(
         spec=SplitProcessErrorWatcherSource
@@ -89,7 +92,7 @@ def manager_with_mocks(
 
 
 @pytest.fixture
-def mock_runtime_initializer(mocker: Any) -> Any: # Changed to Any
+def mock_runtime_initializer(mocker: Any) -> Any:  # Changed to Any
     mock_init = mocker.MagicMock(spec=RuntimeInitializer)
     # Default auth_config to None to prevent ChannelFactorySelector ValueError
     mock_init.auth_config = None
@@ -168,26 +171,26 @@ class TestRuntimeManager:
     ) -> None:
         """Test RuntimeManager() with all dependencies mocked."""
         assert (
-            manager_with_mocks._RuntimeManager__thread_watcher # type: ignore[attr-defined]
+            manager_with_mocks._RuntimeManager__thread_watcher  # type: ignore[attr-defined]
             is mock_thread_watcher
         )
         assert (
-            manager_with_mocks._RuntimeManager__local_runtime_factory_factory # type: ignore[attr-defined]
+            manager_with_mocks._RuntimeManager__local_runtime_factory_factory  # type: ignore[attr-defined]
             is mock_local_rff
         )
         assert (
-            manager_with_mocks._RuntimeManager__split_runtime_factory_factory # type: ignore[attr-defined]
+            manager_with_mocks._RuntimeManager__split_runtime_factory_factory  # type: ignore[attr-defined]
             is mock_split_rff
         )
         assert (
-            manager_with_mocks._RuntimeManager__process_creator # type: ignore[attr-defined]
+            manager_with_mocks._RuntimeManager__process_creator  # type: ignore[attr-defined]
             is mock_process_creator
         )
         assert (
-            manager_with_mocks._RuntimeManager__split_error_watcher_source_factory # type: ignore[attr-defined]
+            manager_with_mocks._RuntimeManager__split_error_watcher_source_factory  # type: ignore[attr-defined]
             is mock_split_ewsf
         )
-        assert not manager_with_mocks._RuntimeManager__is_testing # type: ignore[attr-defined]
+        assert not manager_with_mocks._RuntimeManager__is_testing  # type: ignore[attr-defined]
 
     def test_register_runtime_initializer_successful(
         self,
@@ -342,7 +345,7 @@ class TestRuntimeManager:
     def test_start_out_of_process(
         self,
         mock_remote_process_main_in_manager_scope: UMMagicMock,
-        MockDefaultMultiprocessQueueFactory: UMMagicMock, # This is the mock for the class
+        MockDefaultMultiprocessQueueFactory: UMMagicMock,  # This is the mock for the class
         mock_create_tsercom_loop: UMMagicMock,
         manager_with_mocks: RuntimeManager[Any, Any],
         mock_split_rff: UMMagicMock,
@@ -356,7 +359,9 @@ class TestRuntimeManager:
         # Renaming to avoid confusion, and using the correct mock from the decorator.
 
         # Configure the __getitem__ to return the class mock itself, so DefaultMultiprocessQueueFactory[Exception] still refers to MockDefaultMultiprocessQueueFactory
-        MockDefaultMultiprocessQueueFactory.__getitem__.return_value = MockDefaultMultiprocessQueueFactory
+        MockDefaultMultiprocessQueueFactory.__getitem__.return_value = (
+            MockDefaultMultiprocessQueueFactory
+        )
 
         # This is the INSTANCE mock, returned when MockDefaultMultiprocessQueueFactory() is called
         instance_mock = MockDefaultMultiprocessQueueFactory.return_value
@@ -374,7 +379,9 @@ class TestRuntimeManager:
         # This mock_factory_instance is for the mock_split_rff.create_factory()
         mock_factory_instance_for_split_rff = UMMagicMock()
         mock_factory_instance_for_split_rff.auth_config = None
-        mock_split_rff.create_factory.return_value = mock_factory_instance_for_split_rff
+        mock_split_rff.create_factory.return_value = (
+            mock_factory_instance_for_split_rff
+        )
 
         mock_process_instance = (
             mock_process_creator.create_process.return_value
@@ -384,8 +391,10 @@ class TestRuntimeManager:
 
         mock_create_tsercom_loop.assert_called_once_with(mock_thread_watcher)
         # The class itself is called with [Exception] and then (), so __getitem__ then the instance call
-        MockDefaultMultiprocessQueueFactory.__getitem__.assert_called_once_with(Exception)
-        MockDefaultMultiprocessQueueFactory.assert_called_once_with() # Called to get the instance
+        MockDefaultMultiprocessQueueFactory.__getitem__.assert_called_once_with(
+            Exception
+        )
+        MockDefaultMultiprocessQueueFactory.assert_called_once_with()  # Called to get the instance
         instance_mock.create_queues.assert_called_once_with()
         mock_split_ewsf.create.assert_called_once_with(
             mock_thread_watcher, mock_error_source_queue
@@ -407,7 +416,9 @@ class TestRuntimeManager:
         assert isinstance(target_partial, functools.partial)
         assert target_partial.func is mock_remote_process_main_in_manager_scope
 
-        assert target_partial.args[0] == [mock_factory_instance_for_split_rff] # Corrected here
+        assert target_partial.args[0] == [
+            mock_factory_instance_for_split_rff
+        ]  # Corrected here
         assert target_partial.args[1] is mock_error_sink
         assert target_partial.keywords["is_testing"] is False
         mock_process_instance.start.assert_called_once()
@@ -424,16 +435,18 @@ class TestRuntimeManager:
         mocker.patch(
             "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
         )
-        mock_mp_factory_class_mock = mocker.patch( # Renamed for clarity
+        mock_mp_factory_class_mock = mocker.patch(  # Renamed for clarity
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
         # Configure for Generic[Exception] access
-        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
+        mock_mp_factory_class_mock.__getitem__.return_value = (
+            mock_mp_factory_class_mock
+        )
 
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
-            UMMagicMock(), # sink
-            UMMagicMock(), # source
+            UMMagicMock(),  # sink
+            UMMagicMock(),  # source
         )
         mocker.patch(
             "tsercom.runtime.runtime_main.remote_process_main"
@@ -463,7 +476,7 @@ class TestRuntimeManager:
             new_callable=PropertyMock,
             return_value=True,
         )
-        manager_with_mocks._RuntimeManager__thread_watcher = None # type: ignore[attr-defined]
+        manager_with_mocks._RuntimeManager__thread_watcher = None  # type: ignore[attr-defined]
         with pytest.raises(
             RuntimeError,
             match="Internal ThreadWatcher is None when checking for exceptions after start.",
@@ -505,7 +518,7 @@ class TestRuntimeManager:
             new_callable=PropertyMock,
             return_value=True,
         )
-        manager_with_mocks._RuntimeManager__thread_watcher = None # type: ignore[attr-defined]
+        manager_with_mocks._RuntimeManager__thread_watcher = None  # type: ignore[attr-defined]
         with pytest.raises(
             RuntimeError,
             match="Internal ThreadWatcher is None when checking for exceptions after start.",
@@ -601,11 +614,13 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
+        mock_mp_factory_class_mock.__getitem__.return_value = (
+            mock_mp_factory_class_mock
+        )
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
-            UMMagicMock(), # sink
-            UMMagicMock(), # source
+            UMMagicMock(),  # sink
+            UMMagicMock(),  # source
         )
         mocker.patch(
             "tsercom.runtime.runtime_main.remote_process_main"
@@ -664,11 +679,13 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
+        mock_mp_factory_class_mock.__getitem__.return_value = (
+            mock_mp_factory_class_mock
+        )
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
-            UMMagicMock(), # sink
-            UMMagicMock(), # source
+            UMMagicMock(),  # sink
+            UMMagicMock(),  # source
         )
         mocker.patch("tsercom.runtime.runtime_main.remote_process_main")
         # Ensure process is created and started
@@ -710,11 +727,13 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
+        mock_mp_factory_class_mock.__getitem__.return_value = (
+            mock_mp_factory_class_mock
+        )
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
-            UMMagicMock(), # sink
-            UMMagicMock(), # source
+            UMMagicMock(),  # sink
+            UMMagicMock(),  # source
         )
         mocker.patch("tsercom.runtime.runtime_main.remote_process_main")
         mock_process = (
@@ -745,11 +764,13 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
+        mock_mp_factory_class_mock.__getitem__.return_value = (
+            mock_mp_factory_class_mock
+        )
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
-            UMMagicMock(), # sink
-            UMMagicMock(), # source
+            UMMagicMock(),  # sink
+            UMMagicMock(),  # source
         )
         mocker.patch("tsercom.runtime.runtime_main.remote_process_main")
         # Mock the error watcher to prevent issues during shutdown
@@ -782,11 +803,13 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
+        mock_mp_factory_class_mock.__getitem__.return_value = (
+            mock_mp_factory_class_mock
+        )
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
-            UMMagicMock(), # sink
-            UMMagicMock(), # source
+            UMMagicMock(),  # sink
+            UMMagicMock(),  # source
         )
         mocker.patch("tsercom.runtime.runtime_main.remote_process_main")
         mock_process = (
@@ -831,7 +854,9 @@ class TestRuntimeManager:
         """Tests check_for_exception before the manager has started. Should not raise."""
         # We need a ThreadWatcher instance, but it shouldn't be called.
         mock_tw = mocker.patch("tsercom.api.runtime_manager.ThreadWatcher")
-        manager: RuntimeManager[Any, Any] = RuntimeManager(thread_watcher=mock_tw)
+        manager: RuntimeManager[Any, Any] = RuntimeManager(
+            thread_watcher=mock_tw
+        )
 
         # Explicitly ensure has_started is False
         mocker.patch.object(
