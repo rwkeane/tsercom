@@ -125,7 +125,9 @@ class RuntimeDataHandlerBase(
             get_global_event_loop,
         )
 
-        self._loop_on_init: Optional[asyncio.AbstractEventLoop] = None # Added type hint
+        self._loop_on_init: Optional[asyncio.AbstractEventLoop] = (
+            None  # Added type hint
+        )
         if is_global_event_loop_set():
             self._loop_on_init = (
                 get_global_event_loop()
