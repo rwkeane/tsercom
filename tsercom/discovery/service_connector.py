@@ -255,10 +255,10 @@ class ServiceConnector(
             connection_info.port,
         )
 
-        channel: Optional[
-            ChannelTypeT
-        ] = await self.__connection_factory.connect(
-            connection_info.addresses, connection_info.port
+        channel: Optional[ChannelTypeT] = (
+            await self.__connection_factory.connect(
+                connection_info.addresses, connection_info.port
+            )
         )
 
         if channel is None:

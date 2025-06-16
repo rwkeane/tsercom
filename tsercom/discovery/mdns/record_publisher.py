@@ -119,51 +119,79 @@ class RecordPublisher(MdnsPublisher):
         unregistration_succeeded = False
 
         try:
-            if self._zc: # Check if _zc is valid before trying to use it
+            if self._zc:  # Check if _zc is valid before trying to use it
                 if service_info_at_start_of_close:
-                    _logger.info(f"Attempting to unregister service {self.__srv} using service_info: {service_info_at_start_of_close} (ZC type: {'shared' if self.__shared_zc else 'owned'})")
+                    _logger.info(
+                        f"Attempting to unregister service {self.__srv} using service_info: {service_info_at_start_of_close} (ZC type: {'shared' if self.__shared_zc else 'owned'})"
+                    )
                     unregistration_attempted = True
-                    await self._zc.async_unregister_service(service_info_at_start_of_close)
+                    await self._zc.async_unregister_service(
+                        service_info_at_start_of_close
+                    )
                     unregistration_succeeded = True
-                    _logger.info(f"Service {self.__srv} unregistered successfully.")
+                    _logger.info(
+                        f"Service {self.__srv} unregistered successfully."
+                    )
                 else:
-                    _logger.warning(f"No self._service_info found for {self.__srv} at start of close method. Skipping unregistration call.")
+                    _logger.warning(
+                        f"No self._service_info found for {self.__srv} at start of close method. Skipping unregistration call."
+                    )
                     # If there's no service_info, unregistration wasn't needed for this object's state from publish perspective.
-                    unregistration_succeeded = True # Considered successful as no action was pending for this _service_info
+                    unregistration_succeeded = True  # Considered successful as no action was pending for this _service_info
             else:
-                _logger.warning(f"No active Zeroconf instance (_zc) for {self.__srv}. Cannot unregister.")
+                _logger.warning(
+                    f"No active Zeroconf instance (_zc) for {self.__srv}. Cannot unregister."
+                )
                 # If _zc is None, we can't unregister, so treat as "nothing to do" for unregistration.
                 unregistration_succeeded = True
 
-
             # Close owned zeroconf instance if it exists
             if self.__owned_zc:
-                _logger.info(f"Closing owned AsyncZeroconf instance for {self.__srv}.")
+                _logger.info(
+                    f"Closing owned AsyncZeroconf instance for {self.__srv}."
+                )
                 await self.__owned_zc.async_close()
-                _logger.info(f"Owned AsyncZeroconf instance for {self.__srv} closed.")
+                _logger.info(
+                    f"Owned AsyncZeroconf instance for {self.__srv} closed."
+                )
 
         except Exception as e:
             # Log detailed error for unregistration or closing owned_zc
             if unregistration_attempted and not unregistration_succeeded:
-                _logger.error(f"CRITICAL: Exception during async_unregister_service for {self.__srv}. Service may still be registered. Error: {e}", exc_info=True)
-            else: # Error during closing owned_zc or other unexpected error if _zc was None initially
-                _logger.error(f"Exception during close operation for {self.__srv}. Error: {e}", exc_info=True)
+                _logger.error(
+                    f"CRITICAL: Exception during async_unregister_service for {self.__srv}. Service may still be registered. Error: {e}",
+                    exc_info=True,
+                )
+            else:  # Error during closing owned_zc or other unexpected error if _zc was None initially
+                _logger.error(
+                    f"Exception during close operation for {self.__srv}. Error: {e}",
+                    exc_info=True,
+                )
         finally:
             # Only nullify _service_info if unregistration was successful or wasn't needed.
             if unregistration_succeeded:
                 self._service_info = None
             else:
-                _logger.warning(f"self._service_info for {self.__srv} was NOT cleared because unregistration failed or was not confirmed.")
+                _logger.warning(
+                    f"self._service_info for {self.__srv} was NOT cleared because unregistration failed or was not confirmed."
+                )
 
-            if self.__owned_zc: # Ensure owned_zc is cleared if it was set
+            if self.__owned_zc:  # Ensure owned_zc is cleared if it was set
                 self.__owned_zc = None
-            self._zc = None # Clear the active reference in all cases after attempts
+            self._zc = (
+                None  # Clear the active reference in all cases after attempts
+            )
 
             # Final debug log for state
             if not self._service_info and not self._zc and not self.__owned_zc:
-                _logger.debug(f"RecordPublisher for {self.__srv} fully cleaned up (service_info, _zc, _owned_zc are None).")
+                _logger.debug(
+                    f"RecordPublisher for {self.__srv} fully cleaned up (service_info, _zc, _owned_zc are None)."
+                )
             else:
-                _logger.debug(f"RecordPublisher for {self.__srv} post-close state: _service_info is {'None' if not self._service_info else 'Present'}, _zc is {'None' if not self._zc else 'Present'}, _owned_zc is {'None' if not self.__owned_zc else 'Present'}")
+                _logger.debug(
+                    f"RecordPublisher for {self.__srv} post-close state: _service_info is {'None' if not self._service_info else 'Present'}, _zc is {'None' if not self._zc else 'Present'}, _owned_zc is {'None' if not self.__owned_zc else 'Present'}"
+                )
+
 
 # === Developer Note: mDNS Name Reuse with python-zeroconf ===
 # Observations during testing (e.g., in `discovery_e2etest.py::test_instance_update_reflects_changes`)

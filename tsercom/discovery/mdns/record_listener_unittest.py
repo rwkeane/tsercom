@@ -6,14 +6,25 @@ from zeroconf.asyncio import AsyncZeroconf, AsyncServiceBrowser
 # Assuming MdnsListener.Client is needed for RecordListener's constructor
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.record_listener import RecordListener
-from typing import Optional # Added for Optional type hint
+from typing import Optional  # Added for Optional type hint
+
 
 # A simple mock for MdnsListener.Client
 class MockMdnsClient(MdnsListener.Client):
-    async def _on_service_added(self, name: str, port: int, addresses: list[bytes], txt_record: dict[bytes, bytes | None]) -> None:
+    async def _on_service_added(
+        self,
+        name: str,
+        port: int,
+        addresses: list[bytes],
+        txt_record: dict[bytes, bytes | None],
+    ) -> None:
         pass
-    async def _on_service_removed(self, name: str, service_type: str, record_listener_uuid: str) -> None:
+
+    async def _on_service_removed(
+        self, name: str, service_type: str, record_listener_uuid: str
+    ) -> None:
         pass
+
 
 @pytest.mark.asyncio
 async def test_close_with_owned_zc_closes_zc(mocker):
@@ -27,13 +38,21 @@ async def test_close_with_owned_zc_closes_zc(mocker):
     mock_service_browser_instance = AsyncMock(spec=AsyncServiceBrowser)
 
     # Patch AsyncZeroconf constructor and AsyncServiceBrowser constructor
-    with patch("tsercom.discovery.mdns.record_listener.AsyncZeroconf", return_value=mock_owned_zc_instance) as mock_zc_constructor, \
-         patch("tsercom.discovery.mdns.record_listener.AsyncServiceBrowser", return_value=mock_service_browser_instance) as mock_browser_constructor:
+    with (
+        patch(
+            "tsercom.discovery.mdns.record_listener.AsyncZeroconf",
+            return_value=mock_owned_zc_instance,
+        ) as mock_zc_constructor,
+        patch(
+            "tsercom.discovery.mdns.record_listener.AsyncServiceBrowser",
+            return_value=mock_service_browser_instance,
+        ) as mock_browser_constructor,
+    ):
 
         listener = RecordListener(
             client=mock_client,
             service_type="_testowned._tcp.local.",
-            zc_instance=None  # Request owned instance
+            zc_instance=None,  # Request owned instance
         )
 
         # __init__ should have created the AsyncZeroconf if zc_instance is None
@@ -45,7 +64,7 @@ async def test_close_with_owned_zc_closes_zc(mocker):
         mock_browser_constructor.assert_called_once_with(
             mock_owned_zc_instance.zeroconf,
             ["_testowned._tcp.local."],
-            listener=listener
+            listener=listener,
         )
 
         await listener.close()
@@ -60,6 +79,7 @@ async def test_close_with_owned_zc_closes_zc(mocker):
 
         mock_owned_zc_instance.async_close.assert_awaited_once()
 
+
 @pytest.mark.asyncio
 async def test_close_with_shared_zc_does_not_close_shared_zc(mocker):
     """Test that RecordListener does not close a shared AsyncZeroconf instance."""
@@ -71,11 +91,14 @@ async def test_close_with_shared_zc_does_not_close_shared_zc(mocker):
 
     mock_service_browser_instance = AsyncMock(spec=AsyncServiceBrowser)
 
-    with patch("tsercom.discovery.mdns.record_listener.AsyncServiceBrowser", return_value=mock_service_browser_instance) as mock_browser_constructor:
+    with patch(
+        "tsercom.discovery.mdns.record_listener.AsyncServiceBrowser",
+        return_value=mock_service_browser_instance,
+    ) as mock_browser_constructor:
         listener = RecordListener(
             client=mock_client,
             service_type="_testshared._tcp.local.",
-            zc_instance=mock_shared_zc_instance # Pass shared instance
+            zc_instance=mock_shared_zc_instance,  # Pass shared instance
         )
 
         assert listener._RecordListener__mdns is mock_shared_zc_instance
@@ -84,7 +107,7 @@ async def test_close_with_shared_zc_does_not_close_shared_zc(mocker):
         mock_browser_constructor.assert_called_once_with(
             mock_shared_zc_instance.zeroconf,
             ["_testshared._tcp.local."],
-            listener=listener
+            listener=listener,
         )
 
         await listener.close()

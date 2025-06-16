@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-import pytest_asyncio # Added import
+import pytest_asyncio  # Added import
 
 # Import missing functions as well
 from tsercom.threading.aio.global_event_loop import (
@@ -175,7 +175,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         context.peer = mocker.MagicMock(return_value="ipv4:127.0.0.1:12345")
         return context
 
-    @pytest_asyncio.fixture # Changed
+    @pytest_asyncio.fixture  # Changed
     async def handler(self, mock_data_reader, mock_event_source, mocker):
         # Patch run_on_event_loop called by RuntimeDataHandlerBase.__init__
         # This patching might be hiding actual task creation issues if run_on_event_loop
@@ -204,8 +204,8 @@ class TestRuntimeDataHandlerBaseBehavior:
     ):
         return CallerIdentifier.random()
 
-    @pytest_asyncio.fixture # Changed
-    async def data_processor( # Changed
+    @pytest_asyncio.fixture  # Changed
+    async def data_processor(  # Changed
         self,
         handler,  # handler is an async fixture, pytest will provide the yielded value
         test_caller_id_instance,
@@ -222,12 +222,14 @@ class TestRuntimeDataHandlerBaseBehavior:
                 mock_poller_for_dp,
             )
         )
-        return handler._create_data_processor( # This method is synchronous
+        return handler._create_data_processor(  # This method is synchronous
             test_caller_id_instance, mock_sync_clock
         )
 
     @pytest.mark.asyncio
-    async def test_constructor(self, handler, mock_data_reader, mock_event_source):
+    async def test_constructor(
+        self, handler, mock_data_reader, mock_event_source
+    ):
         assert handler._RuntimeDataHandlerBase__data_reader is mock_data_reader  # type: ignore
         assert handler._RuntimeDataHandlerBase__event_source is mock_event_source  # type: ignore
 
@@ -507,7 +509,9 @@ class TestRuntimeDataHandlerBaseBehavior:
         handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_create_data_processor_id_not_in_tracker(self, handler, mocker):
+    async def test_create_data_processor_id_not_in_tracker(
+        self, handler, mocker
+    ):
         test_caller_id = CallerIdentifier.random()
         mock_clock = mocker.MagicMock(spec=SynchronizedClock)
 

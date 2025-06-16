@@ -99,9 +99,9 @@ class TestInstancePublisher:
         )
 
         captured_pub = TestInstancePublisher.captured_fake_publisher_instance
-        assert captured_pub is not None, (
-            "Factory was not called or did not capture publisher"
-        )
+        assert (
+            captured_pub is not None
+        ), "Factory was not called or did not capture publisher"
 
         assert captured_pub.instance_name == self.INSTANCE_NAME
         # self.SERVICE_TYPE is "_test_service._tcp.local."

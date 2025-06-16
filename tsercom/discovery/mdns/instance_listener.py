@@ -5,7 +5,7 @@ import socket
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, Generic, List, Optional
 
-from zeroconf.asyncio import AsyncZeroconf  # Moved up
+from zeroconf.asyncio import AsyncZeroconf
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.discovery.service_info import (
@@ -14,7 +14,7 @@ from tsercom.discovery.service_info import (
 )
 
 
-MdnsListenerFactory = Callable[  # Updated signature
+MdnsListenerFactory = Callable[
     [MdnsListener.Client, str, Optional[AsyncZeroconf]], MdnsListener
 ]
 
@@ -67,7 +67,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         service_type: str,
         *,
         mdns_listener_factory: Optional[MdnsListenerFactory] = None,
-        zc_instance: Optional[AsyncZeroconf] = None,  # Added
+        zc_instance: Optional[AsyncZeroconf] = None,
     ) -> None:
         """Initializes the InstanceListener.
 
@@ -120,8 +120,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             self.__listener = mdns_listener_factory(
                 self, service_type, zc_instance
             )
-
-        # self.__listener.start() # Removed from __init__
+        assert isinstance(self.__listener, MdnsListener), type(self.__listener)
 
     async def start(self) -> None:
         """Starts the underlying mDNS listener."""

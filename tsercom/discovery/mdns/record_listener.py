@@ -1,9 +1,9 @@
 """Listener for mDNS service records using zeroconf."""
 
-import asyncio  # Added import
+import asyncio
 import logging
 import uuid
-from typing import Optional  # Added import
+from typing import Optional
 from zeroconf import Zeroconf
 from zeroconf.asyncio import (
     AsyncServiceBrowser,
@@ -23,7 +23,7 @@ class RecordListener(MdnsListener):
         self,
         client: MdnsListener.Client,
         service_type: str,
-        zc_instance: Optional[AsyncZeroconf] = None,  # Added
+        zc_instance: Optional[AsyncZeroconf] = None,
     ) -> None:
         """Initializes the RecordListener.
 
@@ -47,7 +47,6 @@ class RecordListener(MdnsListener):
             )
         # mDNS service types usually start with an underscore.
         if not service_type.startswith("_"):
-            # Long error message
             raise ValueError(
                 f"service_type must start with '_', got '{service_type}'."
             )
@@ -65,7 +64,7 @@ class RecordListener(MdnsListener):
         else:
             self.__expected_type = f"{service_type}._tcp.local."
 
-        self.__mdns: AsyncZeroconf  # Declare type hint once
+        self.__mdns: AsyncZeroconf
         self.__is_shared_zc: bool = zc_instance is not None
         if zc_instance:
             self.__mdns = zc_instance
@@ -83,7 +82,6 @@ class RecordListener(MdnsListener):
         self.__browser: AsyncServiceBrowser | None = None
 
     async def start(self) -> None:
-        # Use AsyncServiceBrowser, pass the underlying sync Zeroconf instance from AsyncZeroconf
         self.__browser = AsyncServiceBrowser(
             self.__mdns.zeroconf, [self.__expected_type], listener=self
         )
@@ -115,7 +113,6 @@ class RecordListener(MdnsListener):
             )
             return
 
-        # Use self.__mdns (AsyncZeroconf instance) for async operations
         info = await self.__mdns.async_get_service_info(type_, name)
         if info is None:
             logging.error(
@@ -135,14 +132,13 @@ class RecordListener(MdnsListener):
             logging.warning(
                 "No addresses for updated service '%s' type '%s'.", name, type_
             )
-            # Decide if to proceed; currently proceeds.
 
         # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_service_added(
             name,
             info.port,
             info.addresses,
-            info.properties,  # Pass `name` from args, not info.name
+            info.properties,
         )
         logging.info(
             "Async handler _handle_update_service completed for: type='%s', name='%s'",
@@ -152,12 +148,11 @@ class RecordListener(MdnsListener):
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a service is removed from the network."""
-        logging.info(  # Existing log
+        logging.info(
             "Sync remove_service called: type='%s', name='%s'. Scheduling async handler.",
             type_,
             name,
         )
-        # Log entry added as per instruction, though it's similar to above.
         logging.info(
             "[REC_LISTENER] remove_service (sync) called for name: %s, type: %s",
             name,
@@ -165,7 +160,7 @@ class RecordListener(MdnsListener):
         )
         asyncio.create_task(
             self._handle_remove_service_wrapper(type_, name)
-        )  # Changed to call a wrapper
+        )
 
     async def _handle_remove_service_wrapper(
         self, type_: str, name: str
@@ -183,13 +178,6 @@ class RecordListener(MdnsListener):
             name,
             type_,
         )
-        # Note: The original `remove_service` didn't check type_ == self.__expected_type
-        # but it's good practice for handlers. However, the client notification might
-        # be for any service if the listener was registered for multiple types by some means.
-        # For now, let's assume client is interested in removal of this specific type.
-        # if type_ != self.__expected_type: # Consider if this check is needed here
-        #     logging.debug("Ignoring removal for '%s', type '%s'. Expected '%s'.", name, type_, self.__expected_type)
-        #     return
 
         # pylint: disable=W0212 # Calling listener's notification method
         logging.info(
@@ -201,7 +189,7 @@ class RecordListener(MdnsListener):
             "[REC_LISTENER] _handle_remove_service: Returned from client._on_service_removed for %s",
             name,
         )
-        logging.info(  # Existing log
+        logging.info(
             "Async handler _handle_remove_service completed for: type='%s', name='%s'",
             type_,
             name,
@@ -232,7 +220,6 @@ class RecordListener(MdnsListener):
             )
             return
 
-        # Use self.__mdns (AsyncZeroconf instance) for async operations
         info = await self.__mdns.async_get_service_info(type_, name)
         if info is None:
             logging.error(
@@ -252,7 +239,6 @@ class RecordListener(MdnsListener):
             logging.warning(
                 "No addresses for added service '%s' type '%s'.", name, type_
             )
-            # As with update_service, decide whether to proceed or return.
 
         # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_service_added(
@@ -302,5 +288,6 @@ class RecordListener(MdnsListener):
                 self.__expected_type,
             )
 
-        # self.__mdns = None  # type: ignore # Let the ZC instance be managed externally or by its owner
-        logging.info("RecordListener close method finished for %s", self.__expected_type)
+        logging.info(
+            "RecordListener close method finished for %s", self.__expected_type
+        )

@@ -107,21 +107,21 @@ async def test_successful_registration_and_discovery():
         gc.collect()  # Encourage faster cleanup
 
     assert discovery_event.is_set(), "Discovery event was not set"
-    assert len(discovered_services) == 1, (
-        "Incorrect number of services discovered"
-    )
+    assert (
+        len(discovered_services) == 1
+    ), "Incorrect number of services discovered"
 
     service_info = discovered_services[0]
-    assert service_info.name == readable_name, (
-        "Discovered service name does not match"
-    )
-    assert service_info.port == service_port, (
-        "Discovered service port does not match"
-    )
+    assert (
+        service_info.name == readable_name
+    ), "Discovered service name does not match"
+    assert (
+        service_info.port == service_port
+    ), "Discovered service port does not match"
     # mDNS instance name can have ".local." or similar suffixes, so we check startswith
-    assert service_info.mdns_name.startswith(instance_name), (
-        f"Discovered mDNS name '{service_info.mdns_name}' does not start with '{instance_name}'"
-    )
+    assert service_info.mdns_name.startswith(
+        instance_name
+    ), f"Discovered mDNS name '{service_info.mdns_name}' does not start with '{instance_name}'"
 
     assert service_info.addresses, "Discovered service addresses list is empty"
     for addr_str in service_info.addresses:
@@ -258,9 +258,9 @@ async def test_concurrent_publishing_with_selective_unpublish():
             client.service_added_event.clear()  # Clear event for next potential service
 
         async with client._lock:  # Protect access to discovered_services
-            assert len(client.discovered_services) == 2, (
-                f"Both services were not discovered. Found {len(client.discovered_services)}"
-            )
+            assert (
+                len(client.discovered_services) == 2
+            ), f"Both services were not discovered. Found {len(client.discovered_services)}"
             # Ensure mdns_names are unique, as readable_name might not be if not set carefully for test
             discovered_mdns_names = {
                 s.mdns_name for s in client.discovered_services
@@ -269,25 +269,21 @@ async def test_concurrent_publishing_with_selective_unpublish():
             assert any(
                 name.startswith(publisher1_instance_name)
                 for name in discovered_mdns_names
-            ), (
-                f"Publisher 1 (instance: {publisher1_instance_name}) not discovered in {discovered_mdns_names}"
-            )
+            ), f"Publisher 1 (instance: {publisher1_instance_name}) not discovered in {discovered_mdns_names}"
             assert any(
                 name.startswith(publisher2_instance_name)
                 for name in discovered_mdns_names
-            ), (
-                f"Publisher 2 (instance: {publisher2_instance_name}) not discovered in {discovered_mdns_names}"
-            )
+            ), f"Publisher 2 (instance: {publisher2_instance_name}) not discovered in {discovered_mdns_names}"
             # Also check readable names for completeness
             discovered_readable_names = {
                 s.name for s in client.discovered_services
             }
-            assert publisher1_readable_name in discovered_readable_names, (
-                "Publisher 1 not discovered by readable name"
-            )
-            assert publisher2_readable_name in discovered_readable_names, (
-                "Publisher 2 not discovered by readable name"
-            )
+            assert (
+                publisher1_readable_name in discovered_readable_names
+            ), "Publisher 1 not discovered by readable name"
+            assert (
+                publisher2_readable_name in discovered_readable_names
+            ), "Publisher 2 not discovered by readable name"
 
         # Unpublish the first service
         client.clear_events()
@@ -307,28 +303,22 @@ async def test_concurrent_publishing_with_selective_unpublish():
             assert any(
                 name.startswith(publisher1_instance_name)
                 for name in client.removed_service_names
-            ), (
-                f"Service {publisher1_instance_name} was not reported as removed in {client.removed_service_names}."
-            )
+            ), f"Service {publisher1_instance_name} was not reported as removed in {client.removed_service_names}."
 
             # Check that publisher1 is no longer in discovered_services
             assert not any(
                 s.mdns_name.startswith(publisher1_instance_name)
                 for s in client.discovered_services
-            ), (
-                f"Service {publisher1_instance_name} still in discovered list after removal."
-            )
+            ), f"Service {publisher1_instance_name} still in discovered list after removal."
 
             # Check that publisher2 is still in discovered_services
             assert any(
                 s.mdns_name.startswith(publisher2_instance_name)
                 for s in client.discovered_services
-            ), (
-                f"Service {publisher2_instance_name} not found in discovered list after p1 removal."
-            )
-            assert len(client.discovered_services) == 1, (
-                "Incorrect number of services remaining after unpublishing one."
-            )
+            ), f"Service {publisher2_instance_name} not found in discovered list after p1 removal."
+            assert (
+                len(client.discovered_services) == 1
+            ), "Incorrect number of services remaining after unpublishing one."
             assert (
                 client.discovered_services[0].name == publisher2_readable_name
             ), "The remaining service is not publisher 2."
@@ -384,10 +374,11 @@ class UpdateTestClient(InstanceListener.Client):
 async def test_instance_update_reflects_changes():
     service_type_suffix = uuid.uuid4().hex[:8]
     service_type = f"_upd-{service_type_suffix}._tcp.local."
-    instance_name_base = f"UpdateInstance_{service_type_suffix}" # Renamed for clarity
+    instance_name_base = (
+        f"UpdateInstance_{service_type_suffix}"  # Renamed for clarity
+    )
     instance_name_v1 = instance_name_base
     instance_name_v2 = f"{instance_name_base}_v2"
-
 
     service_port1 = 50002
     readable_name1 = f"UpdateTestService_V1_{service_type_suffix}"
@@ -402,8 +393,8 @@ async def test_instance_update_reflects_changes():
     listener_obj: InstanceListener | None = (
         None  # Initialize for finally block
     )
-    publisher1_obj: Optional[InstancePublisher] = None # Type hint for clarity
-    publisher2_obj: Optional[InstancePublisher] = None # Type hint for clarity
+    publisher1_obj: Optional[InstancePublisher] = None  # Type hint for clarity
+    publisher2_obj: Optional[InstancePublisher] = None  # Type hint for clarity
     shared_zc1: Optional[AsyncZeroconf] = None
     shared_zc2: Optional[AsyncZeroconf] = None
 
@@ -421,22 +412,22 @@ async def test_instance_update_reflects_changes():
             service_type=service_type,
             readable_name=readable_name1,
             instance_name=instance_name_v1,
-            zc_instance=shared_zc1
+            zc_instance=shared_zc1,
         )
         await publisher1_obj.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
 
         assert discovery_event1.is_set(), "Initial discovery event was not set"
-        assert len(discovered_services) >= 1, (
-            "No services discovered after initial publication"
-        )
+        assert (
+            len(discovered_services) >= 1
+        ), "No services discovered after initial publication"
 
         initial_service_info = next(
             (s for s in discovered_services if s.name == readable_name1), None
         )
-        assert initial_service_info is not None, (
-            "Initial service not found in discovered list"
-        )
+        assert (
+            initial_service_info is not None
+        ), "Initial service not found in discovered list"
         assert initial_service_info.port == service_port1
         assert initial_service_info.mdns_name.startswith(instance_name_v1)
 
@@ -451,16 +442,20 @@ async def test_instance_update_reflects_changes():
 
         if listener_obj:
             _logger.info("Stopping listener_obj (phase 1).")
-            await listener_obj.async_stop() # Stop listener using shared_zc1
+            await listener_obj.async_stop()  # Stop listener using shared_zc1
 
         if shared_zc1:
             _logger.info("Closing shared_zc1.")
-            await shared_zc1.async_close() # Close the first ZC instance
+            await shared_zc1.async_close()  # Close the first ZC instance
 
         # Allow a brief moment for the unregistration to propagate.
-        _logger.info("Waiting for unregistration of publisher1 to propagate...")
-        await asyncio.sleep(0.5) # Increased sleep
-        _logger.info("Proceeding to publish publisher2 with new ZC and Listener.")
+        _logger.info(
+            "Waiting for unregistration of publisher1 to propagate..."
+        )
+        await asyncio.sleep(0.5)  # Increased sleep
+        _logger.info(
+            "Proceeding to publish publisher2 with new ZC and Listener."
+        )
 
         _logger.info("Creating shared_zc2 for updated phase.")
         shared_zc2 = AsyncZeroconf()
@@ -473,13 +468,12 @@ async def test_instance_update_reflects_changes():
         )
         await listener_obj.start()
 
-
         publisher2_obj = InstancePublisher(
             port=service_port2,
             service_type=service_type,
             readable_name=readable_name2,
             instance_name=instance_name_v2,
-            zc_instance=shared_zc2 # Use new ZC instance
+            zc_instance=shared_zc2,  # Use new ZC instance
         )
         await publisher2_obj.publish()
         await asyncio.wait_for(discovery_event2.wait(), timeout=10.0)
@@ -497,13 +491,15 @@ async def test_instance_update_reflects_changes():
             pytest.fail(f"A timeout error occurred: {e}")
     finally:
         _logger.info("Entering final cleanup.")
-        if publisher1_obj: # Already closed in try block if successful, but good for safety
+        if (
+            publisher1_obj
+        ):  # Already closed in try block if successful, but good for safety
             _logger.info("Final close for publisher1_obj (idempotency check).")
             await publisher1_obj.close()
         if publisher2_obj:
             _logger.info("Final close for publisher2_obj.")
             await publisher2_obj.close()
-        if listener_obj: # This would be the phase 2 listener
+        if listener_obj:  # This would be the phase 2 listener
             _logger.info("Final stop for listener_obj.")
             await listener_obj.async_stop()
 
@@ -516,15 +512,15 @@ async def test_instance_update_reflects_changes():
 
         gc.collect()  # Encourage faster cleanup
 
-    assert discovery_event2.is_set(), (
-        "Second discovery event (for update) was not set"
-    )
+    assert (
+        discovery_event2.is_set()
+    ), "Second discovery event (for update) was not set"
     # We expect at least two events now: one for the initial, one for the update.
     # mDNS might send multiple add events, so we check that the count increased.
     # And more importantly, that the new service details are present.
-    assert client.call_count >= 2, (
-        "Expected at least two service added calls (initial and update)"
-    )
+    assert (
+        client.call_count >= 2
+    ), "Expected at least two service added calls (initial and update)"
 
     # The latest discovered service should be the updated one.
     # Iterating backwards to find the most recent one matching the updated name.
@@ -534,9 +530,9 @@ async def test_instance_update_reflects_changes():
             updated_service_info = service
             break
 
-    assert updated_service_info is not None, (
-        "Updated service not found in discovered list"
-    )
+    assert (
+        updated_service_info is not None
+    ), "Updated service not found in discovered list"
     assert updated_service_info.port == service_port2
     assert updated_service_info.mdns_name.startswith(instance_name_v2)
 
@@ -588,12 +584,12 @@ async def test_instance_unpublishing():
         pass  # Keep publisher alive for next phase of test logic below
 
     assert discovery_event1.is_set(), "Initial discovery event was not set."
-    assert len(discovered_services1) == 1, (
-        "Incorrect number of services discovered initially."
-    )
-    assert discovered_services1[0].name == readable_name, (
-        "Incorrect service name discovered initially."
-    )
+    assert (
+        len(discovered_services1) == 1
+    ), "Incorrect number of services discovered initially."
+    assert (
+        discovered_services1[0].name == readable_name
+    ), "Incorrect service name discovered initially."
 
     # Clean up listener1 by removing reference.
     # listener1 is already stopped. del listener1 is not strictly needed for resource cleanup now.
@@ -642,12 +638,12 @@ async def test_instance_unpublishing():
             await listener2.async_stop()
         gc.collect()
 
-    assert not discovery_event2.is_set(), (
-        f"Discovery event was unexpectedly set for unpublished service. Call count: {client2._call_count}"
-    )
-    assert len(discovered_services2) == 0, (
-        f"Service list not empty. Found {len(discovered_services2)} services after unpublishing. Details: {discovered_services2}"
-    )
+    assert (
+        not discovery_event2.is_set()
+    ), f"Discovery event was unexpectedly set for unpublished service. Call count: {client2._call_count}"
+    assert (
+        len(discovered_services2) == 0
+    ), f"Service list not empty. Found {len(discovered_services2)} services after unpublishing. Details: {discovered_services2}"
 
     await asyncio.sleep(0.1)
 
@@ -703,7 +699,9 @@ async def test_multiple_publishers_one_listener():
         all_discovered_event=all_discovered_event,
     )
     listener: InstanceListener | None = None  # Initialize for finally
-    publishers = []  # Keep this outside try if publishers are cleaned up in finally regardless of try success
+    publishers = (
+        []
+    )  # Keep this outside try if publishers are cleaned up in finally regardless of try success
     expected_service_details = []  # Keep this outside try as it's setup data
 
     try:
@@ -765,24 +763,24 @@ async def test_multiple_publishers_one_listener():
         # import gc # gc is now imported at top level
         gc.collect()
 
-    assert all_discovered_event.is_set(), (
-        "Event for all discoveries was not set."
-    )
-    assert len(discovered_services) == 2, (
-        f"Expected 2 services, discovered {len(discovered_services)}"
-    )
+    assert (
+        all_discovered_event.is_set()
+    ), "Event for all discoveries was not set."
+    assert (
+        len(discovered_services) == 2
+    ), f"Expected 2 services, discovered {len(discovered_services)}"
 
     names_found = {s.name for s in discovered_services}
     ports_found = {s.port for s in discovered_services}
     mdns_names_found = {s.mdns_name for s in discovered_services}
 
     for expected in expected_service_details:
-        assert expected["name"] in names_found, (
-            f"Expected name {expected['name']} not found."
-        )
-        assert expected["port"] in ports_found, (
-            f"Expected port {expected['port']} not found."
-        )
+        assert (
+            expected["name"] in names_found
+        ), f"Expected name {expected['name']} not found."
+        assert (
+            expected["port"] in ports_found
+        ), f"Expected port {expected['port']} not found."
         assert any(
             mname.startswith(expected["instance_prefix"])
             for mname in mdns_names_found
@@ -875,22 +873,22 @@ async def test_one_publisher_multiple_listeners():
         gc.collect()
 
     for i, data in enumerate(listeners_data):
-        assert data["event"].is_set(), (
-            f"Listener {i + 1}'s discovery event was not set."
-        )
-        assert len(data["services"]) == 1, (
-            f"Listener {i + 1} discovered {len(data['services'])} services, expected 1."
-        )
+        assert data[
+            "event"
+        ].is_set(), f"Listener {i + 1}'s discovery event was not set."
+        assert (
+            len(data["services"]) == 1
+        ), f"Listener {i + 1} discovered {len(data['services'])} services, expected 1."
         service_info = data["services"][0]
-        assert service_info.name == readable_name, (
-            f"Listener {i + 1} discovered name {service_info.name}, expected {readable_name}."
-        )
-        assert service_info.port == service_port, (
-            f"Listener {i + 1} discovered port {service_info.port}, expected {service_port}."
-        )
-        assert service_info.mdns_name.startswith(instance_name), (
-            f"Listener {i + 1} discovered mdns_name {service_info.mdns_name}, expected to start with {instance_name}."
-        )
+        assert (
+            service_info.name == readable_name
+        ), f"Listener {i + 1} discovered name {service_info.name}, expected {readable_name}."
+        assert (
+            service_info.port == service_port
+        ), f"Listener {i + 1} discovered port {service_info.port}, expected {service_port}."
+        assert service_info.mdns_name.startswith(
+            instance_name
+        ), f"Listener {i + 1} discovered mdns_name {service_info.mdns_name}, expected to start with {instance_name}."
 
     await asyncio.sleep(0.1)
 
@@ -949,20 +947,20 @@ async def test_publisher_starts_after_listener():
         gc.collect()
 
     assert discovery_event.is_set(), "Discovery event was not set."
-    assert len(discovered_services) == 1, (
-        f"Expected 1 service, discovered {len(discovered_services)}."
-    )
+    assert (
+        len(discovered_services) == 1
+    ), f"Expected 1 service, discovered {len(discovered_services)}."
 
     service_info = discovered_services[0]
-    assert service_info.name == readable_name, (
-        f"Discovered name {service_info.name} != {readable_name}"
-    )
-    assert service_info.port == service_port, (
-        f"Discovered port {service_info.port} != {service_port}"
-    )
-    assert service_info.mdns_name.startswith(instance_name), (
-        f"Discovered mDNS name {service_info.mdns_name} does not start with {instance_name}"
-    )
+    assert (
+        service_info.name == readable_name
+    ), f"Discovered name {service_info.name} != {readable_name}"
+    assert (
+        service_info.port == service_port
+    ), f"Discovered port {service_info.port} != {service_port}"
+    assert service_info.mdns_name.startswith(
+        instance_name
+    ), f"Discovered mDNS name {service_info.mdns_name} does not start with {instance_name}"
     assert service_info.addresses, "Discovered service addresses list is empty"
     # Basic validation of addresses (already done in first test, good to have here too)
     # import ipaddress # ipaddress is now imported at top level
@@ -973,6 +971,7 @@ async def test_publisher_starts_after_listener():
             pytest.fail(f"Invalid IP address string found: {addr_str}")
 
     await asyncio.sleep(0.1)
+
 
 # === Developer Note for `test_instance_update_reflects_changes` ===
 # This test previously faced `zeroconf._exceptions.NotRunningException` or

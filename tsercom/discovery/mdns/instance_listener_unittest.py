@@ -53,26 +53,42 @@ class FakeMdnsListener(MdnsListener):
             self._actual_zc_to_potentially_close = zc_instance
         else:
             # Create an owned mock AsyncZeroconf instance if none is shared
-            self._actual_zc_to_potentially_close = AsyncMock(spec=AsyncZeroconf, name="owned_zc_for_fakelistener")
+            self._actual_zc_to_potentially_close = AsyncMock(
+                spec=AsyncZeroconf, name="owned_zc_for_fakelistener"
+            )
 
         # Ensure the instance (owned or shared mock) has an async_close mock attribute
-        if not (hasattr(self._actual_zc_to_potentially_close, 'async_close') and
-                isinstance(getattr(self._actual_zc_to_potentially_close, 'async_close', None), AsyncMock)):
+        if not (
+            hasattr(self._actual_zc_to_potentially_close, "async_close")
+            and isinstance(
+                getattr(
+                    self._actual_zc_to_potentially_close, "async_close", None
+                ),
+                AsyncMock,
+            )
+        ):
             # If async_close is not already an AsyncMock (e.g. if a real shared zc was passed, though unlikely in these tests)
             # or if the spec didn't automatically create it as an AsyncMock.
-            self._actual_zc_to_potentially_close.async_close = AsyncMock(name="zc_async_close_on_actual")
+            self._actual_zc_to_potentially_close.async_close = AsyncMock(
+                name="zc_async_close_on_actual"
+            )
 
         # The 'close' method of FakeMdnsListener itself is an AsyncMock.
         # Its side_effect will perform the conditional closing logic.
-        self.close = AsyncMock(name="FakeMdnsListener_close_method_spy", side_effect=self._do_close_logic)
+        self.close = AsyncMock(
+            name="FakeMdnsListener_close_method_spy",
+            side_effect=self._do_close_logic,
+        )
 
     async def _do_close_logic(self, *args, **kwargs) -> None:
         """Performs conditional close of the underlying zeroconf instance."""
         if not self._is_shared_zc:
             # Only await if it's an AsyncMock, otherwise, it might be a real instance not for this test path
-            if isinstance(self._actual_zc_to_potentially_close.async_close, AsyncMock):
+            if isinstance(
+                self._actual_zc_to_potentially_close.async_close, AsyncMock
+            ):
                 await self._actual_zc_to_potentially_close.async_close()
-            else: # Should not happen in correctly set up tests
+            else:  # Should not happen in correctly set up tests
                 pass
         # else: the shared instance's async_close should not be called by this listener
 
@@ -133,9 +149,9 @@ class FakeInstanceListenerClient(
         )  # Mock for removal
         # For manual tracking if preferred.
         self.received_services: List[FClientServiceInfo] = []
-        self.removed_service_names: List[
-            str
-        ] = []  # To store names of removed services
+        self.removed_service_names: List[str] = (
+            []
+        )  # To store names of removed services
         self.added_event: Optional[asyncio.Event] = (
             None  # Event for added services
         )
@@ -207,7 +223,9 @@ class TestInstanceListener:
     )
 
     # pytest uses mocker fixture, not unittest.mock.MagicMock directly for this
-    def setup_method(self): # Removed mocker fixture from here, not needed for FakeMdnsListener init
+    def setup_method(
+        self,
+    ):  # Removed mocker fixture from here, not needed for FakeMdnsListener init
         """Set up common test objects for each test method."""
         self.mock_il_client = FakeInstanceListenerClient[ServiceInfo]()
         # self.mocker_for_fakes = mocker # No longer storing mocker this way
@@ -227,9 +245,7 @@ class TestInstanceListener:
                 service_type=service_type_arg,
                 zc_instance=zc_instance,
             )
-            TestInstanceListener.captured_fake_mdns_listener = (
-                fake_listener
-            )
+            TestInstanceListener.captured_fake_mdns_listener = fake_listener
             return fake_listener
 
         self.factory_under_test = fake_mdns_listener_factory
@@ -248,9 +264,9 @@ class TestInstanceListener:
             service_type=self.SERVICE_TYPE,
             mdns_listener_factory=self.factory_under_test,
         )
-        assert TestInstanceListener.captured_fake_mdns_listener is not None, (
-            "Factory was not called or did not capture listener"
-        )
+        assert (
+            TestInstanceListener.captured_fake_mdns_listener is not None
+        ), "Factory was not called or did not capture listener"
         # Check that the client of the FakeMdnsListener is the InstanceListener instance
         assert (
             TestInstanceListener.captured_fake_mdns_listener.client
@@ -331,7 +347,9 @@ class TestInstanceListener:
         TestInstanceListener.captured_fake_mdns_listener.start.assert_awaited_once()  # Changed to assert_awaited_once
 
     @pytest.mark.asyncio
-    async def test_async_stop_calls_underlying_listener_close(self, mocker: MagicMock):
+    async def test_async_stop_calls_underlying_listener_close(
+        self, mocker: MagicMock
+    ):
         """Test that InstanceListener.async_stop() calls the underlying listener's close method for an owned ZC."""
         # This test ensures the default InstanceListener (no zc_instance passed)
         # will result in its FakeMdnsListener closing its "owned" ZC.
@@ -346,22 +364,30 @@ class TestInstanceListener:
 
         assert not fake_listener._is_shared_zc
         # Ensure the _actual_zc_to_potentially_close has an async_close that is an AsyncMock
-        assert isinstance(fake_listener._actual_zc_to_potentially_close.async_close, AsyncMock)
+        assert isinstance(
+            fake_listener._actual_zc_to_potentially_close.async_close,
+            AsyncMock,
+        )
 
         await instance_listener.start()
         await instance_listener.async_stop()
 
-        fake_listener.close.assert_awaited_once() # Check FakeMdnsListener.close itself was awaited
+        fake_listener.close.assert_awaited_once()  # Check FakeMdnsListener.close itself was awaited
         # Check that the "owned" ZC instance's async_close was called via the side effect
         fake_listener._actual_zc_to_potentially_close.async_close.assert_awaited_once()
 
-
     @pytest.mark.asyncio
-    async def test_async_stop_with_shared_zc_does_not_close_shared_zc(self, mocker: MagicMock):
+    async def test_async_stop_with_shared_zc_does_not_close_shared_zc(
+        self, mocker: MagicMock
+    ):
         """Test async_stop with a shared ZC does not close the shared ZC instance via the listener."""
-        mock_shared_zc = mocker.AsyncMock(spec=AsyncZeroconf, name="MockSharedZeroconf")
+        mock_shared_zc = mocker.AsyncMock(
+            spec=AsyncZeroconf, name="MockSharedZeroconf"
+        )
         # Explicitly mock async_close on the shared instance for assertion
-        mock_shared_zc.async_close = mocker.AsyncMock(name="shared_zc_async_close_method")
+        mock_shared_zc.async_close = mocker.AsyncMock(
+            name="shared_zc_async_close_method"
+        )
 
         # Factory that will be used by InstanceListener
         def specific_factory_for_shared_test(
@@ -374,17 +400,19 @@ class TestInstanceListener:
             created_fake_listener = FakeMdnsListener(
                 client,
                 service_type_arg,
-                zc_instance=zc_instance_from_listener, # This should be mock_shared_zc
+                zc_instance=zc_instance_from_listener,  # This should be mock_shared_zc
                 # mocker_fixture=mocker # No longer needed
             )
-            TestInstanceListener.captured_fake_mdns_listener = created_fake_listener
+            TestInstanceListener.captured_fake_mdns_listener = (
+                created_fake_listener
+            )
             return created_fake_listener
 
         instance_listener = InstanceListener[ServiceInfo](
             client=self.mock_il_client,
             service_type=self.SERVICE_TYPE,
             mdns_listener_factory=specific_factory_for_shared_test,
-            zc_instance=mock_shared_zc # Pass the shared ZC to InstanceListener
+            zc_instance=mock_shared_zc,  # Pass the shared ZC to InstanceListener
         )
 
         assert TestInstanceListener.captured_fake_mdns_listener is not None
@@ -396,11 +424,10 @@ class TestInstanceListener:
         await instance_listener.start()
         await instance_listener.async_stop()
 
-        fake_listener.close.assert_awaited_once() # FakeMdnsListener.close should still be called
+        fake_listener.close.assert_awaited_once()  # FakeMdnsListener.close should still be called
 
         # Key assertion: the shared ZC's async_close should NOT be called by FakeMdnsListener's logic
         mock_shared_zc.async_close.assert_not_called()
-
 
     @pytest.mark.asyncio
     async def test_on_service_added_success(self):

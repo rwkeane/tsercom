@@ -5,7 +5,7 @@ import logging
 from typing import Callable, Dict, Optional
 from uuid import getnode as get_mac
 
-from zeroconf.asyncio import AsyncZeroconf  # Moved up
+from zeroconf.asyncio import AsyncZeroconf
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
 
@@ -28,20 +28,20 @@ class InstancePublisher:
         instance_name: str | None = None,
         *,
         mdns_publisher_factory: Optional[
-            Callable[  # Updated signature for factory
+            Callable[
                 [
                     str,
                     str,
                     int,
                     Optional[Dict[bytes, bytes | None]],
-                    Optional[AsyncZeroconf],  # Added zc_instance
+                    Optional[AsyncZeroconf],
                 ],
                 MdnsPublisher,
             ]
         ] = None,
         zc_instance: Optional[
             AsyncZeroconf
-        ] = None,  # Added zc_instance parameter
+        ] = None,
     ) -> None:
         """Initializes the InstancePublisher.
 
@@ -112,13 +112,12 @@ class InstancePublisher:
 
         self.__record_publisher: MdnsPublisher
         if mdns_publisher_factory is None:
-            # Default factory creates RecordPublisher
             def default_mdns_publisher_factory(
                 eff_inst_name: str,
                 s_type: str,
                 p: int,
                 txt: Optional[Dict[bytes, bytes | None]],
-                zc: Optional[AsyncZeroconf],  # Added zc to factory signature
+                zc: Optional[AsyncZeroconf],
             ) -> MdnsPublisher:
                 return RecordPublisher(
                     eff_inst_name, s_type, p, txt, zc_instance=zc
