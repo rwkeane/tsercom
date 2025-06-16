@@ -1,6 +1,6 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
-from typing import Tuple, Any
+from typing import Tuple, TypeVar, Generic
 import torch.multiprocessing as mp
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -13,8 +13,10 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 
+T = TypeVar("T")
 
-class TorchMultiprocessQueueFactory(MultiprocessQueueFactory):
+
+class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
     """
     Provides an implementation of `MultiprocessQueueFactory` specialized for
     `torch.Tensor` objects.
@@ -24,8 +26,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory):
     inter-process transfer of tensor data by potentially avoiding costly
     serialization and deserialization. The `create_queues` method returns
     these torch queues wrapped in the standard `MultiprocessQueueSink` and
-    `MultiprocessQueueSource` for interface consistency, while `create_queue`
-    provides direct access to a raw `torch.multiprocessing.Queue`.
+    `MultiprocessQueueSource` for interface consistency.
     """
 
     def __init__(self, ctx_method: str = "spawn"):
@@ -40,7 +41,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory):
 
     def create_queues(
         self,
-    ) -> Tuple[MultiprocessQueueSink[Any], MultiprocessQueueSource[Any]]:
+    ) -> Tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
         """Creates a pair of torch.multiprocessing queues wrapped in Sink/Source.
 
         These queues are suitable for inter-process communication, especially
@@ -52,20 +53,9 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory):
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
         """
-        torch_queue = self._mp_context.Queue()
+        torch_queue: mp.Queue[T] = self._mp_context.Queue()
         # MultiprocessQueueSink and MultiprocessQueueSource are generic and compatible
         # with torch.multiprocessing.Queue, allowing consistent queue interaction.
-        sink = MultiprocessQueueSink[Any](torch_queue)
-        source = MultiprocessQueueSource[Any](torch_queue)
+        sink = MultiprocessQueueSink[T](torch_queue)
+        source = MultiprocessQueueSource[T](torch_queue)
         return sink, source
-
-    def create_queue(self) -> mp.Queue:  # type: ignore[type-var]
-        """Creates a single torch.multiprocessing queue.
-
-        This queue is suitable for inter-process communication, especially
-        when transferring torch.Tensor objects.
-
-        Returns:
-            A torch.multiprocessing.Queue instance.
-        """
-        return self._mp_context.Queue()

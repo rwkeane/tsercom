@@ -44,8 +44,8 @@ from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop,
 )
 from tsercom.threading.error_watcher import ErrorWatcher
-from tsercom.threading.multiprocess.multiprocess_queue_factory import (
-    create_multiprocess_queues,
+from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+    DefaultMultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -59,6 +59,7 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=too-many-instance-attributes
 class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
     """Manages the lifecycle of Tsercom runtimes, supporting in-process and out-of-process execution.
 
@@ -83,6 +84,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         EventTypeT: The type of event objects that the managed runtimes will process.
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         *,
@@ -321,7 +323,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
         error_sink: MultiprocessQueueSink[Exception]
         error_source: MultiprocessQueueSource[Exception]
-        error_sink, error_source = create_multiprocess_queues()
+        factory = DefaultMultiprocessQueueFactory[Exception]()
+        error_sink, error_source = factory.create_queues()
 
         self.__error_watcher = (
             self.__split_error_watcher_source_factory.create(
@@ -487,6 +490,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         return results
 
 
+# pylint: disable=too-few-public-methods
 class RuntimeFuturePopulator(
     RuntimeFactoryFactory.Client,
     Generic[DataTypeT, EventTypeT],
