@@ -9,17 +9,17 @@ from typing import (
     Tuple,
     Union,
     Any,
-)  # Added Any for Client
+)
 
-import torch  # Changed from numpy to torch
-import numpy as np  # type: ignore[import-not-found] # Keep numpy for np.ndindex if needed
+import torch
+import numpy as np  # pylint: disable=import-error # Keep numpy for np.ndindex if needed
 
-from tsercom.data.tensor.smoothing_strategies import SmoothingStrategy
+from tsercom.data.tensor.smoothing_strategy import SmoothingStrategy
 
 logger = logging.getLogger(__name__)
 
 
-class SmoothedTensorDemuxer:  # No inheritance from TensorDemuxer
+class SmoothedTensorDemuxer:
     """
     Manages per-index keyframe data for a tensor and provides smoothed,
     interpolated tensor updates to a client.
@@ -30,32 +30,14 @@ class SmoothedTensorDemuxer:  # No inheritance from TensorDemuxer
         self,
         tensor_name: str,
         tensor_shape: Tuple[int, ...],
-        output_client: Any,  # Changed type to Any, ideally a Client ABC
+        output_client: Any,
         smoothing_strategy: SmoothingStrategy,
         output_interval_seconds: float,
         max_keyframe_history_per_index: int = 100,
         align_output_timestamps: bool = False,
-        fill_value: Union[int, float] = float(
-            "nan"
-        ),  # Use float('nan') for torch
+        fill_value: Union[int, float] = float("nan"),
         name: Optional[str] = None,
     ):
-        """
-        Initializes the SmoothedTensorDemuxer.
-        Args:
-            tensor_name: Name of the tensor.
-            tensor_shape: Shape of the tensor (e.g., (height, width, channels)).
-            output_client: The client to which smoothed tensor updates are pushed.
-                           Expected to have an async method:
-                           `push_tensor_update(tensor_name: str, data: torch.Tensor, timestamp: datetime)`
-            smoothing_strategy: The strategy instance to use for interpolation.
-            output_interval_seconds: The target interval between smoothed updates.
-            max_keyframe_history_per_index: Max keyframes per index.
-            align_output_timestamps: If True, aligns output timestamps.
-            fill_value: Value for unpopulated tensor elements.
-            name: Optional name for this demuxer instance.
-        """
-
         if not tensor_name:
             raise ValueError("tensor_name must be provided.")
         if not isinstance(tensor_shape, tuple) or not all(
@@ -94,9 +76,7 @@ class SmoothedTensorDemuxer:  # No inheritance from TensorDemuxer
         self._keyframes_lock = asyncio.Lock()
 
         self._last_pushed_timestamp: Optional[datetime] = None
-        self._interpolation_worker_task: Optional[asyncio.Task[None]] = (
-            None  # MODIFIED
-        )
+        self._interpolation_worker_task: Optional[asyncio.Task[None]] = None
         self._stop_event = asyncio.Event()
 
         logger.info(
@@ -166,7 +146,7 @@ class SmoothedTensorDemuxer:  # No inheritance from TensorDemuxer
                     + timedelta(seconds=self._output_interval_seconds)
                 )
                 if self._align_output_timestamps:
-                    next_output_timestamp = self._get_next_aligned_timestamp(  # MODIFIED: base_time removed
+                    next_output_timestamp = self._get_next_aligned_timestamp(
                         next_output_timestamp
                     )
 
@@ -276,9 +256,7 @@ class SmoothedTensorDemuxer:  # No inheritance from TensorDemuxer
         self._interpolation_worker_task = None
         logger.info(f"[{self.name}] SmoothedTensorDemuxer stopped.")
 
-    def _get_next_aligned_timestamp(
-        self, current_time: datetime
-    ) -> datetime:  # MODIFIED: base_time removed
+    def _get_next_aligned_timestamp(self, current_time: datetime) -> datetime:
         if current_time.tzinfo is None:
             current_time = current_time.replace(tzinfo=timezone.utc)
 

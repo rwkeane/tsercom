@@ -11,12 +11,15 @@ import abc
 import torch
 import pytest
 import pytest_asyncio
-from pytest_mock import MockerFixture # Added for mocking datetime
+from pytest_mock import MockerFixture
 
 from tsercom.data.tensor.smoothed_tensor_demuxer import SmoothedTensorDemuxer
-from tsercom.data.tensor.smoothing_strategies import (
+
+# MODIFIED: Corrected import paths
+from tsercom.data.tensor.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
 )
+
 
 class TestClientInterface(abc.ABC):
     @abc.abstractmethod
@@ -24,6 +27,7 @@ class TestClientInterface(abc.ABC):
         self, tensor_name: str, data: torch.Tensor, timestamp: datetime
     ) -> None:
         pass
+
 
 class MockClient(TestClientInterface):
     def __init__(self) -> None:
@@ -47,13 +51,16 @@ class MockClient(TestClientInterface):
         self.last_pushed_tensor = None
         self.last_pushed_timestamp = None
 
+
 @pytest.fixture
 def mock_client() -> MockClient:
     return MockClient()
 
+
 @pytest.fixture
 def linear_strategy() -> LinearInterpolationStrategy:
     return LinearInterpolationStrategy()
+
 
 @pytest_asyncio.fixture
 async def demuxer(
@@ -77,6 +84,7 @@ async def demuxer(
     ):
         await demuxer_instance.stop()
 
+
 @pytest.mark.asyncio
 async def test_initialization(
     mock_client: MockClient, linear_strategy: LinearInterpolationStrategy
@@ -95,6 +103,7 @@ async def test_initialization(
     assert demuxer_instance.get_tensor_shape() == tensor_shape
     assert demuxer_instance._output_interval_seconds == output_interval
 
+
 @pytest.mark.asyncio
 async def test_on_update_received_adds_keyframes(
     demuxer: SmoothedTensorDemuxer,
@@ -111,48 +120,40 @@ async def test_on_update_received_adds_keyframes(
     assert len(keyframes_idx0) == 2
     assert keyframes_idx0[0] == (ts1, 5.0)
 
+
 @pytest.mark.asyncio
 async def test_on_update_received_respects_history_limit(
     linear_strategy: LinearInterpolationStrategy, mock_client: MockClient
 ) -> None:
     history_limit = 3
-    demuxer_limited_fixture = (
-        SmoothedTensorDemuxer(
-            tensor_name="limited_tensor",
-            tensor_shape=(1,),
-            output_client=mock_client,
-            smoothing_strategy=linear_strategy,
-            output_interval_seconds=0.1,
-            max_keyframe_history_per_index=history_limit,
-        )
+    demuxer_limited_fixture = SmoothedTensorDemuxer(
+        tensor_name="limited_tensor",
+        tensor_shape=(1,),
+        output_client=mock_client,
+        smoothing_strategy=linear_strategy,
+        output_interval_seconds=0.1,
+        max_keyframe_history_per_index=history_limit,
     )
     index = (0,)
     base_ts = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     for i in range(history_limit + 2):
         ts = base_ts + timedelta(seconds=i)
         await demuxer_limited_fixture.on_update_received(index, float(i), ts)
-    async with (
-        demuxer_limited_fixture._keyframes_lock
-    ):
+    async with demuxer_limited_fixture._keyframes_lock:
         keyframes = demuxer_limited_fixture._SmoothedTensorDemuxer__per_index_keyframes[index]  # type: ignore [attr-defined]
     assert len(keyframes) == history_limit
     assert keyframes[0][1] == float(history_limit + 2 - history_limit)
     assert keyframes[-1][1] == float(history_limit + 2 - 1)
 
-def test_linear_interpolation_strategy_direct(
-    linear_strategy: LinearInterpolationStrategy,
-) -> None:
-    keyframes = [
-        (datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc), 10.0),
-        (datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc), 20.0),
-    ]
-    ts_between = keyframes[0][0] + timedelta(seconds=5)
-    results = linear_strategy.interpolate_series(keyframes, [ts_between])
-    assert results[0] == pytest.approx(15.0)
+
+# Remnants of test_linear_interpolation_strategy_direct removed from here
+
 
 @pytest.mark.asyncio
 async def test_interpolation_worker_simple_case(
-    demuxer: SmoothedTensorDemuxer, mock_client: MockClient, mocker: MockerFixture
+    demuxer: SmoothedTensorDemuxer,
+    mock_client: MockClient,
+    mocker: MockerFixture,
 ) -> None:
     demuxer._output_interval_seconds = 0.05
     ts1 = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -165,31 +166,30 @@ async def test_interpolation_worker_simple_case(
 
     mock_client.clear_pushes()
 
-    # Mock datetime.now() to control time progression in the worker
-    # Initial current_loop_start_time in worker will be ts1
-    mocked_now = mocker.patch("tsercom.data.tensor.smoothed_tensor_demuxer.datetime")
-    mocked_now.now.return_value = ts1
-    mocked_now.side_effect = lambda tz: datetime(2023,1,1,0,0,0, tzinfo=tz) # Ensure tz argument is handled if used by now()
+    mocked_dt = mocker.patch(
+        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime"
+    )
+
+    initial_worker_time = ts1
+    mocked_dt.now.return_value = initial_worker_time
+    mocked_dt.side_effect = lambda *args, **kwargs: (
+        datetime(*args, **kwargs) if args else initial_worker_time
+    )
 
     await demuxer.start()
 
-    # Allow worker to run a few cycles. Each cycle advances time by output_interval_seconds.
-    # Let's simulate time advancing for a few pushes.
-    # 1st push: next_output_timestamp = ts1 + 0.05s. current_loop_start_time for this push approx ts1.
-    # 2nd push: next_output_timestamp = ts1 + 0.10s. current_loop_start_time for this push approx ts1 + 0.05s
-    # 3rd push: next_output_timestamp = ts1 + 0.15s. current_loop_start_time for this push approx ts1 + 0.10s
+    mocked_dt.now.return_value = ts1
+    await asyncio.sleep(demuxer._output_interval_seconds + 0.02)
 
-    # First cycle
-    mocked_now.now.return_value = ts1
-    await asyncio.sleep(demuxer._output_interval_seconds + 0.01) # Sleep past first push point
+    mocked_dt.now.return_value = ts1 + timedelta(
+        seconds=demuxer._output_interval_seconds
+    )
+    await asyncio.sleep(demuxer._output_interval_seconds + 0.02)
 
-    # Second cycle
-    mocked_now.now.return_value = ts1 + timedelta(seconds=demuxer._output_interval_seconds)
-    await asyncio.sleep(demuxer._output_interval_seconds + 0.01) # Sleep past second push point
-
-    # Third cycle
-    mocked_now.now.return_value = ts1 + timedelta(seconds=demuxer._output_interval_seconds * 2)
-    await asyncio.sleep(demuxer._output_interval_seconds + 0.01) # Sleep past third push point
+    mocked_dt.now.return_value = ts1 + timedelta(
+        seconds=demuxer._output_interval_seconds * 2
+    )
+    await asyncio.sleep(demuxer._output_interval_seconds + 0.02)
 
     await demuxer.stop()
 
@@ -203,19 +203,21 @@ async def test_interpolation_worker_simple_case(
         if ts1 < push_ts < ts2:
             val0 = data_tensor[0].item()
             val1 = data_tensor[1].item()
-            expected_val_0 = 10.0 + (20.0 - 10.0) * (
-                (push_ts - ts1).total_seconds() / (ts2 - ts1).total_seconds()
-            )
-            expected_val_1 = 100.0 + (200.0 - 100.0) * (
-                (push_ts - ts1).total_seconds() / (ts2 - ts1).total_seconds()
-            )
+            time_ratio = (push_ts - ts1).total_seconds() / (
+                ts2 - ts1
+            ).total_seconds()
+            expected_val_0 = 10.0 + (20.0 - 10.0) * time_ratio
+            expected_val_1 = 100.0 + (200.0 - 100.0) * time_ratio
+
             assert val0 == pytest.approx(expected_val_0)
             assert val1 == pytest.approx(expected_val_1)
             found_relevant_push = True
             break
+
     assert (
         found_relevant_push
     ), f"No relevant interpolated tensor found between keyframes. Pushed timestamps: {pushed_timestamps}. ts1={ts1}, ts2={ts2}"
+
 
 @pytest.mark.asyncio
 async def test_critical_cascading_interpolation_scenario(
@@ -277,6 +279,7 @@ async def test_critical_cascading_interpolation_scenario(
     assert output_tensor_manual[2].item() == pytest.approx(expected_val_2)
     assert output_tensor_manual[3].item() == pytest.approx(expected_val_3)
 
+
 @pytest.mark.asyncio
 async def test_start_stop_worker(
     demuxer: SmoothedTensorDemuxer,
@@ -291,6 +294,7 @@ async def test_start_stop_worker(
         demuxer._interpolation_worker_task is None
         or demuxer._interpolation_worker_task.done()
     )
+
 
 @pytest.mark.asyncio
 async def test_process_external_update_decomposes_tensor(
@@ -311,6 +315,7 @@ async def test_process_external_update_decomposes_tensor(
     assert keyframes_idx0[0] == (ts, 55.0)
     assert keyframes_idx1 is not None and len(keyframes_idx1) == 1
     assert keyframes_idx1[0] == (ts, 66.0)
+
 
 @pytest.mark.asyncio
 async def test_empty_keyframes_output_fill_value(
