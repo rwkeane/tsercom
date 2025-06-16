@@ -182,9 +182,6 @@ class TestRuntimeDataHandlerBaseBehavior:
         # was intended for the dispatch_poller_data_loop.
         # However, __dispatch_poller_data_loop is started via loop.create_task directly
         # in __start_dispatch_loop if is_global_event_loop_set is true.
-        mocker.patch(
-            "tsercom.runtime.runtime_data_handler_base.run_on_event_loop"
-        )
         h = TestableRuntimeDataHandler(
             mock_data_reader, mock_event_source, mocker
         )
@@ -597,7 +594,6 @@ def handler_fixture(
     mock_data_reader_fixture, mock_event_source_fixture, mocker
 ):
     # Patch run_on_event_loop called by RuntimeDataHandlerBase.__init__
-    mocker.patch("tsercom.runtime.runtime_data_handler_base.run_on_event_loop")
     return ConcreteRuntimeDataHandler(
         mock_data_reader_fixture, mock_event_source_fixture, mocker
     )

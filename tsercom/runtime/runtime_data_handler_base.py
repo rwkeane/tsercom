@@ -118,13 +118,14 @@ class RuntimeDataHandlerBase(
             _poller_factory
         )
 
-        self.__dispatch_task: Optional[asyncio.Task] = None
+        self.__dispatch_task: Optional[asyncio.Task[None]] = None
         # Import get_global_event_loop and is_global_event_loop_set locally to avoid circular dependency issues at module level
         from tsercom.threading.aio.global_event_loop import (
             is_global_event_loop_set,
             get_global_event_loop,
         )
 
+        self._loop_on_init: Optional[asyncio.AbstractEventLoop] = None # Added type hint
         if is_global_event_loop_set():
             self._loop_on_init = (
                 get_global_event_loop()
@@ -136,7 +137,7 @@ class RuntimeDataHandlerBase(
                 f"__dispatch_task {self.__dispatch_task} created on loop {id(self._loop_on_init)}."
             )
         else:
-            self._loop_on_init = None  # Explicitly set if no loop
+            # self._loop_on_init is already None due to the type hint and default initialization
             _logger.warning(
                 "No global event loop set during RuntimeDataHandlerBase init. "
                 "__dispatch_poller_data_loop will not start."
