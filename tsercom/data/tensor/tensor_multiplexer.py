@@ -8,13 +8,14 @@ from typing import (
     List,
     Tuple,
     Optional,
+    TypeAlias,
 )
 
 import torch
 
 
 # Using a type alias for clarity
-TensorHistoryValue = torch.Tensor
+TensorHistoryValue: TypeAlias = "torch.Tensor"  # Forward reference
 TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue]
 
 

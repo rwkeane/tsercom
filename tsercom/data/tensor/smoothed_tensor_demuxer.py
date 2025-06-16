@@ -1,556 +1,357 @@
-# pylint: disable=too-many-instance-attributes
-# pylint: disable=too-many-arguments
-
+# pylint: disable=too-many-instance-attributes, too-many-arguments, import-error, too-many-locals
+# pylint: disable=too-many-branches, too-many-statements
 """
-Provides the SmoothedTensorDemuxer class, extending TensorDemuxer to output
-a smoothed, linearly interpolated stream of tensor data. It stores real keyframes
-received via on_update_received and generates interpolated tensor values
-periodically in a worker task.
+Provides the SmoothedTensorDemuxer class, which generates a smoothed stream
+of tensor data based on per-index keyframes and a configurable smoothing strategy.
 """
 
 import asyncio
 import bisect
 import datetime
-import logging  # Added logging
-from typing import List, Tuple, Optional
+import logging
+import math  # For math.prod
+import itertools  # Moved higher
+from typing import List, Tuple, Optional, Dict
 
 import torch
 
-from tsercom.data.tensor.tensor_demuxer import TensorDemuxer  # Absolute import
+from tsercom.data.tensor.tensor_demuxer import (
+    TensorDemuxer,
+)  # For Client interface
+from tsercom.data.tensor.smoothing_strategy import (
+    SmoothingStrategy,
+    Numeric,
+)  # Absolute import
 
 
-class SmoothedTensorDemuxer(TensorDemuxer):
-    """
-    Extends TensorDemuxer to provide a linearly interpolated stream of torch.Tensor data.
-    """
+# Type alias for tensor index, supporting multi-dimensional tensors
+TensorIndex = Tuple[int, ...]
+
+
+class SmoothedTensorDemuxer:
+    # Client = TensorDemuxer.Client # Removed alias
 
     def __init__(
         self,
-        client: TensorDemuxer.Client,  # Client for the smoothed output
-        tensor_length: int,
+        client: TensorDemuxer.Client,  # Ensuring direct type hint
+        tensor_shape: Tuple[int, ...],
+        smoothing_strategy: SmoothingStrategy,
         smoothing_period_seconds: float = 1.0,
-        data_timeout_seconds: Optional[float] = None,  # For super().__init__
     ):
-        super().__init__(
-            client=client,  # Pass the same client to base.
-            tensor_length=tensor_length,
-            **(
-                {}
-                if data_timeout_seconds is None
-                else {"data_timeout_seconds": data_timeout_seconds}
-            ),
-        )
-
+        if not tensor_shape:
+            raise ValueError("Tensor shape cannot be empty.")
+        if any(dim <= 0 for dim in tensor_shape):
+            raise ValueError("All tensor dimensions must be positive.")
         if smoothing_period_seconds <= 0:
             raise ValueError("Smoothing period must be positive.")
+        if not isinstance(smoothing_strategy, SmoothingStrategy):
+            raise TypeError(
+                "smoothing_strategy must be an instance of SmoothingStrategy."
+            )
 
-        self._sm_client: TensorDemuxer.Client = (
-            client  # Client for smoothed data
+        self.__client: TensorDemuxer.Client = (
+            client  # Ensuring direct type hint
         )
-        # self._tensor_length is available from base via property
-        self._smoothing_period_seconds: float = smoothing_period_seconds
-
-        # _keyframes stores (timestamp, full_real_tensor_value)
-        self._keyframes: List[Tuple[datetime.datetime, torch.Tensor]] = []
-        # _keyframe_explicit_updates[i] stores the explicit updates for _keyframes[i]
-        self._keyframe_explicit_updates: List[List[Tuple[int, float]]] = []
-
-        self._keyframe_lock = (
-            asyncio.Lock()
-        )  # Protects _keyframes and _keyframe_explicit_updates
-
-        # Tracks the timestamp of the last synthetic tensor emitted for an index
-        # For SmoothedTensorDemuxer, it's simpler as it doesn't manage multiple client indices.
-        # This will track the last emission for its single smoothed output stream.
-        self._last_synthetic_emitted_at: Optional[datetime.datetime] = None
-
-        self._interpolation_loop_task: Optional[asyncio.Task[None]] = (
-            None  # Typed Task
+        self.__tensor_shape: Tuple[int, ...] = tensor_shape
+        self.__smoothing_strategy: SmoothingStrategy = smoothing_strategy
+        self.__smoothing_period_seconds: float = smoothing_period_seconds
+        self.__per_index_keyframes: Dict[
+            TensorIndex, List[Tuple[datetime.datetime, Numeric]]
+        ] = {}
+        self.__keyframe_lock = asyncio.Lock()
+        self.__stop_event = asyncio.Event()
+        self.__interpolation_loop_task: Optional[asyncio.Task[None]] = None
+        self.__last_synthetic_emitted_at: Optional[datetime.datetime] = None
+        self.__all_indices: List[TensorIndex] = self._generate_all_indices(
+            tensor_shape
         )
-        self._stop_event = (
-            asyncio.Event()
-        )  # Used to signal the interpolation loop to stop
-
-    async def start(self) -> None:  # Added return type
-        """Starts the interpolation loop task if not already running."""
         if (
-            self._interpolation_loop_task is None
-            or self._interpolation_loop_task.done()
+            not self.__all_indices
+        ):  # Should be caught by tensor_shape checks, but good safeguard
+            raise ValueError("Tensor shape results in no valid indices.")
+        self._tensor_total_elements: int = math.prod(tensor_shape)
+
+    @staticmethod
+    def _generate_all_indices(shape: Tuple[int, ...]) -> List[TensorIndex]:
+        """Generates all possible multi-dimensional indices for a given shape."""
+        if not shape:
+            return []
+        ranges = [range(dim) for dim in shape]
+        product = itertools.product(*ranges)
+        return list(product)
+
+    async def start(self) -> None:
+        """Starts the background interpolation worker task."""
+        if (
+            self.__interpolation_loop_task is None
+            or self.__interpolation_loop_task.done()
         ):
-            self._stop_event.clear()
-            self._interpolation_loop_task = asyncio.create_task(
+            self.__stop_event.clear()
+            # Reset last emitted time on start to ensure fresh evaluation based on current keyframes,
+            # especially after being stopped and potentially having new keyframes added.
+            self.__last_synthetic_emitted_at = None
+            self.__interpolation_loop_task = asyncio.create_task(
                 self._interpolation_worker()
             )
-            # Ensure the task is "awaited" or managed if start() is called multiple times
-            # or if the object is destroyed without calling close().
-            # asyncio.create_task returns a Task object that can be cancelled.
+            logging.info("SmoothedTensorDemuxer interpolation worker started.")
 
-    async def close(self) -> None:  # Added return type
-        """
-        Stops the interpolation loop and cleans up resources.
-        This method should be called to ensure graceful shutdown.
-        """
-        self._stop_event.set()
+    async def close(self) -> None:
+        """Stops the background interpolation worker task and waits for it to exit."""
+        self.__stop_event.set()
         if (
-            self._interpolation_loop_task
-            and not self._interpolation_loop_task.done()
+            self.__interpolation_loop_task
+            and not self.__interpolation_loop_task.done()
         ):
             try:
-                # Give the task a moment to stop gracefully
                 await asyncio.wait_for(
-                    self._interpolation_loop_task,
-                    timeout=self._smoothing_period_seconds + 0.5,
+                    self.__interpolation_loop_task,
+                    timeout=self.__smoothing_period_seconds + 1.0,
                 )
             except asyncio.TimeoutError:
-                self._interpolation_loop_task.cancel()  # Force cancel if it doesn't stop
+                self.__interpolation_loop_task.cancel()
                 try:
-                    await self._interpolation_loop_task  # Await cancellation
+                    await self.__interpolation_loop_task
                 except asyncio.CancelledError:
-                    pass  # Expected
-            except asyncio.CancelledError:
-                pass  # Expected if already cancelled
-            except Exception:  # pylint: disable=broad-except
-                # Log other exceptions during task shutdown
-                # print(f"Error during interpolation_loop_task shutdown: {e}") # Consider logging
-                pass
-        self._interpolation_loop_task = None
-
-        # If TensorDemuxer had an async close method, we'd call it:
-        # if hasattr(super(), 'close') and asyncio.iscoroutinefunction(super().close):
-        #    await super().close()
-        # elif hasattr(super(), 'close'):
-        #    super().close()
-
-    async def _interpolation_worker(self) -> None:  # Added return type
-        """
-        Periodically generates and emits interpolated tensors.
-        Periodically generates and emits interpolated tensors."""
-        try:
-            while not self._stop_event.is_set():
-                # Determine sleep duration at the end of the loop iteration
-                # Default to a short poll if no work, or responsive poll if work done.
-                sleep_duration_after_iteration = (
-                    min(self._smoothing_period_seconds / 2.0, 0.1)
-                    if self._smoothing_period_seconds > 0
-                    else 0.1
+                    logging.info(
+                        "SmoothedTensorDemuxer interpolation worker task was cancelled due to timeout."
+                    )
+            except asyncio.CancelledError:  # pylint: disable=try-except-raise
+                # This can happen if task is cancelled elsewhere or finishes quickly after stop_event
+                logging.info(
+                    "SmoothedTensorDemuxer interpolation worker task was already cancelled or completed."
                 )
+        self.__interpolation_loop_task = None
+        logging.info("SmoothedTensorDemuxer interpolation worker stopped.")
 
-                await self._keyframe_lock.acquire()
-                try:
-                    if len(self._keyframes) < 2:
-                        # Not enough data, current iteration cannot interpolate.
-                        # Lock will be released in finally. Sleep duration remains default.
-                        pass  # Go to finally, then sleep
-                    else:
-                        first_kf_ts = self._keyframes[0][0]
-                        last_kf_ts = self._keyframes[-1][0]
+    async def on_update_received(
+        self, index: TensorIndex, value: Numeric, timestamp: datetime.datetime
+    ) -> None:
+        """
+        Handles a new granular update for a specific tensor index and timestamp.
 
-                        if self._last_synthetic_emitted_at is None:
-                            # Start first synthetic point one period after the first real point
-                            next_emission_timestamp = (
-                                first_kf_ts
-                                + datetime.timedelta(
-                                    seconds=self._smoothing_period_seconds
-                                )
-                            )
-                        else:
-                            next_emission_timestamp = (
-                                self._last_synthetic_emitted_at
-                                + datetime.timedelta(
-                                    seconds=self._smoothing_period_seconds
-                                )
-                            )
+        This method is thread-safe and schedules the processing of the update.
+        """
+        if not (
+            isinstance(index, tuple) and len(index) == len(self.__tensor_shape)
+        ):
+            logging.warning(
+                f"SmoothedTensorDemuxer: Invalid index dimension {index} for shape {self.__tensor_shape}. Update ignored."
+            )
+            return
+        if not all(
+            0 <= idx_val < self.__tensor_shape[dim]
+            for dim, idx_val in enumerate(index)
+        ):
+            logging.warning(
+                f"SmoothedTensorDemuxer: Index {index} out of bounds for shape {self.__tensor_shape}. Update ignored."
+            )
+            return
 
-                        # If last emission was reset due to out-of-order data, next_emission_timestamp might be too early
-                        if next_emission_timestamp < first_kf_ts:
-                            next_emission_timestamp = (
-                                first_kf_ts
-                                + datetime.timedelta(
-                                    seconds=self._smoothing_period_seconds
-                                )
-                            )
+        async with self.__keyframe_lock:
+            if index not in self.__per_index_keyframes:
+                self.__per_index_keyframes[index] = []
 
-                        # If we've interpolated past all known real data points
-                        if next_emission_timestamp > last_kf_ts:
-                            # Caught up to real data. Lock released in finally. Sleep duration default.
-                            pass  # Go to finally
-                        else:
-                            # Find t1: the last keyframe whose timestamp is <= next_emission_timestamp
-                            idx_t1 = (
-                                bisect.bisect_right(
-                                    self._keyframes,
-                                    next_emission_timestamp,
-                                    key=lambda kf: kf[0],
-                                )
-                                - 1
-                            )
+            keyframe_list = self.__per_index_keyframes[index]
+            new_keyframe = (timestamp, value)
 
-                            if idx_t1 < 0:
-                                logging.debug(
-                                    "SmoothedDemuxer: next_emission_timestamp %s is before the first keyframe %s.",
-                                    next_emission_timestamp,
-                                    first_kf_ts,
-                                )
-                                # Should be caught by prior checks, but as safeguard. Lock released in finally.
-                            else:
-                                t1, v1 = self._keyframes[idx_t1]
+            # Corrected bisect_left usage from subtask report
+            insertion_idx = bisect.bisect_left(
+                keyframe_list, new_keyframe[0], key=lambda kf: kf[0]
+            )  # Mypy unused-ignore removed
 
-                                # If next_emission_timestamp lands exactly on a real keyframe (t1),
-                                # advance it to be one smoothing period after this real keyframe.
-                                if t1 == next_emission_timestamp:
-                                    next_emission_timestamp = t1 + datetime.timedelta(
-                                        seconds=self._smoothing_period_seconds
-                                    )
-                                    if (
-                                        next_emission_timestamp >= last_kf_ts
-                                    ):  # Use >= to include case where it lands on last_kf_ts
-                                        # Advanced past or onto last keyframe, nothing more to do this cycle.
-                                        pass  # Go to finally
-                                    else:  # Continue with potentially new next_emission_timestamp
-                                        # Re-find idx_t1 for the *new* next_emission_timestamp
-                                        idx_t1 = (
-                                            bisect.bisect_right(
-                                                self._keyframes,
-                                                next_emission_timestamp,
-                                                key=lambda kf: kf[0],
-                                            )
-                                            - 1
-                                        )
-                                        if (
-                                            idx_t1 < 0
-                                        ):  # Should not happen if next_emission_timestamp was advanced from a valid t1
-                                            # pass # Go to finally: W0107 unnecessary-pass
-                                            pass  # Retaining pass as it's a valid no-op placeholder in this complex conditional.
-                                        else:
-                                            t1, v1 = self._keyframes[idx_t1]
+            if (
+                insertion_idx < len(keyframe_list)
+                and keyframe_list[insertion_idx][0] == timestamp
+            ):
+                if keyframe_list[insertion_idx][1] != value:
+                    keyframe_list[insertion_idx] = new_keyframe
+            else:
+                keyframe_list.insert(insertion_idx, new_keyframe)
 
-                                # Find t2: the first keyframe whose timestamp is > t1
-                                # This relies on idx_t1 being valid and correctly found for the (potentially updated) next_emission_timestamp
+    def _get_next_emission_timestamp(
+        self,
+        # current_time: datetime.datetime, # Removed W0613 Unused argument
+        min_overall_kf_ts: Optional[datetime.datetime],
+    ) -> Optional[datetime.datetime]:
+        """
+        Determines the next timestamp for synthetic tensor emission.
+        Returns None if no reasonable emission time can be determined (e.g., no data yet).
+        `min_overall_kf_ts` is the earliest timestamp among all keyframes, passed to avoid re-querying.
+        """
+        if self.__last_synthetic_emitted_at is None:
+            if min_overall_kf_ts:
+                # First emission, base it one period after the first known data point.
+                return min_overall_kf_ts + datetime.timedelta(
+                    seconds=self.__smoothing_period_seconds
+                )
+            # No keyframes exist yet, so cannot determine a meaningful start time for interpolation.
+            return None
+        # Subsequent emissions are one period after the last.
+        return self.__last_synthetic_emitted_at + datetime.timedelta(
+            seconds=self.__smoothing_period_seconds
+        )
+
+    async def _interpolation_worker(self) -> None:
+        output_tensor: Optional[torch.Tensor] = None  # For pylint E0601
+        try:
+            while not self.__stop_event.is_set():
+                current_loop_time = datetime.datetime.now(
+                    datetime.timezone.utc
+                )
+                t_interp: Optional[datetime.datetime] = None
+                min_overall_kf_ts: Optional[datetime.datetime] = None
+                max_overall_kf_ts: Optional[datetime.datetime] = None
+                has_any_keyframes = False
+
+                async with (
+                    self.__keyframe_lock
+                ):  # Lock to read keyframes and __last_synthetic_emitted_at
+                    if (
+                        self.__per_index_keyframes
+                    ):  # Check if there's any data at all
+                        has_any_keyframes = True
+                        for (
+                            idx_keyframes
+                        ) in self.__per_index_keyframes.values():
+                            if idx_keyframes:
+                                current_min_ts = idx_keyframes[0][0]
+                                current_max_ts = idx_keyframes[-1][0]
                                 if (
-                                    idx_t1 >= 0
-                                ):  # Ensure idx_t1 is valid before trying to find idx_t2
-                                    idx_t2 = idx_t1 + 1
-                                    if idx_t2 < len(self._keyframes):
-                                        t2, v2 = self._keyframes[idx_t2]
+                                    min_overall_kf_ts is None
+                                    or current_min_ts < min_overall_kf_ts
+                                ):
+                                    min_overall_kf_ts = current_min_ts
+                                if (
+                                    max_overall_kf_ts is None
+                                    or current_max_ts > max_overall_kf_ts
+                                ):
+                                    max_overall_kf_ts = current_max_ts
 
-                                        if not (
-                                            t1 < next_emission_timestamp < t2
-                                        ):
-                                            logging.debug(
-                                                "SmoothedDemuxer: next_emission_timestamp %s not strictly between t1=%s and t2=%s for interpolation.",
-                                                next_emission_timestamp,
-                                                t1,
-                                                t2,
-                                            )
-                                        elif (t2 - t1).total_seconds() == 0:
-                                            logging.warning(
-                                                "SmoothedDemuxer: t1=%s and t2=%s have identical timestamps, skipping interpolation.",
-                                                t1,
-                                                t2,
-                                            )
-                                        else:
-                                            # Perform interpolation
-                                            time_ratio = (
-                                                next_emission_timestamp - t1
-                                            ).total_seconds() / (
-                                                t2 - t1
-                                            ).total_seconds()
-                                            time_ratio = max(
-                                                0.0, min(time_ratio, 1.0)
-                                            )
-                                            v_synthetic = (
-                                                v1 + (v2 - v1) * time_ratio
-                                            )
-
-                                            current_synthetic_value = (
-                                                v_synthetic.clone()
-                                            )
-                                            current_emission_ts = (
-                                                next_emission_timestamp
-                                            )
-
-                                            self._keyframe_lock.release()  # Release before async client call
-
-                                            await self._sm_client.on_tensor_changed(
-                                                current_synthetic_value,
-                                                current_emission_ts,
-                                            )
-
-                                            await self._keyframe_lock.acquire()  # Re-acquire for the state update
-                                            self._last_synthetic_emitted_at = (
-                                                current_emission_ts
-                                            )
-
-                                            sleep_duration_after_iteration = (
-                                                min(
-                                                    self._smoothing_period_seconds
-                                                    / 10.0,
-                                                    0.05,
-                                                )
-                                                if self._smoothing_period_seconds
-                                                > 0
-                                                else 0.05
-                                            )
-                                    else:
-                                        # idx_t2 is out of bounds, no t2 found
-                                        logging.debug(
-                                            "SmoothedDemuxer: No keyframe t2 found after t1=%s at index %s.",
-                                            t1,
-                                            idx_t1,
-                                        )
-                                else:
-                                    # idx_t1 was < 0, already handled by an earlier 'pass to finally'
-                                    # Retaining pass as it's a valid no-op placeholder in this complex conditional.
-                                    pass
-                except Exception as e:  # pylint: disable=broad-except
-                    logging.error(
-                        "SmoothedDemuxer: Error in interpolation worker: %s",
-                        e,
-                        exc_info=True,
+                    t_interp = self._get_next_emission_timestamp(
+                        min_overall_kf_ts  # current_loop_time removed
                     )
-                    sleep_duration_after_iteration = (
-                        self._smoothing_period_seconds
-                        if self._smoothing_period_seconds > 0
-                        else 1.0
-                    )
-                finally:
-                    if self._keyframe_lock.locked():
-                        self._keyframe_lock.release()
 
-                await asyncio.sleep(sleep_duration_after_iteration)
+                    if (
+                        t_interp is None
+                    ):  # No data to base interpolation on yet
+                        logging.debug(
+                            "SmoothedTensorDemuxer: Cannot determine T_interp, no keyframes or first emission time not met."
+                        )
+                        # Lock released by 'async with'
+                    elif (
+                        max_overall_kf_ts
+                        and t_interp
+                        > max_overall_kf_ts
+                        + datetime.timedelta(
+                            seconds=self.__smoothing_period_seconds * 2
+                        )
+                    ):
+                        # If t_interp is too far beyond the last known real data point (e.g. > 2 periods),
+                        # it implies we are extrapolating too aggressively or data has stopped.
+                        # Hold off emission and wait for more data or for time to catch up.
+                        logging.debug(
+                            f"SmoothedTensorDemuxer: T_interp {t_interp} is too far ahead of last keyframe {max_overall_kf_ts}. Holding emission."
+                        )
+                        t_interp = None  # Prevent emission this cycle
+                        # Lock released by 'async with'
+
+                    # If t_interp is valid, proceed to interpolate
+                    if t_interp is not None:
+                        interpolated_values_flat: List[Optional[Numeric]] = [
+                            None
+                        ] * self._tensor_total_elements
+                        index_to_flat_pos: Dict[TensorIndex, int] = {
+                            tensor_idx: i
+                            for i, tensor_idx in enumerate(self.__all_indices)
+                        }
+                        at_least_one_value_interpolated = False
+
+                        for tensor_idx in self.__all_indices:
+                            keyframes_for_idx = self.__per_index_keyframes.get(
+                                tensor_idx, []
+                            )
+                            if not keyframes_for_idx:
+                                continue  # Value remains None, default 0.0 will be used.
+
+                            try:
+                                value_list = self.__smoothing_strategy.interpolate_series(
+                                    keyframes_for_idx,
+                                    [t_interp],  # Mypy unused-ignore removed
+                                )
+                                if value_list:
+                                    flat_pos = index_to_flat_pos[tensor_idx]
+                                    interpolated_values_flat[flat_pos] = (
+                                        value_list[0]
+                                    )
+                                    at_least_one_value_interpolated = True
+                            except Exception as e:
+                                logging.error(
+                                    f"SmoothedTensorDemuxer: Strategy error for index {tensor_idx} at T_interp {t_interp}: {e}",
+                                    exc_info=True,
+                                )
+
+                        if at_least_one_value_interpolated:
+                            final_values_for_tensor = [
+                                val if val is not None else 0.0
+                                for val in interpolated_values_flat
+                            ]
+                            output_tensor = torch.tensor(
+                                final_values_for_tensor, dtype=torch.float32
+                            ).reshape(self.__tensor_shape)
+                            # Update last emitted time *before* calling client, under lock
+                            self.__last_synthetic_emitted_at = t_interp
+                        else:
+                            # No values interpolated (e.g., t_interp is before any data for any index,
+                            # or all indices had empty keyframes). Only log if there was data to begin with.
+                            if has_any_keyframes:
+                                logging.debug(
+                                    f"SmoothedTensorDemuxer: No values interpolated for T_interp {t_interp}. Skipping emission."
+                                )
+                            output_tensor = None  # Ensure no emission
+                    else:  # t_interp was None (e.g. no data or too far ahead)
+                        output_tensor = None
+                # Lock is released here by end of 'async with' block.
+
+                if (
+                    output_tensor is not None and t_interp is not None
+                ):  # Ensure t_interp is also not None here
+                    try:
+                        await self.__client.on_tensor_changed(
+                            output_tensor, t_interp
+                        )
+                        logging.debug(
+                            f"SmoothedTensorDemuxer: Emitted tensor at {t_interp} with shape {output_tensor.shape}."
+                        )
+                    except Exception as e:
+                        logging.error(
+                            f"SmoothedTensorDemuxer: Client on_tensor_changed failed: {e}",
+                            exc_info=True,
+                        )
+
+                processing_time = (
+                    datetime.datetime.now(datetime.timezone.utc)
+                    - current_loop_time
+                ).total_seconds()
+                sleep_duration = max(
+                    0.01, self.__smoothing_period_seconds - processing_time
+                )  # Ensure at least small sleep
+
+                if self.__stop_event.is_set():
+                    break
+                await asyncio.sleep(sleep_duration)
 
         except asyncio.CancelledError:
-            logging.debug(
-                "SmoothedDemuxer: Interpolation worker task was cancelled."
+            logging.info(
+                "SmoothedTensorDemuxer: Interpolation worker task was cancelled."
             )
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             logging.error(
-                "SmoothedDemuxer: Interpolation worker crashed: %s",
-                e,
+                f"SmoothedTensorDemuxer: Interpolation worker crashed: {e}",
                 exc_info=True,
             )
         finally:
-            if self._keyframe_lock.locked():
-                self._keyframe_lock.release()
-
-    async def on_update_received(
-        self, tensor_index: int, value: float, timestamp: datetime.datetime
-    ) -> None:
-        """
-        Receives a partial update for a tensor at a specific timestamp.
-
-        This overridden method is responsible for:
-        1. Maintaining its own set of "real" tensor keyframes (`self._keyframes`).
-           This involves logic similar to the base TensorDemuxer: finding the
-           correct timeslice, applying the partial update to reconstruct the
-           full tensor for that timestamp, and handling cascades if an
-        out-of-order
-           update modifies an existing real keyframe.
-        2. After updating its real keyframes, it should ensure the interpolation
-           logic is aware that new real data is available.
-
-        This method will NOT call `super().on_update_received()` because the
-        SmoothedTensorDemuxer is providing its own smoothed stream and managing
-        its own real keyframes independently of the base class's `_tensor_states`.
-        (Implementation to be added in a subsequent step)
-        """
-        async with self._keyframe_lock:
-            # 1. Validate tensor_index (using property from base class)
-            if not (0 <= tensor_index < self._tensor_length):
-                logging.warning(
-                    "SmoothedTensorDemuxer: Invalid tensor_index %s for tensor_length %s. Update ignored.",
-                    tensor_index,
-                    self._tensor_length,
-                )
-                return
-
-            # 2. Find insertion point for the timestamp
-            # self._keyframes stores (timestamp, tensor_value)
-            # We use key=lambda x_tuple: x_tuple[0] to sort/search by timestamp
-            insertion_point = bisect.bisect_left(
-                self._keyframes, timestamp, key=lambda x_tuple: x_tuple[0]
+            logging.info(
+                "SmoothedTensorDemuxer: Interpolation worker task finished."
             )
-
-            # 3. Determine if an entry for this timestamp already exists
-            is_new_timestamp_entry = True
-            if (
-                insertion_point < len(self._keyframes)
-                and self._keyframes[insertion_point][0] == timestamp
-            ):
-                is_new_timestamp_entry = False
-
-            tensor_value_changed = False
-
-            # 4. Determine initial tensor state and explicit updates list
-            if is_new_timestamp_entry:
-                if insertion_point == 0:
-                    # Earliest timestamp, start with a zero tensor
-                    current_tensor = torch.zeros(
-                        self._tensor_length, dtype=torch.float32
-                    )
-                else:
-                    # Inherit from the chronological predecessor's tensor state
-                    current_tensor = self._keyframes[insertion_point - 1][
-                        1
-                    ].clone()
-                current_explicit_updates: List[Tuple[int, float]] = []
-            else:
-                # Existing timestamp, get current tensor and explicit updates
-                _existing_ts, existing_tensor_val = self._keyframes[
-                    insertion_point
-                ]
-                current_tensor = existing_tensor_val.clone()
-                current_explicit_updates = list(
-                    self._keyframe_explicit_updates[insertion_point]
-                )  # Clone list
-
-            # 5. Apply the update (tensor_index, value) to current_tensor
-            if current_tensor[tensor_index].item() != value:
-                current_tensor[tensor_index] = value
-                tensor_value_changed = True
-
-            # 6. Update current_explicit_updates
-            found_in_explicit = False
-            for i, (idx, _val) in enumerate(current_explicit_updates):
-                if idx == tensor_index:
-                    if current_explicit_updates[i][1] != value:
-                        current_explicit_updates[i] = (tensor_index, value)
-                        # tensor_value_changed is already true if current_tensor changed.
-                        # If current_tensor didn't change but explicit update did, that's also a change.
-                        tensor_value_changed = True
-                    found_in_explicit = True
-                    break
-            if not found_in_explicit:
-                current_explicit_updates.append((tensor_index, value))
-                tensor_value_changed = True  # New explicit update always means a change in how this keyframe is defined
-
-            # 7. Store the updated/new keyframe
-            if is_new_timestamp_entry:
-                self._keyframes.insert(
-                    insertion_point, (timestamp, current_tensor)
-                )
-                self._keyframe_explicit_updates.insert(
-                    insertion_point, current_explicit_updates
-                )
-            else:
-                # Only update if the tensor value actually changed.
-                # If only explicit_updates list changed definition but result is same tensor,
-                # tensor_value_changed would reflect that.
-                if (
-                    tensor_value_changed
-                ):  # Or check against self._keyframes[insertion_point][1]
-                    self._keyframes[insertion_point] = (
-                        timestamp,
-                        current_tensor,
-                    )
-                # Always update explicit updates list if it could have changed
-                self._keyframe_explicit_updates[insertion_point] = (
-                    current_explicit_updates
-                )
-
-            # 8. Cascading update for subsequent keyframes
-            needs_cascade = tensor_value_changed
-            if (
-                is_new_timestamp_entry
-                and insertion_point < len(self._keyframes) - 1
-            ):
-                # If a new entry is inserted and it's not at the very end,
-                # it becomes a new predecessor for the one previously at insertion_point,
-                # so a cascade is needed.
-                needs_cascade = True
-
-            if needs_cascade:
-                # Start cascade from the point of change (insertion_point)
-                # The loop goes up to len(self._keyframes) - 1 because we process idx_next_kf
-                for idx_kf_being_updated in range(
-                    insertion_point, len(self._keyframes)
-                ):
-                    if (
-                        idx_kf_being_updated == 0
-                    ):  # First keyframe has no predecessor to inherit from for cascade
-                        # If the very first keyframe was changed, subsequent ones might need update if they inherited.
-                        # This is handled by the loop structure starting from insertion_point.
-                        # If insertion_point is 0, the first kf is updated.
-                        # Then the loop continues to idx_kf_being_updated = 0.
-                        # The 'predecessor_tensor' for the *next* one (idx 1) will be keyframes[0].
-                        pass  # Nothing to do for the first element itself in terms of *its* predecessor
-
-                    if idx_kf_being_updated + 1 < len(self._keyframes):
-                        # This is the keyframe we are potentially re-calculating
-                        idx_next_kf = idx_kf_being_updated + 1
-
-                        next_kf_timestamp, old_next_kf_tensor_val = (
-                            self._keyframes[idx_next_kf]
-                        )
-                        next_kf_explicit_updates = (
-                            self._keyframe_explicit_updates[idx_next_kf]
-                        )
-
-                        # The predecessor for next_kf is the one at idx_kf_being_updated (which might have just changed)
-                        predecessor_tensor = self._keyframes[
-                            idx_kf_being_updated
-                        ][1]
-                        new_next_kf_tensor_val = predecessor_tensor.clone()
-
-                        for idx_update, val_update in next_kf_explicit_updates:
-                            if (
-                                0 <= idx_update < self._tensor_length
-                            ):  # Should always be true if validated on input
-                                new_next_kf_tensor_val[idx_update] = val_update
-
-                        if not torch.equal(
-                            new_next_kf_tensor_val, old_next_kf_tensor_val
-                        ):
-                            self._keyframes[idx_next_kf] = (
-                                next_kf_timestamp,
-                                new_next_kf_tensor_val,
-                            )
-                            # Continue cascade: next iteration will use this updated keyframe as predecessor
-                        else:
-                            # If this keyframe's tensor doesn't change, subsequent ones won't either from this path
-                            break
-                    else:  # idx_kf_being_updated is the last keyframe, no 'next' to cascade to.
-                        break
-
-            # 9. Reset _last_synthetic_emitted_at for interpolation recalibration
-            # If value changed, or if a new keyframe was inserted anywhere but the end.
-            should_reset_emission_tracker = tensor_value_changed or (
-                is_new_timestamp_entry
-                and insertion_point < len(self._keyframes) - 1
-            )
-
-            if should_reset_emission_tracker:
-                if insertion_point == 0:  # Change at the very beginning
-                    self._last_synthetic_emitted_at = None
-                else:
-                    # Reset to the timestamp of the keyframe just before the change/insertion
-                    # This ensures interpolation re-evaluates from that point.
-                    self._last_synthetic_emitted_at = self._keyframes[
-                        insertion_point - 1
-                    ][0]
-
-    async def get_tensor_at_timestamp(
-        self, timestamp: datetime.datetime
-    ) -> Optional[torch.Tensor]:
-        """
-        Retrieves a REAL keyframe tensor if one exists for the exact timestamp.
-
-        This method provides access to the "real" data points that the
-        SmoothedTensorDemuxer is using as a basis for interpolation.
-        It does not return interpolated values. For interpolated values,
-        the client should listen to `on_tensor_changed` from this class.
-        """
-        async with self._keyframe_lock:
-            # Find the timestamp in our list of real keyframes
-            # _keyframes stores (timestamp, tensor), so key is x[0]
-            i = bisect.bisect_left(
-                self._keyframes, timestamp, key=lambda x_tuple: x_tuple[0]
-            )
-            if (
-                i != len(self._keyframes)
-                and self._keyframes[i][0] == timestamp
-            ):
-                return self._keyframes[i][
-                    1
-                ].clone()  # Return a clone of the real tensor
-        return None
+            if self.__keyframe_lock.locked():
+                self.__keyframe_lock.release()
