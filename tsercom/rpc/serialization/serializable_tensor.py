@@ -107,7 +107,10 @@ class SerializableTensor:
             )  # Ensure 0/1 for bytes
             grpc_tensor.dense_tensor.bool_data.data = packed_bools
         # Handling for float16/bfloat16 as in original unit tests (convert to float32 for proto)
-        elif tensor_to_serialize.dtype in (torch.float16, torch.bfloat16): # Pylint R1714 fix
+        elif tensor_to_serialize.dtype in (
+            torch.float16,
+            torch.bfloat16,
+        ):  # Pylint R1714 fix
             logging.warning(
                 f"Converting tensor of dtype {tensor_to_serialize.dtype} to float32 for serialization."
             )
