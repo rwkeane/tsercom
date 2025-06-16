@@ -1,0 +1,937 @@
+Starting Test Execution and Verification...
+
+
+--- Focused Tests for SmoothedTensorDemuxer (Run 1) ---
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: mock-3.14.1, timeout-2.4.0, asyncio-1.0.0, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 7 items
+
+tsercom/data/smoothed_tensor_demuxer_unittest.py ......F                 [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_worker_stop_and_restart _________________________
+
+linear_strategy = <tsercom.data.tensor.smoothing_strategies.LinearInterpolationStrategy object at 0x7fc7ec1f77f0>
+mock_client = <tsercom.data.smoothed_tensor_demuxer_unittest.MockDemuxerClient object at 0x7fc7ec1f6e00>
+tensor_shape_1d = (4,)
+
+    @pytest.mark.asyncio
+    async def test_worker_stop_and_restart(
+        linear_strategy: SmoothingStrategy,
+        mock_client: MockDemuxerClient,
+        tensor_shape_1d: Tuple[int],
+    ) -> None:
+        """Test that the worker can be stopped and restarted."""
+        demuxer = SmoothedTensorDemuxer(
+            linear_strategy, mock_client, 0.01, tensor_shape=tensor_shape_1d
+        )
+        await demuxer.on_update_received((0,), 1.0, _utcnow())  # Ensure some data
+
+        demuxer.start()
+        await asyncio.sleep(0.05)
+        task_1 = demuxer._SmoothedTensorDemuxer__worker_task  # type: ignore[attr-defined]
+        assert task_1 is not None and not task_1.done()
+        num_received_1 = len(mock_client.received_tensors)
+        assert num_received_1 > 0
+
+        await demuxer.stop()
+        assert (
+            demuxer._SmoothedTensorDemuxer__worker_task is None  # type: ignore[attr-defined]
+            or demuxer._SmoothedTensorDemuxer__worker_task.done()  # type: ignore[attr-defined]
+        )
+        await asyncio.sleep(0.05)
+>       assert len(mock_client.received_tensors) == num_received_1
+E       assert 5 == 4
+E        +  where 5 = len([(tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 14, 219947, tzinfo=datetime.timezone.utc)), (tenso...e.utc)), (tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 14, 262386, tzinfo=datetime.timezone.utc))])
+E        +    where [(tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 14, 219947, tzinfo=datetime.timezone.utc)), (tenso...e.utc)), (tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 14, 262386, tzinfo=datetime.timezone.utc))] = <tsercom.data.smoothed_tensor_demuxer_unittest.MockDemuxerClient object at 0x7fc7ec1f6e00>.received_tensors
+
+tsercom/data/smoothed_tensor_demuxer_unittest.py:433: AssertionError
+=============================== warnings summary ===============================
+../home/swebot/.local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:276
+  /home/swebot/.local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:276: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:81.)
+    cpu = _conversion_method_template(device=torch.device("cpu"))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/data/smoothed_tensor_demuxer_unittest.py::test_worker_stop_and_restart
+==================== 1 failed, 6 passed, 1 warning in 2.78s ====================
+Focused Tests (Run 1) FAILED
+
+
+--- Focused Tests for SmoothedTensorDemuxer (Run 2) ---
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: mock-3.14.1, timeout-2.4.0, asyncio-1.0.0, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 7 items
+
+tsercom/data/smoothed_tensor_demuxer_unittest.py ......F                 [100%]
+
+=================================== FAILURES ===================================
+_________________________ test_worker_stop_and_restart _________________________
+
+linear_strategy = <tsercom.data.tensor.smoothing_strategies.LinearInterpolationStrategy object at 0x7fe883bb5b40>
+mock_client = <tsercom.data.smoothed_tensor_demuxer_unittest.MockDemuxerClient object at 0x7fe883bb5960>
+tensor_shape_1d = (4,)
+
+    @pytest.mark.asyncio
+    async def test_worker_stop_and_restart(
+        linear_strategy: SmoothingStrategy,
+        mock_client: MockDemuxerClient,
+        tensor_shape_1d: Tuple[int],
+    ) -> None:
+        """Test that the worker can be stopped and restarted."""
+        demuxer = SmoothedTensorDemuxer(
+            linear_strategy, mock_client, 0.01, tensor_shape=tensor_shape_1d
+        )
+        await demuxer.on_update_received((0,), 1.0, _utcnow())  # Ensure some data
+
+        demuxer.start()
+        await asyncio.sleep(0.05)
+        task_1 = demuxer._SmoothedTensorDemuxer__worker_task  # type: ignore[attr-defined]
+        assert task_1 is not None and not task_1.done()
+        num_received_1 = len(mock_client.received_tensors)
+        assert num_received_1 > 0
+
+        await demuxer.stop()
+        assert (
+            demuxer._SmoothedTensorDemuxer__worker_task is None  # type: ignore[attr-defined]
+            or demuxer._SmoothedTensorDemuxer__worker_task.done()  # type: ignore[attr-defined]
+        )
+        await asyncio.sleep(0.05)
+>       assert len(mock_client.received_tensors) == num_received_1
+E       assert 5 == 4
+E        +  where 5 = len([(tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 17, 983613, tzinfo=datetime.timezone.utc)), (tenso...ne.utc)), (tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 18, 25632, tzinfo=datetime.timezone.utc))])
+E        +    where [(tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 17, 983613, tzinfo=datetime.timezone.utc)), (tenso...ne.utc)), (tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 18, 25632, tzinfo=datetime.timezone.utc))] = <tsercom.data.smoothed_tensor_demuxer_unittest.MockDemuxerClient object at 0x7fe883bb5960>.received_tensors
+
+tsercom/data/smoothed_tensor_demuxer_unittest.py:433: AssertionError
+=============================== warnings summary ===============================
+../home/swebot/.local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:276
+  /home/swebot/.local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:276: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:81.)
+    cpu = _conversion_method_template(device=torch.device("cpu"))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/data/smoothed_tensor_demuxer_unittest.py::test_worker_stop_and_restart
+==================== 1 failed, 6 passed, 1 warning in 2.61s ====================
+Focused Tests (Run 2) FAILED
+
+
+--- Regression Tests for TensorDemuxer ---
+ERROR: file or directory not found: tsercom/data/tensor_demuxer_unittest.py
+
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: mock-3.14.1, timeout-2.4.0, asyncio-1.0.0, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+timeout: 30.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 0 items
+
+============================ no tests ran in 0.01s =============================
+TensorDemuxer Regression Tests FAILED
+
+
+--- Full Test Suite (Run 1) ---
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: mock-3.14.1, timeout-2.4.0, asyncio-1.0.0, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 692 items
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py .... [  0%]
+....                                                                     [  1%]
+tsercom/api/local_process/local_runtime_factory_unittest.py ....         [  1%]
+tsercom/api/local_process/runtime_command_bridge_unittest.py ........... [  3%]
+........                                                                 [  4%]
+tsercom/api/local_process/runtime_wrapper_unittest.py .........          [  5%]
+tsercom/api/runtime_manager_unittest.py ..........................       [  9%]
+tsercom/api/split_process/data_reader_sink_unittest.py ......            [ 10%]
+tsercom/api/split_process/data_reader_source_unittest.py ............    [ 12%]
+tsercom/api/split_process/event_source_unittest.py .........             [ 13%]
+tsercom/api/split_process/remote_runtime_factory_unittest.py ......      [ 14%]
+tsercom/api/split_process/runtime_command_source_unittest.py ........... [ 15%]
+                                                                         [ 15%]
+tsercom/api/split_process/shim_runtime_handle_unittest.py .........      [ 17%]
+tsercom/api/split_process/split_process_error_watcher_sink_unittest.py . [ 17%]
+...                                                                      [ 17%]
+tsercom/api/split_process/split_process_error_watcher_source_unittest.py . [ 17%]
+........                                                                 [ 19%]
+tsercom/api/split_process/split_runtime_factory_factory_unittest.py ...  [ 19%]
+tsercom/caller_id/caller_id_map_unittest.py .....                        [ 20%]
+tsercom/caller_id/caller_identifier_unittest.py ..............           [ 22%]
+tsercom/caller_id/caller_identifier_waiter_unittest.py ....              [ 22%]
+tsercom/caller_id/client_id_fetcher_unittest.py .......                  [ 23%]
+tsercom/data/data_host_base_unittest.py .....                            [ 24%]
+tsercom/data/data_timeout_tracker_unittest.py ...................        [ 27%]
+tsercom/data/exposed_data_with_responder_unittest.py .....               [ 28%]
+tsercom/data/remote_data_aggregator_impl_unittest.py ................... [ 30%]
+..                                                                       [ 31%]
+tsercom/data/remote_data_organizer_unittest.py ......................... [ 34%]
+...........                                                              [ 36%]
+tsercom/data/smoothed_tensor_demuxer_unittest.py ......F                 [ 37%]
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py FEEEFFFEEEE      [ 38%]
+tsercom/data/tensor/tensor_demuxer_unittest.py ............              [ 40%]
+tsercom/data/tensor/tensor_multiplexer_unittest.py .............         [ 42%]
+tsercom/data/tensor/tensor_multiplexing_component_test.py .......        [ 43%]
+tsercom/discovery/discovery_host_unittest.py ..............              [ 45%]
+tsercom/discovery/mdns/instance_listener_unittest.py ...........         [ 47%]
+tsercom/discovery/mdns/instance_publisher_unittest.py .................. [ 49%]
+.                                                                        [ 49%]
+tsercom/discovery/mdns/mdns_listener_unittest.py .                       [ 50%]
+tsercom/discovery/service_connector_unittest.py ........                 [ 51%]
+tsercom/discovery_e2etest.py .......                                     [ 52%]
+tsercom/full_app_e2etest.py .                                            [ 52%]
+tsercom/rpc/connection/client_disconnection_retrier_unittest.py .......  [ 53%]
+tsercom/rpc/grpc_util/grpc_service_publisher_unittest.py .               [ 53%]
+tsercom/rpc/serialization/caller_id_extraction_unittest.py ............  [ 55%]
+tsercom/rpc/serialization/serializable_tensor_unittest.py .............s [ 57%]
+ss.                                                                      [ 57%]
+tsercom/rpc_e2etest.py .............                                     [ 59%]
+tsercom/runtime/channel_factory_selector_unittest.py ...............     [ 61%]
+tsercom/runtime/client/client_runtime_data_handler_unittest.py .......   [ 62%]
+tsercom/runtime/client/timesync_tracker_unittest.py ......               [ 63%]
+tsercom/runtime/endpoint_data_processor_unittest.py .....                [ 64%]
+tsercom/runtime/id_tracker_unittest.py .....................             [ 67%]
+tsercom/runtime/runtime_config_unittest.py ...............               [ 69%]
+tsercom/runtime/runtime_data_handler_base_unittest.py .................. [ 72%]
+........                                                                 [ 73%]
+tsercom/runtime/runtime_main_unittest.py .........                       [ 74%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py ......    [ 75%]
+tsercom/runtime_e2etest.py ...........                                   [ 77%]
+tsercom/threading/aio/aio_utils_unittest.py ...............              [ 79%]
+tsercom/threading/aio/async_poller_unittest.py ...............           [ 81%]
+tsercom/threading/aio/event_loop_factory_unittest.py .                   [ 81%]
+tsercom/threading/aio/global_event_loop_unittest.py .........            [ 82%]
+tsercom/threading/atomic_unittest.py ......                              [ 83%]
+tsercom/threading/multiprocess/multiprocess_queue_sink_unittest.py ....  [ 84%]
+tsercom/threading/thread_safe_queue_unittest.py .......                  [ 85%]
+tsercom/threading/thread_watcher_unittest.py ............                [ 86%]
+tsercom/threading/throwing_thread_pool_executor_unittest.py ........     [ 88%]
+tsercom/threading/throwing_thread_unittest.py .....s                     [ 89%]
+tsercom/timesync/client/client_synchronized_clock_unittest.py .......... [ 90%]
+                                                                         [ 90%]
+tsercom/timesync/client/fake_time_sync_client_unittest.py ........       [ 91%]
+tsercom/timesync/client/time_sync_client_unittest.py ..............      [ 93%]
+tsercom/timesync/common/fake_synchronized_clock_unittest.py ...          [ 94%]
+tsercom/timesync/common/synchronized_clock_unittest.py .....             [ 94%]
+tsercom/timesync/common/synchronized_timestamp_unittest.py ............. [ 96%]
+..                                                                       [ 96%]
+tsercom/timesync/server/server_synchronized_clock_unittest.py ...        [ 97%]
+tsercom/util/ip_unittest.py ........                                     [ 98%]
+tsercom/util/is_running_tracker_unittest.py ........                     [ 99%]
+tsercom/util/stopable_unittest.py ..                                     [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_start_and_close_idempotency _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe22378c160>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_simple_interpolation_two_keyframes _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe2234f4c70>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_no_interpolation_lt_two_keyframes _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe2237ec280>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_on_update_received_creates_new_keyframes _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe223f57340>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_on_update_received_updates_existing_keyframe _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe22350fdc0>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_on_update_received_out_of_bounds_index _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe223c334f0>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_on_update_received_internal_cascade _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe22350ee30>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+=================================== FAILURES ===================================
+_________________________ test_worker_stop_and_restart _________________________
+
+linear_strategy = <tsercom.data.tensor.smoothing_strategies.LinearInterpolationStrategy object at 0x7fe222b3ba90>
+mock_client = <tsercom.data.smoothed_tensor_demuxer_unittest.MockDemuxerClient object at 0x7fe222b3bf40>
+tensor_shape_1d = (4,)
+
+    @pytest.mark.asyncio
+    async def test_worker_stop_and_restart(
+        linear_strategy: SmoothingStrategy,
+        mock_client: MockDemuxerClient,
+        tensor_shape_1d: Tuple[int],
+    ) -> None:
+        """Test that the worker can be stopped and restarted."""
+        demuxer = SmoothedTensorDemuxer(
+            linear_strategy, mock_client, 0.01, tensor_shape=tensor_shape_1d
+        )
+        await demuxer.on_update_received((0,), 1.0, _utcnow())  # Ensure some data
+
+        demuxer.start()
+        await asyncio.sleep(0.05)
+        task_1 = demuxer._SmoothedTensorDemuxer__worker_task  # type: ignore[attr-defined]
+        assert task_1 is not None and not task_1.done()
+        num_received_1 = len(mock_client.received_tensors)
+        assert num_received_1 > 0
+
+        await demuxer.stop()
+        assert (
+            demuxer._SmoothedTensorDemuxer__worker_task is None  # type: ignore[attr-defined]
+            or demuxer._SmoothedTensorDemuxer__worker_task.done()  # type: ignore[attr-defined]
+        )
+        await asyncio.sleep(0.05)
+>       assert len(mock_client.received_tensors) == num_received_1
+E       assert 5 == 4
+E        +  where 5 = len([(tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 26, 561255, tzinfo=datetime.timezone.utc)), (tenso...e.utc)), (tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 26, 604335, tzinfo=datetime.timezone.utc))])
+E        +    where [(tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 26, 561255, tzinfo=datetime.timezone.utc)), (tenso...e.utc)), (tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 9, 26, 604335, tzinfo=datetime.timezone.utc))] = <tsercom.data.smoothed_tensor_demuxer_unittest.MockDemuxerClient object at 0x7fe222b3bf40>.received_tensors
+
+tsercom/data/smoothed_tensor_demuxer_unittest.py:433: AssertionError
+________________ TestSmoothedTensorDemuxer.test_initialization _________________
+
+self = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.TestSmoothedTensorDemuxer object at 0x7fe2240b0ee0>
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe223748ee0>
+
+    @pytest.mark.asyncio
+    async def test_initialization(self, fake_client: FakeClient):
+        tensor_length = 5
+        smoothing_period = 0.5
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_length,
+            smoothing_period_seconds=smoothing_period,
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:116: TypeError
+_________ TestSmoothedTensorDemuxer.test_interpolation_multiple_points _________
+
+self = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.TestSmoothedTensorDemuxer object at 0x7fe2240b3370>
+sm_demuxer_custom = <function sm_demuxer_custom.<locals>._factory at 0x7fe222b65d80>
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe223f44d90>
+
+    @pytest.mark.asyncio
+    async def test_interpolation_multiple_points(
+        self, sm_demuxer_custom: Any, fake_client: FakeClient
+    ):
+        # Use custom demuxer for specific timing control
+        period = 0.5  # seconds
+        tensor_len = 2
+>       demuxer = await sm_demuxer_custom(
+            tensor_length=tensor_len, smoothing_period_seconds=period
+        )
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:274:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tensor_length = 2, smoothing_period_seconds = 0.5
+
+    async def _factory(
+        tensor_length: int, smoothing_period_seconds: float
+    ) -> SmoothedTensorDemuxer:
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_length,
+            smoothing_period_seconds=smoothing_period_seconds,
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:92: TypeError
+_ TestSmoothedTensorDemuxer.test_cascading_recalculation_out_of_order_real_data _
+
+self = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.TestSmoothedTensorDemuxer object at 0x7fe2240b10f0>
+sm_demuxer_custom = <function sm_demuxer_custom.<locals>._factory at 0x7fe222b64f70>
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe222b1bb80>
+
+    @pytest.mark.asyncio
+    async def test_cascading_recalculation_out_of_order_real_data(
+        self, sm_demuxer_custom: Any, fake_client: FakeClient
+    ):
+        # Use a custom demuxer: tensor_length=2, smoothing_period_seconds=1.0
+        # This makes values easier to track: T=[v0, v1]
+        period = 1.0
+        tensor_len = 2
+>       demuxer = await sm_demuxer_custom(
+            tensor_length=tensor_len, smoothing_period_seconds=period
+        )
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:333:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tensor_length = 2, smoothing_period_seconds = 1.0
+
+    async def _factory(
+        tensor_length: int, smoothing_period_seconds: float
+    ) -> SmoothedTensorDemuxer:
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_length,
+            smoothing_period_seconds=smoothing_period_seconds,
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:92: TypeError
+_____________ TestSmoothedTensorDemuxer.test_smoothing_period_zero _____________
+
+self = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.TestSmoothedTensorDemuxer object at 0x7fe2240b12a0>
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7fe223710760>
+
+    @pytest.mark.asyncio
+    async def test_smoothing_period_zero(
+        self, fake_client: FakeClient
+    ):  # Removed sm_demuxer_custom as it's not used for direct __init__ test
+        # With smoothing_period_seconds = 0, the behavior might be to pass through data
+        # as fast as possible, or simply not interpolate and only emit real keyframes
+        # if they were directly pushed (which they are not, on_update_received stores them).
+        # The current _interpolation_worker sleeps for 0.1s if period is 0.
+        # It will try to interpolate between available keyframes.
+        # Let's define expected behavior: it should still interpolate, but the 'period'
+        # for stepping from _last_synthetic_emitted_at is problematic.
+        # The _interpolation_worker adds 0 to timestamps if period is 0.
+        # This will cause it to try to emit at the same timestamp repeatedly.
+        # This needs clarification or a specific design choice for period=0.
+        #
+        # Based on current code: `datetime.timedelta(seconds=0)` is valid.
+        # `_interpolation_worker` will calculate:
+        # `next_emission_timestamp = self._last_synthetic_emitted_at + datetime.timedelta(seconds=0)`
+        # This means it will try to emit at `self._last_synthetic_emitted_at` over and over.
+        # If `next_emission_timestamp == t1` (a real keyframe), it advances by period (0), so still t1.
+        # This will likely lead to an infinite loop or rapid re-emission if not handled.
+        #
+        # The ValueError in __init__ for smoothing_period_seconds <= 0 prevents this.
+        # So, this test should actually check for that ValueError.
+
+        tensor_len = 2
+
+        # Test __init__ directly to ensure ValueError is raised for period = 0
+        with pytest.raises(
+            ValueError, match="Smoothing period must be positive"
+        ):
+>           direct_demuxer = SmoothedTensorDemuxer(
+                client=fake_client,  # Need a client instance
+                tensor_length=tensor_len,
+                smoothing_period_seconds=0.0,
+            )
+E           TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:490: TypeError
+=============================== warnings summary ===============================
+../home/swebot/.local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:276
+  /home/swebot/.local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:276: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:81.)
+    cpu = _conversion_method_template(device=torch.device("cpu"))
+
+tsercom/runtime/runtime_main_unittest.py::TestRemoteProcessMain::test_remote_process_main_error_queue_put_fails
+tsercom/runtime/runtime_main_unittest.py::TestRemoteProcessMain::test_exception_in_run_until_exception
+  /usr/lib/python3.10/unittest/mock.py:2181: RuntimeWarning: coroutine 'wait_for' was never awaited
+    self.name = name
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/threading/aio/global_event_loop_unittest.py::TestGlobalEventLoop::test_set_tsercom_event_loop_to_current_thread_no_running_loop
+  /usr/lib/python3.10/asyncio/base_events.py:674: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.__dispatch_poller_data_loop' was never awaited
+    self._ready.clear()
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/threading/throwing_thread_pool_executor_unittest.py::TestThrowingThreadPoolExecutor::test_multiple_tasks_mixed_success_and_failure
+  /usr/lib/python3.10/threading.py:876: RuntimeWarning: coroutine 'wait_for' was never awaited
+    self._started = Event()
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/data/smoothed_tensor_demuxer_unittest.py::test_worker_stop_and_restart
+FAILED tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_initialization
+FAILED tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_interpolation_multiple_points
+FAILED tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_cascading_recalculation_out_of_order_real_data
+FAILED tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_smoothing_period_zero
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_start_and_close_idempotency
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_simple_interpolation_two_keyframes
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_no_interpolation_lt_two_keyframes
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_on_update_received_creates_new_keyframes
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_on_update_received_updates_existing_keyframe
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_on_update_received_out_of_bounds_index
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_on_update_received_internal_cascade
+== 5 failed, 676 passed, 4 skipped, 5 warnings, 7 errors in 105.10s (0:01:45) ==
+Full Test Suite (Run 1) FAILED
+
+
+--- Full Test Suite (Run 2) ---
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-8.3.5, pluggy-1.5.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: mock-3.14.1, timeout-2.4.0, asyncio-1.0.0, anyio-4.9.0, cov-6.1.1, json-report-1.5.0, metadata-3.1.1
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 692 items
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py .... [  0%]
+....                                                                     [  1%]
+tsercom/api/local_process/local_runtime_factory_unittest.py ....         [  1%]
+tsercom/api/local_process/runtime_command_bridge_unittest.py ........... [  3%]
+........                                                                 [  4%]
+tsercom/api/local_process/runtime_wrapper_unittest.py .........          [  5%]
+tsercom/api/runtime_manager_unittest.py ..........................       [  9%]
+tsercom/api/split_process/data_reader_sink_unittest.py ......            [ 10%]
+tsercom/api/split_process/data_reader_source_unittest.py ............    [ 12%]
+tsercom/api/split_process/event_source_unittest.py .........             [ 13%]
+tsercom/api/split_process/remote_runtime_factory_unittest.py ......      [ 14%]
+tsercom/api/split_process/runtime_command_source_unittest.py ........... [ 15%]
+                                                                         [ 15%]
+tsercom/api/split_process/shim_runtime_handle_unittest.py .........      [ 17%]
+tsercom/api/split_process/split_process_error_watcher_sink_unittest.py . [ 17%]
+...                                                                      [ 17%]
+tsercom/api/split_process/split_process_error_watcher_source_unittest.py . [ 17%]
+........                                                                 [ 19%]
+tsercom/api/split_process/split_runtime_factory_factory_unittest.py ...  [ 19%]
+tsercom/caller_id/caller_id_map_unittest.py .....                        [ 20%]
+tsercom/caller_id/caller_identifier_unittest.py ..............           [ 22%]
+tsercom/caller_id/caller_identifier_waiter_unittest.py ....              [ 22%]
+tsercom/caller_id/client_id_fetcher_unittest.py .......                  [ 23%]
+tsercom/data/data_host_base_unittest.py .....                            [ 24%]
+tsercom/data/data_timeout_tracker_unittest.py ...................        [ 27%]
+tsercom/data/exposed_data_with_responder_unittest.py .....               [ 28%]
+tsercom/data/remote_data_aggregator_impl_unittest.py ................... [ 30%]
+..                                                                       [ 31%]
+tsercom/data/remote_data_organizer_unittest.py ......................... [ 34%]
+...........                                                              [ 36%]
+tsercom/data/smoothed_tensor_demuxer_unittest.py ......F                 [ 37%]
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py FEEEFFFEEEE      [ 38%]
+tsercom/data/tensor/tensor_demuxer_unittest.py ............              [ 40%]
+tsercom/data/tensor/tensor_multiplexer_unittest.py .............         [ 42%]
+tsercom/data/tensor/tensor_multiplexing_component_test.py .......        [ 43%]
+tsercom/discovery/discovery_host_unittest.py ..............              [ 45%]
+tsercom/discovery/mdns/instance_listener_unittest.py ...........         [ 47%]
+tsercom/discovery/mdns/instance_publisher_unittest.py .................. [ 49%]
+.                                                                        [ 49%]
+tsercom/discovery/mdns/mdns_listener_unittest.py .                       [ 50%]
+tsercom/discovery/service_connector_unittest.py ........                 [ 51%]
+tsercom/discovery_e2etest.py .......                                     [ 52%]
+tsercom/full_app_e2etest.py .                                            [ 52%]
+tsercom/rpc/connection/client_disconnection_retrier_unittest.py .......  [ 53%]
+tsercom/rpc/grpc_util/grpc_service_publisher_unittest.py .               [ 53%]
+tsercom/rpc/serialization/caller_id_extraction_unittest.py ............  [ 55%]
+tsercom/rpc/serialization/serializable_tensor_unittest.py .............s [ 57%]
+ss.                                                                      [ 57%]
+tsercom/rpc_e2etest.py .............                                     [ 59%]
+tsercom/runtime/channel_factory_selector_unittest.py ...............     [ 61%]
+tsercom/runtime/client/client_runtime_data_handler_unittest.py .......   [ 62%]
+tsercom/runtime/client/timesync_tracker_unittest.py ......               [ 63%]
+tsercom/runtime/endpoint_data_processor_unittest.py .....                [ 64%]
+tsercom/runtime/id_tracker_unittest.py .....................             [ 67%]
+tsercom/runtime/runtime_config_unittest.py ...............               [ 69%]
+tsercom/runtime/runtime_data_handler_base_unittest.py .................. [ 72%]
+........                                                                 [ 73%]
+tsercom/runtime/runtime_main_unittest.py .........                       [ 74%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py ......    [ 75%]
+tsercom/runtime_e2etest.py ...........                                   [ 77%]
+tsercom/threading/aio/aio_utils_unittest.py ...............              [ 79%]
+tsercom/threading/aio/async_poller_unittest.py ...............           [ 81%]
+tsercom/threading/aio/event_loop_factory_unittest.py .                   [ 81%]
+tsercom/threading/aio/global_event_loop_unittest.py .........            [ 82%]
+tsercom/threading/atomic_unittest.py ......                              [ 83%]
+tsercom/threading/multiprocess/multiprocess_queue_sink_unittest.py ....  [ 84%]
+tsercom/threading/thread_safe_queue_unittest.py .......                  [ 85%]
+tsercom/threading/thread_watcher_unittest.py ............                [ 86%]
+tsercom/threading/throwing_thread_pool_executor_unittest.py ........     [ 88%]
+tsercom/threading/throwing_thread_unittest.py .....s                     [ 89%]
+tsercom/timesync/client/client_synchronized_clock_unittest.py .......... [ 90%]
+                                                                         [ 90%]
+tsercom/timesync/client/fake_time_sync_client_unittest.py ........       [ 91%]
+tsercom/timesync/client/time_sync_client_unittest.py ..............      [ 93%]
+tsercom/timesync/common/fake_synchronized_clock_unittest.py ...          [ 94%]
+tsercom/timesync/common/synchronized_clock_unittest.py .....             [ 94%]
+tsercom/timesync/common/synchronized_timestamp_unittest.py ............. [ 96%]
+..                                                                       [ 96%]
+tsercom/timesync/server/server_synchronized_clock_unittest.py ...        [ 97%]
+tsercom/util/ip_unittest.py ........                                     [ 98%]
+tsercom/util/is_running_tracker_unittest.py ........                     [ 99%]
+tsercom/util/stopable_unittest.py ..                                     [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_start_and_close_idempotency _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f9969353be0>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_simple_interpolation_two_keyframes _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f99689ceef0>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_no_interpolation_lt_two_keyframes _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f9969343190>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_on_update_received_creates_new_keyframes _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f9969461ba0>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_on_update_received_updates_existing_keyframe _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f9969359840>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_on_update_received_out_of_bounds_index _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f9968834610>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+_ ERROR at setup of TestSmoothedTensorDemuxer.test_on_update_received_internal_cascade _
+
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f99689c4f10>
+
+    @pytest_asyncio.fixture  # Changed
+    async def sm_demuxer(fake_client: FakeClient) -> SmoothedTensorDemuxer:
+        # Default tensor_length=3, smoothing_period=1.0s
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client, tensor_length=3, smoothing_period_seconds=1.0
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:76: TypeError
+=================================== FAILURES ===================================
+_________________________ test_worker_stop_and_restart _________________________
+
+linear_strategy = <tsercom.data.tensor.smoothing_strategies.LinearInterpolationStrategy object at 0x7f996935b160>
+mock_client = <tsercom.data.smoothed_tensor_demuxer_unittest.MockDemuxerClient object at 0x7f9969358940>
+tensor_shape_1d = (4,)
+
+    @pytest.mark.asyncio
+    async def test_worker_stop_and_restart(
+        linear_strategy: SmoothingStrategy,
+        mock_client: MockDemuxerClient,
+        tensor_shape_1d: Tuple[int],
+    ) -> None:
+        """Test that the worker can be stopped and restarted."""
+        demuxer = SmoothedTensorDemuxer(
+            linear_strategy, mock_client, 0.01, tensor_shape=tensor_shape_1d
+        )
+        await demuxer.on_update_received((0,), 1.0, _utcnow())  # Ensure some data
+
+        demuxer.start()
+        await asyncio.sleep(0.05)
+        task_1 = demuxer._SmoothedTensorDemuxer__worker_task  # type: ignore[attr-defined]
+        assert task_1 is not None and not task_1.done()
+        num_received_1 = len(mock_client.received_tensors)
+        assert num_received_1 > 0
+
+        await demuxer.stop()
+        assert (
+            demuxer._SmoothedTensorDemuxer__worker_task is None  # type: ignore[attr-defined]
+            or demuxer._SmoothedTensorDemuxer__worker_task.done()  # type: ignore[attr-defined]
+        )
+        await asyncio.sleep(0.05)
+>       assert len(mock_client.received_tensors) == num_received_1
+E       assert 5 == 4
+E        +  where 5 = len([(tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 11, 11, 207890, tzinfo=datetime.timezone.utc)), (tens....utc)), (tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 11, 11, 249934, tzinfo=datetime.timezone.utc))])
+E        +    where [(tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 11, 11, 207890, tzinfo=datetime.timezone.utc)), (tens....utc)), (tensor([1., nan, nan, nan]), datetime.datetime(2025, 6, 16, 0, 11, 11, 249934, tzinfo=datetime.timezone.utc))] = <tsercom.data.smoothed_tensor_demuxer_unittest.MockDemuxerClient object at 0x7f9969358940>.received_tensors
+
+tsercom/data/smoothed_tensor_demuxer_unittest.py:433: AssertionError
+________________ TestSmoothedTensorDemuxer.test_initialization _________________
+
+self = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.TestSmoothedTensorDemuxer object at 0x7f996a179630>
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f99689c7e80>
+
+    @pytest.mark.asyncio
+    async def test_initialization(self, fake_client: FakeClient):
+        tensor_length = 5
+        smoothing_period = 0.5
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_length,
+            smoothing_period_seconds=smoothing_period,
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:116: TypeError
+_________ TestSmoothedTensorDemuxer.test_interpolation_multiple_points _________
+
+self = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.TestSmoothedTensorDemuxer object at 0x7f996a17a0e0>
+sm_demuxer_custom = <function sm_demuxer_custom.<locals>._factory at 0x7f99689712d0>
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f996894fe80>
+
+    @pytest.mark.asyncio
+    async def test_interpolation_multiple_points(
+        self, sm_demuxer_custom: Any, fake_client: FakeClient
+    ):
+        # Use custom demuxer for specific timing control
+        period = 0.5  # seconds
+        tensor_len = 2
+>       demuxer = await sm_demuxer_custom(
+            tensor_length=tensor_len, smoothing_period_seconds=period
+        )
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:274:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tensor_length = 2, smoothing_period_seconds = 0.5
+
+    async def _factory(
+        tensor_length: int, smoothing_period_seconds: float
+    ) -> SmoothedTensorDemuxer:
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_length,
+            smoothing_period_seconds=smoothing_period_seconds,
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:92: TypeError
+_ TestSmoothedTensorDemuxer.test_cascading_recalculation_out_of_order_real_data _
+
+self = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.TestSmoothedTensorDemuxer object at 0x7f996a17a350>
+sm_demuxer_custom = <function sm_demuxer_custom.<locals>._factory at 0x7f99689704c0>
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f996936b880>
+
+    @pytest.mark.asyncio
+    async def test_cascading_recalculation_out_of_order_real_data(
+        self, sm_demuxer_custom: Any, fake_client: FakeClient
+    ):
+        # Use a custom demuxer: tensor_length=2, smoothing_period_seconds=1.0
+        # This makes values easier to track: T=[v0, v1]
+        period = 1.0
+        tensor_len = 2
+>       demuxer = await sm_demuxer_custom(
+            tensor_length=tensor_len, smoothing_period_seconds=period
+        )
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:333:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tensor_length = 2, smoothing_period_seconds = 1.0
+
+    async def _factory(
+        tensor_length: int, smoothing_period_seconds: float
+    ) -> SmoothedTensorDemuxer:
+>       demuxer = SmoothedTensorDemuxer(
+            client=fake_client,
+            tensor_length=tensor_length,
+            smoothing_period_seconds=smoothing_period_seconds,
+        )
+E       TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:92: TypeError
+_____________ TestSmoothedTensorDemuxer.test_smoothing_period_zero _____________
+
+self = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.TestSmoothedTensorDemuxer object at 0x7f996a17a590>
+fake_client = <tsercom.data.tensor.smoothed_tensor_demuxer_unittest.FakeClient object at 0x7f99689e1ae0>
+
+    @pytest.mark.asyncio
+    async def test_smoothing_period_zero(
+        self, fake_client: FakeClient
+    ):  # Removed sm_demuxer_custom as it's not used for direct __init__ test
+        # With smoothing_period_seconds = 0, the behavior might be to pass through data
+        # as fast as possible, or simply not interpolate and only emit real keyframes
+        # if they were directly pushed (which they are not, on_update_received stores them).
+        # The current _interpolation_worker sleeps for 0.1s if period is 0.
+        # It will try to interpolate between available keyframes.
+        # Let's define expected behavior: it should still interpolate, but the 'period'
+        # for stepping from _last_synthetic_emitted_at is problematic.
+        # The _interpolation_worker adds 0 to timestamps if period is 0.
+        # This will cause it to try to emit at the same timestamp repeatedly.
+        # This needs clarification or a specific design choice for period=0.
+        #
+        # Based on current code: `datetime.timedelta(seconds=0)` is valid.
+        # `_interpolation_worker` will calculate:
+        # `next_emission_timestamp = self._last_synthetic_emitted_at + datetime.timedelta(seconds=0)`
+        # This means it will try to emit at `self._last_synthetic_emitted_at` over and over.
+        # If `next_emission_timestamp == t1` (a real keyframe), it advances by period (0), so still t1.
+        # This will likely lead to an infinite loop or rapid re-emission if not handled.
+        #
+        # The ValueError in __init__ for smoothing_period_seconds <= 0 prevents this.
+        # So, this test should actually check for that ValueError.
+
+        tensor_len = 2
+
+        # Test __init__ directly to ensure ValueError is raised for period = 0
+        with pytest.raises(
+            ValueError, match="Smoothing period must be positive"
+        ):
+>           direct_demuxer = SmoothedTensorDemuxer(
+                client=fake_client,  # Need a client instance
+                tensor_length=tensor_len,
+                smoothing_period_seconds=0.0,
+            )
+E           TypeError: SmoothedTensorDemuxer.__init__() got an unexpected keyword argument 'tensor_length'
+
+tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py:490: TypeError
+=============================== warnings summary ===============================
+../home/swebot/.local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:276
+  /home/swebot/.local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:276: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:81.)
+    cpu = _conversion_method_template(device=torch.device("cpu"))
+
+tsercom/runtime/runtime_main_unittest.py::TestRemoteProcessMain::test_remote_process_main_error_queue_put_fails
+tsercom/runtime/runtime_main_unittest.py::TestRemoteProcessMain::test_exception_in_run_until_exception
+  /usr/lib/python3.10/unittest/mock.py:2181: RuntimeWarning: coroutine 'wait_for' was never awaited
+    self.name = name
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/threading/aio/global_event_loop_unittest.py::TestGlobalEventLoop::test_set_tsercom_event_loop_to_current_thread_no_running_loop
+  /usr/lib/python3.10/asyncio/base_events.py:674: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.__dispatch_poller_data_loop' was never awaited
+    self._ready.clear()
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/threading/throwing_thread_pool_executor_unittest.py::TestThrowingThreadPoolExecutor::test_multiple_tasks_mixed_success_and_failure
+  /usr/lib/python3.10/concurrent/futures/thread.py:194: RuntimeWarning: coroutine 'wait_for' was never awaited
+    t = threading.Thread(name=thread_name, target=_worker,
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/data/smoothed_tensor_demuxer_unittest.py::test_worker_stop_and_restart
+FAILED tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_initialization
+FAILED tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_interpolation_multiple_points
+FAILED tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_cascading_recalculation_out_of_order_real_data
+FAILED tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_smoothing_period_zero
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_start_and_close_idempotency
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_simple_interpolation_two_keyframes
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_no_interpolation_lt_two_keyframes
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_on_update_received_creates_new_keyframes
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_on_update_received_updates_existing_keyframe
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_on_update_received_out_of_bounds_index
+ERROR tsercom/data/tensor/smoothed_tensor_demuxer_unittest.py::TestSmoothedTensorDemuxer::test_on_update_received_internal_cascade
+== 5 failed, 676 passed, 4 skipped, 5 warnings, 7 errors in 103.65s (0:01:43) ==
+Full Test Suite (Run 2) FAILED

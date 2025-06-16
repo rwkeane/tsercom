@@ -12,7 +12,7 @@ from typing import Dict, List, Tuple, Optional, Set, Any  # Added Any back
 import torch
 
 # Absolute import for SmoothingStrategy
-from tsercom.data.tensor.smoothing_strategies import SmoothingStrategy
+from tsercom.data.tensor.smoothing_strategy import SmoothingStrategy
 
 # Absolute import for TensorDemuxer and its Client
 from tsercom.data.tensor.tensor_demuxer import TensorDemuxer
