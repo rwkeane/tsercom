@@ -1,14 +1,13 @@
 import pytest
-from unittest.mock import patch, MagicMock
-from typing import Dict, Optional, Callable, Any, cast
-from uuid import getnode as get_mac
-import datetime  # For checking 'published_on'
+from unittest.mock import patch
+from typing import Dict, Optional, Callable
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.mdns.record_publisher import (
     RecordPublisher,
 )  # For default factory test
+from zeroconf.asyncio import AsyncZeroconf  # Added import
 
 # FakeMdnsPublisher is defined below in this file.
 
@@ -62,7 +61,14 @@ class TestInstancePublisher:
     def _get_fake_mdns_publisher_factory(
         self,
     ) -> Callable[
-        [str, str, int, Optional[Dict[bytes, bytes | None]]], FakeMdnsPublisher
+        [
+            str,
+            str,
+            int,
+            Optional[Dict[bytes, bytes | None]],
+            Optional[AsyncZeroconf],  # Added zc_instance to factory type hint
+        ],
+        FakeMdnsPublisher,
     ]:
         """Returns a factory function that captures the created FakeMdnsPublisher."""
 
@@ -71,7 +77,9 @@ class TestInstancePublisher:
             s_type: str,
             p: int,
             txt_rec: Optional[Dict[bytes, bytes | None]],
+            zc_instance: Optional[AsyncZeroconf] = None,  # Added zc_instance
         ) -> FakeMdnsPublisher:
+            # zc_instance is ignored by FakeMdnsPublisher but needed for signature match
             fake_pub = FakeMdnsPublisher(inst_name, s_type, p, txt_rec)
             TestInstancePublisher.captured_fake_publisher_instance = fake_pub
             return fake_pub
@@ -82,7 +90,7 @@ class TestInstancePublisher:
         """Test successful initialization and that factory is called with correct args."""
         factory = self._get_fake_mdns_publisher_factory()
 
-        publisher = InstancePublisher(
+        _ = InstancePublisher(  # Changed to _
             port=self.PORT,
             service_type=self.SERVICE_TYPE,
             readable_name=self.READABLE_NAME,
@@ -118,7 +126,7 @@ class TestInstancePublisher:
             "tsercom.discovery.mdns.instance_publisher.get_mac",
             return_value=1234567890,
         ) as mock_get_mac:
-            publisher = InstancePublisher(
+            _ = InstancePublisher(  # Changed to _
                 port=self.PORT,
                 service_type=self.SERVICE_TYPE,
                 readable_name=self.READABLE_NAME,
@@ -152,7 +160,7 @@ class TestInstancePublisher:
             "tsercom.discovery.mdns.instance_publisher.get_mac",
             return_value=long_mac_value,
         ):
-            publisher = InstancePublisher(
+            _ = InstancePublisher(  # Changed to _
                 port=self.PORT,  # e.g., 5 chars
                 service_type=self.SERVICE_TYPE,
                 instance_name=None,
@@ -229,7 +237,9 @@ class TestInstancePublisher:
     # Test type errors for constructor arguments
     @pytest.mark.parametrize("invalid_port", [None, "12345", 123.45])
     def test_init_invalid_port_type(self, invalid_port):
-        with pytest.raises(TypeError if invalid_port != None else ValueError):
+        with pytest.raises(
+            TypeError if invalid_port is not None else ValueError
+        ):  # Changed to is not None
             InstancePublisher(
                 port=invalid_port, service_type=self.SERVICE_TYPE
             )
@@ -237,7 +247,9 @@ class TestInstancePublisher:
     @pytest.mark.parametrize("invalid_service_type", [None, 123, {}])
     def test_init_invalid_service_type_type(self, invalid_service_type):
         with pytest.raises(
-            TypeError if invalid_service_type != None else ValueError
+            TypeError
+            if invalid_service_type is not None
+            else ValueError  # Changed to is not None
         ):
             InstancePublisher(
                 port=self.PORT, service_type=invalid_service_type

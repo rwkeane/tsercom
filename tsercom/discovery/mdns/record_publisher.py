@@ -1,16 +1,26 @@
 """Publishes mDNS service records using zeroconf."""
 
-import asyncio
 import logging
-from asyncio import AbstractEventLoop
 from typing import Dict, Optional
 
-from zeroconf import IPVersion, ServiceInfo, Zeroconf
+from zeroconf import ServiceInfo, IPVersion
+from zeroconf.asyncio import AsyncZeroconf
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.util.ip import get_all_addresses
 
 _logger = logging.getLogger(__name__)
+
+# Note on mDNS Name Reuse with Shared AsyncZeroconf:
+# When using a shared AsyncZeroconf instance across multiple RecordPublisher
+# instances or for rapid unregister/re-register sequences of the same service
+# instance name, `python-zeroconf` might exhibit caching behaviors or require
+# a delay for the name to be fully released. Attempting to re-register the
+# exact same service instance name immediately after unregistration on the same
+# shared AsyncZeroconf instance can lead to `NonUniqueNameException`.
+# For service "updates" in such scenarios, consider using slightly varied
+# instance names (e.g., appending a version identifier) if immediate
+# re-registration with the same logical service identity is critical.
 
 
 class RecordPublisher(MdnsPublisher):
@@ -26,6 +36,7 @@ class RecordPublisher(MdnsPublisher):
         type_: str,  # The base service type (e.g., "_myservice")
         port: int,
         properties: Optional[Dict[bytes, bytes | None]] = None,
+        zc_instance: Optional[AsyncZeroconf] = None,  # Added
     ) -> None:
         """Initializes the RecordPublisher.
 
@@ -54,8 +65,11 @@ class RecordPublisher(MdnsPublisher):
         self.__srv: str = f"{name}.{self.__ptr}"
         self.__port: int = port
         self.__txt: Dict[bytes, bytes | None] = properties
-        self._zc: Zeroconf | None = None
-        self._loop: AbstractEventLoop | None = None
+        self.__shared_zc: Optional[AsyncZeroconf] = zc_instance
+        self.__owned_zc: Optional[AsyncZeroconf] = None
+        self._zc: AsyncZeroconf | None = (
+            None  # This will point to either shared_zc or owned_zc
+        )
         self._service_info: ServiceInfo | None = None
 
         # Logging the service being published for traceability.
@@ -77,41 +91,128 @@ class RecordPublisher(MdnsPublisher):
             properties=self.__txt,
         )
 
-        self._loop = asyncio.get_running_loop()
+        if self.__shared_zc:
+            self._zc = self.__shared_zc
+            _logger.info(
+                "Using shared AsyncZeroconf instance for %s.", self.__srv
+            )
+        else:
+            _logger.info(
+                "Creating new AsyncZeroconf instance for %s.", self.__srv
+            )
+            self.__owned_zc = AsyncZeroconf(ip_version=IPVersion.V4Only)
+            self._zc = self.__owned_zc
 
-        self._zc = Zeroconf(ip_version=IPVersion.V4Only)
-        await self._loop.run_in_executor(
-            None, self._zc.register_service, self._service_info
-        )
-        _logger.info("Service %s registered.", self.__srv)
+        if self._zc:  # Should always be true if logic above is correct
+            await self._zc.async_register_service(self._service_info)
+            _logger.info("Service %s registered.", self.__srv)
+        else:
+            _logger.error(
+                "AsyncZeroconf instance not available for %s, cannot register service.",
+                self.__srv,
+            )
 
     async def close(self) -> None:
         """Closes the Zeroconf instance and unregisters services."""
-        if self._zc and self._loop:
-            _logger.debug(
-                "Closing Zeroconf for %s and unregistering.", self.__srv
-            )
-            try:
-                if self._service_info:  # Ensure service was registered
-                    await self._loop.run_in_executor(
-                        None, self._zc.unregister_service, self._service_info
+        service_info_at_start_of_close = self._service_info
+        unregistration_attempted = False
+        unregistration_succeeded = False
+
+        try:
+            if self._zc:  # Check if _zc is valid before trying to use it
+                if service_info_at_start_of_close:
+                    _logger.info(
+                        f"Attempting to unregister service {self.__srv} using service_info: {service_info_at_start_of_close} (ZC type: {'shared' if self.__shared_zc else 'owned'})"
                     )
-                    _logger.info("Service %s unregistered.", self.__srv)
-                await self._loop.run_in_executor(None, self._zc.close)
-                _logger.debug("Zeroconf instance for %s closed.", self.__srv)
-            # pylint: disable=W0718 # Catch all exceptions to keep publish loop alive
-            except Exception as e:
-                # Long log line
-                _logger.error(
-                    "Error closing Zeroconf for %s: %s", self.__srv, e
+                    unregistration_attempted = True
+                    await self._zc.async_unregister_service(
+                        service_info_at_start_of_close
+                    )
+                    unregistration_succeeded = True
+                    _logger.info(
+                        f"Service {self.__srv} unregistered successfully."
+                    )
+                else:
+                    _logger.warning(
+                        f"No self._service_info found for {self.__srv} at start of close method. Skipping unregistration call."
+                    )
+                    # If there's no service_info, unregistration wasn't needed for this object's state from publish perspective.
+                    unregistration_succeeded = True  # Considered successful as no action was pending for this _service_info
+            else:
+                _logger.warning(
+                    f"No active Zeroconf instance (_zc) for {self.__srv}. Cannot unregister."
                 )
-            finally:
-                self._zc = None
-                self._loop = None
+                # If _zc is None, we can't unregister, so treat as "nothing to do" for unregistration.
+                unregistration_succeeded = True
+
+            # Close owned zeroconf instance if it exists
+            if self.__owned_zc:
+                _logger.info(
+                    f"Closing owned AsyncZeroconf instance for {self.__srv}."
+                )
+                await self.__owned_zc.async_close()
+                _logger.info(
+                    f"Owned AsyncZeroconf instance for {self.__srv} closed."
+                )
+
+        except Exception as e:
+            # Log detailed error for unregistration or closing owned_zc
+            if unregistration_attempted and not unregistration_succeeded:
+                _logger.error(
+                    f"CRITICAL: Exception during async_unregister_service for {self.__srv}. Service may still be registered. Error: {e}",
+                    exc_info=True,
+                )
+            else:  # Error during closing owned_zc or other unexpected error if _zc was None initially
+                _logger.error(
+                    f"Exception during close operation for {self.__srv}. Error: {e}",
+                    exc_info=True,
+                )
+        finally:
+            # Only nullify _service_info if unregistration was successful or wasn't needed.
+            if unregistration_succeeded:
                 self._service_info = None
-        else:
-            # Long log line
-            _logger.debug(
-                "Zeroconf for %s already closed or not initialized.",
-                self.__srv,
+            else:
+                _logger.warning(
+                    f"self._service_info for {self.__srv} was NOT cleared because unregistration failed or was not confirmed."
+                )
+
+            if self.__owned_zc:  # Ensure owned_zc is cleared if it was set
+                self.__owned_zc = None
+            self._zc = (
+                None  # Clear the active reference in all cases after attempts
             )
+
+            # Final debug log for state
+            if not self._service_info and not self._zc and not self.__owned_zc:
+                _logger.debug(
+                    f"RecordPublisher for {self.__srv} fully cleaned up (service_info, _zc, _owned_zc are None)."
+                )
+            else:
+                _logger.debug(
+                    f"RecordPublisher for {self.__srv} post-close state: _service_info is {'None' if not self._service_info else 'Present'}, _zc is {'None' if not self._zc else 'Present'}, _owned_zc is {'None' if not self.__owned_zc else 'Present'}"
+                )
+
+
+# === Developer Note: mDNS Name Reuse with python-zeroconf ===
+# Observations during testing (e.g., in `discovery_e2etest.py::test_instance_update_reflects_changes`)
+# suggest that when using a shared `AsyncZeroconf` instance, or even with separate
+# instances in rapid succession, `python-zeroconf` can exhibit sensitivities
+# to unregistering a service instance name and then immediately re-registering
+# the exact same name. This can lead to `zeroconf._exceptions.NonUniqueNameException`
+# or `zeroconf._exceptions.NotRunningException` if the shared instance's state
+# becomes problematic after the first unregistration.
+#
+# Workarounds for tests or applications needing to simulate service "updates"
+# by replacing an old service with a new one under the same logical identity include:
+#   1. Using slightly different mDNS instance names for the "updated" service
+#      (e.g., appending a version suffix like "_v2").
+#   2. Ensuring the old `AsyncZeroconf` instance used for the original service
+#      is completely closed, and a new `AsyncZeroconf` instance is used for
+#      the listener and the "updated" service publisher, if strict name reuse
+#      is attempted. This was the pattern adopted to fix `test_instance_update_reflects_changes`.
+#   3. Introducing significant delays between unregistration and re-registration,
+#      though the necessary duration can be unreliable.
+#
+# This behavior appears related to internal caching or state management within
+# `python-zeroconf` concerning service name lifecycle.
+# =====================================================================

@@ -96,7 +96,6 @@ async def mock_aio_utils_fixture(monkeypatch, mocker):
 
 @pytest.mark.asyncio
 class TestServiceConnector:
-
     @pytest.fixture
     def mock_client(self, mocker):
         client = mocker.AsyncMock(spec=ServiceConnector.Client)
@@ -208,6 +207,81 @@ class TestServiceConnector:
             mock_grpc_channel,
         )
         assert test_caller_id in connector._ServiceConnector__callers
+
+    @pytest.mark.asyncio
+    async def test_on_service_removed_removes_caller_id_and_logs(
+        self,
+        mocker,  # For patching logger
+        mock_client,  # Fixture for ServiceConnector.Client
+        mock_connection_factory,  # Fixture for ConnectionFactory
+        mock_service_source,  # Fixture for ServiceSource
+        test_caller_id,  # Fixture for a CallerIdentifier
+        test_service_info,  # Fixture for a ServiceInfo (to get a name)
+    ):
+        """Tests that _on_service_removed removes the caller_id and logs appropriately."""
+        connector: ServiceConnector[
+            ServiceInfo, grpc.Channel
+        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+            mock_client,
+            mock_connection_factory,
+            mock_service_source,
+        )
+
+        # Setup the event loop and add the caller_id to the set of active callers
+        current_loop = asyncio.get_running_loop()
+        connector._ServiceConnector__event_loop = current_loop
+        connector._ServiceConnector__callers.add(test_caller_id)
+
+        test_service_name = test_service_info.mdns_name
+
+        # Patch the logger for this specific test to check log messages
+        mock_logger = mocker.patch(
+            "tsercom.discovery.service_connector._logger"
+        )
+
+        await connector._on_service_removed(test_service_name, test_caller_id)
+
+        # Assert caller_id is removed
+        assert test_caller_id not in connector._ServiceConnector__callers
+
+        # Assert logging
+        mock_logger.info.assert_called_once_with(
+            f"Service {test_service_name} (CallerID: {test_caller_id}) removed. "
+            f"Removing from active callers in ServiceConnector."
+        )
+        mock_logger.warning.assert_not_called()  # Ensure no warnings if ID was found
+
+        # Test case: Caller ID not found (should log a warning)
+        mock_logger.reset_mock()
+        non_existent_caller_id = CallerIdentifier.random()
+        await connector._on_service_removed(
+            test_service_name, non_existent_caller_id
+        )
+
+        mock_logger.warning.assert_called_once_with(
+            f"CallerID {non_existent_caller_id} for removed service {test_service_name} "
+            f"not found in active set."
+        )
+        mock_logger.info.assert_called_once()  # Should still log the initial info message
+
+        # Test case: Event loop not running (should log a warning)
+        mock_logger.reset_mock()
+        connector._ServiceConnector__event_loop = (
+            None  # Simulate no event loop
+        )
+        connector._ServiceConnector__callers.add(
+            test_caller_id
+        )  # Re-add for this test part
+
+        await connector._on_service_removed(test_service_name, test_caller_id)
+
+        mock_logger.warning.assert_called_once_with(
+            f"ServiceConnector event loop not set or not running. "
+            f"Cannot reliably remove {test_caller_id} for service {test_service_name}."
+        )
+        # Caller_id should not be removed if loop is not running
+        assert test_caller_id in connector._ServiceConnector__callers
+        mock_logger.info.assert_called_once()
 
     async def test_on_service_added_channel_factory_returns_none(
         self,

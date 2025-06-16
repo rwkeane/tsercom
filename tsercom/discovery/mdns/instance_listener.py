@@ -3,19 +3,20 @@
 import logging
 import socket
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Callable, Dict, Generic, List, Optional
 
+from zeroconf.asyncio import AsyncZeroconf
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.discovery.service_info import (
     ServiceInfo,
     ServiceInfoT,
 )
-from tsercom.threading.aio.aio_utils import run_on_event_loop
 
 
-MdnsListenerFactory = Callable[[MdnsListener.Client, str], MdnsListener]
+MdnsListenerFactory = Callable[
+    [MdnsListener.Client, str, Optional[AsyncZeroconf]], MdnsListener
+]
 
 
 class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
@@ -66,6 +67,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         service_type: str,
         *,
         mdns_listener_factory: Optional[MdnsListenerFactory] = None,
+        zc_instance: Optional[AsyncZeroconf] = None,
     ) -> None:
         """Initializes the InstanceListener.
 
@@ -79,10 +81,17 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         """
         if client is None:
             raise ValueError("Client cannot be None for InstanceListener.")
-        if not isinstance(client, InstanceListener.Client):
-            # Long error message
+
+        # Get the .Client attribute from the actual class of self.
+        # This can be more robust with generics than a direct module-level reference.
+        client_interface_type = getattr(type(self), "Client", None)
+        if client_interface_type is None or not isinstance(
+            client, client_interface_type
+        ):
+            # The error message still refers to the conceptual "InstanceListener.Client"
+            # as that's what the user would code against.
             raise TypeError(
-                f"Client must be InstanceListener.Client, got {type(client).__name__}."
+                f"Client must be an InstanceListener.Client, got {type(client).__name__}."
             )
         if not isinstance(service_type, str):
             raise TypeError(
@@ -97,15 +106,31 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
             def default_mdns_listener_factory(
-                listener_client: MdnsListener.Client, s_type: str
+                listener_client: MdnsListener.Client,
+                s_type: str,
+                zc: Optional[AsyncZeroconf],  # Added zc to factory signature
             ) -> MdnsListener:
-                return RecordListener(listener_client, s_type)
+                return RecordListener(listener_client, s_type, zc_instance=zc)
 
-            self.__listener = default_mdns_listener_factory(self, service_type)
+            self.__listener = default_mdns_listener_factory(
+                self, service_type, zc_instance
+            )
         else:
-            self.__listener = mdns_listener_factory(self, service_type)
+            # User-provided factory now needs to handle zc_instance
+            self.__listener = mdns_listener_factory(
+                self, service_type, zc_instance
+            )
+        assert isinstance(self.__listener, MdnsListener), type(self.__listener)
 
-        self.__listener.start()
+    async def start(self) -> None:
+        """Starts the underlying mDNS listener."""
+        if self.__listener:
+            await self.__listener.start()  # Changed to await
+        else:
+            # This case should ideally not be reached if __init__ ensures __listener is set.
+            logging.error(
+                "InstanceListener cannot start: __listener is not initialized."
+            )
 
     def __populate_service_info(
         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
@@ -204,7 +229,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # and its "correctness" depends on how ServiceInfoT is defined by the subclass.
         return service_info  # type: ignore[return-value]
 
-    def _on_service_added(
+    async def _on_service_added(
         self,
         name: str,
         port: int,
@@ -236,11 +261,9 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
         # Client's _on_service_added is expected to be a coroutine.
         # pylint: disable=W0212 # Calling client's notification method
-        run_on_event_loop(
-            partial(self.__client._on_service_added, typed_service_info)
-        )
+        await self.__client._on_service_added(typed_service_info)
 
-    def _on_service_removed(
+    async def _on_service_removed(
         self,
         name: str,
         service_type: str,
@@ -258,7 +281,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         """
         # Client's _on_service_removed is expected to be a coroutine.
         # pylint: disable=W0212 # Calling client's notification method
-        run_on_event_loop(partial(self.__client._on_service_removed, name))
+        await self.__client._on_service_removed(name)
 
     async def async_stop(self) -> None:
         # Stops the listener and cleans up resources.

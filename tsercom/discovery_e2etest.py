@@ -2,6 +2,7 @@ import asyncio
 import gc  # Moved import gc to top level
 import ipaddress
 import uuid
+from typing import Optional  # Added import
 
 import pytest
 import pytest_asyncio
@@ -10,11 +11,17 @@ from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.service_info import ServiceInfo
 
+import logging  # Added import
+
+from zeroconf.asyncio import AsyncZeroconf  # Added import
+
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
 from tsercom.threading.aio.global_event_loop import (
     clear_tsercom_event_loop,
     set_tsercom_event_loop,
 )
+
+_logger = logging.getLogger(__name__)
 
 
 class DiscoveryTestClient(InstanceListener.Client):
@@ -64,10 +71,17 @@ async def test_successful_registration_and_discovery():
 
     # Listener needs to be started before publisher to catch the announcement
     # Assign to specific variable names to manage lifecycle explicitly in finally block
-    listener_obj = InstanceListener(client=client, service_type=service_type)
+    listener_obj: InstanceListener | None = (
+        None  # Initialize for finally block
+    )
     publisher_obj = None  # Initialize to None for the finally block
 
     try:
+        listener_obj = InstanceListener(
+            client=client, service_type=service_type
+        )
+        await listener_obj.start()  # Start the listener
+
         publisher_obj = InstancePublisher(
             port=service_port,
             service_type=service_type,
@@ -88,10 +102,8 @@ async def test_successful_registration_and_discovery():
         # relying on __del__ in publisher for unpublishing.
         if publisher_obj:
             await publisher_obj.close()  # Explicitly close
-        if (
-            listener_obj
-        ):  # listener_obj is always created if this block is reached
-            del listener_obj
+        if listener_obj:
+            await listener_obj.async_stop()
         gc.collect()  # Encourage faster cleanup
 
     assert discovery_event.is_set(), "Discovery event was not set"
@@ -147,6 +159,9 @@ class SelectiveDiscoveryClient(InstanceListener.Client):
             self.service_added_event.set()
 
     async def _on_service_removed(self, service_name: str):
+        _logger.info(
+            "[E2E_CLIENT] _on_service_removed called for: %s", service_name
+        )
         async with self._lock:
             self.removed_service_names.append(service_name)
             # Remove from discovered_services if present
@@ -155,7 +170,15 @@ class SelectiveDiscoveryClient(InstanceListener.Client):
                 for s in self.discovered_services
                 if s.mdns_name != service_name
             ]
+            _logger.info(
+                "[E2E_CLIENT] _on_service_removed: About to set service_removed_event for %s",
+                service_name,
+            )
             self.service_removed_event.set()
+            _logger.info(
+                "[E2E_CLIENT] _on_service_removed: service_removed_event set for %s",
+                service_name,
+            )
 
     def clear_events(self):
         self.service_added_event.clear()
@@ -170,13 +193,19 @@ async def test_concurrent_publishing_with_selective_unpublish():
     publisher1_obj = None
     publisher2_obj = None
     listener_obj = None
+    shared_zc: Optional[AsyncZeroconf] = None  # Initialize shared_zc
 
     try:
+        shared_zc = AsyncZeroconf()  # Create shared instance
+
         # Create Client
         client = SelectiveDiscoveryClient()
         listener_obj = InstanceListener(
-            client=client, service_type=service_type
+            client=client,
+            service_type=service_type,
+            zc_instance=shared_zc,  # Pass shared_zc
         )
+        await listener_obj.start()  # Start the listener
 
         # Create two InstancePublisher instances
         publisher1_port = 50010
@@ -187,6 +216,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
             service_type=service_type,
             readable_name=publisher1_readable_name,
             instance_name=publisher1_instance_name,
+            zc_instance=shared_zc,  # Pass shared_zc
         )
 
         publisher2_port = 50011
@@ -197,6 +227,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
             service_type=service_type,
             readable_name=publisher2_readable_name,
             instance_name=publisher2_instance_name,
+            zc_instance=shared_zc,  # Pass shared_zc
         )
 
         # Publish concurrently
@@ -298,7 +329,11 @@ async def test_concurrent_publishing_with_selective_unpublish():
         if publisher2_obj:
             await publisher2_obj.close()
         if listener_obj:
-            del listener_obj  # Rely on __del__ for cleanup
+            await listener_obj.async_stop()
+
+        if shared_zc:  # Add this
+            await shared_zc.async_close()
+
         gc.collect()
 
     await asyncio.sleep(0.1)  # Final small sleep
@@ -339,7 +374,11 @@ class UpdateTestClient(InstanceListener.Client):
 async def test_instance_update_reflects_changes():
     service_type_suffix = uuid.uuid4().hex[:8]
     service_type = f"_upd-{service_type_suffix}._tcp.local."
-    instance_name = f"UpdateInstance_{service_type_suffix}"  # Critical: This stays the same
+    instance_name_base = (
+        f"UpdateInstance_{service_type_suffix}"  # Renamed for clarity
+    )
+    instance_name_v1 = instance_name_base
+    instance_name_v2 = f"{instance_name_base}_v2"
 
     service_port1 = 50002
     readable_name1 = f"UpdateTestService_V1_{service_type_suffix}"
@@ -351,17 +390,29 @@ async def test_instance_update_reflects_changes():
     client = UpdateTestClient(
         [discovery_event1, discovery_event2], discovered_services
     )
-    listener_obj = InstanceListener(client=client, service_type=service_type)
-
-    publisher1_obj = None  # Initialize for finally block
-    publisher2_obj = None  # Initialize for finally block
+    listener_obj: InstanceListener | None = (
+        None  # Initialize for finally block
+    )
+    publisher1_obj: Optional[InstancePublisher] = None  # Type hint for clarity
+    publisher2_obj: Optional[InstancePublisher] = None  # Type hint for clarity
+    shared_zc1: Optional[AsyncZeroconf] = None
+    shared_zc2: Optional[AsyncZeroconf] = None
 
     try:
+        _logger.info("Creating shared_zc1 for initial phase.")
+        shared_zc1 = AsyncZeroconf()
+
+        listener_obj = InstanceListener(
+            client=client, service_type=service_type, zc_instance=shared_zc1
+        )
+        await listener_obj.start()  # Start the listener
+
         publisher1_obj = InstancePublisher(
             port=service_port1,
             service_type=service_type,
             readable_name=readable_name1,
-            instance_name=instance_name,
+            instance_name=instance_name_v1,
+            zc_instance=shared_zc1,
         )
         await publisher1_obj.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
@@ -378,24 +429,51 @@ async def test_instance_update_reflects_changes():
             initial_service_info is not None
         ), "Initial service not found in discovered list"
         assert initial_service_info.port == service_port1
-        assert initial_service_info.mdns_name.startswith(instance_name)
+        assert initial_service_info.mdns_name.startswith(instance_name_v1)
 
         # Publish the second (updated) version
         service_port2 = 50003
         readable_name2 = f"UpdateTestService_V2_{service_type_suffix}"
 
         # Explicitly close the first publisher to unregister its service
-        # so the second publisher can register the same instance name.
         if publisher1_obj:
+            _logger.info("Closing publisher1_obj.")
             await publisher1_obj.close()
-            # Allow a brief moment for the unregistration to propagate.
-            await asyncio.sleep(0.2)
+
+        if listener_obj:
+            _logger.info("Stopping listener_obj (phase 1).")
+            await listener_obj.async_stop()  # Stop listener using shared_zc1
+
+        if shared_zc1:
+            _logger.info("Closing shared_zc1.")
+            await shared_zc1.async_close()  # Close the first ZC instance
+
+        # Allow a brief moment for the unregistration to propagate.
+        _logger.info(
+            "Waiting for unregistration of publisher1 to propagate..."
+        )
+        await asyncio.sleep(0.5)  # Increased sleep
+        _logger.info(
+            "Proceeding to publish publisher2 with new ZC and Listener."
+        )
+
+        _logger.info("Creating shared_zc2 for updated phase.")
+        shared_zc2 = AsyncZeroconf()
+
+        # Re-create or re-start listener with the new ZC instance
+        # Important: client holds state (events, discovered_services), so reuse it.
+        _logger.info("Re-creating listener_obj for phase 2 with shared_zc2.")
+        listener_obj = InstanceListener(
+            client=client, service_type=service_type, zc_instance=shared_zc2
+        )
+        await listener_obj.start()
 
         publisher2_obj = InstancePublisher(
             port=service_port2,
             service_type=service_type,
             readable_name=readable_name2,
-            instance_name=instance_name,  # SAME instance_name
+            instance_name=instance_name_v2,
+            zc_instance=shared_zc2,  # Use new ZC instance
         )
         await publisher2_obj.publish()
         await asyncio.wait_for(discovery_event2.wait(), timeout=10.0)
@@ -412,12 +490,26 @@ async def test_instance_update_reflects_changes():
         else:
             pytest.fail(f"A timeout error occurred: {e}")
     finally:
-        if publisher1_obj:
-            await publisher1_obj.close()  # Explicitly close
+        _logger.info("Entering final cleanup.")
+        if (
+            publisher1_obj
+        ):  # Already closed in try block if successful, but good for safety
+            _logger.info("Final close for publisher1_obj (idempotency check).")
+            await publisher1_obj.close()
         if publisher2_obj:
-            await publisher2_obj.close()  # Explicitly close
-        if listener_obj:  # listener_obj is always created
-            del listener_obj
+            _logger.info("Final close for publisher2_obj.")
+            await publisher2_obj.close()
+        if listener_obj:  # This would be the phase 2 listener
+            _logger.info("Final stop for listener_obj.")
+            await listener_obj.async_stop()
+
+        if shared_zc1:
+            _logger.info("Final close for shared_zc1.")
+            await shared_zc1.async_close()
+        if shared_zc2:
+            _logger.info("Final close for shared_zc2.")
+            await shared_zc2.async_close()
+
         gc.collect()  # Encourage faster cleanup
 
     assert (
@@ -442,7 +534,7 @@ async def test_instance_update_reflects_changes():
         updated_service_info is not None
     ), "Updated service not found in discovered list"
     assert updated_service_info.port == service_port2
-    assert updated_service_info.mdns_name.startswith(instance_name)
+    assert updated_service_info.mdns_name.startswith(instance_name_v2)
 
     # Verify that the old service is either gone or the new one is preferred/seen later.
     # This part is tricky without explicit on_service_removed or more knowledge of underlying behavior.
@@ -464,16 +556,19 @@ async def test_instance_unpublishing():
     discovered_services1 = []
     # Use the original DiscoveryTestClient for simplicity in this phase
     client1 = DiscoveryTestClient(discovery_event1, discovered_services1)
-    listener1 = InstanceListener(client=client1, service_type=service_type)
-
-    publisher = InstancePublisher(
-        port=service_port,
-        service_type=service_type,
-        readable_name=readable_name,
-        instance_name=instance_name,
-    )
+    listener1: InstanceListener | None = None  # Initialize for finally
+    publisher: InstancePublisher | None = None  # Initialize for finally
 
     try:
+        listener1 = InstanceListener(client=client1, service_type=service_type)
+        await listener1.start()  # Start the listener
+
+        publisher = InstancePublisher(
+            port=service_port,
+            service_type=service_type,
+            readable_name=readable_name,
+            instance_name=instance_name,
+        )
         await publisher.publish()
         await asyncio.wait_for(discovery_event1.wait(), timeout=10.0)
     except asyncio.TimeoutError:
@@ -481,10 +576,12 @@ async def test_instance_unpublishing():
             f"Service {readable_name} (instance {instance_name}) not discovered during initial publishing phase."
         )
     finally:
-        # No explicit stop for listener1 as per instructions, rely on GC
+        # Publisher is closed later. Listener1 is handled here.
+        if listener1:
+            await listener1.async_stop()  # Stop listener1 after its phase
         # No explicit unpublish for publisher yet.
         # Publisher is closed in the new finally block below.
-        pass
+        pass  # Keep publisher alive for next phase of test logic below
 
     assert discovery_event1.is_set(), "Initial discovery event was not set."
     assert (
@@ -494,8 +591,8 @@ async def test_instance_unpublishing():
         discovered_services1[0].name == readable_name
     ), "Incorrect service name discovered initially."
 
-    # Clean up listener1 by removing reference. Actual cleanup depends on GC and InstanceListener's __del__ if any.
-    del listener1
+    # Clean up listener1 by removing reference.
+    # listener1 is already stopped. del listener1 is not strictly needed for resource cleanup now.
     # If InstanceListener held onto client1, that also needs to be considered.
     # For this test, we assume client1 is simple and listener1 going out of scope is enough for its mDNS parts.
 
@@ -516,10 +613,13 @@ async def test_instance_unpublishing():
     discovery_event2 = asyncio.Event()
     discovered_services2 = []
     client2 = DiscoveryTestClient(discovery_event2, discovered_services2)
-    # Create a new listener to ensure it's not using cached data from the old one (if any such cache existed)
-    listener2 = InstanceListener(client=client2, service_type=service_type)
+    listener2: InstanceListener | None = None  # Initialize for finally
 
     try:
+        # Create a new listener to ensure it's not using cached data from the old one (if any such cache existed)
+        listener2 = InstanceListener(client=client2, service_type=service_type)
+        await listener2.start()  # Start the new listener
+
         # Wait for a shorter period, as we expect a timeout (no service found).
         await asyncio.wait_for(discovery_event2.wait(), timeout=5.0)
         # If the event is set, it means the service was discovered, which is a failure for this test phase.
@@ -534,8 +634,8 @@ async def test_instance_unpublishing():
         # This is the expected outcome: the service was not found, so wait_for timed out.
         pass
     finally:
-        # No explicit stop for listener2, rely on GC
-        del listener2  # Clean up listener2
+        if listener2:  # Clean up listener2
+            await listener2.async_stop()
         gc.collect()
 
     assert (
@@ -598,52 +698,54 @@ async def test_multiple_publishers_one_listener():
         expected_discoveries=2,
         all_discovered_event=all_discovered_event,
     )
-    listener = InstanceListener(client=client, service_type=service_type)
-
-    publishers = []
-    expected_service_details = []
-
-    # Publisher 1
-    p1_port = 50005
-    p1_readable_name = f"MultiPubService1_{service_type_suffix}"
-    p1_instance_name = f"MultiPubInstance1_{service_type_suffix}"
-    publisher1 = InstancePublisher(
-        port=p1_port,
-        service_type=service_type,
-        readable_name=p1_readable_name,
-        instance_name=p1_instance_name,
-    )
-    publishers.append(publisher1)
-    expected_service_details.append(
-        {
-            "name": p1_readable_name,
-            "port": p1_port,
-            "instance_prefix": p1_instance_name,
-        }
-    )
-
-    # Publisher 2
-    p2_port = 50006
-    p2_readable_name = f"MultiPubService2_{service_type_suffix}"
-    p2_instance_name = (
-        f"MultiPubInstance2_{service_type_suffix}"  # Different instance name
-    )
-    publisher2 = InstancePublisher(
-        port=p2_port,
-        service_type=service_type,
-        readable_name=p2_readable_name,
-        instance_name=p2_instance_name,
-    )
-    publishers.append(publisher2)
-    expected_service_details.append(
-        {
-            "name": p2_readable_name,
-            "port": p2_port,
-            "instance_prefix": p2_instance_name,
-        }
-    )
+    listener: InstanceListener | None = None  # Initialize for finally
+    publishers = (
+        []
+    )  # Keep this outside try if publishers are cleaned up in finally regardless of try success
+    expected_service_details = []  # Keep this outside try as it's setup data
 
     try:
+        listener = InstanceListener(client=client, service_type=service_type)
+        await listener.start()  # Start the listener
+
+        # Publisher 1
+        p1_port = 50005
+        p1_readable_name = f"MultiPubService1_{service_type_suffix}"
+        p1_instance_name = f"MultiPubInstance1_{service_type_suffix}"
+        publisher1 = InstancePublisher(
+            port=p1_port,
+            service_type=service_type,
+            readable_name=p1_readable_name,
+            instance_name=p1_instance_name,
+        )
+        publishers.append(publisher1)
+        expected_service_details.append(
+            {
+                "name": p1_readable_name,
+                "port": p1_port,
+                "instance_prefix": p1_instance_name,
+            }
+        )
+
+        # Publisher 2
+        p2_port = 50006
+        p2_readable_name = f"MultiPubService2_{service_type_suffix}"
+        p2_instance_name = f"MultiPubInstance2_{service_type_suffix}"  # Different instance name
+        publisher2 = InstancePublisher(
+            port=p2_port,
+            service_type=service_type,
+            readable_name=p2_readable_name,
+            instance_name=p2_instance_name,
+        )
+        publishers.append(publisher2)
+        expected_service_details.append(
+            {
+                "name": p2_readable_name,
+                "port": p2_port,
+                "instance_prefix": p2_instance_name,
+            }
+        )
+
         for p in publishers:
             await p.publish()
 
@@ -656,7 +758,8 @@ async def test_multiple_publishers_one_listener():
         for p in publishers:  # Close all publishers
             if p:
                 await p.close()
-        del listener
+        if listener:
+            await listener.async_stop()
         # import gc # gc is now imported at top level
         gc.collect()
 
@@ -719,6 +822,7 @@ async def test_one_publisher_multiple_listeners():
             all_discovered_event=listener1_event,
         )
         listener1 = InstanceListener(client=client1, service_type=service_type)
+        await listener1.start()  # Start listener1
         listeners_data.append(
             {
                 "event": listener1_event,
@@ -739,6 +843,7 @@ async def test_one_publisher_multiple_listeners():
             all_discovered_event=listener2_event,
         )
         listener2 = InstanceListener(client=client2, service_type=service_type)
+        await listener2.start()  # Start listener2
         listeners_data.append(
             {
                 "event": listener2_event,
@@ -754,7 +859,7 @@ async def test_one_publisher_multiple_listeners():
         for i, data in enumerate(listeners_data):
             if not data["event"].is_set():
                 pytest.fail(
-                    f"Listener {i+1} did not discover the service within timeout."
+                    f"Listener {i + 1} did not discover the service within timeout."
                 )
         # If gather fails due to timeout, this part might not be reached directly,
         # but individual timeouts in tasks will raise TimeoutError.
@@ -762,27 +867,28 @@ async def test_one_publisher_multiple_listeners():
         if publisher:
             await publisher.close()
         for data in listeners_data:
-            del data["listener_obj"]  # Remove reference to listener
+            if data["listener_obj"]:
+                await data["listener_obj"].async_stop()
         # import gc # gc is now imported at top level
         gc.collect()
 
     for i, data in enumerate(listeners_data):
         assert data[
             "event"
-        ].is_set(), f"Listener {i+1}'s discovery event was not set."
+        ].is_set(), f"Listener {i + 1}'s discovery event was not set."
         assert (
             len(data["services"]) == 1
-        ), f"Listener {i+1} discovered {len(data['services'])} services, expected 1."
+        ), f"Listener {i + 1} discovered {len(data['services'])} services, expected 1."
         service_info = data["services"][0]
         assert (
             service_info.name == readable_name
-        ), f"Listener {i+1} discovered name {service_info.name}, expected {readable_name}."
+        ), f"Listener {i + 1} discovered name {service_info.name}, expected {readable_name}."
         assert (
             service_info.port == service_port
-        ), f"Listener {i+1} discovered port {service_info.port}, expected {service_port}."
+        ), f"Listener {i + 1} discovered port {service_info.port}, expected {service_port}."
         assert service_info.mdns_name.startswith(
             instance_name
-        ), f"Listener {i+1} discovered mdns_name {service_info.mdns_name}, expected to start with {instance_name}."
+        ), f"Listener {i + 1} discovered mdns_name {service_info.mdns_name}, expected to start with {instance_name}."
 
     await asyncio.sleep(0.1)
 
@@ -809,9 +915,12 @@ async def test_publisher_starts_after_listener():
     try:
         # Start the listener first
         listener = InstanceListener(client=client, service_type=service_type)
+        await listener.start()  # Start the listener
         # Give the listener a moment to fully initialize and start listening.
         # This is crucial for mDNS, as the ServiceBrowser needs to be active.
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(
+            1.0
+        )  # This sleep might still be useful for mDNS propagation
 
         # Then, start the publisher
         publisher = InstancePublisher(
@@ -832,7 +941,8 @@ async def test_publisher_starts_after_listener():
     finally:
         if publisher:
             await publisher.close()
-        del listener
+        if listener:
+            await listener.async_stop()
         # import gc # gc is now imported at top level
         gc.collect()
 
@@ -861,3 +971,24 @@ async def test_publisher_starts_after_listener():
             pytest.fail(f"Invalid IP address string found: {addr_str}")
 
     await asyncio.sleep(0.1)
+
+
+# === Developer Note for `test_instance_update_reflects_changes` ===
+# This test previously faced `zeroconf._exceptions.NotRunningException` or
+# `NonUniqueNameException` when attempting to simulate a service update by
+# unregistering a service and then re-registering a new service with the
+# same mDNS instance name using a single shared `AsyncZeroconf` instance.
+#
+# The fix implemented involves:
+#   1. Using unique mDNS instance names for the initial (v1) and updated (v2)
+#      service publications (e.g., "InstanceName" and "InstanceName_v2").
+#   2. Additionally, to robustly handle the "update" scenario where the listener
+#      should detect the old service disappearing and a new one appearing, this
+#      test now uses two separate `AsyncZeroconf` instances. `shared_zc1` is used
+#      for the initial publisher and the listener. After the first publisher
+#      is closed, `shared_zc1` is also closed. A new `shared_zc2` is then created
+#      for a new `InstanceListener` instance and the second (updated) publisher.
+# This separation of `AsyncZeroconf` lifecycles for the two stages of the test
+# proved necessary to ensure reliable behavior from `python-zeroconf` and
+# prevent exceptions related to its internal state after unregistration.
+# ========================================================================

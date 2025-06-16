@@ -29,6 +29,7 @@ from tsercom.threading.aio.aio_utils import (
 from tsercom.util.connection_factory import ConnectionFactory
 
 ChannelTypeT = TypeVar("ChannelTypeT")
+_logger = logging.getLogger(__name__)
 
 
 class ServiceConnector(
@@ -310,3 +311,33 @@ class ServiceConnector(
         # and is responsible for its lifecycle.
 
         logging.info("ServiceConnector stopped.")
+
+    async def _on_service_removed(
+        self, service_name: str, caller_id: CallerIdentifier
+    ) -> None:
+        """Handles a service being removed, as notified by the ServiceSource.
+
+        This method is part of the ServiceSource.Client interface. It removes
+        the CallerIdentifier from internal tracking.
+
+        Args:
+            service_name: The mDNS instance name of the service that was removed.
+            caller_id: The CallerIdentifier associated with the removed service.
+        """
+        _logger.info(
+            f"Service {service_name} (CallerID: {caller_id}) removed. "
+            f"Removing from active callers in ServiceConnector."
+        )
+        if self.__event_loop and self.__event_loop.is_running():
+            if caller_id in self.__callers:
+                self.__callers.remove(caller_id)
+            else:
+                _logger.warning(
+                    f"CallerID {caller_id} for removed service {service_name} "
+                    f"not found in active set."
+                )
+        else:
+            _logger.warning(
+                f"ServiceConnector event loop not set or not running. "
+                f"Cannot reliably remove {caller_id} for service {service_name}."
+            )
