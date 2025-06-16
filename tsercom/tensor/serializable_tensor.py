@@ -1,4 +1,5 @@
 """Provides the SerializableTensor class for PyTorch tensor serialization."""
+
 import sys  # For Python version check for typing
 
 if sys.version_info >= (3, 9):
@@ -88,29 +89,50 @@ class SerializableTensor:
                 packed_bools = bytes(bool(b) for b in values)
                 grpc_tensor.sparse_coo_tensor.bool_values.data = packed_bools
             else:
-                raise ValueError(f"Unsupported dtype for sparse COO tensor values: {self._tensor.dtype}")
-        elif hasattr(torch, 'sparse_csr') and self._tensor.layout == torch.sparse_csr: # Explicitly check for CSR
-            raise ValueError(f"Unsupported sparse tensor layout: {self._tensor.layout}. Only sparse COO is supported.")
+                raise ValueError(
+                    f"Unsupported dtype for sparse COO tensor values: {self._tensor.dtype}"
+                )
+        elif (
+            hasattr(torch, "sparse_csr")
+            and self._tensor.layout == torch.sparse_csr
+        ):  # Explicitly check for CSR
+            raise ValueError(
+                f"Unsupported sparse tensor layout: {self._tensor.layout}. Only sparse COO is supported."
+            )
         # Add checks for other specific sparse layouts (csc, bsr, bsc) if necessary, before the general 'is_sparse' check
-        elif self._tensor.is_sparse: # Catch any other sparse layouts not explicitly handled above
-            raise ValueError(f"Unsupported sparse tensor layout: {self._tensor.layout}. Only sparse COO is supported.")
+        elif (
+            self._tensor.is_sparse
+        ):  # Catch any other sparse layouts not explicitly handled above
+            raise ValueError(
+                f"Unsupported sparse tensor layout: {self._tensor.layout}. Only sparse COO is supported."
+            )
         else:  # Dense tensor (if not sparse_coo and not any other form of is_sparse)
             grpc_tensor.dense_tensor.shape.extend(self._tensor.shape)
             flat_tensor_data = self._tensor.flatten().tolist()
 
             if self._tensor.dtype == torch.float32:
-                grpc_tensor.dense_tensor.float_data.data.extend(flat_tensor_data)
+                grpc_tensor.dense_tensor.float_data.data.extend(
+                    flat_tensor_data
+                )
             elif self._tensor.dtype == torch.float64:
-                grpc_tensor.dense_tensor.double_data.data.extend(flat_tensor_data)
+                grpc_tensor.dense_tensor.double_data.data.extend(
+                    flat_tensor_data
+                )
             elif self._tensor.dtype == torch.int32:
-                grpc_tensor.dense_tensor.int32_data.data.extend(flat_tensor_data)
+                grpc_tensor.dense_tensor.int32_data.data.extend(
+                    flat_tensor_data
+                )
             elif self._tensor.dtype == torch.int64:
-                grpc_tensor.dense_tensor.int64_data.data.extend(flat_tensor_data)
+                grpc_tensor.dense_tensor.int64_data.data.extend(
+                    flat_tensor_data
+                )
             elif self._tensor.dtype == torch.bool:
                 packed_bools = bytes(bool(b) for b in flat_tensor_data)
                 grpc_tensor.dense_tensor.bool_data.data = packed_bools
             else:
-                raise ValueError(f"Unsupported dtype for dense tensor: {self._tensor.dtype}")
+                raise ValueError(
+                    f"Unsupported dtype for dense tensor: {self._tensor.dtype}"
+                )
 
         return grpc_tensor
 
@@ -144,7 +166,7 @@ class SerializableTensor:
         if grpc_tensor.HasField("dense_tensor"):
             dense_data_container = grpc_tensor.dense_tensor
             shape = list(dense_data_container.shape)
-            tensor_data_list: TypingOptional[List[Any]] = None # Use List[Any]
+            tensor_data_list: TypingOptional[List[Any]] = None  # Use List[Any]
 
             data_type_field = dense_data_container.WhichOneof("data_type")
 
@@ -274,7 +296,7 @@ class SerializableTensor:
                     )
 
             if (
-                values_data_list is not None # This will be a list now
+                values_data_list is not None  # This will be a list now
                 and shape is not None
                 and dtype is not None
             ):
@@ -290,8 +312,10 @@ class SerializableTensor:
                 "Unknown or unset tensor data representation in GrpcTensor. Neither 'dense_tensor' nor 'sparse_coo_tensor' is set."
             )
 
-        if torch_tensor is None: # Should not happen if logic above is correct
-            raise ValueError("Failed to create torch.Tensor from GrpcTensor.") # Corrected indent here
+        if torch_tensor is None:  # Should not happen if logic above is correct
+            raise ValueError(
+                "Failed to create torch.Tensor from GrpcTensor."
+            )  # Corrected indent here
 
         if device:
             torch_tensor = torch_tensor.to(device)
@@ -322,7 +346,9 @@ class SerializableTensor:
                 return False
         # Removed R1705: Unnecessary "else" after "return"
         # else:  # Dense tensor
-        if not self._tensor.is_sparse and not torch.equal(self._tensor, other._tensor):
+        if not self._tensor.is_sparse and not torch.equal(
+            self._tensor, other._tensor
+        ):
             return False
 
         # Check timestamp equality (optional, could be more sophisticated)
@@ -336,7 +362,8 @@ class SerializableTensor:
             if (
                 self._timestamp
                 and other._timestamp
-                and self._timestamp != other._timestamp # Protobuf messages use == for equality
+                and self._timestamp
+                != other._timestamp  # Protobuf messages use == for equality
             ):
                 return False
         return True

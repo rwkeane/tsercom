@@ -69,9 +69,7 @@ def test_dense_tensor_serialization_deserialization(dtype, shape):
     else:
         original_tensor = torch.randint(0, 100, shape, dtype=dtype)
 
-    if (
-        original_tensor.numel() == 0 and not shape
-    ):
+    if original_tensor.numel() == 0 and not shape:
         if not list(shape):
             original_tensor = (
                 torch.tensor(0, dtype=dtype)
@@ -101,6 +99,7 @@ def test_dense_tensor_serialization_deserialization(dtype, shape):
     assert parsed_st.tensor.dtype == original_tensor.dtype
     assert parsed_st.tensor.shape == original_tensor.shape
     assert torch.equal(parsed_st.tensor, original_tensor)
+
 
 def test_empty_dense_tensor_specific_shapes():
     original_tensor_shape_0_2 = torch.empty((0, 2), dtype=torch.float32)
@@ -133,9 +132,7 @@ def test_sparse_coo_tensor_serialization_deserialization(
             else values_template.to(dtype)
         )
     elif dtype.is_floating_point:
-        values = (
-            values_template.to(dtype) * torch.randn(1, dtype=dtype).item()
-        )
+        values = values_template.to(dtype) * torch.randn(1, dtype=dtype).item()
     else:
         values = (values_template % 100).to(dtype)
 
@@ -193,9 +190,7 @@ def test_dense_tensor_gpu_serialization_deserialization():
     parsed_st_cpu = SerializableTensor.try_parse(
         grpc_message, device=device_cpu
     )
-    assert torch.equal(
-        parsed_st_cpu.tensor, original_tensor_gpu.cpu()
-    )
+    assert torch.equal(parsed_st_cpu.tensor, original_tensor_gpu.cpu())
     assert parsed_st_cpu.tensor.device == device_cpu
 
 
@@ -258,16 +253,14 @@ def test_dense_tensor_cpu_default_serialization_deserialization():
         grpc_message, device=None
     )
     assert torch.equal(parsed_st_cpu_implicit.tensor, original_tensor_cpu)
-    assert (
-        parsed_st_cpu_implicit.tensor.device == device_cpu
-    )
+    assert parsed_st_cpu_implicit.tensor.device == device_cpu
 
 
 # --- Timestamp Tests ---
 def test_timestamp_serialization_and_parsing():
     """Verifies timestamp is included and parsed."""
     original_tensor = torch.tensor([1.0, 2.0])
-    st = SerializableTensor(original_tensor) # st._timestamp is None initially
+    st = SerializableTensor(original_tensor)  # st._timestamp is None initially
 
     # Test 1: Default timestamp generation
     grpc_message_default_ts = st.to_grpc_type()
@@ -283,14 +276,26 @@ def test_timestamp_serialization_and_parsing():
     st._timestamp = test_ts_wrapper
 
     grpc_message_explicit_ts = st.to_grpc_type()
-    assert grpc_message_explicit_ts.timestamp.timestamp.seconds == test_ts_wrapper.timestamp.seconds
-    assert grpc_message_explicit_ts.timestamp.timestamp.nanos == test_ts_wrapper.timestamp.nanos
+    assert (
+        grpc_message_explicit_ts.timestamp.timestamp.seconds
+        == test_ts_wrapper.timestamp.seconds
+    )
+    assert (
+        grpc_message_explicit_ts.timestamp.timestamp.nanos
+        == test_ts_wrapper.timestamp.nanos
+    )
 
     parsed_st_explicit = SerializableTensor.try_parse(grpc_message_explicit_ts)
     assert parsed_st_explicit.timestamp is not None
-    assert parsed_st_explicit.timestamp.timestamp.seconds == test_ts_wrapper.timestamp.seconds
-    assert parsed_st_explicit.timestamp.timestamp.nanos == test_ts_wrapper.timestamp.nanos
-    assert st == parsed_st_explicit # __eq__ should work now
+    assert (
+        parsed_st_explicit.timestamp.timestamp.seconds
+        == test_ts_wrapper.timestamp.seconds
+    )
+    assert (
+        parsed_st_explicit.timestamp.timestamp.nanos
+        == test_ts_wrapper.timestamp.nanos
+    )
+    assert st == parsed_st_explicit  # __eq__ should work now
 
     # Test 3: Equality with different timestamps
     st_different_ts = SerializableTensor(original_tensor)
@@ -302,7 +307,9 @@ def test_timestamp_serialization_and_parsing():
     # Test 4: Equality when one has None timestamp internally vs one with parsed default
     st_no_ts_internal = SerializableTensor(original_tensor)
     grpc_from_no_ts_internal = st_no_ts_internal.to_grpc_type()
-    parsed_st_with_default_ts = SerializableTensor.try_parse(grpc_from_no_ts_internal)
+    parsed_st_with_default_ts = SerializableTensor.try_parse(
+        grpc_from_no_ts_internal
+    )
 
     assert parsed_st_with_default_ts.timestamp is not None
     assert st_no_ts_internal != parsed_st_with_default_ts
@@ -333,7 +340,10 @@ def test_unsupported_layout_to_grpc():
                 crow_indices, col_indices, values, shape
             )
             st = SerializableTensor(unsupported_tensor)
-            with pytest.raises(ValueError, match="Unsupported sparse tensor layout: torch.sparse_csr"): # More specific match
+            with pytest.raises(
+                ValueError,
+                match="Unsupported sparse tensor layout: torch.sparse_csr",
+            ):  # More specific match
                 st.to_grpc_type()
         except (AttributeError, NotImplementedError, TypeError):
             pytest.skip(
@@ -342,9 +352,7 @@ def test_unsupported_layout_to_grpc():
 
 
 def test_try_parse_unknown_representation():
-    empty_grpc_tensor = (
-        GrpcTensor()
-    )
+    empty_grpc_tensor = GrpcTensor()
     with pytest.raises(
         ValueError, match="Unknown or unset tensor data representation"
     ):
@@ -373,9 +381,7 @@ def test_try_parse_unknown_sparse_dtype():
 def test_malformed_sparse_indices():
     grpc_msg = GrpcTensor()
     grpc_msg.sparse_coo_tensor.shape.extend([2, 2])
-    grpc_msg.sparse_coo_tensor.indices.extend(
-        [0, 0, 1]
-    )
+    grpc_msg.sparse_coo_tensor.indices.extend([0, 0, 1])
     grpc_msg.sparse_coo_tensor.float_values.data.extend([1.0])
     with pytest.raises(
         ValueError,
