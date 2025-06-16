@@ -58,7 +58,9 @@ class SynchronizedTimestamp:
             )
 
         try:
-            dt_object = other.ToDatetime().replace(tzinfo=datetime.timezone.utc)
+            dt_object = other.ToDatetime().replace(
+                tzinfo=datetime.timezone.utc
+            )
             return cls(dt_object)
         except ValueError as e:
             # Logging here is important for debugging potential data issues.

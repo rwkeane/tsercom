@@ -211,28 +211,46 @@ class SerializableTensor:
                 )
             elif data_type_field == "bool_data":
                 packed_bytes = dense_payload.bool_data.data
-                if num_elements == 0: # Handles all empty tensor cases (empty packed_bytes or not)
+                if (
+                    num_elements == 0
+                ):  # Handles all empty tensor cases (empty packed_bytes or not)
                     reconstructed_tensor = torch.empty(shape, dtype=torch.bool)
-                elif packed_bytes: # If there are packed_bytes, attempt to unpack
-                    np_uint8_array = np.frombuffer(packed_bytes, dtype=np.uint8)
+                elif (
+                    packed_bytes
+                ):  # If there are packed_bytes, attempt to unpack
+                    np_uint8_array = np.frombuffer(
+                        packed_bytes, dtype=np.uint8
+                    )
                     np_bool_flat = np.unpackbits(np_uint8_array)
                     # Truncate to the expected number of elements based on shape
-                    np_bool_flat_truncated = np_bool_flat[:int(num_elements)]
-                    if len(np_bool_flat_truncated) < num_elements and not (num_elements == 1 and not shape and len(np_bool_flat_truncated) == 0) :
-                         # This case means packed_bytes were not enough for num_elements,
-                         # unless it's the special scalar case that might be represented by empty if all False
-                         # However, np.packbits of a single False is b'\x00', not empty.
-                         # So, insufficient bytes is generally an error.
-                         raise ValueError(f"Insufficient boolean data: expected {num_elements} elements, got {len(np_bool_flat_truncated)} from packed bytes.")
-                    reconstructed_tensor = torch.from_numpy(np_bool_flat_truncated.astype(bool))
-                elif not shape and num_elements == 1: # Scalar case, packed_bytes is empty
+                    np_bool_flat_truncated = np_bool_flat[: int(num_elements)]
+                    if len(np_bool_flat_truncated) < num_elements and not (
+                        num_elements == 1
+                        and not shape
+                        and len(np_bool_flat_truncated) == 0
+                    ):
+                        # This case means packed_bytes were not enough for num_elements,
+                        # unless it's the special scalar case that might be represented by empty if all False
+                        # However, np.packbits of a single False is b'\x00', not empty.
+                        # So, insufficient bytes is generally an error.
+                        raise ValueError(
+                            f"Insufficient boolean data: expected {num_elements} elements, got {len(np_bool_flat_truncated)} from packed bytes."
+                        )
+                    reconstructed_tensor = torch.from_numpy(
+                        np_bool_flat_truncated.astype(bool)
+                    )
+                elif (
+                    not shape and num_elements == 1
+                ):  # Scalar case, packed_bytes is empty
                     # This implies a scalar False if packed_bytes is empty and not handled by num_elements == 0.
                     # However, as noted, packbits(False) is not empty.
                     # This path might be logically unreachable if serialization is correct.
                     # For safety, let's assume if packed_bytes is empty here, it's an error or needs specific definition.
                     # Given current serialization, a scalar True is b'\x80', False is b'\x00'. Empty bytes won't occur for scalar.
-                    raise ValueError("Bool data for scalar tensor is unexpectedly empty.")
-                else: # Other cases where packed_bytes is empty but num_elements > 0
+                    raise ValueError(
+                        "Bool data for scalar tensor is unexpectedly empty."
+                    )
+                else:  # Other cases where packed_bytes is empty but num_elements > 0
                     raise ValueError(
                         f"Unhandled bool_data case: num_elements={num_elements}, packed_bytes empty, shape={shape}"
                     )
