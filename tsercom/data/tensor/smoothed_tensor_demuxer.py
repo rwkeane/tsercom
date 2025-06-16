@@ -192,7 +192,6 @@ class SmoothedTensorDemuxer:
                                 output_tensor[index_tuple] = float(
                                     interpolated_values[0]
                                 )
-
                 await self._output_client.push_tensor_update(
                     self.tensor_name,
                     output_tensor,

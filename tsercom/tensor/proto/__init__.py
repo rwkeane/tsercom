@@ -22,7 +22,16 @@ if not TYPE_CHECKING:
         pass
 
     elif version_string == "v1_73":
-        from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import Tensor
+        from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
+            FloatData,
+            DoubleData,
+            Int32Data,
+            Int64Data,
+            BoolData,
+            DenseTensorData,
+            SparseCooTensorData,
+            Tensor,
+        )
     else:
         # The 'name' variable for the error message is 'tensor'
         # The 'available_versions' for the error message is ['v1_73']
@@ -31,6 +40,27 @@ if not TYPE_CHECKING:
         )
 
 else:  # When TYPE_CHECKING
+    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
+        FloatData as FloatData,
+    )
+    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
+        DoubleData as DoubleData,
+    )
+    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
+        Int32Data as Int32Data,
+    )
+    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
+        Int64Data as Int64Data,
+    )
+    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
+        BoolData as BoolData,
+    )
+    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
+        DenseTensorData as DenseTensorData,
+    )
+    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
+        SparseCooTensorData as SparseCooTensorData,
+    )
     from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
         Tensor as Tensor,
     )
