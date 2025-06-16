@@ -38,7 +38,7 @@ def linear_strategy() -> LinearInterpolationStrategy:
 class TestLinearInterpolationStrategy:
     def test_empty_keyframes_raises_error(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         with pytest.raises(
             ValueError, match="Cannot interpolate with no keyframes"
         ):
@@ -46,12 +46,12 @@ class TestLinearInterpolationStrategy:
 
     def test_empty_required_timestamps(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         assert linear_strategy.interpolate_series([(ts_at(0), 1.0)], []) == []
 
     def test_before_first_keyframe(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         keyframes = [(ts_at(1), 10.0), (ts_at(3), 30.0)]
         assert linear_strategy.interpolate_series(keyframes, [ts_at(0)]) == [
             10.0
@@ -62,7 +62,7 @@ class TestLinearInterpolationStrategy:
 
     def test_after_last_keyframe(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         keyframes = [(ts_at(1), 10.0), (ts_at(3), 30.0)]
         assert linear_strategy.interpolate_series(keyframes, [ts_at(4)]) == [
             30.0
@@ -73,7 +73,7 @@ class TestLinearInterpolationStrategy:
 
     def test_exact_match_keyframe(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         keyframes = [(ts_at(1), 10.0), (ts_at(3), 30.0)]
         assert linear_strategy.interpolate_series(keyframes, [ts_at(1)]) == [
             10.0
@@ -87,7 +87,7 @@ class TestLinearInterpolationStrategy:
 
     def test_interpolation_single_point(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         keyframes = [(ts_at(0), 0.0), (ts_at(2), 20.0)]
         assert linear_strategy.interpolate_series(keyframes, [ts_at(1)]) == [
             10.0
@@ -95,7 +95,7 @@ class TestLinearInterpolationStrategy:
 
     def test_interpolation_multiple_points(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         keyframes = [(ts_at(0), 0.0), (ts_at(4), 40.0)]
         req_ts = [ts_at(1), ts_at(2), ts_at(3)]
         expected_values = [10.0, 20.0, 30.0]
@@ -104,7 +104,100 @@ class TestLinearInterpolationStrategy:
             == expected_values
         )
 
-    def test_mixed_cases(self, linear_strategy: LinearInterpolationStrategy):
+    def test_interpolation_at_exact_first_keyframe(
+        self, linear_strategy: LinearInterpolationStrategy
+    ) -> None:
+        keyframes = [(ts_at(0), 0.0), (ts_at(1), 10.0), (ts_at(2), 20.0)]
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(0)]) == [
+            0.0
+        ]
+
+    def test_interpolation_at_exact_last_keyframe(
+        self, linear_strategy: LinearInterpolationStrategy
+    ) -> None:
+        keyframes = [(ts_at(0), 0.0), (ts_at(1), 10.0), (ts_at(2), 20.0)]
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(2)]) == [
+            20.0
+        ]
+
+    def test_keyframes_with_non_monotonic_values(
+        self, linear_strategy: LinearInterpolationStrategy
+    ) -> None:
+        # Timestamps are monotonic, but values go up then down
+        keyframes = [(ts_at(0), 0.0), (ts_at(1), 20.0), (ts_at(2), 10.0)]
+        # Interpolate at t=0.5 (between 0,0 and 1,20) -> should be 10.0
+        # Interpolate at t=1.5 (between 1,20 and 2,10) -> should be 15.0
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(0.5)]) == [
+            10.0
+        ]
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(1.5)]) == [
+            15.0
+        ]
+
+    def test_timestamps_with_microsecond_precision(
+        self, linear_strategy: LinearInterpolationStrategy
+    ) -> None:
+        t0 = datetime.datetime(
+            2024, 1, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc
+        )
+        t1 = t0 + datetime.timedelta(microseconds=100)
+        t_half = t0 + datetime.timedelta(microseconds=50)
+        keyframes = [(t0, 0.0), (t1, 100.0)]
+        assert linear_strategy.interpolate_series(keyframes, [t_half]) == [
+            50.0
+        ]
+
+        t_other = t0 + datetime.timedelta(microseconds=20)
+        assert linear_strategy.interpolate_series(keyframes, [t_other]) == [
+            20.0
+        ]
+
+    def test_interpolation_with_only_two_keyframes_explicit(
+        self, linear_strategy: LinearInterpolationStrategy
+    ) -> None:
+        keyframes = [(ts_at(5), 50.0), (ts_at(10), 100.0)]
+        # Before
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(0)]) == [
+            50.0
+        ]
+        # Exact start
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(5)]) == [
+            50.0
+        ]
+        # Middle
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(7.5)]) == [
+            75.0
+        ]
+        # Exact end
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(10)]) == [
+            100.0
+        ]
+        # After
+        assert linear_strategy.interpolate_series(keyframes, [ts_at(15)]) == [
+            100.0
+        ]
+
+    def test_identical_timestamps_different_values_interpolation_behavior(
+        self, linear_strategy: LinearInterpolationStrategy
+    ) -> None:
+        kf = [
+            (ts_at(1), 10.0),  # (A)
+            (ts_at(1), 20.0),  # (B)
+            (ts_at(3), 30.0),  # (C)
+        ]
+        assert linear_strategy.interpolate_series(kf, [ts_at(1)]) == [10.0]
+        assert linear_strategy.interpolate_series(kf, [ts_at(2)]) == [25.0]
+
+        kf2 = [
+            (ts_at(0), 0.0),  # (X)
+            (ts_at(1), 10.0),  # (A)
+            (ts_at(1), 20.0),  # (B)
+            (ts_at(3), 30.0),  # (C)
+        ]
+        assert linear_strategy.interpolate_series(kf2, [ts_at(1)]) == [10.0]
+        assert linear_strategy.interpolate_series(kf2, [ts_at(2)]) == [25.0]
+
+    def test_mixed_cases(self, linear_strategy: LinearInterpolationStrategy) -> None:
         keyframes = [(ts_at(10), 100.0), (ts_at(20), 200.0)]
         req_ts = [ts_at(5), ts_at(10), ts_at(15), ts_at(20), ts_at(25)]
         expected_values = [100.0, 100.0, 150.0, 200.0, 200.0]
@@ -115,7 +208,7 @@ class TestLinearInterpolationStrategy:
 
     def test_identical_timestamps_in_keyframes(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         keyframes = [(ts_at(1), 10.0), (ts_at(1), 15.0), (ts_at(3), 30.0)]
         assert linear_strategy.interpolate_series(keyframes, [ts_at(1)]) == [
             10.0
@@ -126,7 +219,7 @@ class TestLinearInterpolationStrategy:
 
     def test_single_keyframe(
         self, linear_strategy: LinearInterpolationStrategy
-    ):
+    ) -> None:
         keyframes = [(ts_at(1), 10.0)]
         req_ts = [ts_at(0), ts_at(1), ts_at(2)]
         expected_values = [10.0, 10.0, 10.0]

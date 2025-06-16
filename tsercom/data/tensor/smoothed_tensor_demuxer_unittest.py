@@ -5,26 +5,26 @@ import asyncio
 import datetime
 import itertools
 import math
-from typing import List, Tuple, Any, Optional  # Added Dict
-from unittest.mock import MagicMock  # Added MagicMock
+from typing import List, Tuple, Any, Optional, AsyncGenerator, Callable, Coroutine
+from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
 import torch
+from _pytest.logging import LogCaptureFixture # For caplog type
 
-from tsercom.data.tensor.smoothing_strategy import (  # Corrected filename
+from tsercom.data.tensor.smoothing_strategy import (
     SmoothingStrategy,
-    # Numeric, # Not used in this file
 )
 from tsercom.data.tensor.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
-)  # New import
+)
 from tsercom.data.tensor.smoothed_tensor_demuxer import (
     SmoothedTensorDemuxer,
 )
 from tsercom.data.tensor.tensor_demuxer import (
     TensorDemuxer,
-)  # For Client definition
+)
 
 
 # --- Helper Functions ---
@@ -41,7 +41,7 @@ def ts_at(
 
 def assert_tensors_equal(
     t1: Optional[torch.Tensor], t2: Optional[torch.Tensor], message: str = ""
-):
+) -> None:
     if t1 is None and t2 is None:
         return
     if t1 is None or t2 is None:
@@ -59,7 +59,7 @@ def assert_tensors_equal(
 
 # --- Fake Client ---
 class FakeClient(TensorDemuxer.Client):
-    def __init__(self):
+    def __init__(self) -> None:
         self.received_tensors: List[Tuple[torch.Tensor, datetime.datetime]] = (
             []
         )
@@ -82,7 +82,7 @@ class FakeClient(TensorDemuxer.Client):
                 )
             )
 
-    def clear(self):
+    def clear(self) -> None:
         self.received_tensors.clear()
         self.call_log.clear()
 
@@ -112,13 +112,12 @@ async def fake_client() -> FakeClient:
 @pytest_asyncio.fixture
 async def demuxer_1d_default(
     fake_client: FakeClient, linear_strategy: LinearInterpolationStrategy
-) -> SmoothedTensorDemuxer:
-    # 1D tensor, length 3, period 1s
+) -> AsyncGenerator[SmoothedTensorDemuxer, None]:
     demuxer = SmoothedTensorDemuxer(
         client=fake_client,
         tensor_shape=(3,),
         smoothing_strategy=linear_strategy,
-        smoothing_period_seconds=0.1,  # Use a shorter period for faster test feedback
+        smoothing_period_seconds=0.1,
     )
     await demuxer.start()
     yield demuxer
@@ -128,7 +127,7 @@ async def demuxer_1d_default(
 @pytest_asyncio.fixture
 async def demuxer_factory(
     fake_client: FakeClient, linear_strategy: LinearInterpolationStrategy
-):
+) -> AsyncGenerator[Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], None]:
     demuxers_to_clean: List[SmoothedTensorDemuxer] = []
 
     async def _factory(
@@ -154,8 +153,6 @@ async def demuxer_factory(
 
 
 # --- Test Classes ---
-# TestLinearInterpolationStrategy class removed as it's now in its own file.
-
 
 class TestSmoothedTensorDemuxer:
     @pytest.mark.asyncio
@@ -163,13 +160,13 @@ class TestSmoothedTensorDemuxer:
         self,
         fake_client: FakeClient,
         linear_strategy: LinearInterpolationStrategy,
-    ):
+    ) -> None:
         shape = (2, 2)
         period = 0.05
         demuxer = SmoothedTensorDemuxer(
             fake_client, shape, linear_strategy, period
         )
-        assert demuxer._SmoothedTensorDemuxer__client == fake_client
+        assert demuxer._SmoothedTensorDemuxer__client == fake_client  # type: ignore[attr-defined]
         assert demuxer._SmoothedTensorDemuxer__tensor_shape == shape
         assert (
             demuxer._SmoothedTensorDemuxer__smoothing_strategy
@@ -186,7 +183,7 @@ class TestSmoothedTensorDemuxer:
         )
         assert demuxer._SmoothedTensorDemuxer__all_indices == expected_indices
         assert (
-            demuxer._tensor_total_elements  # Corrected attribute access
+            demuxer._tensor_total_elements
             == math.prod(shape)
         )
 
@@ -195,7 +192,7 @@ class TestSmoothedTensorDemuxer:
         self,
         fake_client: FakeClient,
         linear_strategy: LinearInterpolationStrategy,
-    ):
+    ) -> None:
         with pytest.raises(ValueError, match="Tensor shape cannot be empty"):
             SmoothedTensorDemuxer(fake_client, (), linear_strategy, 0.1)
         with pytest.raises(
@@ -210,13 +207,12 @@ class TestSmoothedTensorDemuxer:
             TypeError,
             match="smoothing_strategy must be an instance of SmoothingStrategy",
         ):
-            SmoothedTensorDemuxer(fake_client, (2,), MagicMock(), 0.1)  # type: ignore
+            SmoothedTensorDemuxer(fake_client, (2,), MagicMock(), 0.1)
 
     @pytest.mark.asyncio
     async def test_start_stop_worker(
         self, demuxer_1d_default: SmoothedTensorDemuxer
-    ):
-        # Started by fixture
+    ) -> None:
         assert (
             demuxer_1d_default._SmoothedTensorDemuxer__interpolation_loop_task
             is not None
@@ -224,14 +220,11 @@ class TestSmoothedTensorDemuxer:
         assert (
             not demuxer_1d_default._SmoothedTensorDemuxer__interpolation_loop_task.done()
         )
-
         await demuxer_1d_default.close()
         assert (
             demuxer_1d_default._SmoothedTensorDemuxer__interpolation_loop_task
             is None
-        )  # Cleared by close
-
-        # Restart
+        )
         await demuxer_1d_default.start()
         assert (
             demuxer_1d_default._SmoothedTensorDemuxer__interpolation_loop_task
@@ -243,8 +236,7 @@ class TestSmoothedTensorDemuxer:
         task_id = id(
             demuxer_1d_default._SmoothedTensorDemuxer__interpolation_loop_task
         )
-
-        await demuxer_1d_default.start()  # Start again, should be idempotent
+        await demuxer_1d_default.start()
         assert (
             id(
                 demuxer_1d_default._SmoothedTensorDemuxer__interpolation_loop_task
@@ -255,25 +247,17 @@ class TestSmoothedTensorDemuxer:
     @pytest.mark.asyncio
     async def test_on_update_received_stores_keyframes_1d(
         self, demuxer_1d_default: SmoothedTensorDemuxer
-    ):
-        dmx = demuxer_1d_default  # shape (3,)
+    ) -> None:
+        dmx = demuxer_1d_default
         idx0, idx1 = (0,), (1,)
-
         await dmx.on_update_received(idx0, 10.0, ts_at(0))
         await dmx.on_update_received(idx0, 11.0, ts_at(1))
         await dmx.on_update_received(idx1, 20.0, ts_at(0.5))
-
         keyframes = dmx._SmoothedTensorDemuxer__per_index_keyframes
-        assert idx0 in keyframes
-        assert idx1 in keyframes
         assert keyframes[idx0] == [(ts_at(0), 10.0), (ts_at(1), 11.0)]
         assert keyframes[idx1] == [(ts_at(0.5), 20.0)]
-
-        # Update existing timestamp for idx0
         await dmx.on_update_received(idx0, 10.5, ts_at(0))
         assert keyframes[idx0] == [(ts_at(0), 10.5), (ts_at(1), 11.0)]
-
-        # Add out-of-order for idx0
         await dmx.on_update_received(idx0, 10.2, ts_at(0.5))
         assert keyframes[idx0] == [
             (ts_at(0), 10.5),
@@ -283,384 +267,322 @@ class TestSmoothedTensorDemuxer:
 
     @pytest.mark.asyncio
     async def test_on_update_received_invalid_index(
-        self, demuxer_1d_default: SmoothedTensorDemuxer, caplog
-    ):
-        # demuxer_1d_default has shape (3,). Valid indices: (0,), (1,), (2,)
-        await demuxer_1d_default.on_update_received(
-            (3,), 10.0, ts_at(0)
-        )  # Out of bounds
-        assert (
-            not demuxer_1d_default._SmoothedTensorDemuxer__per_index_keyframes
-        )
+        self, demuxer_1d_default: SmoothedTensorDemuxer, caplog: LogCaptureFixture
+    ) -> None:
+        await demuxer_1d_default.on_update_received((3,), 10.0, ts_at(0))
+        assert not demuxer_1d_default._SmoothedTensorDemuxer__per_index_keyframes
         assert "Index (3,) out of bounds for shape (3,)" in caplog.text
-
-        await demuxer_1d_default.on_update_received(
-            (0, 0), 10.0, ts_at(0)
-        )  # Wrong dimension
-        assert (
-            not demuxer_1d_default._SmoothedTensorDemuxer__per_index_keyframes
-        )
+        await demuxer_1d_default.on_update_received((0,0), 10.0, ts_at(0))
+        assert not demuxer_1d_default._SmoothedTensorDemuxer__per_index_keyframes
         assert "Invalid index dimension (0, 0) for shape (3,)" in caplog.text
 
     @pytest.mark.asyncio
     async def test_simple_interpolation_one_index(
-        self, demuxer_factory: Any, fake_client: FakeClient
-    ):
-        dmx = await demuxer_factory(
-            shape=(1,), period=0.1
-        )  # Single element tensor
+        self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient
+    ) -> None:
+        dmx = await demuxer_factory(shape=(1,), period=0.1)
         idx = (0,)
-
         await dmx.on_update_received(idx, 0.0, ts_at(0))
-        await dmx.on_update_received(
-            idx, 20.0, ts_at(2.0)
-        )  # Kf0 at t=0, Kf1 at t=2
-
-        # Worker period is 0.1s.
-        # _get_next_emission_timestamp logic:
-        #   last_emitted is None. min_overall_kf_ts = ts_at(0).
-        #   next_emission = ts_at(0) + 0.1s = ts_at(0.1).
-        # Worker loop:
-        # T_interp = ts_at(0.1). Value = 0.0 + (20-0)* (0.1/2.0) = 1.0. Tensor [1.0]
-        # T_interp = ts_at(0.2). Value = 0.0 + (20-0)* (0.2/2.0) = 2.0. Tensor [2.0]
-        # ...
-        # T_interp = ts_at(1.9). Value = 0.0 + (20-0)* (1.9/2.0) = 19.0. Tensor [19.0]
-        # T_interp = ts_at(2.0). Value = 20.0. Tensor [20.0] (exact match with keyframe)
-        # Next T_interp would be ts_at(2.1).
-        # max_ts_overall is ts_at(2.0).
-        # t_interp (2.1) > max_ts_overall (2.0) + period (0.1) is FALSE (2.1 not > 2.1)
-        # So it will try to interpolate for ts_at(2.1). LinearInterp will hold last value (20.0)
-
-        # Wait for enough cycles for interpolation up to and slightly beyond last keyframe
-        # Total time for 20 points (0.1 to 2.0) is 2.0s. Add buffer.
-        await asyncio.sleep(2.0 + 0.5)  # Sleep for 2.5s
-
+        await dmx.on_update_received(idx, 20.0, ts_at(2.0))
+        await asyncio.sleep(2.0 + 0.5)
         payloads = fake_client.get_payloads_sorted_by_time()
-
-        # Expected number of points: from ts_at(0.1) to ts_at(2.0) inclusive = 20 points
-        # And potentially one more at ts_at(2.1) holding value 20.0.
-        # The worker's `t_interp > max_ts_overall + self.__smoothing_period_seconds` check
-        # means if t_interp = 2.1, max_ts_overall = 2.0, period = 0.1
-        # 2.1 > 2.0 + 0.1  (i.e. 2.1 > 2.1) is false. So it will attempt to interpolate.
-        # LinearInterpolationStrategy for t_interp=2.1 (after last keyframe at 2.0) will give value 20.0.
-
-        assert len(payloads) >= 20  # Should be around 20-21 points
-
-        # Check first point
+        assert len(payloads) >= 20
         assert payloads[0][1] == ts_at(0.1)
         assert_tensors_equal(payloads[0][0], torch.tensor([1.0]))
-
-        # Check point at t=1.0 (midpoint)
-        found_mid = False
-        for tensor, ts_val in payloads:
-            if ts_val == ts_at(1.0):
-                assert_tensors_equal(tensor, torch.tensor([10.0]))
-                found_mid = True
-                break
+        found_mid = any(p[1] == ts_at(1.0) and torch.allclose(p[0], torch.tensor([10.0])) for p in payloads)
         assert found_mid, "Midpoint interpolation at t=1.0 not found"
-
-        # Check point at t=2.0 (exact keyframe)
-        found_end_kf = False
-        for tensor, ts_val in payloads:
-            if ts_val == ts_at(2.0):
-                assert_tensors_equal(tensor, torch.tensor([20.0]))
-                found_end_kf = True
-                break
+        found_end_kf = any(p[1] == ts_at(2.0) and torch.allclose(p[0], torch.tensor([20.0])) for p in payloads)
         assert found_end_kf, "End keyframe interpolation at t=2.0 not found"
-
-        # Check point after last keyframe (e.g. t=2.1)
-        found_after_end = False
-        for tensor, ts_val in payloads:
-            if ts_val == ts_at(2.1):
-                assert_tensors_equal(
-                    tensor, torch.tensor([20.0])
-                )  # Should hold last value
-                found_after_end = True
-                break
-        assert (
-            found_after_end
-        ), "Interpolation after last keyframe (holding value) not found"
+        found_after_end = any(p[1] == ts_at(2.1) and torch.allclose(p[0], torch.tensor([20.0])) for p in payloads)
+        assert found_after_end, "Interpolation after last keyframe (holding value) not found"
 
     @pytest.mark.asyncio
     async def test_interpolation_multiple_indices_independent(
-        self, demuxer_factory: Any, fake_client: FakeClient
-    ):
-        dmx = await demuxer_factory(
-            shape=(2,), period=0.1
-        )  # 1D tensor, 2 elements
+        self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient
+    ) -> None:
+        dmx = await demuxer_factory(shape=(2,), period=0.1)
         idx0, idx1 = (0,), (1,)
-
-        # Index 0: 0 at t=0, 10 at t=1
         await dmx.on_update_received(idx0, 0.0, ts_at(0))
         await dmx.on_update_received(idx0, 10.0, ts_at(1.0))
-
-        # Index 1: 100 at t=0.5, 200 at t=1.5
         await dmx.on_update_received(idx1, 100.0, ts_at(0.5))
         await dmx.on_update_received(idx1, 200.0, ts_at(1.5))
-
-        # Wait for interpolation to occur for some time
-        await asyncio.sleep(1.5 + 0.5)  # Sleep for 2.0s
-
+        await asyncio.sleep(1.5 + 0.5)
         payloads = fake_client.get_payloads_sorted_by_time()
-        assert len(payloads) > 10  # Expect a number of points
-
-        # Check specific timestamp, e.g., t=0.6
-        # Worker emits at 0.1, 0.2, ..., 0.6
-        # At t=0.6:
-        #   Idx0: between (0,0) and (1,10). Value = 0 + (10-0)*(0.6/1.0) = 6.0
-        #   Idx1: between (0.5,100) and (1.5,200). Value = 100 + (200-100)*( (0.6-0.5) / (1.5-0.5) )
-        #         = 100 + 100 * (0.1/1.0) = 100 + 10 = 110.0
-        # Expected tensor: [6.0, 110.0]
-
-        found_target_ts = False
+        assert len(payloads) > 10
         target_ts_to_check = ts_at(0.6)
-        for tensor, ts_val in payloads:
-            if ts_val == target_ts_to_check:
-                assert_tensors_equal(tensor, torch.tensor([6.0, 110.0]))
-                found_target_ts = True
-                break
-        assert (
-            found_target_ts
-        ), f"Did not find interpolated tensor at {target_ts_to_check}"
-
-        # Check another timestamp, e.g., t=1.2
-        # At t=1.2:
-        #   Idx0: After last keyframe (1.0, 10.0). Value = 10.0
-        #   Idx1: between (0.5,100) and (1.5,200). Value = 100 + (200-100)*( (1.2-0.5) / (1.5-0.5) )
-        #         = 100 + 100 * (0.7/1.0) = 100 + 70 = 170.0
-        # Expected tensor: [10.0, 170.0]
-        found_target_ts_2 = False
+        found_target_ts = any(p[1] == target_ts_to_check and torch.allclose(p[0], torch.tensor([6.0, 110.0])) for p in payloads)
+        assert found_target_ts, f"Did not find interpolated tensor at {target_ts_to_check}"
         target_ts_to_check_2 = ts_at(1.2)
-        for tensor, ts_val in payloads:
-            if ts_val == target_ts_to_check_2:
-                assert_tensors_equal(tensor, torch.tensor([10.0, 170.0]))
-                found_target_ts_2 = True
-                break
-        assert (
-            found_target_ts_2
-        ), f"Did not find interpolated tensor at {target_ts_to_check_2}"
+        found_target_ts_2 = any(p[1] == target_ts_to_check_2 and torch.allclose(p[0], torch.tensor([10.0, 170.0])) for p in payloads)
+        assert found_target_ts_2, f"Did not find interpolated tensor at {target_ts_to_check_2}"
 
     @pytest.mark.asyncio
     async def test_no_keyframes_emits_zeros_or_nothing(
-        self, demuxer_factory: Any, fake_client: FakeClient
-    ):
-        # If no keyframes at all, worker should ideally not emit, or emit zeros if that's desired.
-        # Current worker logic: if no keyframes, _get_next_emission_timestamp bases on current_time.
-        # Then in worker, if __per_index_keyframes is empty, it logs and sleeps.
-        # If an index has no keyframes, it gets default 0.0.
+        self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient
+    ) -> None:
         dmx = await demuxer_factory(shape=(2,), period=0.1)
-
-        await asyncio.sleep(0.5)  # Let worker run a few times
-        assert (
-            not fake_client.received_tensors
-        )  # Should not emit if no data ever received
-
-        # Add data for one index, but not the other
+        await asyncio.sleep(0.5)
+        assert not fake_client.received_tensors
         await dmx.on_update_received((0,), 10.0, ts_at(0))
         await dmx.on_update_received((0,), 20.0, ts_at(1.0))
-
         fake_client.clear()
         await asyncio.sleep(0.5)
-
         payloads = fake_client.get_payloads_sorted_by_time()
         assert len(payloads) > 0
-
-        # Example: check first emitted tensor. Should be like [val_for_idx0, 0.0]
-        # T_interp = ts_at(0.1). Idx0 val = 1.0. Idx1 val = 0.0 (default as no kfs)
-        # Expected: [1.0, 0.0]
-        first_payload_tensor, first_payload_ts = payloads[0]
-        # The exact first timestamp depends on when the worker ran relative to data input.
-        # We expect index 0 to be interpolated, index 1 to be 0.0
+        first_payload_tensor, _ = payloads[0]
         assert first_payload_tensor[1].item() == 0.0
-        assert (
-            first_payload_tensor[0].item() != 0.0
-        )  # Should be some interpolated value for idx0
+        assert first_payload_tensor[0].item() != 0.0
 
     @pytest.mark.asyncio
     async def test_critical_cascading_scenario(
-        self, demuxer_factory: Any, fake_client: FakeClient
-    ):
-        # Shape (4,), period 0.1s for faster feedback
+        self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient
+    ) -> None:
         dmx = await demuxer_factory(shape=(4,), period=0.1)
-
-        idx = [(i,) for i in range(4)]  # idx[0]=(0,), idx[1]=(1,), ...
-
-        # Timestamps A, B, C, D
-        tA = ts_at(0)
-        tB = ts_at(1.0)
-        tC = ts_at(2.0)
-        tD = ts_at(3.0)
-
-        # 1. Keyframes at A: A0, A1, A2, A3 for all indices
+        idx = [(i,) for i in range(4)]
+        tA, tB, tC, tD = ts_at(0), ts_at(1.0), ts_at(2.0), ts_at(3.0)
         vals_A = [0.0, 10.0, 20.0, 30.0]
-        for i in range(4):
-            await dmx.on_update_received(idx[i], vals_A[i], tA)
-
-        # 2. Keyframes at D: D0, D1, D2, D3 for all indices
-        vals_D = [30.0, 40.0, 50.0, 60.0]  # D is 3s after A
-        for i in range(4):
-            await dmx.on_update_received(idx[i], vals_D[i], tD)
-
-        # 3. Keyframes at B (out-of-order for some indices' timelines): B0, B1 for idx0, idx1
-        vals_B = [5.0, 15.0]  # B is 1s after A
+        for i in range(4): await dmx.on_update_received(idx[i], vals_A[i], tA)
+        vals_D = [30.0, 40.0, 50.0, 60.0]
+        for i in range(4): await dmx.on_update_received(idx[i], vals_D[i], tD)
+        vals_B = [5.0, 15.0]
         await dmx.on_update_received(idx[0], vals_B[0], tB)
         await dmx.on_update_received(idx[1], vals_B[1], tB)
-
-        # 4. Keyframes at C (out-of-order for some indices' timelines): C2, C3 for idx2, idx3
-        vals_C = [28.0, 38.0]  # C is 2s after A
+        vals_C = [28.0, 38.0]
         await dmx.on_update_received(idx[2], vals_C[0], tC)
         await dmx.on_update_received(idx[3], vals_C[1], tC)
-
-        # Let worker run. We need to check a T_interp between B and C.
-        # E.g., T_interp = ts_at(1.5) (0.5s after B, 0.5s before C)
-        # Period is 0.1s. Worker runs at 0.1, 0.2 ... 1.0(B) ... 1.5 ... 2.0(C) ... 3.0(D)
-        await asyncio.sleep(
-            3.0 + 0.5
-        )  # Wait for interpolations up to D and a bit beyond.
-
+        await asyncio.sleep(3.0 + 0.5)
         payloads = fake_client.get_payloads_sorted_by_time()
         assert len(payloads) > 0, "No tensors were emitted"
-
         target_t_interp = ts_at(1.5)
         found_target_payload = False
-
         for tensor, ts_val in payloads:
             if ts_val == target_t_interp:
                 found_target_payload = True
-                # At T_interp = 1.5s:
-                # Idx0: interpolates B0 (5.0 at tB=1s) towards D0 (30.0 at tD=3s)
-                #       Path B->D is 2s long (from 1s to 3s). T_interp is 0.5s into this path.
-                #       Value = 5.0 + (30.0 - 5.0) * (0.5 / 2.0) = 5.0 + 25.0 * 0.25 = 5.0 + 6.25 = 11.25
-                # Idx1: interpolates B1 (15.0 at tB=1s) towards D1 (40.0 at tD=3s)
-                #       Value = 15.0 + (40.0 - 15.0) * (0.5 / 2.0) = 15.0 + 25.0 * 0.25 = 15.0 + 6.25 = 21.25
-                # Idx2: interpolates A2 (20.0 at tA=0s) towards C2 (28.0 at tC=2s)
-                #       Path A->C is 2s long (from 0s to 2s). T_interp is 1.5s into this path.
-                #       Value = 20.0 + (28.0 - 20.0) * (1.5 / 2.0) = 20.0 + 8.0 * 0.75 = 20.0 + 6.0 = 26.0
-                # Idx3: interpolates A3 (30.0 at tA=0s) towards C3 (38.0 at tC=2s)
-                #       Value = 30.0 + (38.0 - 30.0) * (1.5 / 2.0) = 30.0 + 8.0 * 0.75 = 30.0 + 6.0 = 36.0
-
-                expected_values = torch.tensor(
-                    [11.25, 21.25, 26.0, 36.0], dtype=torch.float32
-                )
-                assert_tensors_equal(
-                    tensor,
-                    expected_values,
-                    message=f"Tensor at {target_t_interp}",
-                )
+                expected_values = torch.tensor([11.25, 21.25, 26.0, 36.0], dtype=torch.float32)
+                assert_tensors_equal(tensor, expected_values, message=f"Tensor at {target_t_interp}")
                 break
-
-        assert (
-            found_target_payload
-        ), f"Payload for target T_interp {target_t_interp} not found."
+        assert found_target_payload, f"Payload for target T_interp {target_t_interp} not found."
 
     @pytest.mark.asyncio
     async def test_worker_stops_and_restarts(
-        self, demuxer_factory: Any, fake_client: FakeClient
-    ):
-        dmx = await demuxer_factory(shape=(1,), period=0.05)  # Short period
+        self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient
+    ) -> None:
+        dmx = await demuxer_factory(shape=(1,), period=0.05)
         await dmx.on_update_received((0,), 0.0, ts_at(0))
         await dmx.on_update_received((0,), 10.0, ts_at(0.2))
-
-        await asyncio.sleep(0.3)  # Let it emit a few points
-        payload_count_before_stop = len(fake_client.received_tensors)
-        assert payload_count_before_stop > 0
-
-        await dmx.close()  # Stop the worker
-        # Ensure worker task is gone or done
-        assert (
-            dmx._SmoothedTensorDemuxer__interpolation_loop_task is None
-            or dmx._SmoothedTensorDemuxer__interpolation_loop_task.done()
-        )
-
-        fake_client.clear()  # Clear previous payloads
-
-        # Try sending more data while stopped - should be stored but not emitted
+        await asyncio.sleep(0.3)
+        assert len(fake_client.received_tensors) > 0
+        await dmx.close()
+        assert dmx._SmoothedTensorDemuxer__interpolation_loop_task is None or dmx._SmoothedTensorDemuxer__interpolation_loop_task.done() # type: ignore[attr-defined]
+        fake_client.clear()
         await dmx.on_update_received((0,), 20.0, ts_at(0.4))
-        await asyncio.sleep(0.2)  # Give time for emission if it were running
-        assert (
-            not fake_client.received_tensors
-        )  # No new tensors should be emitted
-
-        # Restart the worker
+        await asyncio.sleep(0.2)
+        assert not fake_client.received_tensors
         await dmx.start()
-        await asyncio.sleep(0.5)  # Let it run again (increased sleep)
-
-        payload_count_after_restart = len(fake_client.received_tensors)
-        assert payload_count_after_restart > 0
-
-        # Check if it interpolated using the data point received while stopped
-        # T_interp e.g. ts_at(0.3) (0.1s after (0.2,10), 0.1s before (0.4,20))
-        # Value = 10 + (20-10) * (0.1/0.2) = 10 + 10 * 0.5 = 15
+        await asyncio.sleep(0.5)
+        assert len(fake_client.received_tensors) > 0
         target_t_interp = ts_at(0.3)
-        found_target = False
-        for tensor, ts_val in fake_client.get_payloads_sorted_by_time():
-            if ts_val == target_t_interp:
-                assert_tensors_equal(tensor, torch.tensor([15.0]))
-                found_target = True
-                break
-        assert (
-            found_target
-        ), f"Interpolation after restart for {target_t_interp} failed or not found."
+        found_target = any(p[1] == target_t_interp and torch.allclose(p[0], torch.tensor([15.0])) for p in fake_client.get_payloads_sorted_by_time())
+        assert found_target, f"Interpolation after restart for {target_t_interp} failed or not found."
 
     @pytest.mark.asyncio
-    async def test_generate_all_indices_static_method(self):
-        assert (
-            SmoothedTensorDemuxer._generate_all_indices(()) == []
-        )  # Empty shape
-        assert SmoothedTensorDemuxer._generate_all_indices((3,)) == [
-            (0,),
-            (1,),
-            (2,),
-        ]
-        assert SmoothedTensorDemuxer._generate_all_indices((2, 2)) == [
-            (0, 0),
-            (0, 1),
-            (1, 0),
-            (1, 1),
-        ]
-        assert SmoothedTensorDemuxer._generate_all_indices((1, 2, 1)) == [
-            (0, 0, 0),
-            (0, 1, 0),
-        ]
+    async def test_generate_all_indices_static_method(self) -> None:
+        assert SmoothedTensorDemuxer._generate_all_indices(()) == []
+        assert SmoothedTensorDemuxer._generate_all_indices((3,)) == [(0,), (1,), (2,)]
+        assert SmoothedTensorDemuxer._generate_all_indices((2,2)) == [(0,0), (0,1), (1,0), (1,1)]
+        assert SmoothedTensorDemuxer._generate_all_indices((1,2,1)) == [(0,0,0), (0,1,0)]
 
     @pytest.mark.asyncio
     async def test_interpolation_with_2d_tensor(
-        self, demuxer_factory: Any, fake_client: FakeClient
-    ):
-        dmx = await demuxer_factory(
-            shape=(2, 1), period=0.1
-        )  # Shape (2,1) -> indices (0,0), (1,0)
-        idx_0_0 = (0, 0)
-        idx_1_0 = (1, 0)
-
+        self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient
+    ) -> None:
+        dmx = await demuxer_factory(shape=(2,1), period=0.1)
+        idx_0_0, idx_1_0 = (0,0), (1,0)
         await dmx.on_update_received(idx_0_0, 0.0, ts_at(0))
-        await dmx.on_update_received(
-            idx_0_0, 10.0, ts_at(1.0)
-        )  # (0,0) from 0 to 10 over 1s
-
+        await dmx.on_update_received(idx_0_0, 10.0, ts_at(1.0))
         await dmx.on_update_received(idx_1_0, 100.0, ts_at(0))
-        await dmx.on_update_received(
-            idx_1_0, 120.0, ts_at(1.0)
-        )  # (1,0) from 100 to 120 over 1s
-
-        await asyncio.sleep(0.5 + 0.2)  # Interpolate up to t=0.5
-
+        await dmx.on_update_received(idx_1_0, 120.0, ts_at(1.0))
+        await asyncio.sleep(0.5 + 0.2)
         payloads = fake_client.get_payloads_sorted_by_time()
         assert len(payloads) > 0
-
-        # Check t_interp = ts_at(0.5)
-        # Idx (0,0): 0 + (10-0)*(0.5/1.0) = 5.0
-        # Idx (1,0): 100 + (120-100)*(0.5/1.0) = 110.0
-        # Expected tensor: [[5.0], [110.0]]
         expected_tensor = torch.tensor([[5.0], [110.0]], dtype=torch.float32)
-
         target_t_interp = ts_at(0.5)
+        found_target = any(p[1] == target_t_interp and torch.allclose(p[0], expected_tensor) for p in payloads)
+        assert found_target, f"Did not find tensor for {target_t_interp} with 2D shape."
+
+    @pytest.mark.asyncio
+    async def test_behavior_with_very_small_smoothing_period(self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient) -> None:
+        period = 0.01
+        dmx = await demuxer_factory(shape=(1,), period=period)
+        idx = (0,)
+        await dmx.on_update_received(idx, 0.0, ts_at(0))
+        await dmx.on_update_received(idx, 10.0, ts_at(0.1))
+        await asyncio.sleep(0.1 + 0.05)
+        payloads = fake_client.get_payloads_sorted_by_time()
+        assert len(payloads) >= 8
+        found_target_ts = False
+        if payloads:
+            first_payload_ts = payloads[0][1]
+            assert abs((first_payload_ts - ts_at(0.01)).total_seconds()) < period, \
+                f"First emitted point {first_payload_ts} not close to expected {ts_at(0.01)}"
+            assert_tensors_equal(payloads[0][0], torch.tensor([1.0]), message="Tensor at first emission")
+            found_target_ts = True
+        assert found_target_ts, "No data emitted or first point check failed with small period."
+
+    @pytest.mark.asyncio
+    async def test_behavior_with_large_smoothing_period(self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient) -> None:
+        period = 1.0
+        dmx = await demuxer_factory(shape=(1,), period=period)
+        idx = (0,)
+        await dmx.on_update_received(idx, 0.0, ts_at(0))
+        await dmx.on_update_received(idx, 10.0, ts_at(0.5))
+        await asyncio.sleep(period + 0.2)
+        payloads = fake_client.get_payloads_sorted_by_time()
+        assert len(payloads) == 1, "Expected exactly one emission with large period"
+        tensor_val, ts_val = payloads[0]
+        assert ts_val == ts_at(1.0)
+        assert_tensors_equal(tensor_val, torch.tensor([10.0]), message="Tensor at t=1.0 (extrapolated)")
+
+    @pytest.mark.asyncio
+    async def test_rapid_on_update_received_calls(self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient) -> None:
+        dmx = await demuxer_factory(shape=(1,), period=0.1)
+        idx = (0,)
+
+        num_updates = 20 # Ends at t=0.19, val=19.0
+        for i in range(num_updates):
+            time = ts_at(i * 0.01)
+            value = float(i)
+            await dmx.on_update_received(idx, value, time)
+
+        await asyncio.sleep(0.2 + 0.2) # Wait for interpolation to catch up
+
+        payloads = fake_client.get_payloads_sorted_by_time()
+        assert len(payloads) > 0, "No data emitted"
+
+        # Expect first emission at t0 (0.0) + period (0.1) = ts_at(0.1)
+        # Value at t=0.1: keyframes are (0.0,0)...(0.1,10.0)...(0.19,19.0)
+        # Interpolation strategy with keyframes up to (0.1,10) and req_ts=0.1 should yield 10.0
+        exact_target_ts = ts_at(0.1)
+        expected_value_tensor = torch.tensor([10.0])
+
+        found_exact_target = False
+        for tensor, ts_val in payloads:
+            if ts_val == exact_target_ts:
+                assert_tensors_equal(tensor, expected_value_tensor, message=f"Tensor at {exact_target_ts}")
+                found_exact_target = True
+                break
+        assert found_exact_target, f"Did not find expected emission at {exact_target_ts} (expected value {expected_value_tensor.item()}). Payloads: {payloads}"
+
+    @pytest.mark.asyncio
+    async def test_update_timestamp_far_past(self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient) -> None:
+        dmx = await demuxer_factory(shape=(1,), period=0.1)
+        idx = (0,)
+        await dmx.on_update_received(idx, 10.0, ts_at(1.0))
+        await dmx.on_update_received(idx, 20.0, ts_at(2.0))
+        await asyncio.sleep(0.2)
+        fake_client.clear()
+        await dmx.on_update_received(idx, 0.0, ts_at(0.0))
+        await asyncio.sleep(0.1 + 0.05)
+        payloads = fake_client.get_payloads_sorted_by_time()
+        assert len(payloads) > 0, "No data emitted after past update"
+        first_tensor, first_ts = payloads[0]
+        assert first_ts == ts_at(0.1)
+        assert_tensors_equal(first_tensor, torch.tensor([1.0]))
+
+    @pytest.mark.asyncio
+    async def test_update_timestamp_far_future(self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient) -> None:
+        dmx = await demuxer_factory(shape=(1,), period=0.1)
+        idx = (0,)
+
+        await dmx.on_update_received(idx, 0.0, ts_at(0))
+        await dmx.on_update_received(idx, 10.0, ts_at(1.0)) # Original data: (0,0) to (1,10)
+
+        # Let some initial interpolation happen
+        await asyncio.sleep(0.25) # e.g., emits for t=0.1 (val 1), t=0.2 (val 2)
+        initial_payload_count = len(fake_client.received_tensors)
+        assert initial_payload_count > 0, "No initial emissions"
+        fake_client.clear()
+
+        # Add update far in the future
+        await dmx.on_update_received(idx, 100.0, ts_at(10.0))
+
+        # Wait significantly longer to ensure worker has many cycles
+        # to emit points for the original segment if logic is correct.
+        # Target is ts_at(0.5) (value 5.0)
+        await asyncio.sleep(0.6) # Should be enough for t=0.3, 0.4, 0.5, etc.
+
+        payloads = fake_client.get_payloads_sorted_by_time()
+        assert len(payloads) > 0, "No data emitted after future update"
+
+        target_ts_to_check = ts_at(0.5)
+        expected_value_at_target = 5.0 # Interpolated from (0,0) and (1,10)
+
         found_target = False
         for tensor, ts_val in payloads:
-            if ts_val == target_t_interp:
-                assert_tensors_equal(tensor, expected_tensor)
+            if ts_val == target_ts_to_check:
+                assert_tensors_equal(tensor, torch.tensor([expected_value_at_target]),
+                                     message=f"Tensor at {target_ts_to_check}")
                 found_target = True
                 break
-        assert (
-            found_target
-        ), f"Did not find tensor for {target_t_interp} with 2D shape."
+        assert found_target, f"Interpolation for {target_ts_to_check} (value {expected_value_at_target}) not found or incorrect after future update. Payloads: {payloads}"
+
+        # Also check that interpolation towards the far future point eventually occurs
+        fake_client.clear()
+        await asyncio.sleep(10.0) # Very long sleep to pass t=1.0 and go towards t=10.0
+
+        payloads_after_long_sleep = fake_client.get_payloads_sorted_by_time()
+        assert len(payloads_after_long_sleep) > 0, "No emissions after long sleep towards future point"
+
+        # Check for a point interpolating between (1.0, 10.0) and (10.0, 100.0)
+        # e.g., ts_at(9.9). Value = 10.0 + (100.0-10.0) * ( (9.9-1.0) / (10.0-1.0) ) = 99.0
+        future_target_ts = ts_at(9.9)
+        expected_future_value = 99.0
+        found_future_target = False
+        for tensor, ts_val in payloads_after_long_sleep:
+            # Allow for slight timing deviations by checking a range or closest point if exact fails
+            if abs((ts_val - future_target_ts).total_seconds()) < (dmx._SmoothedTensorDemuxer__smoothing_period_seconds / 2.0): # type: ignore[attr-defined]
+                # Recalculate expected for actual ts_val to be robust
+                # For simplicity, if it's close to 9.9, we expect value close to 99.0
+                assert abs(tensor.item() - expected_future_value) < 1.0,                     f"Value {tensor.item()} at {ts_val} not close to expected {expected_future_value} for target {future_target_ts}"
+                found_future_target = True
+                break
+        assert found_future_target, f"Interpolation towards far future point {future_target_ts} failed. Payloads: {payloads_after_long_sleep}"
+
+    @pytest.mark.asyncio
+    async def test_strategy_raises_exception(self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient, caplog: LogCaptureFixture) -> None:
+        class MockErrorStrategy(SmoothingStrategy):
+            def interpolate_series(self, kf: List[Tuple[datetime.datetime, Any]], ts_req: List[datetime.datetime]) -> List[Any]: # Fully fixed signature
+                raise ValueError("Test strategy error")
+        dmx = await demuxer_factory(shape=(1,), strategy=MockErrorStrategy(), period=0.05)
+        idx = (0,)
+        await dmx.on_update_received(idx, 0.0, ts_at(0))
+        await dmx.on_update_received(idx, 10.0, ts_at(0.1))
+        await asyncio.sleep(0.1)
+        assert not fake_client.received_tensors, "No tensors should be emitted if strategy fails"
+        assert "Test strategy error" in caplog.text
+        assert "Strategy error for index (0,)" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_reinitialize_index_after_clearing_keyframes(self, demuxer_factory: Callable[..., Coroutine[Any, Any, SmoothedTensorDemuxer]], fake_client: FakeClient) -> None:
+        dmx = await demuxer_factory(shape=(1,), period=0.1)
+        idx_to_clear = (0,)
+        await dmx.on_update_received(idx_to_clear, 10.0, ts_at(0))
+        await dmx.on_update_received(idx_to_clear, 20.0, ts_at(1.0))
+        await asyncio.sleep(0.2)
+        assert len(fake_client.received_tensors) > 0
+        fake_client.clear()
+        async with dmx._SmoothedTensorDemuxer__keyframe_lock: # type: ignore[attr-defined]
+            if idx_to_clear in dmx._SmoothedTensorDemuxer__per_index_keyframes: # type: ignore[attr-defined]
+                dmx._SmoothedTensorDemuxer__per_index_keyframes[idx_to_clear].clear() # type: ignore[attr-defined]
+        await dmx.on_update_received(idx_to_clear, 100.0, ts_at(2.0))
+        await dmx.on_update_received(idx_to_clear, 110.0, ts_at(3.0))
+        await asyncio.sleep(0.1 + 0.05)
+        payloads = fake_client.get_payloads_sorted_by_time()
+        assert len(payloads) > 0, "No data emitted after re-initializing index"
+        first_tensor, first_ts = payloads[0]
+        assert first_ts >= ts_at(2.1)
+        expected_val_at_first_ts = 100.0 + (110.0 - 100.0) * (
+            (first_ts - ts_at(2.0)).total_seconds()
+            / (ts_at(3.0) - ts_at(2.0)).total_seconds()
+        )
+        assert abs(first_tensor.item() - expected_val_at_first_ts) < 1e-5
