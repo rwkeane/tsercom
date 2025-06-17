@@ -1,21 +1,18 @@
 import asyncio
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 import grpc
 import pytest
 import pytest_asyncio
 import socket
-import torch
 
 from tsercom.api import RuntimeManager
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.discovery_host import DiscoveryHost
-from tsercom.discovery.mdns.instance_listener import MdnsListenerFactory
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.service_connector import ServiceConnector
 from tsercom.discovery.service_info import ServiceInfo
-from tsercom.rpc.common.channel_info import ChannelInfo
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
 from tsercom.runtime.runtime import Runtime
@@ -23,175 +20,121 @@ from tsercom.runtime.runtime_config import ServiceType
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.global_event_loop import clear_tsercom_event_loop
-from tsercom.threading.atomic import Atomic
+
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
-from tsercom.discovery.mdns.mdns_listener import MdnsListener
-from zeroconf.asyncio import AsyncZeroconf  # Added import
+from tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory import (
+    InsecureGrpcChannelFactory,
+)
 
 if TYPE_CHECKING:
     pass  # This can remain for type checking if it's used elsewhere, or be removed if AsyncZeroconf replaces all uses.
 
     # For FakeMdnsListener methods, we'll use AsyncZeroconf.
 
+from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2
+from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2_grpc
 
-has_been_hit = Atomic[bool](False)
 
-
-class FakeMdnsListener(MdnsListener):
-    __test__ = False  # To prevent pytest from collecting it as a test
-
-    def __init__(
+class E2ETestServicer(e2e_test_service_pb2_grpc.E2ETestServiceServicer):
+    async def Echo(
         self,
-        client: MdnsListener.Client,
-        service_type: str,
-        port: int,
-        zc_instance: Optional[AsyncZeroconf] = None,  # Added zc_instance
-    ):
-        # zc_instance is accepted for signature compatibility but not used by this Fake
-        # super().__init__() # MdnsListener's parent (ServiceListener) has no __init__
-        self.__client = client
-        self.__service_type = service_type
-        self.__port = port
+        request: e2e_test_service_pb2.EchoRequest,
+        context: grpc.aio.ServicerContext,
+    ) -> e2e_test_service_pb2.EchoResponse:
         logging.info(
-            f"FakeMdnsListener initialized for service type '{self.__service_type}' on port {self.__port}"
+            f"E2ETestServicer received Echo request: {request.message}"
         )
-
-    async def start(self) -> None:  # Changed to async def
-        logging.info(
-            f"FakeMdnsListener: Faking service addition for service type '{self.__service_type}' on port {self.__port}"
-        )
-        fake_mdns_instance_name = f"FakedServiceInstance.{self.__service_type}"
-        if not fake_mdns_instance_name.endswith(".local."):
-            if self.__service_type.count(
-                "."
-            ) == 2 and self.__service_type.endswith("."):
-                fake_mdns_instance_name = (
-                    f"FakedServiceInstance.{self.__service_type}local."
-                )
-            elif self.__service_type.count(".") == 1:
-                fake_mdns_instance_name = (
-                    f"FakedServiceInstance.{self.__service_type}.local."
-                )
-
-        fake_ip_address_bytes = socket.inet_aton("127.0.0.1")
-
-        await self.__client._on_service_added(  # Changed to await
-            name=fake_mdns_instance_name,
-            port=self.__port,
-            addresses=[fake_ip_address_bytes],
-            txt_record={},
-        )
-        logging.info(
-            f"FakeMdnsListener: _on_service_added called for {fake_mdns_instance_name}"
-        )
-
-    async def add_service(
-        self, zc: AsyncZeroconf, type_: str, name: str
-    ) -> None:  # Changed to async, type hint updated
-        logging.debug(
-            f"FakeMdnsListener: add_service called for {name} type {type_}, no action."
-        )
-        pass
-
-    async def update_service(
-        self, zc: AsyncZeroconf, type_: str, name: str
-    ) -> None:  # Changed to async, type hint updated
-        logging.debug(
-            f"FakeMdnsListener: update_service called for {name}, no action."
-        )
-        pass
-
-    async def remove_service(
-        self, zc: AsyncZeroconf, type_: str, name: str
-    ) -> None:  # Changed to async, type hint updated
-        logging.debug(
-            f"FakeMdnsListener: remove_service called for {name}, no action."
-        )
-        pass
-
-    async def close(self) -> None:
-        logging.info(
-            f"FakeMdnsListener: close() called for service type '{self.__service_type}'."
-        )
-        pass
+        return e2e_test_service_pb2.EchoResponse(response=request.message)
 
 
-class GenericServerRuntime(
+class E2ETestClientRuntime(
     Runtime,
-    ServiceConnector[ServiceInfo, grpc.Channel].Client,
+    ServiceConnector[ServiceInfo, grpc.aio.Channel].Client,
 ):
     """
-    Top-level class for handling connections with a client instance.
+    Top-level class for the E2E test gRPC client.
     """
 
     def __init__(
         self,
         watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[torch.Tensor, torch.Tensor],
         channel_factory: GrpcChannelFactory,
-        *,
-        mdns_listener_factory: Optional[MdnsListenerFactory] = None,
     ):
         self.__watcher = watcher
-        self.__data_handler = data_handler
+        self.__connected_channel: Optional[grpc.aio.Channel] = None
+        self.__channel_connected_event = asyncio.Event()
 
-        # Handle service discovery.
-        discoverer: DiscoveryHost
-        if mdns_listener_factory is None:
-            discoverer = DiscoveryHost(service_type="_foo._tcp")
-        else:
-            discoverer = DiscoveryHost(
-                mdns_listener_factory=mdns_listener_factory
-            )
-        self.__connector = ServiceConnector[ServiceInfo, grpc.Channel](
+        discoverer: DiscoveryHost = DiscoveryHost(
+            service_type="_e2e-test._tcp.local."
+        )
+        self.__connector = ServiceConnector[ServiceInfo, grpc.aio.Channel](
             self, channel_factory, discoverer
         )
-
         super().__init__()
 
     async def start_async(self):
         """
-        Allow for connections with clients to start.
+        Allow for connections with servers to start.
         """
         await self.__connector.start()
 
     async def stop(self, exception: Optional[Exception] = None):
-        logging.info("GenericServerRuntime stopping...")
+        logging.info("E2ETestClientRuntime stopping...")
         if self.__connector:
             await self.__connector.stop()
-        # super().stop(exception) # Runtime.stop is synchronous.
-        logging.info("GenericServerRuntime stopped.")
+        if self.__connected_channel:
+            await self.__connected_channel.close()
+        logging.info("E2ETestClientRuntime stopped.")
 
     async def _on_channel_connected(
         self,
         connection_info: ServiceInfo,
         caller_id: CallerIdentifier,
-        channel_info: ChannelInfo,
+        channel: grpc.aio.Channel,
     ):
-        has_been_hit.set(True)
+        logging.info(
+            f"E2ETestClientRuntime: Channel connected to {caller_id} ({connection_info.name})"
+        )
+        self.__connected_channel = channel
+        self.__channel_connected_event.set()
+
+    async def wait_for_channel_ready(
+        self, timeout: float = 10.0
+    ) -> grpc.aio.Channel:
+        await asyncio.wait_for(
+            self.__channel_connected_event.wait(), timeout=timeout
+        )
+        if not self.__connected_channel:
+            raise RuntimeError(
+                "Channel connected event was set, but channel is None."
+            )
+        return self.__connected_channel
+
+    def get_connected_channel(self) -> Optional[grpc.aio.Channel]:
+        return self.__connected_channel
 
 
-class GenericClientRuntime(
+class E2ETestServerRuntime(
     Runtime,
 ):
     """
-    This is the top-level class for the client-side of the Service.
+    This is the top-level class for the E2E test gRPC server.
     """
 
     def __init__(
         self,
         watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[torch.Tensor, torch.Tensor],
-        readable_name: str,
         port: int,
+        readable_name: str,
     ):
         self.__watcher = watcher
-        self.__data_handler = data_handler
 
         self.__is_running = IsRunningTracker()
         self.__mdns_publiser = InstancePublisher(
-            port, "_foo._tcp", readable_name
+            port,
+            "_e2e-test._tcp.local.",
+            readable_name,
         )
         self.__grpc_publisher = GrpcServicePublisher(self.__watcher, port)
 
@@ -199,13 +142,16 @@ class GenericClientRuntime(
 
     async def start_async(self):
         """
-        Starts connecting with server instances, as well as advertising the
-        connect-ability over mDNS.
+        Starts the gRPC server and advertises it over mDNS.
         """
         assert not self.__is_running.get()
         self.__is_running.start()
 
         def __connect(server: grpc.Server):
+            e2e_test_service_pb2_grpc.add_E2ETestServiceServicer_to_server(
+                E2ETestServicer(), server
+            )
+
             # Add health servicer
             from grpc_health.v1 import health
             from grpc_health.v1 import health_pb2
@@ -215,9 +161,8 @@ class GenericClientRuntime(
             health_pb2_grpc.add_HealthServicer_to_server(
                 health_servicer, server
             )
-            # Mark the service as serving. Adjust service name as needed.
             health_servicer.set(
-                "tsercom.GenericClientRuntime",
+                "E2ETestService",
                 health_pb2.HealthCheckResponse.SERVING,
             )
 
@@ -226,110 +171,81 @@ class GenericClientRuntime(
         await self.__mdns_publiser.publish()
 
     async def stop(self, exception: Optional[Exception] = None):
-        logging.info("GenericClientRuntime stopping...")
+        logging.info("E2ETestServerRuntime stopping...")
         self.__is_running.stop()
         if self.__mdns_publiser:
-            # Assuming InstancePublisher might need an async unpublish or close
             if hasattr(self.__mdns_publiser, "close") and callable(
                 getattr(self.__mdns_publiser, "close")
             ):
-                await self.__mdns_publiser.close()  # type: ignore
+                await self.__mdns_publiser.close()
             elif hasattr(self.__mdns_publiser, "unpublish") and callable(
                 getattr(self.__mdns_publiser, "unpublish")
             ):
-                # If unpublish is not async, and close is preferred for async cleanup
-                # This branch might indicate a sync unpublish. For now, assume close is the async one if present.
-                pass  # Or call self.__mdns_publiser.unpublish() if it's okay to be sync
+                pass
 
         if self.__grpc_publisher:
             await self.__grpc_publisher.stop_async()
-        logging.info("GenericClientRuntime stopped.")
+        logging.info("E2ETestServerRuntime stopped.")
 
 
-class GenericServerRuntimeInitializer(
-    RuntimeInitializer[torch.Tensor, torch.Tensor]
-):
-    def __init__(
-        self,
-        *,
-        listener_factory: Optional[MdnsListenerFactory] = None,
-        fake_service_port: Optional[int] = None,
-    ):
-        self.__listener_factory = listener_factory
-        self.__fake_service_port = fake_service_port
-        super().__init__(service_type=ServiceType.SERVER)
+class E2ETestClientRuntimeInitializer(RuntimeInitializer[Any, Any]):
+    def __init__(self):
+        super().__init__(service_type=ServiceType.CLIENT)
 
     def create(
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[torch.Tensor, torch.Tensor],
+        data_handler: RuntimeDataHandler[Any, Any],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        actual_mdns_listener_factory: Optional[MdnsListenerFactory] = None
-        if self.__fake_service_port is not None:
-            logging.info(
-                f"Using FakeMdnsListener for port {self.__fake_service_port}"
-            )
+        # data_handler is accepted to match base signature but not used.
+        actual_channel_factory = InsecureGrpcChannelFactory()
 
-            # The service_type_arg in the lambda is what DiscoveryHost would pass to the factory.
-            # FakeMdnsListener will use this service_type_arg.
-            def fake_factory(
-                client: MdnsListener.Client,
-                service_type_arg: str,
-                zc_instance_arg: Optional[
-                    AsyncZeroconf
-                ] = None,  # Added zc_instance_arg
-            ) -> FakeMdnsListener:
-                return FakeMdnsListener(
-                    client,
-                    service_type_arg,
-                    self.__fake_service_port,
-                    zc_instance=zc_instance_arg,  # Pass it through
-                )
-
-            actual_mdns_listener_factory = fake_factory  # type: ignore[assignment]
-        else:
-            actual_mdns_listener_factory = self.__listener_factory
-
-        return GenericServerRuntime(
+        return E2ETestClientRuntime(
             thread_watcher,
-            data_handler,
-            grpc_channel_factory,
-            mdns_listener_factory=actual_mdns_listener_factory,
+            actual_channel_factory,
         )
 
 
-class GenericClientRuntimeInitializer(
-    RuntimeInitializer[torch.Tensor, torch.Tensor]
-):
-    def __init__(self, host_port: int, name: str):
+class E2ETestServerRuntimeInitializer(RuntimeInitializer[Any, Any]):
+    def __init__(self, host_port: int, service_name: str):
         self.__host_port = host_port
-        self.__name = name
+        self.__service_name = service_name
 
         super().__init__(service_type=ServiceType.CLIENT)
 
     def create(
         self,
         thread_watcher: ThreadWatcher,
-        data_handler: RuntimeDataHandler[torch.Tensor, torch.Tensor],
+        data_handler: RuntimeDataHandler[Any, Any],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        return GenericClientRuntime(
-            thread_watcher, data_handler, self.__name, self.__host_port
+        # data_handler is accepted to match base signature but not used.
+        return E2ETestServerRuntime(
+            thread_watcher,
+            self.__host_port,
+            self.__service_name,
         )
 
 
 @pytest_asyncio.fixture
 async def clear_loop_fixture():
-    # Ensure tsercom's global loop is managed.
     clear_tsercom_event_loop()
     yield
     clear_tsercom_event_loop()
     await asyncio.sleep(0.1)
 
 
+def get_free_port() -> int:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    port = int(s.getsockname()[1])
+    s.close()
+    return port
+
+
 @pytest.mark.asyncio
-async def test_anomoly_service(clear_loop_fixture):
+async def test_e2e_echo_service(clear_loop_fixture):
     loggers_to_modify = {
         "tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory": logging.INFO,
         "tsercom.discovery.service_connector": logging.INFO,
@@ -342,46 +258,104 @@ async def test_anomoly_service(clear_loop_fixture):
         original_levels[logger_name] = logger_instance.level
         logger_instance.setLevel(temp_level)
 
-    client_initializer = GenericClientRuntimeInitializer(2024, "Client")
-    server_initializer = GenericServerRuntimeInitializer(
-        fake_service_port=2024
+    server_port = get_free_port()
+    logging.info(f"E2E Test Server will use port: {server_port}")
+
+    e2e_test_server_initializer = E2ETestServerRuntimeInitializer(
+        server_port, "TestServerInstance"
     )
+    e2e_test_client_initializer = E2ETestClientRuntimeInitializer()
 
     runtime_manager = RuntimeManager(is_testing=True)
-    client_handle_f = runtime_manager.register_runtime_initializer(
-        client_initializer
+    e2e_test_server_handle_f = runtime_manager.register_runtime_initializer(
+        e2e_test_server_initializer
     )
-    server_handle_f = runtime_manager.register_runtime_initializer(
-        server_initializer
+    e2e_test_client_handle_f = runtime_manager.register_runtime_initializer(
+        e2e_test_client_initializer
     )
-
-    # Create EventLoop. (Removed custom threaded loop)
 
     await runtime_manager.start_in_process_async()
     runtime_manager.check_for_exception()
 
-    assert client_handle_f.done()
-    assert server_handle_f.done()
+    assert e2e_test_server_handle_f.done()
+    assert e2e_test_client_handle_f.done()
 
-    client_handle = client_handle_f.result()
-    server_handle = server_handle_f.result()
+    e2e_test_server_handle = e2e_test_server_handle_f.result()
+    e2e_test_client_handle = e2e_test_client_handle_f.result()
 
-    assert not has_been_hit.get()
-
-    client_handle.start()
-    runtime_manager.check_for_exception()
-    server_handle.start()
+    e2e_test_server_handle.start()
     runtime_manager.check_for_exception()
 
-    client_handle.on_event(torch.zeros(5))  # This is likely synchronous
-    await asyncio.sleep(2.0)
+    await asyncio.sleep(1.0)
+
+    e2e_test_client_handle.start()
     runtime_manager.check_for_exception()
 
-    assert has_been_hit.get()
+    e2e_client_runtime = e2e_test_client_handle.get_runtime()
+    assert isinstance(e2e_client_runtime, E2ETestClientRuntime)
+
+    try:
+        logging.info("Waiting for channel to be ready...")
+        channel = await e2e_client_runtime.wait_for_channel_ready(
+            timeout=15.0
+        )  # Timeout reduced
+        assert channel is not None
+        logging.info(
+            f"E2E test client successfully connected to the server. Channel: {channel}"
+        )  # Simplified logging
+    except asyncio.TimeoutError:
+        logging.error(
+            "E2E test client timed out waiting to connect to the server."
+        )
+        # Accessing private members like this is for debugging only.
+        discoverer_instance = getattr(
+            e2e_client_runtime, "_E2ETestClientRuntime__connector", None
+        )
+        if discoverer_instance:
+            discoverer_instance = getattr(
+                discoverer_instance, "_ServiceConnector__discoverer", None
+            )
+        if (
+            discoverer_instance
+            and hasattr(discoverer_instance, "_zeroconf_instance")
+            and getattr(discoverer_instance, "_zeroconf_instance", None)
+            is not None
+        ):
+            zc = getattr(discoverer_instance, "_zeroconf_instance")
+            if (
+                zc
+                and hasattr(zc, "async_protocol_handler")
+                and zc.async_protocol_handler
+            ):
+                logging.error(
+                    f"Zeroconf browser cache: {zc.async_protocol_handler.cache}"
+                )
+            else:
+                logging.error(
+                    "Zeroconf instance or protocol handler not available for detailed cache inspection."
+                )
+        else:
+            logging.error(
+                "Could not retrieve Zeroconf instance for cache inspection."
+            )
+
+        pytest.fail(
+            "E2E test client timed out waiting to connect to the server."
+        )
+
+    stub = e2e_test_service_pb2_grpc.E2ETestServiceStub(channel)
+    request_message = "Hello, gRPC E2E!"
+    request = e2e_test_service_pb2.EchoRequest(message=request_message)
+
+    logging.info(f"Sending Echo request: {request_message}")
+    response = await stub.Echo(request)
+    logging.info(f"Received Echo response: {response.response}")
+
+    assert response.response == request_message
 
     runtime_manager.check_for_exception()
-    client_handle.stop()
-    server_handle.stop()
+    e2e_test_server_handle.stop()
+    e2e_test_client_handle.stop()
     await asyncio.sleep(0.5)
     runtime_manager.check_for_exception()
     runtime_manager.shutdown()

@@ -67,6 +67,16 @@ class RuntimeCommandBridge:
 
             self.__state.set(None)
 
+    def get_runtime(self) -> Optional[Runtime]:
+        """Gets the runtime instance this bridge controls.
+
+        Returns:
+            The runtime instance, or None if not set.
+        """
+        # Access to __runtime should be safe if used after set_runtime
+        # or if the caller handles Optional[Runtime].
+        return self.__runtime
+
     def start(self) -> None:
         """Requests the Runtime to start.
 

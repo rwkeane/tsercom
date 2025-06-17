@@ -12,6 +12,7 @@ from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
+from tsercom.runtime.runtime import Runtime # Import Runtime
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -168,3 +169,14 @@ class ShimRuntimeHandle(
     ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Provides the remote data aggregator."""
         return self._get_remote_data_aggregator()
+
+    def get_runtime(self) -> Optional[Runtime]: # type: ignore[override]
+        """Gets the underlying Runtime instance.
+
+        For ShimRuntimeHandle, the runtime is typically in another process,
+        so direct access is not available. Returns None.
+
+        Returns:
+            None, as the runtime is not directly accessible.
+        """
+        return None

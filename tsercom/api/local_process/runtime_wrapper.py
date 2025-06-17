@@ -14,6 +14,7 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
+from tsercom.runtime.runtime import Runtime # Import Runtime
 from tsercom.threading.aio.async_poller import AsyncPoller
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
@@ -40,6 +41,7 @@ class RuntimeWrapper(
         ],
         bridge: RuntimeCommandBridge,
     ) -> None:
+        super().__init__() # Ensure ABC's __init__ is called if it has one.
         """Initializes the RuntimeWrapper.
 
         Args:
@@ -112,3 +114,13 @@ class RuntimeWrapper(
     ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Provides the remote data aggregator."""
         return self._get_remote_data_aggregator()
+
+    def get_runtime(self) -> Optional[Runtime]: # Changed to non-generic Runtime
+        """Gets the underlying Runtime instance, if available.
+
+        Returns:
+            The Runtime instance or None if not set.
+        """
+        # RuntimeCommandBridge.get_runtime() returns Optional[Runtime]
+        runtime_instance = self.__bridge.get_runtime()
+        return runtime_instance # No longer needs type: ignore

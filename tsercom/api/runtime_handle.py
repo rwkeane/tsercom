@@ -2,7 +2,10 @@
 
 import datetime
 from abc import ABC, abstractmethod
-from typing import Generic, Optional, TypeVar, overload
+from typing import TYPE_CHECKING, Generic, Optional, TypeVar, overload
+
+if TYPE_CHECKING:
+    from tsercom.runtime.runtime import Runtime # Add this import
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
@@ -120,6 +123,19 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
                        If specified, event might be targeted or filtered.
             timestamp: Optional. Timestamp for the event.
                        If None, implementations default to `datetime.now()`.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_runtime(self) -> Optional["Runtime"]: # Changed to non-generic Runtime
+        """Gets the underlying Runtime instance, if available.
+
+        This method is optional for implementations but provides a way to
+        access the raw runtime if needed for specific use cases, bypassing
+        the handle's direct interface.
+
+        Returns:
+            The Runtime instance or None if not set or not applicable.
         """
         raise NotImplementedError()
 
