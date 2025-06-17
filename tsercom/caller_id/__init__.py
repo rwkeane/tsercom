@@ -11,6 +11,7 @@ from tsercom.caller_id.caller_identifier_waiter import (
     CallerIdentifierWaiter,
 )
 from tsercom.caller_id.client_id_fetcher import ClientIdFetcher
+from tsercom.caller_id.caller_id_extraction import extract_id_from_call, extract_id_from_first_call
 
 # Defines the public interface of this package.
 # Controls what 'from tsercom.caller_id import *' imports.
@@ -19,4 +20,6 @@ __all__ = [
     "CallerIdentifierWaiter",
     "CallerIdentifier",
     "ClientIdFetcher",
+    "extract_id_from_call",
+    "extract_id_from_first_call"
 ]
