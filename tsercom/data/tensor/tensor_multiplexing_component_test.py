@@ -330,7 +330,8 @@ async def test_data_timeout_e2e():
     # Helper to check if timestamp is in the list of tuples
     def _is_ts_present_in_demuxer_states(demuxer_instance, target_ts):
         return any(
-            ts == target_ts for ts, _, _ in demuxer_instance._TensorDemuxer__tensor_states
+            ts == target_ts
+            for ts, _, _ in demuxer_instance._TensorDemuxer__tensor_states
         )
 
     assert _is_ts_present_in_demuxer_states(
