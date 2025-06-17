@@ -102,7 +102,9 @@ class SmoothedTensorDemuxer:
             isinstance(i, int) for i in index
         ):
             logger.warning(
-                "[%s] Invalid index format: %s. Skipping update.", self.name, index
+                "[%s] Invalid index format: %s. Skipping update.",
+                self.name,
+                index,
             )
             return
 
@@ -140,7 +142,7 @@ class SmoothedTensorDemuxer:
             insert_pos = torch.searchsorted(
                 current_timestamps, numerical_timestamp
             ).item()
-            safe_insert_pos = int(insert_pos) # Ensure it's an int for slicing
+            safe_insert_pos = int(insert_pos)  # Ensure it's an int for slicing
 
             # Insert new keyframe into tensors
             new_timestamps = torch.cat(
@@ -258,7 +260,10 @@ class SmoothedTensorDemuxer:
             logger.info("[%s] Interpolation worker was cancelled.", self.name)
         except Exception as e:  # pylint: disable=broad-except
             logger.error(
-                "[%s] Error in interpolation worker: %s", self.name, e, exc_info=True
+                "[%s] Error in interpolation worker: %s",
+                self.name,
+                e,
+                exc_info=True,
             )
         finally:
             logger.info("[%s] Interpolation worker stopped.", self.name)

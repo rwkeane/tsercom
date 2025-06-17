@@ -48,7 +48,7 @@ class LinearInterpolationStrategy(SmoothingStrategy):
 
         if timestamps.numel() == 1:
             return torch.full_like(
-            required_timestamps, values[0].item(), dtype=values.dtype
+                required_timestamps, values[0].item(), dtype=values.dtype
             )
 
         # Find insertion points for required_timestamps in the keyframe timestamps

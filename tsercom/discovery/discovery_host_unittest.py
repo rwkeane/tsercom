@@ -435,7 +435,10 @@ async def test_discovery_host_handles_mdns_factory_exception_gracefully(
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
         log_args = mock_log_error.call_args.args
-        assert log_args[0] == "Failed to initialize or start discovery listener: %s"
+        assert (
+            log_args[0]
+            == "Failed to initialize or start discovery listener: %s"
+        )
         assert isinstance(log_args[1], RuntimeError)
         assert str(log_args[1]) == "Factory boom!"
 
@@ -475,7 +478,10 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
         log_args = mock_log_error.call_args.args
-        assert log_args[0] == "Failed to initialize or start discovery listener: %s"
+        assert (
+            log_args[0]
+            == "Failed to initialize or start discovery listener: %s"
+        )
         assert isinstance(log_args[1], RuntimeError)
         assert str(log_args[1]) == "Listener start boom!"
 

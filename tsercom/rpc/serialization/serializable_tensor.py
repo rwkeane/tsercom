@@ -329,7 +329,9 @@ class SerializableTensor:
             # Correctly get the oneof field for sparse tensor data type
             sparse_data_type_field = sparse_payload.WhichOneof("data_type")
 
-            values_np: Optional[np.ndarray[Any, Any]] = None  # Initialize values_np
+            values_np: Optional[np.ndarray[Any, Any]] = (
+                None  # Initialize values_np
+            )
 
             if sparse_data_type_field == "float_values":
                 values_list = list(sparse_payload.float_values.data)

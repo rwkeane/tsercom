@@ -125,7 +125,7 @@ class RecordPublisher(MdnsPublisher):
                         "Attempting to unregister service %s using service_info: %s (ZC type: %s)",
                         self.__srv,
                         service_info_at_start_of_close,
-                        ('shared' if self.__shared_zc else 'owned')
+                        ("shared" if self.__shared_zc else "owned"),
                     )
                     unregistration_attempted = True
                     await self._zc.async_unregister_service(
@@ -138,14 +138,14 @@ class RecordPublisher(MdnsPublisher):
                 else:
                     _logger.warning(
                         "No self._service_info found for %s at start of close method. Skipping unregistration call.",
-                        self.__srv
+                        self.__srv,
                     )
                     # If there's no service_info, unregistration wasn't needed for this object's state from publish perspective.
                     unregistration_succeeded = True  # Considered successful as no action was pending for this _service_info
             else:
                 _logger.warning(
                     "No active Zeroconf instance (_zc) for %s. Cannot unregister.",
-                    self.__srv
+                    self.__srv,
                 )
                 # If _zc is None, we can't unregister, so treat as "nothing to do" for unregistration.
                 unregistration_succeeded = True
@@ -183,7 +183,7 @@ class RecordPublisher(MdnsPublisher):
             else:
                 _logger.warning(
                     "self._service_info for %s was NOT cleared because unregistration failed or was not confirmed.",
-                    self.__srv
+                    self.__srv,
                 )
 
             if self.__owned_zc:  # Ensure owned_zc is cleared if it was set
@@ -196,15 +196,15 @@ class RecordPublisher(MdnsPublisher):
             if not self._service_info and not self._zc and not self.__owned_zc:
                 _logger.debug(
                     "RecordPublisher for %s fully cleaned up (service_info, _zc, _owned_zc are None).",
-                    self.__srv
+                    self.__srv,
                 )
             else:
                 _logger.debug(
                     "RecordPublisher for %s post-close state: _service_info is %s, _zc is %s, _owned_zc is %s",
                     self.__srv,
-                    ('None' if not self._service_info else 'Present'),
-                    ('None' if not self._zc else 'Present'),
-                    ('None' if not self.__owned_zc else 'Present')
+                    ("None" if not self._service_info else "Present"),
+                    ("None" if not self._zc else "Present"),
+                    ("None" if not self.__owned_zc else "Present"),
                 )
 
 
