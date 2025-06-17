@@ -105,9 +105,7 @@ class TestInitializeRuntimes:
         _pos_args, kw_args = MockClientRuntimeDataHandler.call_args
         assert not _pos_args, "Expected no positional arguments"
         assert kw_args["thread_watcher"] is mock_thread_watcher
-        assert (
-            kw_args["data_reader"] is mock_client_data_reader_actual_instance
-        )
+        assert kw_args["data_reader"] is mock_client_data_reader_actual_instance
         # Check that event_source is the direct poller instance
         assert (
             kw_args["event_source"] is mock_client_event_poller_actual_instance
@@ -209,9 +207,7 @@ class TestInitializeRuntimes:
         MockServerRuntimeDataHandler.assert_called_once()
         _pos_args, kw_args = MockServerRuntimeDataHandler.call_args
         assert not _pos_args, "Expected no positional arguments"
-        assert (
-            kw_args["data_reader"] is mock_server_data_reader_actual_instance
-        )
+        assert kw_args["data_reader"] is mock_server_data_reader_actual_instance
         # Check that event_source is the direct poller instance
         assert (
             kw_args["event_source"] is mock_server_event_poller_actual_instance

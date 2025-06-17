@@ -331,9 +331,7 @@ def test_set_runtime_pending_stop_timeout_on_result(
     mock_future_for_stop.result.assert_called_once_with(timeout=5.0)
 
 
-def test_stop_after_runtime_set_timeout_on_result(
-    bridge, fake_runtime, mocker
-):
+def test_stop_after_runtime_set_timeout_on_result(bridge, fake_runtime, mocker):
     """
     Tests that bridge.stop() after runtime is set handles TimeoutError
     from future.result() gracefully.

@@ -52,7 +52,9 @@ class HelperConcreteTestProcessor(
         return await self.desynchronize_mock(timestamp, context)
 
     async def deregister_caller(self) -> None:
-        await self.deregister_caller_mock()  # pragma: no cover (not tested here)
+        await (
+            self.deregister_caller_mock()
+        )  # pragma: no cover (not tested here)
 
     async def _process_data(
         self, data: DataTypeT, timestamp: datetime.datetime

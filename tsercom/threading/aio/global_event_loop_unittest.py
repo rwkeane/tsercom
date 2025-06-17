@@ -70,7 +70,6 @@ def mock_watcher_for_global() -> MockThreadWatcherForGlobalLoop:
 
 
 class TestGlobalEventLoop:
-
     # 1. Initial State
     def test_initial_state(self):
         """Verify initial state of the global event loop."""
@@ -126,9 +125,7 @@ class TestGlobalEventLoop:
         global_event_loop.set_tsercom_event_loop_to_current_thread()
 
         assert global_event_loop.is_global_event_loop_set()
-        assert (
-            global_event_loop.get_global_event_loop() is current_running_loop
-        )
+        assert global_event_loop.get_global_event_loop() is current_running_loop
 
         with pytest.raises(
             RuntimeError, match="Only one Global Event Loop may be set"

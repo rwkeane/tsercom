@@ -113,7 +113,6 @@ class TestableRuntimeDataHandler(RuntimeDataHandlerBase[DataType, Any]):
 
 
 class TestRuntimeDataHandlerBaseBehavior:
-
     # Removed local manage_event_loop fixture to rely on conftest.py version
     # @pytest.fixture(autouse=True)
     # def manage_event_loop(self):
@@ -228,7 +227,9 @@ class TestRuntimeDataHandlerBaseBehavior:
         self, handler, mock_data_reader, mock_event_source
     ):
         assert handler._RuntimeDataHandlerBase__data_reader is mock_data_reader  # type: ignore
-        assert handler._RuntimeDataHandlerBase__event_source is mock_event_source  # type: ignore
+        assert (
+            handler._RuntimeDataHandlerBase__event_source is mock_event_source
+        )  # type: ignore
 
     @pytest.mark.asyncio
     async def test_async_iteration_with_event_source(
@@ -453,7 +454,9 @@ class TestRuntimeDataHandlerBaseBehavior:
 
         # Use the custom MockAsyncIterator
         mock_event_batches = [[mock_event_item]]
-        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(mock_event_batches)  # type: ignore
+        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(
+            mock_event_batches
+        )  # type: ignore
 
         mock_per_caller_poller = mocker.MagicMock(spec=AsyncPoller)
         mock_per_caller_poller.on_available = mocker.MagicMock()
@@ -464,7 +467,9 @@ class TestRuntimeDataHandlerBaseBehavior:
 
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
 
-        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(test_caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(
+            test_caller_id
+        )  # type: ignore
         mock_per_caller_poller.on_available.assert_called_once_with(
             mock_event_item
         )
@@ -479,13 +484,17 @@ class TestRuntimeDataHandlerBaseBehavior:
         mock_event_item.caller_id = CallerIdentifier.random()
 
         mock_event_batches = [[mock_event_item]]
-        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(mock_event_batches)  # type: ignore
+        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(
+            mock_event_batches
+        )  # type: ignore
 
         handler._RuntimeDataHandlerBase__id_tracker.try_get = mocker.MagicMock(  # type: ignore
             return_value=None
         )
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
-        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(
+            mock_event_item.caller_id
+        )  # type: ignore
 
     @pytest.mark.asyncio
     async def test_dispatch_loop_event_caller_found_poller_none(
@@ -497,13 +506,17 @@ class TestRuntimeDataHandlerBaseBehavior:
         mock_event_item.caller_id = CallerIdentifier.random()
 
         mock_event_batches = [[mock_event_item]]
-        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(mock_event_batches)  # type: ignore
+        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(
+            mock_event_batches
+        )  # type: ignore
 
         handler._RuntimeDataHandlerBase__id_tracker.try_get = mocker.MagicMock(  # type: ignore
             return_value=("ip", 123, None)
         )
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
-        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(
+            mock_event_item.caller_id
+        )  # type: ignore
 
     @pytest.mark.asyncio
     async def test_create_data_processor_id_not_in_tracker(
@@ -517,7 +530,9 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
         with pytest.raises(KeyError, match="ID not found"):
             handler._create_data_processor(test_caller_id, mock_clock)
-        handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(test_caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(
+            test_caller_id
+        )  # type: ignore
 
     @pytest.mark.asyncio
     async def test_create_data_processor_poller_is_none_in_tracker(
@@ -536,7 +551,9 @@ class TestRuntimeDataHandlerBaseBehavior:
             ),
         ):
             handler._create_data_processor(test_caller_id, mock_clock)
-        handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(test_caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(
+            test_caller_id
+        )  # type: ignore
 
 
 class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):
@@ -794,23 +811,17 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
         )
 
     @pytest.mark.asyncio
-    async def test_register_caller_endpoint_without_port(
-        self, handler_fixture
-    ):
+    async def test_register_caller_endpoint_without_port(self, handler_fixture):
         caller_id = CallerIdentifier.random()
         with pytest.raises(ValueError) as excinfo:
-            await handler_fixture.register_caller(
-                caller_id, endpoint="1.2.3.4"
-            )
+            await handler_fixture.register_caller(caller_id, endpoint="1.2.3.4")
         assert (
             "If 'endpoint' is provided, 'port' must also be, and vice-versa."
             in str(excinfo.value)
         )
 
     @pytest.mark.asyncio
-    async def test_register_caller_port_without_endpoint(
-        self, handler_fixture
-    ):
+    async def test_register_caller_port_without_endpoint(self, handler_fixture):
         caller_id = CallerIdentifier.random()
         with pytest.raises(ValueError) as excinfo:
             await handler_fixture.register_caller(caller_id, port=1234)
@@ -837,9 +848,8 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             await handler_fixture.register_caller(
                 caller_id, context=not_a_servicer_context
             )
-        assert (
-            "Expected context: grpc.aio.ServicerContext, got object."
-            in str(excinfo.value)
+        assert "Expected context: grpc.aio.ServicerContext, got object." in str(
+            excinfo.value
         )
         mock_get_ip.assert_not_called()
         mock_get_port.assert_not_called()

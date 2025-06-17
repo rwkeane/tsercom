@@ -171,7 +171,5 @@ def test_now_property(
     assert synced_dt >= time_before_sync - datetime.timedelta(
         microseconds=10000
     )
-    assert synced_dt <= time_after_sync + datetime.timedelta(
-        microseconds=10000
-    )
+    assert synced_dt <= time_after_sync + datetime.timedelta(microseconds=10000)
     assert synced_dt.tzinfo is None

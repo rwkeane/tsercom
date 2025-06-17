@@ -2,7 +2,7 @@
 
 import socket
 
-import psutil
+import psutil  # type: ignore [import-untyped]
 
 
 def get_all_address_strings() -> list[str]:

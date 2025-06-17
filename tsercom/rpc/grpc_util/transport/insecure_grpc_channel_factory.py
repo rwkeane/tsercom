@@ -55,9 +55,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
                 logging.info(
                     f"Attempting connection to {current_address}:{port}"
                 )
-                channel = grpc.aio.insecure_channel(
-                    f"{current_address}:{port}"
-                )
+                channel = grpc.aio.insecure_channel(f"{current_address}:{port}")
                 # Wait for the channel to be ready, with a timeout.
                 await asyncio.wait_for(channel.channel_ready(), timeout=5.0)
                 logging.info(

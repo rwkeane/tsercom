@@ -336,9 +336,7 @@ def test_try_parse_none_or_default(
     assert SerializableTensor.try_parse(default_grpc_tensor) is None
 
     # Test with a valid timestamp but no data_representation
-    mock_dt_obj = datetime.datetime.fromtimestamp(
-        1.0, tz=datetime.timezone.utc
-    )
+    mock_dt_obj = datetime.datetime.fromtimestamp(1.0, tz=datetime.timezone.utc)
     mock_ts_obj = SynchronizedTimestamp(mock_dt_obj)
     mocker.patch.object(
         SynchronizedTimestamp, "try_parse", return_value=mock_ts_obj

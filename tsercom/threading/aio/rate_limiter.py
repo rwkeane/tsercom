@@ -78,9 +78,7 @@ class RateLimiterImpl(RateLimiter):
                 await asyncio.sleep(time_to_wait)
 
             # Update for the *next* pass, relative to the current time
-            self.__next_allowed_pass_time = (
-                self.__loop.time() + self.__interval
-            )
+            self.__next_allowed_pass_time = self.__loop.time() + self.__interval
 
 
 class NullRateLimiter(RateLimiter):

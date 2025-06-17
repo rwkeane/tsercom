@@ -266,9 +266,7 @@ class TestServiceConnector:
 
         # Test case: Event loop not running (should log a warning)
         mock_logger.reset_mock()
-        connector._ServiceConnector__event_loop = (
-            None  # Simulate no event loop
-        )
+        connector._ServiceConnector__event_loop = None  # Simulate no event loop
         connector._ServiceConnector__callers.add(
             test_caller_id
         )  # Re-add for this test part

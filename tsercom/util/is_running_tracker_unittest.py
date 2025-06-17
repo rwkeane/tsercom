@@ -123,9 +123,7 @@ def test_methods_fail_without_proper_event_loop_setup(mocker):
     # for __ensure_event_loop_initialized to be called by wait_until_stopped.
     tracker_ws_running = IsRunningTracker(get_loop_func=lambda: None)
     # Manually set tracker to running state without involving proper event loop init for set()
-    tracker_ws_running._Atomic__value = (
-        True  # pylint: disable=protected-access
-    )
+    tracker_ws_running._Atomic__value = True  # pylint: disable=protected-access
     assert tracker_ws_running.is_running
     assert (
         tracker_ws_running._IsRunningTracker__event_loop is None

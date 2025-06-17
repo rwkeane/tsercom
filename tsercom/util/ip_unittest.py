@@ -17,7 +17,6 @@ def create_mock_address(mocker, family, address):
 
 
 class TestIpUtils:
-
     # --- Tests for get_all_address_strings ---
 
     def test_get_all_address_strings_no_interfaces(self, mocker):
@@ -40,7 +39,9 @@ class TestIpUtils:
         mock_net_if_addrs.return_value = {
             "eth0": [
                 create_mock_address(mocker, socket.AF_INET6, "::1"),
-                create_mock_address(mocker, socket.AF_PACKET, "00:11:22:33:44:55"),  # type: ignore
+                create_mock_address(
+                    mocker, socket.AF_PACKET, "00:11:22:33:44:55"
+                ),  # type: ignore
             ]
         }
 
@@ -53,9 +54,7 @@ class TestIpUtils:
             "--- Test: test_get_all_address_strings_interface_no_ipv4 finished ---"
         )
 
-    def test_get_all_address_strings_single_interface_single_ipv4(
-        self, mocker
-    ):
+    def test_get_all_address_strings_single_interface_single_ipv4(self, mocker):
         print(
             "\n--- Test: test_get_all_address_strings_single_interface_single_ipv4 ---"
         )
@@ -126,7 +125,9 @@ class TestIpUtils:
                 create_mock_address(mocker, socket.AF_INET, ipv4_eth1_2),
             ],
             "docker0": [
-                create_mock_address(mocker, socket.AF_PACKET, "02:42:ac:11:00:02")  # type: ignore
+                create_mock_address(
+                    mocker, socket.AF_PACKET, "02:42:ac:11:00:02"
+                )  # type: ignore
             ],
         }
 

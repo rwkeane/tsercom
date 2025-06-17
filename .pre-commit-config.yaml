@@ -1,0 +1,36 @@
+repos:
+# -   repo: https://github.com/psf/black  # Removing black
+#     rev: 24.4.2
+#     hooks:
+#     -   id: black
+#         args: [--line-length=80]
+#         exclude: &generated_files >-
+#             (?x)^(
+#                 .*/?tsercom/caller_id/proto/generated/.*\.py|
+#                 .*/?tsercom/rpc/proto/generated/.*\.py|
+#                 .*/?tsercom/tensor/proto/generated/.*\.py|
+#                 .*/?tsercom/timesync/common/proto/generated/.*\.py|
+#                 .*/?tsercom/test/proto/generated/.*\.py|
+#                 .*_pb2\.py|
+#                 .*_pb2_grpc\.py|
+#                 .*_pb2\.pyi
+#             )$
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0 # Choose a recent stable version for ruff
+    hooks:
+    -   id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: &generated_files >-
+            (?x)^(
+                .*/?tsercom/caller_id/proto/generated/.*\.py|
+                .*/?tsercom/rpc/proto/generated/.*\.py|
+                .*/?tsercom/tensor/proto/generated/.*\.py|
+                .*/?tsercom/timesync/common/proto/generated/.*\.py|
+                .*/?tsercom/test/proto/generated/.*\.py|
+                .*_pb2\.py|
+                .*_pb2_grpc\.py|
+                .*_pb2\.pyi
+            )$
+    -   id: ruff-format
+        args: [--line-length=80]
+        exclude: *generated_files

@@ -33,7 +33,6 @@ async def async_iterator_from_list(items):
 
 @pytest.mark.asyncio
 class TestCallerIdExtraction:
-
     @pytest.fixture
     def mock_servicer_context(self, mocker):
         context = mocker.AsyncMock(spec=ServicerContext)

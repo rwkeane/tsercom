@@ -9,6 +9,7 @@ import logging
 from typing import Optional, Any  # Added Any
 import torch
 import numpy as np
+from numpy.typing import NDArray  # Added for NDArray hint
 
 # Corrected import path based on previous subtask for proto generation
 from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
@@ -85,9 +86,7 @@ class SerializableTensor:
             if source_tensor.dtype == torch.float32:
                 dense_payload.float_data.data.extend(flat_tensor_data.tolist())
             elif source_tensor.dtype == torch.float64:
-                dense_payload.double_data.data.extend(
-                    flat_tensor_data.tolist()
-                )
+                dense_payload.double_data.data.extend(flat_tensor_data.tolist())
             elif source_tensor.dtype == torch.int32:
                 dense_payload.int32_data.data.extend(flat_tensor_data.tolist())
             elif source_tensor.dtype == torch.int64:
@@ -183,7 +182,7 @@ class SerializableTensor:
             if not shape:  # Scalar tensor
                 num_elements = 1
             else:
-                num_elements = np.prod(shape)
+                num_elements = int(np.prod(shape))
                 if any(d == 0 for d in shape):  # handles shape like [N, 0, M]
                     num_elements = 0
 
@@ -218,9 +217,7 @@ class SerializableTensor:
                 elif (
                     packed_bytes
                 ):  # If there are packed_bytes, attempt to unpack
-                    np_uint8_array = np.frombuffer(
-                        packed_bytes, dtype=np.uint8
-                    )
+                    np_uint8_array = np.frombuffer(packed_bytes, dtype=np.uint8)
                     np_bool_flat = np.unpackbits(np_uint8_array)
                     # Truncate to the expected number of elements based on shape
                     np_bool_flat_truncated = np_bool_flat[: int(num_elements)]
@@ -329,7 +326,7 @@ class SerializableTensor:
             # Correctly get the oneof field for sparse tensor data type
             sparse_data_type_field = sparse_payload.WhichOneof("data_type")
 
-            values_np: Optional[np.ndarray] = None  # Initialize values_np
+            values_np: Optional[NDArray[Any]] = None  # Initialize values_np
 
             if sparse_data_type_field == "float_values":
                 values_list = list(sparse_payload.float_values.data)
@@ -419,7 +416,5 @@ class SerializableTensor:
             return SerializableTensor(reconstructed_tensor, parsed_timestamp)
         else:
             # This case should be covered by raises or returns within the if/else blocks
-            logging.error(
-                "Tensor reconstruction failed for an unknown reason."
-            )
+            logging.error("Tensor reconstruction failed for an unknown reason.")
             return None

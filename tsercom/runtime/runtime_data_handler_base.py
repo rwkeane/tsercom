@@ -549,9 +549,7 @@ class RuntimeDataHandlerBase(
                         # else: Potentially log if poller is None but entry existed?
                 await asyncio.sleep(0)  # Yield control occasionally
         except asyncio.CancelledError:
-            _logger.info(
-                "__dispatch_poller_data_loop received CancelledError."
-            )
+            _logger.info("__dispatch_poller_data_loop received CancelledError.")
             raise  # Important to propagate for the awaiter
         except Exception as e:
             # This logging was originally just print(), changed to _logger.critical

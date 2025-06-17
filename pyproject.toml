@@ -19,7 +19,7 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License"
 ]
 authors = [
-  { name = "Ryan Keane" },
+  { name = "The Tsercom Authors" },
 ]
 dependencies = [
   "grpcio>=1.62.0, <1.74.0",
@@ -57,10 +57,10 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rwkeane/tsercom"
-Documentation = "https://github.com/rwkeane/tsercom"
-Repository = "https://github.com/rwkeane/tsercom"
-Issues = "https://github.com/rwkeane/tsercom/issues"
+Homepage = "https://github.com/google/tsercom"
+Documentation = "https://github.com/google/tsercom"
+Repository = "https://github.com/google/tsercom"
+Issues = "https://github.com/google/tsercom/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -70,18 +70,20 @@ exclude = ["docs*", "tests*", "scripts"]
 [tool.setuptools] # Add this section
 package-dir = {"" = "."}
 include-package-data = true # To let me include protos
+package_data = { "tsercom" = ["py.typed", "**/*.pyi"] }
 
 [tool.setuptools_scm]
 write_to = "tsercom/_version.py"
 write_to_template = "__version__ = '{version}'"
 
 [tool.black]
-line-length = 79
+line-length = 80
 
 [tool.ruff]
-line-length = 79  # Must match Black's line-length
+line-length = 80  # Must match Black's line-length
 
 [tool.ruff.lint]
+ignore = ["E501"]
 exclude = [
     ".git",
     "__pycache__",
@@ -196,7 +198,7 @@ ignore-paths = [
 ]
 
 [tool.pylint.format]
-max-line-length = 80  # Differs with Black's and Ruff's line-length by design.
+max-line-length = 80
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = [

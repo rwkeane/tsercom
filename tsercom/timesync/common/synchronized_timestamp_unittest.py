@@ -18,9 +18,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 NOW_DATETIME = datetime.datetime.utcnow()  # Naive UTC datetime
 # Per SynchronizedTimestamp docstring, it expects naive datetimes.
 # Let's assume these naive datetimes are implicitly UTC.
-FIXED_DATETIME = datetime.datetime(
-    2023, 10, 26, 12, 0, 0
-)  # Naive, assumed UTC
+FIXED_DATETIME = datetime.datetime(2023, 10, 26, 12, 0, 0)  # Naive, assumed UTC
 
 
 def test_init_valid():

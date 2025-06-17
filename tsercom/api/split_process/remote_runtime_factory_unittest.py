@@ -258,9 +258,7 @@ def patch_dependencies_in_module(request):
     )
 
     setattr(remote_runtime_factory_module, "EventSource", FakeEventSource)
-    setattr(
-        remote_runtime_factory_module, "DataReaderSink", FakeDataReaderSink
-    )
+    setattr(remote_runtime_factory_module, "DataReaderSink", FakeDataReaderSink)
     setattr(
         remote_runtime_factory_module,
         "RuntimeCommandSource",
@@ -429,12 +427,9 @@ def test_create_method(
         fake_initializer.runtime_to_return,
     )
     assert command_source_instance.thread_watcher is fake_thread_watcher
+    assert command_source_instance.runtime is fake_initializer.runtime_to_return
     assert (
-        command_source_instance.runtime is fake_initializer.runtime_to_return
-    )
-    assert (
-        factory._RemoteRuntimeFactory__command_source
-        is command_source_instance
+        factory._RemoteRuntimeFactory__command_source is command_source_instance
     )
 
     # Assert returned runtime

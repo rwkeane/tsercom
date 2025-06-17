@@ -182,9 +182,7 @@ def test_start_method(
     )  # It's an inner function
     assert fake_thread_watcher.fake_thread is not None
     assert fake_thread_watcher.fake_thread._started is True
-    assert (
-        fake_thread_watcher.fake_thread.daemon is True
-    )  # Check daemon status
+    assert fake_thread_watcher.fake_thread.daemon is True  # Check daemon status
 
     # Restore original tracker
     event_source_instance._EventSource__is_running = original_tracker
@@ -403,9 +401,7 @@ def test_stop_join_timeout(
     event_source_instance._EventSource__is_running = fake_is_running_tracker
 
     # Call start() to create and start the thread
-    fake_is_running_tracker.set_is_running(
-        True
-    )  # So start() thinks it can run
+    fake_is_running_tracker.set_is_running(True)  # So start() thinks it can run
     event_source_instance.start(fake_thread_watcher)
 
     assert (

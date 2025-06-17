@@ -372,9 +372,7 @@ def test_create_pair_aggregator_no_timeout(
     elif "client" in call_args.kwargs:  # Check if passed as keyword
         client_arg_from_call = call_args.kwargs["client"]
 
-    assert (
-        client_arg_from_call is initializer_no_timeout.data_aggregator_client
-    )
+    assert client_arg_from_call is initializer_no_timeout.data_aggregator_client
 
     # Check keyword arguments
     # When timeout is None in initializer, _create_pair does not pass 'timeout' or 'tracker' kwargs.

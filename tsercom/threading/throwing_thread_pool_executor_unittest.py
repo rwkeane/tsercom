@@ -119,9 +119,7 @@ class TestThrowingThreadPoolExecutor:
                 timeout=1.0
             ), "Error callback was not triggered in time."
 
-        assert (
-            len(self.errors_received) == 1
-        ), "error_cb should be called once."
+        assert len(self.errors_received) == 1, "error_cb should be called once."
         assert isinstance(
             self.errors_received[0], ValueError
         ), "Exception type in callback is incorrect."
@@ -275,9 +273,7 @@ class TestThrowingThreadPoolExecutor:
         future1 = executor.submit(successful_task, "task1", delay=0.1)
         executor.shutdown(wait=True)  # Wait for task1 to complete
 
-        assert (
-            future1.done()
-        ), "Task submitted before shutdown should complete."
+        assert future1.done(), "Task submitted before shutdown should complete."
         assert future1.result() == "task1"
 
         with pytest.raises(

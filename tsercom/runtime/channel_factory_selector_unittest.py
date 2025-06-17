@@ -180,9 +180,7 @@ class TestCreateFactory:
             server_hostname_override="override.host",
         )
 
-    def test_create_factory_client_auth_cert_read_fails(
-        self, selector, mocker
-    ):
+    def test_create_factory_client_auth_cert_read_fails(self, selector, mocker):
         def read_side_effect(path):
             if path == "c.pem":
                 return None
@@ -235,7 +233,8 @@ class TestCreateFactory:
             selector, "_read_file_content", side_effect=read_side_effect
         )
         spy_client_auth_factory_init = mocker.spy(
-            cfs_module.ClientAuthGrpcChannelFactory, "__init__"  # Use alias
+            cfs_module.ClientAuthGrpcChannelFactory,
+            "__init__",  # Use alias
         )
         # ClientAuthChannelConfig does not take server_ca_cert_path.
         # server_hostname_override defaults to None if not provided.

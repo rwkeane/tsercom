@@ -586,9 +586,7 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
 
         runtime_handle_1 = runtime_future_1.result(timeout=1)
         runtime_handle_2 = runtime_future_2.result(timeout=1)
-        runtime_handles_for_cleanup.extend(
-            [runtime_handle_1, runtime_handle_2]
-        )
+        runtime_handles_for_cleanup.extend([runtime_handle_1, runtime_handle_2])
 
         data_aggregator_1 = runtime_handle_1.data_aggregator
         data_aggregator_2 = runtime_handle_2.data_aggregator
@@ -959,9 +957,7 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
     def target_for_thread():
         try:
             runtime_manager.run_until_exception()
-            thread_result_queue.set_result(
-                None
-            )  # Should not complete normally
+            thread_result_queue.set_result(None)  # Should not complete normally
         except Exception as e:
             thread_result_queue.set_result(e)  # Store the exception
 

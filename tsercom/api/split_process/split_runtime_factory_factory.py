@@ -92,18 +92,14 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         )
 
         if initializer.timeout_seconds is not None:
-            aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[DataTypeT]
-            ](
+            aggregator = RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]](
                 self.__thread_pool,
                 # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
                 timeout=initializer.timeout_seconds,
             )
         else:
-            aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[DataTypeT]
-            ](
+            aggregator = RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]](
                 self.__thread_pool,
                 # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,

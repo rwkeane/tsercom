@@ -126,9 +126,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             thread_watcher if thread_watcher is not None else ThreadWatcher()
         )
         self.__process_creator: ProcessCreator = (
-            process_creator
-            if process_creator is not None
-            else ProcessCreator()
+            process_creator if process_creator is not None else ProcessCreator()
         )
         self.__split_error_watcher_source_factory: (
             SplitErrorWatcherSourceFactory
@@ -166,9 +164,9 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
                 default_split_factory_thread_pool, self.__thread_watcher
             )
 
-        self.__initializers: List[
-            InitializationPair[DataTypeT, EventTypeT]
-        ] = []
+        self.__initializers: List[InitializationPair[DataTypeT, EventTypeT]] = (
+            []
+        )
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
         self.__process: Optional[Process] = None
@@ -323,10 +321,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         error_source: MultiprocessQueueSource[Exception]
         error_sink, error_source = create_multiprocess_queues()
 
-        self.__error_watcher = (
-            self.__split_error_watcher_source_factory.create(
-                self.__thread_watcher, error_source
-            )
+        self.__error_watcher = self.__split_error_watcher_source_factory.create(
+            self.__thread_watcher, error_source
         )
         self.__error_watcher.start()
 

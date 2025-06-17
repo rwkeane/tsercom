@@ -265,7 +265,9 @@ class ClientDisconnectionRetrier(
         logging.warning(
             f"Disconnect detected for instance. Error: {error}. Attempting to stop current instance."
         )
-        await self.__instance.stop()  # Ensure self.__instance is not None before calling stop
+        await (
+            self.__instance.stop()
+        )  # Ensure self.__instance is not None before calling stop
         self.__instance = None
 
         if self.__is_grpc_error_func(
@@ -325,9 +327,7 @@ class ClientDisconnectionRetrier(
                 delay_coro
             )
             stop_event_wait_task: asyncio.Task[bool] = (
-                self.__event_loop.create_task(
-                    self.__stop_retrying_event.wait()
-                )
+                self.__event_loop.create_task(self.__stop_retrying_event.wait())
             )
 
             done, pending = await asyncio.wait(

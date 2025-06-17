@@ -343,9 +343,7 @@ async def test_anomoly_service(clear_loop_fixture):
         logger_instance.setLevel(temp_level)
 
     client_initializer = GenericClientRuntimeInitializer(2024, "Client")
-    server_initializer = GenericServerRuntimeInitializer(
-        fake_service_port=2024
-    )
+    server_initializer = GenericServerRuntimeInitializer(fake_service_port=2024)
 
     runtime_manager = RuntimeManager(is_testing=True)
     client_handle_f = runtime_manager.register_runtime_initializer(

@@ -399,16 +399,24 @@ async def test_deep_cascade_on_early_update_e2e():
 
     # 1. Process initial tensors sequentially
     await multiplexer.process_tensor(tensor_A_v1, TS_A)
-    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_A
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure Demuxer processes updates for TS_A
 
     await multiplexer.process_tensor(tensor_B_v1, TS_B)
-    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_B
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure Demuxer processes updates for TS_B
 
     await multiplexer.process_tensor(tensor_C_v1, TS_C)
-    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_C
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure Demuxer processes updates for TS_C
 
     await multiplexer.process_tensor(tensor_D_v1, TS_D)
-    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_D
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure Demuxer processes updates for TS_D
 
     # Verify initial states in Demuxer
     assert torch.equal(
@@ -427,7 +435,9 @@ async def test_deep_cascade_on_early_update_e2e():
     # 2. Update tensor_A (triggering cascade)
     tensor_A_v2 = torch.tensor([1.0, 5.0, 1.0])  # Changed value from [1,1,1]
     await multiplexer.process_tensor(tensor_A_v2, TS_A)
-    await multiplexer_client.flush_tasks()  # Ensure all cascaded updates are processed by Demuxer
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure all cascaded updates are processed by Demuxer
 
     # 3. Verification of final states in Demuxer
     final_A = await demuxer_client.get_tensor_at_ts(TS_A)

@@ -44,9 +44,7 @@ class Publisher:
             weakref.WeakSet()
         )
 
-    def _add_aggregator(
-        self, aggregator: "AggregateTensorMultiplexer"
-    ) -> None:
+    def _add_aggregator(self, aggregator: "AggregateTensorMultiplexer") -> None:
         """
         Registers an AggregateTensorMultiplexer to receive updates from this publisher.
         Typically called by AggregateTensorMultiplexer.register_publisher.
@@ -235,9 +233,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                     or potential_latest_ts
                     > aggregator._latest_processed_timestamp
                 ):
-                    aggregator._latest_processed_timestamp = (
-                        potential_latest_ts
-                    )
+                    aggregator._latest_processed_timestamp = potential_latest_ts
 
     def __init__(
         self,

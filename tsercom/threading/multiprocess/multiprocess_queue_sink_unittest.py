@@ -10,7 +10,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 
 
 class TestMultiprocessQueueSink:
-
     @pytest.fixture
     def mock_mp_queue(self, mocker):
         """Provides a MagicMock for multiprocessing.Queue."""
@@ -81,9 +80,7 @@ class TestMultiprocessQueueSink:
         result = sink.put_nowait(test_obj)
 
         mock_mp_queue.put_nowait.assert_called_once_with(test_obj)
-        print(
-            "  Assertion: mock_mp_queue.put_nowait called correctly - PASSED"
-        )
+        print("  Assertion: mock_mp_queue.put_nowait called correctly - PASSED")
         assert result is True, "put_nowait should return True on success"
         print("  Assertion: result is True - PASSED")
         print("--- Test: test_put_nowait_successful finished ---")
@@ -101,9 +98,7 @@ class TestMultiprocessQueueSink:
         result = sink.put_nowait(test_obj)
 
         mock_mp_queue.put_nowait.assert_called_once_with(test_obj)
-        print(
-            "  Assertion: mock_mp_queue.put_nowait called correctly - PASSED"
-        )
+        print("  Assertion: mock_mp_queue.put_nowait called correctly - PASSED")
         assert (
             result is False
         ), "put_nowait should return False when queue.Full is raised"

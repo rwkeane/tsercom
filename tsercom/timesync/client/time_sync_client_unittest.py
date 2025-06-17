@@ -77,9 +77,7 @@ class TestTimeSyncClientNTPFailures:
         ), "Time offsets should be empty if NTP requests fail."
 
         client.stop()
-        sync_thread = getattr(
-            client, "_TimeSyncClient__sync_loop_thread", None
-        )
+        sync_thread = getattr(client, "_TimeSyncClient__sync_loop_thread", None)
         if sync_thread is not None and sync_thread.is_alive():
             sync_thread.join(timeout=0.5)
 
@@ -146,9 +144,7 @@ class TestTimeSyncClientNTPFailures:
         assert client._TimeSyncClient__time_offsets[0] == 0.123
         assert client.get_offset_seconds() == 0.123
         client.stop()
-        sync_thread = getattr(
-            client, "_TimeSyncClient__sync_loop_thread", None
-        )
+        sync_thread = getattr(client, "_TimeSyncClient__sync_loop_thread", None)
         if sync_thread is not None and sync_thread.is_alive():
             sync_thread.join(timeout=0.5)
 

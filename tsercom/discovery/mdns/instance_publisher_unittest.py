@@ -240,9 +240,7 @@ class TestInstancePublisher:
         with pytest.raises(
             TypeError if invalid_port is not None else ValueError
         ):  # Changed to is not None
-            InstancePublisher(
-                port=invalid_port, service_type=self.SERVICE_TYPE
-            )
+            InstancePublisher(port=invalid_port, service_type=self.SERVICE_TYPE)
 
     @pytest.mark.parametrize("invalid_service_type", [None, 123, {}])
     def test_init_invalid_service_type_type(self, invalid_service_type):
@@ -251,9 +249,7 @@ class TestInstancePublisher:
             if invalid_service_type is not None
             else ValueError  # Changed to is not None
         ):
-            InstancePublisher(
-                port=self.PORT, service_type=invalid_service_type
-            )
+            InstancePublisher(port=self.PORT, service_type=invalid_service_type)
 
     @pytest.mark.parametrize("invalid_readable_name", [123, [], {}])
     def test_init_invalid_readable_name_type(self, invalid_readable_name):

@@ -67,9 +67,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             and self._latest_processed_timestamp
             > current_max_timestamp_for_cleanup
         ):
-            current_max_timestamp_for_cleanup = (
-                self._latest_processed_timestamp
-            )
+            current_max_timestamp_for_cleanup = self._latest_processed_timestamp
 
         # Lock acquisition should happen before _cleanup_old_data if it modifies history
         # and also before other history modifications and client calls.

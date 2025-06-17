@@ -290,9 +290,7 @@ def test_loop_termination_on_is_running_false(
     )  # Processed one exception
     assert fake_exception_queue.get_blocking_call_count == 1  # Read one item
 
-    internal_tracker.get = (
-        original_get_method  # Restore for other tests if any
-    )
+    internal_tracker.get = original_get_method  # Restore for other tests if any
     internal_tracker.set_is_running(False)  # Ensure it's reset for other tests
 
 
@@ -325,9 +323,7 @@ def test_stop_join_timeout_logs_warning(
         fake_watcher.fake_thread, "join", side_effect=lambda timeout=None: None
     )
     # Mock thread.is_alive to always return True
-    mocker.patch.object(
-        fake_watcher.fake_thread, "is_alive", return_value=True
-    )
+    mocker.patch.object(fake_watcher.fake_thread, "is_alive", return_value=True)
 
     mock_logger = mocker.patch(
         "tsercom.api.split_process.split_process_error_watcher_source.logger"
