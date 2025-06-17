@@ -311,7 +311,7 @@ class SparseCooTensorData(google.protobuf.message.Message):
 global___SparseCooTensorData = SparseCooTensorData
 
 @typing.final
-class Tensor(google.protobuf.message.Message):
+class TensorChunk(google.protobuf.message.Message):
     """Top-level message"""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -319,6 +319,8 @@ class Tensor(google.protobuf.message.Message):
     TIMESTAMP_FIELD_NUMBER: builtins.int
     DENSE_TENSOR_FIELD_NUMBER: builtins.int
     SPARSE_COO_TENSOR_FIELD_NUMBER: builtins.int
+    STARTING_INDEX_FIELD_NUMBER: builtins.int
+    starting_index: builtins.int
     @property
     def timestamp(self) -> time_pb2.ServerTimestamp:
         """Verify this type name is correct"""
@@ -333,6 +335,7 @@ class Tensor(google.protobuf.message.Message):
         timestamp: time_pb2.ServerTimestamp | None = ...,
         dense_tensor: global___DenseTensorData | None = ...,
         sparse_coo_tensor: global___SparseCooTensorData | None = ...,
+        starting_index: builtins.int = ...,
     ) -> None: ...
     def HasField(
         self,
@@ -356,6 +359,8 @@ class Tensor(google.protobuf.message.Message):
             b"dense_tensor",
             "sparse_coo_tensor",
             b"sparse_coo_tensor",
+            "starting_index",
+            b"starting_index",
             "timestamp",
             b"timestamp",
         ],
@@ -367,4 +372,4 @@ class Tensor(google.protobuf.message.Message):
         ],
     ) -> typing.Literal["dense_tensor", "sparse_coo_tensor"] | None: ...
 
-global___Tensor = Tensor
+global___TensorChunk = TensorChunk
