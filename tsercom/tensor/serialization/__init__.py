@@ -1,3 +1,5 @@
-from tsercom.tensor.serialization.serializable_tensor import SerializableTensor
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
 
-__all__ = ["SerializableTensor"]
+__all__ = ["SerializableTensorChunk"]

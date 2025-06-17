@@ -8,11 +8,11 @@ supporting dense and sparse tensors with various data types.
 import logging
 from typing import Optional, Any  # Added Any
 import torch
-import numpy as np
+import numpy as np  # pylint: disable=import-error
 
 # Corrected import path based on previous subtask for proto generation
-from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
-    Tensor as GrpcTensor,
+from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (  # pylint: disable=no-name-in-module
+    TensorChunk as GrpcTensorMessage,  # Renamed Tensor to TensorChunk in proto
 )
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
@@ -22,8 +22,8 @@ from tsercom.timesync.common.synchronized_timestamp import (
 # If direct manipulation of GrpcServerTimestamp is needed here, an import would be added.
 
 
-class SerializableTensor:
-    """Wraps a PyTorch tensor and a synchronized timestamp for gRPC serialization.
+class SerializableTensorChunk:
+    """Wraps a PyTorch tensor chunk and a synchronized timestamp for gRPC serialization.
 
     Supports dense and sparse COO tensors, and various data types (float32,
     float64, int32, int64, bool).
@@ -31,17 +31,25 @@ class SerializableTensor:
     Attributes:
         tensor: The `torch.Tensor` data.
         timestamp: The `SynchronizedTimestamp` associated with the tensor.
+        starting_index: The starting index of this tensor chunk.
     """
 
-    def __init__(self, tensor: torch.Tensor, timestamp: SynchronizedTimestamp):
-        """Initializes a SerializableTensor instance.
+    def __init__(
+        self,
+        tensor: torch.Tensor,
+        timestamp: SynchronizedTimestamp,
+        starting_index: int,
+    ):
+        """Initializes a SerializableTensorChunk instance.
 
         Args:
             tensor: The PyTorch tensor to serialize.
             timestamp: The synchronized timestamp for the tensor.
+            starting_index: The starting index of this tensor chunk.
         """
         self.__tensor: torch.Tensor = tensor
         self.__timestamp: SynchronizedTimestamp = timestamp
+        self.__starting_index: int = starting_index
 
     @property
     def tensor(self) -> torch.Tensor:
@@ -53,31 +61,39 @@ class SerializableTensor:
         """Gets the synchronized timestamp."""
         return self.__timestamp
 
-    def to_grpc_type(self) -> GrpcTensor:
-        """Converts the SerializableTensor to its gRPC message representation.
+    @property
+    def starting_index(self) -> int:
+        """Gets the starting index of this tensor chunk."""
+        return self.__starting_index
 
-        Populates the appropriate `oneof` fields in the `GrpcTensor` message
+    # pylint: disable=too-many-branches
+    def to_grpc_type(self) -> GrpcTensorMessage:
+        """Converts the SerializableTensorChunk to its gRPC message representation.
+
+        Populates the appropriate `oneof` fields in the `GrpcTensorMessage` (TensorChunk)
         based on whether the tensor is dense or sparse, and its dtype.
+        Also populates the starting_index.
 
         Returns:
-            A `GrpcTensor` protobuf message.
+            A `GrpcTensorMessage` (TensorChunk) protobuf message.
 
         Raises:
             ValueError: If the tensor dtype is unsupported.
         """
-        grpc_tensor = GrpcTensor()
+        grpc_tensor_chunk = GrpcTensorMessage()
 
         # It's good practice to ensure the timestamp field exists before CopyFrom
-        # However, for a newly created GrpcTensor, timestamp is an empty message.
+        # However, for a newly created GrpcTensorMessage, timestamp is an empty message.
         # SynchronizedTimestamp.to_grpc_type() should return the correct proto message
         # (e.g. dtp.ServerTimestamp)
-        grpc_tensor.timestamp.CopyFrom(self.__timestamp.to_grpc_type())
+        grpc_tensor_chunk.timestamp.CopyFrom(self.__timestamp.to_grpc_type())
+        grpc_tensor_chunk.starting_index = self.__starting_index
 
         source_tensor = self.__tensor
 
         if not source_tensor.is_sparse:
             # Get the oneof field for dense tensor; this creates the message if not set
-            dense_payload = grpc_tensor.dense_tensor
+            dense_payload = grpc_tensor_chunk.dense_tensor
             dense_payload.shape.extend(list(source_tensor.shape))
 
             flat_tensor_data = source_tensor.flatten()
@@ -98,7 +114,7 @@ class SerializableTensor:
                 np_bools_flat = (
                     source_tensor.cpu().flatten().numpy().astype(bool)
                 )
-                packed_bytes = np.packbits(np_bools_flat).tobytes()
+                packed_bytes = np.packbits(np_bools_flat).tobytes()  # type: ignore[attr-defined]
                 dense_payload.bool_data.data = packed_bytes
             else:
                 raise ValueError(
@@ -106,7 +122,7 @@ class SerializableTensor:
                 )
         else:  # Sparse COO tensor
             # Get the oneof field for sparse tensor
-            sparse_payload = grpc_tensor.sparse_coo_tensor
+            sparse_payload = grpc_tensor_chunk.sparse_coo_tensor
 
             # For sparse tensors, always work with the coalesced form
             coalesced_tensor = source_tensor.coalesce()
@@ -132,29 +148,31 @@ class SerializableTensor:
             elif values.dtype == torch.bool:
                 # Ensure values tensor is on CPU for numpy conversion
                 np_bool_values = values.cpu().numpy().astype(bool)
-                packed_bytes = np.packbits(np_bool_values).tobytes()
+                packed_bytes = np.packbits(np_bool_values).tobytes()  # type: ignore[attr-defined]
                 sparse_payload.bool_values.data = packed_bytes
             else:
                 raise ValueError(
                     f"Unsupported dtype for sparse tensor values serialization: {values.dtype}"
                 )
-        return grpc_tensor
+        return grpc_tensor_chunk
 
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     @classmethod
     def try_parse(
-        cls, grpc_msg: GrpcTensor, device: Optional[str] = None
-    ) -> Optional["SerializableTensor"]:
-        """Attempts to parse a `GrpcTensor` protobuf message into a SerializableTensor.
+        cls, grpc_msg: GrpcTensorMessage, device: Optional[str] = None
+    ) -> Optional["SerializableTensorChunk"]:
+        """Attempts to parse a `GrpcTensorMessage` (TensorChunk) into a SerializableTensorChunk.
 
         Reconstructs the PyTorch tensor (dense or sparse COO) from the
         protobuf message, including handling different dtypes and the target device.
+        Also reads the starting_index.
 
         Args:
-            grpc_msg: The `GrpcTensor` protobuf message to parse.
+            grpc_msg: The `GrpcTensorMessage` (TensorChunk) protobuf message to parse.
             device: Optional target device for the reconstructed tensor (e.g., "cuda:0").
 
         Returns:
-            A `SerializableTensor` instance if parsing is successful,
+            A `SerializableTensorChunk` instance if parsing is successful,
             otherwise `None`.
 
         Raises:
@@ -162,16 +180,18 @@ class SerializableTensor:
                         has inconsistent data (e.g. indices length mismatch).
         """
         if grpc_msg is None:
-            logging.warning("Attempted to parse None GrpcTensor.")
+            logging.warning("Attempted to parse None GrpcTensorMessage.")
             return None
 
         parsed_timestamp = SynchronizedTimestamp.try_parse(grpc_msg.timestamp)
         if parsed_timestamp is None:
             logging.warning(
-                "Failed to parse timestamp from GrpcTensor, cannot create SerializableTensor."
+                "Failed to parse timestamp from GrpcTensorMessage, cannot create "
+                "SerializableTensorChunk."
             )
             return None
 
+        starting_index = grpc_msg.starting_index
         reconstructed_tensor: Optional[torch.Tensor] = None
         data_representation_type = grpc_msg.WhichOneof("data_representation")
 
@@ -183,7 +203,8 @@ class SerializableTensor:
             if not shape:  # Scalar tensor
                 num_elements = 1
             else:
-                num_elements = int(np.prod(shape))
+                # Ensure shape is a numpy array for np.prod if it's a list/tuple
+                num_elements = int(np.prod(np.array(shape)))
                 if any(d == 0 for d in shape):  # handles shape like [N, 0, M]
                     num_elements = 0
 
@@ -221,7 +242,7 @@ class SerializableTensor:
                     np_uint8_array = np.frombuffer(
                         packed_bytes, dtype=np.uint8
                     )
-                    np_bool_flat = np.unpackbits(np_uint8_array)
+                    np_bool_flat = np.unpackbits(np_uint8_array)  # type: ignore[attr-defined]
                     # Truncate to the expected number of elements based on shape
                     np_bool_flat_truncated = np_bool_flat[: int(num_elements)]
                     if len(np_bool_flat_truncated) < num_elements and not (
@@ -277,7 +298,7 @@ class SerializableTensor:
                     # This needs to be torch.tensor(()). No, torch.tensor([]) is fine for scalar.
                     # Let's assume if num_elements is 1 (scalar), data_list had 1 item.
                     # The .reshape(shape) below should handle it.
-                    pass
+                    # W0107: Unnecessary pass statement (unnecessary-pass) - removed by not having pass
 
                 if reconstructed_tensor.numel() == num_elements:
                     reconstructed_tensor = reconstructed_tensor.reshape(shape)
@@ -329,9 +350,7 @@ class SerializableTensor:
             # Correctly get the oneof field for sparse tensor data type
             sparse_data_type_field = sparse_payload.WhichOneof("data_type")
 
-            values_np: Optional[np.ndarray[Any, Any]] = (
-                None  # Initialize values_np
-            )
+            values_np: Optional[np.ndarray] = None  # Initialize values_np, E1136 unsubscriptable-object
 
             if sparse_data_type_field == "float_values":
                 values_list = list(sparse_payload.float_values.data)
@@ -359,7 +378,7 @@ class SerializableTensor:
                     np_uint8_array_val = np.frombuffer(
                         packed_bytes_values, dtype=np.uint8
                     )
-                    np_bool_flat_val = np.unpackbits(np_uint8_array_val)
+                    np_bool_flat_val = np.unpackbits(np_uint8_array_val)  # type: ignore[attr-defined]
                     # Ensure truncation respects that np_bool_flat_val could be shorter than nnz if packed_bytes were insufficient
                     # This should ideally not happen with correct serialization.
                     np_bool_flat_truncated_val = np_bool_flat_val[:nnz]
@@ -401,27 +420,25 @@ class SerializableTensor:
 
         else:
             logging.error(
-                f"Unknown data_representation type: {data_representation_type}"
+                "Unknown data_representation type: %s", data_representation_type
             )
             raise ValueError(
                 f"Unknown data_representation type: {data_representation_type}"
             )
 
-        if reconstructed_tensor is not None:
-            if device:
-                try:
-                    reconstructed_tensor = reconstructed_tensor.to(device)
-                except (
-                    Exception
-                ) as e:  # Catch broader exceptions for device moving
-                    logging.error(
-                        f"Failed to move tensor to device '{device}': {e}"
-                    )
-                    return None  # Or raise, depending on desired strictness
-            return SerializableTensor(reconstructed_tensor, parsed_timestamp)
-        else:
+        if reconstructed_tensor is None:
             # This case should be covered by raises or returns within the if/else blocks
-            logging.error(
-                "Tensor reconstruction failed for an unknown reason."
-            )
+            logging.error("Tensor reconstruction failed for an unknown reason.")
             return None
+
+        if device:
+            try:
+                reconstructed_tensor = reconstructed_tensor.to(device)
+            except RuntimeError as e:  # Catch a more specific exception for device moving
+                logging.error(
+                    "Failed to move tensor to device '%s': %s", device, e
+                )
+                return None  # Or raise, depending on desired strictness
+        return SerializableTensorChunk(
+            reconstructed_tensor, parsed_timestamp, starting_index
+        )
