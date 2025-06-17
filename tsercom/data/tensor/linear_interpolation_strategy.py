@@ -60,9 +60,6 @@ class LinearInterpolationStrategy(SmoothingStrategy):
 
         # Clamp required_timestamps to the range of keyframe timestamps for easier indexing
         # This simplifies extrapolation logic by mapping out-of-bound points to the boundary indices
-        # clamped_required_timestamps = torch.clamp( # Unused
-        #     required_timestamps, timestamps[0], timestamps[-1]
-        # )
 
         # Find indices of the keyframes that are to the right of each required_timestamp
         # `right=False` (default) means `timestamps[i-1] < v <= timestamps[i]`
@@ -70,9 +67,6 @@ class LinearInterpolationStrategy(SmoothingStrategy):
         # For `idx = torch.searchsorted(timestamps, clamped_required_timestamps)`:
         # if `clamped_required_timestamps[k] == timestamps[j]`, then `idx[k] == j`.
         # We need `idx_right` to point to the *upper* bound of the interval.
-        # idx_right = torch.searchsorted( # This variable is unused.
-        #     timestamps, clamped_required_timestamps, right=False
-        # )
 
         # Ensure idx_right is at least 1 for safety, so idx_left (idx_right - 1) is valid.
         # For values exactly matching timestamps[0], idx_right could be 0.
@@ -107,13 +101,9 @@ class LinearInterpolationStrategy(SmoothingStrategy):
             # to maintain order.
             # `idx_right_interp` will be the index of the first timestamp > current_req_ts
             # or len(timestamps) if all timestamps are <= current_req_ts
-            # idx_right_interp = torch.searchsorted( # Unused
-            #     timestamps, current_req_ts, right=True
-            # )
 
             # `idx_left_interp` will be idx_right_interp - 1
             # These are the indices into the original 'timestamps' and 'values' tensors.
-            # idx_left_interp = idx_right_interp - 1 # This variable is unused.
 
             # Clamp indices to be valid for 'timestamps' and 'values'
             # This is important for required_timestamps that exactly match a keyframe timestamp.

@@ -1,23 +1,23 @@
 import asyncio
 import logging
-from datetime import (
-    datetime,
+import datetime as python_datetime_module  # Alias for robustness
+from datetime import (  # Keep these for direct use of timedelta, timezone
     timedelta,
     timezone,
-)  # Keep datetime for now, for external API and time calculations
+    datetime as DatetimeClassForChecks,  # For unmockable isinstance checks
+)
+
 from typing import (
     Dict,
     Optional,
     Tuple,
     Union,
     Any,
-    # List, # No longer List[Tuple[datetime, float]] for keyframes
 )
 
 import torch
 import numpy as np  # pylint: disable=import-error # Keep numpy for np.ndindex
 
-# Removed bisect as it's replaced by torch.searchsorted
 
 from tsercom.data.tensor.smoothing_strategy import SmoothingStrategy
 
@@ -75,15 +75,12 @@ class SmoothedTensorDemuxer:
         self._fill_value = float(fill_value)
         self._max_keyframe_history_per_index = max_keyframe_history_per_index
 
-        # __per_index_keyframes now stores (timestamps_tensor, values_tensor)
         self.__per_index_keyframes: Dict[
             Tuple[int, ...], Tuple[torch.Tensor, torch.Tensor]
         ] = {}
         self._keyframes_lock = asyncio.Lock()
 
-        self._last_pushed_timestamp: Optional[datetime] = (
-            None  # Stays datetime for calculation logic
-        )
+        self._last_pushed_timestamp: Optional[python_datetime_module.datetime] = None
         self._interpolation_worker_task: Optional[asyncio.Task[None]] = None
         self._stop_event = asyncio.Event()
 
@@ -96,7 +93,10 @@ class SmoothedTensorDemuxer:
         )
 
     async def on_update_received(
-        self, index: Tuple[int, ...], value: float, timestamp: datetime
+        self,
+        index: Tuple[int, ...],
+        value: float,
+        timestamp: python_datetime_module.datetime,
     ) -> None:
         if not isinstance(index, tuple) or not all(
             isinstance(i, int) for i in index
@@ -108,23 +108,22 @@ class SmoothedTensorDemuxer:
             )
             return
 
-        if not isinstance(timestamp, datetime):
+        if not isinstance(
+            timestamp, DatetimeClassForChecks
+        ):  # Check against original datetime class
             logger.error(
-                "[%s] Invalid timestamp type: %s. Expected datetime.",
+                "[%s] Invalid timestamp type: %s. Expected datetime.datetime.",
                 self.name,
                 type(timestamp),
             )
             raise TypeError(
-                f"Timestamp must be a datetime object, got {type(timestamp)}"
+                f"Timestamp must be a datetime.datetime object, got {type(timestamp)}"
             )
 
         if timestamp.tzinfo is None:
-            # Ensure timestamp is timezone-aware (UTC) before converting to epoch time
             timestamp = timestamp.replace(tzinfo=timezone.utc)
 
-        numerical_timestamp = (
-            timestamp.timestamp()
-        )  # Convert to float Unix timestamp
+        numerical_timestamp = timestamp.timestamp()
 
         async with self._keyframes_lock:
             current_timestamps, current_values = (
@@ -175,7 +174,9 @@ class SmoothedTensorDemuxer:
         logger.info("[%s] Interpolation worker started.", self.name)
         try:
             while not self._stop_event.is_set():
-                current_loop_start_time = datetime.now(timezone.utc)
+                current_loop_start_time = python_datetime_module.datetime.now(
+                    timezone.utc
+                )
 
                 if self._last_pushed_timestamp is None:
                     # Align first timestamp if needed, or use current time
@@ -196,10 +197,9 @@ class SmoothedTensorDemuxer:
                         next_output_datetime
                     )
 
-                # Convert to numerical timestamp for the strategy
                 next_output_numerical_ts = next_output_datetime.timestamp()
 
-                time_now = datetime.now(timezone.utc)
+                time_now = python_datetime_module.datetime.now(timezone.utc)
                 sleep_duration_seconds = (
                     next_output_datetime - time_now
                 ).total_seconds()
@@ -210,19 +210,18 @@ class SmoothedTensorDemuxer:
                             self._stop_event.wait(),
                             timeout=sleep_duration_seconds,
                         )
-                        if self._stop_event.is_set():  # Re-check after wait
+                        if self._stop_event.is_set():
                             break
                     except asyncio.TimeoutError:
-                        pass  # Timeout occurred, proceed to interpolate
+                        pass
 
-                if self._stop_event.is_set():  # Final check before processing
+                if self._stop_event.is_set():
                     break
 
                 output_tensor = torch.full(
                     self._tensor_shape, self._fill_value, dtype=torch.float32
                 )
 
-                # Prepare required_timestamps tensor for the strategy
                 required_ts_tensor = torch.tensor(
                     [next_output_numerical_ts], dtype=torch.float64
                 )
@@ -235,9 +234,7 @@ class SmoothedTensorDemuxer:
 
                         if keyframe_tensors:
                             timestamps_tensor, values_tensor = keyframe_tensors
-                            if (
-                                timestamps_tensor.numel() > 0
-                            ):  # Ensure there are keyframes
+                            if timestamps_tensor.numel() > 0:
                                 interpolated_value_tensor = self._smoothing_strategy.interpolate_series(
                                     timestamps_tensor,
                                     values_tensor,
@@ -245,15 +242,13 @@ class SmoothedTensorDemuxer:
                                 )
                                 if interpolated_value_tensor.numel() > 0:
                                     val = interpolated_value_tensor.item()
-                                    if not torch.isnan(
-                                        torch.tensor(val)
-                                    ):  # Check for NaN
+                                    if not torch.isnan(torch.tensor(val)):
                                         output_tensor[index_tuple] = float(val)
 
                 await self._output_client.push_tensor_update(
                     self.tensor_name,
                     output_tensor,
-                    next_output_datetime,  # Push with datetime object as per original API
+                    next_output_datetime,
                 )
                 self._last_pushed_timestamp = next_output_datetime
         except asyncio.CancelledError:
@@ -320,9 +315,9 @@ class SmoothedTensorDemuxer:
         self._interpolation_worker_task = None
         logger.info("[%s] SmoothedTensorDemuxer stopped.", self.name)
 
-    def _get_next_aligned_timestamp(self, current_time: datetime) -> datetime:
-        # This method's logic using datetime objects is fine.
-        # The conversion to numerical timestamp for strategy use happens in _interpolation_worker.
+    def _get_next_aligned_timestamp(
+        self, current_time: python_datetime_module.datetime
+    ) -> python_datetime_module.datetime:
         if current_time.tzinfo is None:
             current_time = current_time.replace(tzinfo=timezone.utc)
 
@@ -332,21 +327,22 @@ class SmoothedTensorDemuxer:
         interval_sec = self._output_interval_seconds
         current_ts_seconds = current_time.timestamp()
 
-        # Using floating point arithmetic for ceiling division
         next_slot_start_seconds = (
             np.ceil(current_ts_seconds / interval_sec) * interval_sec
         )
 
-        # Add a small epsilon for floating point comparisons
         if next_slot_start_seconds <= current_ts_seconds + 1e-9:
             next_slot_start_seconds += interval_sec
-        return datetime.fromtimestamp(next_slot_start_seconds, timezone.utc)
+        return python_datetime_module.datetime.fromtimestamp(
+            next_slot_start_seconds, timezone.utc
+        )
 
     async def process_external_update(
-        self, tensor_name: str, data: torch.Tensor, timestamp: datetime
+        self,
+        tensor_name: str,
+        data: torch.Tensor,
+        timestamp: python_datetime_module.datetime,
     ) -> None:
-        # This method receives datetime, which is passed to on_update_received.
-        # on_update_received handles the conversion to numerical timestamp.
         if tensor_name != self.tensor_name:
             logger.warning(
                 "[%s] Received tensor update for '%s', expected '%s'. Skipping.",
@@ -364,8 +360,6 @@ class SmoothedTensorDemuxer:
             )
             return
 
-        # Ensure timestamp is timezone-aware (UTC) before processing
-        # This is important if it's used directly or passed to other methods expecting tz-aware
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=timezone.utc)
 
@@ -375,10 +369,8 @@ class SmoothedTensorDemuxer:
             timestamp,
             data.shape,
         )
-        for index_tuple in np.ndindex(data.shape):  # np.ndindex is fine
-            value = float(
-                data[index_tuple].item()
-            )  # .item() is good for scalar tensors
+        for index_tuple in np.ndindex(data.shape):
+            value = float(data[index_tuple].item())
             await self.on_update_received(index_tuple, value, timestamp)
         logger.debug(
             "[%s] Finished decomposing full tensor update for %s.",

@@ -1,7 +1,5 @@
 import abc
-import torch  # Added import
-
-# Removed List, Tuple, datetime as primary types in ABC method signature
+import torch
 
 
 class SmoothingStrategy(abc.ABC):

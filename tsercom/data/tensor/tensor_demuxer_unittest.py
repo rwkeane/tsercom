@@ -76,6 +76,7 @@ T0_std = datetime.datetime(2023, 1, 1, 12, 0, 0)
 T1_std = datetime.datetime(2023, 1, 1, 12, 0, 10)
 T2_std = datetime.datetime(2023, 1, 1, 12, 0, 20)
 T3_std = datetime.datetime(2023, 1, 1, 12, 0, 30)
+T4_std = datetime.datetime(2023, 1, 1, 12, 0, 40)  # Added for new test
 
 # Timestamps for the new complex out-of-order test (1s apart)
 TS_BASE = datetime.datetime(2023, 1, 1, 0, 0, 0)  # Base for T(x) style
@@ -535,3 +536,242 @@ async def test_get_tensor_at_timestamp(
 
     # Ensure get_tensor_at_timestamp does not trigger client calls
     assert mc.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_timestamp_with_no_explicit_updates_inherits_state(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+):
+    d, mc = demuxer
+    # Establish state at T1
+    await d.on_update_received(0, 1.0, T1_std)
+    await d.on_update_received(1, 2.0, T1_std)
+    expected_t1_tensor = torch.tensor([1.0, 2.0, 0.0, 0.0])
+
+    # Manually insert a T2 entry that would normally have explicit updates,
+    # but simulate it being created by just being the next timestamp sequentially
+    # without its own on_update_received calls directly.
+    # This is tricky to simulate perfectly without messing with internals too much,
+    # as on_update_received is the primary way states are created.
+    # A better way is to send an update for T2, then send an update for T3
+    # and ensure T3 (if it had no direct updates) inherits from T2.
+
+    # Setup: T1 has [1,2,0,0]. T2 gets one update [3,30,0,0]
+    await d.on_update_received(0, 3.0, T2_std)  # T2 is [3,2,0,0]
+    mc.clear_calls()
+
+    # Now, if T3 is requested or an update for T4 comes, T3 should be based on T2.
+    # Let's send an update for T4, which will create T3 if it doesn't exist.
+    # T3 will be created implicitly and should inherit T2's state.
+    # Then T4 will build on T3.
+    await d.on_update_received(0, 4.0, T4_std)
+
+    # T3 itself will not have an explicit entry in _tensor_states unless an update
+    # was sent for T3_std. T4 will inherit from T2_std's state.
+    # The test's main point is to ensure T4 is correctly calculated.
+    # expected_t2_final_state is the state T3 would inherit.
+    expected_t2_final_state = torch.tensor(
+        [3.0, 2.0, 0.0, 0.0]
+    )  # T2's state after its update
+
+    # Client should have been called for T4's update (at least once)
+    assert mc.call_count > 0
+
+    # Verify T4's state from the client notification
+    t4_tensor_notified, t4_ts_notified = None, None
+    # Iterate through calls to find the T4 update, as T2 might also have notified.
+    for tensor_val, ts_val in mc.calls:
+        if ts_val == T4_std:
+            t4_tensor_notified = tensor_val
+            t4_ts_notified = ts_val
+            break
+
+    assert t4_ts_notified == T4_std, "Notification for T4_std not found"
+    assert (
+        t4_tensor_notified is not None
+    ), "Tensor for T4_std not found in notifications"
+    # Expected T4: Inherited T2's state [3,2,0,0], then (0, 4.0) applied -> [4,2,0,0]
+    assert torch.equal(t4_tensor_notified, torch.tensor([4.0, 2.0, 0.0, 0.0]))
+
+    # Optionally, verify T4's internal state as well
+    t4_internal_tensor = None
+    for ts, tensor_val, _ in d._tensor_states:
+        if ts == T4_std:
+            t4_internal_tensor = tensor_val
+            break
+    assert t4_internal_tensor is not None, "T4 internal state not found"
+    assert torch.equal(t4_internal_tensor, torch.tensor([4.0, 2.0, 0.0, 0.0]))
+
+
+@pytest.mark.asyncio
+async def test_many_explicit_updates_single_timestamp(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+):
+    d, mc = demuxer
+    tensor_len = d._tensor_length  # Should be 4 from fixture
+
+    # Apply updates to all indices
+    expected_values = [float(i * 10) for i in range(tensor_len)]
+    for i in range(tensor_len):
+        await d.on_update_received(
+            tensor_index=i, value=expected_values[i], timestamp=T1_std
+        )
+
+    assert (
+        mc.call_count == tensor_len
+    )  # One call per update that changes the tensor
+
+    final_tensor, ts = mc.get_last_call()
+    assert ts == T1_std
+    expected_tensor = torch.tensor(expected_values, dtype=torch.float32)
+    assert torch.equal(final_tensor, expected_tensor)
+
+    # Check internal explicit updates
+    t1_state_info = None
+    for s_ts, _, s_explicits in d._tensor_states:
+        if s_ts == T1_std:
+            t1_state_info = s_explicits
+            break
+    assert t1_state_info is not None
+    explicit_indices, explicit_values_tensor = t1_state_info
+
+    # Verify that explicit_indices contains all indices 0 to N-1
+    # and values match. Order might not be guaranteed, so check content.
+    assert explicit_indices.numel() == tensor_len
+    assert explicit_values_tensor.numel() == tensor_len
+
+    found_indices = [False] * tensor_len
+    for i in range(explicit_indices.numel()):
+        idx = explicit_indices[i].item()
+        val = explicit_values_tensor[i].item()
+        assert 0 <= idx < tensor_len
+        assert val == pytest.approx(expected_values[idx])
+        found_indices[idx] = True
+    assert all(found_indices)
+
+
+@pytest.mark.asyncio
+async def test_explicit_updates_overwrite_and_add_to_inherited_state(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+):
+    d, mc = demuxer
+    # T1: index 0 = 1.0, index 1 = 2.0.  Tensor: [1.0, 2.0, 0.0, 0.0]
+    await d.on_update_received(0, 1.0, T1_std)
+    await d.on_update_received(1, 2.0, T1_std)
+    mc.clear_calls()
+
+    # T2: inherits from T1.
+    # Explicit updates for T2: index 1 = 20.0 (overwrite), index 2 = 30.0 (new)
+    await d.on_update_received(
+        1, 20.0, T2_std
+    )  # Inherits [1,2,0,0], becomes [1,20,0,0]
+    await d.on_update_received(2, 30.0, T2_std)  # Becomes [1,20,30,0]
+
+    assert mc.call_count == 2
+    final_tensor, ts = mc.get_last_call()
+    assert ts == T2_std
+    expected_t2_tensor = torch.tensor([1.0, 20.0, 30.0, 0.0])
+    assert torch.equal(final_tensor, expected_t2_tensor)
+
+    # Check internal explicit updates for T2
+    t2_state_info = None
+    for s_ts, _, s_explicits in d._tensor_states:
+        if s_ts == T2_std:
+            t2_state_info = s_explicits
+            break
+    assert t2_state_info is not None
+    explicit_indices, explicit_values_tensor = t2_state_info
+
+    assert explicit_indices.numel() == 2  # (1, 20.0) and (2, 30.0)
+
+    # Check specific values, order might vary
+    updates_found = {(1, 20.0): False, (2, 30.0): False}
+    for i in range(explicit_indices.numel()):
+        idx = explicit_indices[i].item()
+        val = explicit_values_tensor[i].item()
+        if (idx, val) in updates_found:
+            updates_found[(idx, val)] = True
+    assert all(updates_found.values())
+
+
+@pytest.mark.asyncio
+async def test_cascade_with_tensor_explicit_updates(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+):
+    d, mc = demuxer
+    # T1: [1,0,0,0]
+    await d.on_update_received(0, 1.0, T1_std)
+    # T2: explicit (1,10). Inherits T1. Becomes [1,10,0,0]
+    await d.on_update_received(1, 10.0, T2_std)
+    # T3: explicit (2,20). Inherits T2. Becomes [1,10,20,0]
+    await d.on_update_received(2, 20.0, T3_std)
+    mc.clear_calls()
+
+    # Update T1: index 0 = 5.0. T1 becomes [5,0,0,0]
+    # This should trigger cascade.
+    await d.on_update_received(0, 5.0, T1_std)
+
+    # Expected notifications:
+    # 1. T1 changed to [5,0,0,0]
+    # 2. T2 re-calculated: base [5,0,0,0], explicit (1,10) -> [5,10,0,0]. (Changed from [1,10,0,0])
+    # 3. T3 re-calculated: base [5,10,0,0], explicit (2,20) -> [5,10,20,0]. (Changed from [1,10,20,0])
+    assert mc.call_count == 3
+
+    # Verify T1
+    t1_call = mc.calls[0]
+    assert t1_call[1] == T1_std
+    assert torch.equal(t1_call[0], torch.tensor([5.0, 0.0, 0.0, 0.0]))
+
+    # Verify T2
+    t2_call = mc.calls[1]
+    assert t2_call[1] == T2_std
+    assert torch.equal(t2_call[0], torch.tensor([5.0, 10.0, 0.0, 0.0]))
+
+    # Verify T3
+    t3_call = mc.calls[2]
+    assert t3_call[1] == T3_std
+    assert torch.equal(t3_call[0], torch.tensor([5.0, 10.0, 20.0, 0.0]))
+
+
+@pytest.mark.asyncio
+async def test_explicit_tensors_build_correctly(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+):
+    d, mc = demuxer
+    # Timestamp T1_std
+    # Update 1: (0, 1.0) -> explicits: indices=[0], values=[1.0]
+    await d.on_update_received(0, 1.0, T1_std)
+
+    # Update 2: (1, 2.0) -> explicits: indices=[0,1], values=[1.0,2.0] (order may vary)
+    await d.on_update_received(1, 2.0, T1_std)
+
+    # Update 3: (0, 1.5) -> explicits: indices=[0,1], values=[1.5,2.0] (update existing)
+    await d.on_update_received(0, 1.5, T1_std)
+
+    # Check internal explicit update tensors for T1_std
+    t1_explicit_indices, t1_explicit_values = None, None
+    for ts, _, (indices, values) in d._tensor_states:
+        if ts == T1_std:
+            t1_explicit_indices = indices
+            t1_explicit_values = values
+            break
+
+    assert t1_explicit_indices is not None
+    assert t1_explicit_values is not None
+    assert t1_explicit_indices.numel() == 2
+    assert t1_explicit_values.numel() == 2
+
+    # Check that the values are correct, irrespective of internal order
+    expected_updates = {(0, 1.5), (1, 2.0)}
+    actual_updates = set()
+    for i in range(t1_explicit_indices.numel()):
+        actual_updates.add(
+            (t1_explicit_indices[i].item(), t1_explicit_values[i].item())
+        )
+
+    assert actual_updates == expected_updates
+
+    # Final tensor state check from client notification
+    final_tensor, final_ts = mc.get_last_call()
+    assert final_ts == T1_std
+    assert torch.equal(final_tensor, torch.tensor([1.5, 2.0, 0.0, 0.0]))
