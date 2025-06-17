@@ -162,11 +162,11 @@ async def test_updates_different_timestamps(
                 return tensor_val
         return None
 
-    internal_t1_state = _get_tensor(d._tensor_states, T1_std)
+    internal_t1_state = _get_tensor(d._TensorDemuxer__tensor_states, T1_std)
     assert internal_t1_state is not None
     assert torch.equal(internal_t1_state, torch.tensor([5.0, 0.0, 0.0, 0.0]))
 
-    internal_t2_state = _get_tensor(d._tensor_states, T2_std)
+    internal_t2_state = _get_tensor(d._TensorDemuxer__tensor_states, T2_std)
     assert internal_t2_state is not None
     assert torch.equal(
         internal_t2_state, expected_tensor_t2
@@ -216,8 +216,8 @@ async def test_state_propagation_on_new_sequential_timestamp(
                 return tensor_val
         return None
 
-    internal_t1 = _get_tensor(d._tensor_states, T1_std)
-    internal_t2 = _get_tensor(d._tensor_states, T2_std)
+    internal_t1 = _get_tensor(d._TensorDemuxer__tensor_states, T1_std)
+    internal_t2 = _get_tensor(d._TensorDemuxer__tensor_states, T2_std)
 
     assert internal_t1 is not None
     assert torch.equal(internal_t1, expected_t1_tensor)
@@ -268,7 +268,7 @@ async def test_out_of_order_scenario_from_prompt(
     assert call3_ts == T1_std
 
     # Check T2_std state is unaffected by T1_std's arrival (as per original prompt example for Demuxer out-of-order)
-    t2_tensor_internal = _get_tensor(d._tensor_states, T2_std)
+    t2_tensor_internal = _get_tensor(d._TensorDemuxer__tensor_states, T2_std)
     assert t2_tensor_internal is not None
     assert torch.equal(
         t2_tensor_internal, torch.tensor([0.0, 10.0, 0.0, 40.0])
@@ -369,24 +369,30 @@ async def test_complex_out_of_order_state_inheritance(
 
     # Verify internal order and states for learning/debugging
     # Expected order: TS1, TS2, TS3, TS4
-    assert d._tensor_states[0][0] == TS1
+    assert d._TensorDemuxer__tensor_states[0][0] == TS1
     assert torch.equal(
-        d._tensor_states[0][1], torch.tensor([1.0, 2.0, 3.0, 4.0])
+        d._TensorDemuxer__tensor_states[0][1],
+        torch.tensor([1.0, 2.0, 3.0, 4.0]),
     )
-    assert d._tensor_states[1][0] == TS2
-    assert torch.equal(d._tensor_states[1][1], expected_correct_t2)
-    assert d._tensor_states[2][0] == TS3
+    assert d._TensorDemuxer__tensor_states[1][0] == TS2
+    assert torch.equal(
+        d._TensorDemuxer__tensor_states[1][1], expected_correct_t2
+    )
+    assert d._TensorDemuxer__tensor_states[2][0] == TS3
     # TS3's state is now based on the cascaded update from TS2.
     # Predecessor TS2 is [0,5,3,4]. Explicit for TS3 are (2,7), (3,8).
     # So TS3 becomes [0,5,7,8]
     expected_cascaded_t3 = torch.tensor([0.0, 5.0, 7.0, 8.0])
-    assert torch.equal(d._tensor_states[2][1], expected_cascaded_t3)
-    assert d._tensor_states[3][0] == TS4
+    assert torch.equal(
+        d._TensorDemuxer__tensor_states[2][1], expected_cascaded_t3
+    )
+    assert d._TensorDemuxer__tensor_states[3][0] == TS4
     # TS4's state is based on cascaded TS3.
     # Predecessor TS3 is [0,5,7,8]. Explicit for TS4 are (0,2),(1,3),(2,4),(3,5).
     # So TS4 becomes [2,3,4,5] (this should be unchanged from its initial calculation).
     assert torch.equal(
-        d._tensor_states[3][1], torch.tensor([2.0, 3.0, 4.0, 5.0])
+        d._TensorDemuxer__tensor_states[3][1],
+        torch.tensor([2.0, 3.0, 4.0, 5.0]),
     )
 
 
@@ -405,15 +411,17 @@ async def test_data_timeout(
             ts == target_ts for ts, _, _ in states_list
         )  # Adjusted unpacking
 
-    assert _is_ts_present(dmx_instance._tensor_states, T0_std)
+    assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, T0_std)
     mc.clear_calls()
 
     await dmx_instance.on_update_received(
         tensor_index=0, value=2.0, timestamp=T2_std
     )
 
-    assert not _is_ts_present(dmx_instance._tensor_states, T0_std)
-    assert _is_ts_present(dmx_instance._tensor_states, T2_std)
+    assert not _is_ts_present(
+        dmx_instance._TensorDemuxer__tensor_states, T0_std
+    )
+    assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, T2_std)
     assert mc.call_count == 1
     tensor_t2, ts_t2 = mc.get_last_call()
     assert torch.equal(tensor_t2, torch.tensor([2.0, 0.0, 0.0, 0.0]))
@@ -423,7 +431,9 @@ async def test_data_timeout(
         tensor_index=0, value=3.0, timestamp=T1_std
     )
     assert mc.call_count == 1
-    assert not _is_ts_present(dmx_instance._tensor_states, T1_std)
+    assert not _is_ts_present(
+        dmx_instance._TensorDemuxer__tensor_states, T1_std
+    )
 
 
 @pytest.mark.asyncio
@@ -433,7 +443,9 @@ async def test_index_out_of_bounds(
     d, mc = demuxer
 
     def _is_ts_present(states_list, target_ts):
-        return any(ts == target_ts for ts, _ in states_list)
+        return any(
+            ts == target_ts for ts, _ in states_list
+        )  # This direct access to tuple element might be wrong if structure changed
 
     await d.on_update_received(tensor_index=4, value=1.0, timestamp=T1_std)
     assert mc.call_count == 0
@@ -441,7 +453,10 @@ async def test_index_out_of_bounds(
     await d.on_update_received(tensor_index=-1, value=1.0, timestamp=T1_std)
     assert mc.call_count == 0
 
-    assert not _is_ts_present(d._tensor_states, T1_std)
+    # Check _tensor_states directly if it's still the name, otherwise use mangled name
+    # This test doesn't strictly need to check internal states if behavior is confirmed by lack of calls
+    # However, if checking, use the correct mangled name:
+    assert not _is_ts_present(d._TensorDemuxer__tensor_states, T1_std)
 
 
 @pytest.mark.asyncio
@@ -479,17 +494,21 @@ async def test_timeout_behavior_cleanup_order(
             ts == target_ts for ts, _, _ in states_list
         )  # Adjusted unpacking
 
-    assert _is_ts_present(dmx_instance._tensor_states, T1_std)
-    assert dmx_instance._latest_update_timestamp == T1_std
+    assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, T1_std)
+    assert dmx_instance._TensorDemuxer__latest_update_timestamp == T1_std
     mc.clear_calls()
 
     await dmx_instance.on_update_received(0, 2.0, T0_std)
-    assert not _is_ts_present(dmx_instance._tensor_states, T0_std)
+    assert not _is_ts_present(
+        dmx_instance._TensorDemuxer__tensor_states, T0_std
+    )
     assert mc.call_count == 0
 
     await dmx_instance.on_update_received(0, 3.0, T2_std)
-    assert not _is_ts_present(dmx_instance._tensor_states, T1_std)
-    assert _is_ts_present(dmx_instance._tensor_states, T2_std)
+    assert not _is_ts_present(
+        dmx_instance._TensorDemuxer__tensor_states, T1_std
+    )
+    assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, T2_std)
     assert mc.call_count == 1
     tensor_t2, ts_t2 = mc.get_last_call()
     assert torch.equal(tensor_t2, torch.tensor([3.0, 0.0, 0.0, 0.0]))
@@ -595,7 +614,7 @@ async def test_timestamp_with_no_explicit_updates_inherits_state(
 
     # Optionally, verify T4's internal state as well
     t4_internal_tensor = None
-    for ts, tensor_val, _ in d._tensor_states:
+    for ts, tensor_val, _ in d._TensorDemuxer__tensor_states:
         if ts == T4_std:
             t4_internal_tensor = tensor_val
             break
@@ -608,7 +627,7 @@ async def test_many_explicit_updates_single_timestamp(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ):
     d, mc = demuxer
-    tensor_len = d._tensor_length  # Should be 4 from fixture
+    tensor_len = d.tensor_length  # Should be 4 from fixture
 
     # Apply updates to all indices
     expected_values = [float(i * 10) for i in range(tensor_len)]
@@ -628,7 +647,7 @@ async def test_many_explicit_updates_single_timestamp(
 
     # Check internal explicit updates
     t1_state_info = None
-    for s_ts, _, s_explicits in d._tensor_states:
+    for s_ts, _, s_explicits in d._TensorDemuxer__tensor_states:
         if s_ts == T1_std:
             t1_state_info = s_explicits
             break
@@ -675,7 +694,7 @@ async def test_explicit_updates_overwrite_and_add_to_inherited_state(
 
     # Check internal explicit updates for T2
     t2_state_info = None
-    for s_ts, _, s_explicits in d._tensor_states:
+    for s_ts, _, s_explicits in d._TensorDemuxer__tensor_states:
         if s_ts == T2_std:
             t2_state_info = s_explicits
             break
@@ -750,7 +769,7 @@ async def test_explicit_tensors_build_correctly(
 
     # Check internal explicit update tensors for T1_std
     t1_explicit_indices, t1_explicit_values = None, None
-    for ts, _, (indices, values) in d._tensor_states:
+    for ts, _, (indices, values) in d._TensorDemuxer__tensor_states:
         if ts == T1_std:
             t1_explicit_indices = indices
             t1_explicit_values = values
