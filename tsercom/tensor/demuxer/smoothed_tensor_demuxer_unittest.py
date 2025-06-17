@@ -14,11 +14,13 @@ import pytest
 import pytest_asyncio
 from pytest_mock import MockerFixture
 
-from tsercom.data.tensor.smoothed_tensor_demuxer import SmoothedTensorDemuxer
-from tsercom.data.tensor.smoothing_strategy import (
+from tsercom.tensor.demuxer.smoothed_tensor_demuxer import (
+    SmoothedTensorDemuxer,
+)
+from tsercom.tensor.demuxer.smoothing_strategy import (
     SmoothingStrategy,
 )  # Required for type hinting if mocking strategy
-from tsercom.data.tensor.linear_interpolation_strategy import (
+from tsercom.tensor.demuxer.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
 )
 

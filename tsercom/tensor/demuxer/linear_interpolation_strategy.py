@@ -1,6 +1,6 @@
 import torch
 
-from tsercom.data.tensor.smoothing_strategy import SmoothingStrategy
+from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 
 
 class LinearInterpolationStrategy(SmoothingStrategy):

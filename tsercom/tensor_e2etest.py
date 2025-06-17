@@ -4,9 +4,9 @@ import pytest
 import asyncio
 from typing import Dict, List, Tuple, Optional
 
-from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer
-from tsercom.data.tensor.tensor_demuxer import TensorDemuxer
-from tsercom.data.tensor.complete_tensor_multiplexer import (
+from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
+from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
+from tsercom.tensor.muxer.complete_tensor_multiplexer import (
     CompleteTensorMultiplexer,
 )
 

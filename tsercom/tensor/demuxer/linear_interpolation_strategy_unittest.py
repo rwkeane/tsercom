@@ -4,7 +4,7 @@ import math  # For math.isnan
 import pytest
 import torch  # Added torch
 
-from tsercom.data.tensor.linear_interpolation_strategy import (
+from tsercom.tensor.demuxer.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
 )
 

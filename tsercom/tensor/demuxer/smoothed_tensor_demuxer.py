@@ -19,7 +19,7 @@ import torch
 import numpy as np  # pylint: disable=import-error # Keep numpy for np.ndindex
 
 
-from tsercom.data.tensor.smoothing_strategy import SmoothingStrategy
+from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 
 logger = logging.getLogger(__name__)
 
