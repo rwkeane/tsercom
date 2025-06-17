@@ -1,4 +1,5 @@
 import asyncio
+import types
 from datetime import datetime as real_datetime, timedelta, timezone
 from typing import (
     List,  # Kept for MockClient pushes
@@ -195,9 +196,11 @@ async def test_interpolation_worker_simple_case(
 
     MockedDateTime.timedelta = timedelta
     MockedDateTime.timezone = timezone
+    mock_dt_object = types.SimpleNamespace()
+    mock_dt_object.datetime = MockedDateTime
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
-        MockedDateTime,
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module",
+        mock_dt_object,
     )
     await demuxer.start()
     num_cycles = 3
@@ -368,9 +371,11 @@ async def test_empty_keyframes_output_fill_value(
         timedelta,
         timezone,
     )
+    mock_dt_object_empty = types.SimpleNamespace()
+    mock_dt_object_empty.datetime = MockedDateTimeEmpty
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
-        MockedDateTimeEmpty,
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module",
+        mock_dt_object_empty,
     )
     await demuxer.start()
     target_push_time = fixed_kf_time_dt + timedelta(
@@ -430,9 +435,11 @@ async def test_align_output_timestamps_true(
         timedelta,
         timezone,
     )
+    mock_dt_object_align = types.SimpleNamespace()
+    mock_dt_object_align.datetime = MockedDateTimeAlign
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
-        MockedDateTimeAlign,
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module",
+        mock_dt_object_align,
     )
 
     # Calculate expected push times based on the component's behavior
@@ -550,9 +557,11 @@ async def test_small_max_keyframe_history(
 
     MockedDateTimeSmallHist.timedelta = timedelta
     MockedDateTimeSmallHist.timezone = timezone
+    mock_dt_object_small_hist = types.SimpleNamespace()
+    mock_dt_object_small_hist.datetime = MockedDateTimeSmallHist
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
-        MockedDateTimeSmallHist,
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module",
+        mock_dt_object_small_hist,
     )
 
     mock_client.clear_pushes()
@@ -605,9 +614,11 @@ async def test_2d_tensor_shape(
 
     MockedDateTime2D.timedelta = timedelta
     MockedDateTime2D.timezone = timezone
+    mock_dt_object_2d = types.SimpleNamespace()
+    mock_dt_object_2d.datetime = MockedDateTime2D
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
-        MockedDateTime2D,
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module",
+        mock_dt_object_2d,
     )
 
     await demuxer_2d.start()
@@ -709,9 +720,11 @@ async def test_index_no_keyframes_initially_then_updated(
 
     MockedDateTime.timedelta = timedelta
     MockedDateTime.timezone = timezone
+    mock_dt_object_no_kf = types.SimpleNamespace()
+    mock_dt_object_no_kf.datetime = MockedDateTime
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
-        MockedDateTime,
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module",
+        mock_dt_object_no_kf,
     )
 
     await demuxer.start()
@@ -850,9 +863,11 @@ async def test_numerical_timestamp_handling_with_mock_strategy(
 
     MockedDateTime.timedelta = timedelta
     MockedDateTime.timezone = timezone
+    mock_dt_object_strat_test = types.SimpleNamespace()
+    mock_dt_object_strat_test.datetime = MockedDateTime
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
-        MockedDateTime,
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module",
+        mock_dt_object_strat_test,
     )
 
     await demuxer_strat_test.start()

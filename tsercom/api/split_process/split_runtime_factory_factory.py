@@ -119,7 +119,13 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                             break
 
         # Declare data_event_queue_factory with the base type for mypy
-        data_event_queue_factory: MultiprocessQueueFactory
+        event_queue_factory: MultiprocessQueueFactory[
+            EventInstance[EventTypeT]
+        ]
+        data_queue_factory: MultiprocessQueueFactory[
+            AnnotatedInstance[DataTypeT]
+        ]
+        command_queue_factory: MultiprocessQueueFactory[RuntimeCommand]
 
         uses_torch_tensor = False
         if (
@@ -129,21 +135,34 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             uses_torch_tensor = True
 
         if uses_torch_tensor:
-            data_event_queue_factory = TorchMultiprocessQueueFactory()
+            # Assuming EventInstance and AnnotatedInstance generics are compatible with Torch queues
+            event_queue_factory = TorchMultiprocessQueueFactory[
+                EventInstance[EventTypeT]
+            ]()
+            data_queue_factory = TorchMultiprocessQueueFactory[
+                AnnotatedInstance[DataTypeT]
+            ]()
         else:
-            data_event_queue_factory = DefaultMultiprocessQueueFactory()
+            event_queue_factory = DefaultMultiprocessQueueFactory[
+                EventInstance[EventTypeT]
+            ]()
+            data_queue_factory = DefaultMultiprocessQueueFactory[
+                AnnotatedInstance[DataTypeT]
+            ]()
 
         # Command queues always use the default factory
-        command_queue_factory = DefaultMultiprocessQueueFactory()
+        command_queue_factory = DefaultMultiprocessQueueFactory[
+            RuntimeCommand
+        ]()
         # --- End dynamic queue factory selection ---
 
         event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]
         event_source: MultiprocessQueueSource[EventInstance[EventTypeT]]
-        event_sink, event_source = data_event_queue_factory.create_queues()
+        event_sink, event_source = event_queue_factory.create_queues()
 
         data_sink: MultiprocessQueueSink[AnnotatedInstance[DataTypeT]]
         data_source: MultiprocessQueueSource[AnnotatedInstance[DataTypeT]]
-        data_sink, data_source = data_event_queue_factory.create_queues()
+        data_sink, data_source = data_queue_factory.create_queues()
 
         runtime_command_sink: MultiprocessQueueSink[RuntimeCommand]
         runtime_command_source: MultiprocessQueueSource[RuntimeCommand]
