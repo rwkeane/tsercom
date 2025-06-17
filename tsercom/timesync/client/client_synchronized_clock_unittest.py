@@ -50,7 +50,7 @@ def test_bad_client_impl_instantiation():
     """Tests that a class missing get_offset_seconds cannot be instantiated."""
     with pytest.raises(
         TypeError,
-        match="Can't instantiate abstract class BadClientImpl with abstract methods get_offset_seconds, get_synchronized_clock, start_async, stop",
+        match="Can't instantiate abstract class BadClientImpl without an implementation for abstract methods 'get_offset_seconds', 'get_synchronized_clock', 'start_async', 'stop'",
     ):
         BadClientImpl()
 

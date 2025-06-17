@@ -1,0 +1,64 @@
+************* Module tsercom._version
+tsercom/_version.py:1:0: C0304: Final newline missing (missing-final-newline)
+tsercom/_version.py:1:0: C0114: Missing module docstring (missing-module-docstring)
+************* Module tsercom.caller_id.caller_id_extraction
+tsercom/caller_id/caller_id_extraction.py:12:0: C0103: Type variable name "TCallType" doesn't conform to predefined naming style (invalid-name)
+tsercom/caller_id/caller_id_extraction.py:85:4: W0622: Redefining built-in 'id' (redefined-builtin)
+tsercom/caller_id/caller_id_extraction.py:60:12: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/caller_id/caller_id_extraction.py:65:12: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/caller_id/caller_id_extraction.py:124:8: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/caller_id/caller_id_extraction.py:135:8: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/caller_id/caller_id_extraction.py:147:8: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/caller_id/caller_id_extraction.py:156:8: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+************* Module tsercom.discovery.service_connector
+tsercom/discovery/service_connector.py:63:4: R0903: Too few public methods (0/2) (too-few-public-methods)
+tsercom/discovery/service_connector.py:288:4: C0116: Missing function or method docstring (missing-function-docstring)
+tsercom/discovery/service_connector.py:327:8: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/discovery/service_connector.py:335:16: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+tsercom/discovery/service_connector.py:340:12: W1203: Use lazy % formatting in logging functions (logging-fstring-interpolation)
+************* Module tsercom.discovery.discovery_host
+tsercom/discovery/discovery_host.py:183:15: W0718: Catching too general exception Exception (broad-exception-caught)
+tsercom/discovery/discovery_host.py:195:23: W0718: Catching too general exception Exception (broad-exception-caught)
+tsercom/discovery/discovery_host.py:276:4: C0116: Missing function or method docstring (missing-function-docstring)
+************* Module tsercom.discovery.mdns.instance_listener
+tsercom/discovery/mdns/instance_listener.py:286:4: C0116: Missing function or method docstring (missing-function-docstring)
+************* Module tsercom.discovery.mdns.record_publisher
+tsercom/discovery/mdns/record_publisher.py:26:0: R0902: Too many instance attributes (8/7) (too-many-instance-attributes)
+tsercom/discovery/mdns/record_publisher.py:33:4: R0913: Too many arguments (6/5) (too-many-arguments)
+tsercom/discovery/mdns/record_publisher.py:33:4: R0917: Too many positional arguments (6/5) (too-many-positional-arguments)
+tsercom/discovery/mdns/record_publisher.py:163:15: W0718: Catching too general exception Exception (broad-exception-caught)
+tsercom/discovery/mdns/record_publisher.py:115:4: R0912: Too many branches (14/12) (too-many-branches)
+************* Module tsercom.threading.multiprocess.default_multiprocess_queue_factory
+tsercom/threading/multiprocess/default_multiprocess_queue_factory.py:19:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module tsercom.threading.multiprocess.multiprocess_queue_factory
+tsercom/threading/multiprocess/multiprocess_queue_factory.py:21:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module tsercom.threading.multiprocess.torch_multiprocess_queue_factory
+tsercom/threading/multiprocess/torch_multiprocess_queue_factory.py:19:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module tsercom.threading.aio.rate_limiter
+tsercom/threading/aio/rate_limiter.py:14:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+tsercom/threading/aio/rate_limiter.py:35:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+tsercom/threading/aio/rate_limiter.py:86:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module tsercom.threading.aio.async_poller
+tsercom/threading/aio/async_poller.py:101:12: C0415: Import outside toplevel (tsercom.util.is_running_tracker.IsRunningTracker) (import-outside-toplevel)
+tsercom/threading/aio/async_poller.py:151:4: R0912: Too many branches (15/12) (too-many-branches)
+************* Module tsercom.api.split_process.split_runtime_factory_factory
+tsercom/api/split_process/split_runtime_factory_factory.py:67:4: R0914: Too many local variables (19/15) (too-many-locals)
+tsercom/api/split_process/split_runtime_factory_factory.py:67:4: R0912: Too many branches (16/12) (too-many-branches)
+************* Module tsercom.runtime.runtime_main
+tsercom/runtime/runtime_main.py:237:11: W0718: Catching too general exception Exception (broad-exception-caught)
+************* Module tsercom.runtime.runtime_config
+tsercom/runtime/runtime_config.py:52:4: R0913: Too many arguments (6/5) (too-many-arguments)
+tsercom/runtime/runtime_config.py:73:4: R0913: Too many arguments (6/5) (too-many-arguments)
+tsercom/runtime/runtime_config.py:103:4: R0913: Too many arguments (7/5) (too-many-arguments)
+************* Module tsercom.runtime.runtime_data_handler
+tsercom/runtime/runtime_data_handler.py:20:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module tsercom.runtime.runtime_data_handler_base
+tsercom/runtime/runtime_data_handler_base.py:123:8: C0415: Import outside toplevel (tsercom.threading.aio.global_event_loop.is_global_event_loop_set, tsercom.threading.aio.global_event_loop.get_global_event_loop) (import-outside-toplevel)
+tsercom/runtime/runtime_data_handler_base.py:211:23: W0718: Catching too general exception Exception (broad-exception-caught)
+tsercom/runtime/runtime_data_handler_base.py:251:4: R0912: Too many branches (18/12) (too-many-branches)
+tsercom/runtime/runtime_data_handler_base.py:684:8: W0236: Method '__aiter__' was expected to be 'non-async', found it instead as 'async' (invalid-overridden-method)
+************* Module tsercom.runtime.client.client_runtime_data_handler
+tsercom/runtime/client/client_runtime_data_handler.py:53:4: R0913: Too many arguments (6/5) (too-many-arguments)
+
+------------------------------------------------------------------
+Your code has been rated at 9.87/10 (previous run: 9.87/10, +0.00)

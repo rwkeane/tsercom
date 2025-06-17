@@ -104,7 +104,7 @@ def test_dense_tensor_serialization_deserialization(  # Added Any for mocker and
         # Create bool tensor with mixed True/False, or specific cases for scalar/empty
         if not shape:  # scalar
             original_tensor = torch.tensor(
-                np.random.choice([True, False]), dtype=torch.bool
+                bool(np.random.choice([True, False])), dtype=torch.bool
             )
         elif 0 in shape:  # empty
             original_tensor = torch.empty(shape, dtype=torch.bool)

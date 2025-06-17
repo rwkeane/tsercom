@@ -1,7 +1,7 @@
 """Factory for creating split-process runtime factories and handles."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, TypeVar, get_args
+from typing import Tuple, TypeVar, get_args, Any
 
 import torch
 
@@ -119,7 +119,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                             break
 
         # Declare data_event_queue_factory with the base type for mypy
-        data_event_queue_factory: MultiprocessQueueFactory
+        data_event_queue_factory: MultiprocessQueueFactory[Any]
 
         uses_torch_tensor = False
         if (
@@ -129,12 +129,14 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             uses_torch_tensor = True
 
         if uses_torch_tensor:
-            data_event_queue_factory = TorchMultiprocessQueueFactory()
+            data_event_queue_factory = TorchMultiprocessQueueFactory[Any]()
         else:
-            data_event_queue_factory = DefaultMultiprocessQueueFactory()
+            data_event_queue_factory = DefaultMultiprocessQueueFactory[Any]()
 
         # Command queues always use the default factory
-        command_queue_factory = DefaultMultiprocessQueueFactory()
+        command_queue_factory: MultiprocessQueueFactory[RuntimeCommand] = (
+            DefaultMultiprocessQueueFactory()
+        )
         # --- End dynamic queue factory selection ---
 
         event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]
