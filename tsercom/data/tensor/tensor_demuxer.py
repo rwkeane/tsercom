@@ -3,29 +3,22 @@ Provides the TensorDemuxer class for aggregating granular tensor updates.
 """
 
 import abc
-import asyncio  # Added for asyncio.Lock
-import bisect  # For sorted list operations
+import asyncio
+import bisect
 import datetime
-from typing import List, Tuple, Optional  # For type hints
+from typing import (
+    List,
+    Tuple,
+    Optional,
+)
 
 import torch
-
-
-# Type alias for an explicit update received for a given timestamp
-ExplicitUpdate = Tuple[int, float]
 
 
 class TensorDemuxer:
     """
     Aggregates granular tensor index updates back into complete tensor objects.
-
-    Handles out-of-order updates by maintaining separate tensor states for
-    different timestamps and notifies a client upon changes to any tensor.
-    When a new timestamp is encountered sequentially, its initial state is based
-    on the latest known tensor state prior to that new timestamp.
-    Out-of-order updates that change past states will trigger a forward cascade
-    to re-evaluate subsequent tensor states.
-    Public methods are async and protected by an asyncio.Lock.
+    Internal storage for explicit updates per timestamp uses torch.Tensors for efficiency.
     """
 
     class Client(abc.ABC):  # pylint: disable=too-few-public-methods
@@ -36,7 +29,7 @@ class TensorDemuxer:
         @abc.abstractmethod
         async def on_tensor_changed(
             self, tensor: torch.Tensor, timestamp: datetime.datetime
-        ) -> None:  # Changed to async def
+        ) -> None:
             """
             Called when a tensor for a given timestamp is created or modified.
             """
@@ -47,15 +40,6 @@ class TensorDemuxer:
         tensor_length: int,
         data_timeout_seconds: float = 60.0,
     ):
-        """
-        Initializes the TensorDemuxer.
-
-        Args:
-            client: The client to notify of tensor changes.
-            tensor_length: The expected length of the tensors being reconstructed.
-            data_timeout_seconds: How long to keep tensor data for a specific timestamp
-                                 before it's considered stale.
-        """
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
         if data_timeout_seconds <= 0:
@@ -64,91 +48,85 @@ class TensorDemuxer:
         self.__client = client
         self.__tensor_length = tensor_length
         self.__data_timeout_seconds = data_timeout_seconds
-        self._tensor_states: List[
-            Tuple[datetime.datetime, torch.Tensor, List[ExplicitUpdate]]
+        self.__tensor_states: List[
+            Tuple[
+                datetime.datetime,
+                torch.Tensor,
+                Tuple[torch.Tensor, torch.Tensor],
+            ]
         ] = []
-        self._latest_update_timestamp: Optional[datetime.datetime] = None
-        self._lock: asyncio.Lock = asyncio.Lock()
+        self.__latest_update_timestamp: Optional[datetime.datetime] = None
+        self.__lock: asyncio.Lock = asyncio.Lock()
 
     @property
-    def _client(self) -> "TensorDemuxer.Client":
+    def client(self) -> "TensorDemuxer.Client":
         return self.__client
 
     @property
-    def _tensor_length(self) -> int:
+    def tensor_length(self) -> int:
         return self.__tensor_length
 
     def _cleanup_old_data(self) -> None:
         # Internal method, assumes lock is held by caller
-        if not self._latest_update_timestamp or not self._tensor_states:
+        if not self.__latest_update_timestamp or not self.__tensor_states:
             return
         timeout_delta = datetime.timedelta(seconds=self.__data_timeout_seconds)
-        cutoff_timestamp = self._latest_update_timestamp - timeout_delta
+        cutoff_timestamp = self.__latest_update_timestamp - timeout_delta
         keep_from_index = bisect.bisect_left(
-            self._tensor_states, cutoff_timestamp, key=lambda x: x[0]
+            self.__tensor_states, cutoff_timestamp, key=lambda x: x[0]
         )
         if keep_from_index > 0:
-            self._tensor_states = self._tensor_states[keep_from_index:]
+            self.__tensor_states = self.__tensor_states[keep_from_index:]
 
     async def on_update_received(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
-    ) -> None:  # Already async
-        """
-        Handles a granular update to a specific index of the tensor at a given timestamp.
-
-        Updates internal tensor states, notifies client of changes, and handles
-        out-of-order updates by cascading changes to subsequent tensor states.
-        Old data beyond the timeout window is cleaned up.
-        """
-        async with self._lock:  # Added lock
-            if not 0 <= tensor_index < self.__tensor_length:  # C0325 fix
+    ) -> None:
+        async with self.__lock:
+            if not 0 <= tensor_index < self.__tensor_length:
                 return
 
             if (
-                self._latest_update_timestamp is None
-                or timestamp > self._latest_update_timestamp
+                self.__latest_update_timestamp is None
+                or timestamp > self.__latest_update_timestamp
             ):
-                self._latest_update_timestamp = timestamp
+                self.__latest_update_timestamp = timestamp
 
             self._cleanup_old_data()
 
-            if self._latest_update_timestamp:
+            if self.__latest_update_timestamp:
                 current_cutoff = (
-                    self._latest_update_timestamp
+                    self.__latest_update_timestamp
                     - datetime.timedelta(seconds=self.__data_timeout_seconds)
                 )
                 if timestamp < current_cutoff:
                     return
 
             insertion_point = bisect.bisect_left(
-                self._tensor_states, timestamp, key=lambda x: x[0]
+                self.__tensor_states, timestamp, key=lambda x: x[0]
             )
 
             current_calculated_tensor: torch.Tensor
-            explicit_updates_for_ts: List[ExplicitUpdate]
+            explicit_indices: torch.Tensor
+            explicit_values: torch.Tensor
             is_new_timestamp_entry = False
             idx_of_processed_ts = -1
-            value_actually_changed_tensor = False  # Renamed from initial_processing_tensor_changed for clarity
+            value_actually_changed_tensor = False
 
             if (
-                insertion_point < len(self._tensor_states)
-                and self._tensor_states[insertion_point][0] == timestamp
+                insertion_point < len(self.__tensor_states)
+                and self.__tensor_states[insertion_point][0] == timestamp
             ):
                 is_new_timestamp_entry = False
                 idx_of_processed_ts = insertion_point
                 (
                     _,
                     current_calculated_tensor,
-                    explicit_updates_for_ts,
-                ) = self._tensor_states[  # current_calculated_tensor is a direct reference here
-                    idx_of_processed_ts
-                ]
-                current_calculated_tensor = (
-                    current_calculated_tensor.clone()
-                )  # Clone for modification
-                explicit_updates_for_ts = list(
-                    explicit_updates_for_ts
-                )  # Clone for modification
+                    (explicit_indices, explicit_values),
+                ) = self.__tensor_states[idx_of_processed_ts]
+
+                current_calculated_tensor = current_calculated_tensor.clone()
+                explicit_indices = explicit_indices.clone()
+                explicit_values = explicit_values.clone()
             else:
                 is_new_timestamp_entry = True
                 if insertion_point == 0:
@@ -156,126 +134,143 @@ class TensorDemuxer:
                         self.__tensor_length, dtype=torch.float32
                     )
                 else:
-                    current_calculated_tensor = self._tensor_states[
+                    current_calculated_tensor = self.__tensor_states[
                         insertion_point - 1
-                    ][
-                        1
-                    ].clone()  # Inherit from predecessor
-                explicit_updates_for_ts = []
+                    ][1].clone()
 
-            # Determine if this specific update changes the tensor's calculated value
-            if current_calculated_tensor[tensor_index].item() != value:
-                current_calculated_tensor[tensor_index] = value
-                value_actually_changed_tensor = True
+                explicit_indices = torch.empty(0, dtype=torch.int64)
+                explicit_values = torch.empty(0, dtype=torch.float32)
 
-            # Update the list of explicit updates for this timestamp
-            found_existing_explicit_update = False
-            for i, (idx, val_existing) in enumerate(explicit_updates_for_ts):
-                if idx == tensor_index:
-                    if (
-                        val_existing != value
-                    ):  # Also check if value changed for existing explicit update
-                        explicit_updates_for_ts[i] = (tensor_index, value)
-                        # value_actually_changed_tensor might already be true, this ORs with it
-                        value_actually_changed_tensor = True
-                    found_existing_explicit_update = True
-                    break
-            if not found_existing_explicit_update:
-                explicit_updates_for_ts.append((tensor_index, value))
-                # If we add a new explicit update, the tensor composition effectively changes
-                value_actually_changed_tensor = True
+            current_update_idx_tensor = torch.tensor(
+                [tensor_index], dtype=torch.int64
+            )
+            current_update_val_tensor = torch.tensor(
+                [value], dtype=torch.float32
+            )
 
-            # Store the new state and notify client
-            if is_new_timestamp_entry:
-                self._tensor_states.insert(
-                    insertion_point,
-                    (
-                        timestamp,
-                        current_calculated_tensor,
-                        explicit_updates_for_ts,
-                    ),
+            match_mask = explicit_indices == current_update_idx_tensor
+            existing_explicit_entry_indices = match_mask.nonzero(
+                as_tuple=True
+            )[0]
+
+            if existing_explicit_entry_indices.numel() > 0:
+                entry_pos = existing_explicit_entry_indices[0]
+                if explicit_values[entry_pos].item() != value:
+                    explicit_values[entry_pos] = current_update_val_tensor
+            else:
+                explicit_indices = torch.cat(
+                    (explicit_indices, current_update_idx_tensor)
                 )
+                explicit_values = torch.cat(
+                    (explicit_values, current_update_val_tensor)
+                )
+
+            base_for_current_calc: torch.Tensor
+            if is_new_timestamp_entry:
+                if insertion_point == 0:
+                    base_for_current_calc = torch.zeros(
+                        self.__tensor_length, dtype=torch.float32
+                    )
+                else:
+                    base_for_current_calc = self.__tensor_states[
+                        insertion_point - 1
+                    ][1].clone()
+            else:
+                if insertion_point == 0:
+                    base_for_current_calc = torch.zeros(
+                        self.__tensor_length, dtype=torch.float32
+                    )
+                else:
+                    base_for_current_calc = self.__tensor_states[
+                        insertion_point - 1
+                    ][1].clone()
+
+            new_calculated_tensor_for_current_ts = (
+                base_for_current_calc.clone()
+            )
+            if explicit_indices.numel() > 0:
+                new_calculated_tensor_for_current_ts = (
+                    new_calculated_tensor_for_current_ts.index_put_(
+                        (explicit_indices,), explicit_values
+                    )
+                )
+
+            if not torch.equal(
+                new_calculated_tensor_for_current_ts, current_calculated_tensor
+            ):
+                value_actually_changed_tensor = True
+
+            if is_new_timestamp_entry and explicit_indices.numel() > 0:
+                value_actually_changed_tensor = True
+
+            current_calculated_tensor = new_calculated_tensor_for_current_ts
+            new_state_tuple = (
+                timestamp,
+                current_calculated_tensor,
+                (explicit_indices, explicit_values),
+            )
+            if is_new_timestamp_entry:
+                self.__tensor_states.insert(insertion_point, new_state_tuple)
                 idx_of_processed_ts = insertion_point
-                # For new entries, always notify if there were any explicit updates
-                if (
-                    explicit_updates_for_ts
-                ):  # Ensure not notifying for an empty initial state if no updates came
+                if value_actually_changed_tensor:
                     await self.__client.on_tensor_changed(
                         current_calculated_tensor.clone(), timestamp
                     )
-            else:  # Existing timestamp entry
-                # Update stored state
-                self._tensor_states[idx_of_processed_ts] = (
-                    timestamp,
-                    current_calculated_tensor,
-                    explicit_updates_for_ts,
-                )
-                # Notify if the tensor value changed OR if it was an existing entry that got processed
-                # (The latter part ensures component test compatibility where basis of calc changes)
-                await self.__client.on_tensor_changed(
-                    current_calculated_tensor.clone(), timestamp
-                )
+            else:
+                self.__tensor_states[idx_of_processed_ts] = new_state_tuple
+                if value_actually_changed_tensor:
+                    await self.__client.on_tensor_changed(
+                        current_calculated_tensor.clone(), timestamp
+                    )
 
-            # Determine if cascade to subsequent timestamps is needed
-            # Cascade if the actual tensor value changed OR if a new entry was inserted that's not last.
             needs_cascade = value_actually_changed_tensor
-            if (
-                is_new_timestamp_entry
-                and idx_of_processed_ts < len(self._tensor_states) - 1
-            ):
-                needs_cascade = True
 
             if needs_cascade:
                 for i in range(
-                    idx_of_processed_ts + 1, len(self._tensor_states)
+                    idx_of_processed_ts + 1, len(self.__tensor_states)
                 ):
-                    ts_next, old_tensor_next, explicit_updates_for_ts_next = (
-                        self._tensor_states[i]
+                    ts_next, old_tensor_next, (next_indices, next_values) = (
+                        self.__tensor_states[i]
                     )
-                    predecessor_tensor_for_ts_next = self._tensor_states[
+
+                    predecessor_tensor_for_ts_next = self.__tensor_states[
                         i - 1
                     ][1]
+
                     new_calculated_tensor_next = (
                         predecessor_tensor_for_ts_next.clone()
                     )
-                    for idx, val in explicit_updates_for_ts_next:
-                        if 0 <= idx < self.__tensor_length:
-                            new_calculated_tensor_next[idx] = val
+                    if next_indices.numel() > 0:
+                        new_calculated_tensor_next = (
+                            new_calculated_tensor_next.index_put_(
+                                (next_indices,), next_values
+                            )
+                        )
+
                     if not torch.equal(
                         new_calculated_tensor_next, old_tensor_next
                     ):
-                        self._tensor_states[i] = (
+                        self.__tensor_states[i] = (
                             ts_next,
                             new_calculated_tensor_next,
-                            explicit_updates_for_ts_next,
+                            (next_indices, next_values),
                         )
                         await self.__client.on_tensor_changed(
                             new_calculated_tensor_next.clone(), ts_next
-                        )  # Await client
+                        )
                     else:
                         break
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Optional[torch.Tensor]:  # Changed to async def
-        """
-        Retrieves a clone of the calculated tensor state for a specific timestamp.
-
-        Args:
-            timestamp: The exact timestamp to look for.
-
-        Returns:
-            A clone of the tensor if the timestamp exists in history, else None.
-        """
-        async with self._lock:  # Added lock
-            # Use bisect_left with a key to compare timestamp with the first element of the tuples
+    ) -> Optional[torch.Tensor]:
+        async with self.__lock:
             i = bisect.bisect_left(
-                self._tensor_states, timestamp, key=lambda x: x[0]
+                self.__tensor_states, timestamp, key=lambda x: x[0]
             )
             if (
-                i != len(self._tensor_states)
-                and self._tensor_states[i][0] == timestamp
+                i != len(self.__tensor_states)
+                and self.__tensor_states[i][0] == timestamp
             ):
-                # Return from the calculated tensor state (second element of the tuple)
-                return self._tensor_states[i][1].clone()
+                return self.__tensor_states[i][1].clone()
             return None

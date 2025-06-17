@@ -434,10 +434,13 @@ async def test_discovery_host_handles_mdns_factory_exception_gracefully(
         )
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
+        log_args = mock_log_error.call_args.args
         assert (
-            "Failed to initialize or start discovery listener: Factory boom!"
-            in mock_log_error.call_args.args[0]
+            log_args[0]
+            == "Failed to initialize or start discovery listener: %s"
         )
+        assert isinstance(log_args[1], RuntimeError)
+        assert str(log_args[1]) == "Factory boom!"
 
 
 @pytest.mark.asyncio
@@ -474,11 +477,13 @@ async def test_discovery_host_handles_listener_start_exception_gracefully(
         mock_listener_product_failing_start.start.assert_awaited_once()  # Assert awaited
         assert host._DiscoveryHost__discoverer is None  # type: ignore[attr-defined]
         mock_log_error.assert_called_once()
-        # The error message now includes "or start"
+        log_args = mock_log_error.call_args.args
         assert (
-            "Failed to initialize or start discovery listener: Listener start boom!"
-            in mock_log_error.call_args.args[0]
+            log_args[0]
+            == "Failed to initialize or start discovery listener: %s"
         )
+        assert isinstance(log_args[1], RuntimeError)
+        assert str(log_args[1]) == "Listener start boom!"
 
 
 # Note: MdnsListenerFactory and DiscoveryHost should already be imported in the target file.
