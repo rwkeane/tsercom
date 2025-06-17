@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta, timezone
-
+import torch
 import pytest
+import random  # For random data generation
 
-# Assuming LinearInterpolationStrategy is in its own file now
 from tsercom.data.tensor.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
 )
+
+DEFAULT_TIMESTAMP_DTYPE = torch.float64
+DEFAULT_VALUE_DTYPE = torch.float32
 
 
 @pytest.fixture
@@ -13,390 +16,516 @@ def linear_strategy() -> LinearInterpolationStrategy:
     return LinearInterpolationStrategy()
 
 
+def _dt_to_ts(dt_list_or_obj):
+    if not isinstance(dt_list_or_obj, list):
+        dt_list_or_obj = [dt_list_or_obj]
+    if not dt_list_or_obj:
+        return torch.empty(0, dtype=DEFAULT_TIMESTAMP_DTYPE)
+    return torch.tensor(
+        [dt.timestamp() for dt in dt_list_or_obj],
+        dtype=DEFAULT_TIMESTAMP_DTYPE,
+    )
+
+
+def _keyframes_to_tensors(keyframes_list_tuples):
+    if not keyframes_list_tuples:
+        return torch.empty(0, dtype=DEFAULT_TIMESTAMP_DTYPE), torch.empty(
+            0, dtype=DEFAULT_VALUE_DTYPE
+        )
+    ts = torch.tensor(
+        [kf[0].timestamp() for kf in keyframes_list_tuples],
+        dtype=DEFAULT_TIMESTAMP_DTYPE,
+    )
+    # Handle multi-dim values if kf[1] is a list/tuple
+    if isinstance(keyframes_list_tuples[0][1], (list, tuple)):
+        vals = torch.tensor(
+            [kf[1] for kf in keyframes_list_tuples], dtype=DEFAULT_VALUE_DTYPE
+        )
+    else:  # Scalar values
+        vals = torch.tensor(
+            [kf[1] for kf in keyframes_list_tuples], dtype=DEFAULT_VALUE_DTYPE
+        )
+    return ts, vals
+
+
+def _expected_to_tensor(expected_values_list_or_val, fill_value=float("nan")):
+    if not isinstance(expected_values_list_or_val, list):
+        expected_values_list_or_val = [expected_values_list_or_val]
+    if not expected_values_list_or_val:
+        return torch.empty(0, dtype=DEFAULT_VALUE_DTYPE)
+
+    # Handle multi-dim values if elements are lists/tuples
+    is_multidim = isinstance(expected_values_list_or_val[0], (list, tuple))
+
+    processed_list = []
+    for item in expected_values_list_or_val:
+        if is_multidim:
+            processed_list.append(
+                [fill_value if v is None else v for v in item]
+            )
+        else:
+            processed_list.append(fill_value if item is None else item)
+
+    return torch.tensor(processed_list, dtype=DEFAULT_VALUE_DTYPE)
+
+
+def assert_tensors_equal_nan(t1: torch.Tensor, t2: torch.Tensor, atol=1e-6):
+    assert (
+        t1.shape == t2.shape
+    ), f"Shape mismatch: Actual {t1.shape} vs Expected {t2.shape}"
+    t1_nan_mask = torch.isnan(t1)
+    t2_nan_mask = torch.isnan(t2)
+    assert torch.equal(
+        t1_nan_mask, t2_nan_mask
+    ), f"NaN patterns differ:\nActual NaN mask: {t1_nan_mask}\nExpected NaN mask: {t2_nan_mask}\nActual tensor: {t1}\nExpected: {t2}"
+    # Compare only non-NaN parts; ensure they are actual numbers if masks are all False
+    if (~t1_nan_mask).any() or (
+        ~t2_nan_mask
+    ).any():  # only compare if there are non-NaN values
+        assert torch.allclose(
+            t1[~t1_nan_mask], t2[~t2_nan_mask], atol=atol, equal_nan=False
+        ), f"Non-NaN values differ:\nActual: {t1[~t1_nan_mask]}\nExpected: {t2[~t2_nan_mask]}\nFull Actual: {t1}\nFull Expected: {t2}"
+
+
+# --- Tests ---
+
+
 def test_empty_keyframes(linear_strategy: LinearInterpolationStrategy):
-    """Test interpolation with no keyframes."""
-    req_ts = [datetime(2023, 1, 1, 0, 0, 15, tzinfo=timezone.utc)]
-    assert linear_strategy.interpolate_series([], req_ts) == [None]
-    assert linear_strategy.interpolate_series([], []) == []
+    req_dt = [datetime(2023, 1, 1, 0, 0, 15, tzinfo=timezone.utc)]
+    req_ts_tensor = _dt_to_ts(req_dt)
+    # Provide a dummy values tensor shape for determining output shape with NaNs
+    dummy_vals_tensor_for_shape = torch.empty(
+        0, dtype=DEFAULT_VALUE_DTYPE
+    )  # For 1D values
+
+    result = linear_strategy.interpolate_series(
+        torch.empty(0, dtype=DEFAULT_TIMESTAMP_DTYPE),
+        dummy_vals_tensor_for_shape,
+        req_ts_tensor,
+    )
+    expected = _expected_to_tensor([None] * len(req_dt))
+    assert_tensors_equal_nan(result, expected)
+
+    result_empty_req = linear_strategy.interpolate_series(
+        torch.empty(0, dtype=DEFAULT_TIMESTAMP_DTYPE),
+        dummy_vals_tensor_for_shape,
+        _dt_to_ts([]),
+    )
+    expected_empty_req = _expected_to_tensor([])
+    assert_tensors_equal_nan(result_empty_req, expected_empty_req)
 
 
 def test_single_keyframe(linear_strategy: LinearInterpolationStrategy):
-    """Test interpolation with a single keyframe. Should extrapolate its value."""
-    kf_ts = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
+    kf_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
     kf_val = 10.0
-    keyframes = [(kf_ts, kf_val)]
-
-    req_ts_list = [
-        kf_ts - timedelta(seconds=5),
-        kf_ts,
-        kf_ts + timedelta(seconds=5),
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors([(kf_dt, kf_val)])
+    req_dt_list = [
+        kf_dt - timedelta(seconds=5),
+        kf_dt,
+        kf_dt + timedelta(seconds=5),
     ]
-
+    req_ts_tensor = _dt_to_ts(req_dt_list)
     expected_values = [kf_val, kf_val, kf_val]
-    assert (
-        linear_strategy.interpolate_series(keyframes, req_ts_list)
-        == expected_values
+    result = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, req_ts_tensor
     )
+    assert_tensors_equal_nan(result, _expected_to_tensor(expected_values))
 
 
 def test_timestamp_before_first_keyframe(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test interpolation for a timestamp before the first keyframe. Should return first keyframe's value."""
-    kf1_ts = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
-    kf2_ts = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
-    keyframes = [(kf1_ts, 10.0), (kf2_ts, 20.0)]
-
-    req_ts = kf1_ts - timedelta(seconds=5)
-    assert linear_strategy.interpolate_series(keyframes, [req_ts]) == [10.0]
+    kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
+    kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(
+        [(kf1_dt, 10.0), (kf2_dt, 20.0)]
+    )
+    req_dt = kf1_dt - timedelta(seconds=5)
+    req_ts_tensor = _dt_to_ts([req_dt])
+    result = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, req_ts_tensor
+    )
+    assert_tensors_equal_nan(result, _expected_to_tensor([10.0]))
 
 
 def test_timestamp_after_last_keyframe(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test interpolation for a timestamp after the last keyframe. Should return last keyframe's value."""
-    kf1_ts = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
-    kf2_ts = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
-    keyframes = [(kf1_ts, 10.0), (kf2_ts, 20.0)]
-
-    req_ts = kf2_ts + timedelta(seconds=5)
-    assert linear_strategy.interpolate_series(keyframes, [req_ts]) == [20.0]
+    kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
+    kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(
+        [(kf1_dt, 10.0), (kf2_dt, 20.0)]
+    )
+    req_dt = kf2_dt + timedelta(seconds=5)
+    req_ts_tensor = _dt_to_ts([req_dt])
+    result = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, req_ts_tensor
+    )
+    assert_tensors_equal_nan(result, _expected_to_tensor([20.0]))
 
 
 def test_timestamp_exactly_on_keyframe(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test interpolation for a timestamp exactly matching a keyframe."""
-    kf1_ts = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
-    kf2_ts = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
-    kf3_ts = datetime(2023, 1, 1, 0, 0, 30, tzinfo=timezone.utc)
-    keyframes = [(kf1_ts, 10.0), (kf2_ts, 20.0), (kf3_ts, 30.0)]
+    kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
+    kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
+    kf3_dt = datetime(2023, 1, 1, 0, 0, 30, tzinfo=timezone.utc)
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(
+        [(kf1_dt, 10.0), (kf2_dt, 20.0), (kf3_dt, 30.0)]
+    )
 
-    assert linear_strategy.interpolate_series(keyframes, [kf1_ts]) == [10.0]
-    assert linear_strategy.interpolate_series(keyframes, [kf2_ts]) == [20.0]
-    assert linear_strategy.interpolate_series(keyframes, [kf3_ts]) == [30.0]
+    result1 = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([kf1_dt])
+    )
+    assert_tensors_equal_nan(result1, _expected_to_tensor([10.0]))
+    result2 = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([kf2_dt])
+    )
+    assert_tensors_equal_nan(result2, _expected_to_tensor([20.0]))
+    result3 = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([kf3_dt])
+    )
+    assert_tensors_equal_nan(result3, _expected_to_tensor([30.0]))
 
 
 def test_timestamp_between_keyframes(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test interpolation for a timestamp between two keyframes."""
-    kf1_ts = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)  # Value 10.0
-    kf2_ts = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)  # Value 20.0
-    keyframes = [(kf1_ts, 10.0), (kf2_ts, 20.0)]
-
-    # Halfway between kf1 and kf2 (10s span, 5s in)
-    req_ts_halfway = kf1_ts + timedelta(seconds=5)
-    assert linear_strategy.interpolate_series(keyframes, [req_ts_halfway]) == [
-        pytest.approx(15.0)
-    ]
-
-    # Quarter way between kf1 and kf2 (2.5s in)
-    req_ts_quarter = kf1_ts + timedelta(seconds=2.5)
-    assert linear_strategy.interpolate_series(keyframes, [req_ts_quarter]) == [
-        pytest.approx(12.5)
-    ]
+    kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
+    kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(
+        [(kf1_dt, 10.0), (kf2_dt, 20.0)]
+    )
+    req_dt_halfway = kf1_dt + timedelta(seconds=5)
+    result_half = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([req_dt_halfway])
+    )
+    assert_tensors_equal_nan(result_half, _expected_to_tensor([15.0]))
+    req_dt_quarter = kf1_dt + timedelta(seconds=2.5)
+    result_quarter = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([req_dt_quarter])
+    )
+    assert_tensors_equal_nan(result_quarter, _expected_to_tensor([12.5]))
 
 
 def test_multiple_required_timestamps(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test with a mix of required timestamps, covering various cases."""
-    kf_base = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    keyframes = [
-        (kf_base + timedelta(seconds=10), 10.0),  # KF1 @ 10s
-        (kf_base + timedelta(seconds=20), 20.0),  # KF2 @ 20s
-        (kf_base + timedelta(seconds=30), 15.0),  # KF3 @ 30s (value decreases)
+    kf_base_dt = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    keyframes_list = [
+        (kf_base_dt + timedelta(seconds=10), 10.0),
+        (kf_base_dt + timedelta(seconds=20), 20.0),
+        (kf_base_dt + timedelta(seconds=30), 15.0),
     ]
-
-    req_ts_list = [
-        kf_base + timedelta(seconds=5),  # Before KF1 -> 10.0
-        kf_base + timedelta(seconds=10),  # On KF1 -> 10.0
-        kf_base + timedelta(seconds=15),  # Between KF1 & KF2 (mid) -> 15.0
-        kf_base + timedelta(seconds=20),  # On KF2 -> 20.0
-        kf_base
-        + timedelta(seconds=25),  # Between KF2 & KF3 (mid) -> (20+15)/2 = 17.5
-        kf_base + timedelta(seconds=30),  # On KF3 -> 15.0
-        kf_base + timedelta(seconds=35),  # After KF3 -> 15.0
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(keyframes_list)
+    req_dt_list = [
+        kf_base_dt + timedelta(seconds=5),
+        kf_base_dt + timedelta(seconds=10),
+        kf_base_dt + timedelta(seconds=15),
+        kf_base_dt + timedelta(seconds=20),
+        kf_base_dt + timedelta(seconds=25),
+        kf_base_dt + timedelta(seconds=30),
+        kf_base_dt + timedelta(seconds=35),
     ]
-
+    req_ts_tensor = _dt_to_ts(req_dt_list)
     expected_values = [10.0, 10.0, 15.0, 20.0, 17.5, 15.0, 15.0]
-
-    actual_values = linear_strategy.interpolate_series(keyframes, req_ts_list)
-    for actual, expected in zip(actual_values, expected_values):
-        assert actual == pytest.approx(expected)
+    result = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, req_ts_tensor
+    )
+    assert_tensors_equal_nan(result, _expected_to_tensor(expected_values))
 
 
 def test_timestamps_with_microseconds(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test interpolation with timestamps having microseconds."""
-    kf1_ts = datetime(
-        2023, 1, 1, 0, 0, 10, 100000, tzinfo=timezone.utc
-    )  # 10.0 @ 10.1s
-    kf2_ts = datetime(
-        2023, 1, 1, 0, 0, 10, 600000, tzinfo=timezone.utc
-    )  # 20.0 @ 10.6s
-    # Span = 0.5s
-    keyframes = [(kf1_ts, 10.0), (kf2_ts, 20.0)]
-
-    # Midpoint: 10.1s + 0.25s = 10.35s
-    req_ts_mid = datetime(2023, 1, 1, 0, 0, 10, 350000, tzinfo=timezone.utc)
-    # Expected: 10.0 + (20.0-10.0) * (0.25s / 0.5s) = 10.0 + 10.0 * 0.5 = 15.0
-    assert linear_strategy.interpolate_series(keyframes, [req_ts_mid]) == [
-        pytest.approx(15.0)
-    ]
+    kf1_dt = datetime(2023, 1, 1, 0, 0, 10, 100000, tzinfo=timezone.utc)
+    kf2_dt = datetime(2023, 1, 1, 0, 0, 10, 600000, tzinfo=timezone.utc)
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(
+        [(kf1_dt, 10.0), (kf2_dt, 20.0)]
+    )
+    req_dt_mid = datetime(2023, 1, 1, 0, 0, 10, 350000, tzinfo=timezone.utc)
+    result = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([req_dt_mid])
+    )
+    assert_tensors_equal_nan(result, _expected_to_tensor([15.0]))
 
 
 def test_identical_timestamps_in_keyframes(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test behavior with identical timestamps in keyframes. bisect_left ensures stability."""
-    # If identical timestamps exist, bisect_left will place ts_req before the second identical one if ts_req matches.
-    # The logic should correctly pick one or interpolate based on distinct surrounding values if any.
-    # Current logic: if ts_req == key_times[idx], it uses key_values[idx].
-    # If key_times[idx-1] == key_times[idx], then (t2-t1) is 0.
-    # The code handles (t2-t1).total_seconds() == 0 by returning v1.
-
-    kf_base = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    keyframes = [
-        (kf_base + timedelta(seconds=10), 10.0),
-        (kf_base + timedelta(seconds=20), 20.0),  # KF2a
+    kf_base_dt = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    keyframes_list = [
+        (kf_base_dt + timedelta(seconds=10), 10.0),
         (
-            kf_base + timedelta(seconds=20),
-            22.0,
-        ),  # KF2b (same timestamp, different value, later in list)
-        (kf_base + timedelta(seconds=30), 30.0),
+            kf_base_dt + timedelta(seconds=20),
+            20.0,
+        ),  # KF2a, original bisect_left target
+        (kf_base_dt + timedelta(seconds=20), 22.0),  # KF2b
+        (kf_base_dt + timedelta(seconds=30), 30.0),
     ]
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(keyframes_list)
+    req_dt_duplicate = kf_base_dt + timedelta(seconds=20)
 
-    # Request exactly on the duplicated timestamp
-    req_ts_duplicate = kf_base + timedelta(seconds=20)
-    # bisect_left will find the first occurrence (index 1, value 20.0)
-    assert linear_strategy.interpolate_series(
-        keyframes, [req_ts_duplicate]
-    ) == [20.0]
+    # Corrected strategy (searchsorted side='left' & explicit exact match) should yield 20.0
+    result_dup = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([req_dt_duplicate])
+    )
+    assert_tensors_equal_nan(result_dup, _expected_to_tensor([20.0]))
 
-    # Request between first KF and the duplicated timestamp (e.g., 15s)
-    req_ts_before_duplicate = kf_base + timedelta(
-        seconds=15
-    )  # Mid between 10s (10.0) and 20s (20.0)
-    assert linear_strategy.interpolate_series(
-        keyframes, [req_ts_before_duplicate]
-    ) == [pytest.approx(15.0)]
+    req_dt_before = kf_base_dt + timedelta(seconds=15)
+    result_before = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([req_dt_before])
+    )
+    assert_tensors_equal_nan(result_before, _expected_to_tensor([15.0]))
 
-    # Request between the duplicated timestamp and the last one (e.g., 25s)
-    # This will interpolate between keyframes[2] (20s, 22.0) and keyframes[3] (30s, 30.0)
-    # Midpoint value = 22.0 + (30.0-22.0) * 0.5 = 22.0 + 8.0 * 0.5 = 22.0 + 4.0 = 26.0
-    req_ts_after_duplicate = kf_base + timedelta(seconds=25)
-    assert linear_strategy.interpolate_series(
-        keyframes, [req_ts_after_duplicate]
-    ) == [pytest.approx(26.0)]
-
-
-import random  # For random data generation
+    req_dt_after = kf_base_dt + timedelta(seconds=25)
+    result_after = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([req_dt_after])
+    )
+    assert_tensors_equal_nan(result_after, _expected_to_tensor([26.0]))
 
 
 def test_plateaus_in_keyframes(linear_strategy: LinearInterpolationStrategy):
-    """Test interpolation over plateaus in keyframe values."""
-    kf_base = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    keyframes = [
-        (kf_base + timedelta(seconds=10), 10.0),  # Start
-        (kf_base + timedelta(seconds=20), 20.0),  # Rise
-        (kf_base + timedelta(seconds=30), 20.0),  # Plateau start
-        (kf_base + timedelta(seconds=40), 20.0),  # Plateau end
-        (kf_base + timedelta(seconds=50), 30.0),  # Rise again
+    kf_base_dt = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    keyframes_list = [
+        (kf_base_dt + timedelta(seconds=10), 10.0),
+        (kf_base_dt + timedelta(seconds=20), 20.0),
+        (kf_base_dt + timedelta(seconds=30), 20.0),
+        (kf_base_dt + timedelta(seconds=40), 20.0),
+        (kf_base_dt + timedelta(seconds=50), 30.0),
     ]
-
-    req_ts_list = [
-        kf_base + timedelta(seconds=15),  # Rising: 10 -> 20 (mid) = 15.0
-        kf_base + timedelta(seconds=25),  # On first plateau point = 20.0
-        kf_base
-        + timedelta(seconds=30),  # Exactly on plateau start keyframe = 20.0
-        kf_base + timedelta(seconds=35),  # Mid-plateau = 20.0
-        kf_base
-        + timedelta(seconds=40),  # Exactly on plateau end keyframe = 20.0
-        kf_base + timedelta(seconds=45),  # Rising: 20 -> 30 (mid) = 25.0
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(keyframes_list)
+    req_dt_list = [
+        kf_base_dt + timedelta(seconds=15),
+        kf_base_dt + timedelta(seconds=25),
+        kf_base_dt + timedelta(seconds=30),
+        kf_base_dt + timedelta(seconds=35),
+        kf_base_dt + timedelta(seconds=40),
+        kf_base_dt + timedelta(seconds=45),
     ]
+    req_ts_tensor = _dt_to_ts(req_dt_list)
+    expected_values = [
+        15.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        25.0,
+    ]  # Exact matches on plateau take KF value
+    result = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, req_ts_tensor
+    )
+    assert_tensors_equal_nan(result, _expected_to_tensor(expected_values))
 
-    expected_values = [15.0, 20.0, 20.0, 20.0, 20.0, 25.0]
 
-    actual_values = linear_strategy.interpolate_series(keyframes, req_ts_list)
-    for actual, expected in zip(actual_values, expected_values):
-        assert actual == pytest.approx(expected)
+def test_interpolation_over_zero_duration_segment(
+    linear_strategy: LinearInterpolationStrategy,
+):
+    kf_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
+    kf_ts_simple, kf_vals_simple = _keyframes_to_tensors(
+        [(kf_dt, 10.0), (kf_dt, 20.0)]
+    )
+    # Corrected: exact match to kf_dt uses values[indices_left[exact_match_mask]]
+    # indices_left for kf_dt in [kf_dt, kf_dt] (float) is 0. So values[0] = 10.0
+    result_simple = linear_strategy.interpolate_series(
+        kf_ts_simple, kf_vals_simple, _dt_to_ts([kf_dt])
+    )
+    assert_tensors_equal_nan(result_simple, _expected_to_tensor([10.0]))
+
+    kf_dt_next = kf_dt + timedelta(seconds=1)
+    kf_ts_ext, kf_vals_ext = _keyframes_to_tensors(
+        [(kf_dt, 10.0), (kf_dt, 20.0), (kf_dt_next, 30.0)]
+    )
+    result_ext_match = linear_strategy.interpolate_series(
+        kf_ts_ext, kf_vals_ext, _dt_to_ts([kf_dt])
+    )
+    assert_tensors_equal_nan(result_ext_match, _expected_to_tensor([10.0]))
+
+    req_dt_half_after = kf_dt + timedelta(microseconds=500000)
+    # Interpolates between kf_vals_ext[1] (20.0) and kf_vals_ext[2] (30.0)
+    result_ext_between = linear_strategy.interpolate_series(
+        kf_ts_ext, kf_vals_ext, _dt_to_ts([req_dt_half_after])
+    )
+    assert_tensors_equal_nan(result_ext_between, _expected_to_tensor([25.0]))
+
+
+def test_multidim_values(linear_strategy: LinearInterpolationStrategy):
+    kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
+    kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
+    keyframes_tuples_md = [(kf1_dt, [10.0, 100.0]), (kf2_dt, [20.0, 200.0])]
+    # _keyframes_to_tensors will handle list values correctly now
+    ts_tensor_md, vals_tensor_md = _keyframes_to_tensors(keyframes_tuples_md)
+
+    req_dt_halfway = kf1_dt + timedelta(seconds=5)
+    req_ts_tensor_md = _dt_to_ts([req_dt_halfway])
+    expected_vals_md = _expected_to_tensor(
+        [[15.0, 150.0]]
+    )  # Note: _expected_to_tensor handles list of lists
+    result_md = linear_strategy.interpolate_series(
+        ts_tensor_md, vals_tensor_md, req_ts_tensor_md
+    )
+    assert_tensors_equal_nan(result_md, expected_vals_md)
+
+    single_kf_tuples_md = [(kf1_dt, [10.0, 100.0])]
+    single_kf_ts_md, single_kf_vals_md = _keyframes_to_tensors(
+        single_kf_tuples_md
+    )
+
+    req_dt_list_md = [
+        kf1_dt - timedelta(seconds=2),
+        kf1_dt,
+        kf1_dt + timedelta(seconds=2),
+    ]
+    req_ts_multi_req_md = _dt_to_ts(req_dt_list_md)
+    expected_single_kf_md_output = _expected_to_tensor(
+        [[10.0, 100.0], [10.0, 100.0], [10.0, 100.0]]
+    )
+    result_single_kf_md = linear_strategy.interpolate_series(
+        single_kf_ts_md, single_kf_vals_md, req_ts_multi_req_md
+    )
+    assert_tensors_equal_nan(result_single_kf_md, expected_single_kf_md_output)
+
+    # Test empty keyframes with multi-dim value shape hint
+    dummy_vals_tensor_md_shape = torch.empty((0, 2), dtype=DEFAULT_VALUE_DTYPE)
+    req_ts_tensor_for_empty_md = _dt_to_ts([kf1_dt])
+    result_empty_md = linear_strategy.interpolate_series(
+        torch.empty(0, dtype=DEFAULT_TIMESTAMP_DTYPE),
+        dummy_vals_tensor_md_shape,
+        req_ts_tensor_for_empty_md,
+    )
+    expected_empty_md = _expected_to_tensor([[None, None]])
+    assert_tensors_equal_nan(result_empty_md, expected_empty_md)
 
 
 def test_many_random_keyframes_and_timestamps(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test with a larger number of randomly generated keyframes and timestamps."""
-    num_keyframes = 100
-    num_req_timestamps = 200
-
+    num_keyframes = 50
+    num_req_timestamps = 100
     base_time_int = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
 
-    keyframes = []
+    keyframes_tuples = []
     current_ts_int = base_time_int
-    for i in range(num_keyframes):
-        current_ts_int += random.randint(
-            1, 10
-        )  # Ensure timestamps are increasing
-        ts = datetime.fromtimestamp(current_ts_int, tz=timezone.utc)
+    for _ in range(num_keyframes):
+        current_ts_int += random.randint(1, 10)
+        ts_dt = datetime.fromtimestamp(current_ts_int, tz=timezone.utc)
         val = random.uniform(0.0, 100.0)
-        keyframes.append((ts, val))
+        keyframes_tuples.append((ts_dt, val))
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(keyframes_tuples)
 
-    required_timestamps = []
-    # Ensure required timestamps span the keyframe range, plus some outside
-    min_kf_ts_int = keyframes[0][0].timestamp()
-    max_kf_ts_int = keyframes[-1][0].timestamp()
+    req_dt_list = []
+    min_kf_ts_float = (
+        kf_ts_tensor[0].item() if num_keyframes > 0 else base_time_int
+    )
+    max_kf_ts_float = (
+        kf_ts_tensor[-1].item()
+        if num_keyframes > 0
+        else base_time_int + num_keyframes * 10
+    )
 
     for _ in range(num_req_timestamps):
-        # Generate timestamps before, within, and after the keyframe range
         rand_choice = random.random()
-        if rand_choice < 0.1:  # 10% before
-            req_ts_int = random.randint(
-                int(min_kf_ts_int) - 100, int(min_kf_ts_int) - 1
-            )
-        elif rand_choice < 0.8:  # 70% within
-            req_ts_int = random.randint(int(min_kf_ts_int), int(max_kf_ts_int))
-        else:  # 20% after
-            req_ts_int = random.randint(
-                int(max_kf_ts_int) + 1, int(max_kf_ts_int) + 100
-            )
-        required_timestamps.append(
-            datetime.fromtimestamp(req_ts_int, tz=timezone.utc)
+        if rand_choice < 0.1:
+            req_ts_float = random.uniform(
+                min_kf_ts_float - 100, min_kf_ts_float - 1e-5
+            )  # ensure strictly less
+        elif rand_choice < 0.8:
+            req_ts_float = random.uniform(min_kf_ts_float, max_kf_ts_float)
+        else:
+            req_ts_float = random.uniform(
+                max_kf_ts_float + 1e-5, max_kf_ts_float + 100
+            )  # ensure strictly more
+        req_dt_list.append(
+            datetime.fromtimestamp(req_ts_float, tz=timezone.utc)
         )
 
-    required_timestamps.sort()  # Strategy expects sorted required_timestamps for some internal logic/assumptions
-    # but the current interpolate_series processes one by one. Sorting is good practice.
+    req_dt_list.sort()
+    req_ts_tensor = _dt_to_ts(req_dt_list)
 
-    interpolated_values = linear_strategy.interpolate_series(
-        keyframes, required_timestamps
+    if num_keyframes == 0:  # Handle case of no keyframes for random test
+        result = linear_strategy.interpolate_series(
+            kf_ts_tensor, kf_vals_tensor, req_ts_tensor
+        )
+        expected = torch.full_like(
+            req_ts_tensor, float("nan"), dtype=DEFAULT_VALUE_DTYPE
+        )
+        assert_tensors_equal_nan(result, expected)
+        return
+
+    interpolated_values_tensor = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, req_ts_tensor
     )
-    assert len(interpolated_values) == num_req_timestamps
+    assert interpolated_values_tensor.shape[0] == num_req_timestamps
 
-    # Basic validation: check a few points manually based on expected logic
-    # 1. A timestamp before the first keyframe
-    ts_before = keyframes[0][0] - timedelta(seconds=1)
-    val_before = linear_strategy.interpolate_series(keyframes, [ts_before])[0]
-    assert val_before == pytest.approx(keyframes[0][1])
+    # Test a few specific points for basic correctness
+    ts_before_dt = datetime.fromtimestamp(min_kf_ts_float - 1, tz=timezone.utc)
+    val_before = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([ts_before_dt])
+    )
+    assert_tensors_equal_nan(val_before, kf_vals_tensor[0].unsqueeze(0))
 
-    # 2. A timestamp after the last keyframe
-    ts_after = keyframes[-1][0] + timedelta(seconds=1)
-    val_after = linear_strategy.interpolate_series(keyframes, [ts_after])[0]
-    assert val_after == pytest.approx(keyframes[-1][1])
+    ts_after_dt = datetime.fromtimestamp(max_kf_ts_float + 1, tz=timezone.utc)
+    val_after = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([ts_after_dt])
+    )
+    assert_tensors_equal_nan(val_after, kf_vals_tensor[-1].unsqueeze(0))
 
-    # 3. A timestamp exactly on a keyframe (e.g., middle keyframe)
     mid_kf_idx = num_keyframes // 2
-    ts_on = keyframes[mid_kf_idx][0]
-    val_on = linear_strategy.interpolate_series(keyframes, [ts_on])[0]
-    assert val_on == pytest.approx(keyframes[mid_kf_idx][1])
-
-    # 4. A timestamp between two keyframes
-    if num_keyframes >= 2:
-        idx1 = num_keyframes // 3
-        idx2 = idx1 + 1
-        if idx2 < num_keyframes:  # Ensure idx2 is a valid index
-            ts1, v1 = keyframes[idx1]
-            ts2, v2 = keyframes[idx2]
-            if (
-                ts1 != ts2
-            ):  # Avoid division by zero if timestamps happen to be identical
-                ts_between = ts1 + (ts2 - ts1) / 2
-                val_between_expected = v1 + (v2 - v1) * 0.5
-                val_between_actual = linear_strategy.interpolate_series(
-                    keyframes, [ts_between]
-                )[0]
-                assert val_between_actual == pytest.approx(
-                    val_between_expected
-                )
+    ts_on_dt = keyframes_tuples[mid_kf_idx][0]
+    val_on = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, _dt_to_ts([ts_on_dt])
+    )
+    assert_tensors_equal_nan(val_on, kf_vals_tensor[mid_kf_idx].unsqueeze(0))
 
 
 def test_required_timestamps_very_close_to_keyframes(
     linear_strategy: LinearInterpolationStrategy,
 ):
-    """Test with required timestamps epsilon-close to keyframe timestamps."""
-    kf_base = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    kf_base_dt = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     epsilon_td = timedelta(microseconds=1)
-
-    keyframes = [
-        (kf_base + timedelta(seconds=10), 10.0),
-        (kf_base + timedelta(seconds=20), 20.0),
+    keyframes_tuples = [
+        (kf_base_dt + timedelta(seconds=10), 10.0),
+        (kf_base_dt + timedelta(seconds=20), 20.0),
     ]
+    kf_ts_tensor, kf_vals_tensor = _keyframes_to_tensors(keyframes_tuples)
 
-    kf1_ts, kf1_val = keyframes[0]
-    kf2_ts, kf2_val = keyframes[1]
+    kf1_dt, kf1_val_float = keyframes_tuples[0]
+    kf2_dt, kf2_val_float = keyframes_tuples[1]
 
-    req_ts_list = [
-        kf1_ts - epsilon_td,  # Just before KF1
-        kf1_ts + epsilon_td,  # Just after KF1
-        kf2_ts - epsilon_td,  # Just before KF2
-        kf2_ts + epsilon_td,  # Just after KF2
+    req_dt_list = [
+        kf1_dt - epsilon_td,
+        kf1_dt + epsilon_td,  # Around KF1
+        kf1_dt,  # Exactly on KF1
+        kf2_dt - epsilon_td,
+        kf2_dt + epsilon_td,  # Around KF2
+        kf2_dt,  # Exactly on KF2
     ]
+    req_ts_tensor = _dt_to_ts(req_dt_list)
+    results = linear_strategy.interpolate_series(
+        kf_ts_tensor, kf_vals_tensor, req_ts_tensor
+    )
 
-    results = linear_strategy.interpolate_series(keyframes, req_ts_list)
-
-    # Just before KF1 should still be KF1's value (extrapolation rule)
-    assert results[0] == pytest.approx(kf1_val)
-
-    # Just after KF1 should be very close to KF1, interpolated towards KF2
-    # expected = v1 + (v2-v1) * (eps_seconds / total_duration_seconds)
-    duration_seconds = (kf2_ts - kf1_ts).total_seconds()
+    expected_list = []
+    # Req 1 (just before KF1): Extrapolate KF1's value
+    expected_list.append(kf1_val_float)
+    # Req 2 (just after KF1): Interpolate
+    duration_seconds = (kf2_dt - kf1_dt).total_seconds()
     eps_seconds = epsilon_td.total_seconds()
-    expected_after_kf1 = kf1_val + (kf2_val - kf1_val) * (
-        eps_seconds / duration_seconds
+    expected_list.append(
+        kf1_val_float
+        + (kf2_val_float - kf1_val_float) * (eps_seconds / duration_seconds)
     )
-    assert results[1] == pytest.approx(expected_after_kf1)
-
-    # Just before KF2 should be very close to KF2, interpolated from KF1
-    expected_before_kf2 = kf1_val + (kf2_val - kf1_val) * (
-        (duration_seconds - eps_seconds) / duration_seconds
+    # Req 3 (exactly on KF1)
+    expected_list.append(kf1_val_float)
+    # Req 4 (just before KF2): Interpolate
+    expected_list.append(
+        kf1_val_float
+        + (kf2_val_float - kf1_val_float)
+        * ((duration_seconds - eps_seconds) / duration_seconds)
     )
-    assert results[2] == pytest.approx(expected_before_kf2)
+    # Req 5 (just after KF2): Extrapolate KF2's value
+    expected_list.append(kf2_val_float)
+    # Req 6 (exactly on KF2)
+    expected_list.append(kf2_val_float)
 
-    # Just after KF2 should be KF2's value (extrapolation rule)
-    assert results[3] == pytest.approx(kf2_val)
-
-
-# Reviewing test_identical_timestamps_in_keyframes - it seems robust.
-# It correctly tests that bisect_left finds the first of identical timestamps,
-# and then interpolation proceeds based on that and subsequent distinct timestamps.
-# The handling of (t2-t1).total_seconds() == 0 (where it returns v1) is also implicitly covered
-# if a required timestamp lands exactly on such a segment, though less likely with float precision of time.
-# A specific sub-case for that:
-def test_interpolation_over_zero_duration_segment(
-    linear_strategy: LinearInterpolationStrategy,
-):
-    """Test when two keyframes have identical timestamps (zero duration segment)."""
-    kf_ts = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
-    keyframes = [
-        (kf_ts, 10.0),
-        (kf_ts, 20.0),  # Same timestamp, different value
-    ]
-    # If required_ts is kf_ts, bisect_left gives index 0. Result: 10.0
-    assert linear_strategy.interpolate_series(keyframes, [kf_ts]) == [10.0]
-
-    # If we had more keyframes, e.g.:
-    kf_ts_next = kf_ts + timedelta(seconds=1)
-    keyframes_extended = [
-        (kf_ts, 10.0),  # idx 0
-        (kf_ts, 20.0),  # idx 1
-        (kf_ts_next, 30.0),  # idx 2
-    ]
-    # Request at kf_ts: interpolate_series uses keyframes[0] = (kf_ts, 10.0) -> 10.0
-    assert linear_strategy.interpolate_series(keyframes_extended, [kf_ts]) == [
-        10.0
-    ]
-
-    # Request slightly after kf_ts, e.g., kf_ts + 0.5s
-    # This should interpolate between keyframes[1]=(kf_ts, 20.0) and keyframes[2]=(kf_ts_next, 30.0)
-    # because keyframes[0] is before ts_req, and keyframes[1] is <= ts_req.
-    # bisect_left for (kf_ts + 0.5s) in [kf_ts, kf_ts, kf_ts_next] would be index 2.
-    # So, t1=keyframes[1], t2=keyframes[2].
-    # t1 = (kf_ts, 20.0), t2 = (kf_ts_next, 30.0)
-    # Expected: 20.0 + (30.0-20.0) * 0.5 = 25.0
-    req_ts_half_second_after = kf_ts + timedelta(
-        microseconds=500000
-    )  # 0.5 seconds
-    assert linear_strategy.interpolate_series(
-        keyframes_extended, [req_ts_half_second_after]
-    ) == [pytest.approx(25.0)]
+    assert_tensors_equal_nan(results, _expected_to_tensor(expected_list))

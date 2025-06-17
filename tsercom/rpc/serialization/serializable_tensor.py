@@ -183,7 +183,7 @@ class SerializableTensor:
             if not shape:  # Scalar tensor
                 num_elements = 1
             else:
-                num_elements = np.prod(shape)
+                num_elements = int(np.prod(shape))  # Cast to int for Mypy
                 if any(d == 0 for d in shape):  # handles shape like [N, 0, M]
                     num_elements = 0
 
@@ -329,7 +329,9 @@ class SerializableTensor:
             # Correctly get the oneof field for sparse tensor data type
             sparse_data_type_field = sparse_payload.WhichOneof("data_type")
 
-            values_np: Optional[np.ndarray] = None  # Initialize values_np
+            values_np: Optional[np.ndarray[Any, np.dtype[Any]]] = (
+                None  # Initialize values_np and parameterize ndarray
+            )
 
             if sparse_data_type_field == "float_values":
                 values_list = list(sparse_payload.float_values.data)

@@ -167,6 +167,10 @@ disable_error_code = ["attr-defined"]
 module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*" ]  # Target the grpc module and its submodules
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "ntplib"
+ignore_missing_imports = true
+
 [tool.pylint.MASTER]
 # Comma-separated list of glob patterns for files/directories to ignore.
 # This list consolidates exclusions from Ruff, Mypy, and setuptools configurations.
