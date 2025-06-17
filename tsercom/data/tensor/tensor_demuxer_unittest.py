@@ -587,3 +587,179 @@ async def test_explicit_updates_storage_and_retrieval(
     )
     assert torch.equal(indices_t1_new_idx, expected_indices_t1_new_idx)
     assert torch.equal(values_t1_new_idx, expected_values_t1_new_idx)
+
+
+@pytest.mark.asyncio
+async def test_inheritance_from_timestamp_with_effectively_empty_explicit_updates(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+):
+    """
+    Tests correct inheritance when a predecessor timestamp's explicit updates
+    result in a calculated tensor identical to its own predecessor (making its
+    own explicit updates 'effectively empty' in terms of changing the state).
+    """
+    d, mc = demuxer
+    # tensor_length is 4, default_dtype is float32 from fixture
+
+    # 1. T0_std: [1,0,0,0], explicit ([0],[1.0])
+    await d.on_update_received(0, 1.0, T0_std)
+    mc.clear_calls()
+
+    # 2. T1_std: receives update (0, 1.0).
+    #    - Inherits T0_std's calculated state: [1,0,0,0].
+    #    - Applies its explicit update (0, 1.0), resulting calculated state is still [1,0,0,0].
+    #    - Its explicit updates list will be ([0],[1.0]).
+    await d.on_update_received(0, 1.0, T1_std)
+
+    # Verify T1's calculated state reported to client
+    t1_call = mc.get_last_call()
+    assert t1_call is not None, "Client should have been notified for T1_std"
+    assert torch.equal(
+        t1_call[0], torch.tensor([1.0, 0.0, 0.0, 0.0], dtype=d._default_dtype)
+    )
+    assert t1_call[1] == T1_std
+
+    # Verify T1's internal state (calculated and explicit)
+    t1_entry = next((s for s in d._tensor_states if s[0] == T1_std), None)
+    assert t1_entry is not None, "T1_std entry not found in _tensor_states"
+    assert torch.equal(
+        t1_entry[1], torch.tensor([1.0, 0.0, 0.0, 0.0], dtype=d._default_dtype)
+    )
+    assert torch.equal(
+        t1_entry[2][0], torch.tensor([0], dtype=torch.long)
+    )  # Explicit indices
+    assert torch.equal(
+        t1_entry[2][1], torch.tensor([1.0], dtype=d._default_dtype)
+    )  # Explicit values
+    mc.clear_calls()
+
+    # 3. T2_std: receives update (1, 2.0).
+    #    - Should inherit T1_std's calculated state [1,0,0,0].
+    #    - Applies its explicit update (1, 2.0).
+    #    - Resulting calculated state for T2_std should be [1,2.0,0,0].
+    await d.on_update_received(1, 2.0, T2_std)
+    t2_call = mc.get_last_call()
+    assert t2_call is not None, "Client should have been notified for T2_std"
+    assert torch.equal(
+        t2_call[0], torch.tensor([1.0, 2.0, 0.0, 0.0], dtype=d._default_dtype)
+    )
+    assert t2_call[1] == T2_std
+
+
+@pytest.mark.asyncio
+async def test_default_dtype_propagation_various_types(
+    mock_client: MockTensorDemuxerClient,  # Use bare client
+):
+    """Tests that default_dtype is correctly used with different torch dtypes."""
+    tensor_len = 2
+    ts = T0_std
+
+    for dtype_to_test in [torch.float32, torch.float64, torch.bfloat16]:
+        mock_client.clear_calls()
+        # Note: bfloat16 might have precision issues with exact float comparisons.
+        # Using it primarily to test dtype propagation, not complex numerical accuracy here.
+        if dtype_to_test == torch.bfloat16 and not hasattr(torch, "bfloat16"):
+            pytest.skip("bfloat16 not supported on this PyTorch build/platform")
+
+        demuxer_custom_dtype = TensorDemuxer(
+            client=mock_client,
+            tensor_length=tensor_len,
+            default_dtype=dtype_to_test,
+        )
+
+        await demuxer_custom_dtype.on_update_received(
+            0, 1.25, ts
+        )  # Use a value not perfectly representable by all types
+        await demuxer_custom_dtype.on_update_received(1, 2.75, ts)
+
+        last_call = mock_client.get_last_call()
+        assert last_call is not None
+        calculated_tensor, _ = last_call
+        assert calculated_tensor.dtype == dtype_to_test
+
+        # Expected tensor must also be created with the dtype for comparison
+        expected_tensor_val = torch.tensor(
+            [1.25, 2.75, 0.0][:tensor_len], dtype=dtype_to_test
+        )
+        if dtype_to_test == torch.bfloat16:
+            # For bfloat16, direct comparison of float values can be tricky.
+            # Check if the values are very close after conversion.
+            assert torch.allclose(
+                calculated_tensor.float(), expected_tensor_val.float(), atol=0.1
+            )
+        else:
+            assert torch.equal(calculated_tensor, expected_tensor_val)
+
+        assert len(demuxer_custom_dtype._tensor_states) == 1
+        _, internal_calc_tensor, (explicit_indices, explicit_values) = (
+            demuxer_custom_dtype._tensor_states[0]
+        )
+
+        assert internal_calc_tensor.dtype == dtype_to_test
+        assert explicit_indices.dtype == torch.long
+        assert explicit_values.dtype == dtype_to_test
+
+        assert torch.equal(
+            explicit_indices, torch.tensor([0, 1], dtype=torch.long)
+        )
+        # Compare explicit values with tolerance for bfloat16
+        expected_explicit_vals = torch.tensor([1.25, 2.75], dtype=dtype_to_test)
+        if dtype_to_test == torch.bfloat16:
+            assert torch.allclose(
+                explicit_values.float(),
+                expected_explicit_vals.float(),
+                atol=0.1,
+            )
+        else:
+            assert torch.equal(explicit_values, expected_explicit_vals)
+
+
+@pytest.mark.asyncio
+async def test_update_existing_explicit_update_value_and_cascade(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+):
+    """
+    Tests that updating an existing explicit value correctly changes the calculated
+    tensor and triggers a cascade if necessary.
+    """
+    d, mc = demuxer
+
+    # 1. T0: index 0 = 10.0. Calc: [10,0,0,0]. Explicit: ([0],[10])
+    await d.on_update_received(0, 10.0, T0_std)
+    # 2. T1: index 1 = 20.0. Inherits T0. Calc: [10,20,0,0]. Explicit: ([1],[20])
+    await d.on_update_received(1, 20.0, T1_std)
+    mc.clear_calls()
+
+    # 3. Update T0, index 0 to 99.0. This is an existing explicit update for T0.
+    #    T0 Calc should become [99,0,0,0].
+    #    T0 Explicit should be ([0],[99]).
+    await d.on_update_received(0, 99.0, T0_std)
+
+    # Check T0's notification
+    t0_update_call = mc.calls[0]
+    assert torch.equal(
+        t0_update_call[0], torch.tensor([99.0, 0, 0, 0], dtype=d._default_dtype)
+    )
+    assert t0_update_call[1] == T0_std
+
+    # Check T0's internal explicit state
+    t0_entry = next(s for s in d._tensor_states if s[0] == T0_std)
+    assert torch.equal(
+        t0_entry[2][0], torch.tensor([0], dtype=torch.long)
+    )  # Indices
+    assert torch.equal(
+        t0_entry[2][1], torch.tensor([99.0], dtype=d._default_dtype)
+    )  # Values
+
+    # Check cascaded T1's notification
+    # T1 originally was [10,20,0,0]. Base T0 is now [99,0,0,0].
+    # T1's explicit is ([1],[20]). Applying to new base: [99,20,0,0].
+    assert (
+        len(mc.calls) == 2
+    ), "Should be two notifications: T0 update, T1 cascade"
+    t1_cascade_call = mc.calls[1]
+    assert torch.equal(
+        t1_cascade_call[0],
+        torch.tensor([99.0, 20.0, 0, 0], dtype=d._default_dtype),
+    )
+    assert t1_cascade_call[1] == T1_std

@@ -216,7 +216,8 @@ async def test_interpolation_worker_simple_case(
             return dt_to_return.replace(tzinfo=tz) if tz else dt_to_return  # type: ignore
 
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime", MockedDateTime
+        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime_for_mocking",
+        MockedDateTime,
     )
 
     await demuxer.start()
@@ -436,7 +437,7 @@ async def test_empty_keyframes_output_fill_value(
             return dt.replace(tzinfo=tz) if tz else dt  # type: ignore
 
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime",
+        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime_for_mocking",
         MockedDateTimeEmpty,
     )
 
@@ -510,7 +511,7 @@ async def test_align_output_timestamps_true(
             return dt.replace(tzinfo=tz) if tz else dt  # type: ignore
 
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime",
+        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime_for_mocking",
         MockedDateTimeAlign,
     )
 
@@ -624,7 +625,7 @@ async def test_small_max_keyframe_history(
             return dt.replace(tzinfo=tz) if tz else dt  # type: ignore
 
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime",
+        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime_for_mocking",
         MockedDateTimeSmallHist,
     )
 
@@ -683,7 +684,8 @@ async def test_2d_tensor_shape(
             return dt.replace(tzinfo=tz) if tz else dt  # type: ignore
 
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime", MockedDateTime2D
+        "tsercom.data.tensor.smoothed_tensor_demuxer.datetime_for_mocking",
+        MockedDateTime2D,
     )
 
     await demuxer_2d.start()
@@ -791,3 +793,232 @@ async def test_significantly_out_of_order_updates(
         expected_first_ts_after_prune.timestamp()
     )
     assert values_tensor[0].item() == pytest.approx(20.0)
+
+
+@pytest.mark.asyncio
+async def test_on_update_received_updates_existing_timestamp_value(
+    mock_client: MockClient,
+    linear_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Tests that if on_update_received is called for a timestamp that already
+    exists for a given index, the value is updated in place in the tensor.
+    """
+    demuxer_instance = SmoothedTensorDemuxer(
+        tensor_name="test_update_existing",
+        tensor_shape=(1,),
+        output_client=mock_client,
+        smoothing_strategy=linear_strategy,
+        output_interval_seconds=0.01,  # Short interval for quick testing if worker runs
+        max_keyframe_history_per_index=10,
+        default_dtype=torch.float32,
+    )
+
+    ts_datetime = real_datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    index0 = (0,)
+
+    # Initial update
+    await demuxer_instance.on_update_received(index0, 10.0, ts_datetime)
+
+    # Verify initial state
+    async with demuxer_instance._keyframes_lock:
+        # Accessing private member for test validation
+        timestamps_tensor, values_tensor = (
+            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[index0]
+        )
+    assert timestamps_tensor.numel() == 1
+    assert values_tensor.numel() == 1
+    assert abs(timestamps_tensor[0].item() - ts_datetime.timestamp()) < 1e-9
+    assert abs(values_tensor[0].item() - 10.0) < 1e-9
+
+    # Second update for the exact same timestamp, with a new value
+    await demuxer_instance.on_update_received(index0, 20.0, ts_datetime)
+
+    async with demuxer_instance._keyframes_lock:
+        timestamps_tensor_updated, values_tensor_updated = (
+            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[index0]
+        )
+
+    assert (
+        timestamps_tensor_updated.numel() == 1
+    ), "Timestamp count should remain 1"
+    assert values_tensor_updated.numel() == 1, "Value count should remain 1"
+    assert (
+        abs(timestamps_tensor_updated[0].item() - ts_datetime.timestamp())
+        < 1e-9
+    ), "Timestamp should be unchanged"
+    assert (
+        abs(values_tensor_updated[0].item() - 20.0) < 1e-9
+    ), "Value should be updated to 20.0"
+
+    # Third update, same timestamp, same value as previous (should not change anything)
+    await demuxer_instance.on_update_received(index0, 20.0, ts_datetime)
+    async with demuxer_instance._keyframes_lock:
+        timestamps_tensor_final, values_tensor_final = (
+            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[index0]
+        )
+    assert (
+        abs(values_tensor_final[0].item() - 20.0) < 1e-9
+    ), "Value should still be 20.0"
+    assert timestamps_tensor_final.numel() == 1
+
+
+@pytest.mark.asyncio
+async def test_default_dtype_and_fill_value_interaction(
+    mock_client: MockClient,
+    linear_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Tests how default_dtype and fill_value (NaN) interact, especially in the output_tensor
+    of the interpolation worker.
+    """
+    test_dtypes = [torch.float32, torch.float64]
+    if hasattr(torch, "bfloat16"):  # Conditionally add bfloat16 if supported
+        test_dtypes.append(torch.bfloat16)
+
+    for dtype_to_test in test_dtypes:
+        mock_client.clear_pushes()
+        demuxer_instance = SmoothedTensorDemuxer(
+            tensor_name=f"test_dtype_{dtype_to_test}",
+            tensor_shape=(2,),  # One index with data, one without
+            output_client=mock_client,
+            smoothing_strategy=linear_strategy,
+            output_interval_seconds=0.05,
+            max_keyframe_history_per_index=10,
+            fill_value=float("nan"),  # Explicitly float('nan')
+            default_dtype=dtype_to_test,
+            align_output_timestamps=False,  # Simplify timing for mock
+        )
+
+        # Provide one keyframe for index (0,)
+        kf_time = real_datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        await demuxer_instance.on_update_received((0,), 100.0, kf_time)
+
+        # Mock datetime.now() for predictable worker execution
+        # Worker will want to push at kf_time + output_interval
+        # Let's set "now" to be that exact push time.
+        push_time = kf_time + timedelta(
+            seconds=demuxer_instance._output_interval_seconds
+        )
+
+        current_time_for_mock = [push_time]  # datetime.now() will return this
+
+        class MockedDateTime(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                dt_to_return = current_time_for_mock[0]
+                return dt_to_return.replace(tzinfo=tz) if tz else dt_to_return
+
+        MockedDateTime.timedelta = timedelta  # Patch timedelta as well
+        MockedDateTime.timezone = timezone
+
+        mocker.patch(
+            "tsercom.data.tensor.smoothed_tensor_demuxer.datetime_for_mocking",
+            MockedDateTime,
+        )
+
+        await demuxer_instance.start()
+        await asyncio.sleep(
+            0.01
+        )  # Allow worker to start and schedule first push
+
+        # Advance "time" to allow the worker to complete one cycle
+        # The worker sleeps until next_output_dt. If now() is already next_output_dt, sleep is minimal.
+        current_time_for_mock[0] = push_time
+        await asyncio.sleep(
+            demuxer_instance._output_interval_seconds + 0.02
+        )  # Wait for push
+
+        await demuxer_instance.stop()
+
+        assert (
+            len(mock_client.pushes) >= 1
+        ), f"Should have pushed for dtype {dtype_to_test}"
+        _, output_tensor, _ = mock_client.pushes[
+            -1
+        ]  # Get the last pushed tensor
+
+        assert (
+            output_tensor.dtype == dtype_to_test
+        ), f"Output tensor dtype mismatch for {dtype_to_test}"
+
+        # Index (0,) should have extrapolated value 100.0
+        if dtype_to_test == torch.bfloat16:
+            assert (
+                abs(output_tensor[0].item() - 100.0) < 0.1
+            )  # Looser tolerance for bfloat16
+        else:
+            assert abs(output_tensor[0].item() - 100.0) < 1e-9
+
+        # Index (1,) should be fill_value (NaN)
+        assert torch.isnan(
+            output_tensor[1]
+        ).item(), f"Index (1,) should be NaN for dtype {dtype_to_test}"
+
+
+@pytest.mark.asyncio
+async def test_max_keyframe_history_one(
+    mock_client: MockClient,
+    linear_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+) -> None:
+    """Tests pruning logic with max_keyframe_history_per_index = 1."""
+    demuxer_hist_one = SmoothedTensorDemuxer(
+        tensor_name="test_hist_one",
+        tensor_shape=(1,),
+        output_client=mock_client,
+        smoothing_strategy=linear_strategy,
+        output_interval_seconds=0.1,  # Not critical for this test's direct assertions
+        max_keyframe_history_per_index=1,  # Critical setting
+        default_dtype=torch.float64,  # Use float64 for precise value checks
+    )
+
+    index0 = (0,)
+    ts1 = real_datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    ts2 = real_datetime(2023, 1, 1, 0, 0, 1, tzinfo=timezone.utc)
+    ts3 = real_datetime(2023, 1, 1, 0, 0, 2, tzinfo=timezone.utc)
+
+    # Add first keyframe
+    await demuxer_hist_one.on_update_received(index0, 10.0, ts1)
+    async with demuxer_hist_one._keyframes_lock:
+        timestamps_tensor, values_tensor = (
+            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[index0]
+        )
+    assert timestamps_tensor.numel() == 1
+    assert abs(values_tensor[0].item() - 10.0) < 1e-9
+
+    # Add second keyframe, should replace the first (ts2 > ts1)
+    await demuxer_hist_one.on_update_received(index0, 20.0, ts2)
+    async with demuxer_hist_one._keyframes_lock:
+        timestamps_tensor, values_tensor = (
+            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[index0]
+        )
+    assert timestamps_tensor.numel() == 1
+    assert abs(timestamps_tensor[0].item() - ts2.timestamp()) < 1e-9
+    assert abs(values_tensor[0].item() - 20.0) < 1e-9
+
+    # Add third keyframe (ts3 > ts2), should replace the second
+    await demuxer_hist_one.on_update_received(index0, 30.0, ts3)
+    async with demuxer_hist_one._keyframes_lock:
+        timestamps_tensor, values_tensor = (
+            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[index0]
+        )
+    assert timestamps_tensor.numel() == 1
+    assert abs(timestamps_tensor[0].item() - ts3.timestamp()) < 1e-9
+    assert abs(values_tensor[0].item() - 30.0) < 1e-9
+
+    # Add an older keyframe (ts1 < ts3), should be discarded as history is full with ts3
+    await demuxer_hist_one.on_update_received(
+        index0, 5.0, ts1
+    )  # This is ts1 < ts3
+    async with demuxer_hist_one._keyframes_lock:
+        timestamps_tensor, values_tensor = (
+            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[index0]
+        )
+    assert timestamps_tensor.numel() == 1
+    assert (
+        abs(timestamps_tensor[0].item() - ts3.timestamp()) < 1e-9
+    ), "Old timestamp should not have replaced newer one"
+    assert abs(values_tensor[0].item() - 30.0) < 1e-9
