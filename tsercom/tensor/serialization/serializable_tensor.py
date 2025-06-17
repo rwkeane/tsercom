@@ -11,8 +11,8 @@ import torch
 import numpy as np
 
 # Corrected import path based on previous subtask for proto generation
-from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
-    Tensor as GrpcTensor,
+from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (  # pylint: disable=no-name-in-module
+    TensorChunk as GrpcTensor,
 )
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
@@ -22,8 +22,8 @@ from tsercom.timesync.common.synchronized_timestamp import (
 # If direct manipulation of GrpcServerTimestamp is needed here, an import would be added.
 
 
-class SerializableTensor:
-    """Wraps a PyTorch tensor and a synchronized timestamp for gRPC serialization.
+class SerializableTensorChunk:
+    """Wraps a PyTorch tensor, a synchronized timestamp, and a starting index for gRPC serialization.
 
     Supports dense and sparse COO tensors, and various data types (float32,
     float64, int32, int64, bool).
@@ -31,17 +31,25 @@ class SerializableTensor:
     Attributes:
         tensor: The `torch.Tensor` data.
         timestamp: The `SynchronizedTimestamp` associated with the tensor.
+        starting_index: The starting index of this tensor chunk.
     """
 
-    def __init__(self, tensor: torch.Tensor, timestamp: SynchronizedTimestamp):
-        """Initializes a SerializableTensor instance.
+    def __init__(
+        self,
+        tensor: torch.Tensor,
+        timestamp: SynchronizedTimestamp,
+        starting_index: int = 0,
+    ):
+        """Initializes a SerializableTensorChunk instance.
 
         Args:
             tensor: The PyTorch tensor to serialize.
             timestamp: The synchronized timestamp for the tensor.
+            starting_index: The starting index of this tensor chunk.
         """
         self.__tensor: torch.Tensor = tensor
         self.__timestamp: SynchronizedTimestamp = timestamp
+        self.__starting_index: int = starting_index
 
     @property
     def tensor(self) -> torch.Tensor:
@@ -53,8 +61,13 @@ class SerializableTensor:
         """Gets the synchronized timestamp."""
         return self.__timestamp
 
+    @property
+    def starting_index(self) -> int:
+        """Gets the starting index of this tensor chunk."""
+        return self.__starting_index
+
     def to_grpc_type(self) -> GrpcTensor:
-        """Converts the SerializableTensor to its gRPC message representation.
+        """Converts the SerializableTensorChunk to its gRPC message representation.
 
         Populates the appropriate `oneof` fields in the `GrpcTensor` message
         based on whether the tensor is dense or sparse, and its dtype.
@@ -72,6 +85,7 @@ class SerializableTensor:
         # SynchronizedTimestamp.to_grpc_type() should return the correct proto message
         # (e.g. dtp.ServerTimestamp)
         grpc_tensor.timestamp.CopyFrom(self.__timestamp.to_grpc_type())
+        grpc_tensor.starting_index = self.__starting_index
 
         source_tensor = self.__tensor
 
@@ -142,19 +156,21 @@ class SerializableTensor:
 
     @classmethod
     def try_parse(
-        cls, grpc_msg: GrpcTensor, device: Optional[str] = None
-    ) -> Optional["SerializableTensor"]:
-        """Attempts to parse a `GrpcTensor` protobuf message into a SerializableTensor.
+        cls,
+        grpc_msg: GrpcTensor,
+        device: Optional[str] = None,
+    ) -> Optional["SerializableTensorChunk"]:
+        """Attempts to parse a `GrpcTensor` protobuf message into a SerializableTensorChunk.
 
         Reconstructs the PyTorch tensor (dense or sparse COO) from the
         protobuf message, including handling different dtypes and the target device.
 
         Args:
-            grpc_msg: The `GrpcTensor` protobuf message to parse.
+            grpc_msg: The `GrpcTensor` (now TensorChunk) protobuf message to parse.
             device: Optional target device for the reconstructed tensor (e.g., "cuda:0").
 
         Returns:
-            A `SerializableTensor` instance if parsing is successful,
+            A `SerializableTensorChunk` instance if parsing is successful,
             otherwise `None`.
 
         Raises:
@@ -168,9 +184,11 @@ class SerializableTensor:
         parsed_timestamp = SynchronizedTimestamp.try_parse(grpc_msg.timestamp)
         if parsed_timestamp is None:
             logging.warning(
-                "Failed to parse timestamp from GrpcTensor, cannot create SerializableTensor."
+                "Failed to parse timestamp from GrpcTensor, cannot create SerializableTensorChunk."
             )
             return None
+
+        parsed_starting_index = grpc_msg.starting_index
 
         reconstructed_tensor: Optional[torch.Tensor] = None
         data_representation_type = grpc_msg.WhichOneof("data_representation")
@@ -418,7 +436,9 @@ class SerializableTensor:
                         f"Failed to move tensor to device '{device}': {e}"
                     )
                     return None  # Or raise, depending on desired strictness
-            return SerializableTensor(reconstructed_tensor, parsed_timestamp)
+            return SerializableTensorChunk(
+                reconstructed_tensor, parsed_timestamp, parsed_starting_index
+            )
         else:
             # This case should be covered by raises or returns within the if/else blocks
             logging.error(
