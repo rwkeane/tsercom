@@ -80,7 +80,9 @@ class SmoothedTensorDemuxer:
         ] = {}
         self._keyframes_lock = asyncio.Lock()
 
-        self._last_pushed_timestamp: Optional[python_datetime_module.datetime] = None
+        self._last_pushed_timestamp: Optional[
+            python_datetime_module.datetime
+        ] = None
         self._interpolation_worker_task: Optional[asyncio.Task[None]] = None
         self._stop_event = asyncio.Event()
 
