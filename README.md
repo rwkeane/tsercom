@@ -31,6 +31,20 @@ pip install -e .[dev]
 ```
 This will also install tools like `pytest`, `black`, `ruff`, `mypy`, and `pylint`.
 
+## Development Setup
+
+After cloning the repository and ensuring you have Python 3.10+ available, it's recommended to set up your development environment using the provided script. This script automates the installation of all necessary development dependencies (including those for testing, linting, and formatting) and sets up pre-commit hooks to help maintain code quality.
+
+Run the following command from the root of the repository:
+```bash
+./setup_dev.sh
+```
+This script will:
+1. Install all dependencies defined in `pyproject.toml`, including the `dev` optional dependencies.
+2. Install pre-commit hooks configured in `.pre-commit-config.yaml`.
+
+Make sure the script is executable (`chmod +x setup_dev.sh`) if you encounter permission issues.
+
 ## How It Works / The Idea
 
 Tsercom simplifies building systems that exchange time-series data by providing a framework and tools for common networking tasks. The core philosophy is to:
