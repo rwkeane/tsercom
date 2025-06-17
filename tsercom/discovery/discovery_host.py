@@ -182,7 +182,8 @@ class DiscoveryHost(
                 await self.__discoverer.start()  # This might also raise
         except Exception as e:
             logging.error(
-                f"Failed to initialize or start discovery listener: {e}",
+                "Failed to initialize or start discovery listener: %s",
+                e,
                 exc_info=True,
             )
             # If self.__discoverer was successfully created but start() failed,
@@ -193,7 +194,8 @@ class DiscoveryHost(
                     await self.__discoverer.async_stop()
                 except Exception as stop_e:
                     logging.error(
-                        f"Error trying to stop discoverer after start failed: {stop_e}",
+                        "Error trying to stop discoverer after start failed: %s",
+                        stop_e,
                         exc_info=True,
                     )
             self.__discoverer = None  # Ensure discoverer is None if any part of init/start fails

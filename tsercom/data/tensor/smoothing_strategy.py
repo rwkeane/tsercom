@@ -1,10 +1,7 @@
 import abc
-from datetime import datetime
-from typing import (
-    List,
-    Tuple,
-    Union,
-)  # Added Union based on LinearInterpolationStrategy return type
+import torch  # Added import
+
+# Removed List, Tuple, datetime as primary types in ABC method signature
 
 
 class SmoothingStrategy(abc.ABC):
@@ -15,18 +12,23 @@ class SmoothingStrategy(abc.ABC):
     @abc.abstractmethod
     def interpolate_series(
         self,
-        keyframes: List[Tuple[datetime, float]],
-        required_timestamps: List[datetime],
-    ) -> List[
-        Union[float, None]
-    ]:  # Matched return type with concrete implementation
+        timestamps: torch.Tensor,
+        values: torch.Tensor,
+        required_timestamps: torch.Tensor,
+    ) -> torch.Tensor:
         """
         Interpolates values for a series of required timestamps based on keyframes.
 
+        Timestamps are expected to be numerical (e.g., Unix timestamps as float).
+
         Args:
-            keyframes: A time-sorted list of (timestamp, value) tuples.
-            required_timestamps: A list of datetime objects for which values are needed.
+            timestamps: A 1D torch.Tensor of numerical timestamps, sorted ascending.
+            values: A 1D torch.Tensor of corresponding values. Must be the same
+                    length as `timestamps`.
+            required_timestamps: A 1D torch.Tensor of numerical timestamps for which
+                                 values are needed.
 
         Returns:
-            A list of interpolated values (float) or None.
+            A 1D torch.Tensor of interpolated values, corresponding to each
+            `required_timestamp`.
         """

@@ -136,7 +136,9 @@ class RuntimeDataHandlerBase(
                 self.__dispatch_poller_data_loop()
             )
             _logger.debug(
-                f"__dispatch_task {self.__dispatch_task} created on loop {id(self._loop_on_init)}."
+                "__dispatch_task %s created on loop %s.",
+                self.__dispatch_task,
+                id(self._loop_on_init),
             )
         else:
             # self._loop_on_init is already None due to the type hint and default initialization
@@ -149,7 +151,8 @@ class RuntimeDataHandlerBase(
         """Cancels and awaits the background dispatch task."""
         current_loop = asyncio.get_running_loop()
         _logger.info(
-            f"RuntimeDataHandlerBase async_close called. Current loop: {id(current_loop)}"
+            "RuntimeDataHandlerBase async_close called. Current loop: %s",
+            id(current_loop),
         )
 
         if (
@@ -165,12 +168,16 @@ class RuntimeDataHandlerBase(
                 RuntimeError
             ):  # Can happen if task is done and loop is closed
                 _logger.warning(
-                    f"Could not get loop for task {task} during async_close, it might be done and its loop closed."
+                    "Could not get loop for task %s during async_close, it might be done and its loop closed.",
+                    task,
                 )
 
             task_loop_id = id(task_loop) if task_loop else "N/A"
             _logger.debug(
-                f"Attempting to close __dispatch_task: {task} (created on loop: {id(self._loop_on_init) if self._loop_on_init else 'N/A'}, current task loop: {task_loop_id})"
+                "Attempting to close __dispatch_task: %s (created on loop: %s, current task loop: %s)",
+                task,
+                (id(self._loop_on_init) if self._loop_on_init else "N/A"),
+                task_loop_id,
             )
 
             if not task.done():
@@ -182,27 +189,34 @@ class RuntimeDataHandlerBase(
                     and self._loop_on_init is not current_loop
                 ):
                     _logger.warning(
-                        f"Potential loop mismatch in async_close: task loop {task_loop_id} (init_loop {id(self._loop_on_init)}) vs current_loop {id(current_loop)}. This might cause issues."
+                        "Potential loop mismatch in async_close: task loop %s (init_loop %s) vs current_loop %s. This might cause issues.",
+                        task_loop_id,
+                        id(self._loop_on_init),
+                        id(current_loop),
                     )
 
-                _logger.debug(f"Cancelling dispatch_task: {task}")
+                _logger.debug("Cancelling dispatch_task: %s", task)
                 task.cancel()
                 try:
                     await task
                     _logger.debug(
-                        f"Dispatch_task {task} awaited after cancellation (processed CancelledError)."
+                        "Dispatch_task %s awaited after cancellation (processed CancelledError).",
+                        task,
                     )
                 except asyncio.CancelledError:
                     _logger.info(
-                        f"Dispatch_task {task} successfully cancelled and handled CancelledError."
+                        "Dispatch_task %s successfully cancelled and handled CancelledError.",
+                        task,
                     )
                 except Exception as e:
                     _logger.error(
-                        f"Exception while awaiting cancelled dispatch_task {task}: {e}",
+                        "Exception while awaiting cancelled dispatch_task %s: %s",
+                        task,
+                        e,
                         exc_info=True,
                     )
             else:
-                _logger.debug(f"Dispatch_task {task} was already done.")
+                _logger.debug("Dispatch_task %s was already done.", task)
             self.__dispatch_task = None
         else:
             _logger.debug(
@@ -556,7 +570,9 @@ class RuntimeDataHandlerBase(
         except Exception as e:
             # This logging was originally just print(), changed to _logger.critical
             _logger.critical(
-                f"CRITICAL ERROR in __dispatch_poller_data_loop: {type(e).__name__}: {e}",
+                "CRITICAL ERROR in __dispatch_poller_data_loop: %s: %s",
+                type(e).__name__,
+                e,
                 exc_info=True,
             )
             # Consider how to report this to ThreadWatcher if applicable

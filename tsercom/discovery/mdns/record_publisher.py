@@ -122,7 +122,10 @@ class RecordPublisher(MdnsPublisher):
             if self._zc:  # Check if _zc is valid before trying to use it
                 if service_info_at_start_of_close:
                     _logger.info(
-                        f"Attempting to unregister service {self.__srv} using service_info: {service_info_at_start_of_close} (ZC type: {'shared' if self.__shared_zc else 'owned'})"
+                        "Attempting to unregister service %s using service_info: %s (ZC type: %s)",
+                        self.__srv,
+                        service_info_at_start_of_close,
+                        ('shared' if self.__shared_zc else 'owned')
                     )
                     unregistration_attempted = True
                     await self._zc.async_unregister_service(
@@ -130,17 +133,19 @@ class RecordPublisher(MdnsPublisher):
                     )
                     unregistration_succeeded = True
                     _logger.info(
-                        f"Service {self.__srv} unregistered successfully."
+                        "Service %s unregistered successfully.", self.__srv
                     )
                 else:
                     _logger.warning(
-                        f"No self._service_info found for {self.__srv} at start of close method. Skipping unregistration call."
+                        "No self._service_info found for %s at start of close method. Skipping unregistration call.",
+                        self.__srv
                     )
                     # If there's no service_info, unregistration wasn't needed for this object's state from publish perspective.
                     unregistration_succeeded = True  # Considered successful as no action was pending for this _service_info
             else:
                 _logger.warning(
-                    f"No active Zeroconf instance (_zc) for {self.__srv}. Cannot unregister."
+                    "No active Zeroconf instance (_zc) for %s. Cannot unregister.",
+                    self.__srv
                 )
                 # If _zc is None, we can't unregister, so treat as "nothing to do" for unregistration.
                 unregistration_succeeded = True
@@ -148,23 +153,27 @@ class RecordPublisher(MdnsPublisher):
             # Close owned zeroconf instance if it exists
             if self.__owned_zc:
                 _logger.info(
-                    f"Closing owned AsyncZeroconf instance for {self.__srv}."
+                    "Closing owned AsyncZeroconf instance for %s.", self.__srv
                 )
                 await self.__owned_zc.async_close()
                 _logger.info(
-                    f"Owned AsyncZeroconf instance for {self.__srv} closed."
+                    "Owned AsyncZeroconf instance for %s closed.", self.__srv
                 )
 
         except Exception as e:
             # Log detailed error for unregistration or closing owned_zc
             if unregistration_attempted and not unregistration_succeeded:
                 _logger.error(
-                    f"CRITICAL: Exception during async_unregister_service for {self.__srv}. Service may still be registered. Error: {e}",
+                    "CRITICAL: Exception during async_unregister_service for %s. Service may still be registered. Error: %s",
+                    self.__srv,
+                    e,
                     exc_info=True,
                 )
             else:  # Error during closing owned_zc or other unexpected error if _zc was None initially
                 _logger.error(
-                    f"Exception during close operation for {self.__srv}. Error: {e}",
+                    "Exception during close operation for %s. Error: %s",
+                    self.__srv,
+                    e,
                     exc_info=True,
                 )
         finally:
@@ -173,7 +182,8 @@ class RecordPublisher(MdnsPublisher):
                 self._service_info = None
             else:
                 _logger.warning(
-                    f"self._service_info for {self.__srv} was NOT cleared because unregistration failed or was not confirmed."
+                    "self._service_info for %s was NOT cleared because unregistration failed or was not confirmed.",
+                    self.__srv
                 )
 
             if self.__owned_zc:  # Ensure owned_zc is cleared if it was set
@@ -185,11 +195,16 @@ class RecordPublisher(MdnsPublisher):
             # Final debug log for state
             if not self._service_info and not self._zc and not self.__owned_zc:
                 _logger.debug(
-                    f"RecordPublisher for {self.__srv} fully cleaned up (service_info, _zc, _owned_zc are None)."
+                    "RecordPublisher for %s fully cleaned up (service_info, _zc, _owned_zc are None).",
+                    self.__srv
                 )
             else:
                 _logger.debug(
-                    f"RecordPublisher for {self.__srv} post-close state: _service_info is {'None' if not self._service_info else 'Present'}, _zc is {'None' if not self._zc else 'Present'}, _owned_zc is {'None' if not self.__owned_zc else 'Present'}"
+                    "RecordPublisher for %s post-close state: _service_info is %s, _zc is %s, _owned_zc is %s",
+                    self.__srv,
+                    ('None' if not self._service_info else 'Present'),
+                    ('None' if not self._zc else 'Present'),
+                    ('None' if not self.__owned_zc else 'Present')
                 )
 
 

@@ -90,7 +90,7 @@ if not TYPE_CHECKING:
         from tsercom.rpc.proto.generated.v1_62.common_pb2 import (
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
+            Tensor as Tensor, # Explicitly re-export to satisfy Ruff F401
         )
     else:
         # The 'name' variable for the error message is 'common'

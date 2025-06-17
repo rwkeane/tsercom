@@ -451,13 +451,15 @@ async def test_update_no_value_change(
     await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
     assert mc.call_count == 1
 
-    # Existing timestamp, same value - client IS notified under new logic
+    # Existing timestamp, same value - client is NOT notified if state doesn't change (more efficient)
     await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
-    assert mc.call_count == 2
+    assert (
+        mc.call_count == 1
+    )  # Tensor state unchanged, so no redundant notification.
 
     # Existing timestamp, different value - client IS notified
     await d.on_update_received(tensor_index=0, value=6.0, timestamp=T1_std)
-    assert mc.call_count == 3
+    assert mc.call_count == 2  # Count increments to 2.
 
     last_call_tensor, _ = mc.get_last_call()
     assert torch.equal(last_call_tensor, torch.tensor([6.0, 0.0, 0.0, 0.0]))

@@ -1,18 +1,23 @@
 import asyncio
-import bisect
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)  # Keep datetime for now, for external API and time calculations
 from typing import (
     Dict,
-    List,
     Optional,
     Tuple,
     Union,
     Any,
+    # List, # No longer List[Tuple[datetime, float]] for keyframes
 )
 
 import torch
-import numpy as np  # pylint: disable=import-error # Keep numpy for np.ndindex if needed
+import numpy as np  # pylint: disable=import-error # Keep numpy for np.ndindex
+
+# Removed bisect as it's replaced by torch.searchsorted
 
 from tsercom.data.tensor.smoothing_strategy import SmoothingStrategy
 
@@ -21,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 class SmoothedTensorDemuxer:
     """
-    Manages per-index keyframe data for a tensor and provides smoothed,
-    interpolated tensor updates to a client.
+    Manages per-index keyframe data using torch.Tensors and provides smoothed,
+    interpolated tensor updates.
     Uses a specified smoothing strategy for per-index "cascading forward" interpolation.
     """
 
@@ -70,19 +75,24 @@ class SmoothedTensorDemuxer:
         self._fill_value = float(fill_value)
         self._max_keyframe_history_per_index = max_keyframe_history_per_index
 
+        # __per_index_keyframes now stores (timestamps_tensor, values_tensor)
         self.__per_index_keyframes: Dict[
-            Tuple[int, ...], List[Tuple[datetime, float]]
+            Tuple[int, ...], Tuple[torch.Tensor, torch.Tensor]
         ] = {}
         self._keyframes_lock = asyncio.Lock()
 
-        self._last_pushed_timestamp: Optional[datetime] = None
+        self._last_pushed_timestamp: Optional[datetime] = (
+            None  # Stays datetime for calculation logic
+        )
         self._interpolation_worker_task: Optional[asyncio.Task[None]] = None
         self._stop_event = asyncio.Event()
 
         logger.info(
-            f"Initialized SmoothedTensorDemuxer '{self.name}' for tensor "
-            f"'{self.tensor_name}' with shape {self._tensor_shape}, "
-            f"output interval {self._output_interval_seconds}s."
+            "Initialized SmoothedTensorDemuxer '%s' for tensor '%s' with shape %s, output interval %ss.",
+            self.name,
+            self.tensor_name,
+            self._tensor_shape,
+            self._output_interval_seconds,
         )
 
     async def on_update_received(
@@ -92,67 +102,104 @@ class SmoothedTensorDemuxer:
             isinstance(i, int) for i in index
         ):
             logger.warning(
-                f"[{self.name}] Invalid index format: {index}. Skipping update."
+                "[%s] Invalid index format: %s. Skipping update.", self.name, index
             )
             return
 
         if not isinstance(timestamp, datetime):
             logger.error(
-                f"[{self.name}] Invalid timestamp type: {type(timestamp)}. Expected datetime."
+                "[%s] Invalid timestamp type: %s. Expected datetime.",
+                self.name,
+                type(timestamp),
             )
             raise TypeError(
                 f"Timestamp must be a datetime object, got {type(timestamp)}"
             )
 
         if timestamp.tzinfo is None:
+            # Ensure timestamp is timezone-aware (UTC) before converting to epoch time
             timestamp = timestamp.replace(tzinfo=timezone.utc)
 
+        numerical_timestamp = (
+            timestamp.timestamp()
+        )  # Convert to float Unix timestamp
+
         async with self._keyframes_lock:
-            if index not in self.__per_index_keyframes:
-                self.__per_index_keyframes[index] = []
+            current_timestamps, current_values = (
+                self.__per_index_keyframes.get(
+                    index,
+                    (
+                        torch.empty(0, dtype=torch.float64),
+                        torch.empty(0, dtype=torch.float32),
+                    ),
+                )
+            )
 
-            keyframes_for_index = self.__per_index_keyframes[index]
-            new_keyframe = (timestamp, value)
-            insert_pos = bisect.bisect_left(keyframes_for_index, new_keyframe)
-            keyframes_for_index.insert(insert_pos, new_keyframe)
+            # Find insertion position using torch.searchsorted
+            # searchsorted expects sorted tensor; current_timestamps should be sorted.
+            insert_pos = torch.searchsorted(
+                current_timestamps, numerical_timestamp
+            ).item()
+            safe_insert_pos = int(insert_pos) # Ensure it's an int for slicing
 
-            if len(keyframes_for_index) > self._max_keyframe_history_per_index:
+            # Insert new keyframe into tensors
+            new_timestamps = torch.cat(
+                (
+                    current_timestamps[:safe_insert_pos],
+                    torch.tensor([numerical_timestamp], dtype=torch.float64),
+                    current_timestamps[safe_insert_pos:],
+                )
+            )
+            new_values = torch.cat(
+                (
+                    current_values[:safe_insert_pos],
+                    torch.tensor([value], dtype=torch.float32),
+                    current_values[safe_insert_pos:],
+                )
+            )
+
+            # Prune old keyframes if history exceeds max size
+            if new_timestamps.numel() > self._max_keyframe_history_per_index:
                 num_to_prune = (
-                    len(keyframes_for_index)
+                    new_timestamps.numel()
                     - self._max_keyframe_history_per_index
                 )
-                self.__per_index_keyframes[index] = keyframes_for_index[
-                    num_to_prune:
-                ]
+                new_timestamps = new_timestamps[num_to_prune:]
+                new_values = new_values[num_to_prune:]
+
+            self.__per_index_keyframes[index] = (new_timestamps, new_values)
 
     async def _interpolation_worker(self) -> None:
-        logger.info(f"[{self.name}] Interpolation worker started.")
+        logger.info("[%s] Interpolation worker started.", self.name)
         try:
             while not self._stop_event.is_set():
                 current_loop_start_time = datetime.now(timezone.utc)
 
                 if self._last_pushed_timestamp is None:
-                    if self._align_output_timestamps:
-                        self._last_pushed_timestamp = (
-                            self._get_next_aligned_timestamp(
-                                current_loop_start_time
-                            )
+                    # Align first timestamp if needed, or use current time
+                    self._last_pushed_timestamp = (
+                        self._get_next_aligned_timestamp(
+                            current_loop_start_time
                         )
-                    else:
-                        self._last_pushed_timestamp = current_loop_start_time
+                        if self._align_output_timestamps
+                        else current_loop_start_time
+                    )
 
-                next_output_timestamp = (
-                    self._last_pushed_timestamp
-                    + timedelta(seconds=self._output_interval_seconds)
+                # Calculate next output timestamp based on the last one
+                next_output_datetime = self._last_pushed_timestamp + timedelta(
+                    seconds=self._output_interval_seconds
                 )
                 if self._align_output_timestamps:
-                    next_output_timestamp = self._get_next_aligned_timestamp(
-                        next_output_timestamp
+                    next_output_datetime = self._get_next_aligned_timestamp(
+                        next_output_datetime
                     )
+
+                # Convert to numerical timestamp for the strategy
+                next_output_numerical_ts = next_output_datetime.timestamp()
 
                 time_now = datetime.now(timezone.utc)
                 sleep_duration_seconds = (
-                    next_output_timestamp - time_now
+                    next_output_datetime - time_now
                 ).total_seconds()
 
                 if sleep_duration_seconds > 0:
@@ -161,66 +208,74 @@ class SmoothedTensorDemuxer:
                             self._stop_event.wait(),
                             timeout=sleep_duration_seconds,
                         )
-                        if self._stop_event.is_set():
+                        if self._stop_event.is_set():  # Re-check after wait
                             break
                     except asyncio.TimeoutError:
-                        pass
+                        pass  # Timeout occurred, proceed to interpolate
 
-                if self._stop_event.is_set():
+                if self._stop_event.is_set():  # Final check before processing
                     break
 
                 output_tensor = torch.full(
                     self._tensor_shape, self._fill_value, dtype=torch.float32
                 )
 
+                # Prepare required_timestamps tensor for the strategy
+                required_ts_tensor = torch.tensor(
+                    [next_output_numerical_ts], dtype=torch.float64
+                )
+
                 async with self._keyframes_lock:
                     for index_tuple in np.ndindex(self._tensor_shape):
-                        keyframes_for_index = self.__per_index_keyframes.get(
-                            index_tuple, []
+                        keyframe_tensors = self.__per_index_keyframes.get(
+                            index_tuple
                         )
-                        if keyframes_for_index:
-                            interpolated_values = (
-                                self._smoothing_strategy.interpolate_series(
-                                    keyframes_for_index,
-                                    [next_output_timestamp],
-                                )
-                            )
+
+                        if keyframe_tensors:
+                            timestamps_tensor, values_tensor = keyframe_tensors
                             if (
-                                interpolated_values
-                                and interpolated_values[0] is not None
-                            ):
-                                output_tensor[index_tuple] = float(
-                                    interpolated_values[0]
+                                timestamps_tensor.numel() > 0
+                            ):  # Ensure there are keyframes
+                                interpolated_value_tensor = self._smoothing_strategy.interpolate_series(
+                                    timestamps_tensor,
+                                    values_tensor,
+                                    required_ts_tensor,
                                 )
+                                if interpolated_value_tensor.numel() > 0:
+                                    val = interpolated_value_tensor.item()
+                                    if not torch.isnan(
+                                        torch.tensor(val)
+                                    ):  # Check for NaN
+                                        output_tensor[index_tuple] = float(val)
+
                 await self._output_client.push_tensor_update(
                     self.tensor_name,
                     output_tensor,
-                    next_output_timestamp,
+                    next_output_datetime,  # Push with datetime object as per original API
                 )
-                self._last_pushed_timestamp = next_output_timestamp
+                self._last_pushed_timestamp = next_output_datetime
         except asyncio.CancelledError:
-            logger.info(f"[{self.name}] Interpolation worker was cancelled.")
-        except Exception as e:
+            logger.info("[%s] Interpolation worker was cancelled.", self.name)
+        except Exception as e:  # pylint: disable=broad-except
             logger.error(
-                f"[{self.name}] Error in interpolation worker: {e}",
-                exc_info=True,
+                "[%s] Error in interpolation worker: %s", self.name, e, exc_info=True
             )
         finally:
-            logger.info(f"[{self.name}] Interpolation worker stopped.")
+            logger.info("[%s] Interpolation worker stopped.", self.name)
 
     async def start(self) -> None:
         if (
             self._interpolation_worker_task is not None
             and not self._interpolation_worker_task.done()
         ):
-            logger.warning(f"[{self.name}] Worker task already running.")
+            logger.warning("[%s] Worker task already running.", self.name)
             return
         self._stop_event.clear()
         self._interpolation_worker_task = asyncio.create_task(
             self._interpolation_worker()
         )
         logger.info(
-            f"[{self.name}] SmoothedTensorDemuxer worker task started."
+            "[%s] SmoothedTensorDemuxer worker task started.", self.name
         )
 
     async def stop(self) -> None:
@@ -229,33 +284,40 @@ class SmoothedTensorDemuxer:
             or self._interpolation_worker_task.done()
         ):
             logger.info(
-                f"[{self.name}] Worker task not running or already completed."
+                "[%s] Worker task not running or already completed.", self.name
             )
             return
 
         self._stop_event.set()
         try:
+            # Increased timeout slightly for graceful shutdown
             await asyncio.wait_for(
-                self._interpolation_worker_task, timeout=5.0
+                self._interpolation_worker_task,
+                timeout=self._output_interval_seconds + 1.0,
             )
         except asyncio.TimeoutError:
             logger.warning(
-                f"[{self.name}] Worker task did not stop gracefully. Cancelling."
+                "[%s] Worker task did not stop gracefully. Cancelling.",
+                self.name,
             )
             self._interpolation_worker_task.cancel()
             try:
                 await self._interpolation_worker_task
             except asyncio.CancelledError:
-                logger.info(f"[{self.name}] Worker task cancelled.")
-        except Exception as e:
+                logger.info("[%s] Worker task cancelled.", self.name)
+        except Exception as e:  # pylint: disable=broad-except
             logger.error(
-                f"[{self.name}] Error during worker task stop: {e}",
+                "[%s] Error during worker task stop: %s",
+                self.name,
+                e,
                 exc_info=True,
             )
         self._interpolation_worker_task = None
-        logger.info(f"[{self.name}] SmoothedTensorDemuxer stopped.")
+        logger.info("[%s] SmoothedTensorDemuxer stopped.", self.name)
 
     def _get_next_aligned_timestamp(self, current_time: datetime) -> datetime:
+        # This method's logic using datetime objects is fine.
+        # The conversion to numerical timestamp for strategy use happens in _interpolation_worker.
         if current_time.tzinfo is None:
             current_time = current_time.replace(tzinfo=timezone.utc)
 
@@ -264,9 +326,13 @@ class SmoothedTensorDemuxer:
 
         interval_sec = self._output_interval_seconds
         current_ts_seconds = current_time.timestamp()
+
+        # Using floating point arithmetic for ceiling division
         next_slot_start_seconds = (
             np.ceil(current_ts_seconds / interval_sec) * interval_sec
         )
+
+        # Add a small epsilon for floating point comparisons
         if next_slot_start_seconds <= current_ts_seconds + 1e-9:
             next_slot_start_seconds += interval_sec
         return datetime.fromtimestamp(next_slot_start_seconds, timezone.utc)
@@ -274,27 +340,45 @@ class SmoothedTensorDemuxer:
     async def process_external_update(
         self, tensor_name: str, data: torch.Tensor, timestamp: datetime
     ) -> None:
+        # This method receives datetime, which is passed to on_update_received.
+        # on_update_received handles the conversion to numerical timestamp.
         if tensor_name != self.tensor_name:
             logger.warning(
-                f"[{self.name}] Received tensor update for '{tensor_name}', expected '{self.tensor_name}'. Skipping."
+                "[%s] Received tensor update for '%s', expected '%s'. Skipping.",
+                self.name,
+                tensor_name,
+                self.tensor_name,
             )
             return
         if data.shape != self._tensor_shape:
             logger.warning(
-                f"[{self.name}] Received tensor with shape {data.shape}, expected {self._tensor_shape}. Skipping."
+                "[%s] Received tensor with shape %s, expected %s. Skipping.",
+                self.name,
+                data.shape,
+                self._tensor_shape,
             )
             return
+
+        # Ensure timestamp is timezone-aware (UTC) before processing
+        # This is important if it's used directly or passed to other methods expecting tz-aware
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=timezone.utc)
 
         logger.debug(
-            f"[{self.name}] Decomposing full tensor update for {timestamp} with shape {data.shape}."
+            "[%s] Decomposing full tensor update for %s with shape %s.",
+            self.name,
+            timestamp,
+            data.shape,
         )
-        for index_tuple in np.ndindex(data.shape):
-            value = float(data[index_tuple].item())
+        for index_tuple in np.ndindex(data.shape):  # np.ndindex is fine
+            value = float(
+                data[index_tuple].item()
+            )  # .item() is good for scalar tensors
             await self.on_update_received(index_tuple, value, timestamp)
         logger.debug(
-            f"[{self.name}] Finished decomposing full tensor update for {timestamp}."
+            "[%s] Finished decomposing full tensor update for %s.",
+            self.name,
+            timestamp,
         )
 
     def get_tensor_shape(self) -> Tuple[int, ...]:

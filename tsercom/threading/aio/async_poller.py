@@ -103,12 +103,6 @@ class AsyncPoller(Generic[ResultTypeT]):
         self.__is_loop_running.start()  # Start the poller as running by default
         self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
 
-    def __event_loop_id(self) -> str:
-        """Helper for debugging to get a simple ID of the event loop."""
-        if self.__event_loop:
-            return str(id(self.__event_loop))[-6:]  # Last 6 digits of loop id
-        return "NoLoop"
-
     @property
     def event_loop(self) -> Optional[asyncio.AbstractEventLoop]:
         """The asyncio event loop this poller is or will be associated with.
