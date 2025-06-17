@@ -58,7 +58,9 @@ class SmoothedTensorDemuxer:
         if output_interval_seconds <= 0:
             raise ValueError("output_interval_seconds must be positive.")
         if max_keyframe_history_per_index <= 0:
-            raise ValueError("max_keyframe_history_per_index must be positive.")
+            raise ValueError(
+                "max_keyframe_history_per_index must be positive."
+            )
 
         self.tensor_name = tensor_name
         self.name = name if name else f"SmoothedTensorDemuxer-{tensor_name}"
@@ -126,7 +128,9 @@ class SmoothedTensorDemuxer:
                     values_tensor,
                 )
 
-            timestamps_tensor, values_tensor = self.__per_index_keyframes[index]
+            timestamps_tensor, values_tensor = self.__per_index_keyframes[
+                index
+            ]
             insert_pos = torch.searchsorted(timestamps_tensor, new_ts_float)
 
             # Check for existing timestamp with a small tolerance for floating point comparison
@@ -183,7 +187,9 @@ class SmoothedTensorDemuxer:
         logger.info(f"[{self.name}] Interpolation worker started.")
         try:
             while not self._stop_event.is_set():
-                current_loop_start_time = datetime_for_mocking.now(timezone.utc)
+                current_loop_start_time = datetime_for_mocking.now(
+                    timezone.utc
+                )
 
                 if self._last_pushed_timestamp is None:
                     if self._align_output_timestamps:
@@ -245,12 +251,10 @@ class SmoothedTensorDemuxer:
                             if (
                                 timestamps_tensor.numel() > 0
                             ):  # Check if tensors are not empty
-                                interpolated_value_tensor = (
-                                    self._smoothing_strategy.interpolate_series(
-                                        timestamps_tensor,
-                                        values_tensor,
-                                        required_ts_float_tensor,
-                                    )
+                                interpolated_value_tensor = self._smoothing_strategy.interpolate_series(
+                                    timestamps_tensor,
+                                    values_tensor,
+                                    required_ts_float_tensor,
                                 )
                                 if interpolated_value_tensor.numel() > 0:
                                     val = interpolated_value_tensor[0].item()
@@ -285,7 +289,9 @@ class SmoothedTensorDemuxer:
         self._interpolation_worker_task = asyncio.create_task(
             self._interpolation_worker()
         )
-        logger.info(f"[{self.name}] SmoothedTensorDemuxer worker task started.")
+        logger.info(
+            f"[{self.name}] SmoothedTensorDemuxer worker task started."
+        )
 
     async def stop(self) -> None:
         if (
@@ -299,7 +305,9 @@ class SmoothedTensorDemuxer:
 
         self._stop_event.set()
         try:
-            await asyncio.wait_for(self._interpolation_worker_task, timeout=5.0)
+            await asyncio.wait_for(
+                self._interpolation_worker_task, timeout=5.0
+            )
         except asyncio.TimeoutError:
             logger.warning(
                 f"[{self.name}] Worker task did not stop gracefully. Cancelling."

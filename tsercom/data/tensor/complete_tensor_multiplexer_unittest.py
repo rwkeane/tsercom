@@ -277,10 +277,14 @@ async def test_get_tensor_at_timestamp(
     assert retrieved_t3 is not None
     assert torch.equal(retrieved_t3, TENSOR_C)
 
-    retrieved_t0 = await multiplexer.get_tensor_at_timestamp(T0)  # Non-existent
+    retrieved_t0 = await multiplexer.get_tensor_at_timestamp(
+        T0
+    )  # Non-existent
     assert retrieved_t0 is None
 
-    retrieved_t4 = await multiplexer.get_tensor_at_timestamp(T4)  # Non-existent
+    retrieved_t4 = await multiplexer.get_tensor_at_timestamp(
+        T4
+    )  # Non-existent
     assert retrieved_t4 is None
 
     # Ensure get_tensor_at_timestamp itself doesn't trigger on_index_update

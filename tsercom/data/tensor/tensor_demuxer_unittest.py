@@ -18,7 +18,9 @@ class MockTensorDemuxerClient(TensorDemuxer.Client):
     async def on_tensor_changed(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        self.calls.append((tensor.clone(), timestamp))  # Ensure clone is stored
+        self.calls.append(
+            (tensor.clone(), timestamp)
+        )  # Ensure clone is stored
         self.call_count += 1
 
     def clear_calls(self) -> None:
@@ -202,7 +204,9 @@ async def test_updates_different_timestamps(
     assert mc.call_count == 1
     tensor_t2, ts_t2 = mc.get_last_call()  # type: ignore
 
-    expected_tensor_t1 = torch.tensor([5.0, 0.0, 0.0, 0.0], dtype=default_dtype)
+    expected_tensor_t1 = torch.tensor(
+        [5.0, 0.0, 0.0, 0.0], dtype=default_dtype
+    )
     expected_tensor_t2 = torch.tensor(
         [15.0, 0.0, 0.0, 0.0], dtype=default_dtype
     )
@@ -659,7 +663,9 @@ async def test_default_dtype_propagation_various_types(
         # Note: bfloat16 might have precision issues with exact float comparisons.
         # Using it primarily to test dtype propagation, not complex numerical accuracy here.
         if dtype_to_test == torch.bfloat16 and not hasattr(torch, "bfloat16"):
-            pytest.skip("bfloat16 not supported on this PyTorch build/platform")
+            pytest.skip(
+                "bfloat16 not supported on this PyTorch build/platform"
+            )
 
         demuxer_custom_dtype = TensorDemuxer(
             client=mock_client,
@@ -685,7 +691,9 @@ async def test_default_dtype_propagation_various_types(
             # For bfloat16, direct comparison of float values can be tricky.
             # Check if the values are very close after conversion.
             assert torch.allclose(
-                calculated_tensor.float(), expected_tensor_val.float(), atol=0.1
+                calculated_tensor.float(),
+                expected_tensor_val.float(),
+                atol=0.1,
             )
         else:
             assert torch.equal(calculated_tensor, expected_tensor_val)
@@ -703,7 +711,9 @@ async def test_default_dtype_propagation_various_types(
             explicit_indices, torch.tensor([0, 1], dtype=torch.long)
         )
         # Compare explicit values with tolerance for bfloat16
-        expected_explicit_vals = torch.tensor([1.25, 2.75], dtype=dtype_to_test)
+        expected_explicit_vals = torch.tensor(
+            [1.25, 2.75], dtype=dtype_to_test
+        )
         if dtype_to_test == torch.bfloat16:
             assert torch.allclose(
                 explicit_values.float(),
@@ -738,7 +748,8 @@ async def test_update_existing_explicit_update_value_and_cascade(
     # Check T0's notification
     t0_update_call = mc.calls[0]
     assert torch.equal(
-        t0_update_call[0], torch.tensor([99.0, 0, 0, 0], dtype=d._default_dtype)
+        t0_update_call[0],
+        torch.tensor([99.0, 0, 0, 0], dtype=d._default_dtype),
     )
     assert t0_update_call[1] == T0_std
 

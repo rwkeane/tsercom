@@ -37,9 +37,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
             server_ip: IP address of the time sync server (unused in fake).
             ntp_port: Port for NTP communication (unused in fake).
         """
-        self.__watcher = (
-            watcher  # pylint: disable=unused-private-member # API compatibility
-        )
+        self.__watcher = watcher  # pylint: disable=unused-private-member # API compatibility
         self.__server_ip = (  # pylint: disable=unused-private-member # API compatibility
             server_ip
         )

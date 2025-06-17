@@ -104,7 +104,9 @@ class InstancePublisher:
         txt_record = self._make_txt_record()
         # This check is defensive; _make_txt_record should always return a dict.
         if txt_record is None:
-            raise RuntimeError("_make_txt_record failed to produce TXT record.")
+            raise RuntimeError(
+                "_make_txt_record failed to produce TXT record."
+            )
 
         self.__record_publisher: MdnsPublisher
         if mdns_publisher_factory is None:

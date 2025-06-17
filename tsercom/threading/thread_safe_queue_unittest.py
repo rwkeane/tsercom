@@ -129,7 +129,9 @@ def test_thread_safety_concurrent_pops() -> None:
     num_threads = 10
     popped_items_collection: List[List[Any]] = [[] for _ in range(num_threads)]
     threads: List[threading.Thread] = []
-    lock = threading.Lock()  # To safely append to popped_items_collection lists
+    lock = (
+        threading.Lock()
+    )  # To safely append to popped_items_collection lists
 
     # Use a barrier to try and start all threads as close to simultaneously as possible
     # after the queue is populated.

@@ -199,7 +199,9 @@ class AsyncPoller(Generic[ResultTypeT]):
             with self.__lock:
                 if self.__responses:
                     while self.__responses:
-                        current_batch_on_stop.append(self.__responses.popleft())
+                        current_batch_on_stop.append(
+                            self.__responses.popleft()
+                        )
             if current_batch_on_stop:
                 return current_batch_on_stop
             raise RuntimeError("AsyncPoller is stopped.")

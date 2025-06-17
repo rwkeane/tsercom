@@ -238,18 +238,18 @@ class TensorDemuxer:
                         old_tensor_next,
                         (current_explicit_indices, current_explicit_values),
                     ) = self._tensor_states[i]
-                    predecessor_tensor_for_ts_next = self._tensor_states[i - 1][
-                        1
-                    ]
+                    predecessor_tensor_for_ts_next = self._tensor_states[
+                        i - 1
+                    ][1]
                     new_calculated_tensor_next = (
                         predecessor_tensor_for_ts_next.clone()
                     )
 
                     if current_explicit_indices.numel() > 0:
                         # This assumes explicit indices are always valid due to checks at insertion.
-                        new_calculated_tensor_next[current_explicit_indices] = (
-                            current_explicit_values
-                        )
+                        new_calculated_tensor_next[
+                            current_explicit_indices
+                        ] = current_explicit_values
 
                     if not torch.equal(
                         new_calculated_tensor_next, old_tensor_next
@@ -257,7 +257,10 @@ class TensorDemuxer:
                         self._tensor_states[i] = (
                             ts_next,
                             new_calculated_tensor_next,
-                            (current_explicit_indices, current_explicit_values),
+                            (
+                                current_explicit_indices,
+                                current_explicit_values,
+                            ),
                         )
                         await self.__client.on_tensor_changed(
                             new_calculated_tensor_next.clone(), ts_next

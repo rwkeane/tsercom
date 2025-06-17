@@ -54,7 +54,9 @@ class TestIpUtils:
             "--- Test: test_get_all_address_strings_interface_no_ipv4 finished ---"
         )
 
-    def test_get_all_address_strings_single_interface_single_ipv4(self, mocker):
+    def test_get_all_address_strings_single_interface_single_ipv4(
+        self, mocker
+    ):
         print(
             "\n--- Test: test_get_all_address_strings_single_interface_single_ipv4 ---"
         )

@@ -256,7 +256,9 @@ class DiscoveryHost(
                 getattr(self.__client, "_on_service_removed")
             ):
                 # pylint: disable=protected-access, W0212
-                await self.__client._on_service_removed(service_name, caller_id)
+                await self.__client._on_service_removed(
+                    service_name, caller_id
+                )
             else:
                 logging.warning(
                     "Client %s does not implement _on_service_removed, cannot notify for %s.",

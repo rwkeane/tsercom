@@ -47,7 +47,9 @@ def assert_tensors_equal_with_nan(
     actual_is_nan = torch.isnan(actual)
     expected_is_nan = torch.isnan(expected)
 
-    assert torch.equal(actual_is_nan, expected_is_nan), "NaN placement mismatch"
+    assert torch.equal(
+        actual_is_nan, expected_is_nan
+    ), "NaN placement mismatch"
 
     if approx and (actual.is_floating_point() or expected.is_floating_point()):
         assert torch.allclose(
@@ -128,7 +130,8 @@ def test_timestamp_before_first_keyframe(
     kf1_ts_float = 1672531210.0
     kf2_ts_float = 1672531220.0
     kf_ts_tensor, kf_vals_tensor = create_keyframe_tensors(
-        [(kf1_ts_float, 10.0), (kf2_ts_float, 20.0)], values_dtype=torch.float64
+        [(kf1_ts_float, 10.0), (kf2_ts_float, 20.0)],
+        values_dtype=torch.float64,
     )
 
     req_ts_tensor = ts_to_tensor([kf1_ts_float - 5.0])
@@ -147,7 +150,8 @@ def test_timestamp_after_last_keyframe(
     kf1_ts_float = 1672531210.0
     kf2_ts_float = 1672531220.0
     kf_ts_tensor, kf_vals_tensor = create_keyframe_tensors(
-        [(kf1_ts_float, 10.0), (kf2_ts_float, 20.0)], values_dtype=torch.float32
+        [(kf1_ts_float, 10.0), (kf2_ts_float, 20.0)],
+        values_dtype=torch.float32,
     )
     req_ts_tensor = ts_to_tensor([kf2_ts_float + 5.0])
     expected = torch.tensor([20.0], dtype=torch.float32)
@@ -198,7 +202,8 @@ def test_timestamp_between_keyframes(
     kf1_ts_float = 1672531210.0  # Value 10.0
     kf2_ts_float = 1672531220.0  # Value 20.0
     kf_ts_tensor, kf_vals_tensor = create_keyframe_tensors(
-        [(kf1_ts_float, 10.0), (kf2_ts_float, 20.0)], values_dtype=torch.float64
+        [(kf1_ts_float, 10.0), (kf2_ts_float, 20.0)],
+        values_dtype=torch.float64,
     )
 
     req_ts_halfway = ts_to_tensor([kf1_ts_float + 5.0])
@@ -259,7 +264,8 @@ def test_timestamps_with_microseconds(
     kf1_ts_float = 1672531210.1  # 10.0 @ 10.1s
     kf2_ts_float = 1672531210.6  # 20.0 @ 10.6s
     kf_ts_tensor, kf_vals_tensor = create_keyframe_tensors(
-        [(kf1_ts_float, 10.0), (kf2_ts_float, 20.0)], values_dtype=torch.float64
+        [(kf1_ts_float, 10.0), (kf2_ts_float, 20.0)],
+        values_dtype=torch.float64,
     )
 
     req_ts_mid_float = 1672531210.35  # Midpoint: 10.1s + 0.25s = 10.35s

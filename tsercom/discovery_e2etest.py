@@ -71,7 +71,9 @@ async def test_successful_registration_and_discovery():
 
     # Listener needs to be started before publisher to catch the announcement
     # Assign to specific variable names to manage lifecycle explicitly in finally block
-    listener_obj: InstanceListener | None = None  # Initialize for finally block
+    listener_obj: InstanceListener | None = (
+        None  # Initialize for finally block
+    )
     publisher_obj = None  # Initialize to None for the finally block
 
     try:
@@ -388,7 +390,9 @@ async def test_instance_update_reflects_changes():
     client = UpdateTestClient(
         [discovery_event1, discovery_event2], discovered_services
     )
-    listener_obj: InstanceListener | None = None  # Initialize for finally block
+    listener_obj: InstanceListener | None = (
+        None  # Initialize for finally block
+    )
     publisher1_obj: Optional[InstancePublisher] = None  # Type hint for clarity
     publisher2_obj: Optional[InstancePublisher] = None  # Type hint for clarity
     shared_zc1: Optional[AsyncZeroconf] = None
@@ -445,7 +449,9 @@ async def test_instance_update_reflects_changes():
             await shared_zc1.async_close()  # Close the first ZC instance
 
         # Allow a brief moment for the unregistration to propagate.
-        _logger.info("Waiting for unregistration of publisher1 to propagate...")
+        _logger.info(
+            "Waiting for unregistration of publisher1 to propagate..."
+        )
         await asyncio.sleep(0.5)  # Increased sleep
         _logger.info(
             "Proceeding to publish publisher2 with new ZC and Listener."

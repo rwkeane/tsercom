@@ -86,7 +86,9 @@ class SerializableTensor:
             if source_tensor.dtype == torch.float32:
                 dense_payload.float_data.data.extend(flat_tensor_data.tolist())
             elif source_tensor.dtype == torch.float64:
-                dense_payload.double_data.data.extend(flat_tensor_data.tolist())
+                dense_payload.double_data.data.extend(
+                    flat_tensor_data.tolist()
+                )
             elif source_tensor.dtype == torch.int32:
                 dense_payload.int32_data.data.extend(flat_tensor_data.tolist())
             elif source_tensor.dtype == torch.int64:
@@ -217,7 +219,9 @@ class SerializableTensor:
                 elif (
                     packed_bytes
                 ):  # If there are packed_bytes, attempt to unpack
-                    np_uint8_array = np.frombuffer(packed_bytes, dtype=np.uint8)
+                    np_uint8_array = np.frombuffer(
+                        packed_bytes, dtype=np.uint8
+                    )
                     np_bool_flat = np.unpackbits(np_uint8_array)
                     # Truncate to the expected number of elements based on shape
                     np_bool_flat_truncated = np_bool_flat[: int(num_elements)]
@@ -416,5 +420,7 @@ class SerializableTensor:
             return SerializableTensor(reconstructed_tensor, parsed_timestamp)
         else:
             # This case should be covered by raises or returns within the if/else blocks
-            logging.error("Tensor reconstruction failed for an unknown reason.")
+            logging.error(
+                "Tensor reconstruction failed for an unknown reason."
+            )
             return None

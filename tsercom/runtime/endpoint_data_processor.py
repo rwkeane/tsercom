@@ -184,7 +184,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         await self._process_data(data, actual_timestamp)
 
     @abstractmethod
-    async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
+    async def _process_data(
+        self, data: DataTypeT, timestamp: datetime
+    ) -> None:
         """Processes the data item with its fully synchronized and normalized `datetime`.
 
         Subclasses must implement this method to define the specific business logic

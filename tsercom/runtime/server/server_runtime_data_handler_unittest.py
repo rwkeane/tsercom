@@ -301,7 +301,9 @@ class TestServerRuntimeDataHandler:
             "tsercom.runtime.server.server_runtime_data_handler.FakeSynchronizedClock"
         )
         mock_fake_clock_instance = mocker.MagicMock(spec=SynchronizedClock)
-        mock_FakeSynchronizedClock_class.return_value = mock_fake_clock_instance
+        mock_FakeSynchronizedClock_class.return_value = (
+            mock_fake_clock_instance
+        )
 
         mock_TimeSyncServer_class = mocker.patch(
             "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer"
@@ -321,5 +323,6 @@ class TestServerRuntimeDataHandler:
         mock_FakeSynchronizedClock_class.assert_called_once_with()
         mock_TimeSyncServer_class.assert_not_called()
         assert (
-            handler._ServerRuntimeDataHandler__clock is mock_fake_clock_instance
+            handler._ServerRuntimeDataHandler__clock
+            is mock_fake_clock_instance
         )

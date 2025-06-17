@@ -61,7 +61,9 @@ class IdTracker(Generic[TrackedDataT]):
                 `CallerIdentifier` added to the tracker. If `None`, no custom
                 data is stored besides the ID-address mapping.
         """
-        self.__data_factory: Optional[Callable[[], TrackedDataT]] = data_factory
+        self.__data_factory: Optional[Callable[[], TrackedDataT]] = (
+            data_factory
+        )
         self.__lock: threading.Lock = threading.Lock()
         self.__address_to_id: Dict[tuple[str, int], CallerIdentifier] = {}
         self.__id_to_address: Dict[CallerIdentifier, tuple[str, int]] = {}

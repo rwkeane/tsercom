@@ -352,7 +352,9 @@ def test_poll_for_data_stop_mid_processing(
         timeout=0.1,
     ):  # Changed: timeout_seconds to timeout
         nonlocal stop_was_called_during_get
-        data = original_get_blocking(timeout=timeout)  # Use corrected signature
+        data = original_get_blocking(
+            timeout=timeout
+        )  # Use corrected signature
         if data is item1 and not stop_was_called_during_get:
             data_source.stop()
             stop_was_called_during_get = True
@@ -439,7 +441,9 @@ def test_stop_join_timeout(
     data_source._DataReaderSource__is_running = fake_is_running_tracker
 
     # Call start() to create and start the thread
-    fake_is_running_tracker.set_is_running(True)  # So start() thinks it can run
+    fake_is_running_tracker.set_is_running(
+        True
+    )  # So start() thinks it can run
     data_source.start()
 
     assert (
@@ -451,7 +455,9 @@ def test_stop_join_timeout(
         fake_watcher.fake_thread, "join", side_effect=lambda timeout=None: None
     )
     # Mock thread.is_alive to always return True
-    mocker.patch.object(fake_watcher.fake_thread, "is_alive", return_value=True)
+    mocker.patch.object(
+        fake_watcher.fake_thread, "is_alive", return_value=True
+    )
 
     # Updated regex to match the actual error message more broadly
     with pytest.raises(

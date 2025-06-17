@@ -811,17 +811,23 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
         )
 
     @pytest.mark.asyncio
-    async def test_register_caller_endpoint_without_port(self, handler_fixture):
+    async def test_register_caller_endpoint_without_port(
+        self, handler_fixture
+    ):
         caller_id = CallerIdentifier.random()
         with pytest.raises(ValueError) as excinfo:
-            await handler_fixture.register_caller(caller_id, endpoint="1.2.3.4")
+            await handler_fixture.register_caller(
+                caller_id, endpoint="1.2.3.4"
+            )
         assert (
             "If 'endpoint' is provided, 'port' must also be, and vice-versa."
             in str(excinfo.value)
         )
 
     @pytest.mark.asyncio
-    async def test_register_caller_port_without_endpoint(self, handler_fixture):
+    async def test_register_caller_port_without_endpoint(
+        self, handler_fixture
+    ):
         caller_id = CallerIdentifier.random()
         with pytest.raises(ValueError) as excinfo:
             await handler_fixture.register_caller(caller_id, port=1234)
@@ -848,8 +854,9 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             await handler_fixture.register_caller(
                 caller_id, context=not_a_servicer_context
             )
-        assert "Expected context: grpc.aio.ServicerContext, got object." in str(
-            excinfo.value
+        assert (
+            "Expected context: grpc.aio.ServicerContext, got object."
+            in str(excinfo.value)
         )
         mock_get_ip.assert_not_called()
         mock_get_port.assert_not_called()

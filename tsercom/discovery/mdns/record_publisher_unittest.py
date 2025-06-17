@@ -37,7 +37,9 @@ async def test_publish_and_close_with_owned_zc_closes_zc(mocker):
         ):  # 127.0.0.1
             await publisher.publish()
 
-        mock_zc_constructor.assert_called_once_with(ip_version=IPVersion.V4Only)
+        mock_zc_constructor.assert_called_once_with(
+            ip_version=IPVersion.V4Only
+        )
         assert (
             publisher._zc is mock_owned_zc_instance
         )  # Check it's using the mocked instance

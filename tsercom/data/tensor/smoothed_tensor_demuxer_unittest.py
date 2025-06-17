@@ -166,7 +166,9 @@ async def test_on_update_received_respects_history_limit(
     base_ts_dt = real_datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     for i in range(history_limit + 2):  # Add 5 keyframes
         ts_dt = base_ts_dt + timedelta(seconds=i)
-        await demuxer_limited_fixture.on_update_received(index, float(i), ts_dt)
+        await demuxer_limited_fixture.on_update_received(
+            index, float(i), ts_dt
+        )
 
     async with demuxer_limited_fixture._keyframes_lock:
         timestamps_tensor, values_tensor = (
@@ -333,10 +335,8 @@ async def test_critical_cascading_interpolation_scenario(
     async with demuxer_cascade._keyframes_lock:
         for i in range(demuxer_cascade.get_tensor_shape()[0]):
             idx = (i,)
-            keyframe_data_tuple = (
-                demuxer_cascade._SmoothedTensorDemuxer__per_index_keyframes.get(
-                    idx
-                )
+            keyframe_data_tuple = demuxer_cascade._SmoothedTensorDemuxer__per_index_keyframes.get(
+                idx
             )  # type: ignore [attr-defined]
             if keyframe_data_tuple:
                 ts_tensor, val_tensor = keyframe_data_tuple
@@ -825,7 +825,9 @@ async def test_on_update_received_updates_existing_timestamp_value(
     async with demuxer_instance._keyframes_lock:
         # Accessing private member for test validation
         timestamps_tensor, values_tensor = (
-            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[index0]
+            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[
+                index0
+            ]
         )
     assert timestamps_tensor.numel() == 1
     assert values_tensor.numel() == 1
@@ -837,7 +839,9 @@ async def test_on_update_received_updates_existing_timestamp_value(
 
     async with demuxer_instance._keyframes_lock:
         timestamps_tensor_updated, values_tensor_updated = (
-            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[index0]
+            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[
+                index0
+            ]
         )
 
     assert (
@@ -856,7 +860,9 @@ async def test_on_update_received_updates_existing_timestamp_value(
     await demuxer_instance.on_update_received(index0, 20.0, ts_datetime)
     async with demuxer_instance._keyframes_lock:
         timestamps_tensor_final, values_tensor_final = (
-            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[index0]
+            demuxer_instance._SmoothedTensorDemuxer__per_index_keyframes[
+                index0
+            ]
         )
     assert (
         abs(values_tensor_final[0].item() - 20.0) < 1e-9
@@ -984,7 +990,9 @@ async def test_max_keyframe_history_one(
     await demuxer_hist_one.on_update_received(index0, 10.0, ts1)
     async with demuxer_hist_one._keyframes_lock:
         timestamps_tensor, values_tensor = (
-            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[index0]
+            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[
+                index0
+            ]
         )
     assert timestamps_tensor.numel() == 1
     assert abs(values_tensor[0].item() - 10.0) < 1e-9
@@ -993,7 +1001,9 @@ async def test_max_keyframe_history_one(
     await demuxer_hist_one.on_update_received(index0, 20.0, ts2)
     async with demuxer_hist_one._keyframes_lock:
         timestamps_tensor, values_tensor = (
-            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[index0]
+            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[
+                index0
+            ]
         )
     assert timestamps_tensor.numel() == 1
     assert abs(timestamps_tensor[0].item() - ts2.timestamp()) < 1e-9
@@ -1003,7 +1013,9 @@ async def test_max_keyframe_history_one(
     await demuxer_hist_one.on_update_received(index0, 30.0, ts3)
     async with demuxer_hist_one._keyframes_lock:
         timestamps_tensor, values_tensor = (
-            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[index0]
+            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[
+                index0
+            ]
         )
     assert timestamps_tensor.numel() == 1
     assert abs(timestamps_tensor[0].item() - ts3.timestamp()) < 1e-9
@@ -1015,7 +1027,9 @@ async def test_max_keyframe_history_one(
     )  # This is ts1 < ts3
     async with demuxer_hist_one._keyframes_lock:
         timestamps_tensor, values_tensor = (
-            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[index0]
+            demuxer_hist_one._SmoothedTensorDemuxer__per_index_keyframes[
+                index0
+            ]
         )
     assert timestamps_tensor.numel() == 1
     assert (

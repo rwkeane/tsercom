@@ -258,7 +258,9 @@ async def test_start_discovery_multiple_times(
     await host.start_discovery(mock_client_arg)  # Use renamed arg
     mock_listener_instance.start.assert_awaited_once()  # Assert start was awaited
 
-    host._DiscoveryHost__instance_listener_factory.assert_called_once_with(host)
+    host._DiscoveryHost__instance_listener_factory.assert_called_once_with(
+        host
+    )
 
     assert host._DiscoveryHost__discoverer is mock_listener_instance  # type: ignore[attr-defined]
 
@@ -344,7 +346,9 @@ async def test_mdns_listener_factory_invoked_via_instance_listener_on_start(
     mocker: Mock, mock_service_source_client_fixture: AsyncMock
 ) -> None:
     mock_service_source_client: AsyncMock = mock_service_source_client_fixture
-    mock_listener_product: MagicMock = mocker.MagicMock(spec=ActualMdnsListener)
+    mock_listener_product: MagicMock = mocker.MagicMock(
+        spec=ActualMdnsListener
+    )
     mock_listener_product.start = AsyncMock()  # Changed to AsyncMock
     mock_mdns_factory: Mock = mocker.Mock(return_value=mock_listener_product)
 
@@ -550,7 +554,9 @@ async def test_stop_discovery_calls_listener_async_stop(
     await host.start_discovery(mock_ss_client)
 
     # Assertions for the factory and start method
-    host._DiscoveryHost__instance_listener_factory.assert_called_once_with(host)
+    host._DiscoveryHost__instance_listener_factory.assert_called_once_with(
+        host
+    )
     mock_listener_for_test.start.assert_awaited_once()
 
     await host.stop_discovery()

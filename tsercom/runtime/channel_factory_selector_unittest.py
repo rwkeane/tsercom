@@ -180,7 +180,9 @@ class TestCreateFactory:
             server_hostname_override="override.host",
         )
 
-    def test_create_factory_client_auth_cert_read_fails(self, selector, mocker):
+    def test_create_factory_client_auth_cert_read_fails(
+        self, selector, mocker
+    ):
         def read_side_effect(path):
             if path == "c.pem":
                 return None

@@ -130,7 +130,9 @@ class TestTimeSyncTracker:
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.104"
 
-        with pytest.raises(KeyError, match=f"IP address '{test_ip}' not found"):
+        with pytest.raises(
+            KeyError, match=f"IP address '{test_ip}' not found"
+        ):
             tracker.on_disconnect(test_ip)
 
     def test_on_connect_different_ips(

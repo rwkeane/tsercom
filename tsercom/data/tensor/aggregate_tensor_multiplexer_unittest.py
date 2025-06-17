@@ -210,7 +210,9 @@ async def test_add_second_publisher_append_complete(
     mock_main_client.clear_calls()
     await publisher2.publish(TENSOR_L2_A, T1)
     # Expected calls for complete publisher2 (indices 3, 4)
-    expected_calls = sorted([(i + 3, TENSOR_L2_A_VAL[i], T1) for i in range(2)])
+    expected_calls = sorted(
+        [(i + 3, TENSOR_L2_A_VAL[i], T1) for i in range(2)]
+    )
     assert (
         mock_main_client.get_calls_summary(sort_by_index_then_ts=True)
         == expected_calls
@@ -459,7 +461,9 @@ async def test_aggregator_data_timeout(
     # the _InternalClient needs to effectively call aggregator._cleanup_old_data.
     # We assume the line `aggregator._cleanup_old_data(current_max_ts_for_cleanup)`
     # in `_InternalClient.on_index_update` is active for this test.
-    await agg.add_to_aggregation(publisher1, 3, sparse=False)  # tensor_length=3
+    await agg.add_to_aggregation(
+        publisher1, 3, sparse=False
+    )  # tensor_length=3
 
     await publisher1.publish(TENSOR_L3_A, T0)  # T0 = T_BASE - 20s
     assert (
@@ -479,5 +483,7 @@ async def test_aggregator_data_timeout(
     ), "Data for T0 should be timed out from aggregator's history."
 
     retrieved_tfar = await agg.get_tensor_at_timestamp(T_FAR_FUTURE)
-    assert retrieved_tfar is not None, "Data for T_FAR_FUTURE should be present"
+    assert (
+        retrieved_tfar is not None
+    ), "Data for T_FAR_FUTURE should be present"
     assert torch.equal(retrieved_tfar, TENSOR_L3_B)

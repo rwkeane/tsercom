@@ -300,7 +300,9 @@ class ServiceConnector(
                     exc_info=True,
                 )
         else:
-            logging.debug("Service source does not have stop_discovery method.")
+            logging.debug(
+                "Service source does not have stop_discovery method."
+            )
 
         self.__callers.clear()
 
