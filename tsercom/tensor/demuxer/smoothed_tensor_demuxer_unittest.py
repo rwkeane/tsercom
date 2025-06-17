@@ -196,7 +196,7 @@ async def test_interpolation_worker_simple_case(
     MockedDateTime.timedelta = timedelta
     MockedDateTime.timezone = timezone
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module.datetime",
         MockedDateTime,
     )
     await demuxer.start()
@@ -369,7 +369,7 @@ async def test_empty_keyframes_output_fill_value(
         timezone,
     )
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module.datetime",
         MockedDateTimeEmpty,
     )
     await demuxer.start()
@@ -431,7 +431,7 @@ async def test_align_output_timestamps_true(
         timezone,
     )
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module.datetime",
         MockedDateTimeAlign,
     )
 
@@ -551,7 +551,7 @@ async def test_small_max_keyframe_history(
     MockedDateTimeSmallHist.timedelta = timedelta
     MockedDateTimeSmallHist.timezone = timezone
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module.datetime",
         MockedDateTimeSmallHist,
     )
 
@@ -606,7 +606,7 @@ async def test_2d_tensor_shape(
     MockedDateTime2D.timedelta = timedelta
     MockedDateTime2D.timezone = timezone
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module.datetime",
         MockedDateTime2D,
     )
 
@@ -710,7 +710,7 @@ async def test_index_no_keyframes_initially_then_updated(
     MockedDateTime.timedelta = timedelta
     MockedDateTime.timezone = timezone
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module.datetime",
         MockedDateTime,
     )
 
@@ -851,7 +851,7 @@ async def test_numerical_timestamp_handling_with_mock_strategy(
     MockedDateTime.timedelta = timedelta
     MockedDateTime.timezone = timezone
     mocker.patch(
-        "tsercom.data.tensor.smoothed_tensor_demuxer.python_datetime_module.datetime",
+        "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module.datetime",
         MockedDateTime,
     )
 

@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from typing import Tuple, List
 
-from tsercom.rpc.serialization.serializable_tensor import SerializableTensor
+from tsercom.tensor.serialization.serializable_tensor import SerializableTensor
 import datetime  # Added import
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
