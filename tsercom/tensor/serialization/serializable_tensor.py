@@ -350,7 +350,9 @@ class SerializableTensorChunk:
             # Correctly get the oneof field for sparse tensor data type
             sparse_data_type_field = sparse_payload.WhichOneof("data_type")
 
-            values_np: Optional[np.ndarray] = None  # Initialize values_np, E1136 unsubscriptable-object
+            values_np: Optional[np.ndarray] = (
+                None  # Initialize values_np, E1136 unsubscriptable-object
+            )
 
             if sparse_data_type_field == "float_values":
                 values_list = list(sparse_payload.float_values.data)
@@ -420,7 +422,8 @@ class SerializableTensorChunk:
 
         else:
             logging.error(
-                "Unknown data_representation type: %s", data_representation_type
+                "Unknown data_representation type: %s",
+                data_representation_type,
             )
             raise ValueError(
                 f"Unknown data_representation type: {data_representation_type}"
@@ -428,13 +431,17 @@ class SerializableTensorChunk:
 
         if reconstructed_tensor is None:
             # This case should be covered by raises or returns within the if/else blocks
-            logging.error("Tensor reconstruction failed for an unknown reason.")
+            logging.error(
+                "Tensor reconstruction failed for an unknown reason."
+            )
             return None
 
         if device:
             try:
                 reconstructed_tensor = reconstructed_tensor.to(device)
-            except RuntimeError as e:  # Catch a more specific exception for device moving
+            except (
+                RuntimeError
+            ) as e:  # Catch a more specific exception for device moving
                 logging.error(
                     "Failed to move tensor to device '%s': %s", device, e
                 )

@@ -21,13 +21,19 @@ class FloatData(google.protobuf.message.Message):
 
     DATA_FIELD_NUMBER: builtins.int
     @property
-    def data(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.float]: ...
+    def data(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.float
+    ]: ...
     def __init__(
         self,
         *,
         data: collections.abc.Iterable[builtins.float] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["data", b"data"]
+    ) -> None: ...
 
 global___FloatData = FloatData
 
@@ -37,13 +43,19 @@ class DoubleData(google.protobuf.message.Message):
 
     DATA_FIELD_NUMBER: builtins.int
     @property
-    def data(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.float]: ...
+    def data(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.float
+    ]: ...
     def __init__(
         self,
         *,
         data: collections.abc.Iterable[builtins.float] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["data", b"data"]
+    ) -> None: ...
 
 global___DoubleData = DoubleData
 
@@ -53,13 +65,19 @@ class Int32Data(google.protobuf.message.Message):
 
     DATA_FIELD_NUMBER: builtins.int
     @property
-    def data(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    def data(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.int
+    ]: ...
     def __init__(
         self,
         *,
         data: collections.abc.Iterable[builtins.int] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["data", b"data"]
+    ) -> None: ...
 
 global___Int32Data = Int32Data
 
@@ -69,13 +87,19 @@ class Int64Data(google.protobuf.message.Message):
 
     DATA_FIELD_NUMBER: builtins.int
     @property
-    def data(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    def data(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.int
+    ]: ...
     def __init__(
         self,
         *,
         data: collections.abc.Iterable[builtins.int] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["data", b"data"]
+    ) -> None: ...
 
 global___Int64Data = Int64Data
 
@@ -90,7 +114,9 @@ class BoolData(google.protobuf.message.Message):
         *,
         data: builtins.bytes = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["data", b"data"]
+    ) -> None: ...
 
 global___BoolData = BoolData
 
@@ -107,7 +133,11 @@ class DenseTensorData(google.protobuf.message.Message):
     INT64_DATA_FIELD_NUMBER: builtins.int
     BOOL_DATA_FIELD_NUMBER: builtins.int
     @property
-    def shape(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    def shape(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.int
+    ]: ...
     @property
     def float_data(self) -> global___FloatData: ...
     @property
@@ -128,9 +158,54 @@ class DenseTensorData(google.protobuf.message.Message):
         int64_data: global___Int64Data | None = ...,
         bool_data: global___BoolData | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["bool_data", b"bool_data", "data_type", b"data_type", "double_data", b"double_data", "float_data", b"float_data", "int32_data", b"int32_data", "int64_data", b"int64_data"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["bool_data", b"bool_data", "data_type", b"data_type", "double_data", b"double_data", "float_data", b"float_data", "int32_data", b"int32_data", "int64_data", b"int64_data", "shape", b"shape"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["data_type", b"data_type"]) -> typing.Literal["float_data", "double_data", "int32_data", "int64_data", "bool_data"] | None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "bool_data",
+            b"bool_data",
+            "data_type",
+            b"data_type",
+            "double_data",
+            b"double_data",
+            "float_data",
+            b"float_data",
+            "int32_data",
+            b"int32_data",
+            "int64_data",
+            b"int64_data",
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "bool_data",
+            b"bool_data",
+            "data_type",
+            b"data_type",
+            "double_data",
+            b"double_data",
+            "float_data",
+            b"float_data",
+            "int32_data",
+            b"int32_data",
+            "int64_data",
+            b"int64_data",
+            "shape",
+            b"shape",
+        ],
+    ) -> None: ...
+    def WhichOneof(
+        self, oneof_group: typing.Literal["data_type", b"data_type"]
+    ) -> (
+        typing.Literal[
+            "float_data",
+            "double_data",
+            "int32_data",
+            "int64_data",
+            "bool_data",
+        ]
+        | None
+    ): ...
 
 global___DenseTensorData = DenseTensorData
 
@@ -148,9 +223,17 @@ class SparseCooTensorData(google.protobuf.message.Message):
     INT64_VALUES_FIELD_NUMBER: builtins.int
     BOOL_VALUES_FIELD_NUMBER: builtins.int
     @property
-    def shape(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    def shape(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.int
+    ]: ...
     @property
-    def indices(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
+    def indices(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.int
+    ]:
         """Indices are a 2D array [ndim, nnz] flattened into a 1D list."""
 
     @property
@@ -174,9 +257,56 @@ class SparseCooTensorData(google.protobuf.message.Message):
         int64_values: global___Int64Data | None = ...,
         bool_values: global___BoolData | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["bool_values", b"bool_values", "data_type", b"data_type", "double_values", b"double_values", "float_values", b"float_values", "int32_values", b"int32_values", "int64_values", b"int64_values"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["bool_values", b"bool_values", "data_type", b"data_type", "double_values", b"double_values", "float_values", b"float_values", "indices", b"indices", "int32_values", b"int32_values", "int64_values", b"int64_values", "shape", b"shape"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["data_type", b"data_type"]) -> typing.Literal["float_values", "double_values", "int32_values", "int64_values", "bool_values"] | None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "bool_values",
+            b"bool_values",
+            "data_type",
+            b"data_type",
+            "double_values",
+            b"double_values",
+            "float_values",
+            b"float_values",
+            "int32_values",
+            b"int32_values",
+            "int64_values",
+            b"int64_values",
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "bool_values",
+            b"bool_values",
+            "data_type",
+            b"data_type",
+            "double_values",
+            b"double_values",
+            "float_values",
+            b"float_values",
+            "indices",
+            b"indices",
+            "int32_values",
+            b"int32_values",
+            "int64_values",
+            b"int64_values",
+            "shape",
+            b"shape",
+        ],
+    ) -> None: ...
+    def WhichOneof(
+        self, oneof_group: typing.Literal["data_type", b"data_type"]
+    ) -> (
+        typing.Literal[
+            "float_values",
+            "double_values",
+            "int32_values",
+            "int64_values",
+            "bool_values",
+        ]
+        | None
+    ): ...
 
 global___SparseCooTensorData = SparseCooTensorData
 
@@ -207,8 +337,39 @@ class TensorChunk(google.protobuf.message.Message):
         sparse_coo_tensor: global___SparseCooTensorData | None = ...,
         starting_index: builtins.int = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["data_representation", b"data_representation", "dense_tensor", b"dense_tensor", "sparse_coo_tensor", b"sparse_coo_tensor", "timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["data_representation", b"data_representation", "dense_tensor", b"dense_tensor", "sparse_coo_tensor", b"sparse_coo_tensor", "starting_index", b"starting_index", "timestamp", b"timestamp"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["data_representation", b"data_representation"]) -> typing.Literal["dense_tensor", "sparse_coo_tensor"] | None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "data_representation",
+            b"data_representation",
+            "dense_tensor",
+            b"dense_tensor",
+            "sparse_coo_tensor",
+            b"sparse_coo_tensor",
+            "timestamp",
+            b"timestamp",
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "data_representation",
+            b"data_representation",
+            "dense_tensor",
+            b"dense_tensor",
+            "sparse_coo_tensor",
+            b"sparse_coo_tensor",
+            "starting_index",
+            b"starting_index",
+            "timestamp",
+            b"timestamp",
+        ],
+    ) -> None: ...
+    def WhichOneof(
+        self,
+        oneof_group: typing.Literal[
+            "data_representation", b"data_representation"
+        ],
+    ) -> typing.Literal["dense_tensor", "sparse_coo_tensor"] | None: ...
 
 global___TensorChunk = TensorChunk
