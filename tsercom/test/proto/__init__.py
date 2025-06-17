@@ -34,6 +34,9 @@ if not TYPE_CHECKING:
             add_E2ETestServiceServicer_to_server,
             E2ETestService,
         )
+        # Also expose the modules themselves for direct import if needed
+        import tsercom.test.proto.generated.v1_73.e2e_test_service_pb2 as e2e_test_service_pb2
+        import tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc as e2e_test_service_pb2_grpc
     else:
         # The 'name' variable for the error message is 'e2e_test_service'
         # The 'available_versions' for the error message is ['v1_73']
@@ -66,3 +69,6 @@ else:  # When TYPE_CHECKING
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc import (
         E2ETestService as E2ETestService,
     )
+    # For TYPE_CHECKING, also make modules available if imported directly
+    from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2 as e2e_test_service_pb2
+    from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2_grpc as e2e_test_service_pb2_grpc

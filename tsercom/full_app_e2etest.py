@@ -29,8 +29,8 @@ from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from zeroconf import Zeroconf
 from zeroconf.asyncio import AsyncZeroconf
 
-from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2
-from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2_grpc
+from tsercom.test.proto import e2e_test_service_pb2
+from tsercom.test.proto import e2e_test_service_pb2_grpc
 
 E2E_TEST_SERVICE_TYPE = "_e2etest._tcp.local."
 
@@ -182,7 +182,7 @@ class GenericServerRuntime(
         echo_message = "Hello from E2E test"
         request = e2e_test_service_pb2.EchoRequest(message=echo_message)
 
-        stub = e2e_test_service_pb2_grpc.E2ETestServiceStub(channel)  # type: ignore[no-untyped-call]
+        stub = e2e_test_service_pb2_grpc.E2ETestServiceStub(channel) # type: ignore[no-untyped-call]
 
         # Make the RPC call. Exceptions will propagate to the caller (ServiceConnector).
         # If ServiceConnector doesn't handle them and put them on the queue,
@@ -194,7 +194,9 @@ class GenericServerRuntime(
         await self.__rpc_result_queue.put(response)
 
 
-class E2ETestServiceServicer(e2e_test_service_pb2_grpc.E2ETestServiceServicer):
+class E2ETestServiceServicer(
+    e2e_test_service_pb2_grpc.E2ETestServiceServicer
+):
     """
     Servicer for the E2E test service.
     """
@@ -260,7 +262,7 @@ class GenericClientRuntime(
             logging.info(
                 f"GenericClientRuntime.__connect: Adding servicer {type(self.__e2e_test_servicer)} to server {server}"
             )
-            e2e_test_service_pb2_grpc.add_E2ETestServiceServicer_to_server(  # type: ignore[no-untyped-call]
+            e2e_test_service_pb2_grpc.add_E2ETestServiceServicer_to_server( # type: ignore[no-untyped-call]
                 self.__e2e_test_servicer, server
             )
             logging.info("GenericClientRuntime.__connect: Servicer added.")
