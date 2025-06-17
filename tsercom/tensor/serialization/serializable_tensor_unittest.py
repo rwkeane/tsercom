@@ -5,13 +5,15 @@ import torch
 import numpy as np
 from typing import Tuple, List
 
-from tsercom.rpc.serialization.serializable_tensor import SerializableTensor
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
 import datetime  # Added import
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
 
-# from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import Tensor as GrpcTensor # For type hints if needed
+# from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import TensorChunk as GrpcTensorChunk # For type hints if needed
 
 
 from typing import Any  # Added for mocker type hint
@@ -120,26 +122,35 @@ def test_dense_tensor_serialization_deserialization(  # Added Any for mocker and
     # For now, let's assume the real one works and compare the datetime objects.
     # mocker.patch.object(SynchronizedTimestamp, 'NEEDS_CLOCK_SYNC', False) # Removed this line
 
-    serializable_tensor = SerializableTensor(
-        original_tensor, mock_sync_timestamp
+    starting_index_val = 42
+    serializable_tensor_chunk = SerializableTensorChunk(
+        original_tensor, mock_sync_timestamp, starting_index=starting_index_val
     )
-    grpc_msg = serializable_tensor.to_grpc_type()
+    grpc_msg = serializable_tensor_chunk.to_grpc_type()
 
     # Sanity check timestamp in grpc_msg (if SynchronizedTimestamp populates it predictably)
     # Example: if it uses google.protobuf.Timestamp
     # This depends on SynchronizedTimestamp.to_grpc_type() implementation.
     # Let's assume it's a google.protobuf.Timestamp
     # assert grpc_msg.timestamp.seconds == int(MOCK_TIMESTAMP_VAL) # Example check
+    assert grpc_msg.starting_index == starting_index_val
 
-    parsed_serializable_tensor = SerializableTensor.try_parse(grpc_msg)
+    parsed_serializable_tensor_chunk = SerializableTensorChunk.try_parse(
+        grpc_msg
+    )
 
-    assert parsed_serializable_tensor is not None
-    assert_tensors_equal(original_tensor, parsed_serializable_tensor.tensor)
-    assert parsed_serializable_tensor.timestamp is not None
+    assert parsed_serializable_tensor_chunk is not None
+    assert_tensors_equal(
+        original_tensor, parsed_serializable_tensor_chunk.tensor
+    )
+    assert parsed_serializable_tensor_chunk.timestamp is not None
     # Compare timestamp values by comparing the datetime objects
     assert (
-        parsed_serializable_tensor.timestamp.as_datetime()
+        parsed_serializable_tensor_chunk.timestamp.as_datetime()
         == mock_sync_timestamp.as_datetime()
+    )
+    assert (
+        parsed_serializable_tensor_chunk.starting_index == starting_index_val
     )
 
 
@@ -234,18 +245,28 @@ def test_sparse_coo_tensor_serialization_deserialization(  # Added Any for mocke
 
     # mocker.patch.object(SynchronizedTimestamp, 'NEEDS_CLOCK_SYNC', False) # Removed this line
 
-    serializable_tensor = SerializableTensor(
-        original_tensor, mock_sync_timestamp
+    starting_index_val = 101
+    serializable_tensor_chunk = SerializableTensorChunk(
+        original_tensor, mock_sync_timestamp, starting_index=starting_index_val
     )
-    grpc_msg = serializable_tensor.to_grpc_type()
-    parsed_serializable_tensor = SerializableTensor.try_parse(grpc_msg)
+    grpc_msg = serializable_tensor_chunk.to_grpc_type()
+    assert grpc_msg.starting_index == starting_index_val
 
-    assert parsed_serializable_tensor is not None
-    assert_tensors_equal(original_tensor, parsed_serializable_tensor.tensor)
-    assert parsed_serializable_tensor.timestamp is not None
+    parsed_serializable_tensor_chunk = SerializableTensorChunk.try_parse(
+        grpc_msg
+    )
+
+    assert parsed_serializable_tensor_chunk is not None
+    assert_tensors_equal(
+        original_tensor, parsed_serializable_tensor_chunk.tensor
+    )
+    assert parsed_serializable_tensor_chunk.timestamp is not None
     assert (
-        parsed_serializable_tensor.timestamp.as_datetime()
+        parsed_serializable_tensor_chunk.timestamp.as_datetime()
         == mock_sync_timestamp.as_datetime()
+    )
+    assert (
+        parsed_serializable_tensor_chunk.starting_index == starting_index_val
     )
 
 
@@ -284,18 +305,20 @@ def test_gpu_tensor_serialization_deserialization(  # Added Any for mocker and r
 
     # mocker.patch.object(SynchronizedTimestamp, 'NEEDS_CLOCK_SYNC', False) # Removed this line
 
-    serializable_tensor = SerializableTensor(
-        original_tensor_on_source, mock_sync_timestamp
+    starting_index_val = 0
+    serializable_tensor_chunk = SerializableTensorChunk(
+        original_tensor_on_source, mock_sync_timestamp, starting_index_val
     )
-    grpc_msg = serializable_tensor.to_grpc_type()
+    grpc_msg = serializable_tensor_chunk.to_grpc_type()
+    assert grpc_msg.starting_index == starting_index_val
 
     # When deserializing to GPU, the source tensor might have been moved to CPU by to_grpc_type (e.g. for bools)
     # The actual test is whether try_parse(..., device=target_device) works.
-    parsed_serializable_tensor = SerializableTensor.try_parse(
+    parsed_serializable_tensor_chunk = SerializableTensorChunk.try_parse(
         grpc_msg, device=str(target_device)
     )
 
-    assert parsed_serializable_tensor is not None
+    assert parsed_serializable_tensor_chunk is not None
 
     # Create the expected tensor on the target device for comparison
     # If original was sparse, its structure should be preserved.
@@ -304,13 +327,16 @@ def test_gpu_tensor_serialization_deserialization(  # Added Any for mocker and r
     expected_tensor_on_target = original_tensor_cpu.to(target_device)
 
     assert_tensors_equal(
-        expected_tensor_on_target, parsed_serializable_tensor.tensor
+        expected_tensor_on_target, parsed_serializable_tensor_chunk.tensor
     )
-    assert parsed_serializable_tensor.tensor.device == target_device
-    assert parsed_serializable_tensor.timestamp is not None
+    assert parsed_serializable_tensor_chunk.tensor.device == target_device
+    assert parsed_serializable_tensor_chunk.timestamp is not None
     assert (
-        parsed_serializable_tensor.timestamp.as_datetime()
+        parsed_serializable_tensor_chunk.timestamp.as_datetime()
         == mock_sync_timestamp.as_datetime()
+    )
+    assert (
+        parsed_serializable_tensor_chunk.starting_index == starting_index_val
     )
 
 
@@ -318,22 +344,22 @@ def test_gpu_tensor_serialization_deserialization(  # Added Any for mocker and r
 def test_try_parse_none_or_default(
     mocker: Any,
 ) -> None:  # Added Any for mocker and return type
-    """Test try_parse with None or default GrpcTensor message."""
+    """Test try_parse with None or default GrpcTensorChunk message."""
     from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
-        Tensor as GrpcTensor,
+        TensorChunk as GrpcTensorChunk,
     )
 
     # mocker.patch.object(SynchronizedTimestamp, 'NEEDS_CLOCK_SYNC', False) # Removed this line
 
-    assert SerializableTensor.try_parse(None) is None  # type: ignore
+    assert SerializableTensorChunk.try_parse(None) is None  # type: ignore
 
-    # A default GrpcTensor will likely fail timestamp parsing or data representation checks.
+    # A default GrpcTensorChunk will likely fail timestamp parsing or data representation checks.
     # This depends on how SynchronizedTimestamp.try_parse handles a default timestamp proto.
     # If SynchronizedTimestamp.try_parse returns None for a default timestamp, then this is fine.
-    default_grpc_tensor = GrpcTensor()
+    default_grpc_tensor_chunk = GrpcTensorChunk()
     # Mock try_parse for timestamp to control its behavior with default proto
     mocker.patch.object(SynchronizedTimestamp, "try_parse", return_value=None)
-    assert SerializableTensor.try_parse(default_grpc_tensor) is None
+    assert SerializableTensorChunk.try_parse(default_grpc_tensor_chunk) is None
 
     # Test with a valid timestamp but no data_representation
     mock_dt_obj = datetime.datetime.fromtimestamp(
@@ -347,4 +373,4 @@ def test_try_parse_none_or_default(
     with pytest.raises(
         ValueError, match="Unknown data_representation type: "
     ):  # Empty string if not set
-        SerializableTensor.try_parse(default_grpc_tensor)
+        SerializableTensorChunk.try_parse(default_grpc_tensor_chunk)

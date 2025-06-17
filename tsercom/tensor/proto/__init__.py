@@ -30,7 +30,7 @@ if not TYPE_CHECKING:
             BoolData,
             DenseTensorData,
             SparseCooTensorData,
-            Tensor,
+            TensorChunk,
         )
     else:
         # The 'name' variable for the error message is 'tensor'
@@ -62,5 +62,5 @@ else:  # When TYPE_CHECKING
         SparseCooTensorData as SparseCooTensorData,
     )
     from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
-        Tensor as Tensor,
+        TensorChunk as TensorChunk,
     )
