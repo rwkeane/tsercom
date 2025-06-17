@@ -9,7 +9,7 @@ from typing import (
 
 import torch
 
-from tsercom.data.tensor.tensor_multiplexer import (
+from tsercom.tensor.muxer.tensor_multiplexer import (
     TensorMultiplexer,
 )
 

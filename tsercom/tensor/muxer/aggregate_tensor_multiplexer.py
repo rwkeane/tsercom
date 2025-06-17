@@ -15,11 +15,11 @@ from typing import (
 
 import torch
 
-from tsercom.data.tensor.tensor_multiplexer import TensorMultiplexer
-from tsercom.data.tensor.sparse_tensor_multiplexer import (
+from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
+from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
     SparseTensorMultiplexer,
 )
-from tsercom.data.tensor.complete_tensor_multiplexer import (
+from tsercom.tensor.muxer.complete_tensor_multiplexer import (
     CompleteTensorMultiplexer,
 )
 

@@ -4,7 +4,9 @@ import pytest  # Using pytest conventions
 import pytest_asyncio
 from typing import List, Tuple  # For type hints
 
-from tsercom.data.tensor.tensor_demuxer import TensorDemuxer  # Absolute import
+from tsercom.tensor.demuxer.tensor_demuxer import (
+    TensorDemuxer,
+)  # Absolute import
 
 # Helper type for captured calls by the mock client
 CapturedTensorChange = Tuple[torch.Tensor, datetime.datetime]

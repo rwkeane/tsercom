@@ -3,7 +3,7 @@ import torch
 import pytest
 from typing import List, Tuple
 
-from tsercom.data.tensor.sparse_tensor_multiplexer import (
+from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
     SparseTensorMultiplexer,
 )  # Absolute import
 

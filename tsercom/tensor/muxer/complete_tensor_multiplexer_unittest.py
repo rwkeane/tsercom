@@ -7,10 +7,10 @@ from typing import List, Tuple, Any
 import pytest
 import torch
 
-from tsercom.data.tensor.complete_tensor_multiplexer import (
+from tsercom.tensor.muxer.complete_tensor_multiplexer import (
     CompleteTensorMultiplexer,
 )
-from tsercom.data.tensor.tensor_multiplexer import (
+from tsercom.tensor.muxer.tensor_multiplexer import (
     TensorMultiplexer,
 )  # For Client base class
 
