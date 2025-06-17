@@ -32,20 +32,25 @@ if TYPE_CHECKING:
 
     # For FakeMdnsListener methods, we'll use AsyncZeroconf.
 
-from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2
-from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2_grpc
+from tsercom.test.proto import (
+    EchoRequest,
+    EchoResponse,
+    E2ETestServiceServicer,
+    E2ETestServiceStub,
+    add_E2ETestServiceServicer_to_server,
+)
 
 
-class E2ETestServicer(e2e_test_service_pb2_grpc.E2ETestServiceServicer):
+class E2ETestServicer(E2ETestServiceServicer):
     async def Echo(
         self,
-        request: e2e_test_service_pb2.EchoRequest,
+        request: EchoRequest,  # Updated
         context: grpc.aio.ServicerContext,
-    ) -> e2e_test_service_pb2.EchoResponse:
+    ) -> EchoResponse:  # Updated
         logging.info(
             f"E2ETestServicer received Echo request: {request.message}"
         )
-        return e2e_test_service_pb2.EchoResponse(response=request.message)
+        return EchoResponse(response=request.message)  # Updated
 
 
 class E2ETestClientRuntime(
@@ -148,7 +153,7 @@ class E2ETestServerRuntime(
         self.__is_running.start()
 
         def __connect(server: grpc.Server):
-            e2e_test_service_pb2_grpc.add_E2ETestServiceServicer_to_server(
+            add_E2ETestServiceServicer_to_server(  # type: ignore[no-untyped-call]
                 E2ETestServicer(), server
             )
 
@@ -264,7 +269,7 @@ async def test_e2e_echo_service(clear_loop_fixture):
     e2e_test_server_initializer = E2ETestServerRuntimeInitializer(
         server_port, "TestServerInstance"
     )
-    e2e_test_client_initializer = E2ETestClientRuntimeInitializer()
+    e2e_test_client_initializer = E2ETestClientRuntimeInitializer()  # type: ignore[no-untyped-call]
 
     runtime_manager = RuntimeManager(is_testing=True)
     e2e_test_server_handle_f = runtime_manager.register_runtime_initializer(
@@ -343,9 +348,9 @@ async def test_e2e_echo_service(clear_loop_fixture):
             "E2E test client timed out waiting to connect to the server."
         )
 
-    stub = e2e_test_service_pb2_grpc.E2ETestServiceStub(channel)
+    stub = E2ETestServiceStub(channel)  # type: ignore[no-untyped-call]
     request_message = "Hello, gRPC E2E!"
-    request = e2e_test_service_pb2.EchoRequest(message=request_message)
+    request = EchoRequest(message=request_message)
 
     logging.info(f"Sending Echo request: {request_message}")
     response = await stub.Echo(request)
