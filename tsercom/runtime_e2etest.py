@@ -1924,3 +1924,115 @@ def test_event_broadcast_e2e(clear_loop_fixture):
 
 
 # Ensure a newline at the end of the file
+
+
+@pytest.mark.usefixtures("clear_loop_fixture")
+def test_out_of_process_non_tensor_when_torch_available(clear_loop_fixture):
+    # Test comment: Ensure this test correctly verifies non-tensor data path.
+    # This test relies on TORCH_IS_AVAILABLE being true in the test environment.
+    from tsercom.common.system.torch_utils import TORCH_IS_AVAILABLE
+
+    if not TORCH_IS_AVAILABLE:
+        pytest.skip(
+            "Skipping test: PyTorch is not available, cannot test non-tensor path with TORCH_IS_AVAILABLE=True"
+        )
+
+    runtime_manager = RuntimeManager(is_testing=True)
+    runtime_handle_for_cleanup = None
+    try:
+        current_test_id = CallerIdentifier.random()
+        runtime_manager.check_for_exception()
+        # Use FakeRuntimeInitializer which uses FakeData (non-tensor)
+        initializer = FakeRuntimeInitializer(
+            test_id=current_test_id, service_type="Server"
+        )
+        runtime_future = runtime_manager.register_runtime_initializer(
+            initializer
+        )
+
+        assert not runtime_future.done()
+        assert not runtime_manager.has_started
+        runtime_manager.start_out_of_process()  # This will use SplitRuntimeFactoryFactory
+        assert runtime_manager.has_started
+        assert runtime_future.done()
+
+        runtime_manager.check_for_exception()
+        runtime_handle = runtime_future.result()
+        runtime_handle_for_cleanup = runtime_handle
+        data_aggregator = runtime_handle.data_aggregator
+        assert not data_aggregator.has_new_data(current_test_id)
+        runtime_handle.start()
+
+        # Data should be produced by FakeRuntime via its process_data call.
+        # The previous mock simulation lines have been removed.
+
+        data_arrived = False
+        max_wait_time = 5.0  # Standard wait time from other tests
+        poll_interval = 0.1
+        waited_time = 0.0
+        received_data_value = None
+        while waited_time < max_wait_time:
+            has_data_now = data_aggregator.has_new_data(current_test_id)
+            if has_data_now:
+                values = data_aggregator.get_new_data(current_test_id)
+                if values and isinstance(
+                    values[0].data, FakeData
+                ):  # Ensure it's FakeData
+                    received_data_value = values[0].data.value
+                    data_arrived = True
+                    break
+            time.sleep(poll_interval)
+            waited_time += poll_interval
+
+        runtime_manager.check_for_exception()
+        assert (
+            data_arrived
+        ), f"Aggregator did not receive FakeData for test_id ({current_test_id}) within {max_wait_time}s"
+
+        expected_fresh_value = "FRESH_SIMPLE_DATA_V2"  # From FakeRuntime
+        assert (
+            received_data_value == expected_fresh_value
+        ), f"Received data value '{received_data_value}' did not match expected '{expected_fresh_value}'"
+
+        assert not data_aggregator.has_new_data(current_test_id)
+        runtime_manager.check_for_exception()
+
+        runtime_handle.stop()
+        runtime_manager.check_for_exception()
+
+        # "stopped" data should be produced by FakeRuntime.stop via its process_data call.
+        # The previous mock simulation lines have been removed.
+
+        # Check for "stopped" message
+        stopped_data_arrived = False
+        max_wait_stopped_data = 3.0
+        waited_time_stopped = 0.0
+        received_stopped_value = None
+        while waited_time_stopped < max_wait_stopped_data:
+            if data_aggregator.has_new_data(current_test_id):
+                values = data_aggregator.get_new_data(current_test_id)
+                if values and isinstance(
+                    values[0].data, FakeData
+                ):  # Ensure it's FakeData
+                    received_stopped_value = values[0].data.value
+                    stopped_data_arrived = True
+                    break
+            time.sleep(poll_interval)
+            waited_time_stopped += poll_interval
+
+        assert (
+            stopped_data_arrived
+        ), f"Aggregator did not receive stopped FakeData for test_id ({current_test_id}) within {max_wait_stopped_data}s"
+        assert (
+            received_stopped_value == stopped
+        ), f"Received stopped value '{received_stopped_value}' did not match expected '{stopped}'"
+
+        assert not data_aggregator.has_new_data(current_test_id)
+
+    finally:
+        if runtime_handle_for_cleanup:
+            try:
+                runtime_handle_for_cleanup.stop()
+            except Exception:
+                pass
+        runtime_manager.shutdown()

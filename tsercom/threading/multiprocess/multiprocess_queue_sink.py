@@ -33,6 +33,36 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
             queue: The multiprocessing queue to be used as the sink.
         """
         self.__queue: "MpQueue[QueueTypeT]" = queue
+        self._closed: bool = False
+
+    def close(self) -> None:
+        """
+        Closes the queue sink.
+
+        Marks the sink as closed and calls close() on the underlying
+        multiprocessing.Queue, indicating no more data will be put by this process.
+        """
+        if not self._closed:
+            self._closed = True
+            # Standard multiprocessing.Queue has a close() method.
+            # It's good practice to call it to signal that this end
+            # will no longer put items.
+            if hasattr(self.__queue, "close"):
+                try:
+                    self.__queue.close()
+                except Exception:  # pylint: disable=broad-except
+                    # Broad exception capture if queue close fails for some reason
+                    # (e.g., already closed, platform issues). Logging could be added here.
+                    pass
+
+    def is_closed(self) -> bool:
+        """
+        Checks if the queue sink is closed.
+
+        Returns:
+            True if the sink is closed, False otherwise.
+        """
+        return self._closed
 
     def put_blocking(
         self, obj: QueueTypeT, timeout: float | None = None

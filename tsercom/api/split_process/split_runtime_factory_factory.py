@@ -1,10 +1,9 @@
 """Factory for creating split-process runtime factories and handles."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, TypeVar, get_args
+from typing import Tuple, TypeVar
 
-import torch
-
+from tsercom.common.system.torch_utils import TORCH_IS_AVAILABLE
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
 from tsercom.api.runtime_handle import RuntimeHandle
@@ -26,8 +25,8 @@ from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
 )
-from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
-    TorchMultiprocessQueueFactory,
+from tsercom.threading.multiprocess.delegating_queue_factory import (
+    DelegatingMultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -83,77 +82,35 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             A tuple: (ShimRuntimeHandle, RemoteRuntimeFactory).
         """
         # --- Dynamic queue factory selection ---
-        resolved_data_type = None
-        resolved_event_type = None
+        # Command queues always use the default factory as they don't transport tensors.
+        command_queue_factory: MultiprocessQueueFactory[RuntimeCommand] = (
+            DefaultMultiprocessQueueFactory[RuntimeCommand]()
+        )
 
-        # Prioritize inspecting the initializer's direct __orig_class__ (e.g., for MyInitializer[torch.Tensor, str])
-        if hasattr(initializer, "__orig_class__"):
-            generic_args = get_args(initializer.__orig_class__)
-            if generic_args and len(generic_args) == 2:
-                if not isinstance(generic_args[0], TypeVar):
-                    resolved_data_type = generic_args[0]
-                if not isinstance(generic_args[1], TypeVar):
-                    resolved_event_type = generic_args[1]
-
-        # Fallback: Iterate __orig_bases__ to find the RuntimeInitializer[SpecificA, SpecificB]
-        if resolved_data_type is None or resolved_event_type is None:
-            for base in getattr(initializer, "__orig_bases__", []):
-                if (
-                    hasattr(base, "__origin__")
-                    and base.__origin__ is RuntimeInitializer
-                ):
-                    base_generic_args = get_args(base)
-                    if base_generic_args and len(base_generic_args) == 2:
-                        if resolved_data_type is None and not isinstance(
-                            base_generic_args[0], TypeVar
-                        ):
-                            resolved_data_type = base_generic_args[0]
-                        if resolved_event_type is None and not isinstance(
-                            base_generic_args[1], TypeVar
-                        ):
-                            resolved_event_type = base_generic_args[1]
-                        if (
-                            resolved_data_type is not None
-                            and resolved_event_type is not None
-                        ):
-                            break
-
-        # Declare data_event_queue_factory with the base type for mypy
         event_queue_factory: MultiprocessQueueFactory[
             EventInstance[EventTypeT]
         ]
         data_queue_factory: MultiprocessQueueFactory[
             AnnotatedInstance[DataTypeT]
         ]
-        command_queue_factory: MultiprocessQueueFactory[RuntimeCommand]
 
-        uses_torch_tensor = False
-        if (
-            resolved_data_type is torch.Tensor
-            or resolved_event_type is torch.Tensor
-        ):
-            uses_torch_tensor = True
-
-        if uses_torch_tensor:
-            # Assuming EventInstance and AnnotatedInstance generics are compatible with Torch queues
-            event_queue_factory = TorchMultiprocessQueueFactory[
+        if TORCH_IS_AVAILABLE:
+            # If PyTorch is available, use the Delegating factory which will then
+            # decide at runtime (first put()) whether to use Torch or Default queues.
+            event_queue_factory = DelegatingMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
             ]()
-            data_queue_factory = TorchMultiprocessQueueFactory[
+            data_queue_factory = DelegatingMultiprocessQueueFactory[
                 AnnotatedInstance[DataTypeT]
             ]()
         else:
+            # If PyTorch is not available, fall back to default queues directly.
             event_queue_factory = DefaultMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
             ]()
             data_queue_factory = DefaultMultiprocessQueueFactory[
                 AnnotatedInstance[DataTypeT]
             ]()
-
-        # Command queues always use the default factory
-        command_queue_factory = DefaultMultiprocessQueueFactory[
-            RuntimeCommand
-        ]()
         # --- End dynamic queue factory selection ---
 
         event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]
