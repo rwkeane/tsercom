@@ -92,9 +92,10 @@ def generate_ca_certificate(
         )
         .public_key(public_key)
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.utcnow())
+        .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
         .not_valid_after(
-            datetime.datetime.utcnow() + datetime.timedelta(days=30)
+            datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(days=30)
         )
         .add_extension(
             x509.BasicConstraints(ca=True, path_length=None), critical=True
@@ -168,9 +169,10 @@ def generate_signed_certificate(
         .issuer_name(ca_cert.subject)
         .public_key(public_key)
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.utcnow())
+        .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
         .not_valid_after(
-            datetime.datetime.utcnow() + datetime.timedelta(days=30)
+            datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(days=30)
         )
         .add_extension(
             x509.BasicConstraints(ca=False, path_length=None), critical=True

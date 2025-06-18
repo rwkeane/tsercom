@@ -1,0 +1,258 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, mock-3.14.1, timeout-2.4.0
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+collected 796 items
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py .... [  0%]
+....                                                                     [  1%]
+tsercom/api/local_process/local_runtime_factory_unittest.py ....         [  1%]
+tsercom/api/local_process/runtime_command_bridge_unittest.py ........... [  2%]
+........                                                                 [  3%]
+tsercom/api/local_process/runtime_wrapper_unittest.py .........          [  5%]
+tsercom/api/runtime_manager_unittest.py ..........................       [  8%]
+tsercom/api/split_process/data_reader_sink_unittest.py ......            [  9%]
+tsercom/api/split_process/data_reader_source_unittest.py ............    [ 10%]
+tsercom/api/split_process/event_source_unittest.py .........             [ 11%]
+tsercom/api/split_process/remote_runtime_factory_unittest.py ......      [ 12%]
+tsercom/api/split_process/runtime_command_source_unittest.py ........... [ 13%]
+                                                                         [ 13%]
+tsercom/api/split_process/shim_runtime_handle_unittest.py .........      [ 14%]
+tsercom/api/split_process/split_process_error_watcher_sink_unittest.py . [ 15%]
+...                                                                      [ 15%]
+tsercom/api/split_process/split_process_error_watcher_source_unittest.py . [ 15%]
+........                                                                 [ 16%]
+tsercom/api/split_process/split_runtime_factory_factory_unittest.py .... [ 17%]
+...                                                                      [ 17%]
+tsercom/caller_id/caller_id_extraction_unittest.py ............          [ 18%]
+tsercom/caller_id/caller_id_map_unittest.py .....                        [ 19%]
+tsercom/caller_id/caller_identifier_unittest.py ..............           [ 21%]
+tsercom/caller_id/caller_identifier_waiter_unittest.py ....              [ 21%]
+tsercom/caller_id/client_id_fetcher_unittest.py .......                  [ 22%]
+tsercom/data/data_host_base_unittest.py .....                            [ 23%]
+tsercom/data/data_timeout_tracker_unittest.py ...................        [ 25%]
+tsercom/data/exposed_data_with_responder_unittest.py .....               [ 26%]
+tsercom/data/remote_data_aggregator_impl_unittest.py ................... [ 28%]
+..                                                                       [ 29%]
+tsercom/data/remote_data_organizer_unittest.py ......................... [ 32%]
+...........                                                              [ 33%]
+tsercom/discovery/discovery_host_unittest.py ................            [ 35%]
+tsercom/discovery/mdns/instance_listener_unittest.py ..............      [ 37%]
+tsercom/discovery/mdns/instance_publisher_unittest.py .................. [ 39%]
+.                                                                        [ 39%]
+tsercom/discovery/mdns/mdns_listener_unittest.py .                       [ 39%]
+tsercom/discovery/mdns/record_listener_unittest.py ..                    [ 40%]
+tsercom/discovery/mdns/record_publisher_unittest.py ..                   [ 40%]
+tsercom/discovery/service_connector_unittest.py .........                [ 41%]
+tsercom/discovery_e2etest.py .......                                     [ 42%]
+tsercom/full_app_e2etest.py ..                                           [ 42%]
+tsercom/rpc/connection/client_disconnection_retrier_unittest.py .......  [ 43%]
+tsercom/rpc/grpc_util/grpc_service_publisher_unittest.py .               [ 43%]
+tsercom/rpc_e2etest.py .............                                     [ 45%]
+tsercom/runtime/channel_factory_selector_unittest.py ...............     [ 47%]
+tsercom/runtime/client/client_runtime_data_handler_unittest.py .......   [ 47%]
+tsercom/runtime/client/timesync_tracker_unittest.py ......               [ 48%]
+tsercom/runtime/endpoint_data_processor_unittest.py .....                [ 49%]
+tsercom/runtime/id_tracker_unittest.py .....................             [ 52%]
+tsercom/runtime/runtime_config_unittest.py ...............               [ 53%]
+tsercom/runtime/runtime_data_handler_base_unittest.py .................. [ 56%]
+........                                                                 [ 57%]
+tsercom/runtime/runtime_main_unittest.py .........                       [ 58%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py ......    [ 59%]
+tsercom/runtime_e2etest.py ...............                               [ 60%]
+tsercom/tensor/demuxer/linear_interpolation_strategy_unittest.py ....... [ 61%]
+......                                                                   [ 62%]
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py ...F......... [ 64%]
+..                                                                       [ 64%]
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py .................      [ 66%]
+tsercom/tensor/muxer/aggregate_tensor_multiplexer_unittest.py .......... [ 67%]
+..                                                                       [ 68%]
+tsercom/tensor/muxer/complete_tensor_multiplexer_unittest.py ........... [ 69%]
+.                                                                        [ 69%]
+tsercom/tensor/muxer/sparse_tensor_multiplexer_unittest.py ............. [ 71%]
+                                                                         [ 71%]
+tsercom/tensor/serialization/serializable_tensor_unittest.py ........... [ 72%]
+...........................................sss....                       [ 78%]
+tsercom/tensor_e2etest.py .......                                        [ 79%]
+tsercom/threading/aio/aio_utils_unittest.py ...............              [ 81%]
+tsercom/threading/aio/async_poller_unittest.py ...............           [ 83%]
+tsercom/threading/aio/event_loop_factory_unittest.py .                   [ 83%]
+tsercom/threading/aio/global_event_loop_unittest.py .........            [ 84%]
+tsercom/threading/atomic_unittest.py ......                              [ 85%]
+tsercom/threading/multiprocess/default_multiprocess_queue_factory_unittest.py . [ 85%]
+                                                                         [ 85%]
+tsercom/threading/multiprocess/multiprocess_queue_sink_unittest.py ....  [ 86%]
+tsercom/threading/multiprocess/torch_multiprocess_queue_factory_unittest.py . [ 86%]
+                                                                         [ 86%]
+tsercom/threading/thread_safe_queue_unittest.py .......                  [ 87%]
+tsercom/threading/thread_watcher_unittest.py ............                [ 88%]
+tsercom/threading/throwing_thread_pool_executor_unittest.py ........     [ 89%]
+tsercom/threading/throwing_thread_unittest.py .....s                     [ 90%]
+tsercom/timesync/client/client_synchronized_clock_unittest.py .......... [ 91%]
+                                                                         [ 91%]
+tsercom/timesync/client/fake_time_sync_client_unittest.py ........       [ 92%]
+tsercom/timesync/client/time_sync_client_unittest.py ..............      [ 94%]
+tsercom/timesync/common/fake_synchronized_clock_unittest.py ...          [ 94%]
+tsercom/timesync/common/synchronized_clock_unittest.py .....             [ 95%]
+tsercom/timesync/common/synchronized_timestamp_unittest.py ............. [ 97%]
+..                                                                       [ 97%]
+tsercom/timesync/server/server_synchronized_clock_unittest.py ...        [ 97%]
+tsercom/util/ip_unittest.py ........                                     [ 98%]
+tsercom/util/is_running_tracker_unittest.py ........                     [ 99%]
+tsercom/util/stopable_unittest.py ..                                     [100%]
+
+=================================== FAILURES ===================================
+____________________ test_interpolation_worker_simple_case _____________________
+
+demuxer = <tsercom.tensor.demuxer.smoothed_tensor_demuxer.SmoothedTensorDemuxer object at 0x7ff1911873e0>
+mock_client = <demuxer.smoothed_tensor_demuxer_unittest.MockClient object at 0x7ff1911876b0>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x7ff191187200>
+
+    @pytest.mark.asyncio
+    async def test_interpolation_worker_simple_case(
+        demuxer: SmoothedTensorDemuxer,
+        mock_client: MockClient,
+        mocker: MockerFixture,
+    ) -> None:
+        demuxer._SmoothedTensorDemuxer__output_interval_seconds = 0.05  # type: ignore [attr-defined]
+        ts1_dt = real_datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        ts2_dt = ts1_dt + timedelta(seconds=1)
+        await demuxer.on_update_received((0,), 10.0, ts1_dt)
+        await demuxer.on_update_received((0,), 20.0, ts2_dt)
+        await demuxer.on_update_received((1,), 100.0, ts1_dt)
+        await demuxer.on_update_received((1,), 200.0, ts2_dt)
+        mock_client.clear_pushes()
+        current_time_for_mock = [ts1_dt]
+
+        class MockedDateTime(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return (
+                    current_time_for_mock[0].replace(tzinfo=tz)
+                    if tz
+                    else current_time_for_mock[0]
+                )
+
+        MockedDateTime.timedelta = timedelta
+        MockedDateTime.timezone = timezone
+        mock_dt_object = types.SimpleNamespace()
+        mock_dt_object.datetime = MockedDateTime
+        mocker.patch(
+            "tsercom.tensor.demuxer.smoothed_tensor_demuxer.python_datetime_module",
+            mock_dt_object,
+        )
+        await demuxer.start()
+        num_cycles = 3
+        for i in range(num_cycles):
+            target_push_time = ts1_dt + timedelta(
+                seconds=(i + 1) * demuxer.output_interval_seconds
+            )
+            current_time_for_mock[0] = target_push_time - timedelta(
+                microseconds=10
+            )
+            await asyncio.sleep(0.001)
+            current_time_for_mock[0] = target_push_time
+            await asyncio.sleep(demuxer.output_interval_seconds + 0.02)
+        await demuxer.stop()
+        pushed_timestamps_actual = [p[2] for p in mock_client.pushes]
+>       assert (
+            len(mock_client.pushes) >= num_cycles
+        ), f"Pushes: {pushed_timestamps_actual}"
+E       AssertionError: Pushes: [datetime.datetime(2023, 1, 1, 0, 0, 0, 99990, tzinfo=datetime.timezone.utc), datetime.datetime(2023, 1, 1, 0, 0, 0, 149990, tzinfo=datetime.timezone.utc)]
+E       assert 2 >= 3
+E        +  where 2 = len([('test_tensor', tensor([ 10.9999, 109.9990]), datetime.datetime(2023, 1, 1, 0, 0, 0, 99990, tzinfo=datetime.timezone....t_tensor', tensor([ 11.4999, 114.9990]), datetime.datetime(2023, 1, 1, 0, 0, 0, 149990, tzinfo=datetime.timezone.utc))])
+E        +    where [('test_tensor', tensor([ 10.9999, 109.9990]), datetime.datetime(2023, 1, 1, 0, 0, 0, 99990, tzinfo=datetime.timezone....t_tensor', tensor([ 11.4999, 114.9990]), datetime.datetime(2023, 1, 1, 0, 0, 0, 149990, tzinfo=datetime.timezone.utc))] = <demuxer.smoothed_tensor_demuxer_unittest.MockClient object at 0x7ff1911876b0>.pushes
+
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:219: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-587' coro=<DataTimeoutTracker.__execute_periodically() running at /app/tsercom/data/data_timeout_tracker.py:113> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[_chain_future.<locals>._call_set_state() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/futures.py:396]>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-588' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-589' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[_wait.<locals>._on_completion() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:534]>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-586' coro=<RuntimeDataHandlerBase.__dispatch_poller_data_loop() running at /app/tsercom/runtime/runtime_data_handler_base.py:544> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-654' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-629' coro=<RuntimeDataHandlerBase.__dispatch_poller_data_loop() running at /app/tsercom/runtime/runtime_data_handler_base.py:544> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-653' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-650' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-640' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-642' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-651' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-639' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-641' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-656' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+ERROR    asyncio:base_events.py:1833 Task was destroyed but it is pending!
+task: <Task pending name='Task-657' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+=============================== warnings summary ===============================
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionCall' because it has a __init__ constructor (from: quick_start_test.py)
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionResponse' because it has a __init__ constructor (from: quick_start_test.py)
+
+tsercom/test/proto/generated/v1_73/e2e_test_service_pb2_grpc.py:28
+  /app/tsercom/test/proto/generated/v1_73/e2e_test_service_pb2_grpc.py:28: PytestCollectionWarning: cannot collect test class 'E2ETestServiceStub' because it has a __init__ constructor (from: tsercom/full_app_e2etest.py)
+    class E2ETestServiceStub(object):
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionCall' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionResponse' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+tsercom/runtime/runtime_main_unittest.py::TestRemoteProcessMain::test_remote_process_main_error_queue_put_fails
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/unittest/mock.py:404: RuntimeWarning: coroutine 'wait_for' was never awaited
+    def __init__(self, /, *args, **kwargs):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_init
+tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_init
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/unittest/mock.py:2217: RuntimeWarning: coroutine 'wait_for' was never awaited
+    def __init__(self, name, parent):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime_e2etest.py: 10 warnings
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=15731) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+tsercom/timesync/client/time_sync_client_unittest.py::TestTimeSyncClientNTPFailures::test_start_barrier_not_set_and_no_offsets_if_ntp_fails_consistently
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/base_events.py:730: ResourceWarning: unclosed event loop <_UnixSelectorEventLoop running=False closed=False debug=False>
+    _warn(f"unclosed event loop {self!r}", ResourceWarning, source=self)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/timesync/client/time_sync_client_unittest.py: 22 warnings
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/unittest/mock.py:2566: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.__dispatch_poller_data_loop' was never awaited
+    return tuple.__new__(cls, (name, args, kwargs))
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/timesync/client/time_sync_client_unittest.py::TestTimeSyncClientNTPFailures::test_start_barrier_not_set_and_no_offsets_if_ntp_fails_consistently
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/unittest/mock.py:2566: RuntimeWarning: coroutine 'wait_for' was never awaited
+    return tuple.__new__(cls, (name, args, kwargs))
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py::test_interpolation_worker_simple_case
+====== 1 failed, 791 passed, 4 skipped, 42 warnings in 112.71s (0:01:52) =======

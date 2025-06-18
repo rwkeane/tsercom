@@ -1,0 +1,175 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: asyncio-1.0.0, mock-3.14.1, timeout-2.4.0
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+collected 796 items
+
+tsercom/api/local_process/local_runtime_factory_factory_unittest.py .... [  0%]
+....                                                                     [  1%]
+tsercom/api/local_process/local_runtime_factory_unittest.py ....         [  1%]
+tsercom/api/local_process/runtime_command_bridge_unittest.py ........... [  2%]
+........                                                                 [  3%]
+tsercom/api/local_process/runtime_wrapper_unittest.py .........          [  5%]
+tsercom/api/runtime_manager_unittest.py ..........................       [  8%]
+tsercom/api/split_process/data_reader_sink_unittest.py ......            [  9%]
+tsercom/api/split_process/data_reader_source_unittest.py ............    [ 10%]
+tsercom/api/split_process/event_source_unittest.py .........             [ 11%]
+tsercom/api/split_process/remote_runtime_factory_unittest.py ......      [ 12%]
+tsercom/api/split_process/runtime_command_source_unittest.py ........... [ 13%]
+                                                                         [ 13%]
+tsercom/api/split_process/shim_runtime_handle_unittest.py .........      [ 14%]
+tsercom/api/split_process/split_process_error_watcher_sink_unittest.py . [ 15%]
+...                                                                      [ 15%]
+tsercom/api/split_process/split_process_error_watcher_source_unittest.py . [ 15%]
+........                                                                 [ 16%]
+tsercom/api/split_process/split_runtime_factory_factory_unittest.py .... [ 17%]
+...                                                                      [ 17%]
+tsercom/caller_id/caller_id_extraction_unittest.py ............          [ 18%]
+tsercom/caller_id/caller_id_map_unittest.py .....                        [ 19%]
+tsercom/caller_id/caller_identifier_unittest.py ..............           [ 21%]
+tsercom/caller_id/caller_identifier_waiter_unittest.py ....              [ 21%]
+tsercom/caller_id/client_id_fetcher_unittest.py .......                  [ 22%]
+tsercom/data/data_host_base_unittest.py .....                            [ 23%]
+tsercom/data/data_timeout_tracker_unittest.py ...................        [ 25%]
+tsercom/data/exposed_data_with_responder_unittest.py .....               [ 26%]
+tsercom/data/remote_data_aggregator_impl_unittest.py ................... [ 28%]
+..                                                                       [ 29%]
+tsercom/data/remote_data_organizer_unittest.py ......................... [ 32%]
+...........                                                              [ 33%]
+tsercom/discovery/discovery_host_unittest.py ................            [ 35%]
+tsercom/discovery/mdns/instance_listener_unittest.py ..............      [ 37%]
+tsercom/discovery/mdns/instance_publisher_unittest.py .................. [ 39%]
+.                                                                        [ 39%]
+tsercom/discovery/mdns/mdns_listener_unittest.py .                       [ 39%]
+tsercom/discovery/mdns/record_listener_unittest.py ..                    [ 40%]
+tsercom/discovery/mdns/record_publisher_unittest.py ..                   [ 40%]
+tsercom/discovery/service_connector_unittest.py .........                [ 41%]
+tsercom/discovery_e2etest.py .......                                     [ 42%]
+tsercom/full_app_e2etest.py ..                                           [ 42%]
+tsercom/rpc/connection/client_disconnection_retrier_unittest.py .......  [ 43%]
+tsercom/rpc/grpc_util/grpc_service_publisher_unittest.py .               [ 43%]
+tsercom/rpc_e2etest.py .............                                     [ 45%]
+tsercom/runtime/channel_factory_selector_unittest.py ...............     [ 47%]
+tsercom/runtime/client/client_runtime_data_handler_unittest.py .......   [ 47%]
+tsercom/runtime/client/timesync_tracker_unittest.py ......               [ 48%]
+tsercom/runtime/endpoint_data_processor_unittest.py .....                [ 49%]
+tsercom/runtime/id_tracker_unittest.py .....................             [ 52%]
+tsercom/runtime/runtime_config_unittest.py ...............               [ 53%]
+tsercom/runtime/runtime_data_handler_base_unittest.py .................. [ 56%]
+........                                                                 [ 57%]
+tsercom/runtime/runtime_main_unittest.py .........                       [ 58%]
+tsercom/runtime/server/server_runtime_data_handler_unittest.py ......    [ 59%]
+tsercom/runtime_e2etest.py ...............                               [ 60%]
+tsercom/tensor/demuxer/linear_interpolation_strategy_unittest.py ....... [ 61%]
+......                                                                   [ 62%]
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py ............. [ 64%]
+..                                                                       [ 64%]
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py .................      [ 66%]
+tsercom/tensor/muxer/aggregate_tensor_multiplexer_unittest.py .......... [ 67%]
+..                                                                       [ 68%]
+tsercom/tensor/muxer/complete_tensor_multiplexer_unittest.py ........... [ 69%]
+.                                                                        [ 69%]
+tsercom/tensor/muxer/sparse_tensor_multiplexer_unittest.py ............. [ 71%]
+                                                                         [ 71%]
+tsercom/tensor/serialization/serializable_tensor_unittest.py ........... [ 72%]
+...........................................sss....                       [ 78%]
+tsercom/tensor_e2etest.py .......                                        [ 79%]
+tsercom/threading/aio/aio_utils_unittest.py ...............              [ 81%]
+tsercom/threading/aio/async_poller_unittest.py ...............           [ 83%]
+tsercom/threading/aio/event_loop_factory_unittest.py .                   [ 83%]
+tsercom/threading/aio/global_event_loop_unittest.py .........            [ 84%]
+tsercom/threading/atomic_unittest.py ......                              [ 85%]
+tsercom/threading/multiprocess/default_multiprocess_queue_factory_unittest.py . [ 85%]
+                                                                         [ 85%]
+tsercom/threading/multiprocess/multiprocess_queue_sink_unittest.py ....  [ 86%]
+tsercom/threading/multiprocess/torch_multiprocess_queue_factory_unittest.py . [ 86%]
+                                                                         [ 86%]
+tsercom/threading/thread_safe_queue_unittest.py .......                  [ 87%]
+tsercom/threading/thread_watcher_unittest.py ............                [ 88%]
+tsercom/threading/throwing_thread_pool_executor_unittest.py ........     [ 89%]
+tsercom/threading/throwing_thread_unittest.py .....s                     [ 90%]
+tsercom/timesync/client/client_synchronized_clock_unittest.py .......... [ 91%]
+                                                                         [ 91%]
+tsercom/timesync/client/fake_time_sync_client_unittest.py ........       [ 92%]
+tsercom/timesync/client/time_sync_client_unittest.py ..............      [ 94%]
+tsercom/timesync/common/fake_synchronized_clock_unittest.py ...          [ 94%]
+tsercom/timesync/common/synchronized_clock_unittest.py .....             [ 95%]
+tsercom/timesync/common/synchronized_timestamp_unittest.py ............. [ 97%]
+..                                                                       [ 97%]
+tsercom/timesync/server/server_synchronized_clock_unittest.py ...        [ 97%]
+tsercom/util/ip_unittest.py ........                                     [ 98%]
+tsercom/util/is_running_tracker_unittest.py ........                     [ 99%]
+tsercom/util/stopable_unittest.py ..                                     [100%]
+
+=============================== warnings summary ===============================
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionCall' because it has a __init__ constructor (from: quick_start_test.py)
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionResponse' because it has a __init__ constructor (from: quick_start_test.py)
+
+tsercom/test/proto/generated/v1_73/e2e_test_service_pb2_grpc.py:28
+  /app/tsercom/test/proto/generated/v1_73/e2e_test_service_pb2_grpc.py:28: PytestCollectionWarning: cannot collect test class 'E2ETestServiceStub' because it has a __init__ constructor (from: tsercom/full_app_e2etest.py)
+    class E2ETestServiceStub(object):
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionCall' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionResponse' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+tsercom/runtime/runtime_main_unittest.py::TestRemoteProcessMain::test_remote_process_main_error_queue_put_fails
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/unittest/mock.py:404: RuntimeWarning: coroutine 'wait_for' was never awaited
+    def __init__(self, /, *args, **kwargs):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_init
+tsercom/runtime/server/server_runtime_data_handler_unittest.py::TestServerRuntimeDataHandler::test_init
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/unittest/mock.py:2217: RuntimeWarning: coroutine 'wait_for' was never awaited
+    def __init__(self, name, parent):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime_e2etest.py: 10 warnings
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=16982) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+tsercom/runtime_e2etest.py::test_out_of_process_error_direct_run_until_exception
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/multiprocessing/util.py:174: RuntimeWarning: coroutine 'DataTimeoutTracker.__execute_periodically' was never awaited
+    def register_after_fork(obj, func):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/runtime_e2etest.py::test_out_of_process_error_direct_run_until_exception
+tsercom/runtime_e2etest.py::test_out_of_process_error_direct_run_until_exception
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/multiprocessing/util.py:174: RuntimeWarning: coroutine 'Event.wait' was never awaited
+    def register_after_fork(obj, func):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/timesync/client/time_sync_client_unittest.py::TestTimeSyncClientNTPFailures::test_get_offset_seconds_blocks_when_barrier_not_set
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/base_events.py:730: ResourceWarning: unclosed event loop <_UnixSelectorEventLoop running=False closed=False debug=False>
+    _warn(f"unclosed event loop {self!r}", ResourceWarning, source=self)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/timesync/client/time_sync_client_unittest.py: 22 warnings
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/logging/__init__.py:1651: RuntimeWarning: coroutine 'RuntimeDataHandlerBase.__dispatch_poller_data_loop' was never awaited
+    rv = _logRecordFactory(name, level, fn, lno, msg, args, exc_info, func,
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tsercom/timesync/client/time_sync_client_unittest.py::TestTimeSyncClientNTPFailures::test_get_offset_seconds_blocks_when_barrier_not_set
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/logging/__init__.py:1651: RuntimeWarning: coroutine 'wait_for' was never awaited
+    rv = _logRecordFactory(name, level, fn, lno, msg, args, exc_info, func,
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========== 792 passed, 4 skipped, 45 warnings in 113.61s (0:01:53) ============
