@@ -15,7 +15,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 # A fixed datetime object for consistent tests
-NOW_DATETIME = datetime.datetime.utcnow()  # Naive UTC datetime
+NOW_DATETIME = datetime.datetime.now(datetime.UTC)  # Aware UTC datetime
 # Per SynchronizedTimestamp docstring, it expects naive datetimes.
 # Let's assume these naive datetimes are implicitly UTC.
 FIXED_DATETIME = datetime.datetime(

@@ -15,27 +15,32 @@ from tsercom.threading.aio.global_event_loop import (
 def manage_tsercom_loop(
     request: FixtureRequest,
 ) -> Generator[None, None, None]:
-    # Only apply this fixture if the test is marked with asyncio
-    if not request.node.get_closest_marker("asyncio"):
-        yield
-        return
-
-    # Get the event loop provided by pytest-asyncio for the current test
-    # This assumes pytest-asyncio has already set up an event loop for the test.
+    # Get the event loop. If a test is marked with @pytest.mark.asyncio,
+    # pytest-asyncio provides one. Otherwise, get_event_loop() might create one.
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
-        # If no loop is running (e.g. test is not marked with @pytest.mark.asyncio properly,
-        # or it's a synchronous test that shouldn't use this part of the fixture)
-        # then this fixture should not attempt to set the tsercom global loop.
-        yield
-        return
+        # No loop is currently running. Create one for this function's scope.
+        # This ensures that if sync tests call async code that needs a loop, one is available.
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-    initial_loop_was_set = is_global_event_loop_set()
-    if not initial_loop_was_set:
+    loop_created_by_fixture = False
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop_created_by_fixture = True
+
+    initial_tsercom_loop_was_set = is_global_event_loop_set()
+    if not initial_tsercom_loop_was_set:
         set_tsercom_event_loop(loop)
 
     yield
 
-    if not initial_loop_was_set:  # Only clear if this fixture set it
+    if not initial_tsercom_loop_was_set:
         clear_tsercom_event_loop()
+
+    if loop_created_by_fixture:
+        loop.close()

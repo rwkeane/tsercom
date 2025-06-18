@@ -24,40 +24,7 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 class TestServerRuntimeDataHandler:
     """Tests for the ServerRuntimeDataHandler class."""
 
-    @pytest.fixture(autouse=True)
-    def manage_event_loop(self):
-        """Ensures a global event loop is set for tsercom for each test."""
-        loop = None
-        try:
-            # Try to get existing loop, or create new if none for current context
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_closed():
-                    raise RuntimeError("existing loop is closed")
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            set_tsercom_event_loop(loop)
-            yield loop
-        finally:
-            clear_tsercom_event_loop()
-            # Only close the loop if this fixture created it and it is not the default policy loop
-            # This logic is simplified; robust loop management can be complex.
-            # For unit tests, often creating/closing a new loop per test is safest.
-            if (
-                loop
-                and not getattr(loop, "_default_loop", False)
-                and not loop.is_closed()
-            ):
-                if loop.is_running():
-                    loop.call_soon_threadsafe(loop.stop)
-                # Ensure all tasks are given a chance to cancel if loop was running
-                # cancellation_tasks = [task for task in asyncio.all_tasks(loop) if not task.done()] \
-                # if cancellation_tasks: \
-                #    for task in cancellation_tasks: \
-                #        task.cancel() \
-                #    # loop.run_until_complete(asyncio.gather(*cancellation_tasks, return_exceptions=True)) \
-                # loop.close() # Closing can be problematic if other things expect to use it.
+    # Removed local manage_event_loop fixture to rely on conftest.py:manage_tsercom_loop
 
     @pytest.fixture
     def mock_thread_watcher(self, mocker):
@@ -101,6 +68,7 @@ class TestServerRuntimeDataHandler:
         mock_time_sync_server_instance,
         mock_id_tracker_instance,
         mocker,
+        # manage_event_loop, # Removed: rely on conftest.py's autouse fixture
     ):
         """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
         mock_TimeSyncServer_class = mocker.patch(
@@ -123,13 +91,65 @@ class TestServerRuntimeDataHandler:
             mock_id_tracker_instance
         )
 
-        yield {
-            "handler": handler_instance,
-            "TimeSyncServer_class_mock": mock_TimeSyncServer_class,
-            "id_tracker_init_mock": mock_id_tracker_init,
-            "time_sync_server_instance_mock": mock_time_sync_server_instance,
-            "id_tracker_instance_mock": mock_id_tracker_instance,
-        }
+        # The 'manage_event_loop' fixture is autouse=True and function-scoped in this file.
+        # We need to explicitly pass it to this fixture if we want to use its yielded loop object.
+        # However, the original 'manage_event_loop' fixture in this file doesn't seem to be passed around.
+        # The one from conftest.py is also function-scoped.
+        # Let's assume the 'manage_event_loop' fixture in *this file* is the one we need to use.
+        # To do that, 'handler_with_mocks' must request 'manage_event_loop'.
+        # The 'manage_event_loop' fixture in this file needs to be requested by handler_with_mocks:
+        #
+        # @pytest.fixture
+        # def handler_with_mocks(
+        #     self,
+        #     ..., # other args
+        #     manage_event_loop, # ADD THIS LINE to request the fixture from this file
+        # ):
+        #
+        # Then in finally: loop_instance = manage_event_loop
+
+        try:
+            yield {
+                "handler": handler_instance,
+                "TimeSyncServer_class_mock": mock_TimeSyncServer_class,
+                "id_tracker_init_mock": mock_id_tracker_init,
+                "time_sync_server_instance_mock": mock_time_sync_server_instance,
+                "id_tracker_instance_mock": mock_id_tracker_instance,
+            }
+        finally:
+            # Cleanup:
+            # The 'manage_event_loop' fixture from conftest.py ensures a loop is running.
+            try:
+                loop_instance = asyncio.get_running_loop()
+            except RuntimeError:
+                # This should ideally not happen if conftest.py:manage_tsercom_loop is effective
+                print("Error: No running event loop in handler_with_mocks cleanup!")
+                return # Cannot proceed with cleanup
+
+            dispatch_task_attr_name = "_RuntimeDataHandlerBase__dispatch_task"
+            if hasattr(handler_instance, dispatch_task_attr_name):
+                dispatch_task = getattr(handler_instance, dispatch_task_attr_name)
+                if dispatch_task is not None:
+                    if loop_instance and not loop_instance.is_closed():
+                        try:
+                            if not dispatch_task.done():
+                                loop_instance.run_until_complete(handler_instance.async_close())
+                            elif dispatch_task.exception() is not None:
+                                _ = dispatch_task.exception()
+                        except RuntimeError as e:
+                            print(f"Error during handler_with_mocks cleanup (run_until_complete): {e}")
+                        except Exception as e:
+                            print(f"Generic error during handler_with_mocks cleanup: {e}")
+                    # This 'elif' might be logically redundant due to 'if dispatch_task is not None'
+                    # and also might try to operate on a closed loop if the RuntimeError above happened.
+                    elif dispatch_task and not dispatch_task.done():
+                        dispatch_task.cancel()
+                        try:
+                            # This part is best-effort if loop is already closed or other issues.
+                            if loop_instance and not loop_instance.is_closed():
+                                loop_instance.run_until_complete(dispatch_task)
+                        except: # pylint: disable=bare-except
+                            pass
 
     def test_init(
         self, handler_with_mocks, mock_data_reader, mock_event_source_poller
