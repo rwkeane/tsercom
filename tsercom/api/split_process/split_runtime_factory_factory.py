@@ -32,7 +32,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_factory import (
 
 # Removed: TorchMultiprocessQueueFactory (Delegating factory handles it internally if needed,
 # but SplitFactoryFactory doesn't choose it directly anymore)
-from tsercom.threading.multiprocess.delegating_queue_factory import (
+from tsercom.threading.multiprocess.delegating_multiprocess_queue_factory import (
     DelegatingMultiprocessQueueFactory,
     is_torch_available,
 )

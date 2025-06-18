@@ -50,10 +50,10 @@ else:
 
 
 # Modules to be tested - should be after all stdlib and conditional third-party imports
-import tsercom.threading.multiprocess.delegating_queue_factory as dqf_module
-from tsercom.threading.multiprocess.delegating_queue_factory import (
-    DelegatingQueueSink,
-    DelegatingQueueSource,
+import tsercom.threading.multiprocess.delegating_multiprocess_queue_factory as dqf_module
+from tsercom.threading.multiprocess.delegating_multiprocess_queue_factory import (
+    DelegatingMultiprocessQueueSink,
+    DelegatingMultiprocessQueueSource,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -90,7 +90,7 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
         factory: dqf_module.DelegatingMultiprocessQueueFactory[Any] = (
             dqf_module.DelegatingMultiprocessQueueFactory()
         )
-        self.assertIsNone(factory._manager)
+        self.assertIsNone(factory.__manager)
 
     def test_get_manager_std_manager_when_torch_unavailable(self) -> None:
         self.mock_is_torch_available.return_value = False
@@ -184,11 +184,11 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
             dqf_module.DelegatingMultiprocessQueueFactory()
         )
         self.assertIsNone(
-            factory._manager, "Manager should be None initially."
+            factory.__manager, "Manager should be None initially."
         )
         factory.shutdown()  # Should not raise any error
         self.assertIsNone(
-            factory._manager, "Manager should still be None after shutdown."
+            factory.__manager, "Manager should still be None after shutdown."
         )
 
     def test_shutdown_with_active_manager(self) -> None:
@@ -202,10 +202,10 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
         # Create the manager
         manager_instance = factory._get_manager()
         self.assertIsNotNone(
-            factory._manager, "Manager should be initialized."
+            factory.__manager, "Manager should be initialized."
         )
         self.assertIs(
-            factory._manager, manager_instance
+            factory.__manager, manager_instance
         )  # Ensure it's the one we expect
         self.assertIs(manager_instance, self.MockStdManager.return_value)
 
@@ -217,7 +217,7 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
 
         self.MockStdManager.return_value.shutdown.assert_called_once()
         self.assertIsNone(
-            factory._manager, "Manager should be None after shutdown."
+            factory.__manager, "Manager should be None after shutdown."
         )
 
     def test_shutdown_manager_shutdown_raises_exception(self) -> None:
@@ -229,7 +229,7 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
             dqf_module.DelegatingMultiprocessQueueFactory()
         )
         manager_instance = factory._get_manager()
-        self.assertIsNotNone(factory._manager)
+        self.assertIsNotNone(factory.__manager)
         self.assertIs(manager_instance, self.MockStdManager.return_value)
 
         # Configure manager's shutdown to raise an error
@@ -246,7 +246,7 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
 
         self.MockStdManager.return_value.shutdown.assert_called_once()
         self.assertIsNone(
-            factory._manager,
+            factory.__manager,
             "Manager should be set to None even if its shutdown failed.",
         )
 
@@ -276,8 +276,8 @@ class DelegatingQueueSinkTests(unittest.TestCase):
                 TensorType, mock.MagicMock(spec=torch_module.Tensor)
             )
 
-    def _create_sink(self) -> DelegatingQueueSink[Any]:
-        return DelegatingQueueSink[Any](
+    def _create_sink(self) -> DelegatingMultiprocessQueueSink[Any]:
+        return DelegatingMultiprocessQueueSink[Any](
             shared_manager_dict=self.mock_shared_dict,
             shared_lock=self.mock_shared_lock,
             manager_instance=self.mock_manager_instance,
@@ -285,8 +285,8 @@ class DelegatingQueueSinkTests(unittest.TestCase):
 
     def test_sink_init(self) -> None:
         sink = self._create_sink()
-        self.assertIs(sink._shared_dict, self.mock_shared_dict)
-        self.assertIsNone(sink._real_sink_internal)
+        self.assertIs(sink.__shared_dict, self.mock_shared_dict)
+        self.assertIsNone(sink.__real_sink_internal)
         self.assertFalse(sink._closed_flag)
 
     @unittest.skipUnless(_torch_installed, "PyTorch not installed.")
@@ -352,7 +352,7 @@ class DelegatingQueueSinkTests(unittest.TestCase):
         )
 
         # sink._real_sink_internal is the return_value of PatchedInternalSink's constructor mock chain
-        self.assertIsInstance(sink._real_sink_internal, mock.MagicMock)
+        self.assertIsInstance(sink.__real_sink_internal, mock.MagicMock)
         # actual_queue_in_sink = getattr(
         #     sink._real_sink_internal, "_MultiprocessQueueSink__queue", None
         # )
@@ -408,7 +408,7 @@ class DelegatingQueueSinkTests(unittest.TestCase):
         )
         sink = self._create_sink()
         sink.put_nowait(self.test_item)
-        self.assertIs(sink._real_sink_internal, mock_real_sink_instance)
+        self.assertIs(sink.__real_sink_internal, mock_real_sink_instance)
         mock_real_sink_instance.put_nowait.assert_called_once_with(
             self.test_item
         )
@@ -445,7 +445,7 @@ class DelegatingQueueSinkTests(unittest.TestCase):
         mock_real_sink_wrapper._MultiprocessQueueSink__queue = (
             mock_underlying_mp_queue
         )
-        sink._real_sink_internal = cast(
+        sink.__real_sink_internal = cast(
             MultiprocessQueueSink[Any], mock_real_sink_wrapper
         )
         self.assertEqual(sink.qsize(), 5)
@@ -470,15 +470,15 @@ class DelegatingQueueSourceTests(unittest.TestCase):
         self.mock_time_sleep = self.patcher_time_sleep.start()
         self.addCleanup(self.patcher_time_sleep.stop)
 
-    def _create_source(self) -> DelegatingQueueSource[Any]:
-        return DelegatingQueueSource[Any](
+    def _create_source(self) -> DelegatingMultiprocessQueueSource[Any]:
+        return DelegatingMultiprocessQueueSource[Any](
             self.mock_shared_dict, self.mock_shared_lock
         )
 
     def test_source_init(self) -> None:
         source = self._create_source()
-        self.assertIs(source._shared_dict, self.mock_shared_dict)
-        self.assertIsNone(source._real_source_internal)
+        self.assertIs(source.__shared_dict, self.mock_shared_dict)
+        self.assertIsNone(source.__real_source_internal)
 
     def test_ensure_real_source_initialized_immediately(self) -> None:
         self.mock_shared_dict.get.side_effect = lambda key, default=None: {
@@ -488,7 +488,7 @@ class DelegatingQueueSourceTests(unittest.TestCase):
         source = self._create_source()
         source._ensure_real_source_initialized(polling_timeout=0.01)
         self.assertIs(
-            source._real_source_internal, self.mock_real_mp_queue_source
+            source.__real_source_internal, self.mock_real_mp_queue_source
         )
 
     def test_ensure_real_source_initialized_after_delay(self) -> None:
@@ -505,7 +505,7 @@ class DelegatingQueueSourceTests(unittest.TestCase):
         source = self._create_source()
         source._ensure_real_source_initialized(polling_timeout=0.1)
         self.assertIs(
-            source._real_source_internal, self.mock_real_mp_queue_source
+            source.__real_source_internal, self.mock_real_mp_queue_source
         )
         self.mock_time_sleep.assert_called()
 
@@ -535,7 +535,7 @@ class DelegatingQueueSourceTests(unittest.TestCase):
 
     def test_get_methods_delegation_after_init(self) -> None:
         source = self._create_source()
-        source._real_source_internal = self.mock_real_mp_queue_source
+        source.__real_source_internal = self.mock_real_mp_queue_source
         val = "item"
         self.mock_real_mp_queue_source.get_blocking.return_value = val
         self.assertEqual(source.get_blocking(timeout=0.1), val)
@@ -567,7 +567,7 @@ class DelegatingQueueSourceTests(unittest.TestCase):
 
     def test_utility_methods_after_init(self) -> None:
         source = self._create_source()
-        source._real_source_internal = self.mock_real_mp_queue_source
+        source.__real_source_internal = self.mock_real_mp_queue_source
         self.mock_underlying_queue.qsize.return_value = 3
         self.mock_underlying_queue.empty.return_value = False
         self.mock_underlying_queue.full.return_value = True
@@ -580,7 +580,7 @@ class DelegatingQueueSourceTests(unittest.TestCase):
 def sink_process_worker(
     barrier: mp_sync.Barrier,
     results_q: multiprocessing.Queue,  # type: ignore[type-arg] # For pytest compatibility
-    delegating_sink: DelegatingQueueSink[Any],
+    delegating_sink: DelegatingMultiprocessQueueSink[Any],
     item_to_put: Any,
     process_id: Any,
 ) -> None:
@@ -598,7 +598,7 @@ def sink_process_worker(
 def source_process_worker(
     barrier: Optional[mp_sync.Barrier],
     results_q: multiprocessing.Queue,  # type: ignore[type-arg] # For pytest compatibility
-    delegating_source: DelegatingQueueSource[Any],
+    delegating_source: DelegatingMultiprocessQueueSource[Any],
     num_items_to_get: int,
     process_id: Any,
 ) -> None:
@@ -619,7 +619,7 @@ def source_process_worker(
 
 def source_process_worker_ipc(
     results_q: multiprocessing.Queue,  # type: ignore[type-arg] # For pytest compatibility
-    delegating_source: DelegatingQueueSource[Any],
+    delegating_source: DelegatingMultiprocessQueueSource[Any],
     sentinel: Any,
     process_id: Any,
 ) -> None:
