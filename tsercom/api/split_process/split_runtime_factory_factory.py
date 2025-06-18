@@ -1,9 +1,12 @@
 """Factory for creating split-process runtime factories and handles."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, TypeVar, get_args
+from typing import (
+    Tuple,
+    TypeVar,
+)  # Removed: get_args, as it's no longer used here
 
-import torch
+# Removed: import torch (IS_TORCH_AVAILABLE handles its own torch import attempt)
 
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
@@ -26,8 +29,12 @@ from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
 )
-from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
-    TorchMultiprocessQueueFactory,
+
+# Removed: TorchMultiprocessQueueFactory (Delegating factory handles it internally if needed,
+# but SplitFactoryFactory doesn't choose it directly anymore)
+from tsercom.threading.multiprocess.delegating_queue_factory import (
+    DelegatingMultiprocessQueueFactory,
+    is_torch_available,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -47,6 +54,8 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
     Sets up IPC queues and instantiates `RemoteRuntimeFactory` and
     `ShimRuntimeHandle` for managing a runtime in a child process.
+    Uses `DelegatingMultiprocessQueueFactory` if PyTorch is available,
+    allowing dynamic selection of queue transport based on first data item.
     """
 
     def __init__(
@@ -55,9 +64,8 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         """Initializes the SplitRuntimeFactoryFactory.
 
         Args:
-            thread_pool: ThreadPoolExecutor for async tasks (e.g. data aggregator).
-            thread_watcher: ThreadWatcher to monitor threads from components
-                            like ShimRuntimeHandle.
+            thread_pool: ThreadPoolExecutor for async tasks.
+            thread_watcher: ThreadWatcher to monitor threads.
         """
         super().__init__()
 
@@ -70,76 +78,24 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         RuntimeHandle[DataTypeT, EventTypeT],
         RuntimeFactory[DataTypeT, EventTypeT],
     ]:
-        """Creates a handle and factory for a split-process runtime.
+        """Creates a handle and factory for a split-process runtime."""
 
-        Sets up 3 pairs of multiprocess queues (events, data, commands).
-        Creates `RemoteRuntimeFactory` (for child process) and
-        `ShimRuntimeHandle` (for parent) using these queues.
-
-        Args:
-            initializer: Configuration for the runtime.
-
-        Returns:
-            A tuple: (ShimRuntimeHandle, RemoteRuntimeFactory).
-        """
-        # --- Dynamic queue factory selection ---
-        resolved_data_type = None
-        resolved_event_type = None
-
-        # Prioritize inspecting the initializer's direct __orig_class__ (e.g., for MyInitializer[torch.Tensor, str])
-        if hasattr(initializer, "__orig_class__"):
-            generic_args = get_args(initializer.__orig_class__)
-            if generic_args and len(generic_args) == 2:
-                if not isinstance(generic_args[0], TypeVar):
-                    resolved_data_type = generic_args[0]
-                if not isinstance(generic_args[1], TypeVar):
-                    resolved_event_type = generic_args[1]
-
-        # Fallback: Iterate __orig_bases__ to find the RuntimeInitializer[SpecificA, SpecificB]
-        if resolved_data_type is None or resolved_event_type is None:
-            for base in getattr(initializer, "__orig_bases__", []):
-                if (
-                    hasattr(base, "__origin__")
-                    and base.__origin__ is RuntimeInitializer
-                ):
-                    base_generic_args = get_args(base)
-                    if base_generic_args and len(base_generic_args) == 2:
-                        if resolved_data_type is None and not isinstance(
-                            base_generic_args[0], TypeVar
-                        ):
-                            resolved_data_type = base_generic_args[0]
-                        if resolved_event_type is None and not isinstance(
-                            base_generic_args[1], TypeVar
-                        ):
-                            resolved_event_type = base_generic_args[1]
-                        if (
-                            resolved_data_type is not None
-                            and resolved_event_type is not None
-                        ):
-                            break
-
-        # Declare data_event_queue_factory with the base type for mypy
         event_queue_factory: MultiprocessQueueFactory[
             EventInstance[EventTypeT]
         ]
         data_queue_factory: MultiprocessQueueFactory[
             AnnotatedInstance[DataTypeT]
         ]
-        command_queue_factory: MultiprocessQueueFactory[RuntimeCommand]
 
-        uses_torch_tensor = False
-        if (
-            resolved_data_type is torch.Tensor
-            or resolved_event_type is torch.Tensor
-        ):
-            uses_torch_tensor = True
-
-        if uses_torch_tensor:
-            # Assuming EventInstance and AnnotatedInstance generics are compatible with Torch queues
-            event_queue_factory = TorchMultiprocessQueueFactory[
+        # Top-level check for PyTorch availability.
+        # If available, Delegating factory will decide specific queue type (torch/default)
+        # based on the first item sent.
+        # If not available, always use default queues.
+        if is_torch_available():
+            event_queue_factory = DelegatingMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
             ]()
-            data_queue_factory = TorchMultiprocessQueueFactory[
+            data_queue_factory = DelegatingMultiprocessQueueFactory[
                 AnnotatedInstance[DataTypeT]
             ]()
         else:
@@ -150,11 +106,11 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                 AnnotatedInstance[DataTypeT]
             ]()
 
-        # Command queues always use the default factory
+        # Command queues always use the default factory.
+        command_queue_factory: MultiprocessQueueFactory[RuntimeCommand]
         command_queue_factory = DefaultMultiprocessQueueFactory[
             RuntimeCommand
         ]()
-        # --- End dynamic queue factory selection ---
 
         event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]
         event_source: MultiprocessQueueSource[EventInstance[EventTypeT]]
@@ -174,12 +130,12 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             initializer, event_source, data_sink, runtime_command_source
         )
 
+        # Aggregator setup remains the same
         if initializer.timeout_seconds is not None:
             aggregator = RemoteDataAggregatorImpl[
                 AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
                 timeout=initializer.timeout_seconds,
             )
@@ -188,9 +144,9 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                 AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
             )
+
         runtime_handle = ShimRuntimeHandle[DataTypeT, EventTypeT](
             self.__thread_watcher,
             event_sink,

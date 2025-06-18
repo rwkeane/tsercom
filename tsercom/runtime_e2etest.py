@@ -10,6 +10,7 @@ from threading import Thread
 
 import pytest
 import torch
+from unittest.mock import patch
 
 from tsercom.api.runtime_manager import RuntimeManager
 from tsercom.caller_id.caller_identifier import CallerIdentifier
@@ -1924,3 +1925,29 @@ def test_event_broadcast_e2e(clear_loop_fixture):
 
 
 # Ensure a newline at the end of the file
+
+
+# ---- Tests for DelegatingMultiprocessQueueFactory ----
+
+
+@pytest.mark.usefixtures("clear_loop_fixture")
+def test_out_of_process_delegating_pytorch_unavailable(clear_loop_fixture):
+    """
+    Tests the out-of-process runtime when PyTorch is simulated as unavailable.
+    This should force SplitRuntimeFactoryFactory to use DefaultMultiprocessQueueFactory.
+    This test is based on test_out_of_process_init.
+    """
+    # Need to import patch from unittest.mock
+    # from unittest.mock import patch # This should be at the top of the file ideally.
+
+    # Path to IS_TORCH_AVAILABLE as used by SplitRuntimeFactoryFactory
+    path_to_mock = "tsercom.api.split_process.split_runtime_factory_factory.is_torch_available"
+
+    with patch(path_to_mock, return_value=False):
+        # Call the original __check_initialization test logic
+        # __check_initialization itself uses FakeRuntimeInitializer (non-tensor)
+        # If this test passes, it means DefaultMPQueue was used and worked.
+        __check_initialization(RuntimeManager.start_out_of_process)
+
+
+# ---- End Tests for DelegatingMultiprocessQueueFactory ----
