@@ -293,7 +293,9 @@ def test_try_parse_unsupported_dtype(mocker: Any) -> None:
     mock_log_error.assert_called_once()
     call_args = mock_log_error.call_args[0]
     assert "Failed to reconstruct tensor from bytes" in call_args[0]
-    assert isinstance(call_args[2], ValueError)  # Corrected to check the exception instance
+    assert isinstance(
+        call_args[2], ValueError
+    )  # Corrected to check the exception instance
     assert (
         f"Unsupported torch.dtype for numpy conversion: {unsupported_dtype}"
         in str(call_args[2])  # Corrected to check the exception instance
@@ -326,8 +328,12 @@ def test_try_parse_malformed_data_bytes_length(mocker: Any) -> None:
     mock_log_error.assert_called_once()
     call_args = mock_log_error.call_args[0]
     assert "Failed to reconstruct tensor from bytes" in call_args[0]
-    assert isinstance(call_args[2], ValueError)  # Corrected to check the exception instance
+    assert isinstance(
+        call_args[2], ValueError
+    )  # Corrected to check the exception instance
     assert (
         "buffer size must be a multiple of element size"
-        in str(call_args[2]).lower()  # Corrected to check the exception instance
+        in str(
+            call_args[2]
+        ).lower()  # Corrected to check the exception instance
     )
