@@ -46,7 +46,8 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         """
         actual_queue: MpQueue[T]
         if self.__manager:
-            actual_queue = cast(MpQueue[T], self.__manager.Queue())
+            # Changed cast(MpQueue[T], ...) to cast(MpQueue, ...)
+            actual_queue = cast(MpQueue, self.__manager.Queue())
         else:
             actual_queue = MpQueue()
 

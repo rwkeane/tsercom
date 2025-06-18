@@ -59,6 +59,7 @@ def is_torch_available() -> bool:
 
 INITIALIZED_KEY = "initialized"
 REAL_QUEUE_SOURCE_REF_KEY = "real_queue_source_ref"
+REAL_QUEUE_SINK_REF_KEY = "real_queue_sink_ref"  # New key
 
 
 # pylint: disable=W0231
@@ -127,11 +128,32 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
                     queue_factory.create_queues()
                 )
 
+                self.__shared_dict[REAL_QUEUE_SINK_REF_KEY] = (
+                    real_sink_instance  # Store sink ref
+                )
                 self.__shared_dict[REAL_QUEUE_SOURCE_REF_KEY] = (
                     real_source_instance
                 )
                 self.__shared_dict[INITIALIZED_KEY] = True
                 self.__real_sink_internal = real_sink_instance
+            else:
+                # Queue already initialized by another process. This instance needs to adopt it.
+                # The SINK itself is what this instance needs for its __real_sink_internal
+                sink_ref = self.__shared_dict.get(REAL_QUEUE_SINK_REF_KEY)
+                if isinstance(
+                    sink_ref, MultiprocessQueueSink
+                ):  # Check against base class
+                    self.__real_sink_internal = sink_ref
+                elif (
+                    sink_ref is None
+                ):  # Should not happen if INITIALIZED_KEY is True
+                    raise RuntimeError(
+                        "Queue initialized but REAL_QUEUE_SINK_REF_KEY is missing in shared_dict."
+                    )
+                else:  # Should not happen
+                    raise RuntimeError(
+                        f"Invalid sink_ref type in shared_dict: {type(sink_ref)}"
+                    )
 
         assert (
             self.__real_sink_internal is not None
@@ -328,6 +350,7 @@ class DelegatingMultiprocessQueueFactory(
 
         shared_dict[INITIALIZED_KEY] = False
         shared_dict[REAL_QUEUE_SOURCE_REF_KEY] = None
+        shared_dict[REAL_QUEUE_SINK_REF_KEY] = None  # Initialize new key
 
         sink = DelegatingMultiprocessQueueSink[QueueItemType](
             shared_manager_dict=shared_dict,
