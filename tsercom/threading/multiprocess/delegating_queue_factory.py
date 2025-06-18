@@ -22,9 +22,10 @@ from typing import TypeVar, Generic, Optional, Tuple, Any
 try:
     import torch
     import torch.multiprocessing as torch_mp
+
     _torch_available = True  # pylint: disable=invalid-name
 except ImportError:
-    _torch_available = False # pylint: disable=invalid-name
+    _torch_available = False  # pylint: disable=invalid-name
     torch_mp = None
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -36,150 +37,342 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
-# TorchMultiprocessQueueFactory is no longer used by DelegatingQueueSink for queue creation.
-# from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
-# TorchMultiprocessQueueFactory,
-# )
 
-QueueItemType = TypeVar("QueueItemType") # pylint: disable=invalid-name
+QueueItemType = TypeVar("QueueItemType")  # pylint: disable=invalid-name
+
 
 def is_torch_available() -> bool:
+    """Checks if PyTorch is available in the current environment."""
     return _torch_available
+
 
 # pylint: disable=W0231
 class DelegatingQueueSink(MultiprocessQueueSink[QueueItemType]):
-    """Sink that creates underlying queue via its manager on first put."""
+    """
+    A multiprocessing queue sink that determines the underlying queue type
+    (Torch or default) based on the first item put into it. It uses a
+    manager-provided queue for robust inter-process sharing.
+    """
+
     def __init__(
         self,
         shared_manager_dict: Any,
         shared_lock: Any,
-        manager_instance: Any, # Actual manager instance (std or torch)
-        # torch_queue_factory is no longer needed here
+        manager_instance: Any,
     ):
+        """
+        Initializes the DelegatingQueueSink.
+
+        Args:
+            shared_manager_dict: A manager-created dictionary for shared state.
+            shared_lock: A manager-created lock for synchronizing access to shared_dict.
+            manager_instance: The multiprocessing manager instance (std or torch).
+        """
         self._shared_dict = shared_manager_dict
         self._shared_lock = shared_lock
         self._manager_instance = manager_instance
-        self._real_sink_internal: Optional[MultiprocessQueueSink[QueueItemType]] = None
+        self._real_sink_internal: Optional[
+            MultiprocessQueueSink[QueueItemType]
+        ] = None
         self._closed_flag = False
 
     def _initialize_real_sink(self, item: QueueItemType) -> None:
-        """Initializes queue using self._manager_instance.Queue()."""
-        if not self._shared_dict.get('initialized', False):
-            actual_data = getattr(item, 'data', item)
-            queue_kind: str
+        """
+        Initializes the actual underlying queue on the first put operation.
 
-            # The actual queue is now always created by the manager instance.
-            # The distinction is mainly for labeling and potential future optimizations.
-            if is_torch_available() and isinstance(actual_data, torch.Tensor):
-                queue_kind = 'torch_manager_queue' # Data is tensor, queue is from (torch) manager
-            else:
-                queue_kind = 'default_manager_queue' # Data is non-tensor, queue is from (std or torch) manager
+        This method is called internally. It uses the provided manager instance
+        to create a multiprocessing queue. The type of data path (signified as
+        'torch_manager_queue' or 'default_manager_queue') is recorded in the
+        shared dictionary, but the queue itself is always a manager.Queue().
+        The shared state (reference to the source end of the queue, type,
+        and initialization flag) is stored in the shared_dict.
 
-            # Create the queue using the manager passed to this sink.
-            # This ensures the queue is a proxy shareable via this manager's dict.
-            manager_created_mp_queue = self._manager_instance.Queue()
+        Args:
+            item: The first item being put into the queue, used to determine
+                  if a torch-specific data path might be intended.
+        """
+        if (
+            self._real_sink_internal is not None
+        ):  # Already initialized for this instance
+            return
 
-            real_sink_instance = MultiprocessQueueSink[QueueItemType](manager_created_mp_queue)
-            real_source_instance = MultiprocessQueueSource[QueueItemType](manager_created_mp_queue)
+        with self._shared_lock:
+            if not self._shared_dict.get("initialized", False):
+                actual_data = getattr(item, "data", item)
+                queue_kind: str
 
-            self._shared_dict['real_queue_source_ref'] = real_source_instance
-            self._shared_dict['queue_type'] = queue_kind
-            self._shared_dict['initialized'] = True
-            self._real_sink_internal = real_sink_instance
+                if is_torch_available() and isinstance(
+                    actual_data, torch.Tensor
+                ):
+                    queue_kind = "torch_manager_queue"
+                else:
+                    queue_kind = "default_manager_queue"
 
-    def put_blocking(self, obj: QueueItemType, timeout: Optional[float] = None) -> bool:
-        if self._closed_flag: raise RuntimeError("Sink closed.")
+                manager_created_mp_queue = self._manager_instance.Queue()
+
+                real_sink_instance = MultiprocessQueueSink[QueueItemType](
+                    manager_created_mp_queue
+                )
+                real_source_instance = MultiprocessQueueSource[QueueItemType](
+                    manager_created_mp_queue
+                )
+
+                self._shared_dict["real_queue_source_ref"] = (
+                    real_source_instance
+                )
+                self._shared_dict["queue_type"] = queue_kind
+                self._shared_dict["initialized"] = True
+
+                self._real_sink_internal = real_sink_instance
+                return
+
         if self._real_sink_internal is None:
-            with self._shared_lock:
-                if not self._shared_dict.get('initialized', False):
-                    self._initialize_real_sink(obj)
-        if self._real_sink_internal is None: raise RuntimeError("Sink not init for put_blocking.")
+            if self._shared_dict.get("initialized", False):
+                source_ref = self._shared_dict.get("real_queue_source_ref")
+                if isinstance(source_ref, MultiprocessQueueSource) and hasattr(
+                    source_ref, "_MultiprocessQueueSource__queue"
+                ):  # pylint: disable=protected-access
+                    underlying_queue = (
+                        source_ref._MultiprocessQueueSource__queue
+                    )  # pylint: disable=protected-access
+                    self._real_sink_internal = MultiprocessQueueSink[
+                        QueueItemType
+                    ](underlying_queue)
+                    assert (
+                        self._real_sink_internal is not None
+                    ), "CRITICAL: _real_sink_internal is None after local setup from shared!"
+                else:
+                    raise RuntimeError(
+                        "Sink init error (post-lock): Initialized but failed to get valid source_ref. "
+                        f"source_ref type: {type(source_ref)}, "
+                        f"has __queue: {hasattr(source_ref, '_MultiprocessQueueSource__queue') if source_ref else 'N/A'}"
+                    )
+
+    def put_blocking(
+        self, obj: QueueItemType, timeout: Optional[float] = None
+    ) -> bool:
+        """Puts an item into the queue, blocking if necessary."""
+        if self._closed_flag:
+            raise RuntimeError("Sink closed.")
+        if self._real_sink_internal is None:
+            self._initialize_real_sink(obj)
+
+        if self._real_sink_internal is None:
+            raise RuntimeError(
+                "Sink not init for put_blocking (remained None after init attempt)."
+            )
         return self._real_sink_internal.put_blocking(obj, timeout=timeout)
 
     def put_nowait(self, obj: QueueItemType) -> bool:
-        if self._closed_flag: raise RuntimeError("Sink closed.")
+        """Puts an item into the queue without blocking."""
+        if self._closed_flag:
+            raise RuntimeError("Sink closed.")
         if self._real_sink_internal is None:
-            with self._shared_lock:
-                if not self._shared_dict.get('initialized', False):
-                    self._initialize_real_sink(obj)
-        if self._real_sink_internal is None: raise RuntimeError("Sink not init for put_nowait.")
+            self._initialize_real_sink(obj)
+
+        if self._real_sink_internal is None:
+            raise RuntimeError(
+                "Sink not init for put_nowait (remained None after init attempt)."
+            )
         return self._real_sink_internal.put_nowait(obj)
 
-    def close(self) -> None: self._closed_flag = True
+    def close(self) -> None:
+        """Marks the sink as closed."""
+        self._closed_flag = True
+
     @property
-    def closed(self) -> bool: return self._closed_flag
+    def closed(self) -> bool:
+        """Returns True if the sink is closed, False otherwise."""
+        return self._closed_flag
+
     def qsize(self) -> int:
-        if self._real_sink_internal and hasattr(self._real_sink_internal, '_MultiprocessQueueSink__queue'):
-            return self._real_sink_internal._MultiprocessQueueSink__queue.qsize() # pylint: disable=protected-access
+        """Returns the approximate size of the queue."""
+        if self._real_sink_internal and hasattr(
+            self._real_sink_internal, "_MultiprocessQueueSink__queue"
+        ):
+            # pylint: disable=protected-access
+            return (
+                self._real_sink_internal._MultiprocessQueueSink__queue.qsize()
+            )
         return 0
+
     def empty(self) -> bool:
-        if self._real_sink_internal and hasattr(self._real_sink_internal, '_MultiprocessQueueSink__queue'):
-            return self._real_sink_internal._MultiprocessQueueSink__queue.empty() # pylint: disable=protected-access
+        """Returns True if the queue is empty, False otherwise."""
+        if self._real_sink_internal and hasattr(
+            self._real_sink_internal, "_MultiprocessQueueSink__queue"
+        ):
+            # pylint: disable=protected-access
+            return (
+                self._real_sink_internal._MultiprocessQueueSink__queue.empty()
+            )
         return True
+
     def full(self) -> bool:
-        if self._real_sink_internal and hasattr(self._real_sink_internal, '_MultiprocessQueueSink__queue'):
-            return self._real_sink_internal._MultiprocessQueueSink__queue.full() # pylint: disable=protected-access
+        """Returns True if the queue is full, False otherwise."""
+        if self._real_sink_internal and hasattr(
+            self._real_sink_internal, "_MultiprocessQueueSink__queue"
+        ):
+            # pylint: disable=protected-access
+            return (
+                self._real_sink_internal._MultiprocessQueueSink__queue.full()
+            )
         return False
+
 
 # pylint: disable=W0231
 class DelegatingQueueSource(MultiprocessQueueSource[QueueItemType]):
+    """
+    A multiprocessing queue source that waits for the corresponding sink
+    to initialize the actual queue. It polls a shared dictionary to find
+    the reference to the real queue source.
+    """
+
     def __init__(self, shared_manager_dict: Any, shared_lock: Any):
+        """
+        Initializes the DelegatingQueueSource.
+
+        Args:
+            shared_manager_dict: A manager-created dictionary for shared state.
+            shared_lock: A manager-created lock for synchronizing access.
+        """
         self._shared_dict = shared_manager_dict
         self._shared_lock = shared_lock
-        self._real_source_internal: Optional[MultiprocessQueueSource[QueueItemType]] = None
+        self._real_source_internal: Optional[
+            MultiprocessQueueSource[QueueItemType]
+        ] = None
 
-    def _ensure_real_source_initialized(self, polling_timeout: Optional[float] = None) -> None:
-        if self._real_source_internal is not None: return
+    def _ensure_real_source_initialized(
+        self, polling_timeout: Optional[float] = None
+    ) -> None:
+        """
+        Waits for the sink to initialize and populate the shared dictionary
+        with the reference to the actual queue source.
+
+        Args:
+            polling_timeout: Optional timeout for waiting for initialization.
+
+        Raises:
+            queue.Empty: If timeout occurs while waiting for initialization.
+            RuntimeError: If the shared state is inconsistent.
+        """
+        if self._real_source_internal is not None:
+            return
         start_time = time.monotonic()
         while True:
-            if self._real_source_internal is not None: return
+            if (
+                self._real_source_internal is not None
+            ):  # Check again in case of concurrent modification
+                return
             with self._shared_lock:
-                if self._shared_dict.get('initialized', False):
-                    source_ref = self._shared_dict.get('real_queue_source_ref')
+                if self._shared_dict.get("initialized", False):
+                    source_ref = self._shared_dict.get("real_queue_source_ref")
                     if isinstance(source_ref, MultiprocessQueueSource):
                         self._real_source_internal = source_ref
                         return
-                    if source_ref is None: raise RuntimeError("Q init but source_ref missing.")
-                    raise RuntimeError(f"Invalid source_ref type: {type(source_ref)}.")
+                    if source_ref is None:
+                        raise RuntimeError("Q init but source_ref missing.")
+                    raise RuntimeError(
+                        f"Invalid source_ref type: {type(source_ref)}."
+                    )
             if polling_timeout is not None:
                 if (time.monotonic() - start_time) >= polling_timeout:
-                    raise queue.Empty(f"Timeout ({polling_timeout}s) for source init.")
+                    raise queue.Empty(
+                        f"Timeout ({polling_timeout}s) for source init."
+                    )
             time.sleep(0.01)
 
-    def get_blocking(self, timeout: Optional[float] = None) -> Optional[QueueItemType]:
-        try: self._ensure_real_source_initialized(polling_timeout=timeout)
-        except queue.Empty: return None
-        if self._real_source_internal is None: raise RuntimeError("Source not init for get_blocking.")
+    def get_blocking(
+        self, timeout: Optional[float] = None
+    ) -> Optional[QueueItemType]:
+        """Gets an item from the queue, blocking if necessary."""
+        try:
+            self._ensure_real_source_initialized(polling_timeout=timeout)
+        except queue.Empty:
+            return None
+        if self._real_source_internal is None:
+            raise RuntimeError("Source not init for get_blocking.")
         return self._real_source_internal.get_blocking(timeout=timeout)
 
     def get_or_none(self) -> Optional[QueueItemType]:
-        try: self._ensure_real_source_initialized(polling_timeout=0.02)
-        except queue.Empty: return None
-        if self._real_source_internal is None: return None
+        """Gets an item from the queue if available, otherwise returns None."""
+        try:
+            self._ensure_real_source_initialized(
+                polling_timeout=0.02
+            )  # Short poll
+        except queue.Empty:
+            return None
+        if self._real_source_internal is None:  # Still None after polling
+            return None
         return self._real_source_internal.get_or_none()
 
     def qsize(self) -> int:
-        if self._real_source_internal and hasattr(self._real_source_internal, '_MultiprocessQueueSource__queue'):
-            return self._real_source_internal._MultiprocessQueueSource__queue.qsize() # pylint: disable=protected-access
+        """Returns the approximate size of the queue."""
+        if self._real_source_internal and hasattr(
+            self._real_source_internal, "_MultiprocessQueueSource__queue"
+        ):
+            # pylint: disable=protected-access
+            return (
+                self._real_source_internal._MultiprocessQueueSource__queue.qsize()
+            )
         return 0
+
     def empty(self) -> bool:
-        if self._real_source_internal and hasattr(self._real_source_internal, '_MultiprocessQueueSource__queue'):
-            return self._real_source_internal._MultiprocessQueueSource__queue.empty() # pylint: disable=protected-access
+        """Returns True if the queue is empty, False otherwise."""
+        if self._real_source_internal and hasattr(
+            self._real_source_internal, "_MultiprocessQueueSource__queue"
+        ):
+            # pylint: disable=protected-access
+            return (
+                self._real_source_internal._MultiprocessQueueSource__queue.empty()
+            )
         return True
+
     def full(self) -> bool:
-        if self._real_source_internal and hasattr(self._real_source_internal, '_MultiprocessQueueSource__queue'):
-            return self._real_source_internal._MultiprocessQueueSource__queue.full() # pylint: disable=protected-access
+        """Returns True if the queue is full, False otherwise."""
+        if self._real_source_internal and hasattr(
+            self._real_source_internal, "_MultiprocessQueueSource__queue"
+        ):
+            # pylint: disable=protected-access
+            return (
+                self._real_source_internal._MultiprocessQueueSource__queue.full()
+            )
         return False
 
-class DelegatingMultiprocessQueueFactory(MultiprocessQueueFactory[QueueItemType], Generic[QueueItemType]):
+
+class DelegatingMultiprocessQueueFactory(
+    MultiprocessQueueFactory[QueueItemType], Generic[QueueItemType]
+):
+    """
+    A factory that creates pairs of DelegatingQueueSink and DelegatingQueueSource.
+    It manages an underlying multiprocessing manager (standard or Torch) which
+    is used by the sink to create the actual queues.
+    """
+
     def __init__(self) -> None:
+        """Initializes the DelegatingMultiprocessQueueFactory."""
         super().__init__()
         self._manager: Optional[Any] = None
-        # _torch_queue_factory no longer needed by the sink for queue creation.
-        # If SplitRuntimeFactoryFactory needs a plain TorchMultiprocessQueueFactory for other reasons,
-        # it can instantiate it there. For the delegating mechanism, it's not used.
+
+    def shutdown(self) -> None:
+        """Shuts down the underlying multiprocessing manager, if one was created."""
+        if self._manager is not None:
+            if hasattr(self._manager, "shutdown") and callable(
+                self._manager.shutdown
+            ):
+                try:
+                    self._manager.shutdown()
+                except Exception:  # pylint: disable=broad-except
+                    # Intentionally broad: Log or handle specific shutdown errors if necessary.
+                    # The primary goal is to ensure the manager reference is cleared.
+                    pass
+            self._manager = None
 
     def _get_manager(self) -> Any:
+        """
+        Gets or creates the appropriate multiprocessing manager instance.
+        Uses torch.multiprocessing.Manager if PyTorch is available,
+        otherwise defaults to standard multiprocessing.Manager.
+        """
         if self._manager is None:
             if is_torch_available() and torch_mp is not None:
                 self._manager = torch_mp.Manager()
@@ -189,20 +382,28 @@ class DelegatingMultiprocessQueueFactory(MultiprocessQueueFactory[QueueItemType]
 
     def create_queues(
         self,
-    ) -> Tuple[MultiprocessQueueSink[QueueItemType], MultiprocessQueueSource[QueueItemType]]:
+    ) -> Tuple[
+        MultiprocessQueueSink[QueueItemType],
+        MultiprocessQueueSource[QueueItemType],
+    ]:
+        """
+        Creates a pair of delegating queue sink and source.
+
+        The sink and source will share a manager-created dictionary and lock
+        to coordinate the dynamic initialization of the actual queue.
+        """
         manager = self._get_manager()
         shared_lock = manager.Lock()
         shared_dict = manager.dict()
 
-        shared_dict['initialized'] = False
-        shared_dict['real_queue_source_ref'] = None
-        shared_dict['queue_type'] = None
+        shared_dict["initialized"] = False
+        shared_dict["real_queue_source_ref"] = None
+        shared_dict["queue_type"] = None
 
         sink = DelegatingQueueSink[QueueItemType](
             shared_manager_dict=shared_dict,
             shared_lock=shared_lock,
             manager_instance=manager,
-            # torch_queue_factory not passed
         )
         source = DelegatingQueueSource[QueueItemType](
             shared_manager_dict=shared_dict,
