@@ -37,7 +37,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
                         Defaults to 'spawn'. Other options include 'fork'
                         and 'forkserver'.
         """
-        self._mp_context = mp.get_context(ctx_method)
+        self.__mp_context = mp.get_context(ctx_method)
 
     def create_queues(
         self,
@@ -53,7 +53,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
         """
-        torch_queue: mp.Queue[T] = self._mp_context.Queue()
+        torch_queue: mp.Queue[T] = self.__mp_context.Queue()
         # MultiprocessQueueSink and MultiprocessQueueSource are generic and compatible
         # with torch.multiprocessing.Queue, allowing consistent queue interaction.
         sink = MultiprocessQueueSink[T](torch_queue)

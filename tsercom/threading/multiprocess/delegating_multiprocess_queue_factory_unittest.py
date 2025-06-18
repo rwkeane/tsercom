@@ -98,12 +98,12 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
         factory: dqf_module.DelegatingMultiprocessQueueFactory[Any] = (
             dqf_module.DelegatingMultiprocessQueueFactory()
         )
-        manager1 = factory._get_manager()
+        manager1 = factory.__get_manager()
         self.MockStdManager.assert_called_once()
         if _torch_installed:
             self.MockTorchManager.assert_not_called()
         self.assertIs(manager1, mock_std_manager_instance)
-        manager2 = factory._get_manager()
+        manager2 = factory.__get_manager()
         self.MockStdManager.assert_called_once()
         self.assertIs(manager2, manager1)
 
@@ -114,11 +114,11 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
         factory: dqf_module.DelegatingMultiprocessQueueFactory[Any] = (
             dqf_module.DelegatingMultiprocessQueueFactory()
         )
-        manager1 = factory._get_manager()
+        manager1 = factory.__get_manager()
         self.MockTorchManager.assert_called_once()
         self.MockStdManager.assert_not_called()
         self.assertIs(manager1, mock_torch_manager_instance)
-        manager2 = factory._get_manager()
+        manager2 = factory.__get_manager()
         self.MockTorchManager.assert_called_once()
         self.assertIs(manager2, manager1)
 
@@ -200,7 +200,7 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
             dqf_module.DelegatingMultiprocessQueueFactory()
         )
         # Create the manager
-        manager_instance = factory._get_manager()
+        manager_instance = factory.__get_manager()
         self.assertIsNotNone(
             factory.__manager, "Manager should be initialized."
         )
@@ -228,7 +228,7 @@ class DelegatingQueueFactoryBasicTests(unittest.TestCase):
         factory: dqf_module.DelegatingMultiprocessQueueFactory[Any] = (
             dqf_module.DelegatingMultiprocessQueueFactory()
         )
-        manager_instance = factory._get_manager()
+        manager_instance = factory.__get_manager()
         self.assertIsNotNone(factory.__manager)
         self.assertIs(manager_instance, self.MockStdManager.return_value)
 
@@ -287,7 +287,7 @@ class DelegatingQueueSinkTests(unittest.TestCase):
         sink = self._create_sink()
         self.assertIs(sink.__shared_dict, self.mock_shared_dict)
         self.assertIsNone(sink.__real_sink_internal)
-        self.assertFalse(sink._closed_flag)
+        self.assertFalse(sink.__closed_flag)
 
     @unittest.skipUnless(_torch_installed, "PyTorch not installed.")
     def test_initialize_real_sink_torch_path_if_torch_available(self) -> None:
@@ -317,7 +317,7 @@ class DelegatingQueueSinkTests(unittest.TestCase):
                 PatchedInternalSource
             )
 
-            sink._initialize_real_sink(item_with_tensor_data)
+            sink.__initialize_real_sink(item_with_tensor_data)
 
         self.mock_manager_instance.Queue.assert_called_once()
         self.mock_shared_dict.__setitem__.assert_any_call(
@@ -364,7 +364,7 @@ class DelegatingQueueSinkTests(unittest.TestCase):
         self.mock_is_torch_available.return_value = True
         self.mock_shared_dict.get.return_value = False
         sink = self._create_sink()
-        sink._initialize_real_sink(self.test_item)
+        sink.__initialize_real_sink(self.test_item)
         self.mock_manager_instance.Queue.assert_called_once()
         self.mock_shared_dict.__setitem__.assert_any_call(
             "queue_type", "default_manager_queue"
@@ -376,7 +376,7 @@ class DelegatingQueueSinkTests(unittest.TestCase):
         self.mock_is_torch_available.return_value = False
         self.mock_shared_dict.get.return_value = False
         sink = self._create_sink()
-        sink._initialize_real_sink(self.test_item)
+        sink.__initialize_real_sink(self.test_item)
         self.mock_manager_instance.Queue.assert_called_once()
         self.mock_shared_dict.__setitem__.assert_any_call(
             "queue_type", "default_manager_queue"
@@ -386,9 +386,9 @@ class DelegatingQueueSinkTests(unittest.TestCase):
         self.mock_is_torch_available.return_value = False
         self.mock_shared_dict.get.side_effect = [False, True, True, True]
         sink = self._create_sink()
-        sink._initialize_real_sink(self.test_item)
+        sink.__initialize_real_sink(self.test_item)
         self.mock_manager_instance.Queue.assert_called_once()
-        sink._initialize_real_sink(self.test_item)
+        sink.__initialize_real_sink(self.test_item)
         self.mock_manager_instance.Queue.assert_called_once()
 
     @mock.patch(
