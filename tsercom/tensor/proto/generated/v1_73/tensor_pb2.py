@@ -18,8 +18,6 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-
-
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
     b"\n\x0ctensor.proto\x12\x14tsercom.tensor.proto\x1a\ntime.proto\"b\n\x0bTensorChunk\x12'\n\ttimestamp\x18\x01 \x01(\x0b\x32\x14.dtp.ServerTimestamp\x12\x16\n\x0estarting_index\x18\x02 \x01(\x03\x12\x12\n\ndata_bytes\x18\x03 \x01(\x0c\x62\x06proto3"
 )
