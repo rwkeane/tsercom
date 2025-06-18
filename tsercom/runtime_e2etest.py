@@ -25,6 +25,34 @@ from tsercom.threading.aio.global_event_loop import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
+
+import multiprocessing
+import os  # For checking if __main__ to avoid running this when imported by other test files
+
+# Try to set the start method to 'spawn'. This should be done as early as possible.
+# Guarding with a check for __main__ or specific module name can prevent issues
+# if this file is imported by other test discovery processes.
+# However, for e2e tests that are run directly, this should be fine.
+# A common pattern for e2e tests is that they are the entry point.
+# Consider if this file could be imported by pytest in a way that this runs too early or too late.
+# For now, applying directly to the file mentioned in warnings.
+if multiprocessing.get_start_method(allow_none=True) != "spawn":
+    try:
+        # Check if running as the main script or specifically this test file
+        # This is a heuristic to avoid setting this multiple times if imported.
+        # A better place might be a conftest.py if it affects many e2e tests.
+        # For now, applying directly to the file mentioned in warnings.
+        if os.environ.get("PYTEST_CURRENT_TEST"):  # Check if pytest is running
+            multiprocessing.set_start_method("spawn", force=True)
+        elif __name__ == "__main__":  # If run as a script
+            multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError as e:
+        # This can happen if the context has already been used.
+        print(
+            f"INFO: Could not set multiprocessing start method to spawn in {__file__}: {e}"
+        )
+        pass
+
 started = "STARTED"
 stopped = "STOPPED"
 

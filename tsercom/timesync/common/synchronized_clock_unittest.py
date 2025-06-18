@@ -56,7 +56,7 @@ def test_bad_clock_no_sync_instantiation():
     """Tests that a class missing 'sync' cannot be instantiated."""
     with pytest.raises(
         TypeError,
-        match="Can't instantiate abstract class BadClockNoSync with abstract method sync",
+        match=r"Can't instantiate abstract class BadClockNoSync(?=.*sync).*",
     ):
         BadClockNoSync()
 
@@ -65,7 +65,7 @@ def test_bad_clock_no_desync_instantiation():
     """Tests that a class missing 'desync' cannot be instantiated."""
     with pytest.raises(
         TypeError,
-        match="Can't instantiate abstract class BadClockNoDesync with abstract method desync",
+        match=r"Can't instantiate abstract class BadClockNoDesync(?=.*desync).*",
     ):
         BadClockNoDesync()
 
@@ -75,7 +75,7 @@ def test_bad_clock_no_methods_instantiation():
     # The error message might list one or all missing methods depending on Python version/implementation details
     with pytest.raises(
         TypeError,
-        match="Can't instantiate abstract class BadClockNoMethods with abstract methods desync, sync",
+        match=r"Can't instantiate abstract class BadClockNoMethods(?=.*desync)(?=.*sync).*",
     ):
         BadClockNoMethods()
 

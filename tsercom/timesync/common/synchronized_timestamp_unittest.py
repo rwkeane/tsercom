@@ -1,6 +1,7 @@
 """Tests for SynchronizedTimestamp."""
 
 import datetime
+from datetime import timezone
 
 import pytest
 from google.protobuf import timestamp_pb2
@@ -13,9 +14,10 @@ from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
 
-
 # A fixed datetime object for consistent tests
-NOW_DATETIME = datetime.datetime.utcnow()  # Naive UTC datetime
+NOW_DATETIME = datetime.datetime.now(
+    datetime.timezone.utc
+)  # Naive UTC datetime
 # Per SynchronizedTimestamp docstring, it expects naive datetimes.
 # Let's assume these naive datetimes are implicitly UTC.
 FIXED_DATETIME = datetime.datetime(
