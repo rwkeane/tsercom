@@ -250,7 +250,7 @@ async def test_different_dtypes_demuxer_and_chunk(
     # This is low-level and depends on byte representation.
     # Example: np.array([1.0, 2.0], dtype=np.float32).tobytes() interpreted as np.int32
     expected_interpreted_ints = torch.from_numpy(
-        np.frombuffer(float_tensor.numpy().tobytes(), dtype=np.int32)
+        np.frombuffer(float_tensor.numpy().tobytes(), dtype=np.int32).copy()
     )
 
     # The parsed_tensor will be padded with zeros by the demuxer
