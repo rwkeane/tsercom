@@ -567,7 +567,9 @@ async def test_full_app_with_grpc_transport(clear_loop_fixture, caplog):
     server_runtime_handle.start()
     client_runtime_handle.start()
 
-    client_runtime_maybe = cast(RuntimeWrapper[Any, Any], client_runtime_handle)._get_runtime_for_test()
+    client_runtime_maybe = cast(
+        RuntimeWrapper[Any, Any], client_runtime_handle
+    )._get_runtime_for_test()
     assert (
         client_runtime_maybe is not None
     ), "Failed to get actual client runtime from handle"
