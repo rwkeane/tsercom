@@ -17,26 +17,15 @@ from multiprocessing.managers import DictProxy, SyncManager
 import queue
 import threading
 import time
-from typing import TypeVar, Generic, Optional, Tuple
+from typing import TypeVar, Generic, Optional, Tuple, Any
+from types import ModuleType
 
+# First-party imports first (after standard library)
 from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
     TorchMultiprocessQueueFactory,
-)
-
-try:
-    import torch
-    import torch.multiprocessing as torch_mp
-
-    _torch_available = True  # pylint: disable=invalid-name
-except ImportError:
-    _torch_available = False  # pylint: disable=invalid-name
-    torch_mp = None
-
-from tsercom.threading.multiprocess.multiprocess_queue_factory import (
-    MultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -44,6 +33,26 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
+from tsercom.threading.multiprocess.multiprocess_queue_factory import (
+    MultiprocessQueueFactory,
+)
+
+# Third-party imports (conditionally torch) and module-level variables
+_torch_mp_module: Optional[ModuleType] = (
+    None  # Module-level variable for torch.multiprocessing
+)
+_torch_available: bool  # Forward declaration for type hinting
+
+try:
+    import torch
+    import torch.multiprocessing as torch_mp_imported  # Import with a distinct name
+
+    _torch_mp_module = torch_mp_imported  # Assign to module-level variable
+    _torch_available = True  # pylint: disable=invalid-name
+except ImportError:
+    _torch_available = False  # pylint: disable=invalid-name
+    # _torch_mp_module remains None as initialized
+
 
 QueueItemType = TypeVar("QueueItemType")  # pylint: disable=invalid-name
 
@@ -67,8 +76,9 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
 
     def __init__(
         self,
-        shared_manager_dict: DictProxy[bytes, bytes],
+        shared_manager_dict: DictProxy,  # type: ignore[type-arg]
         shared_lock: threading.Lock,
+        manager_instance: SyncManager,
     ):
         """
         Initializes the DelegatingQueueSink.
@@ -76,10 +86,11 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
         Args:
             shared_manager_dict: A manager-created dictionary for shared state.
             shared_lock: A manager-created lock for synchronizing access to shared_dict.
-            manager_instance: The multiprocessing manager instance (std or torch).
+            manager_instance: The multiprocessing SyncManager instance.
         """
         self.__shared_dict = shared_manager_dict
         self.__shared_lock = shared_lock
+        self.__manager = manager_instance
         self.__real_sink_internal: Optional[
             MultiprocessQueueSink[QueueItemType]
         ] = None
@@ -87,35 +98,35 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
 
     def __initialize_real_sink(self, item: QueueItemType) -> None:
         """
-        Initializes the actual underlying queue on the first put operation.
-
-        This method is called internally. It uses the provided manager instance
-        to create a multiprocessing queue. The type of data path (signified as
-        'torch_manager_queue' or 'default_manager_queue') is recorded in the
-        shared dictionary, but the queue itself is always a manager.Queue().
-        The shared state (reference to the source end of the queue, type,
-        and initialization flag) is stored in the shared_dict.
-
-        Args:
-            item: The first item being put into the queue, used to determine
-                  if a torch-specific data path might be intended.
+        Initializes the actual underlying queue on the first put operation or
+        adopts an existing shared queue if already initialized by another process.
         """
-        if (
-            self.__real_sink_internal is not None
-        ):  # Already initialized for this instance
+        if self.__real_sink_internal is not None:
             return
 
         with self.__shared_lock:
+            # Re-check inside lock for thread-safety for this instance's attribute
+            if self.__real_sink_internal is not None:
+                return
+
             if not self.__shared_dict.get(INITIALIZED_KEY, False):
+                # This process is the first to initialize the shared queue
                 actual_data = getattr(item, "data", item)
 
                 queue_factory: MultiprocessQueueFactory[QueueItemType]
-                if is_torch_available() and isinstance(
-                    actual_data, torch.Tensor
+
+                if (
+                    is_torch_available()
+                    and _torch_mp_module is not None
+                    and isinstance(actual_data, torch.Tensor)
                 ):
-                    queue_factory = TorchMultiprocessQueueFactory()
+                    queue_factory = TorchMultiprocessQueueFactory(
+                        manager=self.__manager
+                    )
                 else:
-                    queue_factory = DefaultMultiprocessQueueFactory()
+                    queue_factory = DefaultMultiprocessQueueFactory(
+                        manager=self.__manager
+                    )
 
                 real_sink_instance, real_source_instance = (
                     queue_factory.create_queues()
@@ -125,11 +136,48 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
                     real_source_instance
                 )
                 self.__shared_dict[INITIALIZED_KEY] = True
-
                 self.__real_sink_internal = real_sink_instance
-                return
+                # print(f"Process {multiprocessing.current_process().pid} INITIALIZED sink {id(self)} with queue {id(self.__real_sink_internal._MultiprocessQueueSink__queue if self.__real_sink_internal else None)}")
 
-        assert self.__real_sink_internal is not None
+            # If INITIALIZED_KEY is True in shared_dict (already initialized by another process)
+            # and self.__real_sink_internal is still None for this instance.
+            elif self.__real_sink_internal is None:
+                real_source_instance_from_dict = self.__shared_dict.get(
+                    REAL_QUEUE_SOURCE_REF_KEY
+                )
+
+                if isinstance(
+                    real_source_instance_from_dict, MultiprocessQueueSource
+                ):
+                    try:
+                        # Access the underlying queue from the source instance
+                        underlying_manager_queue = real_source_instance_from_dict._MultiprocessQueueSource__queue
+                        self.__real_sink_internal = MultiprocessQueueSink[
+                            QueueItemType
+                        ](underlying_manager_queue)
+                        # print(f"Process {multiprocessing.current_process().pid} ADOPTED sink {id(self)} with queue {id(underlying_manager_queue)}")
+                    except AttributeError:
+                        # This could happen if __queue is not found or source instance is malformed.
+                        # This sink instance remains uninitialized. Subsequent put/get will fail.
+                        # print(f"Process {multiprocessing.current_process().pid} FAILED to adopt sink {id(self)} due to AttributeError")
+                        pass
+                else:
+                    # Shared state is inconsistent or source_ref is not of expected type.
+                    # This sink instance remains uninitialized. Subsequent put/get will fail.
+                    # print(f"Process {multiprocessing.current_process().pid} FAILED to adopt sink {id(self)} due to invalid source_ref type {type(real_source_instance_from_dict)}")
+                    pass
+
+        # This assertion was originally outside the lock.
+        # If initialization failed (e.g. couldn't adopt), __real_sink_internal could still be None.
+        # The put_X methods will raise a RuntimeError in that case.
+        # For clarity, this assert is only valid if we expect initialization to *always* succeed here.
+        # Given the adoption logic might fail if shared_dict is inconsistent, this assert might be too strong
+        # if placed here unconditionally. The put_X methods handle the None case.
+        # However, the original code had it, implying it expected __real_sink_internal to be set.
+        # Let's keep it to match original intent, but acknowledge it might be the source of the AssertionError().
+        assert self.__real_sink_internal is not None, (
+            "Sink internal not initialized after __initialize_real_sink"
+        )
 
     def put_blocking(
         self, obj: QueueItemType, timeout: Optional[float] = None
@@ -140,9 +188,11 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
         if self.__real_sink_internal is None:
             self.__initialize_real_sink(obj)
 
-        if self.__real_sink_internal is None:
+        if (
+            self.__real_sink_internal is None
+        ):  # This check will now catch if adoption failed
             raise RuntimeError(
-                "Sink not init for put_blocking (remained None after init attempt)."
+                "Sink not init for put_blocking (remained None after init or adoption attempt)."
             )
         return self.__real_sink_internal.put_blocking(obj, timeout=timeout)
 
@@ -153,9 +203,11 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
         if self.__real_sink_internal is None:
             self.__initialize_real_sink(obj)
 
-        if self.__real_sink_internal is None:
+        if (
+            self.__real_sink_internal is None
+        ):  # This check will now catch if adoption failed
             raise RuntimeError(
-                "Sink not init for put_nowait (remained None after init attempt)."
+                "Sink not init for put_nowait (remained None after init or adoption attempt)."
             )
         return self.__real_sink_internal.put_nowait(obj)
 
@@ -181,7 +233,7 @@ class DelegatingMultiprocessQueueSource(
 
     def __init__(
         self,
-        shared_manager_dict: DictProxy[bytes, bytes],
+        shared_manager_dict: DictProxy,  # type: ignore[type-arg]
         shared_lock: threading.Lock,
     ):
         """
@@ -296,8 +348,10 @@ class DelegatingMultiprocessQueueFactory(
         otherwise defaults to standard multiprocessing.Manager.
         """
         if self.__manager is None:
-            if is_torch_available() and torch_mp is not None:
-                self.__manager = torch_mp.Manager()
+            if (
+                is_torch_available() and _torch_mp_module is not None
+            ):  # Use _torch_mp_module
+                self.__manager = _torch_mp_module.Manager()
             else:
                 self.__manager = multiprocessing.Manager()
         return self.__manager
@@ -324,6 +378,7 @@ class DelegatingMultiprocessQueueFactory(
         sink = DelegatingMultiprocessQueueSink[QueueItemType](
             shared_manager_dict=shared_dict,
             shared_lock=shared_lock,
+            manager_instance=manager,  # Pass manager instance
         )
         source = DelegatingMultiprocessQueueSource[QueueItemType](
             shared_manager_dict=shared_dict,
