@@ -20,6 +20,8 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
+from tsercom.common.messages import Envelope
+from tsercom.common.custom_data_type import CustomDataType
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
@@ -86,7 +88,11 @@ class ShimRuntimeHandle(
         command to remote runtime via command queue.
         """
         self.__data_reader_source.start()
-        self.__runtime_command_queue.put_blocking(RuntimeCommand.START)
+        command_envelope = Envelope[RuntimeCommand](
+            data=RuntimeCommand.START,
+            data_type=CustomDataType.from_type(RuntimeCommand)
+        )
+        self.__runtime_command_queue.put_blocking(command_envelope)
 
     def on_event(
         self,
@@ -134,7 +140,11 @@ class ShimRuntimeHandle(
         Sends 'stop' command to remote runtime via command queue,
         then stops local data reader source.
         """
-        self.__runtime_command_queue.put_blocking(RuntimeCommand.STOP)
+        command_envelope = Envelope[RuntimeCommand](
+            data=RuntimeCommand.STOP,
+            data_type=CustomDataType.from_type(RuntimeCommand)
+        )
+        self.__runtime_command_queue.put_blocking(command_envelope)
         self.__data_reader_source.stop()
 
     def _on_data_ready(self, new_data: AnnotatedInstance[DataTypeT]) -> None:

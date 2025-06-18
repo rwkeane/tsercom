@@ -1,72 +1,80 @@
 """
-Defines the `MultiprocessQueueSource[QueueTypeT]` class.
+Defines the  class.
 
-This module provides `MultiprocessQueueSource`, a generic, read-only
-(source) wrapper around `multiprocessing.Queue`. It offers a clear,
+This module provides , a generic, read-only
+(source) wrapper around a . It offers a clear,
 type-safe interface for receiving items from a shared queue between
-processes, focusing on "get" operations.
+processes, focusing on "get" operations and unwrapping items from Envelopes.
 """
 
-from multiprocessing import Queue as MpQueue
-from queue import (
-    Empty,
-)  # Exception for non-blocking get on empty queue.
-from typing import Generic, TypeVar
+from queue import Empty  # Exception for non-blocking get on empty queue.
+from typing import Generic, TypeVar, Optional
 
-# Type variable for the generic type of items in the queue.
+from tsercom.common.messages import Envelope
+from tsercom.threading.multiprocess.base_multiprocess_queue import BaseMultiprocessQueue
+
+# Type variable for the generic type of items originally placed in the envelope.
 QueueTypeT = TypeVar("QueueTypeT")
 
 
-# Provides a source (read-only) interface for a multiprocessing queue.
 class MultiprocessQueueSource(Generic[QueueTypeT]):
     """
-    Wrapper around `multiprocessing.Queue` for a source-only interface.
+    Wrapper around  for a source-only interface.
 
-    Handles getting items; generic for queues of any specific type.
+    Handles getting items and unwrapping them from  objects.
+    Generic for queues that convey items of type  within Envelopes.
     """
 
-    def __init__(self, queue: "MpQueue[QueueTypeT]") -> None:
+    def __init__(self, queue: BaseMultiprocessQueue[Envelope[QueueTypeT]]) -> None:
         """
-        Initializes with a given multiprocessing queue.
+        Initializes with a given BaseMultiprocessQueue that transports Envelopes.
 
         Args:
-            queue: The multiprocessing queue to be used as source.
+            queue: The BaseMultiprocessQueue instance to be used as source.
+                   This queue is expected to yield  items.
         """
-        self.__queue: "MpQueue[QueueTypeT]" = queue
+        self.__queue: BaseMultiprocessQueue[Envelope[QueueTypeT]] = queue
 
-    def get_blocking(self, timeout: float | None = None) -> QueueTypeT | None:
+    def get_blocking(self, timeout: Optional[float] = None) -> Optional[QueueTypeT]:
         """
-        Retrieves item from queue, blocking if needed until item available.
+        Retrieves an item from the queue, blocking if needed, and unwraps it.
 
         Args:
-            timeout: Max time (secs) to wait for item if queue empty.
-                     None means block indefinitely. Defaults to None.
+            timeout: Max time (secs) to wait for an item if the queue is empty.
+                      means block indefinitely. Defaults to .
 
         Returns:
-            Optional[QueueTypeT]: Item from queue, or None if timeout.
-                                  Note: `multiprocessing.Queue.get()` can
-                                  raise `queue.Empty` on timeout (caught),
-                                  or `EOFError`/`OSError` if queue broken.
+            The unwrapped item of type  from the queue,
+            or  if a timeout occurs.
         """
         try:
-            return self.__queue.get(block=True, timeout=timeout)
-        except Empty:  # Catches timeout for multiprocessing.Queue.get().
+            # The underlying queue is expected to return Envelope[QueueTypeT]
+            envelope = self.__queue.get(block=True, timeout=timeout)
+            if envelope is not None:
+                return envelope.data
+            return None  # Should not happen if get(block=True) only returns None on timeout with specific underlying queues
+        except Empty:  # Catches timeout if underlying queue.get() raises it.
             return None
-        # Other exceptions (EOFError, OSError) indicate severe queue issues.
+        # Other exceptions (e.g., EOFError, OSError from broken underlying pipes)
+        # are allowed to propagate as they indicate severe queue issues.
 
-    def get_or_none(self) -> QueueTypeT | None:
+    def get_or_none(self) -> Optional[QueueTypeT]:
         """
-        Retrieves an item from the queue without blocking.
+        Retrieves an item from the queue without blocking and unwraps it.
 
-        If the queue is empty, this method returns immediately.
+        If the queue is empty, this method returns  immediately.
 
         Returns:
-            Optional[QueueTypeT]: Item from queue, or None if empty.
-                                  Can also raise `EOFError`/`OSError`
-                                  if queue is broken.
+            The unwrapped item of type  from the queue,
+            or  if the queue is empty.
         """
         try:
-            return self.__queue.get_nowait()
+            # The underlying queue is expected to return Envelope[QueueTypeT]
+            # BaseMultiprocessQueue defines get(block=False) for non-blocking.
+            envelope = self.__queue.get(block=False)
+            if envelope is not None:
+                return envelope.data
+            return None # Should generally not be reached if get(block=False) raises Empty
         except Empty:  # Queue is empty.
             return None
-        # Other exceptions (EOFError, OSError) are not caught here.
+        # Other exceptions are allowed to propagate.
