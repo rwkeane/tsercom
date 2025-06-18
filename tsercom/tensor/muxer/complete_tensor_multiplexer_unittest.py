@@ -230,7 +230,7 @@ async def test_out_of_order_processing_induces_chunks(
     assert torch.equal(multiplexer.history[1][1], TENSOR_C)
 
     mock_client.clear_calls()
-    T1_5 = T_BASE - datetime.timedelta(seconds=5) # T1 < T1_5 < T2
+    T1_5 = T_BASE - datetime.timedelta(seconds=5)  # T1 < T1_5 < T2
     await multiplexer.process_tensor(TENSOR_B, T1_5)
 
     # Expected: 5 chunks
@@ -238,22 +238,38 @@ async def test_out_of_order_processing_induces_chunks(
     # 3 for TENSOR_C (at T2, cascade) vs TENSOR_B (at T1_5)
     assert len(mock_client.calls) == 5
 
-    chunks_t1_5 = sorted([c for c in mock_client.calls if c.timestamp.as_datetime() == T1_5], key=lambda c: c.starting_index)
-    chunks_t2_cascade = sorted([c for c in mock_client.calls if c.timestamp.as_datetime() == T2], key=lambda c: c.starting_index)
+    chunks_t1_5 = sorted(
+        [c for c in mock_client.calls if c.timestamp.as_datetime() == T1_5],
+        key=lambda c: c.starting_index,
+    )
+    chunks_t2_cascade = sorted(
+        [c for c in mock_client.calls if c.timestamp.as_datetime() == T2],
+        key=lambda c: c.starting_index,
+    )
 
     assert len(chunks_t1_5) == 2
     assert chunks_t1_5[0].starting_index == 1
-    assert torch.equal(chunks_t1_5[0].tensor, TENSOR_B[1:2]) # TENSOR_B value at index 1 is 20.0
+    assert torch.equal(
+        chunks_t1_5[0].tensor, TENSOR_B[1:2]
+    )  # TENSOR_B value at index 1 is 20.0
     assert chunks_t1_5[1].starting_index == 3
-    assert torch.equal(chunks_t1_5[1].tensor, TENSOR_B[3:4]) # TENSOR_B value at index 3 is 40.0
+    assert torch.equal(
+        chunks_t1_5[1].tensor, TENSOR_B[3:4]
+    )  # TENSOR_B value at index 3 is 40.0
 
     assert len(chunks_t2_cascade) == 3
     assert chunks_t2_cascade[0].starting_index == 0
-    assert torch.equal(chunks_t2_cascade[0].tensor, TENSOR_C[0:1]) # TENSOR_C value at index 0 is 10.0
+    assert torch.equal(
+        chunks_t2_cascade[0].tensor, TENSOR_C[0:1]
+    )  # TENSOR_C value at index 0 is 10.0
     assert chunks_t2_cascade[1].starting_index == 2
-    assert torch.equal(chunks_t2_cascade[1].tensor, TENSOR_C[2:3]) # TENSOR_C value at index 2 is 30.0
+    assert torch.equal(
+        chunks_t2_cascade[1].tensor, TENSOR_C[2:3]
+    )  # TENSOR_C value at index 2 is 30.0
     assert chunks_t2_cascade[2].starting_index == 4
-    assert torch.equal(chunks_t2_cascade[2].tensor, TENSOR_C[4:5]) # TENSOR_C value at index 4 is 50.0
+    assert torch.equal(
+        chunks_t2_cascade[2].tensor, TENSOR_C[4:5]
+    )  # TENSOR_C value at index 4 is 50.0
 
     assert len(multiplexer.history) == 3
     assert multiplexer.history[0][0] == T1

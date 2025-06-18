@@ -188,7 +188,9 @@ async def test_out_of_order_pass_through_mux_cascade_effect() -> None:
     # T_COMP_1 is not re-processed or re-emitted to DemuxerOutputHandler.
     # So, it should be None in the handler.
     reconstructed_t1_after = await demuxer_client.get_tensor_at_ts(T_COMP_1)
-    assert reconstructed_t1_after is None, "T1 should be None in demuxer_client after clear() and T2 processing"
+    assert (
+        reconstructed_t1_after is None
+    ), "T1 should be None in demuxer_client after clear() and T2 processing"
 
 
 @pytest.mark.asyncio

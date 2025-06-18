@@ -80,7 +80,9 @@ class TensorMultiplexer:
         """Provides access to the tensor history list (primarily for internal use and testing)."""
         return self.__history
 
-    def _trim_history(self, current_processing_timestamp: datetime.datetime) -> None:
+    def _trim_history(
+        self, current_processing_timestamp: datetime.datetime
+    ) -> None:
         """Removes entries from self.__history older than the data_timeout_seconds
         relative to the current_processing_timestamp.
         Assumes self.__history is sorted by timestamp.
@@ -117,7 +119,9 @@ class TensorMultiplexer:
                 self.__history, timestamp, key=lambda x: x[0]
             )
             if idx_pred > 0:
-                previous_tensor_flat = self.__history[idx_pred - 1][1].flatten()
+                previous_tensor_flat = self.__history[idx_pred - 1][
+                    1
+                ].flatten()
 
             changed_indices_set: Set[int]
             if previous_tensor_flat is None:
@@ -138,8 +142,10 @@ class TensorMultiplexer:
                     ) from e
 
             new_entry = (timestamp, current_tensor_flat.clone())
-            idx_hist = bisect.bisect_left( # Index of the current timestamp's entry
-                self.__history, timestamp, key=lambda x: x[0]
+            idx_hist = (
+                bisect.bisect_left(  # Index of the current timestamp's entry
+                    self.__history, timestamp, key=lambda x: x[0]
+                )
             )
             if (
                 idx_hist < len(self.__history)
@@ -151,7 +157,9 @@ class TensorMultiplexer:
 
             self._trim_history(timestamp)
 
-            if changed_indices_set: # Only emit initial chunks if there were changes
+            if (
+                changed_indices_set
+            ):  # Only emit initial chunks if there were changes
                 sorted_changed_indices = sorted(list(changed_indices_set))
                 blocks: List[List[int]] = []
                 current_block: List[int] = []
@@ -187,30 +195,46 @@ class TensorMultiplexer:
                     cascaded_timestamp, cascaded_tensor_val = self.__history[i]
                     # The new predecessor for this cascaded_tensor_val is whatever is now at self.history[i-1]
                     # which is self.__history[i-1][1] for the tensor data.
-                    _, predecessor_tensor_val = self.__history[i-1]
+                    _, predecessor_tensor_val = self.__history[i - 1]
 
-                    cascaded_tensor_flat = cascaded_tensor_val.flatten() # Should already be flat
-                    predecessor_tensor_flat = predecessor_tensor_val.flatten() # Should already be flat
+                    cascaded_tensor_flat = (
+                        cascaded_tensor_val.flatten()
+                    )  # Should already be flat
+                    predecessor_tensor_flat = (
+                        predecessor_tensor_val.flatten()
+                    )  # Should already be flat
 
                     try:
-                        cascaded_changed_mask = cascaded_tensor_flat != predecessor_tensor_flat
+                        cascaded_changed_mask = (
+                            cascaded_tensor_flat != predecessor_tensor_flat
+                        )
                         cascaded_changed_indices_set = set(
-                            cascaded_changed_mask.nonzero(as_tuple=True)[0].tolist()
+                            cascaded_changed_mask.nonzero(as_tuple=True)[
+                                0
+                            ].tolist()
                         )
                     except RuntimeError as e:
                         # Using print for now as logging is not set up in this class
-                        print(f"Error during cascade diff for timestamp {cascaded_timestamp}: {e}")
+                        print(
+                            f"Error during cascade diff for timestamp {cascaded_timestamp}: {e}"
+                        )
                         continue
 
                     if not cascaded_changed_indices_set:
                         continue
 
-                    sorted_cascaded_changed_indices = sorted(list(cascaded_changed_indices_set))
+                    sorted_cascaded_changed_indices = sorted(
+                        list(cascaded_changed_indices_set)
+                    )
 
                     cascaded_blocks: List[List[int]] = []
                     current_cascaded_block: List[int] = []
                     for index_val_cascade in sorted_cascaded_changed_indices:
-                        if not current_cascaded_block or index_val_cascade == current_cascaded_block[-1] + 1:
+                        if (
+                            not current_cascaded_block
+                            or index_val_cascade
+                            == current_cascaded_block[-1] + 1
+                        ):
                             current_cascaded_block.append(index_val_cascade)
                         else:
                             cascaded_blocks.append(current_cascaded_block)
@@ -218,7 +242,9 @@ class TensorMultiplexer:
                     if current_cascaded_block:
                         cascaded_blocks.append(current_cascaded_block)
 
-                    cascaded_sync_ts = SynchronizedTimestamp(cascaded_timestamp)
+                    cascaded_sync_ts = SynchronizedTimestamp(
+                        cascaded_timestamp
+                    )
                     for block_indices_cascade in cascaded_blocks:
                         if not block_indices_cascade:
                             continue
@@ -235,8 +261,9 @@ class TensorMultiplexer:
                             timestamp=cascaded_sync_ts,
                             starting_index=starting_index_cascade,
                         )
-                        await self._client.on_chunk_update(serializable_chunk_cascade)
-
+                        await self._client.on_chunk_update(
+                            serializable_chunk_cascade
+                        )
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime

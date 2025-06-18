@@ -5,20 +5,26 @@ import datetime
 from typing import (
     Tuple,
     Optional,
-    List, # Added
-    )
+    List,  # Added
+)
 
 import torch
 
 from tsercom.tensor.muxer.tensor_multiplexer import (
     TensorMultiplexer,
 )
-from tsercom.tensor.serialization.serializable_tensor import SerializableTensorChunk # Added
-from tsercom.timesync.common.synchronized_timestamp import SynchronizedTimestamp # Added
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)  # Added
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)  # Added
 
 
-TensorHistoryValue = torch.Tensor # Type alias from base, kept for clarity
-TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue] # Type alias from base
+TensorHistoryValue = torch.Tensor  # Type alias from base, kept for clarity
+TimestampedTensor = Tuple[
+    datetime.datetime, TensorHistoryValue
+]  # Type alias from base
 
 
 class SparseTensorMultiplexer(TensorMultiplexer):
@@ -30,7 +36,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
 
     def __init__(
         self,
-        client: TensorMultiplexer.Client, # Note: Type hint uses base class Client
+        client: TensorMultiplexer.Client,  # Note: Type hint uses base class Client
         tensor_length: int,
         data_timeout_seconds: float = 60.0,
     ):
@@ -47,11 +53,12 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         cutoff_timestamp = current_max_timestamp - timeout_delta
 
         # Find the first index to keep
-        keep_from_index = bisect.bisect_left(self.history, cutoff_timestamp, key=lambda x: x[0])
+        keep_from_index = bisect.bisect_left(
+            self.history, cutoff_timestamp, key=lambda x: x[0]
+        )
 
         if keep_from_index > 0:
             self.history[:] = self.history[keep_from_index:]
-
 
     def _find_insertion_point(self, timestamp: datetime.datetime) -> int:
         return bisect.bisect_left(self.history, timestamp, key=lambda x: x[0])
@@ -76,13 +83,15 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         # Return the tensor from the history entry just before the insertion point.
         return self.history[idx_of_timestamp_entry - 1][1]
 
-    async def _emit_diff_as_chunks( # Renamed from _emit_diff, new logic
+    async def _emit_diff_as_chunks(  # Renamed from _emit_diff, new logic
         self,
         old_tensor: TensorHistoryValue,
         new_tensor: TensorHistoryValue,
         timestamp: datetime.datetime,
     ) -> None:
-        if len(old_tensor) != len(new_tensor): # Should not happen if _tensor_length is enforced
+        if len(old_tensor) != len(
+            new_tensor
+        ):  # Should not happen if _tensor_length is enforced
             return
 
         # Ensure tensors are 1D for comparison and slicing
@@ -119,7 +128,9 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             last_index_of_block = block_indices[-1]
 
             # Use original dtype for chunk data
-            block_data = new_flat_orig[starting_index : last_index_of_block + 1]
+            block_data = new_flat_orig[
+                starting_index : last_index_of_block + 1
+            ]
 
             serializable_chunk = SerializableTensorChunk(
                 tensor=block_data,
@@ -128,8 +139,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             )
             await self._client.on_chunk_update(serializable_chunk)
 
-
-    async def process_tensor( # This is SparseTensorMultiplexer's own process_tensor
+    async def process_tensor(  # This is SparseTensorMultiplexer's own process_tensor
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
         async with self.lock:
@@ -145,7 +155,9 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             effective_cleanup_ref_ts = timestamp
             if self.history:
                 max_history_ts = self.history[-1][0]
-                effective_cleanup_ref_ts = max(effective_cleanup_ref_ts, max_history_ts)
+                effective_cleanup_ref_ts = max(
+                    effective_cleanup_ref_ts, max_history_ts
+                )
             if (
                 self._latest_processed_timestamp
                 and self._latest_processed_timestamp > effective_cleanup_ref_ts
@@ -156,27 +168,46 @@ class SparseTensorMultiplexer(TensorMultiplexer):
 
             insertion_point = self._find_insertion_point(timestamp)
             needs_cascade_re_emission = False
-            idx_of_change = -1 # Index in history where the change occurred or was inserted
+            idx_of_change = (
+                -1
+            )  # Index in history where the change occurred or was inserted
 
             # Check if there's an existing entry at this exact timestamp
-            if (0 <= insertion_point < len(self.history) and
-                self.history[insertion_point][0] == timestamp):
+            if (
+                0 <= insertion_point < len(self.history)
+                and self.history[insertion_point][0] == timestamp
+            ):
 
-                if torch.equal(self.history[insertion_point][1], current_tensor_flat):
-                    return # Tensor is identical, no update needed
+                if torch.equal(
+                    self.history[insertion_point][1], current_tensor_flat
+                ):
+                    return  # Tensor is identical, no update needed
 
                 # Update existing entry
                 # The correct base for diffing is the *old* value at this timestamp
                 base_for_update = self.history[insertion_point][1].clone()
-                self.history[insertion_point] = (timestamp, current_tensor_flat.clone())
-                await self._emit_diff_as_chunks(base_for_update, current_tensor_flat, timestamp)
+                self.history[insertion_point] = (
+                    timestamp,
+                    current_tensor_flat.clone(),
+                )
+                await self._emit_diff_as_chunks(
+                    base_for_update, current_tensor_flat, timestamp
+                )
                 needs_cascade_re_emission = True
                 idx_of_change = insertion_point
             else:
                 # Insert new entry
-                base_tensor_for_diff = self._get_tensor_state_before(timestamp, current_tensor_flat.dtype, current_insertion_point=insertion_point)
-                self.history.insert(insertion_point, (timestamp, current_tensor_flat.clone()))
-                await self._emit_diff_as_chunks(base_tensor_for_diff, current_tensor_flat, timestamp)
+                base_tensor_for_diff = self._get_tensor_state_before(
+                    timestamp,
+                    current_tensor_flat.dtype,
+                    current_insertion_point=insertion_point,
+                )
+                self.history.insert(
+                    insertion_point, (timestamp, current_tensor_flat.clone())
+                )
+                await self._emit_diff_as_chunks(
+                    base_tensor_for_diff, current_tensor_flat, timestamp
+                )
                 idx_of_change = insertion_point
                 # Cascade if this insertion was not at the very end
                 if idx_of_change < len(self.history) - 1:
@@ -186,19 +217,22 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             if self.history:
                 current_max_ts_in_history = self.history[-1][0]
                 potential_latest_ts = max(current_max_ts_in_history, timestamp)
-                if (self._latest_processed_timestamp is None or
-                    potential_latest_ts > self._latest_processed_timestamp):
+                if (
+                    self._latest_processed_timestamp is None
+                    or potential_latest_ts > self._latest_processed_timestamp
+                ):
                     self._latest_processed_timestamp = potential_latest_ts
-            elif timestamp: # History was empty, this is the first item
-                 self._latest_processed_timestamp = timestamp
-
+            elif timestamp:  # History was empty, this is the first item
+                self._latest_processed_timestamp = timestamp
 
             if needs_cascade_re_emission and idx_of_change >= 0:
                 # Start cascade from the element *after* the changed/inserted one
                 for i in range(idx_of_change + 1, len(self.history)):
-                    ts_current_in_cascade, tensor_current_in_cascade = self.history[i]
+                    ts_current_in_cascade, tensor_current_in_cascade = (
+                        self.history[i]
+                    )
                     # The predecessor is now the entry at i-1 (which could be the one just changed/inserted)
-                    _, tensor_predecessor_for_cascade = self.history[i-1]
+                    _, tensor_predecessor_for_cascade = self.history[i - 1]
 
                     await self._emit_diff_as_chunks(
                         tensor_predecessor_for_cascade,

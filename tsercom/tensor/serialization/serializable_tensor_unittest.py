@@ -13,6 +13,7 @@ from tsercom.tensor.serialization.serializable_tensor import (
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
+
 # Corrected import path for TensorChunk
 from tsercom.tensor.proto import TensorChunk as GrpcTensorChunk
 
