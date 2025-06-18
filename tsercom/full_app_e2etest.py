@@ -1,8 +1,18 @@
+from tsercom.test.proto import (
+    E2ETestServiceStub,
+    add_E2ETestServiceServicer_to_server,
+    EchoRequest,
+    EchoResponse,
+    StreamDataRequest,
+    E2ETestServiceServicer,
+)
+
 import asyncio
 import logging
 from typing import Optional, TYPE_CHECKING
 
 import grpc
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 import pytest
 import pytest_asyncio
 import socket
@@ -132,9 +142,23 @@ class GenericServerRuntime(
         channel_factory: GrpcChannelFactory,
         *,
         mdns_listener_factory: Optional[MdnsListenerFactory] = None,
+        server_grpc_port: Optional[int] = None,  # New port
     ):
         self.__watcher = watcher
         self.__data_handler = data_handler
+        self.__server_grpc_port = server_grpc_port
+        self.__grpc_publisher: Optional[GrpcServicePublisher] = None
+        if self.__server_grpc_port is not None:
+            logging.info(
+                f"GenericServerRuntime will publish its own gRPC services on port {self.__server_grpc_port}"
+            )
+            self.__grpc_publisher = GrpcServicePublisher(
+                self.__watcher, self.__server_grpc_port
+            )
+        else:
+            logging.info(
+                "GenericServerRuntime will NOT publish its own gRPC services (no port provided)"
+            )
 
         # Handle service discovery.
         discoverer: DiscoveryHost
@@ -154,9 +178,28 @@ class GenericServerRuntime(
         """
         Allow for connections with clients to start.
         """
+        if self.__grpc_publisher:
+
+            def __connect_e2e_servicer(server: grpc.Server):
+                logging.info(
+                    "Adding E2eTestServicer to GenericServerRuntime's gRPC server."
+                )
+                add_E2ETestServiceServicer_to_server(E2eTestServicer(), server)
+                health_servicer = health.HealthServicer()
+                health_pb2_grpc.add_HealthServicer_to_server(
+                    health_servicer, server
+                )
+                health_servicer.set(
+                    "tsercom.GenericServerRuntime.E2ETestService",
+                    health_pb2.HealthCheckResponse.SERVING,
+                )
+
+            await self.__grpc_publisher.start_async(__connect_e2e_servicer)
         await self.__connector.start()
 
     async def stop(self, exception: Optional[Exception] = None):
+        if self.__grpc_publisher:
+            await self.__grpc_publisher.stop_async()
         logging.info("GenericServerRuntime stopping...")
         if self.__connector:
             await self.__connector.stop()
@@ -185,9 +228,11 @@ class GenericClientRuntime(
         data_handler: RuntimeDataHandler[torch.Tensor, torch.Tensor],
         readable_name: str,
         port: int,
+        grpc_channel_factory: GrpcChannelFactory,
     ):
         self.__watcher = watcher
         self.__data_handler = data_handler
+        self.__grpc_channel_factory = grpc_channel_factory
 
         self.__is_running = IsRunningTracker()
         self.__mdns_publiser = InstancePublisher(
@@ -245,6 +290,46 @@ class GenericClientRuntime(
             await self.__grpc_publisher.stop_async()
         logging.info("GenericClientRuntime stopped.")
 
+    async def create_e2e_test_stub(
+        self, target_address: str
+    ) -> E2ETestServiceStub:  # Changed to async def
+        """Creates a gRPC stub for the E2ETestService.
+
+        Args:
+            target_address: The address (e.g., 'localhost:port') of the server.
+
+        Returns:
+            An E2ETestServiceStub instance.
+        """
+        logging.info(
+            f"GenericClientRuntime creating E2ETestServiceStub for target: {target_address}"
+        )
+        if (
+            not hasattr(self, "_GenericClientRuntime__grpc_channel_factory")
+            or not self.__grpc_channel_factory
+        ):
+            raise RuntimeError(
+                "GrpcChannelFactory not available in GenericClientRuntime"
+            )
+
+        try:
+            host, port_str = target_address.rsplit(":", 1)
+            port = int(port_str)
+        except ValueError:
+            # Re-raise with more context if parsing fails, or handle as appropriate
+            raise ValueError(
+                f"Invalid target_address format for stub creation: {target_address}. Expected 'host:port'."
+            )
+
+        channel = await self.__grpc_channel_factory.connect(host, port)
+        if not channel:
+            raise RuntimeError(
+                f"Failed to create channel to {target_address} using host='{host}', port={port}"
+            )
+
+        stub = E2ETestServiceStub(channel)
+        return stub
+
 
 class GenericServerRuntimeInitializer(
     RuntimeInitializer[torch.Tensor, torch.Tensor]
@@ -254,9 +339,11 @@ class GenericServerRuntimeInitializer(
         *,
         listener_factory: Optional[MdnsListenerFactory] = None,
         fake_service_port: Optional[int] = None,
+        server_grpc_port: Optional[int] = None,  # New port
     ):
         self.__listener_factory = listener_factory
         self.__fake_service_port = fake_service_port
+        self.__server_grpc_port = server_grpc_port  # Store it
         super().__init__(service_type=ServiceType.SERVER)
 
     def create(
@@ -296,6 +383,7 @@ class GenericServerRuntimeInitializer(
             data_handler,
             grpc_channel_factory,
             mdns_listener_factory=actual_mdns_listener_factory,
+            server_grpc_port=self.__server_grpc_port,
         )
 
 
@@ -315,7 +403,11 @@ class GenericClientRuntimeInitializer(
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         return GenericClientRuntime(
-            thread_watcher, data_handler, self.__name, self.__host_port
+            thread_watcher,
+            data_handler,
+            self.__name,
+            self.__host_port,
+            grpc_channel_factory,
         )
 
 
@@ -388,3 +480,153 @@ async def test_anomoly_service(clear_loop_fixture):
 
     for logger_name, level in original_levels.items():
         logging.getLogger(logger_name).setLevel(level)
+
+
+# BEGIN E2eTestServicer code block
+e2e_servicer_received_messages = []
+
+
+class E2eTestServicer(E2ETestServiceServicer):
+    __test__ = False
+
+    async def Echo(self, request: EchoRequest, context) -> EchoResponse:
+        logging.info(
+            f"E2eTestServicer received Echo request: {request.message}"
+        )
+        e2e_servicer_received_messages.append(request.message)
+        return EchoResponse(response=f"Server echoes: {request.message}")
+
+    async def ServerStreamData(self, request: StreamDataRequest, context):
+        logging.info(
+            f"E2eTestServicer ServerStreamData called with id: {request.data_id}"
+        )
+        raise grpc.aio.RpcError(
+            grpc.StatusCode.UNIMPLEMENTED,
+            "ServerStreamData not fully implemented",
+        )
+
+    async def ClientStreamData(
+        self, request_iterator, context
+    ) -> EchoResponse:
+        messages_received_count = 0
+        async for req in request_iterator:
+            logging.info(
+                f"E2eTestServicer ClientStreamData received data_id: {req.data_id}"
+            )
+            messages_received_count += 1
+        return EchoResponse(
+            response=f"ClientStreamData received {messages_received_count} messages."
+        )
+
+    async def BidirectionalStreamData(self, request_iterator, context):
+        logging.info("E2eTestServicer BidirectionalStreamData called")
+        async for req in request_iterator:
+            logging.info(
+                f"E2eTestServicer (Bidi) consumed data_id: {req.data_id}"
+            )
+        raise grpc.aio.RpcError(
+            grpc.StatusCode.UNIMPLEMENTED,
+            "BidirectionalStreamData response generation not implemented",
+        )
+
+
+# END E2eTestServicer code block
+
+
+@pytest.mark.asyncio
+async def test_full_app_with_grpc_transport(clear_loop_fixture, caplog):
+    """
+    Tests the full application setup using direct gRPC communication between
+    GenericClientRuntime and GenericServerRuntime for the E2ETestService.
+    """
+    caplog.set_level(logging.INFO)
+    logging.info("Starting test_full_app_with_grpc_transport")
+
+    SERVER_GRPC_PORT = 50051  # Port for the server's dedicated gRPC services
+    # Ensure this port is different from any fake_service_port or other mdns ports if used in conjunction
+    # For this test, we are focusing on direct gRPC, so mDNS discovery part is less critical
+    # but the GenericServerRuntimeInitializer still takes fake_service_port for its discovery mechanism.
+
+    # Initialize Server
+    server_initializer = GenericServerRuntimeInitializer(
+        # fake_service_port could be different or None if not testing mDNS part here
+        fake_service_port=2025,  # Different from SERVER_GRPC_PORT
+        server_grpc_port=SERVER_GRPC_PORT,
+    )
+
+    # Initialize Client
+    # The client needs a distinct port for its own gRPC services (e.g., health) if it were to run one,
+    # but for this test, it primarily acts as a gRPC client to the E2ETestService.
+    # The port '2024' here is for its own GrpcServicePublisher, not the target server.
+    client_initializer = GenericClientRuntimeInitializer(
+        host_port=2024, name="E2EClient"
+    )
+
+    runtime_manager = RuntimeManager(is_testing=True)
+    server_handle_f = runtime_manager.register_runtime_initializer(
+        server_initializer
+    )
+    client_handle_f = runtime_manager.register_runtime_initializer(
+        client_initializer
+    )
+
+    await runtime_manager.start_in_process_async()
+    assert server_handle_f.done() and client_handle_f.done()
+    server_runtime_handle = server_handle_f.result()
+    client_runtime_handle = client_handle_f.result()
+
+    # Start server and client runtimes
+    server_runtime_handle.start()  # Starts GenericServerRuntime, including its gRPC publisher
+    client_runtime_handle.start()  # Starts GenericClientRuntime
+
+    # Client creates a stub to the server's E2ETestService
+    # This requires GenericClientRuntime to have access to GrpcChannelFactory
+    # and a method to create the stub.
+    client_runtime_maybe = client_runtime_handle.get_actual_runtime()
+    assert (
+        client_runtime_maybe is not None
+    ), "Failed to get actual client runtime from handle"
+    client_runtime: GenericClientRuntime = client_runtime_maybe  # type: ignore
+    stub = await client_runtime.create_e2e_test_stub(
+        f"localhost:{SERVER_GRPC_PORT}"
+    )  # Added await
+
+    # Perform an Echo RPC call
+    test_message = "Hello GRPC E2E"
+    try:
+        response = await stub.Echo(
+            EchoRequest(message=test_message), timeout=5.0
+        )
+        logging.info(f"Echo response received: {response.response}")
+        assert f"Server echoes: {test_message}" in response.response
+        assert (
+            test_message in e2e_servicer_received_messages
+        )  # Check server side
+    except grpc.aio.AioRpcError as e:
+        logging.error(f"gRPC call failed: {e.details()} (status: {e.code()})")
+        pytest.fail(f"gRPC Echo call failed: {e.details()}")
+
+    # Test ClientStreamData
+    async def stream_requests():
+        for i in range(3):
+            yield StreamDataRequest(data_id=i)
+            await asyncio.sleep(0.1)
+
+    try:
+        response = await stub.ClientStreamData(stream_requests(), timeout=5.0)
+        logging.info(f"ClientStreamData response: {response.response}")
+        assert "ClientStreamData received 3 messages" in response.response
+    except grpc.aio.AioRpcError as e:
+        logging.error(
+            f"ClientStreamData call failed: {e.details()} (status: {e.code()})"
+        )
+        pytest.fail(f"ClientStreamData gRPC call failed: {e.details()}")
+
+    # TODO: Add tests for ServerStreamData and BidirectionalStreamData if their basic impl is ready
+
+    # Shutdown
+    client_runtime_handle.stop()
+    server_runtime_handle.stop()
+    await asyncio.sleep(0.5)  # Allow for cleanup
+    runtime_manager.shutdown()
+    logging.info("test_full_app_with_grpc_transport completed.")

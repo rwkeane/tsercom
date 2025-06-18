@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import e2e_test_service_pb2 as e2e__test__service__pb2
+from . import e2e_test_service_pb2 as e2e__test__service__pb2
 
 GRPC_GENERATED_VERSION = "1.73.0"
 GRPC_VERSION = grpc.__version__

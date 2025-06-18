@@ -64,8 +64,11 @@ class RuntimeCommandBridge:
                 except concurrent.futures.TimeoutError:
                     # Log or handle timeout if needed
                     pass  # Or raise an error, log, etc.
-
             self.__state.set(None)
+
+    def get_runtime(self) -> Optional[Runtime]:
+        """Returns the underlying Runtime instance, if set."""
+        return self.__runtime
 
     def start(self) -> None:
         """Requests the Runtime to start.
