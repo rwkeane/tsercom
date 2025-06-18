@@ -121,7 +121,7 @@ def modify_generated_file(file_path: Path) -> None:
         "import caller_id_pb2 ": "import tsercom.caller_id.proto ",
         "import time_pb2 ": "import tsercom.timesync.common.proto ",
         "import common_pb2 ": "import tsercom.rpc.proto ",
-    # Ensure e2e_test_service_pb2 is imported relatively from e2e_test_service_pb2_grpc.py
+        # Ensure e2e_test_service_pb2 is imported relatively from e2e_test_service_pb2_grpc.py
     }
     if not file_path.exists():
         print(f"Warning: Generated file not found, cannot modify: {file_path}")
@@ -134,7 +134,9 @@ def modify_generated_file(file_path: Path) -> None:
             # Special handling for e2e_test_service_pb2_grpc.py's import of e2e_test_service_pb2
             if file_path.name == "e2e_test_service_pb2_grpc.py":
                 try:
-                    path_parts = list(file_path.parent.parts) # e.g. ('app', 'tsercom', 'test', 'proto', 'generated', 'v1_62')
+                    path_parts = list(
+                        file_path.parent.parts
+                    )  # e.g. ('app', 'tsercom', 'test', 'proto', 'generated', 'v1_62')
                     tsercom_index = -1
                     # Find the 'tsercom' directory in the path parts
                     for i_part_idx, part_name in enumerate(path_parts):
@@ -144,7 +146,9 @@ def modify_generated_file(file_path: Path) -> None:
 
                     if tsercom_index != -1:
                         # Construct the module path from 'tsercom' up to the directory containing the file
-                        absolute_module_prefix = ".".join(path_parts[tsercom_index:])
+                        absolute_module_prefix = ".".join(
+                            path_parts[tsercom_index:]
+                        )
 
                         original_import_line = "import e2e_test_service_pb2 as e2e__test__service__pb2"
                         correct_module_name = "e2e_test_service_pb2"
@@ -153,16 +157,30 @@ def modify_generated_file(file_path: Path) -> None:
                         new_import_line = f"from {absolute_module_prefix} import {correct_module_name} as {correct_alias}"
 
                         if original_import_line in content:
-                            content = content.replace(original_import_line, new_import_line)
-                            print(f"Applied absolute import fix for {file_path.name}: replaced '{original_import_line}' with '{new_import_line}'")
+                            content = content.replace(
+                                original_import_line, new_import_line
+                            )
+                            print(
+                                f"Applied absolute import fix for {file_path.name}: replaced '{original_import_line}' with '{new_import_line}'"
+                            )
                         else:
-                            print(f"Warning: Original import line '{original_import_line}' not found as expected in {file_path}")
+                            print(
+                                f"Warning: Original import line '{original_import_line}' not found as expected in {file_path}"
+                            )
                     else:
-                        print(f"Warning: 'tsercom' directory not found in path for {file_path}, cannot construct absolute import for e2e_test_service sibling.")
-                except ValueError: # Handles potential .index() error if "tsercom" is not found
-                    print(f"Warning: 'tsercom' not found in path for {file_path} (ValueError), cannot construct absolute import for e2e_test_service sibling.")
+                        print(
+                            f"Warning: 'tsercom' directory not found in path for {file_path}, cannot construct absolute import for e2e_test_service sibling."
+                        )
+                except (
+                    ValueError
+                ):  # Handles potential .index() error if "tsercom" is not found
+                    print(
+                        f"Warning: 'tsercom' not found in path for {file_path} (ValueError), cannot construct absolute import for e2e_test_service sibling."
+                    )
                 except Exception as e_abs:
-                    print(f"Warning: Could not form absolute import for e2e_test_service sibling in {file_path}: {e_abs}")
+                    print(
+                        f"Warning: Could not form absolute import for e2e_test_service sibling in {file_path}: {e_abs}"
+                    )
 
             # After all replacements, including the special one above
             # The original script intends to insert this python code block *before* f.seek(0)
