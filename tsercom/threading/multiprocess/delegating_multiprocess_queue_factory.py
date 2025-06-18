@@ -17,7 +17,7 @@ from multiprocessing.managers import DictProxy, SyncManager
 import queue
 import threading
 import time
-from typing import TypeVar, Generic, Optional, Tuple, Any
+from typing import TypeVar, Generic, Optional, Tuple
 from types import ModuleType
 
 # First-party imports first (after standard library)
@@ -151,7 +151,9 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
                 ):
                     try:
                         # Access the underlying queue from the source instance
-                        underlying_manager_queue = real_source_instance_from_dict._MultiprocessQueueSource__queue
+                        underlying_manager_queue = (
+                            real_source_instance_from_dict._MultiprocessQueueSource__queue
+                        )
                         self.__real_sink_internal = MultiprocessQueueSink[
                             QueueItemType
                         ](underlying_manager_queue)
@@ -175,9 +177,9 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
         # if placed here unconditionally. The put_X methods handle the None case.
         # However, the original code had it, implying it expected __real_sink_internal to be set.
         # Let's keep it to match original intent, but acknowledge it might be the source of the AssertionError().
-        assert self.__real_sink_internal is not None, (
-            "Sink internal not initialized after __initialize_real_sink"
-        )
+        assert (
+            self.__real_sink_internal is not None
+        ), "Sink internal not initialized after __initialize_real_sink"
 
     def put_blocking(
         self, obj: QueueItemType, timeout: Optional[float] = None

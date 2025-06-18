@@ -314,9 +314,9 @@ class DelegatingQueueSinkTests(unittest.TestCase):
         self.mock_shared_dict.get.return_value = False
         sink = self._create_sink()
 
-        assert torch_module is not None, (
-            "Torch module not available for torch path test"
-        )
+        assert (
+            torch_module is not None
+        ), "Torch module not available for torch path test"
         mock_tensor_data = mock.MagicMock(spec=torch_module.Tensor)
         item_with_tensor_data = mock.MagicMock()
         item_with_tensor_data.data = mock_tensor_data
@@ -602,7 +602,9 @@ class DelegatingQueueSinkTests(unittest.TestCase):
             MultiprocessQueueSink[Any], mock_real_sink_wrapper
         )
         # Access underlying queue for these properties
-        internal_queue = sink._DelegatingMultiprocessQueueSink__real_sink_internal._MultiprocessQueueSink__queue
+        internal_queue = (
+            sink._DelegatingMultiprocessQueueSink__real_sink_internal._MultiprocessQueueSink__queue
+        )
         self.assertEqual(internal_queue.qsize(), 5)
         self.assertFalse(internal_queue.empty())
         self.assertTrue(internal_queue.full())
@@ -746,7 +748,9 @@ class DelegatingQueueSourceTests(unittest.TestCase):
             self.mock_real_mp_queue_source
         )
         # self.mock_underlying_queue is source._DelegatingMultiprocessQueueSource__real_source_internal._MultiprocessQueueSource__queue
-        underlying_q_mock = source._DelegatingMultiprocessQueueSource__real_source_internal._MultiprocessQueueSource__queue
+        underlying_q_mock = (
+            source._DelegatingMultiprocessQueueSource__real_source_internal._MultiprocessQueueSource__queue
+        )
         underlying_q_mock.qsize.return_value = 3
         underlying_q_mock.empty.return_value = False
         underlying_q_mock.full.return_value = True
