@@ -14,6 +14,7 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.data.remote_data_reader import RemoteDataReader
+from tsercom.runtime.runtime import Runtime  # Added import
 from tsercom.threading.aio.async_poller import AsyncPoller
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
@@ -112,3 +113,11 @@ class RuntimeWrapper(
     ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
         """Provides the remote data aggregator."""
         return self._get_remote_data_aggregator()
+
+    def _get_runtime_for_test(
+        self,
+    ) -> Optional[Runtime]:  # Renamed method
+        """Provides access to the actual underlying Runtime instance (for testing)."""
+        if self.__bridge:
+            return self.__bridge._get_runtime_for_test()
+        return None
