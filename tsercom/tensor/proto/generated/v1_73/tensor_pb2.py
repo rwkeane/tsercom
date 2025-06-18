@@ -9,9 +9,13 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
-
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC, 6, 31, 0, "", "tensor.proto"
+    _runtime_version.Domain.PUBLIC,
+    6,
+    31,
+    0,
+    '',
+    'tensor.proto'
 )
 # @@protoc_insertion_point(imports)
 
@@ -21,29 +25,14 @@ _sym_db = _symbol_database.Default()
 import tsercom.timesync.common.proto as time__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x0ctensor.proto\x12\x14tsercom.tensor.proto\x1a\ntime.proto"\x19\n\tFloatData\x12\x0c\n\x04\x64\x61ta\x18\x01 \x03(\x02"\x1a\n\nDoubleData\x12\x0c\n\x04\x64\x61ta\x18\x01 \x03(\x01"\x19\n\tInt32Data\x12\x0c\n\x04\x64\x61ta\x18\x01 \x03(\x05"\x19\n\tInt64Data\x12\x0c\n\x04\x64\x61ta\x18\x01 \x03(\x03"\x18\n\x08\x42oolData\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c"\xc0\x02\n\x0f\x44\x65nseTensorData\x12\r\n\x05shape\x18\x01 \x03(\x03\x12\x35\n\nfloat_data\x18\x02 \x01(\x0b\x32\x1f.tsercom.tensor.proto.FloatDataH\x00\x12\x37\n\x0b\x64ouble_data\x18\x03 \x01(\x0b\x32 .tsercom.tensor.proto.DoubleDataH\x00\x12\x35\n\nint32_data\x18\x04 \x01(\x0b\x32\x1f.tsercom.tensor.proto.Int32DataH\x00\x12\x35\n\nint64_data\x18\x05 \x01(\x0b\x32\x1f.tsercom.tensor.proto.Int64DataH\x00\x12\x33\n\tbool_data\x18\x06 \x01(\x0b\x32\x1e.tsercom.tensor.proto.BoolDataH\x00\x42\x0b\n\tdata_type"\xdf\x02\n\x13SparseCooTensorData\x12\r\n\x05shape\x18\x01 \x03(\x03\x12\x0f\n\x07indices\x18\x02 \x03(\x03\x12\x37\n\x0c\x66loat_values\x18\x03 \x01(\x0b\x32\x1f.tsercom.tensor.proto.FloatDataH\x00\x12\x39\n\rdouble_values\x18\x04 \x01(\x0b\x32 .tsercom.tensor.proto.DoubleDataH\x00\x12\x37\n\x0cint32_values\x18\x05 \x01(\x0b\x32\x1f.tsercom.tensor.proto.Int32DataH\x00\x12\x37\n\x0cint64_values\x18\x06 \x01(\x0b\x32\x1f.tsercom.tensor.proto.Int64DataH\x00\x12\x35\n\x0b\x62ool_values\x18\x07 \x01(\x0b\x32\x1e.tsercom.tensor.proto.BoolDataH\x00\x42\x0b\n\tdata_type"\xec\x01\n\x0bTensorChunk\x12\'\n\ttimestamp\x18\x01 \x01(\x0b\x32\x14.dtp.ServerTimestamp\x12=\n\x0c\x64\x65nse_tensor\x18\x02 \x01(\x0b\x32%.tsercom.tensor.proto.DenseTensorDataH\x00\x12\x46\n\x11sparse_coo_tensor\x18\x03 \x01(\x0b\x32).tsercom.tensor.proto.SparseCooTensorDataH\x00\x12\x16\n\x0estarting_index\x18\x04 \x01(\x05\x42\x15\n\x13\x64\x61ta_representationb\x06proto3'
-)
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ctensor.proto\x12\x14tsercom.tensor.proto\x1a\ntime.proto\"b\n\x0bTensorChunk\x12\'\n\ttimestamp\x18\x01 \x01(\x0b\x32\x14.dtp.ServerTimestamp\x12\x16\n\x0estarting_index\x18\x02 \x01(\x03\x12\x12\n\ndata_bytes\x18\x03 \x01(\x0c\x42\x30\n\x1f\x63om.google.tsercom.tensor.protoB\x0bTensorProtoP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "tensor_pb2", _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'tensor_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-    DESCRIPTOR._loaded_options = None
-    _globals["_FLOATDATA"]._serialized_start = 50
-    _globals["_FLOATDATA"]._serialized_end = 75
-    _globals["_DOUBLEDATA"]._serialized_start = 77
-    _globals["_DOUBLEDATA"]._serialized_end = 103
-    _globals["_INT32DATA"]._serialized_start = 105
-    _globals["_INT32DATA"]._serialized_end = 130
-    _globals["_INT64DATA"]._serialized_start = 132
-    _globals["_INT64DATA"]._serialized_end = 157
-    _globals["_BOOLDATA"]._serialized_start = 159
-    _globals["_BOOLDATA"]._serialized_end = 183
-    _globals["_DENSETENSORDATA"]._serialized_start = 186
-    _globals["_DENSETENSORDATA"]._serialized_end = 506
-    _globals["_SPARSECOOTENSORDATA"]._serialized_start = 509
-    _globals["_SPARSECOOTENSORDATA"]._serialized_end = 860
-    _globals["_TENSORCHUNK"]._serialized_start = 863
-    _globals["_TENSORCHUNK"]._serialized_end = 1099
+  _globals['DESCRIPTOR']._loaded_options = None
+  _globals['DESCRIPTOR']._serialized_options = b'\n\037com.google.tsercom.tensor.protoB\013TensorProtoP\001'
+  _globals['_TENSORCHUNK']._serialized_start=50
+  _globals['_TENSORCHUNK']._serialized_end=148
 # @@protoc_insertion_point(module_scope)
