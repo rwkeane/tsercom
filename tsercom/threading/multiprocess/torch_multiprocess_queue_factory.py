@@ -69,7 +69,6 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         """
         actual_queue: MpQueue[T]
         if self.__manager:
-            # Changed cast(MpQueue[T], ...) to cast(MpQueue, ...)
             actual_queue = cast(MpQueue, self.__manager.Queue())
         elif self.__mp_context:
             actual_queue = self.__mp_context.Queue()
