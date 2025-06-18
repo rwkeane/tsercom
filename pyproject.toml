@@ -227,3 +227,9 @@ omit = [
     "tsercom/*/*_pb2_grpc.py",
     "tsercom/*/proto/*",
 ]
+
+filterwarnings = [
+    "ignore:cannot collect test class .*E2ETestServiceStub.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
+    "ignore:cannot collect test class .*TestConnectionCall.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
+    "ignore:cannot collect test class .*TestConnectionResponse.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
+]

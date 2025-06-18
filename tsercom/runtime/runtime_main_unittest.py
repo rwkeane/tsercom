@@ -577,8 +577,12 @@ class TestRemoteProcessMain:
             # This ensures that if the code under test calls result(), it gets a valid outcome.
             # If create_task was called, its result (the future) should have been processed.
             if mock_loop.create_task.called:
-                 assert done_future.done(), "Future from create_task should be done"
-                 _ = done_future.result() # Consume result to avoid warnings if it held an exception (not in this case)
+                assert (
+                    done_future.done()
+                ), "Future from create_task should be done"
+                _ = (
+                    done_future.result()
+                )  # Consume result to avoid warnings if it held an exception (not in this case)
 
             mock_clear_event_loop.assert_called_once()
             MockThreadWatcher.assert_called_once()
@@ -701,9 +705,13 @@ class TestRemoteProcessMain:
             ).return_value
             # asyncs_task is an asyncio.Task. We'll return a completed future.
             # Ensure the future belongs to the correct loop.
-            done_future_factory_stop = asyncio.Future(loop=mock_loop_factory_stop)
+            done_future_factory_stop = asyncio.Future(
+                loop=mock_loop_factory_stop
+            )
             done_future_factory_stop.set_result(None)
-            mock_loop_factory_stop.create_task.return_value = done_future_factory_stop
+            mock_loop_factory_stop.create_task.return_value = (
+                done_future_factory_stop
+            )
             # mock_task_factory_stop.result.return_value was the old way
 
             # Simulate a clean exit from the main try block to reach finally

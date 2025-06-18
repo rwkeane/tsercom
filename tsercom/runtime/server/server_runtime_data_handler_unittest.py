@@ -123,23 +123,33 @@ class TestServerRuntimeDataHandler:
                 loop_instance = asyncio.get_running_loop()
             except RuntimeError:
                 # This should ideally not happen if conftest.py:manage_tsercom_loop is effective
-                print("Error: No running event loop in handler_with_mocks cleanup!")
-                return # Cannot proceed with cleanup
+                print(
+                    "Error: No running event loop in handler_with_mocks cleanup!"
+                )
+                return  # Cannot proceed with cleanup
 
             dispatch_task_attr_name = "_RuntimeDataHandlerBase__dispatch_task"
             if hasattr(handler_instance, dispatch_task_attr_name):
-                dispatch_task = getattr(handler_instance, dispatch_task_attr_name)
+                dispatch_task = getattr(
+                    handler_instance, dispatch_task_attr_name
+                )
                 if dispatch_task is not None:
                     if loop_instance and not loop_instance.is_closed():
                         try:
                             if not dispatch_task.done():
-                                loop_instance.run_until_complete(handler_instance.async_close())
+                                loop_instance.run_until_complete(
+                                    handler_instance.async_close()
+                                )
                             elif dispatch_task.exception() is not None:
                                 _ = dispatch_task.exception()
                         except RuntimeError as e:
-                            print(f"Error during handler_with_mocks cleanup (run_until_complete): {e}")
+                            print(
+                                f"Error during handler_with_mocks cleanup (run_until_complete): {e}"
+                            )
                         except Exception as e:
-                            print(f"Generic error during handler_with_mocks cleanup: {e}")
+                            print(
+                                f"Generic error during handler_with_mocks cleanup: {e}"
+                            )
                     # This 'elif' might be logically redundant due to 'if dispatch_task is not None'
                     # and also might try to operate on a closed loop if the RuntimeError above happened.
                     elif dispatch_task and not dispatch_task.done():
@@ -148,7 +158,7 @@ class TestServerRuntimeDataHandler:
                             # This part is best-effort if loop is already closed or other issues.
                             if loop_instance and not loop_instance.is_closed():
                                 loop_instance.run_until_complete(dispatch_task)
-                        except: # pylint: disable=bare-except
+                        except:  # pylint: disable=bare-except
                             pass
 
     def test_init(
