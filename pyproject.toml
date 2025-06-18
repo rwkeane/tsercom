@@ -116,8 +116,9 @@ markers = [
 ]
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
-    "ignore:cannot collect test class 'TestConnectionCall'.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
-    "ignore:cannot collect test class 'TestConnectionResponse'.*because it has a __init__ constructor:pytest.PytestCollectionWarning",
+    "ignore:cannot collect test class 'TestConnectionCall'.*has a __init__ constructor:pytest.PytestCollectionWarning",
+    "ignore:cannot collect test class 'TestConnectionResponse'.*has a __init__ constructor:pytest.PytestCollectionWarning",
+    "ignore:cannot collect test class 'E2ETestServiceStub'.*has a __init__ constructor:pytest.PytestCollectionWarning",
 ]
 
 [tool.mypy]

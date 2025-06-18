@@ -25,7 +25,7 @@ class TestServerRuntimeDataHandler:
     """Tests for the ServerRuntimeDataHandler class."""
 
     @pytest.fixture(autouse=True)
-    def manage_event_loop(self):
+    def _disabled_manage_event_loop(self):
         """Ensures a global event loop is set for tsercom for each test."""
         loop = None
         try:
@@ -131,7 +131,8 @@ class TestServerRuntimeDataHandler:
             "id_tracker_instance_mock": mock_id_tracker_instance,
         }
 
-    def test_init(
+    @pytest.mark.asyncio
+    async def test_init(
         self, handler_with_mocks, mock_data_reader, mock_event_source_poller
     ):
         """Tests constructor for correct initialization and dependency usage."""
