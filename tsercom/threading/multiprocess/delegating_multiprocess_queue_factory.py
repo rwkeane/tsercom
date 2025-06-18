@@ -20,7 +20,6 @@ import time
 from typing import TypeVar, Generic, Optional, Tuple
 from types import ModuleType
 
-# First-party imports first (after standard library)
 from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
 )
@@ -37,21 +36,17 @@ from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
 )
 
-# Third-party imports (conditionally torch) and module-level variables
-_torch_mp_module: Optional[ModuleType] = (
-    None  # Module-level variable for torch.multiprocessing
-)
-_torch_available: bool  # Forward declaration for type hinting
+_torch_mp_module: Optional[ModuleType] = None
+_torch_available: bool
 
 try:
     import torch
-    import torch.multiprocessing as torch_mp_imported  # Import with a distinct name
+    import torch.multiprocessing as torch_mp_imported
 
-    _torch_mp_module = torch_mp_imported  # Assign to module-level variable
+    _torch_mp_module = torch_mp_imported
     _torch_available = True  # pylint: disable=invalid-name
 except ImportError:
     _torch_available = False  # pylint: disable=invalid-name
-    # _torch_mp_module remains None as initialized
 
 
 QueueItemType = TypeVar("QueueItemType")  # pylint: disable=invalid-name
@@ -137,46 +132,7 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
                 )
                 self.__shared_dict[INITIALIZED_KEY] = True
                 self.__real_sink_internal = real_sink_instance
-                # print(f"Process {multiprocessing.current_process().pid} INITIALIZED sink {id(self)} with queue {id(self.__real_sink_internal._MultiprocessQueueSink__queue if self.__real_sink_internal else None)}")
 
-            # If INITIALIZED_KEY is True in shared_dict (already initialized by another process)
-            # and self.__real_sink_internal is still None for this instance.
-            elif self.__real_sink_internal is None:
-                real_source_instance_from_dict = self.__shared_dict.get(
-                    REAL_QUEUE_SOURCE_REF_KEY
-                )
-
-                if isinstance(
-                    real_source_instance_from_dict, MultiprocessQueueSource
-                ):
-                    try:
-                        # Access the underlying queue from the source instance
-                        underlying_manager_queue = (
-                            real_source_instance_from_dict._MultiprocessQueueSource__queue
-                        )
-                        self.__real_sink_internal = MultiprocessQueueSink[
-                            QueueItemType
-                        ](underlying_manager_queue)
-                        # print(f"Process {multiprocessing.current_process().pid} ADOPTED sink {id(self)} with queue {id(underlying_manager_queue)}")
-                    except AttributeError:
-                        # This could happen if __queue is not found or source instance is malformed.
-                        # This sink instance remains uninitialized. Subsequent put/get will fail.
-                        # print(f"Process {multiprocessing.current_process().pid} FAILED to adopt sink {id(self)} due to AttributeError")
-                        pass
-                else:
-                    # Shared state is inconsistent or source_ref is not of expected type.
-                    # This sink instance remains uninitialized. Subsequent put/get will fail.
-                    # print(f"Process {multiprocessing.current_process().pid} FAILED to adopt sink {id(self)} due to invalid source_ref type {type(real_source_instance_from_dict)}")
-                    pass
-
-        # This assertion was originally outside the lock.
-        # If initialization failed (e.g. couldn't adopt), __real_sink_internal could still be None.
-        # The put_X methods will raise a RuntimeError in that case.
-        # For clarity, this assert is only valid if we expect initialization to *always* succeed here.
-        # Given the adoption logic might fail if shared_dict is inconsistent, this assert might be too strong
-        # if placed here unconditionally. The put_X methods handle the None case.
-        # However, the original code had it, implying it expected __real_sink_internal to be set.
-        # Let's keep it to match original intent, but acknowledge it might be the source of the AssertionError().
         assert (
             self.__real_sink_internal is not None
         ), "Sink internal not initialized after __initialize_real_sink"
@@ -190,9 +146,7 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
         if self.__real_sink_internal is None:
             self.__initialize_real_sink(obj)
 
-        if (
-            self.__real_sink_internal is None
-        ):  # This check will now catch if adoption failed
+        if self.__real_sink_internal is None:
             raise RuntimeError(
                 "Sink not init for put_blocking (remained None after init or adoption attempt)."
             )
@@ -205,9 +159,7 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
         if self.__real_sink_internal is None:
             self.__initialize_real_sink(obj)
 
-        if (
-            self.__real_sink_internal is None
-        ):  # This check will now catch if adoption failed
+        if self.__real_sink_internal is None:
             raise RuntimeError(
                 "Sink not init for put_nowait (remained None after init or adoption attempt)."
             )
@@ -302,18 +254,18 @@ class DelegatingMultiprocessQueueSource(
         except queue.Empty:
             return None
         if self.__real_source_internal is None:
-            raise RuntimeError("Source not init for get_blocking.")
+            return None
         return self.__real_source_internal.get_blocking(timeout=timeout)
 
     def get_or_none(self) -> Optional[QueueItemType]:
         """Gets an item from the queue if available, otherwise returns None."""
         try:
             self._ensure_real_source_initialized(
-                polling_timeout=0.02
+                polling_timeout=0
             )  # Short poll
         except queue.Empty:
             return None
-        if self.__real_source_internal is None:  # Still None after polling
+        if self.__real_source_internal is None:
             return None
         return self.__real_source_internal.get_or_none()
 

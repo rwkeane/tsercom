@@ -1,9 +1,9 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
-import multiprocessing  # Ensure multiprocessing is imported for .queues
-from typing import Tuple, TypeVar, Generic, Optional, cast  # Added cast
+from multiprocessing import Queue as MpQueue
+from typing import Tuple, TypeVar, Generic, Optional, cast
 from multiprocessing.managers import SyncManager
-import torch.multiprocessing as mp
+import torch.multiprocessing as tmp
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
@@ -33,9 +33,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
 
     def __init__(
         self,
-        manager: Optional[
-            SyncManager
-        ] = None,  # Changed type hint to use Optional
+        manager: Optional[SyncManager] = None,
         ctx_method: str = "spawn",
     ) -> None:
         """Initializes the TorchMultiprocessQueueFactory.
@@ -47,12 +45,14 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
                         is provided. Defaults to 'spawn'.
         """
         super().__init__()
-        self._manager = manager
+
+        self.__manager = manager
         if manager is None:
-            self.__mp_context = mp.get_context(ctx_method)
+            self.__mp_context = tmp.get_context(ctx_method)
         else:
-            # If a manager is provided, its context is implicitly used.
             self.__mp_context = None  # type: ignore
+
+        assert (not self.__mp_context) != (not self.__manager)
 
     def create_queues(
         self,
@@ -67,11 +67,9 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances.
         """
-        actual_queue: multiprocessing.queues.Queue[T]  # More specific type
-        if self._manager:
-            actual_queue = cast(
-                multiprocessing.queues.Queue[T], self._manager.Queue()
-            )
+        actual_queue: MpQueue[T]
+        if self.__manager:
+            actual_queue = cast(MpQueue[T], self.__manager.Queue())
         elif self.__mp_context:
             actual_queue = self.__mp_context.Queue()
         else:
@@ -80,10 +78,6 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
                 "TorchMultiprocessQueueFactory not properly initialized with a manager or context."
             )
 
-        # MultiprocessQueueSink and MultiprocessQueueSource are generic and compatible
-        # with torch.multiprocessing.Queue, allowing consistent queue interaction.
         sink = MultiprocessQueueSink[T](actual_queue)
-        source = MultiprocessQueueSource[T](
-            actual_queue
-        )  # Changed torch_queue to actual_queue
+        source = MultiprocessQueueSource[T](actual_queue)
         return sink, source

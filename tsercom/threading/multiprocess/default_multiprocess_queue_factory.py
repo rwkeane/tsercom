@@ -1,9 +1,8 @@
 """Defines the DefaultMultiprocessQueueFactory."""
 
-import multiprocessing  # Ensure multiprocessing is imported for .queues
 from multiprocessing import Queue as MpQueue
 from multiprocessing.managers import SyncManager
-from typing import Tuple, TypeVar, Generic, Optional, cast  # Added cast
+from typing import Tuple, TypeVar, Generic, Optional, cast
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
@@ -28,11 +27,9 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
     The `create_queue` method returns a raw `multiprocessing.Queue`.
     """
 
-    def __init__(
-        self, manager: Optional[SyncManager] = None
-    ) -> None:  # Changed type hint to use Optional
+    def __init__(self, manager: Optional[SyncManager] = None) -> None:
         super().__init__()
-        self._manager = manager
+        self.__manager = manager
 
     def create_queues(
         self,
@@ -47,14 +44,10 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances.
         """
-        actual_queue: multiprocessing.queues.Queue[T]  # More specific type
-        if self._manager:
-            # The manager's Queue() returns a multiprocessing.queues.Queue.
-            actual_queue = cast(
-                multiprocessing.queues.Queue[T], self._manager.Queue()
-            )
+        actual_queue: MpQueue[T]
+        if self.__manager:
+            actual_queue = cast(MpQueue[T], self.__manager.Queue())
         else:
-            # This path should ideally not be taken when used by DelegatingMultiprocessQueueFactory
             actual_queue = MpQueue()
 
         sink = MultiprocessQueueSink[T](actual_queue)

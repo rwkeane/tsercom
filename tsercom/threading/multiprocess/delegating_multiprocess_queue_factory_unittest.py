@@ -3,13 +3,12 @@
 import unittest
 import unittest.mock as mock
 import multiprocessing
-import multiprocessing.synchronize as mp_sync  # For Lock and Barrier spec
+import multiprocessing.synchronize as mp_sync
 import time
 from typing import Any, List, Optional, cast, TypeAlias
-import types  # For ModuleType
-import queue  # Standard queue exceptions
+import types
+import queue
 
-# First-party imports (application code being tested)
 import tsercom.threading.multiprocess.delegating_multiprocess_queue_factory as dqf_module
 from tsercom.threading.multiprocess.delegating_multiprocess_queue_factory import (
     DelegatingMultiprocessQueueSink,
@@ -21,8 +20,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
-
-# End of application code imports
 
 # Conditional import strategy for torch and torch.multiprocessing for type checking
 _torch_installed = False
