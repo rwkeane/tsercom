@@ -1,62 +1,55 @@
-"""Unit tests for the SerializableTensor class."""
+"""Unit tests for the SerializableTensorChunk class (refactored)."""
 
 import pytest
 import torch
 import numpy as np
-from typing import Tuple, List
+import datetime
+from typing import Tuple, List, Any  # Added Any for mocker
 
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
+    TORCH_TO_NUMPY_DTYPE_MAP,  # Import for checking unsupported dtypes
 )
-import datetime  # Added import
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
 
-# from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import TensorChunk as GrpcTensorChunk # For type hints if needed
+# Corrected import path for TensorChunk
+from tsercom.tensor.proto import TensorChunk as GrpcTensorChunk
 
 
-from typing import Any  # Added for mocker type hint
+# Helper function to compare 1D tensors, assuming t2 is the parsed tensor (on CPU)
+def assert_tensors_equal(
+    t1_expected_flat_cpu: torch.Tensor, t2_parsed: torch.Tensor
+) -> None:
+    assert (
+        t1_expected_flat_cpu.ndim == 1
+    ), "t1 (expected_flat_cpu) should be 1D"
+    assert t2_parsed.ndim == 1, "t2 (parsed) should be 1D"
+    assert (
+        t1_expected_flat_cpu.shape == t2_parsed.shape
+    ), f"Shape mismatch: {t1_expected_flat_cpu.shape} vs {t2_parsed.shape}"
+    assert (
+        t1_expected_flat_cpu.dtype == t2_parsed.dtype
+    ), f"Dtype mismatch: {t1_expected_flat_cpu.dtype} vs {t2_parsed.dtype}"
+    assert (
+        t2_parsed.device.type == "cpu"
+    ), f"Parsed tensor should be on CPU, was {t2_parsed.device}"
 
+    # Handle potential empty tensor case before content comparison
+    if t1_expected_flat_cpu.numel() == 0 and t2_parsed.numel() == 0:
+        return  # Both are empty, nothing more to compare
 
-# Helper function to compare tensors
-def assert_tensors_equal(  # Added Any for mocker
-    t1: torch.Tensor, t2: torch.Tensor, check_device: bool = True
-) -> None:  # Added return type
-    assert t1.shape == t2.shape, f"Shape mismatch: {t1.shape} vs {t2.shape}"
-    assert t1.dtype == t2.dtype, f"Dtype mismatch: {t1.dtype} vs {t2.dtype}"
-    if check_device:
-        assert (
-            t1.device == t2.device
-        ), f"Device mismatch: {t1.device} vs {t2.device}"
-
-    if t1.is_sparse:
-        assert t2.is_sparse, "Tensor t2 should be sparse if t1 is sparse"
-        t1_coalesced = t1.coalesce()
-        t2_coalesced = t2.coalesce()
-        assert torch.equal(
-            t1_coalesced.indices(), t2_coalesced.indices()
-        ), "Sparse indices mismatch"
-        # For bool sparse tensors, direct torch.equal on values might fail if one is converted from numpy bool
-        # and the other is native torch bool, due to potential type promotion differences if not careful.
-        # However, if both are bool, it should be fine.
-        if t1_coalesced.values().dtype == torch.bool:
-            assert torch.all(
-                t1_coalesced.values() == t2_coalesced.values()
-            ).item(), "Sparse boolean values mismatch"
-        else:
-            assert torch.equal(
-                t1_coalesced.values(), t2_coalesced.values()
-            ), "Sparse values mismatch"
-
+    if t1_expected_flat_cpu.dtype == torch.bool:
+        assert torch.all(
+            t1_expected_flat_cpu == t2_parsed
+        ).item(), "Tensor content mismatch (bool)"
     else:
-        assert not t2.is_sparse, "Tensor t2 should be dense if t1 is dense"
-        if t1.dtype == torch.bool:
-            assert torch.all(
-                t1 == t2
-            ).item(), "Dense boolean tensor content mismatch"
-        else:
-            assert torch.equal(t1, t2), "Dense tensor content mismatch"
+        # For floating point, consider using torch.allclose for robustness if exact match is not guaranteed
+        # For this test, assuming exact reconstruction of bytes.
+        assert torch.equal(
+            t1_expected_flat_cpu, t2_parsed
+        ), "Tensor content mismatch"
 
 
 # Test data
@@ -66,311 +59,293 @@ torch_dtypes_to_test = [
     torch.int32,
     torch.int64,
     torch.bool,
-]
-# Representative shapes for dense tensors
-dense_shapes_to_test: List[Tuple[int, ...]] = [
-    tuple(),  # Scalar
-    (0,),  # Empty 1D
-    (5,),  # 1D
-    (2, 0, 3),  # Empty 3D
-    (3, 4),  # 2D
-    (2, 3, 4),  # 3D
-]
-# Representative shapes and nnz for sparse COO tensors
-sparse_params_to_test: List[Tuple[Tuple[int, ...], int]] = [
-    ((5, 5), 0),  # Empty sparse
-    ((5, 5), 3),  # 2D sparse
-    ((10,), 4),  # 1D sparse
-    ((3, 4, 5), 0),  # Empty 3D sparse
-    ((3, 4, 5), 6),  # 3D sparse
+    torch.complex64,
+    torch.complex128,
+    torch.float16,
 ]
 
-# Mock timestamp for tests
-# Create a datetime object for the mock timestamp
+# Shapes to test: 1D and multi-dimensional (to test flattening)
+# Includes scalar-like (1,), empty (0,), and various sizes.
+tensor_shapes_to_test: List[Tuple[int, ...]] = [
+    (0,),  # Empty 1D
+    (1,),  # Scalar-like 1D
+    (5,),  # Simple 1D
+    (100,),  # Larger 1D
+    (2, 3),  # 2D
+    (3, 0, 2),  # Empty 2D (results in 0 elements)
+    (3, 2, 4),  # 3D
+]
+
 MOCK_DATETIME_VAL = datetime.datetime.fromtimestamp(
     12345.6789, tz=datetime.timezone.utc
 )
 mock_sync_timestamp = SynchronizedTimestamp(MOCK_DATETIME_VAL)
+STARTING_INDEX_VAL = 42
 
 
-# --- Dense Tensor Tests ---
 @pytest.mark.parametrize("dtype", torch_dtypes_to_test)
-@pytest.mark.parametrize("shape", dense_shapes_to_test)
-def test_dense_tensor_serialization_deserialization(  # Added Any for mocker and return type
+@pytest.mark.parametrize("shape", tensor_shapes_to_test)
+def test_serializable_tensor_chunk_various_dtypes_and_shapes(
     dtype: torch.dtype, shape: Tuple[int, ...], mocker: Any
 ) -> None:
-    """Test serialization and deserialization of dense tensors for various dtypes and shapes."""
+    """Test serialization and deserialization for various dtypes and shapes."""
     if dtype == torch.bool:
-        # Create bool tensor with mixed True/False, or specific cases for scalar/empty
-        if not shape:  # scalar
-            original_tensor = torch.tensor(
-                np.random.choice([True, False]), dtype=torch.bool
-            )
-        elif 0 in shape:  # empty
+        if 0 in shape or np.prod(shape) == 0:  # empty tensor
             original_tensor = torch.empty(shape, dtype=torch.bool)
-        else:
+        else:  # non-empty
             original_tensor = torch.from_numpy(
                 np.random.choice([True, False], size=shape)
             ).to(dtype=torch.bool)
-    elif dtype.is_floating_point:
-        original_tensor = torch.randn(shape, dtype=dtype)
+    elif dtype.is_floating_point or dtype.is_complex:
+        # randn doesn't support all dtypes like float16 directly, use random then convert
+        original_tensor = torch.rand(shape, dtype=torch.float32).to(dtype)
     else:  # Integer types
         original_tensor = torch.randint(-100, 100, shape, dtype=dtype)
 
-    # Mock SynchronizedTimestamp.try_parse to return a predictable timestamp object
-    # for easier assertion, or ensure the real one works predictably.
-    # For now, let's assume the real one works and compare the datetime objects.
-    # mocker.patch.object(SynchronizedTimestamp, 'NEEDS_CLOCK_SYNC', False) # Removed this line
-
-    starting_index_val = 42
-    serializable_tensor_chunk = SerializableTensorChunk(
-        original_tensor, mock_sync_timestamp, starting_index=starting_index_val
+    serializable_chunk = SerializableTensorChunk(
+        original_tensor, mock_sync_timestamp, STARTING_INDEX_VAL
     )
-    grpc_msg = serializable_tensor_chunk.to_grpc_type()
+    grpc_msg = serializable_chunk.to_grpc_type()
 
-    # Sanity check timestamp in grpc_msg (if SynchronizedTimestamp populates it predictably)
-    # Example: if it uses google.protobuf.Timestamp
-    # This depends on SynchronizedTimestamp.to_grpc_type() implementation.
-    # Let's assume it's a google.protobuf.Timestamp
-    # assert grpc_msg.timestamp.seconds == int(MOCK_TIMESTAMP_VAL) # Example check
-    assert grpc_msg.starting_index == starting_index_val
+    assert grpc_msg.starting_index == STARTING_INDEX_VAL
+    # Verify timestamp (requires knowledge of how SynchronizedTimestamp serializes)
+    # For now, assume parsed_chunk.timestamp check is sufficient.
+    # Example: If it's a google.protobuf.Timestamp:
+    # assert grpc_msg.timestamp.seconds == int(MOCK_DATETIME_VAL.timestamp())
 
-    parsed_serializable_tensor_chunk = SerializableTensorChunk.try_parse(
-        grpc_msg
+    # Verify data_bytes based on flattened tensor
+    expected_flat_tensor = original_tensor.cpu().flatten()
+    if expected_flat_tensor.numel() > 0:
+        # Itemsize can be 0 for dtypes like bfloat16 if not handled by numpy directly
+        if expected_flat_tensor.element_size() > 0:
+            assert (
+                len(grpc_msg.data_bytes)
+                == expected_flat_tensor.numel()
+                * expected_flat_tensor.element_size()
+            )
+        elif (
+            expected_flat_tensor.numel() == 0
+        ):  # Explicitly check for 0 elements if itemsize is problematic
+            assert len(grpc_msg.data_bytes) == 0
+        # else: skip length check if element_size is 0 for a non-empty tensor (unusual)
+    else:  # numel is 0
+        assert len(grpc_msg.data_bytes) == 0
+
+    parsed_chunk = SerializableTensorChunk.try_parse(
+        grpc_msg, original_tensor.dtype
     )
 
-    assert parsed_serializable_tensor_chunk is not None
-    assert_tensors_equal(
-        original_tensor, parsed_serializable_tensor_chunk.tensor
-    )
-    assert parsed_serializable_tensor_chunk.timestamp is not None
-    # Compare timestamp values by comparing the datetime objects
+    assert parsed_chunk is not None
+    assert parsed_chunk.starting_index == STARTING_INDEX_VAL
     assert (
-        parsed_serializable_tensor_chunk.timestamp.as_datetime()
+        parsed_chunk.timestamp.as_datetime()
         == mock_sync_timestamp.as_datetime()
     )
-    assert (
-        parsed_serializable_tensor_chunk.starting_index == starting_index_val
-    )
+
+    # The parsed tensor will always be 1D and on CPU
+    assert_tensors_equal(expected_flat_tensor, parsed_chunk.tensor)
 
 
-# --- Sparse COO Tensor Tests ---
-def _create_random_sparse_coo_tensor(
-    shape: Tuple[int, ...], nnz: int, dtype: torch.dtype
-) -> torch.Tensor:
-    """Creates a random sparse COO tensor."""
-    if (
-        not shape or 0 in shape
-    ):  # Cannot create sparse tensor with 0 in shape if nnz > 0
-        if nnz > 0:
-            raise ValueError(
-                "Cannot have nnz > 0 if shape contains 0 or is scalar."
-            )
-        # For empty sparse (nnz=0), indices are (ndim, 0), values are empty
-        ndim = len(shape)
-        indices = torch.empty((ndim, 0), dtype=torch.int64)
-        if dtype == torch.bool:
-            values = torch.empty(0, dtype=torch.bool)
-        elif dtype.is_floating_point:
-            values = torch.empty(0, dtype=dtype)
-        else:  # Integer
-            values = torch.empty(0, dtype=dtype)
-        return torch.sparse_coo_tensor(indices, values, shape, dtype=dtype)
-
-    ndim = len(shape)
-    # Generate unique indices
-    indices_list: List[List[int]] = [[] for _ in range(ndim)]
-    seen_indices = set()
-
-    # Max nnz is product of shape if shape is small, otherwise cap for test speed
-    max_possible_nnz = np.prod(shape) if shape else 0
-    actual_nnz = min(nnz, int(max_possible_nnz))  # cap nnz
-
-    if (
-        actual_nnz == 0
-    ):  # Handle explicitly if requested nnz was 0 or shape forced it
-        # Fix: Directly construct and return the empty sparse tensor
-        ndim = len(shape)
-        indices = torch.empty((ndim, 0), dtype=torch.int64)
-        values = torch.empty(0, dtype=dtype)
-        return torch.sparse_coo_tensor(indices, values, shape, dtype=dtype)
-
-    for _ in range(actual_nnz):
-        while True:
-            idx_tuple = tuple(np.random.randint(0, s, 1)[0] for s in shape)
-            if idx_tuple not in seen_indices:
-                seen_indices.add(idx_tuple)
-                for i in range(ndim):
-                    indices_list[i].append(idx_tuple[i])
-                break
-
-    indices_tensor = torch.tensor(indices_list, dtype=torch.int64)
-
-    if dtype == torch.bool:
-        values_tensor = torch.from_numpy(
-            np.random.choice([True, False], size=actual_nnz)
-        ).to(dtype=torch.bool)
-    elif dtype.is_floating_point:
-        values_tensor = torch.randn(actual_nnz, dtype=dtype)
-    else:  # Integer types
-        values_tensor = torch.randint(-100, 100, (actual_nnz,), dtype=dtype)
-
-    return torch.sparse_coo_tensor(
-        indices_tensor, values_tensor, shape, dtype=dtype
-    ).coalesce()
-
-
-@pytest.mark.parametrize("dtype", torch_dtypes_to_test)
-@pytest.mark.parametrize("shape, nnz", sparse_params_to_test)
-def test_sparse_coo_tensor_serialization_deserialization(  # Added Any for mocker and return type
-    dtype: torch.dtype, shape: Tuple[int, ...], nnz: int, mocker: Any
-) -> None:
-    """Test serialization and deserialization of sparse COO tensors."""
-    # Skip scalar sparse tests as they are not standard or well-defined for COO.
-    if not shape:  # No scalar sparse
-        pytest.skip(
-            "Scalar sparse COO tensors are ill-defined and not typically used."
-        )
-        return
-
-    try:
-        original_tensor = _create_random_sparse_coo_tensor(shape, nnz, dtype)
-    except ValueError as e:  # Catch cases like nnz > 0 for shape (0,N)
-        if "Cannot have nnz > 0" in str(e) and 0 in shape and nnz > 0:
-            pytest.skip(
-                f"Skipping invalid sparse configuration: shape={shape}, nnz={nnz}"
-            )
-            return
-        raise e
-
-    # mocker.patch.object(SynchronizedTimestamp, 'NEEDS_CLOCK_SYNC', False) # Removed this line
-
-    starting_index_val = 101
-    serializable_tensor_chunk = SerializableTensorChunk(
-        original_tensor, mock_sync_timestamp, starting_index=starting_index_val
-    )
-    grpc_msg = serializable_tensor_chunk.to_grpc_type()
-    assert grpc_msg.starting_index == starting_index_val
-
-    parsed_serializable_tensor_chunk = SerializableTensorChunk.try_parse(
-        grpc_msg
-    )
-
-    assert parsed_serializable_tensor_chunk is not None
-    assert_tensors_equal(
-        original_tensor, parsed_serializable_tensor_chunk.tensor
-    )
-    assert parsed_serializable_tensor_chunk.timestamp is not None
-    assert (
-        parsed_serializable_tensor_chunk.timestamp.as_datetime()
-        == mock_sync_timestamp.as_datetime()
-    )
-    assert (
-        parsed_serializable_tensor_chunk.starting_index == starting_index_val
-    )
-
-
-# --- GPU/Device Tests ---
 cuda_available = torch.cuda.is_available()
 
 
 @pytest.mark.skipif(not cuda_available, reason="CUDA not available")
-@pytest.mark.parametrize(
-    "source_device_str, target_device_str",
-    [("cpu", "cuda:0"), ("cuda:0", "cpu"), ("cuda:0", "cuda:0")],
-)
-@pytest.mark.parametrize("is_sparse", [False, True])
-def test_gpu_tensor_serialization_deserialization(  # Added Any for mocker and return type
-    source_device_str: str,
-    target_device_str: str,
-    is_sparse: bool,
-    mocker: Any,
+@pytest.mark.parametrize("dtype", torch_dtypes_to_test)
+def test_gpu_tensor_serialization_deserialization(
+    dtype: torch.dtype, mocker: Any
 ) -> None:
-    """Test serialization/deserialization with GPU tensors and device transfer."""
-    dtype = torch.float32
-    shape = (3, 4)
-    nnz = 2
-
-    if is_sparse:
-        original_tensor_cpu = _create_random_sparse_coo_tensor(
-            shape, nnz, dtype
+    """Test serialization of GPU tensor and deserialization (always to CPU)."""
+    shape = (5, 2)  # A simple 2D shape
+    if dtype == torch.bool:
+        original_tensor_gpu = torch.randint(
+            0, 2, shape, dtype=dtype, device="cuda"
+        )
+    elif dtype.is_floating_point or dtype.is_complex:
+        original_tensor_gpu = (
+            torch.rand(shape, dtype=torch.float32).to(dtype).cuda()
         )
     else:
-        original_tensor_cpu = torch.randn(shape, dtype=dtype)
+        original_tensor_gpu = torch.randint(
+            -100, 100, shape, dtype=dtype, device="cuda"
+        )
 
-    source_device = torch.device(source_device_str)
-    target_device = torch.device(target_device_str)
-
-    original_tensor_on_source = original_tensor_cpu.to(source_device)
-
-    # mocker.patch.object(SynchronizedTimestamp, 'NEEDS_CLOCK_SYNC', False) # Removed this line
-
-    starting_index_val = 0
-    serializable_tensor_chunk = SerializableTensorChunk(
-        original_tensor_on_source, mock_sync_timestamp, starting_index_val
+    serializable_chunk = SerializableTensorChunk(
+        original_tensor_gpu, mock_sync_timestamp, STARTING_INDEX_VAL
     )
-    grpc_msg = serializable_tensor_chunk.to_grpc_type()
-    assert grpc_msg.starting_index == starting_index_val
+    grpc_msg = serializable_chunk.to_grpc_type()  # This moves tensor to CPU
 
-    # When deserializing to GPU, the source tensor might have been moved to CPU by to_grpc_type (e.g. for bools)
-    # The actual test is whether try_parse(..., device=target_device) works.
-    parsed_serializable_tensor_chunk = SerializableTensorChunk.try_parse(
-        grpc_msg, device=str(target_device)
+    parsed_chunk = SerializableTensorChunk.try_parse(
+        grpc_msg, original_tensor_gpu.dtype
     )
 
-    assert parsed_serializable_tensor_chunk is not None
-
-    # Create the expected tensor on the target device for comparison
-    # If original was sparse, its structure should be preserved.
-    # If original was dense, its values should be preserved.
-    # The `assert_tensors_equal` will compare shape, dtype, content, and device.
-    expected_tensor_on_target = original_tensor_cpu.to(target_device)
-
-    assert_tensors_equal(
-        expected_tensor_on_target, parsed_serializable_tensor_chunk.tensor
-    )
-    assert parsed_serializable_tensor_chunk.tensor.device == target_device
-    assert parsed_serializable_tensor_chunk.timestamp is not None
+    assert parsed_chunk is not None
     assert (
-        parsed_serializable_tensor_chunk.timestamp.as_datetime()
+        parsed_chunk.tensor.device.type == "cpu"
+    )  # Parsed tensor is always CPU
+
+    expected_flat_cpu = original_tensor_gpu.cpu().flatten()
+    assert_tensors_equal(expected_flat_cpu, parsed_chunk.tensor)
+    assert parsed_chunk.starting_index == STARTING_INDEX_VAL
+    assert (
+        parsed_chunk.timestamp.as_datetime()
         == mock_sync_timestamp.as_datetime()
     )
-    assert (
-        parsed_serializable_tensor_chunk.starting_index == starting_index_val
-    )
 
 
-# Test for parsing None or default GrpcTensor (basic check)
-def test_try_parse_none_or_default(
-    mocker: Any,
-) -> None:  # Added Any for mocker and return type
-    """Test try_parse with None or default GrpcTensorChunk message."""
-    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
-        TensorChunk as GrpcTensorChunk,
-    )
+def test_try_parse_none_and_defaults(mocker: Any) -> None:
+    """Test try_parse with None, default GrpcTensorChunk, and mocked timestamp parsing failure."""
+    # Test with None input
+    assert SerializableTensorChunk.try_parse(None, torch.float32) is None  # type: ignore
 
-    # mocker.patch.object(SynchronizedTimestamp, 'NEEDS_CLOCK_SYNC', False) # Removed this line
+    default_grpc_msg = GrpcTensorChunk()
 
-    assert SerializableTensorChunk.try_parse(None) is None  # type: ignore
-
-    # A default GrpcTensorChunk will likely fail timestamp parsing or data representation checks.
-    # This depends on how SynchronizedTimestamp.try_parse handles a default timestamp proto.
-    # If SynchronizedTimestamp.try_parse returns None for a default timestamp, then this is fine.
-    default_grpc_tensor_chunk = GrpcTensorChunk()
-    # Mock try_parse for timestamp to control its behavior with default proto
+    # Test case 1: Timestamp parsing fails
     mocker.patch.object(SynchronizedTimestamp, "try_parse", return_value=None)
-    assert SerializableTensorChunk.try_parse(default_grpc_tensor_chunk) is None
+    assert (
+        SerializableTensorChunk.try_parse(default_grpc_msg, torch.float32)
+        is None
+    )
+    SynchronizedTimestamp.try_parse.assert_called_once_with(default_grpc_msg.timestamp)  # type: ignore
+    mocker.stopall()  # Reset mocks
 
-    # Test with a valid timestamp but no data_representation
-    mock_dt_obj = datetime.datetime.fromtimestamp(
-        1.0, tz=datetime.timezone.utc
-    )
-    mock_ts_obj = SynchronizedTimestamp(mock_dt_obj)
+    # Test case 2: Timestamp parsing succeeds, but data_bytes is empty
     mocker.patch.object(
-        SynchronizedTimestamp, "try_parse", return_value=mock_ts_obj
+        SynchronizedTimestamp, "try_parse", return_value=mock_sync_timestamp
     )
-    # Expect a ValueError because data_representation is not set
+    default_grpc_msg.starting_index = STARTING_INDEX_VAL
+    # Ensure data_bytes is empty for this part of the test
+    default_grpc_msg.ClearField(
+        "data_bytes"
+    )  # Or default_grpc_msg.data_bytes = b""
+
+    parsed_chunk_empty_bytes = SerializableTensorChunk.try_parse(
+        default_grpc_msg, torch.float32
+    )
+    assert parsed_chunk_empty_bytes is not None
+    assert parsed_chunk_empty_bytes.tensor.numel() == 0
+    assert parsed_chunk_empty_bytes.tensor.dtype == torch.float32
+    assert parsed_chunk_empty_bytes.tensor.shape == (0,)  # Should be 1D empty
+    assert parsed_chunk_empty_bytes.starting_index == STARTING_INDEX_VAL
+    assert (
+        parsed_chunk_empty_bytes.timestamp.as_datetime()
+        == mock_sync_timestamp.as_datetime()
+    )
+    mocker.stopall()
+
+
+def test_unsupported_dtype_in_try_parse() -> None:
+    """Test that try_parse raises ValueError for an unsupported torch.dtype."""
+    # Create a dummy GrpcTensorChunk
+    grpc_msg = GrpcTensorChunk()
+    grpc_msg.timestamp.CopyFrom(mock_sync_timestamp.to_grpc_type())
+    grpc_msg.starting_index = STARTING_INDEX_VAL
+    grpc_msg.data_bytes = b"\x00\x00\x80?"  # Some dummy float data (1.0)
+
+    # An example of a dtype not in TORCH_TO_NUMPY_DTYPE_MAP (e.g., a hypothetical new one)
+    # For a practical test, we can try to find one not mapped or use a placeholder.
+    # Since all common types are mapped, let's use a string that's not a valid dtype for torch.
+    # Or, more directly, mock TORCH_TO_NUMPY_DTYPE_MAP to exclude a type.
+
+    # For this test, let's assume we have a dtype object that's truly unsupported.
+    # If all torch dtypes are in the map, this test becomes tricky without modifying the map.
+    # Let's test by passing a string (invalid dtype) to simulate a lookup failure.
     with pytest.raises(
-        ValueError, match="Unknown data_representation type: "
-    ):  # Empty string if not set
-        SerializableTensorChunk.try_parse(default_grpc_tensor_chunk)
+        ValueError, match="Unsupported torch.dtype for deserialization"
+    ):
+        SerializableTensorChunk.try_parse(
+            grpc_msg, torch.quint8
+        )  # quint8 is not in map
+
+    # Test with a dtype that might exist in torch but we pretend is not in our map for testing
+    # This requires temporarily modifying the map or using a mock.
+    # For simplicity, we'll rely on a dtype known to be missing from TORCH_TO_NUMPY_DTYPE_MAP.
+    # As of now, torch.bfloat16 was omitted from the map in the main code.
+    if (
+        hasattr(torch, "bfloat16")
+        and torch.bfloat16 not in TORCH_TO_NUMPY_DTYPE_MAP
+    ):
+        with pytest.raises(
+            ValueError,
+            match="Unsupported torch.dtype for deserialization: torch.bfloat16",
+        ):
+            SerializableTensorChunk.try_parse(grpc_msg, torch.bfloat16)
+    else:
+        pytest.skip(
+            "torch.bfloat16 not available or already in map, skipping part of unsupported dtype test."
+        )
+
+
+def test_to_grpc_type_unsupported_dtype() -> None:
+    """Test that to_grpc_type raises ValueError if tensor has unsupported dtype."""
+    # Again, assume bfloat16 is not in TORCH_TO_NUMPY_DTYPE_MAP in the main code
+    if (
+        hasattr(torch, "bfloat16")
+        and torch.bfloat16 not in TORCH_TO_NUMPY_DTYPE_MAP
+    ):
+        unsupported_tensor = torch.zeros((2, 2), dtype=torch.bfloat16)
+        serializable_chunk = SerializableTensorChunk(
+            unsupported_tensor, mock_sync_timestamp, STARTING_INDEX_VAL
+        )
+        with pytest.raises(
+            ValueError,
+            match="Unsupported torch.dtype for serialization: torch.bfloat16",
+        ):
+            serializable_chunk.to_grpc_type()
+    else:
+        pytest.skip(
+            "torch.bfloat16 not available or already in map, cannot test to_grpc_type_unsupported_dtype effectively."
+        )
+
+    # Test with a completely fake dtype if possible, or a known unsupported one (e.g. quint8)
+    if torch.quint8 not in TORCH_TO_NUMPY_DTYPE_MAP:
+        # unsupported_tensor_quint8 = torch.zeros((2,2), dtype=torch.quint8) # This might fail at tensor creation
+        # PyTorch might not allow creating tensors with dtypes it doesn't fully support for operations.
+        # This test depends on being able to create such a tensor first.
+        # If torch.quint8 tensor cannot be created, this specific test path is invalid.
+        try:
+            quint8_tensor = torch.empty((2, 2), dtype=torch.quint8)
+            serializable_chunk_quint8 = SerializableTensorChunk(
+                quint8_tensor, mock_sync_timestamp, STARTING_INDEX_VAL
+            )
+            with pytest.raises(
+                ValueError,
+                match="Unsupported torch.dtype for serialization: torch.quint8",
+            ):
+                serializable_chunk_quint8.to_grpc_type()
+        except Exception:  # Catch error if torch.quint8 tensor creation fails
+            pytest.skip(
+                "torch.quint8 tensor creation failed or dtype not in map, skipping part of test."
+            )
+
+
+@pytest.mark.parametrize("empty_shape", [(0,), (2, 0, 3)])
+def test_empty_tensor_serialization(
+    empty_shape: Tuple[int, ...], mocker: Any
+) -> None:
+    """Test serialization and deserialization of empty tensors."""
+    dtype = torch.float32
+    original_tensor = torch.empty(empty_shape, dtype=dtype)
+
+    serializable_chunk = SerializableTensorChunk(
+        original_tensor, mock_sync_timestamp, STARTING_INDEX_VAL
+    )
+    grpc_msg = serializable_chunk.to_grpc_type()
+
+    assert len(grpc_msg.data_bytes) == 0
+    assert grpc_msg.starting_index == STARTING_INDEX_VAL
+
+    parsed_chunk = SerializableTensorChunk.try_parse(grpc_msg, dtype)
+    assert parsed_chunk is not None
+    assert parsed_chunk.tensor.numel() == 0
+    assert parsed_chunk.tensor.dtype == dtype
+    assert parsed_chunk.tensor.shape == (0,)  # Always parsed as 1D empty
+    assert parsed_chunk.starting_index == STARTING_INDEX_VAL
+    assert (
+        parsed_chunk.timestamp.as_datetime()
+        == mock_sync_timestamp.as_datetime()
+    )
+
+    expected_flat_cpu = (
+        original_tensor.cpu().flatten()
+    )  # This will also be (0,)
+    assert_tensors_equal(expected_flat_cpu, parsed_chunk.tensor)

@@ -1,24 +1,26 @@
 """
-Provides the TensorDemuxer class for aggregating granular tensor updates.
+Provides the TensorDemuxer class for applying tensor chunks to reconstruct a tensor.
 """
 
 import abc
 import asyncio
-import bisect
 import datetime
-from typing import (
-    List,
-    Tuple,
-    Optional,
-)
+import logging  # Added for logging
 
 import torch
+
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
+
+# Corrected import path for TensorChunk
+from tsercom.tensor.proto import TensorChunk as GrpcTensorChunk
 
 
 class TensorDemuxer:
     """
-    Aggregates granular tensor index updates back into complete tensor objects.
-    Internal storage for explicit updates per timestamp uses torch.Tensors for efficiency.
+    Applies received tensor chunks to a maintained, reconstructed tensor.
+    Notifies a client when the tensor changes.
     """
 
     class Client(abc.ABC):  # pylint: disable=too-few-public-methods
@@ -31,246 +33,155 @@ class TensorDemuxer:
             self, tensor: torch.Tensor, timestamp: datetime.datetime
         ) -> None:
             """
-            Called when a tensor for a given timestamp is created or modified.
+            Called when the reconstructed tensor is modified by a received chunk.
+            The full tensor and the timestamp from the chunk are provided.
             """
+            raise NotImplementedError
 
     def __init__(
         self,
         client: "TensorDemuxer.Client",
         tensor_length: int,
-        data_timeout_seconds: float = 60.0,
+        dtype: torch.dtype,  # Added dtype parameter
+        # data_timeout_seconds is removed as history management is simplified/removed
     ):
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
-        if data_timeout_seconds <= 0:
-            raise ValueError("Data timeout must be positive.")
 
         self.__client = client
         self.__tensor_length = tensor_length
-        self.__data_timeout_seconds = data_timeout_seconds
-        self.__tensor_states: List[
-            Tuple[
-                datetime.datetime,
-                torch.Tensor,
-                Tuple[torch.Tensor, torch.Tensor],
-            ]
-        ] = []
-        self.__latest_update_timestamp: Optional[datetime.datetime] = None
+        self._dtype = dtype  # Store dtype
+
+        # Initialize the reconstructed tensor with the specified dtype
+        self._reconstructed_tensor: torch.Tensor = torch.zeros(
+            self.__tensor_length, dtype=self._dtype
+        )
+
         self.__lock: asyncio.Lock = asyncio.Lock()
+        # Removed self.__tensor_states, self.__latest_update_timestamp
 
     @property
     def client(self) -> "TensorDemuxer.Client":
+        """The client to notify of tensor changes."""
         return self.__client
 
     @property
     def tensor_length(self) -> int:
+        """The length of the tensor being managed."""
         return self.__tensor_length
 
-    def _cleanup_old_data(self) -> None:
-        # Internal method, assumes lock is held by caller
-        if not self.__latest_update_timestamp or not self.__tensor_states:
-            return
-        timeout_delta = datetime.timedelta(seconds=self.__data_timeout_seconds)
-        cutoff_timestamp = self.__latest_update_timestamp - timeout_delta
-        keep_from_index = bisect.bisect_left(
-            self.__tensor_states, cutoff_timestamp, key=lambda x: x[0]
-        )
-        if keep_from_index > 0:
-            self.__tensor_states = self.__tensor_states[keep_from_index:]
+    @property
+    def dtype(self) -> torch.dtype:
+        """The torch.dtype of the tensor being managed."""
+        return self._dtype
 
-    async def on_update_received(
-        self, tensor_index: int, value: float, timestamp: datetime.datetime
+    @property
+    def reconstructed_tensor(self) -> torch.Tensor:
+        """Returns the current reconstructed tensor.
+
+        The caller should clone if a mutable snapshot is needed, as this
+        property returns a direct reference for performance in read-only scenarios.
+        Modifications to the tensor outside of on_chunk_received are not thread-safe.
+        The on_tensor_changed callback provides a clone to clients.
+        """
+        # The unused 'get_clone' async def has been removed.
+        return self._reconstructed_tensor
+
+    async def on_chunk_received(
+        self, chunk_proto: GrpcTensorChunk  # Renamed and signature changed
     ) -> None:
+        """
+        Processes an incoming tensor chunk and updates the reconstructed tensor.
+
+        Args:
+            chunk_proto: The gRPC TensorChunk message.
+        """
+        parsed_chunk = SerializableTensorChunk.try_parse(
+            chunk_proto, self._dtype
+        )
+
+        if parsed_chunk is None:
+            logging.warning(
+                "Failed to parse received GrpcTensorChunk. Discarding."
+            )
+            return
+
         async with self.__lock:
-            if not 0 <= tensor_index < self.__tensor_length:
+            chunk_data = parsed_chunk.tensor
+            starting_index = parsed_chunk.starting_index
+
+            try:
+                # Attempt to get datetime.datetime from SynchronizedTimestamp
+                timestamp_dt = parsed_chunk.timestamp.as_datetime()
+            except (
+                ValueError,
+                TypeError,
+                AttributeError,
+            ) as e:  # More specific common errors
+                logging.error(
+                    f"Error converting chunk timestamp to datetime: {e}. Discarding chunk."
+                )
                 return
 
             if (
-                self.__latest_update_timestamp is None
-                or timestamp > self.__latest_update_timestamp
-            ):
-                self.__latest_update_timestamp = timestamp
-
-            self._cleanup_old_data()
-
-            if self.__latest_update_timestamp:
-                current_cutoff = (
-                    self.__latest_update_timestamp
-                    - datetime.timedelta(seconds=self.__data_timeout_seconds)
+                chunk_data is None
+            ):  # Should not happen if try_parse succeeded and returned a chunk
+                logging.error(
+                    "Parsed chunk data is None. This should not happen. Discarding."
                 )
-                if timestamp < current_cutoff:
-                    return
+                return
 
-            insertion_point = bisect.bisect_left(
-                self.__tensor_states, timestamp, key=lambda x: x[0]
-            )
+            # Calculate end_index for the slice
+            # chunk_data is guaranteed to be 1D by SerializableTensorChunk.try_parse
+            end_index = starting_index + chunk_data.numel()
 
-            current_calculated_tensor: torch.Tensor
-            explicit_indices: torch.Tensor
-            explicit_values: torch.Tensor
-            is_new_timestamp_entry = False
-            idx_of_processed_ts = -1
-            value_actually_changed_tensor = False
-
-            if (
-                insertion_point < len(self.__tensor_states)
-                and self.__tensor_states[insertion_point][0] == timestamp
+            # Validation
+            if not (
+                0 <= starting_index <= self.tensor_length
+                and 0 <= end_index <= self.tensor_length
+                and starting_index <= end_index
             ):
-                is_new_timestamp_entry = False
-                idx_of_processed_ts = insertion_point
-                (
-                    _,
-                    current_calculated_tensor,
-                    (explicit_indices, explicit_values),
-                ) = self.__tensor_states[idx_of_processed_ts]
-
-                current_calculated_tensor = current_calculated_tensor.clone()
-                explicit_indices = explicit_indices.clone()
-                explicit_values = explicit_values.clone()
-            else:
-                is_new_timestamp_entry = True
-                if insertion_point == 0:
-                    current_calculated_tensor = torch.zeros(
-                        self.__tensor_length, dtype=torch.float32
-                    )
-                else:
-                    current_calculated_tensor = self.__tensor_states[
-                        insertion_point - 1
-                    ][1].clone()
-
-                explicit_indices = torch.empty(0, dtype=torch.int64)
-                explicit_values = torch.empty(0, dtype=torch.float32)
-
-            current_update_idx_tensor = torch.tensor(
-                [tensor_index], dtype=torch.int64
-            )
-            current_update_val_tensor = torch.tensor(
-                [value], dtype=torch.float32
-            )
-
-            match_mask = explicit_indices == current_update_idx_tensor
-            existing_explicit_entry_indices = match_mask.nonzero(
-                as_tuple=True
-            )[0]
-
-            if existing_explicit_entry_indices.numel() > 0:
-                entry_pos = existing_explicit_entry_indices[0]
-                if explicit_values[entry_pos].item() != value:
-                    explicit_values[entry_pos] = current_update_val_tensor
-            else:
-                explicit_indices = torch.cat(
-                    (explicit_indices, current_update_idx_tensor)
+                logging.error(
+                    f"Invalid chunk indices: start={starting_index}, end={end_index}, "
+                    f"tensor_length={self.tensor_length}. Discarding chunk."
                 )
-                explicit_values = torch.cat(
-                    (explicit_values, current_update_val_tensor)
+                return
+
+            if chunk_data.numel() != (end_index - starting_index):
+                logging.error(
+                    f"Chunk data numel ({chunk_data.numel()}) does not match slice size "
+                    f"({end_index - starting_index}). Discarding chunk."
                 )
+                return
 
-            base_for_current_calc: torch.Tensor
-            if is_new_timestamp_entry:
-                if insertion_point == 0:
-                    base_for_current_calc = torch.zeros(
-                        self.__tensor_length, dtype=torch.float32
-                    )
-                else:
-                    base_for_current_calc = self.__tensor_states[
-                        insertion_point - 1
-                    ][1].clone()
-            else:
-                if insertion_point == 0:
-                    base_for_current_calc = torch.zeros(
-                        self.__tensor_length, dtype=torch.float32
-                    )
-                else:
-                    base_for_current_calc = self.__tensor_states[
-                        insertion_point - 1
-                    ][1].clone()
-
-            new_calculated_tensor_for_current_ts = (
-                base_for_current_calc.clone()
-            )
-            if explicit_indices.numel() > 0:
-                new_calculated_tensor_for_current_ts = (
-                    new_calculated_tensor_for_current_ts.index_put_(
-                        (explicit_indices,), explicit_values
-                    )
+            # dtype check: try_parse should already enforce this.
+            # If it doesn't, or if we want to be extra safe:
+            if chunk_data.dtype != self._dtype:
+                logging.warning(
+                    f"Chunk data dtype ({chunk_data.dtype}) mismatches demuxer's expected dtype "
+                    f"({self._dtype}). This is unexpected. Attempting to apply anyway."
+                    # Or, convert: chunk_data = chunk_data.to(self._dtype)
+                    # Or, discard: return
                 )
+                # For now, proceed, assuming try_parse gave us the correct self._dtype.
 
-            if not torch.equal(
-                new_calculated_tensor_for_current_ts, current_calculated_tensor
-            ):
-                value_actually_changed_tensor = True
+            # Apply the chunk to the reconstructed tensor
+            try:
+                self._reconstructed_tensor[starting_index:end_index] = (
+                    chunk_data
+                )
+            except (IndexError, ValueError, RuntimeError) as e:
+                logging.error(
+                    f"Error applying chunk to reconstructed tensor: {e}. State may be inconsistent."
+                )
+                return  # Or re-raise, depending on desired error propagation
 
-            if is_new_timestamp_entry and explicit_indices.numel() > 0:
-                value_actually_changed_tensor = True
-
-            current_calculated_tensor = new_calculated_tensor_for_current_ts
-            new_state_tuple = (
-                timestamp,
-                current_calculated_tensor,
-                (explicit_indices, explicit_values),
+            # Notify the client with a clone of the updated tensor
+            await self.client.on_tensor_changed(
+                self._reconstructed_tensor.clone(), timestamp_dt
             )
-            if is_new_timestamp_entry:
-                self.__tensor_states.insert(insertion_point, new_state_tuple)
-                idx_of_processed_ts = insertion_point
-                if value_actually_changed_tensor:
-                    await self.__client.on_tensor_changed(
-                        current_calculated_tensor.clone(), timestamp
-                    )
-            else:
-                self.__tensor_states[idx_of_processed_ts] = new_state_tuple
-                if value_actually_changed_tensor:
-                    await self.__client.on_tensor_changed(
-                        current_calculated_tensor.clone(), timestamp
-                    )
 
-            needs_cascade = value_actually_changed_tensor
-
-            if needs_cascade:
-                for i in range(
-                    idx_of_processed_ts + 1, len(self.__tensor_states)
-                ):
-                    ts_next, old_tensor_next, (next_indices, next_values) = (
-                        self.__tensor_states[i]
-                    )
-
-                    predecessor_tensor_for_ts_next = self.__tensor_states[
-                        i - 1
-                    ][1]
-
-                    new_calculated_tensor_next = (
-                        predecessor_tensor_for_ts_next.clone()
-                    )
-                    if next_indices.numel() > 0:
-                        new_calculated_tensor_next = (
-                            new_calculated_tensor_next.index_put_(
-                                (next_indices,), next_values
-                            )
-                        )
-
-                    if not torch.equal(
-                        new_calculated_tensor_next, old_tensor_next
-                    ):
-                        self.__tensor_states[i] = (
-                            ts_next,
-                            new_calculated_tensor_next,
-                            (next_indices, next_values),
-                        )
-                        await self.__client.on_tensor_changed(
-                            new_calculated_tensor_next.clone(), ts_next
-                        )
-                    else:
-                        break
-
-    async def get_tensor_at_timestamp(
-        self, timestamp: datetime.datetime
-    ) -> Optional[torch.Tensor]:
-        async with self.__lock:
-            i = bisect.bisect_left(
-                self.__tensor_states, timestamp, key=lambda x: x[0]
-            )
-            if (
-                i != len(self.__tensor_states)
-                and self.__tensor_states[i][0] == timestamp
-            ):
-                return self.__tensor_states[i][1].clone()
-            return None
+    # Removed _cleanup_old_data and get_tensor_at_timestamp as per simplification plan
+    # If get_tensor_at_timestamp behavior needs to be "get current tensor if timestamp matches latest update",
+    # it would need to store the latest_chunk_timestamp and compare.
+    # For now, removing it simplifies to only maintaining the single reconstructed tensor.
