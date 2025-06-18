@@ -1,7 +1,8 @@
 """Defines the DefaultMultiprocessQueueFactory."""
 
 from multiprocessing import Queue as MpQueue
-from typing import Tuple, TypeVar, Generic
+from multiprocessing.managers import SyncManager
+from typing import Tuple, TypeVar, Generic, Optional, cast
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
@@ -26,17 +27,29 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
     The `create_queue` method returns a raw `multiprocessing.Queue`.
     """
 
+    def __init__(self, manager: Optional[SyncManager] = None) -> None:
+        super().__init__()
+        self.__manager = manager
+
     def create_queues(
         self,
     ) -> Tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
         """
         Creates a pair of standard multiprocessing queues wrapped in Sink/Source.
 
+        If a manager was provided during factory initialization, its Queue()
+        method is used; otherwise, a standard `multiprocessing.Queue` is created.
+
         Returns:
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
-            instances, both using a standard `multiprocessing.Queue` internally.
+            instances.
         """
-        std_queue: MpQueue[T] = MpQueue()
-        sink = MultiprocessQueueSink[T](std_queue)
-        source = MultiprocessQueueSource[T](std_queue)
+        actual_queue: MpQueue[T]
+        if self.__manager:
+            actual_queue = cast(MpQueue, self.__manager.Queue())
+        else:
+            actual_queue = MpQueue()
+
+        sink = MultiprocessQueueSink[T](actual_queue)
+        source = MultiprocessQueueSource[T](actual_queue)
         return sink, source
