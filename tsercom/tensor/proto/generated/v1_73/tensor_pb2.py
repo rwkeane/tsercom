@@ -18,7 +18,6 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-import tsercom.timesync.common.proto as time__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(

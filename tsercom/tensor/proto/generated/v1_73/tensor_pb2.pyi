@@ -33,19 +33,7 @@ class TensorChunk(google.protobuf.message.Message):
         starting_index: builtins.int = ...,
         data_bytes: builtins.bytes = ...,
     ) -> None: ...
-    def HasField(
-        self, field_name: typing.Literal["timestamp", b"timestamp"]
-    ) -> builtins.bool: ...
-    def ClearField(
-        self,
-        field_name: typing.Literal[
-            "data_bytes",
-            b"data_bytes",
-            "starting_index",
-            b"starting_index",
-            "timestamp",
-            b"timestamp",
-        ],
-    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["data_bytes", b"data_bytes", "starting_index", b"starting_index", "timestamp", b"timestamp"]) -> None: ...
 
 global___TensorChunk = TensorChunk
