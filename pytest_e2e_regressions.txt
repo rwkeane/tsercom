@@ -1,0 +1,59 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: timeout-2.4.0, asyncio-1.0.0, mock-3.14.1
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 28 items
+
+tsercom/runtime_e2etest.py ...............                               [ 53%]
+tsercom/rpc_e2etest.py .............                                     [100%]Task was destroyed but it is pending!
+task: <Task pending name='Task-71' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-46' coro=<RuntimeDataHandlerBase.__dispatch_poller_data_loop() running at /app/tsercom/runtime/runtime_data_handler_base.py:544> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-70' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-67' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-57' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-59' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-68' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-56' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-58' coro=<Event.wait() done, defined at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:199> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-73' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]> cb=[shield.<locals>._inner_done_callback() at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/tasks.py:905]>
+Task was destroyed but it is pending!
+task: <Task pending name='Task-74' coro=<Event.wait() running at /home/jules/.pyenv/versions/3.12.11/lib/python3.12/asyncio/locks.py:212> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+
+
+=============================== warnings summary ===============================
+tsercom/runtime_e2etest.py: 10 warnings
+  /home/jules/.pyenv/versions/3.12.11/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=5830) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+tsercom/rpc_e2etest.py: 11 warnings
+  /app/tsercom/rpc_e2etest.py:95: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    .not_valid_before(datetime.datetime.utcnow())
+
+tsercom/rpc_e2etest.py: 11 warnings
+  /app/tsercom/rpc_e2etest.py:97: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    datetime.datetime.utcnow() + datetime.timedelta(days=30)
+
+tsercom/rpc_e2etest.py: 15 warnings
+  /app/tsercom/rpc_e2etest.py:171: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    .not_valid_before(datetime.datetime.utcnow())
+
+tsercom/rpc_e2etest.py: 15 warnings
+  /app/tsercom/rpc_e2etest.py:173: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    datetime.datetime.utcnow() + datetime.timedelta(days=30)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 28 passed, 62 warnings in 56.14s =======================

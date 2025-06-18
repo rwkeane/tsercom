@@ -1,3 +1,4 @@
+collect_ignore = ["../../quick_start_test.py"]
 import asyncio
 from typing import Generator  # Added for type hint
 

@@ -1,0 +1,38 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: timeout-2.4.0, asyncio-1.0.0, mock-3.14.1
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 13 items
+
+tsercom/rpc_e2etest.py .............                                     [100%]
+
+=============================== warnings summary ===============================
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionCall' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionResponse' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+tsercom/rpc_e2etest.py: 11 warnings
+  /app/tsercom/rpc_e2etest.py:95: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    .not_valid_before(datetime.datetime.utcnow())
+
+tsercom/rpc_e2etest.py: 11 warnings
+  /app/tsercom/rpc_e2etest.py:97: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    datetime.datetime.utcnow() + datetime.timedelta(days=30)
+
+tsercom/rpc_e2etest.py: 15 warnings
+  /app/tsercom/rpc_e2etest.py:171: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    .not_valid_before(datetime.datetime.utcnow())
+
+tsercom/rpc_e2etest.py: 15 warnings
+  /app/tsercom/rpc_e2etest.py:173: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    datetime.datetime.utcnow() + datetime.timedelta(days=30)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 13 passed, 54 warnings in 36.01s =======================

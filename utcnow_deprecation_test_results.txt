@@ -1,0 +1,24 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: timeout-2.4.0, asyncio-1.0.0, mock-3.14.1
+timeout: 120.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 28 items
+
+tsercom/timesync/common/synchronized_timestamp_unittest.py ............. [ 46%]
+..                                                                       [ 53%]
+tsercom/rpc_e2etest.py .............                                     [100%]
+
+=============================== warnings summary ===============================
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionCall' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+.:0
+  :0: PytestCollectionWarning: cannot collect test class 'TestConnectionResponse' because it has a __init__ constructor (from: tsercom/rpc_e2etest.py)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 28 passed, 2 warnings in 35.36s ========================

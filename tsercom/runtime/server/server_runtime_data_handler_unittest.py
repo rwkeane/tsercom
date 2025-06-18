@@ -78,6 +78,8 @@ class TestServerRuntimeDataHandler:
     def mock_time_sync_server_instance(self, mocker):
         """Provides a mock TimeSyncServer instance with a nested mock clock."""
         mock_server = mocker.MagicMock(spec=TimeSyncServer)
+        # Override start_async to be a regular MagicMock
+        mock_server.start_async = mocker.MagicMock(return_value=True) # Simulate original return
         mock_server.get_synchronized_clock.return_value = mocker.MagicMock(
             spec=SynchronizedClock
         )
