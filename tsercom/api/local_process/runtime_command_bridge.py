@@ -66,7 +66,7 @@ class RuntimeCommandBridge:
                     pass  # Or raise an error, log, etc.
             self.__state.set(None)
 
-    def get_runtime(self) -> Optional[Runtime]:
+    def _get_runtime_for_test(self) -> Optional[Runtime]:
         """Returns the underlying Runtime instance, if set."""
         return self.__runtime
 

@@ -114,10 +114,10 @@ class RuntimeWrapper(
         """Provides the remote data aggregator."""
         return self._get_remote_data_aggregator()
 
-    def get_actual_runtime(
+    def _get_runtime_for_test(
         self,
-    ) -> Optional[Runtime]:  # Changed to non-generic Runtime
-        """Provides access to the actual underlying Runtime instance."""
+    ) -> Optional[Runtime]:  # Renamed method
+        """Provides access to the actual underlying Runtime instance (for testing)."""
         if self.__bridge:
-            return self.__bridge.get_runtime()
+            return self.__bridge._get_runtime_for_test()
         return None
