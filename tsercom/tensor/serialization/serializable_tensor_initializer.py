@@ -11,13 +11,28 @@ STI = TypeVar("STI", bound="SerializableTensorInitializer")
 
 
 class SerializableTensorInitializer:
+    """
+    Represents the complete initialization information for a tensor,
+    including its shape, data type, a default fill value, and an
+    optional initial set of data chunks.
+    """
+
     def __init__(
         self,
         shape: List[int],
-        dtype: str,  # Store as string e.g., "float32"
+        dtype: str,
         fill_value: float,
         initial_state: Optional[SerializableTensorUpdate] = None,
     ):
+        """
+        Initializes the tensor configuration.
+
+        Args:
+            shape: The full shape of the tensor (e.g., [10, 20]).
+            dtype: The data type of the tensor as a string (e.g., "float32", "int64").
+            fill_value: The default value to fill the tensor with upon creation.
+            initial_state: An optional SerializableTensorUpdate with initial data chunks.
+        """
         self._shape: List[int] = shape
         self._dtype_str: str = dtype
         self._fill_value: float = fill_value
@@ -29,7 +44,6 @@ class SerializableTensorInitializer:
 
     @property
     def dtype_str(self) -> str:
-        # Name changed to follow convention and avoid clash with 'dtype' as a type
         return self._dtype_str
 
     @property
@@ -41,7 +55,7 @@ class SerializableTensorInitializer:
         return self._initial_state
 
     def to_grpc_type(self) -> tensor_ops_pb2.TensorInitializer:
-        """Converts this object to its gRPC representation."""
+        """Converts this object to its gRPC protobuf representation."""
         grpc_initial_state: Optional[tensor_ops_pb2.TensorUpdate] = None
         if self._initial_state is not None:
             grpc_initial_state = self._initial_state.to_grpc_type()
@@ -57,7 +71,19 @@ class SerializableTensorInitializer:
     def try_parse(
         cls: Type[STI], grpc_msg: tensor_ops_pb2.TensorInitializer
     ) -> Optional[STI]:
-        """Attempts to parse a TensorInitializer protobuf message."""
+        """
+        Attempts to parse a TensorInitializer protobuf message.
+
+        The method maps the `dtype` string from the protobuf message to a
+        `torch.dtype`. This torch dtype is crucial for parsing any tensor
+        chunks present in the `initial_state`.
+
+        Returns:
+            An instance of SerializableTensorInitializer if successful.
+            Returns None if:
+            - The `dtype` string is unknown/unsupported and `initial_state` contains chunks.
+            - Parsing of `initial_state` (when present and containing chunks) fails.
+        """
         if not grpc_msg:
             return None
 
@@ -72,36 +98,27 @@ class SerializableTensorInitializer:
             "int32": torch.int32,
             "int64": torch.int64,
         }
-        parsed_torch_dtype = dtype_map.get(
-            grpc_msg.dtype.lower()
-        )  # Use lower() for case-insensitivity
+        parsed_torch_dtype = dtype_map.get(grpc_msg.dtype.lower())
 
         initial_state_parsed = None
         if grpc_msg.HasField("initial_state"):
-            # If initial_state has chunks, we MUST have a valid parsed_torch_dtype
             if grpc_msg.initial_state.chunks:
                 if parsed_torch_dtype is None:
-                    # Cannot parse chunks without a valid torch dtype
-                    # print(f"Error: Unknown or unsupported dtype string '{grpc_msg.dtype}' for initial_state with chunks.")
-                    return None
+                    return None  # Cannot parse chunks with unknown dtype
 
                 initial_state_parsed = SerializableTensorUpdate.try_parse(
                     grpc_msg.initial_state, dtype=parsed_torch_dtype
                 )
-                # If parsing failed (e.g. due to malformed chunks) even with a valid dtype
                 if initial_state_parsed is None:
-                    # print(f"Error: Failed to parse initial_state chunks for dtype '{grpc_msg.dtype}'.")
-                    return None
-            else:  # initial_state field is set, but it has no chunks
-                # Create an empty SerializableTensorUpdate. This doesn't depend on dtype.
+                    return None  # Chunk parsing within initial_state failed
+            else:
                 initial_state_parsed = SerializableTensorUpdate(chunks=[])
 
-        # Ensure shape is a Python list. grpc_msg.shape is a RepeatedScalarContainer.
         parsed_shape = list(grpc_msg.shape)
 
         return cls(
             shape=parsed_shape,
-            dtype=grpc_msg.dtype,  # Store the original string
+            dtype=grpc_msg.dtype,
             fill_value=grpc_msg.fill_value,
             initial_state=initial_state_parsed,
         )

@@ -126,7 +126,9 @@ def modify_generated_file(file_path: Path) -> None:
     # Additional specific replacements can be added here
     # For tensor_ops_pb2.py, ensure tensor_pb2 is imported relatively
     if file_path.name == "tensor_ops_pb2.py":
-        updates["import tensor_pb2 as tensor__pb2"] = "from . import tensor_pb2 as tensor__pb2"
+        updates["import tensor_pb2 as tensor__pb2"] = (
+            "from . import tensor_pb2 as tensor__pb2"
+        )
 
     if not file_path.exists():
         print(f"Warning: Generated file not found, cannot modify: {file_path}")

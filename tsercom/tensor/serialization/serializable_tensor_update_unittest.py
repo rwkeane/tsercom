@@ -1,4 +1,4 @@
-import datetime  # Add this import
+import datetime
 
 import pytest
 import torch
@@ -19,7 +19,6 @@ from tsercom.timesync.common.synchronized_timestamp import (
 def create_dummy_chunk(
     value: int, start_idx: int, dtype: torch.dtype = torch.float32
 ) -> SerializableTensorChunk:
-    # Create a 1-element tensor for simplicity in the chunk
     if dtype == torch.bool:
         tensor_val = bool(value)
     elif dtype.is_floating_point:
@@ -29,9 +28,7 @@ def create_dummy_chunk(
 
     tensor = torch.tensor([tensor_val], dtype=dtype)
 
-    # Create a datetime object for SynchronizedTimestamp.
-    # wall_time=123.456 can be converted to a datetime object.
-    # hardware_time is not directly used by SynchronizedTimestamp constructor.
+    # hardware_time from original test setup is not directly used by SynchronizedTimestamp constructor.
     dt_obj = datetime.datetime.fromtimestamp(123.456, tz=datetime.timezone.utc)
     timestamp = SynchronizedTimestamp(timestamp=dt_obj)
     return SerializableTensorChunk(
@@ -56,7 +53,7 @@ def common_dtype(request):
 
 def test_serializable_tensor_update_to_grpc_empty(
     common_dtype,
-):  # common_dtype not strictly needed here but fine
+):
     st_update = SerializableTensorUpdate(chunks=[])
     grpc_update = st_update.to_grpc_type()
     assert isinstance(grpc_update, tensor_ops_pb2.TensorUpdate)
@@ -77,9 +74,8 @@ def test_serializable_tensor_update_to_grpc_single_chunk(common_dtype):
 
 def test_serializable_tensor_update_to_grpc_multiple_chunks(common_dtype):
     chunk1 = create_dummy_chunk(20, 0, dtype=common_dtype)
-    chunk2 = create_dummy_chunk(
-        30, 1, dtype=common_dtype
-    )  # Assuming each element is a chunk for simplicity
+    # Using a different starting_index for the second chunk for clarity.
+    chunk2 = create_dummy_chunk(30, 1, dtype=common_dtype)
     st_update = SerializableTensorUpdate(chunks=[chunk1, chunk2])
     grpc_update = st_update.to_grpc_type()
 
@@ -101,9 +97,7 @@ def test_serializable_tensor_update_try_parse_empty(common_dtype):
 
 def test_serializable_tensor_update_try_parse_multiple_chunks(common_dtype):
     original_chunk1 = create_dummy_chunk(40, 0, dtype=common_dtype)
-    original_chunk2 = create_dummy_chunk(
-        50, 5, dtype=common_dtype
-    )  # Index 5 for the second chunk
+    original_chunk2 = create_dummy_chunk(50, 5, dtype=common_dtype)
 
     grpc_chunk1 = original_chunk1.to_grpc_type()
     grpc_chunk2 = original_chunk2.to_grpc_type()
@@ -127,7 +121,6 @@ def test_serializable_tensor_update_try_parse_multiple_chunks(common_dtype):
         if common_dtype.is_floating_point
         else torch.equal(parsed_c1.tensor, original_chunk1.tensor)
     )
-    # Compare SynchronizedTimestamp objects by comparing their .timestamp attribute (datetime object)
     assert parsed_c1.timestamp.timestamp == original_chunk1.timestamp.timestamp
 
     assert parsed_c2.starting_index == original_chunk2.starting_index
@@ -136,18 +129,15 @@ def test_serializable_tensor_update_try_parse_multiple_chunks(common_dtype):
         if common_dtype.is_floating_point
         else torch.equal(parsed_c2.tensor, original_chunk2.tensor)
     )
-    # Compare SynchronizedTimestamp objects by comparing their .timestamp attribute (datetime object)
     assert parsed_c2.timestamp.timestamp == original_chunk2.timestamp.timestamp
 
 
 def test_serializable_tensor_update_round_trip(common_dtype):
     # Use different values and indices for round trip
-    chunk1_val, chunk1_idx = (
-        (100, 0) if common_dtype != torch.bool else (1, 0)
-    )  # bool(100) is True
-    chunk2_val, chunk2_idx = (
-        (200, 10) if common_dtype != torch.bool else (0, 10)
-    )  # bool(200) is True, use 0 for False
+    chunk1_val = 100 if common_dtype != torch.bool else 1
+    chunk1_idx = 0
+    chunk2_val = 200 if common_dtype != torch.bool else 0
+    chunk2_idx = 10
 
     chunk1 = create_dummy_chunk(chunk1_val, chunk1_idx, dtype=common_dtype)
     chunk2 = create_dummy_chunk(chunk2_val, chunk2_idx, dtype=common_dtype)
@@ -170,7 +160,6 @@ def test_serializable_tensor_update_round_trip(common_dtype):
         else:
             assert torch.equal(parsed_chunk.tensor, original_chunk.tensor)
 
-        # Compare SynchronizedTimestamp objects by comparing their .timestamp attribute (datetime object)
         assert (
             parsed_chunk.timestamp.timestamp
             == original_chunk.timestamp.timestamp
