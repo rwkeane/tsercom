@@ -15,6 +15,9 @@ from typing import (
 
 import torch
 
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
 from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
 from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
     SparseTensorMultiplexer,
@@ -105,42 +108,43 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             self._publisher_start_index = publisher_start_index
             # self._publisher_info_index = publisher_info_index
 
-        async def on_index_update(
-            self, tensor_index: int, value: float, timestamp: datetime.datetime
+        async def on_chunk_update(
+            self, chunk: SerializableTensorChunk
         ) -> None:
             aggregator: Optional[AggregateTensorMultiplexer] = (
                 self._aggregator_ref()
             )
             if not aggregator:
-                # Aggregator has been garbage collected, nothing to do.
-                # This might happen if the AggregateTensorMultiplexer is deleted
-                # but an internal multiplexer or publisher still holds a reference
-                # to this internal client temporarily.
                 return
 
-            global_index = self._publisher_start_index + tensor_index
+            # Assuming incoming chunk.start_index is the local start index from the internal muxer
+            # and chunk.tensor is the actual torch.Tensor data.
+            # The chunk.timestamp is already a SynchronizedTimestamp.
+            global_start_index = (
+                self._publisher_start_index + chunk.start_index
+            )  # Use start_index from incoming chunk as per its typical def
 
-            # Forward the update to the main client of the AggregateTensorMultiplexer
-            await aggregator._client.on_index_update(
-                global_index, value, timestamp
+            global_chunk = SerializableTensorChunk(
+                start_index=global_start_index,  # Constructor for outgoing chunk
+                tensor=chunk.tensor,  # Pass the tensor object directly
+                timestamp=chunk.timestamp,  # Pass SynchronizedTimestamp directly
+                # tensor_id=chunk.tensor_id, # Optional
             )
+            await aggregator._client.on_chunk_update(global_chunk)
 
             # Update the AggregateTensorMultiplexer's own history
-            async with aggregator.lock:  # Use property
-                # Determine effective cleanup reference timestamp for the aggregator's history
-                # This should ideally be managed by a central processing loop in AggregateTensorMultiplexer
-                # but for now, we'll use the current timestamp for simplicity if no history exists.
-                current_max_ts_for_cleanup = timestamp
+            async with aggregator.lock:
+                # History stores datetime.datetime, so convert SynchronizedTimestamp
+                dt_timestamp = chunk.timestamp.as_datetime()
+
+                current_max_ts_for_cleanup = dt_timestamp
                 if (
-                    aggregator.history  # Use property
-                    and aggregator.history[-1][0]
-                    > current_max_ts_for_cleanup  # Use property
+                    aggregator.history
+                    and aggregator.history[-1][0] > current_max_ts_for_cleanup
                 ):
-                    current_max_ts_for_cleanup = aggregator.history[-1][
-                        0
-                    ]  # Use property
+                    current_max_ts_for_cleanup = aggregator.history[-1][0]
                 if (
-                    aggregator._latest_processed_timestamp  # This is specific to AggregateTensorMultiplexer
+                    aggregator._latest_processed_timestamp
                     and aggregator._latest_processed_timestamp
                     > current_max_ts_for_cleanup
                 ):
@@ -148,87 +152,82 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                         aggregator._latest_processed_timestamp
                     )
 
-                # It's important that _cleanup_old_data is called, but doing it here on every
-                # single index update might be inefficient. Typically, cleanup is done before
-                # processing a batch of updates or a new "external" tensor.
-                # For now, we'll assume it's handled by a higher level call or periodically.
-                aggregator._cleanup_old_data(  # This method will be updated to use self.history
-                    current_max_ts_for_cleanup
-                )  # Potentially deferred
+                aggregator._cleanup_old_data(current_max_ts_for_cleanup)
 
-                history_idx = aggregator._find_insertion_point(
-                    timestamp
-                )  # This method will be updated to use self.history
+                history_idx = aggregator._find_insertion_point(dt_timestamp)
                 current_tensor_state: Optional[torch.Tensor] = None
 
                 if (
-                    0 <= history_idx < len(aggregator.history)  # Use property
-                    and aggregator.history[history_idx][0]
-                    == timestamp  # Use property
+                    0 <= history_idx < len(aggregator.history)
+                    and aggregator.history[history_idx][0] == dt_timestamp
                 ):
-                    # Existing tensor for this timestamp, clone it
-                    current_tensor_state = aggregator.history[
-                        history_idx
-                    ][  # Use property
+                    current_tensor_state = aggregator.history[history_idx][
                         1
                     ].clone()
                 else:
-                    # No tensor for this timestamp, create a new one
-                    # Ensure aggregator._tensor_length is up-to-date
-                    if (
-                        aggregator._tensor_length > 0
-                    ):  # Should be set by add_to_aggregation
+                    if aggregator._tensor_length > 0:
                         current_tensor_state = torch.zeros(
                             aggregator._tensor_length, dtype=torch.float32
                         )
                     else:
-                        # Cannot create tensor if aggregate length is 0. This indicates an issue
-                        # with how add_to_aggregation sets _tensor_length or timing.
-                        # For robustness, we might skip history update or log an error.
-                        # Or, if global_index implies a size, use that, but that's risky.
-                        # This path should ideally not be hit if _tensor_length is managed correctly.
-                        print(
-                            f"Warning: AggregateTensorMultiplexer._tensor_length is {aggregator._tensor_length}. Cannot update history for global_index {global_index}."
+                        # Assuming chunk.tensor is 1D
+                        chunk_len = (
+                            chunk.tensor.shape[0]
+                            if chunk.tensor is not None
+                            else 0
                         )
-                        return
+                        if (
+                            global_start_index + chunk_len
+                            > aggregator._tensor_length
+                        ) and aggregator._tensor_length == 0:  # only print if it's due to agg tensor len being 0
+                            print(
+                                f"Warning: AggregateTensorMultiplexer._tensor_length is 0. Cannot update history for chunk at {global_start_index}."
+                            )
+                            return
+                        elif (
+                            global_start_index + chunk_len
+                            > aggregator._tensor_length
+                        ):
+                            print(
+                                f"Warning: Chunk ({global_start_index} to {global_start_index + chunk_len}) exceeds aggregate tensor length {aggregator._tensor_length}. History not updated."
+                            )
+                            return
 
-                if current_tensor_state is not None:
-                    if global_index < len(current_tensor_state):
-                        current_tensor_state[global_index] = value
+                if (
+                    current_tensor_state is not None
+                    and chunk.tensor is not None
+                ):
+                    chunk_len = chunk.tensor.shape[0]
+                    chunk_end_index = global_start_index + chunk_len
+                    if chunk_end_index <= len(current_tensor_state):
+                        current_tensor_state[
+                            global_start_index:chunk_end_index
+                        ] = chunk.tensor.to(dtype=current_tensor_state.dtype)
                     else:
-                        # This indicates a severe issue: global_index is out of bounds for the
-                        # supposed aggregate tensor length.
                         print(
-                            f"Error: global_index {global_index} is out of bounds for aggregate tensor length {len(current_tensor_state)} at timestamp {timestamp}."
+                            f"Error: Chunk tensor data (global {global_start_index}-{chunk_end_index}) out of bounds for tensor length {len(current_tensor_state)} at timestamp {dt_timestamp}."
                         )
-                        # Consider not proceeding with this update or raising an error.
                         return
 
-                    # Replace or insert the updated tensor snapshot back into aggregator.history
                     if (
-                        0
-                        <= history_idx
-                        < len(aggregator.history)  # Use property
-                        and aggregator.history[history_idx][0]
-                        == timestamp  # Use property
+                        0 <= history_idx < len(aggregator.history)
+                        and aggregator.history[history_idx][0] == dt_timestamp
                     ):
-                        aggregator.history[history_idx] = (  # Use property
-                            timestamp,
+                        aggregator.history[history_idx] = (
+                            dt_timestamp,
                             current_tensor_state,
                         )
                     else:
-                        # This case implies we created a new tensor, so insert it.
-                        # _find_insertion_point should give correct index for new timestamp.
-                        aggregator.history.insert(  # Use property
-                            history_idx, (timestamp, current_tensor_state)
+                        aggregator.history.insert(
+                            history_idx,
+                            (dt_timestamp, current_tensor_state),
                         )
 
-                # Update latest_processed_timestamp for the aggregator
-                if aggregator.history:  # Use property
-                    max_hist_ts = aggregator.history[-1][0]  # Use property
-                    potential_latest_ts = max(max_hist_ts, timestamp)
+                if aggregator.history:
+                    max_hist_ts = aggregator.history[-1][0]
+                    potential_latest_ts = max(max_hist_ts, dt_timestamp)
                 else:
-                    potential_latest_ts = timestamp
+                    potential_latest_ts = dt_timestamp
 
                 if (
                     aggregator._latest_processed_timestamp is None

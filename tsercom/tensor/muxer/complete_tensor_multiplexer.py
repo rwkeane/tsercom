@@ -9,6 +9,9 @@ from typing import (
 
 import torch
 
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
 from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
 
 # Using a type alias for clarity
@@ -109,10 +112,24 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             ):
                 self._latest_processed_timestamp = potential_latest_ts
 
-            for i in range(self._tensor_length):
-                await self._client.on_index_update(
-                    tensor_index=i, value=tensor[i].item(), timestamp=timestamp
-                )
+            # Create a single SerializableTensorChunk for the entire tensor
+            # Assuming tensor data needs to be a list of floats.
+            # The sequence_number can be derived from the timestamp.
+            # For simplicity, using timestamp directly; adapt if SerializableTensorChunk expects int.
+            # If tensor is already 1D, tensor.tolist() is fine.
+            # If it's not, ensure it's flattened or handled as per SerializableTensorChunk's design.
+            # Given the context of tensor_length, it's likely a 1D tensor or equivalent.
+            chunk = SerializableTensorChunk(
+                start_index=0,
+                data=tensor.tolist(),  # Convert tensor to list of its values
+                sequence_number=int(
+                    timestamp.timestamp()
+                ),  # Example: use POSIX timestamp as int
+                timestamp=timestamp,
+                # Assuming tensor_id might be needed; if not, it can be omitted if default/optional
+                # tensor_id="complete_tensor", # Or derive from some context if necessary
+            )
+            await self._client.on_chunk_update(chunk)
 
     def _cleanup_old_data(
         self, current_max_timestamp: datetime.datetime

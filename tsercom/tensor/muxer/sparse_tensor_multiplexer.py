@@ -9,6 +9,12 @@ from typing import (
 
 import torch
 
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)
 from tsercom.tensor.muxer.tensor_multiplexer import (
     TensorMultiplexer,
 )
@@ -91,22 +97,63 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             return torch.zeros(self._tensor_length, dtype=torch.float32)
         return self.history[idx_of_timestamp_entry - 1][1]
 
-    async def _emit_diff(
+    async def _emit_chunks(
         self,
         old_tensor: TensorHistoryValue,
         new_tensor: TensorHistoryValue,
         timestamp: datetime.datetime,
+        # sequence_number: int, # Removed sequence_number
     ) -> None:
         # Internal method, but calls async client method
-        if len(old_tensor) != len(new_tensor):
+        if len(old_tensor) != len(
+            new_tensor
+        ):  # Should not happen with current logic
+            return  # Or raise error
+
+        diff_indices = torch.where(old_tensor != new_tensor)[0].tolist()
+
+        if not diff_indices:
             return
-        diff_indices = torch.where(old_tensor != new_tensor)[0]
-        for index in diff_indices.tolist():
-            await self._client.on_index_update(
-                tensor_index=index,
-                value=new_tensor[index].item(),
-                timestamp=timestamp,
-            )
+
+        # diff_indices are already sorted from torch.where
+        # No need to sort again: diff_indices.sort()
+
+        if not diff_indices:
+            return
+
+        current_block_start_index = diff_indices[0]
+        current_block_last_index = diff_indices[0]
+
+        for i in range(1, len(diff_indices)):
+            idx = diff_indices[i]
+            if idx == current_block_last_index + 1:
+                current_block_last_index = idx
+            else:
+                # End of current block, create and send chunk
+                chunk_tensor_data = new_tensor[
+                    current_block_start_index : current_block_last_index + 1
+                ]
+                chunk = SerializableTensorChunk(
+                    start_index=current_block_start_index,
+                    tensor=chunk_tensor_data.clone(),  # Pass tensor slice
+                    timestamp=SynchronizedTimestamp(timestamp),
+                )
+                await self._client.on_chunk_update(chunk)
+
+                # Start a new block
+                current_block_start_index = idx
+                current_block_last_index = idx
+
+        # Send the last block
+        chunk_tensor_data = new_tensor[
+            current_block_start_index : current_block_last_index + 1
+        ]
+        chunk = SerializableTensorChunk(
+            start_index=current_block_start_index,
+            tensor=chunk_tensor_data.clone(),  # Pass tensor slice
+            timestamp=SynchronizedTimestamp(timestamp),
+        )
+        await self._client.on_chunk_update(chunk)
 
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
@@ -151,7 +198,12 @@ class SparseTensorMultiplexer(TensorMultiplexer):
                 base_for_update = self._get_tensor_state_before(
                     timestamp, current_insertion_point=insertion_point
                 )
-                await self._emit_diff(base_for_update, tensor, timestamp)
+                await self._emit_chunks(
+                    base_for_update,
+                    tensor,
+                    timestamp,
+                    # Removed int(timestamp.timestamp())
+                )
                 needs_full_cascade_re_emission = True
                 idx_of_change = insertion_point
             else:
@@ -161,7 +213,12 @@ class SparseTensorMultiplexer(TensorMultiplexer):
                 base_tensor_for_diff = self._get_tensor_state_before(
                     timestamp, current_insertion_point=insertion_point
                 )
-                await self._emit_diff(base_tensor_for_diff, tensor, timestamp)
+                await self._emit_chunks(
+                    base_tensor_for_diff,
+                    tensor,
+                    timestamp,
+                    # Removed int(timestamp.timestamp())
+                )
                 idx_of_change = insertion_point
                 if idx_of_change < len(self.history) - 1:
                     needs_full_cascade_re_emission = True
@@ -187,10 +244,11 @@ class SparseTensorMultiplexer(TensorMultiplexer):
                     _, tensor_predecessor_for_cascade = self.history[
                         i - 1
                     ]  # Use property
-                    await self._emit_diff(
+                    await self._emit_chunks(
                         tensor_predecessor_for_cascade,
                         tensor_current_in_cascade,
                         ts_current_in_cascade,
+                        # Removed int(ts_current_in_cascade.timestamp())
                     )
 
     # get_tensor_at_timestamp is inherited from TensorMultiplexer base class
