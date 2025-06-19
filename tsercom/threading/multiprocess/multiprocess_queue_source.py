@@ -11,7 +11,7 @@ from multiprocessing import Queue as MpQueue
 from queue import (
     Empty,
 )  # Exception for non-blocking get on empty queue.
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Any, cast
 
 # Type variable for the generic type of items in the queue.
 QueueTypeT = TypeVar("QueueTypeT")
@@ -25,14 +25,15 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
     Handles getting items; generic for queues of any specific type.
     """
 
-    def __init__(self, queue: "MpQueue[QueueTypeT]") -> None:
+    def __init__(self, queue: Any) -> None:
         """
         Initializes with a given multiprocessing queue.
 
         Args:
-            queue: The multiprocessing queue to be used as source.
+            queue: The multiprocessing queue (or a compatible proxy)
+                   to be used as source.
         """
-        self.__queue: "MpQueue[QueueTypeT]" = queue
+        self.__queue: Any = queue
 
     def get_blocking(self, timeout: float | None = None) -> QueueTypeT | None:
         """
@@ -49,7 +50,8 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
                                   or `EOFError`/`OSError` if queue broken.
         """
         try:
-            return self.__queue.get(block=True, timeout=timeout)
+            actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+            return actual_q.get(block=True, timeout=timeout)
         except Empty:  # Catches timeout for multiprocessing.Queue.get().
             return None
         # Other exceptions (EOFError, OSError) indicate severe queue issues.
@@ -66,7 +68,8 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
                                   if queue is broken.
         """
         try:
-            return self.__queue.get_nowait()
+            actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+            return actual_q.get_nowait()
         except Empty:  # Queue is empty.
             return None
         # Other exceptions (EOFError, OSError) are not caught here.
@@ -80,13 +83,20 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
         `join_thread()` waits for the background feeder thread to terminate,
         which ensures that all data in the buffer has been flushed to the pipe.
         """
-        self.__queue.close()
+        actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+        # Manager queue proxies might use _close() instead of close()
+        if hasattr(actual_q, "_close") and callable(actual_q._close):
+            actual_q._close()
+        elif hasattr(actual_q, "close") and callable(actual_q.close):
+            actual_q.close()
+        # If neither, this might be an issue or a different type of queue.
+
         # It's good practice to join the thread for source queues
         # to ensure all buffered items are processed or flushed.
         if hasattr(
-            self.__queue, "join_thread"
+            actual_q, "join_thread"
         ):  # join_thread is specific to mp.Queue
-            self.__queue.join_thread()
+            actual_q.join_thread()
 
     @property
     def closed(self) -> bool:
@@ -103,17 +113,19 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
         """
         Returns True if the queue is empty, False otherwise.
         """
-        return self.__queue.empty()
+        actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+        return actual_q.empty()
 
     def __len__(self) -> int:
         """
         Returns the approximate number of items in the queue.
         """
-        return self.__queue.qsize()
+        actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+        return actual_q.qsize()
 
     @property
     def underlying_queue(self) -> "MpQueue[QueueTypeT]":
         """
         Provides access to the underlying multiprocessing.Queue instance.
         """
-        return self.__queue
+        return cast("MpQueue[QueueTypeT]", self.__queue)

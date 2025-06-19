@@ -11,7 +11,7 @@ from multiprocessing import Queue as MpQueue
 from queue import (
     Full,
 )  # Exception for non-blocking put on full queue.
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Any, cast
 
 # Type variable for the generic type of items in the queue.
 QueueTypeT = TypeVar("QueueTypeT")
@@ -25,14 +25,15 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
     Handles putting items; generic for queues of any specific type.
     """
 
-    def __init__(self, queue: "MpQueue[QueueTypeT]") -> None:
+    def __init__(self, queue: Any) -> None:
         """
         Initializes with a given multiprocessing queue.
 
         Args:
-            queue: The multiprocessing queue to be used as the sink.
+            queue: The multiprocessing queue (or a compatible proxy)
+                   to be used as the sink.
         """
-        self.__queue: "MpQueue[QueueTypeT]" = queue
+        self.__queue: Any = queue
 
     def put_blocking(
         self, obj: QueueTypeT, timeout: float | None = None
@@ -50,7 +51,8 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
             (queue remained full).
         """
         try:
-            self.__queue.put(obj, block=True, timeout=timeout)
+            actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+            actual_q.put(obj, block=True, timeout=timeout)
             return True
         except Full:  # Timeout occurred and queue is still full.
             return False
@@ -68,7 +70,8 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
             True if item put successfully, False if queue currently full.
         """
         try:
-            self.__queue.put_nowait(obj)
+            actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+            actual_q.put_nowait(obj)
             return True
         except Full:  # Queue is full.
             return False
@@ -81,7 +84,13 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
         put on this queue by this process. The queue will be flushed and
         the background thread will exit when all data is consumed.
         """
-        self.__queue.close()
+        actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+        # Manager queue proxies might use _close() instead of close()
+        if hasattr(actual_q, "_close") and callable(actual_q._close):
+            actual_q._close()
+        elif hasattr(actual_q, "close") and callable(actual_q.close):
+            actual_q.close()
+        # If neither, this might be an issue or a different type of queue.
 
     @property
     def closed(self) -> bool:
@@ -101,17 +110,19 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
         """
         Returns True if the queue is empty, False otherwise.
         """
-        return self.__queue.empty()
+        actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+        return actual_q.empty()
 
     def __len__(self) -> int:
         """
         Returns the approximate number of items in the queue.
         """
-        return self.__queue.qsize()
+        actual_q = cast("MpQueue[QueueTypeT]", self.__queue)
+        return actual_q.qsize()
 
     @property
     def underlying_queue(self) -> "MpQueue[QueueTypeT]":
         """
         Provides access to the underlying multiprocessing.Queue instance.
         """
-        return self.__queue
+        return cast("MpQueue[QueueTypeT]", self.__queue)
