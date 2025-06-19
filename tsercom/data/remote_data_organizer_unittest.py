@@ -217,9 +217,7 @@ def test_on_data_ready_impl_adds_to_empty_deque_and_notifies_client(  # Name nee
     organizer, mock_is_running_tracker, mock_caller_id, mock_client
 ):
     mock_is_running_tracker.get.return_value = True
-    data = create_data(
-        mock_caller_id, datetime.datetime.now(), data_val=1
-    )
+    data = create_data(mock_caller_id, datetime.datetime.now(), data_val=1)
     organizer._RemoteDataOrganizer__on_data_ready_impl(data)
     assert len(organizer._RemoteDataOrganizer__data) == 1
     assert organizer._RemoteDataOrganizer__data[0] == data
@@ -252,9 +250,7 @@ def test_on_data_ready_impl_ignores_older_data(
 ):
     mock_is_running_tracker.get.return_value = True
     ts_now = datetime.datetime.now()
-    data_current_first = create_data(
-        mock_caller_id, ts_now, data_val=1
-    )
+    data_current_first = create_data(mock_caller_id, ts_now, data_val=1)
     data_older = create_data(
         mock_caller_id, ts_now - datetime.timedelta(seconds=10), data_val=2
     )
@@ -276,9 +272,7 @@ def test_on_data_ready_impl_replaces_data_with_same_timestamp(
     mock_is_running_tracker.get.return_value = True
     ts_now = datetime.datetime.now()
     data_initial = create_data(mock_caller_id, ts_now, data_val=1)
-    data_replacement = create_data(
-        mock_caller_id, ts_now, data_val=2
-    )
+    data_replacement = create_data(mock_caller_id, ts_now, data_val=2)
 
     organizer._RemoteDataOrganizer__on_data_ready_impl(data_initial)
     mock_client.reset_mock()
@@ -286,9 +280,7 @@ def test_on_data_ready_impl_replaces_data_with_same_timestamp(
 
     assert len(organizer._RemoteDataOrganizer__data) == 1
     assert organizer._RemoteDataOrganizer__data[0] == data_replacement
-    assert (
-        organizer._RemoteDataOrganizer__data[0].data == 2
-    )
+    assert organizer._RemoteDataOrganizer__data[0].data == 2
     mock_client._on_data_available.assert_called_once_with(organizer)
 
 
@@ -315,9 +307,7 @@ def test_has_new_data_all_accessed(organizer, mock_caller_id):
     data_old = create_data(
         mock_caller_id, ts_now - datetime.timedelta(seconds=1)
     )
-    organizer._RemoteDataOrganizer__data.add(
-        data_old
-    )
+    organizer._RemoteDataOrganizer__data.add(data_old)
     assert organizer.has_new_data() is False
 
 
@@ -327,9 +317,7 @@ def test_has_new_data_new_available(organizer, mock_caller_id):
         seconds=1
     )
     data_new = create_data(mock_caller_id, ts_now)
-    organizer._RemoteDataOrganizer__data.add(
-        data_new
-    )
+    organizer._RemoteDataOrganizer__data.add(data_new)
     assert organizer.has_new_data() is True
 
 
@@ -368,9 +356,7 @@ def test_get_most_recent_data_empty(organizer):
 def test_get_most_recent_data_returns_first_item(
     organizer, mock_caller_id
 ):  # Name needs update
-    data1 = create_data(
-        mock_caller_id, datetime.datetime.now(), data_val=1
-    )
+    data1 = create_data(mock_caller_id, datetime.datetime.now(), data_val=1)
     data2 = create_data(
         mock_caller_id,
         datetime.datetime.now() + datetime.timedelta(seconds=1),
@@ -500,9 +486,7 @@ def test_on_triggered_partial_call_integration(
     ts_to_timeout = current_time_mock_val - datetime.timedelta(seconds=11)
     data_to_timeout = create_data(mock_caller_id, ts_to_timeout)
 
-    organizer._RemoteDataOrganizer__data.add(
-        data_to_timeout
-    )
+    organizer._RemoteDataOrganizer__data.add(data_to_timeout)
     assert len(organizer._RemoteDataOrganizer__data) == 1
 
     organizer._on_triggered(timeout_seconds)
@@ -628,9 +612,7 @@ def test_on_data_ready_impl_callback_for_new_or_same_timestamp_data(
     mock_client._on_data_available.assert_called_once_with(organizer)
     mock_client.reset_mock()
 
-    data_t2_updated = create_data(
-        mock_caller_id, data_t2_ts, data_val=3
-    )
+    data_t2_updated = create_data(mock_caller_id, data_t2_ts, data_val=3)
     organizer._RemoteDataOrganizer__on_data_ready_impl(data_t2_updated)
     mock_client._on_data_available.assert_called_once_with(
         organizer
@@ -806,9 +788,7 @@ def test_out_of_order_data_with_duplicate_timestamps_inserted_among_existing(
     data_t30b = create_data(mock_caller_id, t30, data_val=302)
     data_t50 = create_data(mock_caller_id, t50, data_val=50)
     data_t50_replace = create_data(mock_caller_id, t50, data_val=500)
-    data_t100 = create_data(
-        mock_caller_id, t100, data_val=100
-    )
+    data_t100 = create_data(mock_caller_id, t100, data_val=100)
 
     organizer._RemoteDataOrganizer__on_data_ready_impl(data_t10)
     organizer._RemoteDataOrganizer__on_data_ready_impl(data_t50)
