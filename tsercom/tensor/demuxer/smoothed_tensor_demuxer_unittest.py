@@ -150,7 +150,6 @@ async def test_linear_interpolation_over_time(
         dt = current_time_mock[0]
         return dt.replace(tzinfo=tz) if tz and dt.tzinfo is None else dt
 
-    # Ensure to use the mangled name for mocking if methods are private
     mocker.patch.object(
         smoothed_demuxer,
         "_SmoothedTensorDemuxer__get_current_utc_timestamp",
@@ -172,10 +171,7 @@ async def test_linear_interpolation_over_time(
     kf1_t = start_time + timedelta(seconds=0)  # T0
     kf2_t = start_time + timedelta(seconds=0.2)  # T0 + 200ms
 
-    # 1D tensors for parent history (matching shape (2,2) -> length 4)
-    # Frame 1 @ kf1_t: (0,0)=10, (1,1)=100, others 0
     frame1_1d = torch.tensor([10.0, 0.0, 0.0, 100.0])
-    # Frame 2 @ kf2_t: (0,0)=30, (1,1)=200, others 0
     frame2_1d = torch.tensor([30.0, 0.0, 0.0, 200.0])
 
     parent_history = getattr(smoothed_demuxer, "_processed_keyframes", None)
@@ -189,9 +185,9 @@ async def test_linear_interpolation_over_time(
     target_push_time1 = start_time + timedelta(seconds=0.1)
     current_time_mock[0] = target_push_time1
 
-    await smoothed_demuxer._SmoothedTensorDemuxer__on_keyframe_updated(
+    await smoothed_demuxer._on_keyframe_updated(
         target_push_time1, torch.empty(0)
-    )
+    )  # Corrected call
 
     assert len(mock_output_client.calls) >= 1, "No tensor pushed to client"
     pushed_tensor1, pushed_ts1 = mock_output_client.calls[0]
@@ -205,9 +201,9 @@ async def test_linear_interpolation_over_time(
     mock_output_client.clear_calls()
     target_push_time2 = start_time + timedelta(seconds=0.3)
     current_time_mock[0] = target_push_time2
-    await smoothed_demuxer._SmoothedTensorDemuxer__on_keyframe_updated(
+    await smoothed_demuxer._on_keyframe_updated(
         target_push_time2, torch.empty(0)
-    )
+    )  # Corrected call
 
     assert len(mock_output_client.calls) >= 1, "No second tensor pushed"
     pushed_tensor2, pushed_ts2 = mock_output_client.calls[0]
@@ -283,9 +279,9 @@ async def test_fill_value_and_partial_interpolation(
 
     target_push_time = start_time + timedelta(seconds=0.1)
     current_time_mock[0] = target_push_time
-    await demuxer._SmoothedTensorDemuxer__on_keyframe_updated(
+    await demuxer._on_keyframe_updated(
         target_push_time, torch.empty(0)
-    )
+    )  # Corrected call
 
     assert len(mock_output_client.calls) >= 1
     pushed_tensor, _ = mock_output_client.calls[0]
@@ -297,7 +293,7 @@ async def test_fill_value_and_partial_interpolation(
     expected_val_0_1 = (
         (500.0 + fill_val) / 2.0 if not math.isnan(fill_val) else float("nan")
     )
-    if math.isnan(expected_val_0_1):  # Handles if fill_val is nan
+    if math.isnan(expected_val_0_1):
         assert torch.isnan(pushed_tensor[0, 1]).item()
     else:
         assert pushed_tensor[0, 1].item() == pytest.approx(expected_val_0_1)
@@ -341,11 +337,11 @@ async def test_keyframe_history_limit_for_nd_frames_functional(
     parent_history = getattr(demuxer, "_processed_keyframes")
     if parent_history is None:
         parent_history = []
-    parent_history.clear()  # Start with clean parent history for this test
+    parent_history.clear()
 
     num_frames_to_send = 12
     sent_keyframes_t = []
-    sent_keyframes_v_1d = []  # Store 1D tensors as they would be in parent
+    sent_keyframes_v_1d = []
     empty_explicits = (
         torch.empty(0, dtype=torch.int64),
         torch.empty(0, dtype=torch.float32),
@@ -354,32 +350,21 @@ async def test_keyframe_history_limit_for_nd_frames_functional(
     for i in range(num_frames_to_send):
         ts = start_time + timedelta(seconds=i * 0.1)
         val = float(10 * (i + 1))
-        # Simulate how parent would store it (as 1D)
-        frame_1d = torch.tensor(
-            [val], dtype=torch.float32
-        )  # Shape (1,1) -> 1D is [val]
+        frame_1d = torch.tensor([val], dtype=torch.float32)
         parent_history.append((ts, frame_1d, empty_explicits))
         sent_keyframes_t.append(ts)
         sent_keyframes_v_1d.append(frame_1d)
 
-    # Manually trigger the hook that uses this history
-    # The SUT's MAX_ND_KEYFRAME_HISTORY is 10. Parent's _processed_keyframes can be longer.
-    # SmoothedTensorDemuxer's __internal_nd_keyframes deque (if it were still used) would be limited.
-    # But now it reads directly from parent and reshapes.
-    # The test needs to check if the interpolation correctly uses the *latest* relevant data from parent.
-    # The parent's _processed_keyframes itself is not pruned by MAX_ND_KEYFRAME_HISTORY.
-    # Pruning now happens in base TensorDemuxer via data_timeout_seconds.
-
-    # This test should verify that interpolation uses the correct window from parent_history.
-    # The current SUT's _try_interpolate_and_push takes `list(super()._processed_keyframes)`.
-    # So it will use all 12 frames from parent if they are not timed out by parent's own mechanism.
-    # This test might not be testing MAX_ND_KEYFRAME_HISTORY effectively anymore as that constant
-    # is for the deque that was removed.
+    # The parent's _processed_keyframes is not pruned by MAX_ND_KEYFRAME_HISTORY in SmoothedTensorDemuxer
+    # It's pruned by its own data_timeout_seconds.
+    # This test will show interpolation over all 12 frames if they haven't timed out from parent.
+    # For this test to be meaningful for history LIMIT, we'd need to configure parent's timeout
+    # or assert based on the full history it provides.
+    # The SUT's MAX_ND_KEYFRAME_HISTORY constant is actually NOT used anymore.
 
     # Let's verify interpolation with the last few frames from the 12 available.
-    # Example: interpolate at a time between the 11th and 12th frame.
-    ts_11th = sent_keyframes_t[-2]  # 11th frame time
-    ts_12th = sent_keyframes_t[-1]  # 12th frame time
+    ts_11th = sent_keyframes_t[-2]
+    ts_12th = sent_keyframes_t[-1]
     val_11th = sent_keyframes_v_1d[-2].item()
     val_12th = sent_keyframes_v_1d[-1].item()
 
@@ -392,15 +377,13 @@ async def test_keyframe_history_limit_for_nd_frames_functional(
         target_push_time - timedelta(seconds=demuxer.output_interval_seconds),
     )
 
-    # Trigger with a dummy/latest update
-    await demuxer._SmoothedTensorDemuxer__on_keyframe_updated(
+    await demuxer._on_keyframe_updated(
         target_push_time, torch.empty(0)
-    )
+    )  # Corrected call
 
     assert len(mock_output_client.calls) >= 1
     pushed_tensor = mock_output_client.last_pushed_tensor
     assert pushed_tensor is not None
-    # Expected value is interpolation between val_11th and val_12th
     assert pushed_tensor[0, 0].item() == pytest.approx(
         (val_11th + val_12th) / 2.0
     )
