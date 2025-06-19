@@ -88,6 +88,7 @@ But if you use this library, pleae submit a PR to add a link to your library her
 
 ## Dependencies
 
+- `sortedcontainers`: Used for its `SortedList` data structure, which provides efficient (`O(log n)`) insertions, deletions, and lookups while maintaining sort order. This is crucial for performance in organizing time-series data and enabling features like interpolation.
 Tsercom relies on several key libraries:
 
 *   `sortedcontainers`
