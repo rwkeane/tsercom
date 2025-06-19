@@ -1,14 +1,13 @@
 """Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
 
-import bisect
 import datetime
 import logging
 import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from typing import Deque, Generic, List, Optional, TypeVar
-
+from typing import Generic, List, Optional, TypeVar  # Callable, Deque removed
+from sortedcontainers import SortedList
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
@@ -16,8 +15,7 @@ from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
-
-logger = logging.getLogger(__name__)  # Initialize logger
+logger = logging.getLogger(__name__)
 
 
 class RemoteDataOrganizer(
@@ -33,7 +31,6 @@ class RemoteDataOrganizer(
     new data becomes available.
     """
 
-    # pylint: disable=R0903 # Abstract listener interface
     class Client(ABC):
         """Interface for clients that need to be notified by `RemoteDataOrganizer`."""
 
@@ -67,20 +64,14 @@ class RemoteDataOrganizer(
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__caller_id: CallerIdentifier = caller_id
         self.__client: Optional[RemoteDataOrganizer.Client] = client
-
-        # Thread lock to protect access to __data and __last_access.
         self.__data_lock: threading.Lock = threading.Lock()
-
-        # Deque to store received data, ordered by timestamp (most recent first).
-        self.__data: Deque[DataTypeT] = Deque[DataTypeT]()
-
-        # Timestamp of the most recent data item retrieved via get_new_data().
+        self.__data: "SortedList[DataTypeT]" = SortedList(
+            key=lambda item: item.timestamp
+        )
         self.__last_access: datetime.datetime = datetime.datetime.min.replace(
             tzinfo=datetime.timezone.utc
         )
-
         self.__is_running: IsRunningTracker = IsRunningTracker()
-
         super().__init__()
 
     @property
@@ -124,14 +115,12 @@ class RemoteDataOrganizer(
         with self.__data_lock:
             if not self.__data:
                 return False
-
-            most_recent_timestamp = self.__data[0].timestamp
+            most_recent_timestamp = self.__data[-1].timestamp
             last_access_timestamp = self.__last_access
             result = most_recent_timestamp > last_access_timestamp
+            return result  # type: ignore[no-any-return]
 
-            return result
-
-    def get_new_data(self) -> List[DataTypeT]:  # Corrected Python type hint
+    def get_new_data(self) -> List[DataTypeT]:
         """Retrieves all data items received since the last call to this method.
 
         Updates the internal "last access" timestamp to the timestamp of the
@@ -142,20 +131,17 @@ class RemoteDataOrganizer(
             Returns an empty list if no new data is available.
         """
         with self.__data_lock:
-            results: List[DataTypeT] = []  # Corrected Python type hint
+            results: List[DataTypeT] = []
             if not self.__data:
                 return results
-
-            for _item_idx, item in enumerate(self.__data):  # Renamed item_idx
+            for item in reversed(self.__data):
                 if item.timestamp > self.__last_access:
                     results.append(item)
                 else:
                     break
-
             if results:
                 new_last_access = results[0].timestamp
                 self.__last_access = new_last_access
-
             return results
 
     def get_most_recent_data(self) -> Optional[DataTypeT]:
@@ -167,8 +153,7 @@ class RemoteDataOrganizer(
         with self.__data_lock:
             if not self.__data:
                 return None
-            # The leftmost item in the deque is the most recent.
-            return self.__data[0]
+            return self.__data[-1]  # type: ignore[no-any-return]
 
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
@@ -186,20 +171,74 @@ class RemoteDataOrganizer(
         with self.__data_lock:
             if not self.__data:
                 return None
-
-            # If the requested timestamp is older than the oldest data we have,
-            # then no data at or before that timestamp exists.
-            if timestamp < self.__data[-1].timestamp:
+            if timestamp < self.__data[0].timestamp:
                 return None
+            if timestamp >= self.__data[-1].timestamp:
+                return self.__data[-1]  # type: ignore[no-any-return]
+            # bisect_key_right uses the SortedList's configured key (item.timestamp)
+            idx = self.__data.bisect_key_right(timestamp)
+            if idx > 0:
+                return self.__data[idx - 1]  # type: ignore[no-any-return]
+            return None
 
-            for item in self.__data:
-                if (
-                    item.timestamp <= timestamp
-                ):  # Found the most recent item at or before the timestamp
-                    return item
-        # Should not be reached if timestamp >= __data[-1].timestamp and __data is not empty,
-        # but as a fallback or if logic changes, return None.
-        return None
+    def get_interpolated_at(
+        self, timestamp: datetime.datetime
+    ) -> Optional[DataTypeT]:
+        """Gets a linearly interpolated data value for the given timestamp.
+
+        Args:
+            timestamp: The datetime timestamp to get the interpolated data for.
+
+        Returns:
+            The interpolated data of type DataTypeT if successful,
+            or None if interpolation is not possible (e.g., timestamp is
+            outside the range of existing data, or data is not available).
+            If the timestamp matches an existing keyframe, its data is returned.
+        """
+        # Access the SortedList directly using self.__data
+        if not self.__data:
+            return None
+        idx = self.__data.bisect_key_left(timestamp)
+        if idx < len(self.__data) and self.__data[idx].timestamp == timestamp:
+            return self.__data[idx]  # type: ignore[no-any-return]
+        if idx == 0:
+            return None
+        if idx == len(self.__data):
+            return None
+        p1 = self.__data[idx - 1]
+        p2 = self.__data[idx]
+        t1_dt = p1.timestamp
+        t2_dt = p2.timestamp
+        t1_float = t1_dt.timestamp()
+        t2_float = t2_dt.timestamp()
+        target_t_float = timestamp.timestamp()
+        if t1_float == t2_float:
+            return p1  # type: ignore[no-any-return]
+        val1 = getattr(p1, "value", p1)
+        val2 = getattr(p2, "value", p2)
+        if not (
+            isinstance(val1, (int, float)) and isinstance(val2, (int, float))
+        ):
+            return None
+        interpolated_numeric_value = val1 + (target_t_float - t1_float) * (
+            val2 - val1
+        ) / (t2_float - t1_float)
+        if val1 is p1:
+            return interpolated_numeric_value  # type: ignore[no-any-return]
+        else:
+            try:
+                if hasattr(p1, "replace") and callable(getattr(p1, "replace")):
+                    return p1.replace(  # type: ignore[no-any-return]
+                        value=interpolated_numeric_value, timestamp=timestamp
+                    )
+                elif callable(type(p1)):
+                    return type(p1)(  # type: ignore[no-any-return]
+                        value=interpolated_numeric_value, timestamp=timestamp
+                    )
+                else:
+                    return None
+            except Exception:
+                return None
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
         """Handles an incoming data item.
@@ -219,8 +258,6 @@ class RemoteDataOrganizer(
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
             )
-
-        # Ensure the data belongs to this organizer.
         assert (
             new_data.caller_id == self.caller_id
         ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
@@ -236,41 +273,23 @@ class RemoteDataOrganizer(
         Args:
             new_data: The `DataTypeT` item to process.
         """
-        # Do not process data if the organizer is not running.
         if not self.__is_running.get():
             return
-
-        data_inserted_or_updated = False
+        data_processed = False
         with self.__data_lock:
-            if not self.__data:
-                self.__data.append(new_data)
-                data_inserted_or_updated = True
-            elif new_data.timestamp >= self.__data[0].timestamp:
-                if new_data.timestamp == self.__data[0].timestamp:
-                    self.__data[0] = (
-                        new_data  # Update existing entry with same timestamp
-                    )
-                else:  # new_data.timestamp > self.__data[0].timestamp
-                    self.__data.appendleft(new_data)
-                data_inserted_or_updated = True
-            else:  # Incoming data is older than the current newest (out-of-order)
-                timestamps_ascending = [
-                    d.timestamp for d in reversed(self.__data)
-                ]
-                insertion_idx_ascending = bisect.bisect_right(
-                    timestamps_ascending, new_data.timestamp
-                )
-                # The deque `self.__data` is ordered most-recent-first (descending timestamps).
-                # `bisect_right` gives an index for an ascending list.
-                # So, `len - idx` converts to an index suitable for `insert()` into our descending deque.
-                deque_index = len(self.__data) - insertion_idx_ascending
-                self.__data.insert(deque_index, new_data)
-                # Design choice: Do not notify clients for historical (out-of-order) data insertions.
-                # To enable notification for such cases, set data_inserted_or_updated = True here.
-                data_inserted_or_updated = False
-
-        if data_inserted_or_updated and self.__client is not None:
-            # pylint: disable=W0212 # Calling listener's notification method
+            items_to_remove = [
+                item
+                for item in self.__data
+                if item.timestamp == new_data.timestamp
+            ]
+            if items_to_remove:
+                for item in items_to_remove:
+                    self.__data.discard(item)
+                data_processed = True
+            self.__data.add(new_data)
+            if not data_processed:
+                data_processed = True
+        if data_processed and self.__client is not None:
             self.__client._on_data_available(self)
 
     def _on_triggered(self, timeout_seconds: int) -> None:
@@ -297,17 +316,14 @@ class RemoteDataOrganizer(
             timeout_seconds: The timeout duration in seconds. Data older than
                              `now - timeout_seconds` will be removed.
         """
-        # Do not timeout data if the organizer is not running.
         if not self.__is_running.get():
             return
-
         current_time = datetime.datetime.now()
         timeout_delta = datetime.timedelta(seconds=timeout_seconds)
         oldest_allowed_timestamp = current_time - timeout_delta
-
         with self.__data_lock:
             while (
                 self.__data
-                and self.__data[-1].timestamp < oldest_allowed_timestamp
+                and self.__data[0].timestamp < oldest_allowed_timestamp
             ):
-                self.__data.pop()
+                self.__data.pop(0)

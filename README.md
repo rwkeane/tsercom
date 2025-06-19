@@ -97,6 +97,7 @@ Tsercom relies on several key libraries:
 *   `psutil`: For system utilities, which can be used internally for process management or monitoring.
 *   `grpcio-health-checking`: For gRPC health checking services.
 *   `typing-extensions`: Provides access to newer typing features for older Python versions.
+*   `sortedcontainers`: For maintaining sorted collections efficiently.
 
 **Optional Dependencies:**
 
