@@ -16,6 +16,9 @@ from tsercom.tensor.muxer.complete_tensor_multiplexer import (
 from tsercom.tensor.muxer.tensor_multiplexer import (
     TensorMultiplexer,
 )
+from tsercom.timesync.common.fake_synchronized_clock import (
+    FakeSynchronizedClock,
+)
 
 # Timestamps for testing
 T_BASE = datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
@@ -68,8 +71,12 @@ def mock_client() -> MockCompleteTensorMultiplexerClient:
 def multiplexer(
     mock_client: MockCompleteTensorMultiplexerClient,
 ) -> CompleteTensorMultiplexer:
+    fake_clock = FakeSynchronizedClock()
     return CompleteTensorMultiplexer(
-        client=mock_client, tensor_length=5, data_timeout_seconds=60.0
+        client=mock_client,
+        tensor_length=5,
+        clock=fake_clock,
+        data_timeout_seconds=60.0,
     )
 
 
@@ -77,8 +84,12 @@ def multiplexer(
 def multiplexer_short_timeout(
     mock_client: MockCompleteTensorMultiplexerClient,
 ) -> CompleteTensorMultiplexer:
+    fake_clock = FakeSynchronizedClock()
     return CompleteTensorMultiplexer(
-        client=mock_client, tensor_length=5, data_timeout_seconds=0.1
+        client=mock_client,
+        tensor_length=5,
+        clock=fake_clock,
+        data_timeout_seconds=0.1,
     )
 
 
@@ -97,11 +108,17 @@ def create_expected_chunk(
 async def test_constructor_validations(
     mock_client: MockCompleteTensorMultiplexerClient,
 ):
+    fake_clock = FakeSynchronizedClock()
     with pytest.raises(ValueError, match="Tensor length must be positive"):
-        CompleteTensorMultiplexer(client=mock_client, tensor_length=0)
+        CompleteTensorMultiplexer(
+            client=mock_client, tensor_length=0, clock=fake_clock
+        )
     with pytest.raises(ValueError, match="Data timeout must be positive"):
         CompleteTensorMultiplexer(
-            client=mock_client, tensor_length=1, data_timeout_seconds=0
+            client=mock_client,
+            tensor_length=1,
+            clock=fake_clock,
+            data_timeout_seconds=0,
         )
 
 

@@ -1,5 +1,5 @@
 import datetime
-from typing import List  # Added Optional
+from typing import List
 
 import pytest
 import torch
@@ -18,6 +18,9 @@ from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
 from tsercom.tensor.muxer.tensor_multiplexer import (  # For Client base class
     TensorMultiplexer,
 )
+from tsercom.timesync.common.fake_synchronized_clock import (
+    FakeSynchronizedClock,
+)
 
 # Timestamps for testing
 T_BASE = datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
@@ -34,9 +37,7 @@ class MockSparseTensorMultiplexerClient(TensorMultiplexer.Client):
     def __init__(self):
         self.calls: List[SerializableTensorChunk] = []
 
-    async def on_chunk_update(
-        self, chunk: SerializableTensorChunk
-    ) -> None:  # Renamed and signature changed
+    async def on_chunk_update(self, chunk: SerializableTensorChunk) -> None:
         self.calls.append(chunk)
 
     def clear_calls(self) -> None:
@@ -56,20 +57,28 @@ def mock_client() -> MockSparseTensorMultiplexerClient:
 
 
 @pytest.fixture
-def multiplexer_tensor_len_5(  # More descriptive name
+def multiplexer_tensor_len_5(
     mock_client: MockSparseTensorMultiplexerClient,
 ) -> SparseTensorMultiplexer:
+    fake_clock = FakeSynchronizedClock()
     return SparseTensorMultiplexer(
-        client=mock_client, tensor_length=5, data_timeout_seconds=60.0
+        client=mock_client,
+        tensor_length=5,
+        clock=fake_clock,
+        data_timeout_seconds=60.0,
     )
 
 
 @pytest.fixture
-def multiplexer_short_timeout_len_5(  # More descriptive name
+def multiplexer_short_timeout_len_5(
     mock_client: MockSparseTensorMultiplexerClient,
 ) -> SparseTensorMultiplexer:
+    fake_clock = FakeSynchronizedClock()
     return SparseTensorMultiplexer(
-        client=mock_client, tensor_length=5, data_timeout_seconds=0.1
+        client=mock_client,
+        tensor_length=5,
+        clock=fake_clock,
+        data_timeout_seconds=0.1,
     )
 
 
@@ -78,9 +87,9 @@ def create_expected_chunks_for_diff(
     old_tensor: torch.Tensor,
     new_tensor: torch.Tensor,
     timestamp_dt: datetime.datetime,
-    tensor_length: int,  # Added to handle cases where old_tensor might be conceptual (e.g. zeros)
+    tensor_length: int,
 ) -> List[SerializableTensorChunk]:
-    if old_tensor is None:  # Handle initial case
+    if old_tensor is None:
         old_tensor = torch.zeros(tensor_length, dtype=new_tensor.dtype)
 
     if len(old_tensor) != len(new_tensor):
@@ -127,7 +136,6 @@ def create_expected_chunks_for_diff(
             current_chunk_start_index = index
             current_chunk_end_index = index
 
-    # Add the last formed chunk
     chunk_data = new_tensor[
         current_chunk_start_index : current_chunk_end_index + 1
     ]
@@ -138,9 +146,7 @@ def create_expected_chunks_for_diff(
     )
     expected_chunks.append(chunk)
 
-    return sorted(
-        expected_chunks, key=lambda c: c.starting_index
-    )  # Sort by start_index
+    return sorted(expected_chunks, key=lambda c: c.starting_index)
 
 
 def assert_chunks_equal(
@@ -168,18 +174,24 @@ def assert_chunks_equal(
 @pytest.mark.asyncio
 async def test_constructor_validations(
     mock_client: MockSparseTensorMultiplexerClient,
-):  # Added mock_client
+):
+    fake_clock = FakeSynchronizedClock()
     with pytest.raises(ValueError, match="Tensor length must be positive"):
-        SparseTensorMultiplexer(client=mock_client, tensor_length=0)
+        SparseTensorMultiplexer(
+            client=mock_client, tensor_length=0, clock=fake_clock
+        )
     with pytest.raises(ValueError, match="Data timeout must be positive"):
         SparseTensorMultiplexer(
-            client=mock_client, tensor_length=1, data_timeout_seconds=0
+            client=mock_client,
+            tensor_length=1,
+            clock=fake_clock,
+            data_timeout_seconds=0,
         )
 
 
 @pytest.mark.asyncio
 async def test_process_first_tensor(
-    multiplexer_tensor_len_5: SparseTensorMultiplexer,  # Use specific fixture
+    multiplexer_tensor_len_5: SparseTensorMultiplexer,
     mock_client: MockSparseTensorMultiplexerClient,
 ):
     mpx = multiplexer_tensor_len_5
@@ -236,7 +248,7 @@ async def test_process_identical_tensor(
     mock_client.clear_calls()
 
     await mpx.process_tensor(tensor1.clone(), T2)
-    assert mock_client.calls == []  # No changes, so no chunks
+    assert mock_client.calls == []
 
 
 @pytest.mark.asyncio
@@ -249,10 +261,8 @@ async def test_process_identical_tensor_same_timestamp(
     await mpx.process_tensor(tensor1, T1)
     mock_client.clear_calls()
 
-    await mpx.process_tensor(
-        tensor1.clone(), T1
-    )  # Process identical tensor at same timestamp
-    assert mock_client.calls == []  # Should be a no-op
+    await mpx.process_tensor(tensor1.clone(), T1)
+    assert mock_client.calls == []
 
 
 @pytest.mark.asyncio
@@ -360,7 +370,7 @@ async def test_input_tensor_wrong_length(
 @pytest.mark.asyncio
 async def test_get_tensor_at_timestamp(
     multiplexer_tensor_len_5: SparseTensorMultiplexer,
-    mock_client: MockSparseTensorMultiplexerClient,  # Keep mock_client to check no calls
+    mock_client: MockSparseTensorMultiplexerClient,
 ):
     mpx = multiplexer_tensor_len_5
     tensor_t1_data = torch.tensor([1.0, 2.0, 0.0, 0.0, 5.0])
@@ -384,9 +394,7 @@ async def test_get_tensor_at_timestamp(
     )  # T0 was not processed
     assert retrieved_non_existent is None
 
-    assert (
-        mock_client.calls == []
-    )  # get_tensor_at_timestamp should not trigger client calls
+    assert mock_client.calls == []
 
 
 @pytest.mark.asyncio
@@ -427,8 +435,3 @@ async def test_contiguous_and_non_contiguous_changes(
         assert torch.equal(
             received_chunks[1].tensor, torch.tensor([30.0, 40.0])
         )
-
-
-# (Keep other complex cascade and timeout tests, adapting their expected calls to expected chunks)
-# For brevity in this subtask, I'm focusing on the core test structure and a few key scenarios.
-# Full conversion of all original tests would follow the same pattern.

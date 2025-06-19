@@ -25,6 +25,7 @@ from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
 from tsercom.tensor.muxer.complete_tensor_multiplexer import (
     CompleteTensorMultiplexer,
 )
+from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 # Forward declaration for type hinting if Publisher were defined after AggregateTensorMultiplexer
 # or if AggregateTensorMultiplexer is defined after _InternalClient which needs it.
@@ -97,16 +98,11 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         def __init__(
             self,
             # main_aggregator_client: TensorMultiplexer.Client, # This is self._client of the parent
-            aggregator_ref: weakref.ref[
-                "AggregateTensorMultiplexer"
-            ],  # weakref.ref to parent
+            aggregator_ref: weakref.ref["AggregateTensorMultiplexer"],
             publisher_start_index: int,
-            # publisher_info_index: int, # To identify which publisher_info this client belongs to
         ):
-            # self._main_aggregator_client = main_aggregator_client # This is aggregator._client
             self._aggregator_ref = aggregator_ref
             self._publisher_start_index = publisher_start_index
-            # self._publisher_info_index = publisher_info_index
 
         async def on_chunk_update(
             self, chunk: "SerializableTensorChunk"
@@ -219,6 +215,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
     def __init__(
         self,
         client: TensorMultiplexer.Client,  # The client for the aggregate tensor
+        clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
         """
@@ -226,44 +223,31 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
 
         Args:
             client: The client to notify of index updates for the aggregate tensor.
+            clock: The synchronized clock instance.
             data_timeout_seconds: How long to keep aggregated tensor data.
         """
         # TensorMultiplexer expects tensor_length > 0.
         # We manage _tensor_length dynamically, starting at 0.
-        # Initialize with dummy 1 if our intended length is 0, then correct.
-        initial_length_for_super = 0  # This will be our actual starting length
+        initial_length_for_super = 0
         super_init_length = (
             1 if initial_length_for_super == 0 else initial_length_for_super
         )
         super().__init__(
             client=client,
             tensor_length=super_init_length,
+            clock=clock,
             data_timeout_seconds=data_timeout_seconds,
         )
-        self._tensor_length = (
-            initial_length_for_super  # Correct our own _tensor_length
-        )
-
+        self._tensor_length = initial_length_for_super
+        self._clock = clock
         self._publishers_info: List[Dict[str, Any]] = []
-        # Each dict in _publishers_info will store:
-        #   'publisher_instance': Publisher
-        #   'publisher_hash': int (for quick lookup if needed, from id(publisher_instance))
-        #   'start_index': int
-        #   'tensor_length': int
-        #   'internal_multiplexer': TensorMultiplexer (SparseTensorMultiplexer or CompleteTensorMultiplexer)
-        #   'is_sparse': bool
-        #   'internal_client_instance': AggregateTensorMultiplexer._InternalClient
+        # Each dict in _publishers_info stores info about a registered publisher,
+        # including its tensor mapping and internal multiplexer instance.
 
-        self._current_max_index: int = (
-            0  # Tracks the total length of the aggregate tensor
-        )
-        self._tensor_length: int = (
-            0  # Explicitly declare for clarity, though handled by base and updated by add_to_aggregation
-        )
+        self._current_max_index: int = 0
+        self._tensor_length: int = 0
 
-        # Manages its own history of aggregated tensors
         self._latest_processed_timestamp: Optional[datetime.datetime] = None
-        # self._client is the main client for the aggregate tensor
 
     @overload
     async def add_to_aggregation(
@@ -316,7 +300,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         Adds a publisher to the aggregation. The publisher's tensor data will either
         be appended to the aggregate tensor or mapped to a specific range within it.
         """
-        async with self.lock:  # Use property
+        async with self.lock:
             start_index: int
             current_tensor_len: int
             sparse: bool = kwargs.get("sparse", False)
@@ -430,20 +414,20 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 internal_mux = SparseTensorMultiplexer(
                     client=internal_client,
                     tensor_length=current_tensor_len,
-                    data_timeout_seconds=self._data_timeout_seconds,  # Use aggregator's timeout for internal mux
+                    clock=self._clock,
+                    data_timeout_seconds=self._data_timeout_seconds,
                 )
             else:
                 internal_mux = CompleteTensorMultiplexer(
                     client=internal_client,
                     tensor_length=current_tensor_len,
+                    clock=self._clock,
                     data_timeout_seconds=self._data_timeout_seconds,
                 )
 
             publisher_info_dict = {
                 "publisher_instance": publisher,
-                "publisher_hash": id(
-                    publisher
-                ),  # For potential quick lookups, though direct comparison is used now
+                "publisher_hash": id(publisher),
                 "start_index": start_index,
                 "tensor_length": current_tensor_len,
                 "internal_multiplexer": internal_mux,
@@ -495,7 +479,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                         f"Warning: Tensor from publisher {id(publisher)} has length {len(tensor)}, "
                         f"expected {info['tensor_length']}. Skipping update."
                     )
-                    return  # Or raise error
+                    return
 
                 await internal_multiplexer.process_tensor(tensor, timestamp)
                 found_publisher = True
@@ -516,41 +500,29 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         than data_timeout_seconds relative to the current_max_timestamp.
         Assumes lock is held by the caller.
         """
-        if not self.history:  # Use property
+        if not self.history:
             return
         timeout_delta = datetime.timedelta(seconds=self._data_timeout_seconds)
         cutoff_timestamp = current_max_timestamp - timeout_delta
 
         keep_from_index = 0
-        for i, (ts, _) in enumerate(self.history):  # Use property
+        for i, (ts, _) in enumerate(self.history):
             if ts >= cutoff_timestamp:
                 keep_from_index = i
                 break
         else:
-            if (
-                self.history and self.history[-1][0] < cutoff_timestamp
-            ):  # Use property
-                self.history[:] = []  # Use property to clear
+            if self.history and self.history[-1][0] < cutoff_timestamp:
+                self.history[:] = []
                 return
 
         if keep_from_index > 0:
-            self.history[:] = self.history[
-                keep_from_index:
-            ]  # Use property for slice assignment
+            self.history[:] = self.history[keep_from_index:]
 
     def _find_insertion_point(self, timestamp: datetime.datetime) -> int:
         """
         Finds the insertion point for a new timestamp in the sorted self.history list.
         Assumes lock is held by the caller or method is otherwise protected.
         """
-        return bisect.bisect_left(
-            self.history, timestamp, key=lambda x: x[0]
-        )  # Use property
+        return bisect.bisect_left(self.history, timestamp, key=lambda x: x[0])
 
     # get_tensor_at_timestamp is inherited and will use self.history and self.lock
-
-    # _InternalClient definition will go here or be defined earlier if preferred.
-    # For now, its methods that would be called by internal multiplexers are not yet defined.
-    # Example:
-    # async def _on_internal_index_update(self, publisher_info_index: int, tensor_index: int, value: float, timestamp: datetime.datetime):
-    #    pass

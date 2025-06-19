@@ -1,5 +1,5 @@
 import datetime
-from typing import List, cast  # Added Optional
+from typing import List, cast
 
 import pytest
 import torch
@@ -18,6 +18,9 @@ from tsercom.tensor.muxer.aggregate_tensor_multiplexer import (
     AggregateTensorMultiplexer,
     Publisher,
 )
+from tsercom.timesync.common.fake_synchronized_clock import (
+    FakeSynchronizedClock,
+)
 
 # These are needed for type hinting internal multiplexers if checked strictly by test logic
 
@@ -28,9 +31,7 @@ class MockAggregatorClient(TensorMultiplexer.Client):
     def __init__(self) -> None:
         self.calls: List[SerializableTensorChunk] = []
 
-    async def on_chunk_update(
-        self, chunk: SerializableTensorChunk
-    ) -> None:  # Renamed and signature changed
+    async def on_chunk_update(self, chunk: SerializableTensorChunk) -> None:
         self.calls.append(chunk)
 
     def clear_calls(self) -> None:
@@ -81,8 +82,9 @@ def mock_main_client() -> MockAggregatorClient:
 def aggregator(
     mock_main_client: MockAggregatorClient,
 ) -> AggregateTensorMultiplexer:
+    fake_clock = FakeSynchronizedClock()
     return AggregateTensorMultiplexer(
-        client=mock_main_client, data_timeout_seconds=60.0
+        client=mock_main_client, clock=fake_clock, data_timeout_seconds=60.0
     )
 
 
@@ -90,8 +92,9 @@ def aggregator(
 def aggregator_short_timeout(
     mock_main_client: MockAggregatorClient,
 ) -> AggregateTensorMultiplexer:
+    fake_clock = FakeSynchronizedClock()
     return AggregateTensorMultiplexer(
-        client=mock_main_client, data_timeout_seconds=0.1
+        client=mock_main_client, clock=fake_clock, data_timeout_seconds=0.1
     )
 
 
@@ -257,10 +260,6 @@ async def test_add_publisher_specific_range(
     )
 
 
-# Error handling tests (overlap, length mismatch, same publisher) should largely remain the same
-# as they test `add_to_aggregation` input validation.
-
-
 @pytest.mark.asyncio
 async def test_add_publisher_range_overlap_error(
     aggregator: AggregateTensorMultiplexer,
@@ -328,10 +327,12 @@ async def test_data_flow_multiple_publishers_mixed_modes(
 
     # P1 republishes with a sparse change at T2
     # First, get the chunks already there for T2 (from P3)
-    existing_t2_chunks_from_p3 = mock_main_client.get_chunks_for_timestamp_sorted(T2)
+    existing_t2_chunks_from_p3 = (
+        mock_main_client.get_chunks_for_timestamp_sorted(T2)
+    )
     # expected_p3_t2 should already be validated, but this ensures we have what P3 sent at T2.
 
-    mock_main_client.clear_calls() # Clear before P1's new publish at T2
+    mock_main_client.clear_calls()  # Clear before P1's new publish at T2
     p1_changed_val_tensor = TENSOR_L3_A.clone()
     p1_changed_val_tensor[0] = 5.5  # Original TENSOR_L3_A[0] was 1.0
     # Internal sparse mux for P1 diffs p1_changed_val_tensor against TENSOR_L3_A (its last state)
@@ -341,18 +342,23 @@ async def test_data_flow_multiple_publishers_mixed_modes(
     await publisher1.publish(p1_changed_val_tensor, T2)
     # We need to combine all chunks for T2.
     # Chunks from P1's new update at T2:
-    new_t2_chunks_from_p1 = mock_main_client.get_chunks_for_timestamp_sorted(T2)
+    new_t2_chunks_from_p1 = mock_main_client.get_chunks_for_timestamp_sorted(
+        T2
+    )
 
     # Combine existing (P3's) and new (P1's) chunks for T2
     all_t2_chunks_received = sorted(
-        existing_t2_chunks_from_p3 + new_t2_chunks_from_p1, key=lambda c: c.starting_index
+        existing_t2_chunks_from_p3 + new_t2_chunks_from_p1,
+        key=lambda c: c.starting_index,
     )
 
     # Expected chunks for T2 are P1's new change and P3's original chunk
     combined_expected_t2_for_assertion = sorted(
         expected_p1_t2_change + expected_p3_t2, key=lambda c: c.starting_index
     )
-    assert_chunks_equal_list(all_t2_chunks_received, combined_expected_t2_for_assertion)
+    assert_chunks_equal_list(
+        all_t2_chunks_received, combined_expected_t2_for_assertion
+    )
 
 
 @pytest.mark.asyncio

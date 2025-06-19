@@ -14,6 +14,7 @@ import torch
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
 )
+from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 # Using a type alias for clarity, though not strictly necessary for the ABC itself
 TensorHistoryValue = torch.Tensor
@@ -46,6 +47,7 @@ class TensorMultiplexer(abc.ABC):
         self,
         client: "TensorMultiplexer.Client",
         tensor_length: int,
+        clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
         """
@@ -54,6 +56,7 @@ class TensorMultiplexer(abc.ABC):
         Args:
             client: The client to notify of index updates.
             tensor_length: The expected length of the tensors.
+            clock: The synchronized clock instance.
             data_timeout_seconds: How long to keep tensor data (subclass responsibility).
         """
         if tensor_length <= 0:
@@ -63,6 +66,7 @@ class TensorMultiplexer(abc.ABC):
 
         self._client = client
         self._tensor_length = tensor_length
+        self._clock = clock
         self._data_timeout_seconds = (
             data_timeout_seconds  # For subclasses to use
         )
@@ -108,8 +112,7 @@ class TensorMultiplexer(abc.ABC):
             A clone of the tensor if the timestamp exists in history, else None.
         """
         async with self.__lock:
-            # Use bisect_left with a key to compare timestamp with the first element of the tuples
-            # self.__history is expected to be sorted by timestamp.
+            # Assumes self.__history is sorted by timestamp for efficient lookup using bisect.
             i = bisect.bisect_left(
                 self.__history, timestamp, key=lambda x: x[0]
             )
