@@ -1,36 +1,37 @@
-import grpc
-import subprocess
 from typing import TYPE_CHECKING
 
-if not TYPE_CHECKING:
-    try:
-        version = grpc.__version__
-        major_minor_version = ".".join(version.split(".")[:2])
-    except (
-        AttributeError,
-        subprocess.CalledProcessError,
-        FileNotFoundError,
-    ) as e:
-        print(
-            f"Warning: Failed to get grpc.__version__ ({e}), defaulting to a common version for proto loading."
-        )
-        major_minor_version = "1.62"  # Fallback version
+# Explicitly import from the currently generated version directory (v1_73)
+# This will allow mypy to find the modules and their attributes.
 
-    version_string = f"v{major_minor_version.replace('.', '_')}"
+from .generated.v1_73 import tensor_pb2
+from .generated.v1_73 import tensor_ops_pb2
 
-    if False:
-        pass
+from .generated.v1_73.tensor_pb2 import (
+    TensorChunk,
+    # Add any other symbols from tensor.proto if they were directly exported before
+)
 
-    elif version_string == "v1_73":
-        from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import TensorChunk
-    else:
-        # The 'name' variable for the error message is 'tensor'
-        # The 'available_versions' for the error message is ['v1_73']
-        raise ImportError(
-            f"Error: No code for version {version}, name 'tensor', available_versions ['v1_73'], version_string {version_string}."
-        )
+from .generated.v1_73.tensor_ops_pb2 import (
+    TensorUpdate,
+    TensorInitializer,
+    # Add any other symbols from tensor_ops.proto if needed
+)
 
-else:  # When TYPE_CHECKING
-    from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
-        TensorChunk as TensorChunk,
-    )
+# For type checking, we might need to expose these for tools like mypy
+# For runtime, Python will use the above imports.
+if TYPE_CHECKING:
+    pass
+
+# Note: The dynamic version switching logic present in the original __init__.py
+# has been simplified here to directly use v1_73, which is what the
+# generate_protos.py script currently seems to be targeting and generating.
+# A more robust generate_init in scripts/generate_protos.py would be needed
+# to handle this file correctly and comprehensively for all proto files in this package.
+
+__all__ = [
+    "tensor_pb2",
+    "tensor_ops_pb2",
+    "TensorChunk",
+    "TensorUpdate",
+    "TensorInitializer",
+]

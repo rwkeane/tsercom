@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package tsercom.tensor.proto;
+
+import "tensor.proto";
+
+message TensorUpdate {
+  // A list of one or more chunks representing updates to the tensor.
+  repeated TensorChunk chunks = 1;
+}
+
+message TensorInitializer {
+  // The full shape of the tensor being initialized (e.g., [10, 20]).
+  repeated int64 shape = 1;
+  // The data type of the tensor as a string (e.g., "float32", "int64").
+  string dtype = 2;
+  // The default value to fill the tensor with upon creation.
+  double fill_value = 3;
+  // An optional initial set of data chunks to apply after creation.
+  TensorUpdate initial_state = 4;
+}
