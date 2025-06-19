@@ -30,6 +30,7 @@ dependencies = [
   "zeroconf>=0.135.0",
   "psutil>=5.9.0",
   "numpy>=2.2.6", # For tensor operations and PyTorch compatibility
+  "sortedcontainers",
 ]
 
 [project.optional-dependencies]
