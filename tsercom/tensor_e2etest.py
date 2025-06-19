@@ -372,7 +372,7 @@ async def test_data_timeout_e2e() -> None:
         return any(
             ts == target_ts
             # Accessing internal attribute _processed_keyframes directly for test validation.
-            for ts, _, _ in demuxer_instance.__processed_keyframes  # type: ignore[attr-defined]
+            for ts, _, _ in demuxer_instance._TensorDemuxer__processed_keyframes  # type: ignore[attr-defined]
         )
 
     assert _is_ts_present_in_demuxer_states(
