@@ -19,12 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class SmoothedTensorDemuxer(TensorDemuxer):
-    """
-    Manages per-index keyframe data using torch.Tensors and provides smoothed,
-    interpolated tensor updates.
-    Uses a specified smoothing strategy for per-index "cascading forward" interpolation.
-    """
-
     def __init__(
         self,
         tensor_shape: Tuple[int, ...],
@@ -156,31 +150,43 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             )
 
         if current_time >= next_output_datetime:
+            actual_push_timestamp: datetime.datetime
+            if self.__align_output_timestamps:
+                actual_push_timestamp = next_output_datetime
+            else:
+                actual_push_timestamp = current_time
+
             logger.debug(
-                f"[{self.__name}] Attempting interpolation for {next_output_datetime}"
+                f"[{self.__name}] Attempting interpolation for {actual_push_timestamp}"
             )
 
             history_from_parent = []
-            if hasattr(super(), "_processed_keyframes"):
-                history_from_parent = list(super()._processed_keyframes)
+            # Corrected to use _processed_keyframes as per MyPy/Pylint and class definition
+            if (
+                hasattr(self, "_processed_keyframes")
+                and self._processed_keyframes is not None
+            ):
+                history_from_parent = list(self._processed_keyframes)
+            else:  # Should not happen if initialized correctly by TensorDemuxer
+                history_from_parent = []
 
             if not history_from_parent:
                 logger.debug(
-                    f"[{self.__name}] No keyframes in parent history for interpolation at {next_output_datetime}"
+                    f"[{self.__name}] No keyframes in parent history for interpolation at {actual_push_timestamp}"
                 )
                 output_tensor = torch.full(
                     self.__tensor_shape_internal,
                     self.__fill_value,
                     dtype=torch.float32,
                 )
-            else:
+            else:  # history_from_parent IS NOT empty
                 output_tensor = torch.full(
                     self.__tensor_shape_internal,
                     self.__fill_value,
                     dtype=torch.float32,
                 )
                 required_ts_tensor = torch.tensor(
-                    [next_output_datetime.timestamp()], dtype=torch.float64
+                    [actual_push_timestamp.timestamp()], dtype=torch.float64
                 )
 
                 for index_tuple in np.ndindex(self.__tensor_shape_internal):
@@ -197,15 +203,20 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                             ].item()
                             per_element_timestamps.append(p_ts.timestamp())
                             per_element_values.append(element_value)
-                        except Exception as e_reshape:
+                        except (
+                            RuntimeError,
+                            IndexError,
+                            TypeError,
+                            ValueError,
+                        ) as e_tensor_op:  # Restored specific exceptions
                             logger.warning(
-                                f"[{self.__name}] Error reshaping parent tensor or accessing element {index_tuple} for ts {p_ts}: {e_reshape}"
+                                f"[{self.__name}] Error processing tensor data for element {index_tuple} at ts {p_ts}: {e_tensor_op}"
                             )
-                            continue
+                            continue  # Restored continue
 
                     if not per_element_values:
                         logger.debug(
-                            f"[{self.__name}] No data for element {index_tuple} for interpolation at {next_output_datetime}"
+                            f"[{self.__name}] No data for element {index_tuple} for interpolation at {actual_push_timestamp}"
                         )
                         continue
 
@@ -230,9 +241,9 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                                 output_tensor[index_tuple] = float(val)
 
             await self.__output_client.on_tensor_changed(
-                tensor=output_tensor, timestamp=next_output_datetime
+                tensor=output_tensor, timestamp=actual_push_timestamp
             )
-            self.__last_pushed_timestamp = next_output_datetime
+            self.__last_pushed_timestamp = actual_push_timestamp
 
     async def start(self) -> None:
         self.__stop_event.clear()
