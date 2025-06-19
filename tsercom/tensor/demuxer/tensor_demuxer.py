@@ -69,8 +69,6 @@ class TensorDemuxer:
     async def _on_keyframe_updated(
         self, timestamp: datetime.datetime, new_tensor_state: torch.Tensor
     ) -> None:
-        # Default behavior: notify client
-        # The tensor is cloned here to protect the original from modification by the hook.
         await self.client.on_tensor_changed(
             new_tensor_state.clone(), timestamp
         )

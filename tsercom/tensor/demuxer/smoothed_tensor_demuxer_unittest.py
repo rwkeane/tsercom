@@ -1,5 +1,5 @@
-import datetime as real_datetime_module  # Renamed to avoid conflict with 'datetime' type hint if used
-from datetime import timedelta, timezone  # Keep for direct use
+import datetime as real_datetime_module
+from datetime import timedelta, timezone
 import torch
 import pytest
 import pytest_asyncio
@@ -10,23 +10,26 @@ from typing import (
     Dict,
     Optional,
     Any,
-)  # For async generator fixture
+    Deque,
+)  # Added Deque
+from collections import deque  # For type hinting deque
+import math
 
-# Assuming TensorDemuxer is in the same directory or path is configured
 from tsercom.tensor.demuxer.smoothed_tensor_demuxer import (
     SmoothedTensorDemuxer,
+    SmoothedTensorOutputClient,
 )
 from tsercom.tensor.demuxer.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
 )
 
-# Timestamps for testing
 T_BASE = real_datetime_module.datetime(
     2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc
 )
+# MAX_ND_KEYFRAME_HISTORY_TEST = 10 # Defined above, ensure consistency or remove if not used in this scope
 
 
-class MockOutputClient:  # Simplified client for SmoothedTensorDemuxer's output
+class MockOutputClient(SmoothedTensorOutputClient):
     def __init__(self) -> None:
         self.pushes: List[Dict[str, Any]] = []
         self.last_pushed_tensor: Optional[torch.Tensor] = None
@@ -67,31 +70,26 @@ async def smoothed_demuxer(
     mock_output_client: MockOutputClient,
     linear_strategy: LinearInterpolationStrategy,
 ) -> AsyncGenerator[SmoothedTensorDemuxer, None]:
-    # tensor_shape for SmoothedTensorDemuxer, e.g., (2,2) for a 2x2 tensor
-    # This translates to tensor_length=4 for the base TensorDemuxer
     shape = (2, 2)
     demuxer = SmoothedTensorDemuxer(
         tensor_name="test_smooth_tensor",
         tensor_shape=shape,
         output_client=mock_output_client,
         smoothing_strategy=linear_strategy,
-        output_interval_seconds=0.1,  # Output every 100ms
-        data_timeout_seconds=60,  # For base TensorDemuxer
+        output_interval_seconds=0.1,
+        data_timeout_seconds=60,
         align_output_timestamps=False,
         fill_value=float("nan"),
     )
-    # The start method now just sets up flags, doesn't run a persistent task in the new design
-    # if _try_interpolate_and_push is called directly by hooks.
-    # However, the refactored SmoothedTensorDemuxer still has start/stop that might be used.
     await demuxer.start()
     yield demuxer
     await demuxer.stop()
 
 
-def test_smoothed_demuxer_initialization(
+def test_smoothed_demuxer_initialization_updated(
     mock_output_client: MockOutputClient,
     linear_strategy: LinearInterpolationStrategy,
-) -> None:
+):
     shape = (3, 4)
     demuxer = SmoothedTensorDemuxer(
         tensor_name="init_test",
@@ -101,78 +99,50 @@ def test_smoothed_demuxer_initialization(
         output_interval_seconds=0.5,
     )
     assert demuxer.tensor_name == "init_test"
-    # The get_tensor_shape method might have been removed or changed.
-    # Accessing internal directly for test if public accessor gone.
     assert (
         getattr(demuxer, "_SmoothedTensorDemuxer__tensor_shape_internal")
         == shape
     )
     assert demuxer.output_interval_seconds == 0.5
-    # Check that the base TensorDemuxer was initialized correctly
-    expected_1d_length = 12  # 3*4
-    assert (
-        demuxer.tensor_length == expected_1d_length
-    )  # Property from base class
+    expected_1d_length = 12
+    assert demuxer.tensor_length == expected_1d_length
 
 
 @pytest.mark.asyncio
-async def test_hook_receives_1d_tensor_and_reshapes(
+async def test_hook_stores_nd_keyframe_in_deque(
     smoothed_demuxer: SmoothedTensorDemuxer, mocker: MockerFixture
-) -> None:
-    # Spy on the hook of the SmoothedTensorDemuxer instance
+):
     spy_on_keyframe_updated = mocker.spy(
         smoothed_demuxer, "_on_keyframe_updated"
     )
-
-    # Data for a 2x2 tensor (length 4)
-    # Send an update for index 0 of the flattened 1D tensor
     ts1 = T_BASE
-    # This call goes to SmoothedTensorDemuxer.on_update_received -> super().on_update_received
-    # -> base processes -> base calls its _on_keyframe_updated (which is overridden by SmoothedTensorDemuxer)
     await smoothed_demuxer.on_update_received(
         tensor_index=0, value=5.0, timestamp=ts1
     )
 
     spy_on_keyframe_updated.assert_called_once()
-    call_args = spy_on_keyframe_updated.call_args[0]
-    received_timestamp = call_args[0]
-    received_1d_tensor = call_args[1]
 
-    assert received_timestamp == ts1
-    assert isinstance(received_1d_tensor, torch.Tensor)
-    assert received_1d_tensor.ndim == 1
-    assert received_1d_tensor.shape[0] == 4  # 2x2 flattened
-
-    # Expected 1D tensor from base after (index=0, value=5.0) update
-    expected_1d_tensor_from_base = torch.tensor([5.0, 0.0, 0.0, 0.0])
-    assert torch.equal(received_1d_tensor, expected_1d_tensor_from_base)
-
-    # Check if the internal N-D keyframe was stored (simplified check for 'latest')
     async with getattr(
         smoothed_demuxer, "_SmoothedTensorDemuxer__keyframes_lock"
     ):
-        latest_kf_data = getattr(
+        keyframe_deque: Deque = getattr(
             smoothed_demuxer, "_SmoothedTensorDemuxer__internal_nd_keyframes"
-        ).get("latest")
+        )
+        assert isinstance(keyframe_deque, deque)
+        assert len(keyframe_deque) == 1
+        latest_kf_ts, latest_kf_nd_tensor = keyframe_deque[-1]
 
-    assert latest_kf_data is not None
-    kf_ts, kf_nd_tensor = latest_kf_data
-    assert kf_ts == ts1
-    assert kf_nd_tensor.shape == getattr(
-        smoothed_demuxer, "_SmoothedTensorDemuxer__tensor_shape_internal"
-    )  # (2,2)
+    assert latest_kf_ts == ts1
     expected_nd_tensor = torch.tensor([[5.0, 0.0], [0.0, 0.0]])
-    assert torch.equal(kf_nd_tensor, expected_nd_tensor)
+    assert torch.equal(latest_kf_nd_tensor, expected_nd_tensor)
 
 
 @pytest.mark.asyncio
-async def test_interpolation_pushes_to_client_after_hook_call(
+async def test_linear_interpolation_over_time(
     smoothed_demuxer: SmoothedTensorDemuxer,
     mock_output_client: MockOutputClient,
     mocker: MockerFixture,
-) -> None:
-    # Mock datetime to control time for _try_interpolate_and_push
-    # This test focuses on the interaction between hook and client push
+):
     start_time = T_BASE
     current_time_mock = [start_time]
 
@@ -180,10 +150,7 @@ async def test_interpolation_pushes_to_client_after_hook_call(
         tz: Optional[timezone] = None,
     ) -> real_datetime_module.datetime:
         dt = current_time_mock[0]
-        if tz is not None and dt.tzinfo is None:
-            return dt.replace(tzinfo=tz)
-        # Add other tz handling if necessary, matching original logic
-        return dt
+        return dt.replace(tzinfo=tz) if tz and dt.tzinfo is None else dt
 
     mocker.patch.object(
         smoothed_demuxer,
@@ -191,9 +158,6 @@ async def test_interpolation_pushes_to_client_after_hook_call(
         side_effect=mocked_datetime_now,
     )
 
-    # Initial state for smoothed_demuxer's last_pushed_timestamp might need to be set relative to current_time_mock
-    # The start() method should handle this. We called start() in the fixture.
-    # Let's manually set it to ensure predictable first output time if start() doesn't fully align it for test
     setattr(
         smoothed_demuxer,
         "_SmoothedTensorDemuxer__last_pushed_timestamp",
@@ -201,74 +165,62 @@ async def test_interpolation_pushes_to_client_after_hook_call(
         - timedelta(seconds=smoothed_demuxer.output_interval_seconds),
     )
 
-    # Expected first push time: start_time (due to __last_pushed_timestamp trick)
-    # The _try_interpolate_and_push logic will use current_time_mock[0]
-
-    # Set current time *before* the first relevant keyframe update to prevent premature push
-    current_time_mock[0] = start_time - timedelta(microseconds=1)
-    ts_kf1 = start_time + timedelta(seconds=0.01)  # Define ts_kf1 here
+    kf1_t = start_time + timedelta(seconds=0)
+    kf2_t = start_time + timedelta(seconds=0.2)
+    await smoothed_demuxer.on_update_received(
+        tensor_index=0, value=10.0, timestamp=kf1_t
+    )  # (0,0) = 10.0 @ T0
+    await smoothed_demuxer.on_update_received(
+        tensor_index=0, value=30.0, timestamp=kf2_t
+    )  # (0,0) = 30.0 @ T0+200ms
 
     await smoothed_demuxer.on_update_received(
-        tensor_index=0, value=10.0, timestamp=ts_kf1
-    )  # This updates 'latest' to kf1_state, _try_interpolate_and_push sees current_time < next_output_time (start_time)
-
-    # Now set current time to the exact moment of the first expected output
-    current_time_mock[0] = start_time
-
-    # Second update, which should now trigger the push for 'start_time' using the latest keyframe info
-    ts_kf2 = start_time + timedelta(seconds=0.02)  # Keyframe at T+0.02s
+        tensor_index=3, value=100.0, timestamp=kf1_t
+    )  # (1,1) = 100.0 @ T0
     await smoothed_demuxer.on_update_received(
-        tensor_index=1, value=20.0, timestamp=ts_kf2
-    )  # This updates 'latest' to kf2_state, _try_interpolate_and_push sees current_time == next_output_time
+        tensor_index=3, value=200.0, timestamp=kf2_t
+    )  # (1,1) = 200.0 @ T0+200ms
+
+    target_push_time1 = start_time + timedelta(seconds=0.1)  # T0 + 100ms
+    current_time_mock[0] = target_push_time1
+    await smoothed_demuxer.on_update_received(
+        tensor_index=0, value=30.0, timestamp=kf2_t
+    )
 
     assert len(mock_output_client.pushes) >= 1, "No tensor pushed to client"
     first_push = mock_output_client.pushes[0]
-    assert first_push["timestamp"] == start_time
-
-    # The tensor pushed depends on the (simplified) interpolation from _try_interpolate_and_push
-    # Current placeholder logic: uses the 'latest' keyframe.
-    # 'latest' keyframe is (ts_kf2, [[10.0, 20.0],[0.0, 0.0]])
-    # This is not interpolation, but testing the mechanism.
-    expected_tensor_at_start_time = torch.tensor([[10.0, 20.0], [0.0, 0.0]])
-    assert torch.equal(first_push["data"], expected_tensor_at_start_time)
+    assert first_push["timestamp"] == target_push_time1
+    pushed_tensor1 = first_push["data"]
+    assert pushed_tensor1[0, 0].item() == pytest.approx(20.0)
+    assert torch.isnan(pushed_tensor1[0, 1]).item()
+    assert torch.isnan(pushed_tensor1[1, 0]).item()
+    assert pushed_tensor1[1, 1].item() == pytest.approx(150.0)
 
     mock_output_client.clear_pushes()
-
-    # Advance time for a second push
-    # `__last_pushed_timestamp` is now `start_time`.
-    # Next push should be at `start_time + output_interval_seconds`.
-    next_expected_push_time = start_time + timedelta(
-        seconds=smoothed_demuxer.output_interval_seconds
-    )
-    current_time_mock[0] = next_expected_push_time
-
-    ts_kf3 = start_time + timedelta(seconds=0.03)  # New keyframe
-    # Update index 2 (1,0) of 2x2
+    target_push_time2 = start_time + timedelta(seconds=0.3)
+    current_time_mock[0] = target_push_time2
     await smoothed_demuxer.on_update_received(
-        tensor_index=2, value=30.0, timestamp=ts_kf3
+        tensor_index=0, value=30.0, timestamp=kf2_t
     )
 
     assert len(mock_output_client.pushes) >= 1, "No second tensor pushed"
     second_push = mock_output_client.pushes[0]
-    assert second_push["timestamp"] == next_expected_push_time
-
-    # 'latest' keyframe is (ts_kf3, [[10.0, 20.0],[30.0, 0.0]])
-    expected_tensor_at_next_push_time = torch.tensor(
-        [[10.0, 20.0], [30.0, 0.0]]
-    )
-    assert torch.equal(second_push["data"], expected_tensor_at_next_push_time)
+    assert second_push["timestamp"] == target_push_time2
+    pushed_tensor2 = second_push["data"]
+    assert pushed_tensor2[0, 0].item() == pytest.approx(40.0)
+    assert pushed_tensor2[1, 1].item() == pytest.approx(250.0)
 
 
 @pytest.mark.asyncio
-async def test_fill_value_used_if_no_keyframes_for_nd_tensor(
+async def test_fill_value_and_partial_interpolation(
     mock_output_client: MockOutputClient,
     linear_strategy: LinearInterpolationStrategy,
     mocker: MockerFixture,
-) -> None:
-    fill_val = -1.0
-    shape = (1, 2)  # 1x2 tensor
+):
+    fill_val = -77.0
+    shape = (1, 3)
     demuxer = SmoothedTensorDemuxer(
-        tensor_name="fill_test",
+        tensor_name="partial_fill_test",
         tensor_shape=shape,
         output_client=mock_output_client,
         smoothing_strategy=linear_strategy,
@@ -276,71 +228,138 @@ async def test_fill_value_used_if_no_keyframes_for_nd_tensor(
         fill_value=fill_val,
     )
     await demuxer.start()
-
     start_time = T_BASE
     current_time_mock = [start_time]
 
-    async def mocked_datetime_now_fill(
-        tz: Optional[timezone] = None,
-    ) -> real_datetime_module.datetime:
+    async def mocked_datetime_now_fill(tz: Optional[timezone] = None):
         dt = current_time_mock[0]
-        if tz is not None and dt.tzinfo is None:
-            return dt.replace(tzinfo=tz)
-        return dt
+        return dt.replace(tzinfo=tz) if tz and dt.tzinfo is None else dt
 
     mocker.patch.object(
         demuxer,
         "_get_current_utc_timestamp",
         side_effect=mocked_datetime_now_fill,
     )
-
     setattr(
         demuxer,
         "_SmoothedTensorDemuxer__last_pushed_timestamp",
         start_time - timedelta(seconds=demuxer.output_interval_seconds),
     )
 
-    # We need to ensure no keyframes are present in `_SmoothedTensorDemuxer__internal_nd_keyframes`
-    getattr(demuxer, "_SmoothedTensorDemuxer__internal_nd_keyframes").clear()
-
-    current_time_mock[0] = start_time  # Time for the push
-    # Trigger hook via a dummy update. The value/index don't matter as much as triggering the mechanism.
-    # The base TensorDemuxer will create a zero tensor.
-    # The hook in SmoothedTensorDemuxer will receive this zero tensor.
-    # _try_interpolate_and_push's current logic uses self.__internal_nd_keyframes.
-    # If this is empty, it should result in fill_value.
-
-    # The current _try_interpolate_and_push gets 'latest' keyframe. If it's None, it logs and does nothing.
-    # For this test to pass as intended (pushing fill_value), that logic needs to be:
-    # if latest_kf_data is None: output_tensor = torch.full(self.__tensor_shape_internal, self.__fill_value, ...)
-    # This test assumes such logic is in place or will be.
+    kf1_t = start_time + timedelta(seconds=0)
+    kf2_t = start_time + timedelta(seconds=0.2)
     await demuxer.on_update_received(
-        0, 0.0, start_time - timedelta(seconds=1)
-    )  # An old update
+        tensor_index=0, value=10.0, timestamp=kf1_t
+    )
+    await demuxer.on_update_received(
+        tensor_index=0, value=30.0, timestamp=kf2_t
+    )
+    await demuxer.on_update_received(
+        tensor_index=1, value=500.0, timestamp=kf1_t
+    )
 
-    # If _try_interpolate_and_push was modified to push fill_value when no keyframes:
-    if mock_output_client.pushes:  # Check if anything was pushed
-        pushed_data = mock_output_client.last_pushed_tensor
-        assert pushed_data is not None
-        expected_fill_tensor = torch.full(shape, fill_val, dtype=torch.float32)
-        assert torch.equal(pushed_data, expected_fill_tensor)
+    target_push_time = start_time + timedelta(seconds=0.1)
+    current_time_mock[0] = target_push_time
+    await demuxer.on_update_received(
+        tensor_index=0, value=30.0, timestamp=kf2_t
+    )
+
+    assert len(mock_output_client.pushes) >= 1
+    pushed_tensor = mock_output_client.last_pushed_tensor
+    assert pushed_tensor is not None
+    assert pushed_tensor.shape == shape
+    assert pushed_tensor[0, 0].item() == pytest.approx(20.0)
+    if math.isnan(fill_val):  # Check for NaN if fill_val is NaN
+        assert torch.isnan(pushed_tensor[0, 1]).item()
+    else:  # Otherwise, check for the specific fill_val
+        assert pushed_tensor[0, 1].item() == pytest.approx(fill_val)
+
+    if math.isnan(fill_val):
+        assert torch.isnan(pushed_tensor[0, 2]).item()
     else:
-        # This branch means the current _try_interpolate_and_push did NOT push a fill value tensor.
-        # This is acceptable if the refactored code isn't meant to push fill values on empty history yet.
-        # For the subtask, the primary goal is structural refactoring.
-        pass  # Test can pass if no push is expected with current SUT logic for empty history.
-
+        assert pushed_tensor[0, 2].item() == pytest.approx(fill_val)
     await demuxer.stop()
 
 
-# More tests would be needed for:
-# - Alignment (`align_output_timestamps=True`)
-# - More complex interpolation scenarios with actual data changes over time
-# - Behavior of `_on_newest_timestamp_updated` if it has distinct logic
-# - Error handling (e.g., incompatible shapes, strategy errors)
-# - `start` and `stop` idempotency or behavior when called multiple times.
+@pytest.mark.asyncio
+async def test_keyframe_history_limit_for_nd_frames_functional(
+    mock_output_client: MockOutputClient,
+    linear_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+):
+    shape = (1, 1)
+    # SUT's MAX_ND_KEYFRAME_HISTORY is 10.
+    demuxer = SmoothedTensorDemuxer(
+        tensor_name="history_limit_functional_test",
+        tensor_shape=shape,
+        output_client=mock_output_client,
+        smoothing_strategy=linear_strategy,
+        output_interval_seconds=0.01,
+        fill_value=0.0,
+    )
+    await demuxer.start()
+    start_time = T_BASE
+    current_time_mock = [start_time]
 
-# The current `_try_interpolate_and_push` is a placeholder.
-# A full test suite would require that to be a proper interpolation.
-# These tests primarily check the new structure: hooks are called, data flows, client is pushed.
-# The accuracy of interpolation itself depends on the (simplified) `_try_interpolate_and_push`.
+    async def mocked_datetime_now_hist(tz: Optional[timezone] = None):
+        dt = current_time_mock[0]
+        return dt.replace(tzinfo=tz) if tz and dt.tzinfo is None else dt
+
+    mocker.patch.object(
+        demuxer,
+        "_get_current_utc_timestamp",
+        side_effect=mocked_datetime_now_hist,
+    )
+
+    num_frames_to_send = 12
+    sent_keyframes_t = []
+    sent_keyframes_v = []
+    for i in range(num_frames_to_send):
+        ts = start_time + timedelta(seconds=i * 0.1)
+        val = float(10 * (i + 1))
+        await demuxer.on_update_received(0, val, ts)
+        sent_keyframes_t.append(ts)
+        sent_keyframes_v.append(val)
+
+    internal_deque: Deque = getattr(
+        demuxer, "_SmoothedTensorDemuxer__internal_nd_keyframes"
+    )
+    assert len(internal_deque) == 10  # MAX_ND_KEYFRAME_HISTORY
+
+    # Expected values in deque are the *last* 10 keyframes sent
+    expected_frames_in_deque_v = sent_keyframes_v[-10:]
+    for i in range(10):
+        assert internal_deque[i][1][0, 0].item() == pytest.approx(
+            expected_frames_in_deque_v[i]
+        )
+
+    # Interpolate between the 9th and 10th frame *of the pruned history*
+    # These correspond to the 11th and 12th overall sent frames.
+    # Values: 110.0 (at T_BASE + 1.0s) and 120.0 (at T_BASE + 1.1s)
+    ts_for_9th_in_pruned = internal_deque[-2][0]  # 9th in deque (11th overall)
+    ts_for_10th_in_pruned = internal_deque[-1][
+        0
+    ]  # 10th in deque (12th overall)
+
+    target_push_time = (
+        ts_for_9th_in_pruned
+        + (ts_for_10th_in_pruned - ts_for_9th_in_pruned) / 2
+    )
+    current_time_mock[0] = target_push_time
+
+    setattr(
+        demuxer,
+        "_SmoothedTensorDemuxer__last_pushed_timestamp",
+        target_push_time - timedelta(seconds=demuxer.output_interval_seconds),
+    )
+
+    await demuxer.on_update_received(
+        0, sent_keyframes_v[-1], sent_keyframes_t[-1]
+    )
+
+    assert len(mock_output_client.pushes) >= 1
+    pushed_tensor = mock_output_client.last_pushed_tensor
+    assert pushed_tensor is not None
+    # Expected value is interpolation between 110 and 120 -> 115
+    assert pushed_tensor[0, 0].item() == pytest.approx(115.0)
+    await demuxer.stop()
