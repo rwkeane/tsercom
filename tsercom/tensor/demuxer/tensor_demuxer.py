@@ -48,7 +48,7 @@ class TensorDemuxer:
         self.__client = client
         self.__tensor_length = tensor_length
         self.__data_timeout_seconds = data_timeout_seconds
-        self._processed_keyframes: List[  # Renamed and type hint updated
+        self._processed_keyframes: List[
             Tuple[
                 datetime.datetime,
                 torch.Tensor,
@@ -75,21 +75,17 @@ class TensorDemuxer:
 
     def _cleanup_old_data(self) -> None:
         # Internal method, assumes lock is held by caller
-        if (
-            not self.__latest_update_timestamp or not self._processed_keyframes
-        ):  # Renamed
+        if not self.__latest_update_timestamp or not self._processed_keyframes:
             return
         timeout_delta = datetime.timedelta(seconds=self.__data_timeout_seconds)
         cutoff_timestamp = self.__latest_update_timestamp - timeout_delta
         keep_from_index = bisect.bisect_left(
-            self._processed_keyframes,
-            cutoff_timestamp,
-            key=lambda x: x[0],  # Renamed
+            self._processed_keyframes, cutoff_timestamp, key=lambda x: x[0]
         )
         if keep_from_index > 0:
             self._processed_keyframes = self._processed_keyframes[
                 keep_from_index:
-            ]  # Renamed
+            ]
 
     async def on_update_received(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
@@ -115,9 +111,7 @@ class TensorDemuxer:
                     return
 
             insertion_point = bisect.bisect_left(
-                self._processed_keyframes,
-                timestamp,
-                key=lambda x: x[0],  # Renamed
+                self._processed_keyframes, timestamp, key=lambda x: x[0]
             )
 
             current_calculated_tensor: torch.Tensor
@@ -128,9 +122,8 @@ class TensorDemuxer:
             value_actually_changed_tensor = False
 
             if (
-                insertion_point < len(self._processed_keyframes)  # Renamed
-                and self._processed_keyframes[insertion_point][0]
-                == timestamp  # Renamed
+                insertion_point < len(self._processed_keyframes)
+                and self._processed_keyframes[insertion_point][0] == timestamp
             ):
                 is_new_timestamp_entry = False
                 idx_of_processed_ts = insertion_point
@@ -138,9 +131,7 @@ class TensorDemuxer:
                     _,
                     current_calculated_tensor,
                     (explicit_indices, explicit_values),
-                ) = self._processed_keyframes[
-                    idx_of_processed_ts
-                ]  # Renamed
+                ) = self._processed_keyframes[idx_of_processed_ts]
 
                 current_calculated_tensor = current_calculated_tensor.clone()
                 explicit_indices = explicit_indices.clone()
@@ -152,11 +143,9 @@ class TensorDemuxer:
                         self.__tensor_length, dtype=torch.float32
                     )
                 else:
-                    current_calculated_tensor = (
-                        self._processed_keyframes[  # Renamed
-                            insertion_point - 1
-                        ][1].clone()
-                    )
+                    current_calculated_tensor = self._processed_keyframes[
+                        insertion_point - 1
+                    ][1].clone()
 
                 explicit_indices = torch.empty(0, dtype=torch.int64)
                 explicit_values = torch.empty(0, dtype=torch.float32)
@@ -192,22 +181,18 @@ class TensorDemuxer:
                         self.__tensor_length, dtype=torch.float32
                     )
                 else:
-                    base_for_current_calc = (
-                        self._processed_keyframes[  # Renamed
-                            insertion_point - 1
-                        ][1].clone()
-                    )
+                    base_for_current_calc = self._processed_keyframes[
+                        insertion_point - 1
+                    ][1].clone()
             else:
                 if insertion_point == 0:
                     base_for_current_calc = torch.zeros(
                         self.__tensor_length, dtype=torch.float32
                     )
                 else:
-                    base_for_current_calc = (
-                        self._processed_keyframes[  # Renamed
-                            insertion_point - 1
-                        ][1].clone()
-                    )
+                    base_for_current_calc = self._processed_keyframes[
+                        insertion_point - 1
+                    ][1].clone()
 
             new_calculated_tensor_for_current_ts = (
                 base_for_current_calc.clone()
@@ -236,7 +221,7 @@ class TensorDemuxer:
             if is_new_timestamp_entry:
                 self._processed_keyframes.insert(
                     insertion_point, new_state_tuple
-                )  # Renamed
+                )
                 idx_of_processed_ts = insertion_point
                 if value_actually_changed_tensor:
                     await self._on_keyframe_updated(
@@ -244,7 +229,7 @@ class TensorDemuxer:
                     )
             else:
                 self._processed_keyframes[idx_of_processed_ts] = (
-                    new_state_tuple  # Renamed
+                    new_state_tuple
                 )
                 if value_actually_changed_tensor:
                     await self._on_keyframe_updated(
@@ -255,18 +240,15 @@ class TensorDemuxer:
 
             if needs_cascade:
                 for i in range(
-                    idx_of_processed_ts + 1,
-                    len(self._processed_keyframes),  # Renamed
+                    idx_of_processed_ts + 1, len(self._processed_keyframes)
                 ):
                     ts_next, old_tensor_next, (next_indices, next_values) = (
-                        self._processed_keyframes[i]  # Renamed
+                        self._processed_keyframes[i]
                     )
 
                     predecessor_tensor_for_ts_next = self._processed_keyframes[
                         i - 1
-                    ][
-                        1
-                    ]  # Renamed
+                    ][1]
 
                     new_calculated_tensor_next = (
                         predecessor_tensor_for_ts_next.clone()
@@ -281,7 +263,7 @@ class TensorDemuxer:
                     if not torch.equal(
                         new_calculated_tensor_next, old_tensor_next
                     ):
-                        self._processed_keyframes[i] = (  # Renamed
+                        self._processed_keyframes[i] = (
                             ts_next,
                             new_calculated_tensor_next,
                             (next_indices, next_values),
@@ -297,13 +279,11 @@ class TensorDemuxer:
     ) -> Optional[torch.Tensor]:
         async with self.__lock:
             i = bisect.bisect_left(
-                self._processed_keyframes,
-                timestamp,
-                key=lambda x: x[0],  # Renamed
+                self._processed_keyframes, timestamp, key=lambda x: x[0]
             )
             if (
-                i != len(self._processed_keyframes)  # Renamed
-                and self._processed_keyframes[i][0] == timestamp  # Renamed
+                i != len(self._processed_keyframes)
+                and self._processed_keyframes[i][0] == timestamp
             ):
-                return self._processed_keyframes[i][1].clone()  # Renamed
+                return self._processed_keyframes[i][1].clone()
             return None

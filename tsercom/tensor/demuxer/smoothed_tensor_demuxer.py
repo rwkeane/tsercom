@@ -1,12 +1,11 @@
 import asyncio
 import logging
-import numpy as np  # Ensure numpy is available for ndindex
+import numpy as np
 
 from typing import (
     Optional,
     Tuple,
     Union,
-    # Protocol, # No longer needed as SmoothedTensorOutputClient is removed
 )
 
 import torch
@@ -18,10 +17,6 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
-# MAX_ND_KEYFRAME_HISTORY and its comments removed
-
-# SmoothedTensorOutputClient protocol definition removed
-
 
 class SmoothedTensorDemuxer(TensorDemuxer):
     """
@@ -32,7 +27,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
     def __init__(
         self,
-        # tensor_name: str, # Removed
         tensor_shape: Tuple[int, ...],
         output_client: TensorDemuxer.Client,
         smoothing_strategy: SmoothingStrategy,
@@ -65,18 +59,15 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             data_timeout_seconds=data_timeout_seconds,
         )
 
-        # self.__tensor_name = tensor_name # Removed
         self.__name = (
             name if name else f"SmoothedTensorDemuxer(shape={tensor_shape})"
-        )  # Updated
+        )
 
         self.__output_client: TensorDemuxer.Client = output_client
         self.__smoothing_strategy = smoothing_strategy
         self.__output_interval_seconds = output_interval_seconds
         self.__align_output_timestamps = align_output_timestamps
         self.__fill_value = float(fill_value)
-
-        # self.__internal_nd_keyframes and self.__keyframes_lock removed
 
         self.__last_pushed_timestamp: Optional[datetime.datetime] = None
         self.__interpolation_worker_task: Optional[asyncio.Task[None]] = None
@@ -88,8 +79,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             self.__tensor_shape_internal,
             self.__output_interval_seconds,
         )
-
-    # tensor_name property removed
 
     @property
     def name(self) -> str:
@@ -117,25 +106,19 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         timestamp: datetime.datetime,
         new_tensor_state: torch.Tensor,
     ) -> None:
-        # This hook is called by the base TensorDemuxer when one of its 1D keyframes is finalized.
-        # Its main role is to trigger the interpolation logic.
         logger.debug(
             f"[{self.__name}] Parent keyframe update detected at {timestamp}. Triggering interpolation."
         )
-        # The actual new_tensor_state is not directly used here, as __try_interpolate_and_push
-        # will fetch the full history from the parent.
         await self.__try_interpolate_and_push()
 
-    async def __get_current_utc_timestamp(
-        self,
-    ) -> datetime.datetime:  # Name mangled
+    async def __get_current_utc_timestamp(self) -> datetime.datetime:
         return datetime.datetime.now(datetime.timezone.utc)
 
-    async def __try_interpolate_and_push(self) -> None:  # Name mangled
+    async def __try_interpolate_and_push(self) -> None:
         if self.__stop_event.is_set():
             return
 
-        current_time = await self.__get_current_utc_timestamp()  # Updated call
+        current_time = await self.__get_current_utc_timestamp()
 
         if self.__last_pushed_timestamp is None:
             if self.__align_output_timestamps:
@@ -257,7 +240,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             f"[{self.__name}] SmoothedTensorDemuxer started. Output driven by keyframe updates."
         )
         if self.__align_output_timestamps:
-            now = await self.__get_current_utc_timestamp()  # Updated call
+            now = await self.__get_current_utc_timestamp()
             interval_sec = self.__output_interval_seconds
             aligned_start_offset = (
                 now.timestamp() // interval_sec
