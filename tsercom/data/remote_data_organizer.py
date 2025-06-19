@@ -275,8 +275,10 @@ class RemoteDataOrganizer(
 
             try:
                 interpolated_item = deepcopy(item_left)
-                interpolated_item.timestamp = timestamp # pyright: ignore [reportGeneralTypeIssues]
-                setattr(interpolated_item, 'data', interpolated_inner_data)  # type: ignore[attr-defined]
+                interpolated_item.timestamp = (
+                    timestamp  # pyright: ignore [reportGeneralTypeIssues]
+                )
+                setattr(interpolated_item, "data", interpolated_inner_data)  # type: ignore[attr-defined]
                 return interpolated_item
             except AttributeError as e:
                 logger.error(
