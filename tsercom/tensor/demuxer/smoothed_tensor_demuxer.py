@@ -1,6 +1,7 @@
 """
 Provides the SmoothedTensorDemuxer class for interpolating tensor data over time.
 """
+
 import asyncio
 import datetime
 import logging
@@ -37,17 +38,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         fill_value: Union[int, float] = float("nan"),
         name: Optional[str] = None,
     ):
-        # pylint: disable=too-few-public-methods
-        class PlaceholderClient(TensorDemuxer.Client):
-            """A do-nothing client, as SmoothedTensorDemuxer manages its own output."""
-
-            async def on_tensor_changed(
-                self, tensor: torch.Tensor, timestamp: datetime.datetime
-            ) -> None:
-                """Handles tensor change notifications."""
-
-        actual_base_client = PlaceholderClient()
-
         self.__tensor_shape_internal = tensor_shape
         _1d_tensor_length = 1
         if tensor_shape:
@@ -57,7 +47,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             _1d_tensor_length = 1
 
         super().__init__(
-            client=actual_base_client,
+            client=output_client,
             tensor_length=_1d_tensor_length,
             data_timeout_seconds=data_timeout_seconds,
         )
@@ -66,7 +56,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             name if name else f"SmoothedTensorDemuxer(shape={tensor_shape})"
         )
 
-        self.__output_client: TensorDemuxer.Client = output_client
         self.__smoothing_strategy = smoothing_strategy
         self.__output_interval_seconds = output_interval_seconds
         self.__align_output_timestamps = align_output_timestamps
@@ -184,17 +173,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                 next_output_datetime,
             )
 
-            history_from_parent = []
-            # Access _processed_keyframes directly from the instance,
-            # as it's initialized by the parent TensorDemuxer's __init__ on self.
-            if hasattr(self, "_processed_keyframes"):
-                history_from_parent = list(self._processed_keyframes)
-            else:
-                # This case should ideally not be reached if __init__ sequence is correct.
-                logger.warning(
-                    "[%s] _processed_keyframes attribute not found on the instance.",
-                    self.__name,
-                )
+            history_from_parent = list(super()._processed_keyframes)
 
             if not history_from_parent:
                 logger.debug(
@@ -270,7 +249,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                             if not torch.isnan(torch.tensor(val)):
                                 output_tensor[index_tuple] = float(val)
 
-            await self.__output_client.on_tensor_changed(
+            await self._client.on_tensor_changed(
                 tensor=output_tensor, timestamp=next_output_datetime
             )
             self.__last_pushed_timestamp = next_output_datetime
