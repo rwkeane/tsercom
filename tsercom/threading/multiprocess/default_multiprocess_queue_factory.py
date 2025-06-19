@@ -46,10 +46,36 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         """
         actual_queue: MpQueue[T]
         if self.__manager:
-            actual_queue = cast(MpQueue, self.__manager.Queue())
+            actual_queue = cast(MpQueue[T], self.__manager.Queue())
         else:
             actual_queue = MpQueue()
 
         sink = MultiprocessQueueSink[T](actual_queue)
         source = MultiprocessQueueSource[T](actual_queue)
         return sink, source
+
+    def shutdown(self) -> None:
+        """
+        Shuts down the factory and any associated resources.
+        For this default factory, if a manager was provided, it attempts to
+        shut down the manager.
+        """
+        if self.__manager and hasattr(self.__manager, "shutdown"):
+            # Check if the manager is still running/valid before shutdown
+            # This check can be OS and manager-state dependent.
+            # A simple hasattr check is done, but more robust checks might be needed
+            # if manager could be in an unexpected state.
+            try:
+                # Example: Check if server address is available if applicable
+                # or if manager._state.value == State.STARTED (internal, use with caution)
+                # For now, we directly attempt shutdown if manager exists and has method.
+                if (
+                    hasattr(self.__manager, "_process")
+                    and self.__manager._process is not None
+                    and self.__manager._process.is_alive()
+                ):
+                    self.__manager.shutdown()
+            except Exception:  # pylint: disable=broad-except
+                # Log or handle shutdown error, e.g., if manager already shut down
+                # print(f"Error shutting down manager: {e}")
+                pass

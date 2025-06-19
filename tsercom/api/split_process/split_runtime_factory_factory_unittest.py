@@ -243,17 +243,22 @@ def mock_queue_factories_and_utils(mocker):
         mock_delegating_qf_class,  # Patch with the class mock
     )
 
-    # Mock is_torch_available
-    mock_is_torch_available = mocker.patch.object(
-        srff_module, "is_torch_available"
-    )
+    # Mock _TORCH_AVAILABLE (the constant used by the module now)
+    # Note: Patching constants needs careful handling. If it's just used at import time,
+    # this might not work as expected. But srff_module._TORCH_AVAILABLE is checked dynamically.
+    # We patch it where it's defined if imported, or on the module if defined there.
+    # srff_module imports _TORCH_AVAILABLE from delegating_multiprocess_queue_factory.
+    # So, we need to patch it in srff_module's namespace.
+    mocker.patch.object(
+        srff_module, "_TORCH_AVAILABLE", True
+    ) # Default to True, tests can change it / re-patch it
 
     return {
         "DefaultQF_constructor": mock_default_qf_class,
         "DefaultQF_instance": mock_default_qf_instance,
         "DelegatingQF_constructor": mock_delegating_qf_class,
         "DelegatingQF_instance": mock_delegating_qf_instance,
-        "is_torch_available": mock_is_torch_available,
+        # "TORCH_AVAILABLE_MOCK" key removed
         "_default_results_list": default_queues_results,  # For checking queue instances if needed
         "_delegating_results_list": delegating_queues_results,
     }
@@ -294,9 +299,10 @@ def test_create_factory_and_pair_logic_pytorch_unavailable(
     fake_client,
     mock_queue_factories_and_utils,
     patch_other_dependencies,
+    mocker, # Add mocker to the test signature
 ):
     """Tests factory creation when PyTorch is NOT available."""
-    mock_queue_factories_and_utils["is_torch_available"].return_value = False
+    mocker.patch.object(srff_module, "_TORCH_AVAILABLE", False) # Patch for this specific test
 
     factory_factory = SplitRuntimeFactoryFactory(
         thread_pool=fake_executor, thread_watcher=fake_watcher
@@ -374,11 +380,10 @@ def test_dynamic_queue_factory_selection_by_srff(
     expected_delegating_qf_calls,
     expected_default_qf_event_data_calls,
     expected_default_qf_cmd_calls,
+    mocker, # Add mocker to the test signature
 ):
     """Tests that SplitRuntimeFactoryFactory chooses the correct top-level queue factory."""
-    mock_queue_factories_and_utils["is_torch_available"].return_value = (
-        is_torch_available_mock_return
-    )
+    mocker.patch.object(srff_module, "_TORCH_AVAILABLE", is_torch_available_mock_return)
 
     factory_factory = SplitRuntimeFactoryFactory(
         thread_pool=fake_executor, thread_watcher=fake_watcher
@@ -484,13 +489,12 @@ def test_init_method(fake_executor, fake_watcher):  # Unchanged
 def test_create_pair_aggregator_no_timeout(  # Mostly unchanged, ensure correct factory mock use
     fake_executor,
     fake_watcher,
-    mocker,
+    mocker, # Already present
     mock_queue_factories_and_utils,
     patch_other_dependencies,
 ):
-    mock_queue_factories_and_utils["is_torch_available"].return_value = (
-        False  # Test default path
-    )
+    mocker.patch.object(srff_module, "_TORCH_AVAILABLE", False) # Patch for this specific test
+
 
     factory_factory = SplitRuntimeFactoryFactory(
         thread_pool=fake_executor, thread_watcher=fake_watcher
