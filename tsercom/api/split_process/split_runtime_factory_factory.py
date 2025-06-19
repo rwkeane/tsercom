@@ -27,7 +27,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
-    TorchMemcpyQueueFactory,
+    TorchMultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -136,10 +136,10 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
         if uses_torch_tensor:
             # Assuming EventInstance and AnnotatedInstance generics are compatible with Torch queues
-            event_queue_factory = TorchMemcpyQueueFactory[
+            event_queue_factory = TorchMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
             ]()
-            data_queue_factory = TorchMemcpyQueueFactory[
+            data_queue_factory = TorchMultiprocessQueueFactory[
                 AnnotatedInstance[DataTypeT]
             ]()
         else:
