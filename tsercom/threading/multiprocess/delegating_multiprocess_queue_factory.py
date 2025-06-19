@@ -1,30 +1,43 @@
 """Defines a factory for queues that dynamically delegate queue creation.
 
-The DelegatingMultiprocessQueueFactory conditionally uses torch.multiprocessing.Manager
-if PyTorch is available, or standard multiprocessing.Manager otherwise.
-All dynamically determined queues (for both tensor and non-tensor data paths)
-are created using this manager's Queue() method. This ensures the queue proxies
-are compatible with the manager's shared dictionary for inter-process sharing.
-
-The DelegatingQueueSink inspects the first item. The 'queue_type' stored in the
-shared dictionary ('torch_manager_queue' or 'default_manager_queue') indicates
-the nature of the data path, even though the underlying queue mechanism is
-unified to a manager-created queue.
+The DelegatingMultiprocessQueueFactory creates a default IPC queue and,
+if PyTorch is available, a Torch IPC queue. The DelegatingMultiprocessQueueSink
+sends a coordination message ("USE_TORCH" or "USE_DEFAULT") over the default
+queue to inform the DelegatingMultiprocessQueueSource which queue will be used
+for actual data transmission. The first data item is then sent over the
+selected queue.
 """
 
 import multiprocessing
-from multiprocessing.managers import DictProxy, SyncManager
-import queue
-import threading
-import time
-from typing import TypeVar, Generic, Optional, Tuple
+import queue  # For queue.Empty exception
+from typing import TypeVar, Generic, Optional, Tuple, Any
 from types import ModuleType
+
+# Absolute imports for tsercom modules
+from tsercom.common.constants import (
+    DEFAULT_MAX_QUEUE_SIZE,
+)  # If used by this module
+from tsercom.common.delegates import MethodDelegate  # For on_close event
+from tsercom.common.exceptions import (
+    QueueTimeoutError,
+)  # If specific exception needed
+
+# from tsercom.common.messages import Message, MessageType # Not directly used by this refactor
+from tsercom.common.protocols import (
+    MultiprocessQueueItemProtocol,
+)  # For QueueItemType bound
+
+# from tsercom.common.utils.check import is_not_none # Not directly used by this refactor
 
 from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
+    # DefaultMultiprocessQueueSink, # Not directly instantiated by Delegating classes
+    # DefaultMultiprocessQueueSource, # Not directly instantiated by Delegating classes
 )
 from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
     TorchMultiprocessQueueFactory,
+    # TorchMultiprocessQueueSink, # Not directly instantiated by Delegating classes
+    # TorchMultiprocessQueueSource, # Not directly instantiated by Delegating classes
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -36,6 +49,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
 )
 
+
 _torch_mp_module: Optional[ModuleType] = None
 _torch_available: bool
 
@@ -44,289 +58,406 @@ try:
     import torch.multiprocessing as torch_mp_imported
 
     _torch_mp_module = torch_mp_imported
-    _torch_available = True  # pylint: disable=invalid-name
+    _torch_available = True
 except ImportError:
-    _torch_available = False  # pylint: disable=invalid-name
+    _torch_available = False
+    # torch import itself might be needed for torch.Tensor check later
+    # if _torch_available is True but torch wasn't imported at top level.
+    # However, the structure implies if _torch_available is false, torch.Tensor won't be relevant.
+    # Let's ensure torch is imported if _torch_available is true, for isinstance checks.
+if _torch_available and "torch" not in globals():
+    import torch  # Ensure torch is available for type checking if _torch_available
 
 
-QueueItemType = TypeVar("QueueItemType")  # pylint: disable=invalid-name
+QueueItemType = TypeVar("QueueItemType", bound=MultiprocessQueueItemProtocol)
 
 
 def is_torch_available() -> bool:
-    """Checks if PyTorch is available in the current environment."""
-    return _torch_available
+    """Checks if PyTorch and its multiprocessing extensions are available."""
+    return _torch_available and _torch_mp_module is not None
 
 
-INITIALIZED_KEY = "initialized"
-REAL_QUEUE_SOURCE_REF_KEY = "real_queue_source_ref"
-REAL_QUEUE_SINK_REF_KEY = "real_queue_sink_ref"
+# Global constants for shared dictionary keys are removed as shared dict is removed.
 
 
-# pylint: disable=W0231
 class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
     """
-    A multiprocessing queue sink that determines the underlying queue type
-    (Torch or default) based on the first item put into it. It uses a
-    manager-provided queue for robust inter-process sharing.
+    A sink that delegates to either a default or Torch queue.
+    The decision is made upon the first item being sent and communicated
+    to the source via the default queue.
     """
 
     def __init__(
         self,
-        shared_manager_dict: DictProxy,  # type: ignore[type-arg]
-        shared_lock: threading.Lock,
-        manager_instance: SyncManager,
+        default_queue_sink: MultiprocessQueueSink[QueueItemType],
+        torch_queue_sink: Optional[MultiprocessQueueSink[QueueItemType]],
     ):
         """
-        Initializes the DelegatingQueueSink.
+        Initializes the DelegatingMultiprocessQueueSink.
 
         Args:
-            shared_manager_dict: A manager-created dictionary for shared state.
-            shared_lock: A manager-created lock for synchronizing access to shared_dict.
-            manager_instance: The multiprocessing SyncManager instance.
+            default_queue_sink: The sink for the default IPC queue (coordination and data).
+            torch_queue_sink: The sink for the Torch IPC queue (data, if chosen).
         """
-        self.__shared_dict = shared_manager_dict
-        self.__shared_lock = shared_lock
-        self.__manager = manager_instance
-        self.__real_sink_internal: Optional[
+        # max_queue_size is implicitly handled by the provided sinks.
+        # Initialize with a sensible default or derive from one of the sinks if necessary.
+        super().__init__(
+            default_queue_sink.max_queue_size if default_queue_sink else 0
+        )
+        self.__default_queue_sink = default_queue_sink
+        self.__torch_queue_sink = torch_queue_sink
+        self.__selected_queue_sink: Optional[
             MultiprocessQueueSink[QueueItemType]
         ] = None
+        self.__coordination_sent: bool = False
         self.__closed_flag = False
+        self.on_close = MethodDelegate[[]]()  # type: ignore[attr-defined]
 
-    def __initialize_real_sink(self, item: QueueItemType) -> None:
+    def __perform_initial_put(
+        self,
+        obj: QueueItemType,
+        timeout: Optional[float] = None,
+        use_nowait: bool = False,
+    ) -> bool:
         """
-        Initializes the actual underlying queue on the first put operation or
-        adopts an existing shared queue if already initialized by another process.
+        Performs the initial put operation, sending a coordination message
+        and then the actual object to the appropriate queue.
+        Sets self.__selected_queue_sink and self.__coordination_sent.
         """
-        if self.__real_sink_internal is not None:
-            return
+        actual_data = getattr(obj, "data", obj)
+        use_torch_path = False
+        if (
+            self.__torch_queue_sink is not None
+            and is_torch_available()  # Checks both torch and _torch_mp_module
+            and isinstance(actual_data, torch.Tensor)
+        ):
+            use_torch_path = True
 
-        with self.__shared_lock:
-            # Re-check inside lock for thread-safety for this instance's attribute
-            if self.__real_sink_internal is not None:
-                return
+        put_method_default_coord = (
+            self.__default_queue_sink.put_nowait
+            if use_nowait
+            else self.__default_queue_sink.put_blocking
+        )
+        coordination_message = "USE_TORCH" if use_torch_path else "USE_DEFAULT"
+        # Ensure coordination_message is queue-friendly (e.g. string)
+        coord_args = (
+            (coordination_message,)
+            if use_nowait
+            else (coordination_message, timeout)
+        )
 
-            if not self.__shared_dict.get(INITIALIZED_KEY, False):
-                # This process is the first to initialize the shared queue
-                actual_data = getattr(item, "data", item)
+        if not put_method_default_coord(*coord_args):
+            return False  # Failed to send coordination message
 
-                queue_factory: MultiprocessQueueFactory[QueueItemType]
+        if use_torch_path:
+            # This assertion is valid because use_torch_path requires __torch_queue_sink is not None
+            assert self.__torch_queue_sink is not None
+            self.__selected_queue_sink = self.__torch_queue_sink
+            put_method_selected = (
+                self.__selected_queue_sink.put_nowait
+                if use_nowait
+                else self.__selected_queue_sink.put_blocking
+            )
+            args_selected = (obj,) if use_nowait else (obj, timeout)
+            if not put_method_selected(*args_selected):
+                # Problematic state: coordination sent, data failed.
+                return False
+        else:
+            self.__selected_queue_sink = self.__default_queue_sink
+            # Data is sent to the same default queue after the coordination message.
+            put_method_default_data = (
+                self.__default_queue_sink.put_nowait
+                if use_nowait
+                else self.__default_queue_sink.put_blocking
+            )
+            args_default_data = (obj,) if use_nowait else (obj, timeout)
+            if not put_method_default_data(*args_default_data):
+                # Problematic state: coordination (USE_DEFAULT) sent, data failed.
+                return False
 
-                if (
-                    is_torch_available()
-                    and _torch_mp_module is not None
-                    and isinstance(actual_data, torch.Tensor)
-                ):
-                    queue_factory = TorchMultiprocessQueueFactory(
-                        manager=self.__manager
-                    )
-                else:
-                    queue_factory = DefaultMultiprocessQueueFactory(
-                        manager=self.__manager
-                    )
-
-                real_sink_instance, real_source_instance = (
-                    queue_factory.create_queues()
-                )
-
-                self.__shared_dict[REAL_QUEUE_SINK_REF_KEY] = (
-                    real_sink_instance
-                )
-                self.__shared_dict[REAL_QUEUE_SOURCE_REF_KEY] = (
-                    real_source_instance
-                )
-                self.__shared_dict[INITIALIZED_KEY] = True
-                self.__real_sink_internal = real_sink_instance
-            else:
-                # Queue already initialized by another process. This instance needs to adopt it.
-                # The SINK itself is what this instance needs for its __real_sink_internal
-                sink_ref = self.__shared_dict.get(REAL_QUEUE_SINK_REF_KEY)
-                if isinstance(sink_ref, MultiprocessQueueSink):
-                    self.__real_sink_internal = sink_ref
-                elif sink_ref is None:
-                    raise RuntimeError(
-                        "Queue initialized but REAL_QUEUE_SINK_REF_KEY is missing in shared_dict."
-                    )
-                else:
-                    raise RuntimeError(
-                        f"Invalid sink_ref type in shared_dict: {type(sink_ref)}"
-                    )
-
-        assert (
-            self.__real_sink_internal is not None
-        ), "Sink internal not initialized after __initialize_real_sink"
+        self.__coordination_sent = True
+        return True
 
     def put_blocking(
         self, obj: QueueItemType, timeout: Optional[float] = None
     ) -> bool:
-        """Puts an item into the queue, blocking if necessary."""
         if self.__closed_flag:
-            raise RuntimeError("Sink closed.")
-        if self.__real_sink_internal is None:
-            self.__initialize_real_sink(obj)
-
-        if self.__real_sink_internal is None:
             raise RuntimeError(
-                "Sink not init for put_blocking (remained None after init or adoption attempt)."
+                "Cannot put item on a closed DelegatingMultiprocessQueueSink."
             )
-        return self.__real_sink_internal.put_blocking(obj, timeout=timeout)
+        if not self.__coordination_sent:
+            return self.__perform_initial_put(
+                obj, timeout=timeout, use_nowait=False
+            )
+
+        assert (
+            self.__selected_queue_sink is not None
+        ), "Coordination sent but no queue selected."
+        return self.__selected_queue_sink.put_blocking(obj, timeout=timeout)
 
     def put_nowait(self, obj: QueueItemType) -> bool:
-        """Puts an item into the queue without blocking."""
         if self.__closed_flag:
-            raise RuntimeError("Sink closed.")
-        if self.__real_sink_internal is None:
-            self.__initialize_real_sink(obj)
-
-        if self.__real_sink_internal is None:
             raise RuntimeError(
-                "Sink not init for put_nowait (remained None after init or adoption attempt)."
+                "Cannot put item on a closed DelegatingMultiprocessQueueSink."
             )
-        return self.__real_sink_internal.put_nowait(obj)
+        if not self.__coordination_sent:
+            return self.__perform_initial_put(obj, use_nowait=True)
+
+        assert (
+            self.__selected_queue_sink is not None
+        ), "Coordination sent but no queue selected."
+        return self.__selected_queue_sink.put_nowait(obj)
 
     def close(self) -> None:
-        """Marks the sink as closed."""
-        self.__closed_flag = True
+        if not self.__closed_flag:
+            self.__closed_flag = True
+            self.__default_queue_sink.close()
+            if self.__torch_queue_sink is not None:
+                self.__torch_queue_sink.close()
+            self.on_close.invoke()
 
     @property
     def closed(self) -> bool:
-        """Returns True if the sink is closed, False otherwise."""
         return self.__closed_flag
 
+    @property
+    def max_queue_size(self) -> int:
+        # Return the max_queue_size of the underlying default sink,
+        # as it's always present.
+        return self.__default_queue_sink.max_queue_size
 
-# pylint: disable=W0231
+
 class DelegatingMultiprocessQueueSource(
     MultiprocessQueueSource[QueueItemType]
 ):
     """
-    A multiprocessing queue source that waits for the corresponding sink
-    to initialize the actual queue. It polls a shared dictionary to find
-    the reference to the real queue source.
+    A source that delegates to either a default or Torch queue
+    based on a coordination message received from the default queue.
     """
 
     def __init__(
         self,
-        shared_manager_dict: DictProxy,  # type: ignore[type-arg]
-        shared_lock: threading.Lock,
+        default_queue_source: MultiprocessQueueSource[QueueItemType],
+        torch_queue_source: Optional[MultiprocessQueueSource[QueueItemType]],
     ):
-        """
-        Initializes the DelegatingQueueSource.
-
-        Args:
-            shared_manager_dict: A manager-created dictionary for shared state.
-            shared_lock: A manager-created lock for synchronizing access.
-        """
-        self.__shared_dict = shared_manager_dict
-        self.__shared_lock = shared_lock
-        self.__real_source_internal: Optional[
+        super().__init__(
+            default_queue_source.max_queue_size if default_queue_source else 0
+        )
+        self.__default_queue_source = default_queue_source
+        self.__torch_queue_source = torch_queue_source
+        self.__selected_queue_source: Optional[
             MultiprocessQueueSource[QueueItemType]
         ] = None
+        self._closed_flag = (
+            False  # Renaming from __closed_flag for consistency if needed
+        )
+        self.on_close = MethodDelegate[[]]()  # type: ignore[attr-defined]
 
-    def _ensure_real_source_initialized(
-        self, polling_timeout: Optional[float] = None
-    ) -> None:
-        """
-        Waits for the sink to initialize and populate the shared dictionary
-        with the reference to the actual queue source.
+    def __receive_coordination_message(
+        self, timeout: Optional[float] = None, use_get_or_none: bool = False
+    ) -> bool:
+        coordination_msg: Optional[Any] = None
+        try:
+            if use_get_or_none:
+                coordination_msg = self.__default_queue_source.get_or_none()
+            else:
+                coordination_msg = self.__default_queue_source.get_blocking(
+                    timeout=timeout
+                )
+        except (
+            queue.Empty
+        ):  # This is the standard exception for timeout with get_blocking
+            return False
+        except (
+            QueueTimeoutError
+        ):  # Custom exception, ensure it's handled if raised by underlying
+            return False
 
-        Args:
-            polling_timeout: Optional timeout for waiting for initialization.
+        if coordination_msg is None:
+            return False
 
-        Raises:
-            queue.Empty: If timeout occurs while waiting for initialization.
-            RuntimeError: If the shared state is inconsistent.
-        """
-        if self.__real_source_internal is not None:
-            return
-        start_time = time.monotonic()
-        while True:
-            if (
-                self.__real_source_internal is not None
-            ):  # Check again in case of concurrent modification
-                return
-            with self.__shared_lock:
-                if self.__shared_dict.get(INITIALIZED_KEY, False):
-                    source_ref = self.__shared_dict.get(
-                        REAL_QUEUE_SOURCE_REF_KEY
-                    )
-                    if isinstance(source_ref, MultiprocessQueueSource):
-                        self.__real_source_internal = source_ref
-                        return
-                    if source_ref is None:
-                        raise RuntimeError("Q init but source_ref missing.")
-                    raise RuntimeError(
-                        f"Invalid source_ref type: {type(source_ref)}."
-                    )
-            if polling_timeout is not None:
-                if (time.monotonic() - start_time) >= polling_timeout:
-                    raise queue.Empty(
-                        f"Timeout ({polling_timeout}s) for source init."
-                    )
-            time.sleep(0.01)
+        if not isinstance(coordination_msg, str):
+            raise RuntimeError(
+                f"Received unexpected coordination data type: {type(coordination_msg)}. Expected str."
+            )
+
+        if coordination_msg == "USE_TORCH":
+            if self.__torch_queue_source is None:
+                raise RuntimeError(
+                    "Coordination specified Torch path, but no Torch queue source is configured."
+                )
+            self.__selected_queue_source = self.__torch_queue_source
+        elif coordination_msg == "USE_DEFAULT":
+            self.__selected_queue_source = self.__default_queue_source
+        else:
+            raise RuntimeError(
+                f"Invalid coordination message: {coordination_msg}"
+            )
+
+        return True
 
     def get_blocking(
         self, timeout: Optional[float] = None
     ) -> Optional[QueueItemType]:
-        """Gets an item from the queue, blocking if necessary."""
+        if self.closed and self.empty():  # Properties used here
+            return None
+
+        if self.__selected_queue_source is None:
+            if not self.__receive_coordination_message(
+                timeout=timeout, use_get_or_none=False
+            ):
+                # Coordination failed (timeout or no message)
+                if (
+                    self.closed
+                ):  # Check if closed after attempting coordination
+                    return None
+                # If coordination timed out, this is effectively a timeout for get_blocking itself.
+                # Re-raise QueueTimeoutError or allow specific timeout exception from underlying queue
+                raise QueueTimeoutError(
+                    "Timeout waiting for coordination message or data."
+                )
+
+        assert (
+            self.__selected_queue_source is not None
+        ), "Selected queue source not set after coordination."
+
         try:
-            self._ensure_real_source_initialized(polling_timeout=timeout)
-        except queue.Empty:
-            return None
-        if self.__real_source_internal is None:
-            return None
-        return self.__real_source_internal.get_blocking(timeout=timeout)
+            item = self.__selected_queue_source.get_blocking(timeout=timeout)
+            if item is None and self.closed and self.empty():
+                return None
+            return item
+        except queue.Empty:  # Handle standard timeout exception
+            if self.closed and self.empty():
+                return None
+            raise QueueTimeoutError(
+                "Timeout getting item from selected queue."
+            )  # Re-wrap or raise directly
+        except QueueTimeoutError:  # Handle custom timeout exception
+            if self.closed and self.empty():
+                return None
+            raise
 
     def get_or_none(self) -> Optional[QueueItemType]:
-        """Gets an item from the queue if available, otherwise returns None."""
-        try:
-            self._ensure_real_source_initialized(
-                polling_timeout=0
-            )  # Short poll
-        except queue.Empty:
+        if self.closed and self.empty():
             return None
-        if self.__real_source_internal is None:
+
+        if self.__selected_queue_source is None:
+            if not self.__receive_coordination_message(use_get_or_none=True):
+                return None  # No coordination message available non-blockingly
+
+        if self.__selected_queue_source is None:  # Still no selected source
             return None
-        return self.__real_source_internal.get_or_none()
+
+        item = self.__selected_queue_source.get_or_none()
+        if item is None and self.closed and self.empty():
+            return None
+        return item
+
+    def close(self) -> None:
+        if not self._closed_flag:
+            self._closed_flag = True
+            self.__default_queue_source.close()
+            if self.__torch_queue_source is not None:
+                self.__torch_queue_source.close()
+            self.on_close.invoke()
+
+    @property
+    def closed(self) -> bool:
+        if self._closed_flag:
+            return True
+        # More robust: if selected, defer to it. If not, check default.
+        if self.__selected_queue_source:
+            return (
+                self.__selected_queue_source.closed
+                and self.__selected_queue_source.empty()
+            )
+        if (
+            self.__default_queue_source.closed
+            and self.__default_queue_source.empty()
+        ):
+            # No coordination possible and default is drained
+            return True
+        return False
+
+    @property
+    def empty(self) -> bool:
+        if self.__selected_queue_source:
+            return self.__selected_queue_source.empty()
+        # Before coordination, emptiness refers to the default queue (coordination channel)
+        return self.__default_queue_source.empty()
+
+    @property
+    def max_queue_size(self) -> int:
+        return self.__default_queue_source.max_queue_size
+
+    def __len__(self) -> int:
+        if self.__selected_queue_source:
+            return len(self.__selected_queue_source)
+        return len(
+            self.__default_queue_source
+        )  # Length of coordination queue before selection
+
+    def __iter__(self) -> "DelegatingMultiprocessQueueSource[QueueItemType]":
+        return self
+
+    def __next__(self) -> QueueItemType:
+        if self.__selected_queue_source is None:
+            # Blocking wait for coordination for iterator
+            if not self.__receive_coordination_message(
+                timeout=None, use_get_or_none=False
+            ):
+                raise StopIteration("Coordination failed or queue closed.")
+
+        assert (
+            self.__selected_queue_source is not None
+        ), "Iterator: Selected source None after coord."
+
+        while True:  # Loop to ensure StopIteration on true end-of-queue
+            if self.closed and self.empty():  # Check overall status
+                raise StopIteration
+            try:
+                # Attempt to get item, ideally blocks indefinitely if timeout=None
+                item = self.__selected_queue_source.get_blocking(
+                    timeout=0.1
+                )  # Short poll for responsiveness
+                if item is not None:
+                    return item
+                # If item is None, and not closed/empty yet, means underlying get_blocking timed out
+                # but queue is not declared finished by `closed` and `empty` properties.
+                # Continue loop to re-evaluate `closed` and `empty` and try again.
+                if self.closed and self.empty():  # Re-check after get attempt
+                    raise StopIteration
+
+            except (
+                queue.Empty,
+                QueueTimeoutError,
+            ):  # Timeout from get_blocking
+                if self.closed and self.empty():
+                    raise StopIteration
+                # If just a timeout but not end of stream, continue polling.
+                # A short sleep can be added here if cpu usage is a concern.
+                # time.sleep(0.001)
+            # Any other exception will propagate and stop iteration.
 
 
 class DelegatingMultiprocessQueueFactory(
     MultiprocessQueueFactory[QueueItemType], Generic[QueueItemType]
 ):
     """
-    A factory that creates pairs of DelegatingQueueSink and DelegatingQueueSource.
-    It manages an underlying multiprocessing manager (standard or Torch) which
-    is used by the sink to create the actual queues.
+    A factory that creates pairs of DelegatingMultiprocessQueueSink and
+    DelegatingMultiprocessQueueSource. It sets up default and, if available,
+    Torch IPC queues, and the delegating sink/source coordinate their usage.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, max_queue_size: int = DEFAULT_MAX_QUEUE_SIZE
+    ) -> None:  # Added max_queue_size
         """Initializes the DelegatingMultiprocessQueueFactory."""
-        super().__init__()
-        self.__manager: Optional[SyncManager] = None
+        super().__init__(max_queue_size)  # Pass max_queue_size to parent
+        # Manager instances are now created per factory call if needed, not stored in self.
 
-    def shutdown(self) -> None:
-        """Shuts down the underlying multiprocessing manager, if one was created."""
-        if self.__manager is not None:
-            try:
-                self.__manager.shutdown()
-            except Exception:  # pylint: disable=broad-except
-                # Intentionally broad: Log or handle specific shutdown errors if necessary.
-                # The primary goal is to ensure the manager reference is cleared.
-                pass
-            self.__manager = None
-
-    def __get_manager(self) -> SyncManager:
-        """
-        Gets or creates the appropriate multiprocessing manager instance.
-        Uses torch.multiprocessing.Manager if PyTorch is available,
-        otherwise defaults to standard multiprocessing.Manager.
-        """
-        if self.__manager is None:
-            if (
-                is_torch_available() and _torch_mp_module is not None
-            ):  # Use _torch_mp_module
-                self.__manager = _torch_mp_module.Manager()
-            else:
-                self.__manager = multiprocessing.Manager()
-        return self.__manager
+    # shutdown() method is removed as the factory no longer owns a persistent manager.
+    # __get_manager() method is removed for the same reason.
 
     def create_queues(
         self,
@@ -336,25 +467,42 @@ class DelegatingMultiprocessQueueFactory(
     ]:
         """
         Creates a pair of delegating queue sink and source.
-
-        The sink and source will share a manager-created dictionary and lock
-        to coordinate the dynamic initialization of the actual queue.
         """
-        manager = self.__get_manager()
-        shared_lock = manager.Lock()
-        shared_dict = manager.dict()
-
-        shared_dict[INITIALIZED_KEY] = False
-        shared_dict[REAL_QUEUE_SOURCE_REF_KEY] = None
-        shared_dict[REAL_QUEUE_SINK_REF_KEY] = None
-
-        sink = DelegatingMultiprocessQueueSink[QueueItemType](
-            shared_manager_dict=shared_dict,
-            shared_lock=shared_lock,
-            manager_instance=manager,
+        # 1. Instantiate DefaultMultiprocessQueueFactory
+        # Default factory needs its own manager
+        default_manager = multiprocessing.Manager()
+        default_factory = DefaultMultiprocessQueueFactory[QueueItemType](
+            max_queue_size=self.max_queue_size, manager=default_manager
         )
-        source = DelegatingMultiprocessQueueSource[QueueItemType](
-            shared_manager_dict=shared_dict,
-            shared_lock=shared_lock,
+        default_sink, default_source = default_factory.create_queues()
+
+        torch_sink: Optional[MultiprocessQueueSink[QueueItemType]] = None
+        torch_source: Optional[MultiprocessQueueSource[QueueItemType]] = None
+
+        if is_torch_available():  # Check using the function
+            try:
+                # Torch factory needs its own torch manager
+                assert (
+                    _torch_mp_module is not None
+                )  # Should be true if is_torch_available
+                torch_manager = _torch_mp_module.Manager()
+                torch_factory = TorchMultiprocessQueueFactory[QueueItemType](
+                    max_queue_size=self.max_queue_size, manager=torch_manager
+                )
+                torch_sink, torch_source = torch_factory.create_queues()
+            except (
+                ImportError
+            ):  # Should ideally not happen if is_torch_available is robust
+                pass  # torch_sink, torch_source remain None
+            except Exception:  # Catch other errors during torch queue creation
+                # Log this? For now, fallback to default path.
+                pass  # torch_sink, torch_source remain None
+
+        delegating_sink = DelegatingMultiprocessQueueSink[QueueItemType](
+            default_queue_sink=default_sink, torch_queue_sink=torch_sink
         )
-        return sink, source
+        delegating_source = DelegatingMultiprocessQueueSource[QueueItemType](
+            default_queue_source=default_source,
+            torch_queue_source=torch_source,
+        )
+        return delegating_sink, delegating_source

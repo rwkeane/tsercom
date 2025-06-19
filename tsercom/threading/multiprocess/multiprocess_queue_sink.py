@@ -72,3 +72,46 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
             return True
         except Full:  # Queue is full.
             return False
+
+    def close(self) -> None:
+        """
+        Closes the queue.
+
+        For a multiprocessing.Queue, this indicates that no more data will be
+        put on this queue by this process. The queue will be flushed and
+        the background thread will exit when all data is consumed.
+        """
+        self.__queue.close()
+
+    @property
+    def closed(self) -> bool:
+        """
+        Indicates if the queue is closed (conceptually).
+
+        Note: `multiprocessing.Queue` does not have a public 'closed'
+        property that reflects whether `close()` has been called or if items
+        can still be retrieved. This property currently returns False as a
+        placeholder, as the primary 'closed' state management might be
+        handled by delegating wrappers or application logic.
+        """
+        return False  # Underlying mp.Queue has no simple 'closed' property
+
+    @property
+    def empty(self) -> bool:
+        """
+        Returns True if the queue is empty, False otherwise.
+        """
+        return self.__queue.empty()
+
+    def __len__(self) -> int:
+        """
+        Returns the approximate number of items in the queue.
+        """
+        return self.__queue.qsize()
+
+    @property
+    def underlying_queue(self) -> "MpQueue[QueueTypeT]":
+        """
+        Provides access to the underlying multiprocessing.Queue instance.
+        """
+        return self.__queue
