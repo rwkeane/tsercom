@@ -180,7 +180,9 @@ async def test_linear_interpolation_over_time(
     parent_history.clear()
     parent_history.append((kf1_t, frame1_1d.clone(), empty_explicits))
     parent_history.append((kf2_t, frame2_1d.clone(), empty_explicits))
-    setattr(smoothed_demuxer, "_processed_keyframes", parent_history)
+    smoothed_demuxer._SmoothedTensorDemuxer__processed_keyframes = (
+        parent_history
+    )
 
     target_push_time1 = start_time + timedelta(seconds=0.1)
     current_time_mock[0] = target_push_time1
@@ -309,7 +311,7 @@ async def test_fill_value_and_partial_interpolation(
 
     parent_history.append((kf1_t, frame1, empty_explicits))
     parent_history.append((kf2_t, frame2, empty_explicits))
-    setattr(demuxer, "_processed_keyframes", parent_history)
+    demuxer._TensorDemuxer__processed_keyframes = parent_history
 
     target_push_time = start_time + timedelta(seconds=0.1)
     current_time_mock[0] = target_push_time
