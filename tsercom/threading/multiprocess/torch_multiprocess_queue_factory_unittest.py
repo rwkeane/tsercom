@@ -73,12 +73,12 @@ class TestTorchMultiprocessQueueFactory:
         source: MultiprocessQueueSource[torch.Tensor]
         sink, source = factory.create_queues()
 
-        assert isinstance(sink, MultiprocessQueueSink), (
-            "First item is not a MultiprocessQueueSink"
-        )
-        assert isinstance(source, MultiprocessQueueSource), (
-            "Second item is not a MultiprocessQueueSource"
-        )
+        assert isinstance(
+            sink, MultiprocessQueueSink
+        ), "First item is not a MultiprocessQueueSink"
+        assert isinstance(
+            source, MultiprocessQueueSource
+        ), "Second item is not a MultiprocessQueueSource"
 
         # Internal queue type checks were removed due to fragility and MyPy errors with generics.
         # Correct functioning is tested by putting and getting data.
@@ -88,12 +88,12 @@ class TestTorchMultiprocessQueueFactory:
             put_successful = sink.put_blocking(tensor_to_send, timeout=1)
             assert put_successful, "sink.put_blocking failed"
             received_tensor = source.get_blocking(timeout=1)
-            assert received_tensor is not None, (
-                "source.get_blocking returned None (timeout)"
-            )
-            assert torch.equal(tensor_to_send, received_tensor), (
-                "Tensor sent and received via Sink/Source are not equal."
-            )
+            assert (
+                received_tensor is not None
+            ), "source.get_blocking returned None (timeout)"
+            assert torch.equal(
+                tensor_to_send, received_tensor
+            ), "Tensor sent and received via Sink/Source are not equal."
         except Exception as e:
             pytest.fail(
                 f"Tensor transfer via Sink/Source failed with exception: {e}"
@@ -140,9 +140,9 @@ class TestTorchMultiprocessQueueFactory:
                 # Add some variation for easier identification if debugging.
                 original_tensor[0, 0] = float(i + 1)
                 put_success = sink.put_blocking(original_tensor, timeout=5)
-                assert put_success, (
-                    f"Failed to put tensor {i + 1} onto the sink queue"
-                )
+                assert (
+                    put_success
+                ), f"Failed to put tensor {i + 1} onto the sink queue"
                 sent_tensors.append(original_tensor)
 
             # Increased timeout per item for receive loop, overall test timeout is 20s.
@@ -150,19 +150,19 @@ class TestTorchMultiprocessQueueFactory:
                 retrieved_item = result_queue.get(timeout=15)
                 received_items.append(retrieved_item)
 
-            assert len(received_items) == self.NUM_ITEMS_TO_TRANSFER, (
-                f"Expected {self.NUM_ITEMS_TO_TRANSFER} items, got {len(received_items)}"
-            )
+            assert (
+                len(received_items) == self.NUM_ITEMS_TO_TRANSFER
+            ), f"Expected {self.NUM_ITEMS_TO_TRANSFER} items, got {len(received_items)}"
 
             for i in range(self.NUM_ITEMS_TO_TRANSFER):
                 sent_tensor = sent_tensors[i]
                 received_tensor = received_items[i]
-                assert isinstance(received_tensor, torch.Tensor), (
-                    f"Item {i} is not a Tensor. Got: {type(received_tensor)}, Value: {received_tensor}"
-                )
-                assert torch.equal(sent_tensor, received_tensor), (
-                    f"Tensor {i} sent and received are not equal."
-                )
+                assert isinstance(
+                    received_tensor, torch.Tensor
+                ), f"Item {i} is not a Tensor. Got: {type(received_tensor)}, Value: {received_tensor}"
+                assert torch.equal(
+                    sent_tensor, received_tensor
+                ), f"Tensor {i} sent and received are not equal."
 
         finally:
             if process_started_successfully and process.is_alive():
