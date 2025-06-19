@@ -32,7 +32,7 @@ from tsercom.threading.multiprocess.multiprocess_queue_factory import (
 # but SplitFactoryFactory doesn't choose it directly anymore)
 from tsercom.threading.multiprocess.delegating_multiprocess_queue_factory import (
     DelegatingMultiprocessQueueFactory,
-    is_torch_available,
+    _TORCH_AVAILABLE,  # Changed from is_torch_available
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -89,7 +89,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         # If available, Delegating factory will decide specific queue type (torch/default)
         # based on the first item sent.
         # If not available, always use default queues.
-        if is_torch_available():
+        if _TORCH_AVAILABLE:  # Changed from is_torch_available()
             event_queue_factory = DelegatingMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
             ]()

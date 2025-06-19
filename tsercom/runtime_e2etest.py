@@ -1968,10 +1968,10 @@ def test_out_of_process_delegating_pytorch_unavailable(clear_loop_fixture):
     # Need to import patch from unittest.mock
     # from unittest.mock import patch # This should be at the top of the file ideally.
 
-    # Path to IS_TORCH_AVAILABLE as used by SplitRuntimeFactoryFactory
-    path_to_mock = "tsercom.api.split_process.split_runtime_factory_factory.is_torch_available"
+    # Path to _TORCH_AVAILABLE as used by SplitRuntimeFactoryFactory
+    path_to_mock = "tsercom.api.split_process.split_runtime_factory_factory._TORCH_AVAILABLE"
 
-    with patch(path_to_mock, return_value=False):
+    with patch(path_to_mock, False): # Patching a boolean constant
         # Call the original __check_initialization test logic
         # __check_initialization itself uses FakeRuntimeInitializer (non-tensor)
         # If this test passes, it means DefaultMPQueue was used and worked.
