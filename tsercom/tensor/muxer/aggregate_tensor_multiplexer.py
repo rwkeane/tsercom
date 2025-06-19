@@ -216,7 +216,9 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                     # For now, assuming it will be handled by a setter or directly if property allows write.
                     # This will be self.__latest_processed_timestamp = potential_latest_ts
                     # Use the private setter method instead of direct mangled access
-                    aggregator._set_latest_processed_timestamp(potential_latest_ts)
+                    aggregator._set_latest_processed_timestamp(
+                        potential_latest_ts
+                    )
 
     def __init__(
         self,
