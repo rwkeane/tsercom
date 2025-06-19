@@ -9,24 +9,16 @@ selected queue.
 """
 
 import multiprocessing
-
-# from multiprocessing import Queue as MpQueue # No longer needed for casting here
 import queue  # For queue.Empty exception
 from typing import (
     TypeVar,
     Optional,
     Tuple,
-    Any,  # Still needed for coordination_message and _torch_tensor_type
-    cast,  # No longer needed in this file
+    Any,
+    cast,
     TypeAlias,
 )
 from types import ModuleType
-
-# Removed tsercom.common imports
-# from tsercom.common.constants import DEFAULT_MAX_QUEUE_SIZE # Defined locally
-# from tsercom.common.delegates import MethodDelegate # Commented out
-# from tsercom.common.exceptions import QueueTimeoutError # Replaced with queue.Empty or TimeoutError
-# from tsercom.common.protocols import MultiprocessQueueItemProtocol # Bound removed from TypeVar
 
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -37,14 +29,16 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
 )
+from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
+    TorchMultiprocessQueueFactory,
+)
+
 
 DEFAULT_MAX_QUEUE_SIZE = 0
 
 _torch_mp_module: Optional[ModuleType] = None
 _torch_available: bool
-_torch_tensor_type: Optional[TypeAlias] = (
-    None  # TypeAlias is imported from typing
-)
+_torch_tensor_type: Optional[TypeAlias] = None
 
 try:
     import torch
@@ -178,7 +172,7 @@ class DelegatingMultiprocessQueueSink(MultiprocessQueueSink[QueueItemType]):
         if self.__default_queue_sink and hasattr(
             self.__default_queue_sink, "max_queue_size"
         ):
-            return cast(  # cast is still used here, so keep the import
+            return cast(
                 int, getattr(self.__default_queue_sink, "max_queue_size")
             )
         return 0
@@ -309,8 +303,8 @@ class DelegatingMultiprocessQueueSource(
         if self.__default_queue_source and hasattr(
             self.__default_queue_source, "max_queue_size"
         ):
-            return cast(  # cast is still used here
-                int, getattr(self.__default_queue_source, "max_queue_size")
+            return cast(
+                int, getattr(self.__default_queue_source, "max_queue_size", 0)
             )
         return 0
 
@@ -366,7 +360,6 @@ class DelegatingMultiprocessQueueFactory(
         actual_default_queue = default_manager.Queue(
             maxsize=max_size_for_mp_queue
         )
-        # Pass the manager-created queue proxy directly
         default_sink = MultiprocessQueueSink[QueueItemType](
             actual_default_queue
         )
@@ -381,16 +374,22 @@ class DelegatingMultiprocessQueueFactory(
 
         if is_torch_available():
             assert _torch_mp_module is not None
-            torch_manager = _torch_mp_module.Manager()
-            actual_torch_queue = torch_manager.Queue(
-                maxsize=max_size_for_mp_queue
-            )
-            torch_sink_final = MultiprocessQueueSink[QueueItemType](
-                actual_torch_queue
-            )
-            torch_source_final = MultiprocessQueueSource[QueueItemType](
-                actual_torch_queue
-            )
+            # Use TorchMultiprocessQueueFactory for spawn-safe queues without a manager
+            # No try-except Exception: pass block to let errors propagate
+            if (
+                _torch_mp_module
+            ):  # Ensure _torch_mp_module is not None for TorchMultiprocessQueueFactory
+                torch_factory = TorchMultiprocessQueueFactory[QueueItemType](
+                    manager=None,
+                    # ctx_method='spawn' # This is the default in TorchMultiprocessQueueFactory if manager is None
+                )
+                # Note: TorchMultiprocessQueueFactory currently does not accept max_queue_size.
+                # If self.max_queue_size needs to be honored here, TorchMultiprocessQueueFactory
+                # would need modification or direct torch_ctx.Queue creation with maxsize.
+                # For this change, we are letting TorchMultiprocessQueueFactory manage its queue size.
+                torch_sink_final, torch_source_final = (
+                    torch_factory.create_queues()
+                )
 
         delegating_sink = DelegatingMultiprocessQueueSink[QueueItemType](
             default_sink, torch_sink_final
