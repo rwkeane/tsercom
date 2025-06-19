@@ -41,7 +41,7 @@ from tsercom.threading.aio.rate_limiter import (
 )
 
 if TYPE_CHECKING:
-    from tsercom.util.is_running_tracker import IsRunningTracker
+    from tsercom.threading.is_running_tracker import IsRunningTracker
 
 # Maximum number of items to keep in the internal queue.
 # If more items are added via on_available() when the queue is full,

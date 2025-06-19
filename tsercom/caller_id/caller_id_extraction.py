@@ -7,7 +7,7 @@ import grpc
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.caller_id.proto import CallerId as GrpcCallerId
-from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.threading.is_running_tracker import IsRunningTracker
 
 TCallType = TypeVar("TCallType")
 

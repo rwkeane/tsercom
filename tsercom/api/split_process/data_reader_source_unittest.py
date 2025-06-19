@@ -1,7 +1,7 @@
 import pytest
 
 from tsercom.api.split_process.data_reader_source import DataReaderSource
-from tsercom.util.is_running_tracker import (
+from tsercom.threading.is_running_tracker import (
     IsRunningTracker,
 )  # Import real one for isinstance check
 

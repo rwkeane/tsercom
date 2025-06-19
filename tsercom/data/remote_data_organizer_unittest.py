@@ -9,7 +9,7 @@ import logging
 
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_organizer import RemoteDataOrganizer
-from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.threading.is_running_tracker import IsRunningTracker
 
 BASE_TIME_UTC = datetime.datetime(
     2023, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc

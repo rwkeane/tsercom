@@ -30,27 +30,31 @@ dependencies = [
   "zeroconf>=0.135.0",
   "psutil>=5.9.0",
   "numpy>=2.2.6", # For tensor operations and PyTorch compatibility
-  "sortedcontainers",
+  "sortedcontainers>=2.4.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "pytest-asyncio",
-    "pytest-mock", 
-    "pytest-timeout",
-    "pre-commit",
-    "ruff",
-    "black",
-    "mypy",
-    "pylint",
-    "cryptography", # Added
-    "mypy-protobuf",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-mock>=3.14.1", 
+    "pytest-timeout>=2.4.0",
+    "pre-commit>=4.2.0",
+    "ruff>=0.12.0",
+    "black>=25.1.0",
+    "mypy>=1.16.1",
+    "import-linter>=2.3",
+    "cryptography>=45.0.4", # For gRPC Unit Tests.
+
+    # Typing, as below.
+    "mypy-protobuf>=3.6.0",
+    "types-psutil>=7.0.0",
+    "types-requests>=2.32.4",
 ]
 typing = [
-    "types-psutil",
-    "types-requests",
-    "mypy-protobuf"
+    "mypy-protobuf>=3.6.0",
+    "types-psutil>=7.0.0",
+    "types-requests>=2.32.4",
 ]
 docs = [
     "sphinx",
@@ -228,4 +232,117 @@ omit = [
     "tsercom/*/*_pb2.py",
     "tsercom/*/*_pb2_grpc.py",
     "tsercom/*/proto/*",
+]
+
+[tool.importlinter]
+root_packages = ["tsercom"]
+exclude_patterns = [
+    # Exclude all common test file naming conventions.
+    # This matches: _test.py, _tests.py, _unittest.py, _unittests.py, _e2etest.py, _e2etests.py
+    ".*_((unit)?test|e2e)s?\\.py$",
+
+    # Exclude common test directory patterns.
+    "^tsercom/tests/.*",
+    "^tests/.*",
+    
+    # Exclude the new test utilities directory.
+    "^tsercom/test/.*",
+
+    # Exclude virtual environment directories.
+    ".*/\\.venv/.*",
+
+    # Exclude generated protobuf files and their stub files (.pyi).
+    ".*/_pb2(_grpc)?\\.pyi?$",
+
+    # Exclude the contents of any 'proto' directory.
+    "^tsercom/.*/proto/.*",
+]
+
+[[tool.importlinter.contracts]]
+name = "'threading' module dependencies"
+type = "forbidden"
+source_modules = [
+    "tsercom.threading",
+]
+forbidden_modules = [
+    "tsercom.util",
+    "tsercom.timesync",
+    "tsercom.caller_id",
+    "tsercom.data",
+    "tsercom.tensor",
+    "tsercom.discovery",
+    "tsercom.rpc",
+    "tsercom.runtime",
+    "tsercom.api",
+]
+
+# --- Contract for 'util' ---
+# 'util' can only depend on 'threading'.
+[[tool.importlinter.contracts]]
+name = "'util' module dependencies"
+type = "forbidden"
+source_modules = [
+    "tsercom.util",
+]
+forbidden_modules = [
+    "tsercom.threading",
+    "tsercom.timesync",
+    "tsercom.caller_id",
+    "tsercom.data",
+    "tsercom.tensor",
+    "tsercom.discovery",
+    "tsercom.rpc",
+    "tsercom.runtime",
+    "tsercom.api",
+]
+
+# --- Contracts for mid-level modules ---
+# These can only depend on 'util' and 'threading'.
+[[tool.importlinter.contracts]]
+name = "'timesync', 'caller_id', 'discovery', 'rpc' module dependencies"
+type = "forbidden"
+source_modules = [
+    "tsercom.timesync",
+    "tsercom.caller_id",
+    "tsercom.discovery",
+    "tsercom.rpc",
+]
+forbidden_modules = [
+    # They can't depend on each other or on higher-level modules.
+    "tsercom.data",
+    "tsercom.tensor",
+    "tsercom.runtime",
+    "tsercom.api",
+]
+
+# --- Contract for 'data' ---
+# 'data' can depend on 'threading', 'util', 'timesync', 'caller_id'.
+[[tool.importlinter.contracts]]
+name = "'data' module dependencies"
+type = "forbidden"
+source_modules = [
+    "tsercom.data",
+]
+forbidden_modules = [
+    # It cannot depend on sibling/higher layers.
+    "tsercom.tensor",
+    "tsercom.discovery",
+    "tsercom.rpc",
+    "tsercom.runtime",
+    "tsercom.api",
+]
+
+# --- Contract for 'tensor' ---
+# 'tensor' can depend on 'data' and everything below it.
+[[tool.importlinter.contracts]]
+name = "'tensor' module dependencies"
+type = "forbidden"
+source_modules = [
+    "tsercom.tensor",
+]
+forbidden_modules = [
+    "tsercom.discovery",
+    "tsercom.rpc",
+    "tsercom.runtime",
+    "tsercom.api",
 ]

@@ -13,7 +13,7 @@ from tsercom.timesync.client.client_synchronized_clock import (
 )
 from tsercom.timesync.common.constants import kNtpPort, kNtpVersion
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
-from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.threading.is_running_tracker import IsRunningTracker
 
 logger = logging.getLogger(__name__)
 

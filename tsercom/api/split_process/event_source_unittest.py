@@ -2,7 +2,7 @@ import pytest
 
 from tsercom.api.split_process.event_source import EventSource
 from tsercom.data.event_instance import EventInstance
-from tsercom.util.is_running_tracker import (
+from tsercom.threading.is_running_tracker import (
     IsRunningTracker,
 )  # For isinstance checks
 
