@@ -10,21 +10,17 @@ import dataclasses  # Added for TensorContainer
 # TorchMpQueueType will now refer to torch.multiprocessing.Queue directly
 from typing import Type, ClassVar, List  # Added List for type hint
 
-from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
-    TorchMultiprocessQueueFactory,
-)
-from tsercom.threading.multiprocess.torch_tensor_queue_sink import (
-    TorchTensorQueueSink,
-)
-from tsercom.threading.multiprocess.torch_tensor_queue_source import (
-    TorchTensorQueueSource,
+from tsercom.threading.multiprocess.torch_memcpy_queue_factory import (
+    TorchMemcpyQueueFactory,
+    TorchMemcpyQueueSink,
+    TorchMemcpyQueueSource,
 )
 
 
 # Top-level function for multiprocessing target (direct tensor transfer)
 def _consumer_process_helper_func(
-    p2c_source: TorchTensorQueueSource[torch.Tensor],
-    c2p_tensor_sink: TorchTensorQueueSink[torch.Tensor],
+    p2c_source: TorchMemcpyQueueSource[torch.Tensor],
+    c2p_tensor_sink: TorchMemcpyQueueSink[torch.Tensor],
 ) -> None:
     import queue
     import time
@@ -64,8 +60,8 @@ def _container_tensor_accessor(container: TensorContainer) -> torch.Tensor:
 
 # Top-level function for multiprocessing target for containers
 def _container_consumer_process_helper_func(
-    p2c_source: TorchTensorQueueSource[TensorContainer],
-    c2p_container_sink: TorchTensorQueueSink[TensorContainer],
+    p2c_source: TorchMemcpyQueueSource[TensorContainer],
+    c2p_container_sink: TorchMemcpyQueueSink[TensorContainer],
 ) -> None:
     import queue
     import time
@@ -104,16 +100,16 @@ class TestTorchMultiprocessQueueFactory:
     def test_create_queues_returns_specialized_tensor_queues(
         self,
     ) -> None:
-        factory = TorchMultiprocessQueueFactory[torch.Tensor]()
-        sink: TorchTensorQueueSink[torch.Tensor]
-        source: TorchTensorQueueSource[torch.Tensor]
+        factory = TorchMemcpyQueueFactory[torch.Tensor]()
+        sink: TorchMemcpyQueueSink[torch.Tensor]
+        source: TorchMemcpyQueueSource[torch.Tensor]
         sink, source = factory.create_queues()
 
         assert isinstance(
-            sink, TorchTensorQueueSink
+            sink, TorchMemcpyQueueSink
         ), "Sink is not a TorchTensorQueueSink"
         assert isinstance(
-            source, TorchTensorQueueSource
+            source, TorchMemcpyQueueSource
         ), "Source is not a TorchTensorQueueSource"
 
         tensor_to_send = torch.randn(2, 3)
@@ -142,15 +138,13 @@ class TestTorchMultiprocessQueueFactory:
 
         mp_context = mp.get_context(start_method)
 
-        factory = TorchMultiprocessQueueFactory[torch.Tensor](
-            context=mp_context
-        )
-        p2c_sink: TorchTensorQueueSink[torch.Tensor]
-        p2c_source: TorchTensorQueueSource[torch.Tensor]
+        factory = TorchMemcpyQueueFactory[torch.Tensor](context=mp_context)
+        p2c_sink: TorchMemcpyQueueSink[torch.Tensor]
+        p2c_source: TorchMemcpyQueueSource[torch.Tensor]
         p2c_sink, p2c_source = factory.create_queues()
 
-        c2p_sink: TorchTensorQueueSink[torch.Tensor]
-        c2p_source: TorchTensorQueueSource[torch.Tensor]
+        c2p_sink: TorchMemcpyQueueSink[torch.Tensor]
+        c2p_source: TorchMemcpyQueueSource[torch.Tensor]
         c2p_sink, c2p_source = factory.create_queues()
 
         process = mp_context.Process(
@@ -207,16 +201,16 @@ class TestTorchMultiprocessQueueFactory:
 
         tensor_accessor = _container_tensor_accessor  # Use top-level function
 
-        factory = TorchMultiprocessQueueFactory[TensorContainer](
+        factory = TorchMemcpyQueueFactory[TensorContainer](
             context=mp_context, tensor_accessor=tensor_accessor
         )
 
-        p2c_sink: TorchTensorQueueSink[TensorContainer]
-        p2c_source: TorchTensorQueueSource[TensorContainer]
+        p2c_sink: TorchMemcpyQueueSink[TensorContainer]
+        p2c_source: TorchMemcpyQueueSource[TensorContainer]
         p2c_sink, p2c_source = factory.create_queues()
 
-        c2p_sink: TorchTensorQueueSink[TensorContainer]
-        c2p_source: TorchTensorQueueSource[TensorContainer]
+        c2p_sink: TorchMemcpyQueueSink[TensorContainer]
+        c2p_source: TorchMemcpyQueueSource[TensorContainer]
         c2p_sink, c2p_source = factory.create_queues()
 
         process = mp_context.Process(

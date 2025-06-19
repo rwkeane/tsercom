@@ -196,7 +196,7 @@ def mock_queue_factories(mocker):
         side_effect=default_queues_results,
     )
     mock_torch_init = mocker.patch.object(
-        srff_module.TorchMultiprocessQueueFactory,
+        srff_module.TorchMemcpyQueueFactory,
         "__init__",
         return_value=None,
     )
@@ -207,7 +207,7 @@ def mock_queue_factories(mocker):
             (MultiprocessQueueSink(q), MultiprocessQueueSource(q))
         )
     mock_torch_create_queues = mocker.patch.object(
-        srff_module.TorchMultiprocessQueueFactory,
+        srff_module.TorchMemcpyQueueFactory,
         "create_queues",
         side_effect=torch_queues_results,
     )
