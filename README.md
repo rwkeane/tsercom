@@ -88,8 +88,10 @@ But if you use this library, pleae submit a PR to add a link to your library her
 
 ## Dependencies
 
+- `sortedcontainers`: Used for its `SortedList` data structure, which provides efficient (`O(log n)`) insertions, deletions, and lookups while maintaining sort order. This is crucial for performance in organizing time-series data and enabling features like interpolation.
 Tsercom relies on several key libraries:
 
+*   `sortedcontainers`
 *   `grpcio`, `grpcio-status`, `grpcio-tools`: For the core gRPC communication framework.
 *   `protobuf`: For working with Protocol Buffers, the data serialization format used by gRPC.
 *   `zeroconf`: For mDNS-based service discovery (used by the `tsercom.discovery` module).

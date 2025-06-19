@@ -1,5 +1,3 @@
-"""Defines ExposedData, a base dataclass for data with ID and timestamp."""
-
 import dataclasses
 from datetime import datetime
 
