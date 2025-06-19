@@ -371,7 +371,7 @@ async def test_data_timeout_e2e() -> None:
     ) -> bool:
         return any(
             ts == target_ts
-            for ts, _, _ in demuxer_instance._TensorDemuxer__tensor_states  # type: ignore[attr-defined]
+            for ts, _, _ in demuxer_instance._processed_keyframes  # Corrected attribute name
         )
 
     assert _is_ts_present_in_demuxer_states(
@@ -390,7 +390,7 @@ async def test_data_timeout_e2e() -> None:
     assert (
         await demuxer_client.get_tensor_at_ts(T_COMP_0) is None
     ), "T0 Demuxer output"  # This relies on DemuxerOutputHandler reflecting timeout
-    assert not _is_ts_present_in_demuxer_states(
+    assert not _is_ts_present_in_demuxer_states(  # This call also needs the fix, which is covered by the change above
         demuxer, T_COMP_0
     ), "T0 Demuxer internal"
 

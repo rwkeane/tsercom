@@ -1,19 +1,23 @@
-import asyncio
-import logging
-import numpy as np
+"""
+Provides the SmoothedTensorDemuxer class for managing and interpolating tensor data.
+"""
 
-from typing import (
+import asyncio
+import datetime  # Corrected import order
+import logging
+import sys  # For debug prints to stderr
+from typing import (  # Corrected import order
     Optional,
     Tuple,
     Union,
 )
 
+import numpy as np
 import torch
-
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
-import datetime
+
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +27,12 @@ class SmoothedTensorDemuxer(TensorDemuxer):
     Manages per-index keyframe data using torch.Tensors and provides smoothed,
     interpolated tensor updates.
     Uses a specified smoothing strategy for per-index "cascading forward" interpolation.
+
+    Attributes:
+        debug_processing_log (list[str]): A log for debugging processing steps.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=R0913, R0917
         self,
         tensor_shape: Tuple[int, ...],
         output_client: TensorDemuxer.Client,
@@ -36,11 +43,27 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         fill_value: Union[int, float] = float("nan"),
         name: Optional[str] = None,
     ):
+        """
+        Initializes the SmoothedTensorDemuxer.
 
-        class PlaceholderClient(TensorDemuxer.Client):
+        Args:
+            tensor_shape: Shape of the output tensor.
+            output_client: Client to receive tensor updates.
+            smoothing_strategy: Strategy for smoothing/interpolation.
+            output_interval_seconds: Interval for pushing updates.
+            data_timeout_seconds: Timeout for data points.
+            align_output_timestamps: Whether to align output timestamps.
+            fill_value: Value for unpopulated tensor elements.
+            name: Optional name for the demuxer.
+        """
+
+        class PlaceholderClient(TensorDemuxer.Client):  # pylint: disable=R0903
+            """A dummy client that does nothing. Used as a default base client."""
+
             async def on_tensor_changed(
                 self, tensor: torch.Tensor, timestamp: datetime.datetime
             ) -> None:
+                """Handles tensor change events by doing nothing."""
                 pass
 
         actual_base_client = PlaceholderClient()
@@ -72,6 +95,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         self.__last_pushed_timestamp: Optional[datetime.datetime] = None
         self.__interpolation_worker_task: Optional[asyncio.Task[None]] = None
         self.__stop_event = asyncio.Event()
+        self.debug_processing_log: list[str] = []  # For debugging
 
         logger.info(
             "Initialized SmoothedTensorDemuxer '%s' with shape %s, output interval %ss.",
@@ -82,23 +106,28 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
     @property
     def name(self) -> str:
+        """Returns the name of the demuxer."""
         return self.__name
 
     @property
     def output_interval_seconds(self) -> float:
+        """Returns the output interval in seconds."""
         return self.__output_interval_seconds
 
     @property
     def fill_value(self) -> float:
+        """Returns the fill value for unpopulated tensor elements."""
         return self.__fill_value
 
     @property
     def align_output_timestamps(self) -> bool:
+        """Returns whether output timestamps should be aligned."""
         return self.__align_output_timestamps
 
     async def on_update_received(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
     ) -> None:
+        """Handles an update for a specific tensor index from the parent."""
         await super().on_update_received(tensor_index, value, timestamp)
 
     async def _on_keyframe_updated(
@@ -106,12 +135,19 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         timestamp: datetime.datetime,
         new_tensor_state: torch.Tensor,
     ) -> None:
+        """
+        Callback for when a parent keyframe is updated by TensorDemuxer.
+        Triggers interpolation if necessary.
+        """
         logger.debug(
-            f"[{self.__name}] Parent keyframe update detected at {timestamp}. Triggering interpolation."
+            "[%s] Parent keyframe update detected at %s. Triggering interpolation.",
+            self.__name,
+            timestamp,
         )
         await self.__try_interpolate_and_push()
 
     async def __get_current_utc_timestamp(self) -> datetime.datetime:
+        """Gets the current UTC timestamp."""
         return datetime.datetime.now(datetime.timezone.utc)
 
     async def __try_interpolate_and_push(self) -> None:
@@ -157,16 +193,36 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
         if current_time >= next_output_datetime:
             logger.debug(
-                f"[{self.__name}] Attempting interpolation for {next_output_datetime}"
+                "[%s] Attempting interpolation for %s",
+                self.__name,
+                next_output_datetime,
             )
 
-            history_from_parent = []
-            if hasattr(super(), "_processed_keyframes"):
-                history_from_parent = list(super()._processed_keyframes)
+            # self._processed_keyframes is initialized in TensorDemuxer.__init__
+            # The test directly uses setattr to place a list here for testing.
+            # So, we should directly access self._processed_keyframes.
+            # Ensure it's converted to a list for consistent processing, as it's a deque in parent.
+            try:
+                history_from_parent = list(self._processed_keyframes)
+                self.debug_processing_log.append(
+                    f"HISTORY_ACCESS_SUCCESS: Type={type(self._processed_keyframes)}, Length={len(history_from_parent)}"
+                )
+            except AttributeError:
+                self.debug_processing_log.append(
+                    "HISTORY_ACCESS_FAIL: _processed_keyframes not found on self."
+                )
+                history_from_parent = (
+                    []
+                )  # Ensure it's an empty list if access fails
 
             if not history_from_parent:
+                self.debug_processing_log.append(
+                    f"HISTORY_EMPTY: No keyframes in history_from_parent for interpolation at {next_output_datetime}"
+                )
                 logger.debug(
-                    f"[{self.__name}] No keyframes in parent history for interpolation at {next_output_datetime}"
+                    "[%s] No keyframes in parent history for interpolation at %s",
+                    self.__name,
+                    next_output_datetime,
                 )
                 output_tensor = torch.full(
                     self.__tensor_shape_internal,
@@ -189,6 +245,13 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
                     for p_ts, p_1d_tensor, _ in history_from_parent:
                         try:
+                            # Ensure p_1d_tensor is actually a tensor, log its type and content
+                            if not isinstance(p_1d_tensor, torch.Tensor):
+                                print(
+                                    f"SMOOTHED_DEMUXER_ERROR: p_1d_tensor is not a Tensor! Type: {type(p_1d_tensor)}, Index: {index_tuple}, TS: {p_ts}"
+                                )
+                                continue  # Skip this keyframe if data is corrupted
+
                             p_nd_tensor_reshaped = p_1d_tensor.reshape(
                                 self.__tensor_shape_internal
                             )
@@ -198,16 +261,40 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                             per_element_timestamps.append(p_ts.timestamp())
                             per_element_values.append(element_value)
                         except Exception as e_reshape:
-                            logger.warning(
-                                f"[{self.__name}] Error reshaping parent tensor or accessing element {index_tuple} for ts {p_ts}: {e_reshape}"
+                            exception_msg = (
+                                f"EXCEPTION: Index={index_tuple}, TS={p_ts}, ErrorType={type(e_reshape).__name__}, Error='{e_reshape}', "
+                                f"TensorShape={self.__tensor_shape_internal}, P1DTensorShape={p_1d_tensor.shape if isinstance(p_1d_tensor, torch.Tensor) else 'N/A'}"
                             )
+                            self.debug_processing_log.append(exception_msg)
+                            # Print to stderr as a fallback
+                            # import sys # Moved to top
+                            sys.stderr.write(exception_msg + "\n")
+                            sys.stderr.flush()
                             continue
+                        # self.debug_processing_log.append(f"Data point collected for Index={index_tuple}, TS={p_ts}") # Too verbose
 
                     if not per_element_values:
+                        no_data_msg = f"NO_DATA: Index={index_tuple}, TargetTime={next_output_datetime}. per_element_values is empty."
+                        self.debug_processing_log.append(no_data_msg)
+                        # Print to stderr as a fallback
+                        # import sys # Moved to top
+                        sys.stderr.write(no_data_msg + "\n")
+                        sys.stderr.flush()
                         logger.debug(
-                            f"[{self.__name}] No data for element {index_tuple} for interpolation at {next_output_datetime}"
+                            "[%s] No data for element %s for interpolation at %s",
+                            self.__name,
+                            index_tuple,
+                            next_output_datetime,
                         )
                         continue
+
+                    collected_data_msg = (
+                        f"OK_DATA_COLLECTED: Index={index_tuple}, TargetTime={next_output_datetime}, "
+                        f"NumTimestamps={len(per_element_timestamps)}, NumValues={len(per_element_values)}"
+                    )
+                    self.debug_processing_log.append(collected_data_msg)
+                    # Optional: print to stdout if direct pytest output is desired and works
+                    # print(f"SMOOTHED_DEMUXER_STDOUT_DEBUG: {collected_data_msg}")
 
                     timestamps_tensor = torch.tensor(
                         per_element_timestamps, dtype=torch.float64
@@ -235,9 +322,11 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             self.__last_pushed_timestamp = next_output_datetime
 
     async def start(self) -> None:
+        """Starts the demuxer, preparing it to process updates."""
         self.__stop_event.clear()
         logger.info(
-            f"[{self.__name}] SmoothedTensorDemuxer started. Output driven by keyframe updates."
+            "[%s] SmoothedTensorDemuxer started. Output driven by keyframe updates.",
+            self.__name,
         )
         if self.__align_output_timestamps:
             now = await self.__get_current_utc_timestamp()
@@ -252,6 +341,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             self.__last_pushed_timestamp = None
 
     async def stop(self) -> None:
+        """Stops the demuxer and cancels any running interpolation tasks."""
         self.__stop_event.set()
         if (
             self.__interpolation_worker_task
@@ -263,9 +353,10 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                 )
             except asyncio.TimeoutError:
                 self.__interpolation_worker_task.cancel()
-            except Exception:
+            except Exception:  # pylint: disable=W0718
                 pass
-        logger.info(f"[{self.__name}] SmoothedTensorDemuxer stopped.")
+        logger.info("[%s] SmoothedTensorDemuxer stopped.", self.__name)
 
     def get_tensor_shape(self) -> Tuple[int, ...]:
+        """Returns the shape of the tensor managed by this demuxer."""
         return self.__tensor_shape_internal
