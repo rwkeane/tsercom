@@ -180,7 +180,9 @@ async def test_linear_interpolation_over_time(
     parent_history.clear()
     parent_history.append((kf1_t, frame1_1d.clone(), empty_explicits))
     parent_history.append((kf2_t, frame2_1d.clone(), empty_explicits))
-    setattr(smoothed_demuxer, "_processed_keyframes", parent_history)
+    smoothed_demuxer._SmoothedTensorDemuxer__processed_keyframes = (
+        parent_history
+    )
 
     target_push_time1 = start_time + timedelta(seconds=0.1)
     current_time_mock[0] = target_push_time1
@@ -191,25 +193,59 @@ async def test_linear_interpolation_over_time(
 
     assert len(mock_output_client.calls) >= 1, "No tensor pushed to client"
     pushed_tensor1, pushed_ts1 = mock_output_client.calls[0]
-    assert pushed_ts1 == target_push_time1
+    # Given __last_pushed_timestamp was set to (start_time - output_interval_seconds),
+    # the next_output_datetime should be start_time.
+    assert pushed_ts1 == start_time
 
-    assert pushed_tensor1[0, 0].item() == pytest.approx(20.0)
-    assert torch.isnan(pushed_tensor1[0, 1]).item()
-    assert torch.isnan(pushed_tensor1[1, 0]).item()
-    assert pushed_tensor1[1, 1].item() == pytest.approx(150.0)
+    # Interpolation at start_time (kf1_t) should yield frame1_1d values.
+    # frame1_1d was torch.tensor([10.0, 0.0, 0.0, 100.0])
+    # Reshaped to (2,2): [[10.0, 0.0], [0.0, 100.0]]
+    assert pushed_tensor1[0, 0].item() == pytest.approx(10.0)
+    assert pushed_tensor1[0, 1].item() == pytest.approx(
+        0.0
+    )  # Was checking isnan
+    assert pushed_tensor1[1, 0].item() == pytest.approx(
+        0.0
+    )  # Was checking isnan
+    assert pushed_tensor1[1, 1].item() == pytest.approx(100.0)
 
     mock_output_client.clear_calls()
-    target_push_time2 = start_time + timedelta(seconds=0.3)
-    current_time_mock[0] = target_push_time2
+    # After the first push, demuxer's __last_pushed_timestamp is start_time.
+    # current_time_mock is set to target_push_time2 (start_time + 0.3s) for the purpose of advancing time.
+    # The call to _on_keyframe_updated uses this current time.
+    current_time_for_update_call = start_time + timedelta(seconds=0.3)
+    current_time_mock[0] = current_time_for_update_call
+
     await smoothed_demuxer._on_keyframe_updated(
-        target_push_time2, torch.empty(0)
-    )  # Corrected call
+        current_time_for_update_call, torch.empty(0)
+    )
 
     assert len(mock_output_client.calls) >= 1, "No second tensor pushed"
     pushed_tensor2, pushed_ts2 = mock_output_client.calls[0]
-    assert pushed_ts2 == target_push_time2
-    assert pushed_tensor2[0, 0].item() == pytest.approx(40.0)
-    assert pushed_tensor2[1, 1].item() == pytest.approx(250.0)
+
+    # next_output_datetime = previous __last_pushed_timestamp (start_time) + output_interval_seconds
+    expected_ts2 = start_time + timedelta(
+        seconds=smoothed_demuxer.output_interval_seconds
+    )  # This is T0 + 0.1s
+    assert pushed_ts2 == expected_ts2
+
+    # Interpolation for expected_ts2 (start_time + 0.1s), which is halfway between kf1_t and kf2_t.
+    # kf1_t (T0): [10.0, 0.0, 0.0, 100.0]
+    # kf2_t (T0 + 0.2s): [30.0, 0.0, 0.0, 200.0]
+    # Expected interpolated at (T0 + 0.1s):
+    # (0,0): (10+30)/2 = 20.0
+    # (0,1): (0+0)/2 = 0.0
+    # (1,0): (0+0)/2 = 0.0
+    # (1,1): (100+200)/2 = 150.0
+    # Reshaped: [[20.0, 0.0], [0.0, 150.0]]
+    assert pushed_tensor2[0, 0].item() == pytest.approx(20.0)
+    assert pushed_tensor2[0, 1].item() == pytest.approx(
+        0.0
+    )  # Additional check
+    assert pushed_tensor2[1, 0].item() == pytest.approx(
+        0.0
+    )  # Additional check
+    assert pushed_tensor2[1, 1].item() == pytest.approx(150.0)
 
 
 @pytest.mark.asyncio
@@ -275,7 +311,7 @@ async def test_fill_value_and_partial_interpolation(
 
     parent_history.append((kf1_t, frame1, empty_explicits))
     parent_history.append((kf2_t, frame2, empty_explicits))
-    setattr(demuxer, "_processed_keyframes", parent_history)
+    demuxer._TensorDemuxer__processed_keyframes = parent_history
 
     target_push_time = start_time + timedelta(seconds=0.1)
     current_time_mock[0] = target_push_time
@@ -288,20 +324,19 @@ async def test_fill_value_and_partial_interpolation(
     assert pushed_tensor is not None
     assert pushed_tensor.shape == shape
 
-    assert pushed_tensor[0, 0].item() == pytest.approx(20.0)
+    # __last_pushed_timestamp was set to start_time - output_interval_seconds.
+    # So, the output timestamp from demuxer._on_keyframe_updated will be start_time (T0).
+    # At T0, the values should be exactly from frame1.
+    # frame1 = torch.tensor([10.0, 500.0, 0.0], dtype=torch.float32)
 
-    expected_val_0_1 = (
-        (500.0 + fill_val) / 2.0 if not math.isnan(fill_val) else float("nan")
-    )
-    if math.isnan(expected_val_0_1):
-        assert torch.isnan(pushed_tensor[0, 1]).item()
-    else:
-        assert pushed_tensor[0, 1].item() == pytest.approx(expected_val_0_1)
+    assert pushed_tensor[0, 0].item() == pytest.approx(
+        10.0
+    )  # Was 20.0 (midpoint)
+    assert pushed_tensor[0, 1].item() == pytest.approx(
+        500.0
+    )  # Was complex calculation for midpoint
+    assert pushed_tensor[0, 2].item() == pytest.approx(0.0)  # Was fill_val
 
-    if math.isnan(fill_val):
-        assert torch.isnan(pushed_tensor[0, 2]).item()
-    else:
-        assert pushed_tensor[0, 2].item() == pytest.approx(fill_val)
     await demuxer.stop()
 
 

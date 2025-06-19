@@ -1,19 +1,21 @@
-import asyncio
-import logging
-import numpy as np
+"""
+Provides the SmoothedTensorDemuxer class for interpolating tensor data over time.
+"""
 
+import asyncio
+import datetime
+import logging
 from typing import (
     Optional,
     Tuple,
     Union,
 )
 
+import numpy as np
 import torch
-
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
-import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -36,15 +38,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         fill_value: Union[int, float] = float("nan"),
         name: Optional[str] = None,
     ):
-
-        class PlaceholderClient(TensorDemuxer.Client):
-            async def on_tensor_changed(
-                self, tensor: torch.Tensor, timestamp: datetime.datetime
-            ) -> None:
-                pass
-
-        actual_base_client = PlaceholderClient()
-
         self.__tensor_shape_internal = tensor_shape
         _1d_tensor_length = 1
         if tensor_shape:
@@ -54,7 +47,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             _1d_tensor_length = 1
 
         super().__init__(
-            client=actual_base_client,
+            client=output_client,
             tensor_length=_1d_tensor_length,
             data_timeout_seconds=data_timeout_seconds,
         )
@@ -63,7 +56,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             name if name else f"SmoothedTensorDemuxer(shape={tensor_shape})"
         )
 
-        self.__output_client: TensorDemuxer.Client = output_client
         self.__smoothing_strategy = smoothing_strategy
         self.__output_interval_seconds = output_interval_seconds
         self.__align_output_timestamps = align_output_timestamps
@@ -82,23 +74,31 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
     @property
     def name(self) -> str:
+        """Returns the name of the demuxer."""
         return self.__name
 
     @property
     def output_interval_seconds(self) -> float:
+        """Returns the output interval in seconds."""
         return self.__output_interval_seconds
 
     @property
     def fill_value(self) -> float:
+        """Returns the fill value for empty tensor elements."""
         return self.__fill_value
 
     @property
     def align_output_timestamps(self) -> bool:
+        """Returns whether output timestamps should be aligned."""
         return self.__align_output_timestamps
 
     async def on_update_received(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
     ) -> None:
+        """
+        Handles an update for a single element in the tensor.
+        This is typically called by the parent class or an external source.
+        """
         await super().on_update_received(tensor_index, value, timestamp)
 
     async def _on_keyframe_updated(
@@ -106,15 +106,26 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         timestamp: datetime.datetime,
         new_tensor_state: torch.Tensor,
     ) -> None:
+        """
+        Callback triggered when the parent TensorDemuxer detects a full keyframe update.
+        This method then triggers the interpolation and output push.
+        """
         logger.debug(
-            f"[{self.__name}] Parent keyframe update detected at {timestamp}. Triggering interpolation."
+            "[%s] Parent keyframe update detected at %s. Triggering interpolation.",
+            self.__name,
+            timestamp,
         )
         await self.__try_interpolate_and_push()
 
     async def __get_current_utc_timestamp(self) -> datetime.datetime:
+        """Gets the current UTC timestamp."""
         return datetime.datetime.now(datetime.timezone.utc)
 
     async def __try_interpolate_and_push(self) -> None:
+        """
+        Attempts to interpolate the tensor to the next output timestamp and push it.
+        This is the core logic for generating smoothed tensor outputs.
+        """
         if self.__stop_event.is_set():
             return
 
@@ -157,16 +168,18 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
         if current_time >= next_output_datetime:
             logger.debug(
-                f"[{self.__name}] Attempting interpolation for {next_output_datetime}"
+                "[%s] Attempting interpolation for %s",
+                self.__name,
+                next_output_datetime,
             )
 
-            history_from_parent = []
-            if hasattr(super(), "_processed_keyframes"):
-                history_from_parent = list(super()._processed_keyframes)
+            history_from_parent = list(super()._processed_keyframes)
 
             if not history_from_parent:
                 logger.debug(
-                    f"[{self.__name}] No keyframes in parent history for interpolation at {next_output_datetime}"
+                    "[%s] No keyframes in parent history for interpolation at %s",
+                    self.__name,
+                    next_output_datetime,
                 )
                 output_tensor = torch.full(
                     self.__tensor_shape_internal,
@@ -197,15 +210,22 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                             ].item()
                             per_element_timestamps.append(p_ts.timestamp())
                             per_element_values.append(element_value)
-                        except Exception as e_reshape:
+                        except (RuntimeError, ValueError) as e_reshape:
                             logger.warning(
-                                f"[{self.__name}] Error reshaping parent tensor or accessing element {index_tuple} for ts {p_ts}: {e_reshape}"
+                                "[%s] Error reshaping parent tensor or accessing element %s for ts %s: %s",
+                                self.__name,
+                                index_tuple,
+                                p_ts,
+                                e_reshape,
                             )
                             continue
 
                     if not per_element_values:
                         logger.debug(
-                            f"[{self.__name}] No data for element {index_tuple} for interpolation at {next_output_datetime}"
+                            "[%s] No data for element %s for interpolation at %s",
+                            self.__name,
+                            index_tuple,
+                            next_output_datetime,
                         )
                         continue
 
@@ -229,15 +249,17 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                             if not torch.isnan(torch.tensor(val)):
                                 output_tensor[index_tuple] = float(val)
 
-            await self.__output_client.on_tensor_changed(
+            await self._client.on_tensor_changed(
                 tensor=output_tensor, timestamp=next_output_datetime
             )
             self.__last_pushed_timestamp = next_output_datetime
 
     async def start(self) -> None:
+        """Starts the SmoothedTensorDemuxer."""
         self.__stop_event.clear()
         logger.info(
-            f"[{self.__name}] SmoothedTensorDemuxer started. Output driven by keyframe updates."
+            "[%s] SmoothedTensorDemuxer started. Output driven by keyframe updates.",
+            self.__name,
         )
         if self.__align_output_timestamps:
             now = await self.__get_current_utc_timestamp()
@@ -252,6 +274,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             self.__last_pushed_timestamp = None
 
     async def stop(self) -> None:
+        """Stops the SmoothedTensorDemuxer."""
         self.__stop_event.set()
         if (
             self.__interpolation_worker_task
@@ -263,9 +286,23 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                 )
             except asyncio.TimeoutError:
                 self.__interpolation_worker_task.cancel()
-            except Exception:
-                pass
-        logger.info(f"[{self.__name}] SmoothedTensorDemuxer stopped.")
+            except (
+                asyncio.CancelledError
+            ):  # More specific for task cancellation
+                logger.warning(
+                    "[%s] Interpolation worker task was cancelled during stop.",
+                    self.__name,
+                )
+            except (
+                Exception
+            ) as e:  # Catch other potential errors during wait_for
+                logger.error(
+                    "[%s] Exception while stopping interpolation worker: %s",
+                    self.__name,
+                    e,
+                )
+        logger.info("[%s] SmoothedTensorDemuxer stopped.", self.__name)
 
     def get_tensor_shape(self) -> Tuple[int, ...]:
+        """Returns the shape of the tensor being managed."""
         return self.__tensor_shape_internal
