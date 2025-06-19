@@ -1,22 +1,26 @@
 """Defines RemoteDataOrganizer for managing time-ordered data from a single remote source, including timeout logic."""
-import bisect
+
 import datetime
 import logging
 import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from typing import Callable, Deque, Generic, List, Optional, TypeVar
+from typing import Generic, List, Optional, TypeVar  # Callable, Deque removed
 from sortedcontainers import SortedList
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.util.is_running_tracker import IsRunningTracker
-DataTypeT = TypeVar('DataTypeT', bound=ExposedData)
+
+DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 logger = logging.getLogger(__name__)
 
-class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataTimeoutTracker.Tracked):
+
+class RemoteDataOrganizer(
+    Generic[DataTypeT], RemoteDataReader[DataTypeT], DataTimeoutTracker.Tracked
+):
     """Organizes and provides access to data received from a specific remote endpoint.
 
     This class is responsible for managing a time-ordered collection of data
@@ -31,7 +35,9 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
         """Interface for clients that need to be notified by `RemoteDataOrganizer`."""
 
         @abstractmethod
-        def _on_data_available(self, data_organizer: 'RemoteDataOrganizer[DataTypeT]') -> None:
+        def _on_data_available(
+            self, data_organizer: "RemoteDataOrganizer[DataTypeT]"
+        ) -> None:
             """Callback invoked when new data is processed and available in the organizer.
 
             Args:
@@ -39,7 +45,12 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
             """
             raise NotImplementedError()
 
-    def __init__(self, thread_pool: ThreadPoolExecutor, caller_id: CallerIdentifier, client: Optional['RemoteDataOrganizer.Client']=None) -> None:
+    def __init__(
+        self,
+        thread_pool: ThreadPoolExecutor,
+        caller_id: CallerIdentifier,
+        client: Optional["RemoteDataOrganizer.Client"] = None,
+    ) -> None:
         """Initializes a RemoteDataOrganizer.
 
         Args:
@@ -54,8 +65,12 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
         self.__caller_id: CallerIdentifier = caller_id
         self.__client: Optional[RemoteDataOrganizer.Client] = client
         self.__data_lock: threading.Lock = threading.Lock()
-        self.__data: 'SortedList[DataTypeT]' = SortedList(key=lambda item: item.timestamp)
-        self.__last_access: datetime.datetime = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+        self.__data: "SortedList[DataTypeT]" = SortedList(
+            key=lambda item: item.timestamp
+        )
+        self.__last_access: datetime.datetime = datetime.datetime.min.replace(
+            tzinfo=datetime.timezone.utc
+        )
         self.__is_running: IsRunningTracker = IsRunningTracker()
         super().__init__()
 
@@ -103,7 +118,7 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
             most_recent_timestamp = self.__data[-1].timestamp
             last_access_timestamp = self.__last_access
             result = most_recent_timestamp > last_access_timestamp
-            return result
+            return result  # type: ignore[no-any-return]
 
     def get_new_data(self) -> List[DataTypeT]:
         """Retrieves all data items received since the last call to this method.
@@ -138,9 +153,11 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
         with self.__data_lock:
             if not self.__data:
                 return None
-            return self.__data[-1]
+            return self.__data[-1]  # type: ignore[no-any-return]
 
-    def get_data_for_timestamp(self, timestamp: datetime.datetime) -> Optional[DataTypeT]:
+    def get_data_for_timestamp(
+        self, timestamp: datetime.datetime
+    ) -> Optional[DataTypeT]:
         """Returns the most recent data item received at or before the given timestamp.
 
         Args:
@@ -157,59 +174,70 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
             if timestamp < self.__data[0].timestamp:
                 return None
             if timestamp >= self.__data[-1].timestamp:
-                return self.__data[-1]
-            idx = self.__data.bisect_right(timestamp, key=lambda item: item.timestamp)
+                return self.__data[-1]  # type: ignore[no-any-return]
+            # bisect_key_right uses the SortedList's configured key (item.timestamp)
+            idx = self.__data.bisect_key_right(timestamp)
             if idx > 0:
-                return self.__data[idx - 1]
+                return self.__data[idx - 1]  # type: ignore[no-any-return]
             return None
 
-    def get_interpolated_at(self, timestamp: datetime.datetime) -> Optional[DataTypeT]:
+    def get_interpolated_at(
+        self, timestamp: datetime.datetime
+    ) -> Optional[DataTypeT]:
         """Gets a linearly interpolated data value for the given timestamp.
 
-    Args:
-        timestamp: The datetime timestamp to get the interpolated data for.
+        Args:
+            timestamp: The datetime timestamp to get the interpolated data for.
 
-    Returns:
-        The interpolated data of type DataTypeT if successful,
-        or None if interpolation is not possible (e.g., timestamp is
-        outside the range of existing data, or data is not available).
-        If the timestamp matches an existing keyframe, its data is returned.
-    """
-        data_list = self._RemoteDataOrganizer__data
-        if not data_list:
+        Returns:
+            The interpolated data of type DataTypeT if successful,
+            or None if interpolation is not possible (e.g., timestamp is
+            outside the range of existing data, or data is not available).
+            If the timestamp matches an existing keyframe, its data is returned.
+        """
+        # Access the SortedList directly using self.__data
+        if not self.__data:
             return None
-        idx = data_list.bisect_key_left(timestamp)
-        if idx < len(data_list) and data_list[idx].timestamp == timestamp:
-            return data_list[idx]
+        idx = self.__data.bisect_key_left(timestamp)
+        if idx < len(self.__data) and self.__data[idx].timestamp == timestamp:
+            return self.__data[idx]  # type: ignore[no-any-return]
         if idx == 0:
             return None
-        if idx == len(data_list):
+        if idx == len(self.__data):
             return None
-        p1 = data_list[idx - 1]
-        p2 = data_list[idx]
+        p1 = self.__data[idx - 1]
+        p2 = self.__data[idx]
         t1_dt = p1.timestamp
         t2_dt = p2.timestamp
         t1_float = t1_dt.timestamp()
         t2_float = t2_dt.timestamp()
         target_t_float = timestamp.timestamp()
         if t1_float == t2_float:
-            return p1
-        val1 = getattr(p1, 'value', p1)
-        val2 = getattr(p2, 'value', p2)
-        if not (isinstance(val1, (int, float)) and isinstance(val2, (int, float))):
+            return p1  # type: ignore[no-any-return]
+        val1 = getattr(p1, "value", p1)
+        val2 = getattr(p2, "value", p2)
+        if not (
+            isinstance(val1, (int, float)) and isinstance(val2, (int, float))
+        ):
             return None
-        interpolated_numeric_value = val1 + (target_t_float - t1_float) * (val2 - val1) / (t2_float - t1_float)
+        interpolated_numeric_value = val1 + (target_t_float - t1_float) * (
+            val2 - val1
+        ) / (t2_float - t1_float)
         if val1 is p1:
-            return interpolated_numeric_value
+            return interpolated_numeric_value  # type: ignore[no-any-return]
         else:
             try:
-                if hasattr(p1, 'replace') and callable(getattr(p1, 'replace')):
-                    return p1.replace(value=interpolated_numeric_value, timestamp=timestamp)
+                if hasattr(p1, "replace") and callable(getattr(p1, "replace")):
+                    return p1.replace(  # type: ignore[no-any-return]
+                        value=interpolated_numeric_value, timestamp=timestamp
+                    )
                 elif callable(type(p1)):
-                    return type(p1)(value=interpolated_numeric_value, timestamp=timestamp)
+                    return type(p1)(  # type: ignore[no-any-return]
+                        value=interpolated_numeric_value, timestamp=timestamp
+                    )
                 else:
                     return None
-            except Exception as e:
+            except Exception:
                 return None
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
@@ -227,8 +255,12 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
                             organizer's `caller_id`.
         """
         if not isinstance(new_data, ExposedData):
-            raise TypeError(f'Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}.')
-        assert new_data.caller_id == self.caller_id, f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
+            raise TypeError(
+                f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+            )
+        assert (
+            new_data.caller_id == self.caller_id
+        ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: DataTypeT) -> None:
@@ -245,7 +277,11 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
             return
         data_processed = False
         with self.__data_lock:
-            items_to_remove = [item for item in self.__data if item.timestamp == new_data.timestamp]
+            items_to_remove = [
+                item
+                for item in self.__data
+                if item.timestamp == new_data.timestamp
+            ]
             if items_to_remove:
                 for item in items_to_remove:
                     self.__data.discard(item)
@@ -265,7 +301,9 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
         Args:
             timeout_seconds: The duration of the timeout that triggered this callback.
         """
-        self.__thread_pool.submit(partial(self.__timeout_old_data, timeout_seconds))
+        self.__thread_pool.submit(
+            partial(self.__timeout_old_data, timeout_seconds)
+        )
 
     def __timeout_old_data(self, timeout_seconds: int) -> None:
         """Removes data older than the specified timeout period.
@@ -284,5 +322,8 @@ class RemoteDataOrganizer(Generic[DataTypeT], RemoteDataReader[DataTypeT], DataT
         timeout_delta = datetime.timedelta(seconds=timeout_seconds)
         oldest_allowed_timestamp = current_time - timeout_delta
         with self.__data_lock:
-            while self.__data and self.__data[0].timestamp < oldest_allowed_timestamp:
+            while (
+                self.__data
+                and self.__data[0].timestamp < oldest_allowed_timestamp
+            ):
                 self.__data.pop(0)
