@@ -34,11 +34,24 @@ if not TYPE_CHECKING:
             add_E2ETestServiceServicer_to_server,
             E2ETestService,
         )
+    elif version_string == "v1_70":
+        from tsercom.test.proto.generated.v1_70.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_70.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
     else:
         # The 'name' variable for the error message is 'e2e_test_service'
-        # The 'available_versions' for the error message is ['v1_73']
+        # The 'available_versions' for the error message is ['v1_70', 'v1_73']
         raise ImportError(
-            f"Error: No code for version {version}, name 'e2e_test_service', available_versions ['v1_73'], version_string {version_string}."
+            f"Error: No code for version {version}, name 'e2e_test_service', available_versions ['v1_70', 'v1_73'], version_string {version_string}."
         )
 
 else:  # When TYPE_CHECKING

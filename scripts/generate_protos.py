@@ -68,9 +68,6 @@ def generate_proto_file(
     # String substitution for _pb2.py and _pb2.pyi files
     modify_generated_file(pb2_file)
     modify_generated_file(pyi_file)
-    # Also modify the _pb2_grpc.py file
-    pb2_grpc_file = Path.joinpath(output_dir, f"{name}_pb2_grpc.py")
-    modify_generated_file(pb2_grpc_file)
 
 
 def make_versioned_output_dir(base_dir: Path) -> Path:
@@ -121,11 +118,7 @@ def modify_generated_file(file_path: Path) -> None:
         "import caller_id_pb2 ": "import tsercom.caller_id.proto ",
         "import time_pb2 ": "import tsercom.timesync.common.proto ",
         "import common_pb2 ": "import tsercom.rpc.proto ",
-        # Ensure e2e_test_service_pb2 is imported relatively from e2e_test_service_pb2_grpc.py
     }
-    # Additional specific replacements can be added here
-    # tensor_ops_pb2.py is no longer generated, so its specific fix is removed.
-
     if not file_path.exists():
         print(f"Warning: Generated file not found, cannot modify: {file_path}")
         return
@@ -134,62 +127,6 @@ def modify_generated_file(file_path: Path) -> None:
             content = f.read()
             for original, replacement in updates.items():
                 content = content.replace(original, replacement)
-            # Special handling for e2e_test_service_pb2_grpc.py's import of e2e_test_service_pb2
-            if file_path.name == "e2e_test_service_pb2_grpc.py":
-                try:
-                    path_parts = list(
-                        file_path.parent.parts
-                    )  # e.g. ('app', 'tsercom', 'test', 'proto', 'generated', 'v1_62')
-                    tsercom_index = -1
-                    # Find the 'tsercom' directory in the path parts
-                    for i_part_idx, part_name in enumerate(path_parts):
-                        if part_name == "tsercom":
-                            tsercom_index = i_part_idx
-                            break
-
-                    if tsercom_index != -1:
-                        # Construct the module path from 'tsercom' up to the directory containing the file
-                        absolute_module_prefix = ".".join(
-                            path_parts[tsercom_index:]
-                        )
-
-                        original_import_line = "import e2e_test_service_pb2 as e2e__test__service__pb2"
-                        correct_module_name = "e2e_test_service_pb2"
-                        correct_alias = "e2e__test__service__pb2"
-
-                        new_import_line = f"from {absolute_module_prefix} import {correct_module_name} as {correct_alias}"
-
-                        if original_import_line in content:
-                            content = content.replace(
-                                original_import_line, new_import_line
-                            )
-                            print(
-                                f"Applied absolute import fix for {file_path.name}: replaced '{original_import_line}' with '{new_import_line}'"
-                            )
-                        else:
-                            print(
-                                f"Warning: Original import line '{original_import_line}' not found as expected in {file_path}"
-                            )
-                    else:
-                        print(
-                            f"Warning: 'tsercom' directory not found in path for {file_path}, cannot construct absolute import for e2e_test_service sibling."
-                        )
-                except (
-                    ValueError
-                ):  # Handles potential .index() error if "tsercom" is not found
-                    print(
-                        f"Warning: 'tsercom' not found in path for {file_path} (ValueError), cannot construct absolute import for e2e_test_service sibling."
-                    )
-                except Exception as e_abs:
-                    print(
-                        f"Warning: Could not form absolute import for e2e_test_service sibling in {file_path}: {e_abs}"
-                    )
-
-            # After all replacements, including the special one above
-            # The original script intends to insert this python code block *before* f.seek(0)
-            # but *after* the existing loop for general updates.
-            # So, the target for insertion is just before `f.seek(0)`
-
             f.seek(0)
             f.write(content)
             f.truncate()
@@ -459,7 +396,7 @@ def generate_protos(project_root: Path) -> None:
     )
     generate_proto_file(
         package_dir,
-        "tensor/proto/tensor.proto",  # This now contains all tensor-related messages
+        "tensor/proto/tensor.proto",
         ["tensor/proto", "timesync/common/proto"],
     )
     generate_proto_file(
