@@ -75,11 +75,6 @@ class TensorDemuxer:
             new_tensor_state.clone(), timestamp
         )
 
-    async def _on_newest_timestamp_updated(
-        self, timestamp: datetime.datetime, new_tensor_state: torch.Tensor
-    ) -> None:
-        pass
-
     def _cleanup_old_data(self) -> None:
         # Internal method, assumes lock is held by caller
         if not self.__latest_update_timestamp or not self.__tensor_states:
@@ -230,20 +225,12 @@ class TensorDemuxer:
                     await self._on_keyframe_updated(
                         timestamp, current_calculated_tensor
                     )
-                    if timestamp == self.__latest_update_timestamp:
-                        await self._on_newest_timestamp_updated(
-                            timestamp, current_calculated_tensor
-                        )
             else:
                 self.__tensor_states[idx_of_processed_ts] = new_state_tuple
                 if value_actually_changed_tensor:
                     await self._on_keyframe_updated(
                         timestamp, current_calculated_tensor
                     )
-                    if timestamp == self.__latest_update_timestamp:
-                        await self._on_newest_timestamp_updated(
-                            timestamp, current_calculated_tensor
-                        )
 
             needs_cascade = value_actually_changed_tensor
 

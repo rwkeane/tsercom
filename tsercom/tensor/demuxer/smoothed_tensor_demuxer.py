@@ -236,21 +236,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
         await self._try_interpolate_and_push()
 
-    async def _on_newest_timestamp_updated(
-        self, timestamp: datetime.datetime, new_tensor_state: torch.Tensor
-    ) -> None:
-        # By default, treat same as any other keyframe update.
-        logger.debug(
-            f"[{self.__name}] Received newest timestamp update at {timestamp} via hook."
-        )
-        # This hook is for additional actions if the newest overall timestamp is updated.
-        # The primary processing (reshaping, storing) is done by _on_keyframe_updated,
-        # which is already called by the base class for this event.
-        # So, no need to call self._on_keyframe_updated(timestamp, new_tensor_state) here again.
-        # Add any specific logic for "newest timestamp" here if different from general keyframe update.
-        # For now, it might just log or trigger the same interpolation push.
-        await self._try_interpolate_and_push()  # Or specific logic
-
     async def _get_current_utc_timestamp(self) -> datetime.datetime:
         return datetime.datetime.now(datetime.timezone.utc)
 
