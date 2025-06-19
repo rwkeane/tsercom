@@ -22,7 +22,7 @@ import tsercom.timesync.common.proto as time__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b"\n\x0ctensor.proto\x12\x14tsercom.tensor.proto\x1a\ntime.proto\"b\n\x0bTensorChunk\x12'\n\ttimestamp\x18\x01 \x01(\x0b\x32\x14.dtp.ServerTimestamp\x12\x16\n\x0estarting_index\x18\x02 \x01(\x03\x12\x12\n\ndata_bytes\x18\x03 \x01(\x0c\x62\x06proto3"
+    b'\n\x0ctensor.proto\x12\x14tsercom.tensor.proto\x1a\ntime.proto"b\n\x0bTensorChunk\x12\'\n\ttimestamp\x18\x01 \x01(\x0b\x32\x14.dtp.ServerTimestamp\x12\x16\n\x0estarting_index\x18\x02 \x01(\x03\x12\x12\n\ndata_bytes\x18\x03 \x01(\x0c"A\n\x0cTensorUpdate\x12\x31\n\x06\x63hunks\x18\x01 \x03(\x0b\x32!.tsercom.tensor.proto.TensorChunk"\x80\x01\n\x11TensorInitializer\x12\r\n\x05shape\x18\x01 \x03(\x03\x12\r\n\x05\x64type\x18\x02 \x01(\t\x12\x12\n\nfill_value\x18\x03 \x01(\x01\x12\x39\n\rinitial_state\x18\x04 \x01(\x0b\x32".tsercom.tensor.proto.TensorUpdateb\x06proto3'
 )
 
 _globals = globals()
@@ -32,4 +32,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
     DESCRIPTOR._loaded_options = None
     _globals["_TENSORCHUNK"]._serialized_start = 50
     _globals["_TENSORCHUNK"]._serialized_end = 148
+    _globals["_TENSORUPDATE"]._serialized_start = 150
+    _globals["_TENSORUPDATE"]._serialized_end = 215
+    _globals["_TENSORINITIALIZER"]._serialized_start = 218
+    _globals["_TENSORINITIALIZER"]._serialized_end = 346
 # @@protoc_insertion_point(module_scope)

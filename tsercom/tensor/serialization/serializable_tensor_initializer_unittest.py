@@ -3,7 +3,11 @@ import datetime
 import pytest
 import torch
 
-from tsercom.tensor.proto import tensor_ops_pb2, tensor_pb2
+from tsercom.tensor.proto import (
+    TensorInitializer,
+    TensorUpdate,
+    TensorChunk,
+)  # Changed import
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
 )
@@ -75,7 +79,7 @@ def test_sti_to_grpc_basic(dtype_and_str_fixture):
     )
     grpc_msg = sti.to_grpc_type()
 
-    assert isinstance(grpc_msg, tensor_ops_pb2.TensorInitializer)
+    assert isinstance(grpc_msg, TensorInitializer)  # Changed usage
     assert list(grpc_msg.shape) == shape
     assert grpc_msg.dtype == dtype_str
     assert grpc_msg.fill_value == pytest.approx(fill_value)
@@ -108,7 +112,7 @@ def test_sti_try_parse_basic(dtype_and_str_fixture):
     shape_list = [30, 40]
     fill_val = 7.0
 
-    grpc_msg = tensor_ops_pb2.TensorInitializer(
+    grpc_msg = TensorInitializer(  # Changed usage
         shape=shape_list, dtype=dtype_str, fill_value=fill_val
     )
     parsed_sti = SerializableTensorInitializer.try_parse(grpc_msg)
@@ -128,7 +132,7 @@ def test_sti_try_parse_with_initial_state(dtype_and_str_fixture):
     original_update_obj = create_dummy_update(1, dtype=torch_dtype)
     grpc_initial_state_msg = original_update_obj.to_grpc_type()
 
-    grpc_msg = tensor_ops_pb2.TensorInitializer(
+    grpc_msg = TensorInitializer(  # Changed usage
         shape=shape_list,
         dtype=dtype_str,
         fill_value=fill_val,
@@ -207,7 +211,7 @@ def test_sti_try_parse_unknown_dtype_with_initial_state_chunks():
     original_update_obj = create_dummy_update(1, dtype=dummy_torch_dtype)
     grpc_initial_state_msg = original_update_obj.to_grpc_type()
 
-    grpc_msg = tensor_ops_pb2.TensorInitializer(
+    grpc_msg = TensorInitializer(  # Changed usage
         shape=shape_list,
         dtype="unknown_dtype_string_XYZ",
         fill_value=fill_val,
@@ -223,7 +227,7 @@ def test_sti_try_parse_unknown_dtype_no_initial_state_chunks():
     unknown_dtype = "unknown_dtype_string_ABC"
 
     # Case 1: No initial_state field set
-    grpc_msg_no_initial_state = tensor_ops_pb2.TensorInitializer(
+    grpc_msg_no_initial_state = TensorInitializer(  # Changed usage
         shape=shape_list, dtype=unknown_dtype, fill_value=fill_val
     )
     parsed_sti_no_is = SerializableTensorInitializer.try_parse(
@@ -234,8 +238,8 @@ def test_sti_try_parse_unknown_dtype_no_initial_state_chunks():
     assert parsed_sti_no_is.initial_state is None
 
     # Case 2: initial_state field set but it's empty (no chunks)
-    empty_initial_state_msg = tensor_ops_pb2.TensorUpdate(chunks=[])
-    grpc_msg_empty_initial_state = tensor_ops_pb2.TensorInitializer(
+    empty_initial_state_msg = TensorUpdate(chunks=[])  # Changed usage
+    grpc_msg_empty_initial_state = TensorInitializer(  # Changed usage
         shape=shape_list,
         dtype=unknown_dtype,
         fill_value=fill_val,
@@ -270,37 +274,26 @@ def test_sti_try_parse_initial_state_parsing_fails(dtype_and_str_fixture):
     # For bool (itemsize 1), empty bytes for an expected non-empty tensor will make STC.try_parse return None.
     malformed_data_bytes = b"\x00"
     if torch_dtype == torch.bool:
-        # SerializableTensorChunk.try_parse returns None if data_bytes is empty
-        # and it expects a non-empty tensor (shape is inferred from dummy_chunk as [1]).
-        # The check is `if not grpc_msg.data_bytes: tensor = torch.empty((0,), ...)`
-        # This part was tricky; the current STC.try_parse might return tensor([]) for empty bytes.
-        # However, the goal is that STU.try_parse returns None if a chunk fails.
-        # The condition `if len(parsed_chunks) != len(grpc_msg.chunks): if grpc_msg.chunks: return None` in STU.try_parse
-        # handles the case where a chunk parse results in None.
-        # So, for bool, make STC.try_parse return None. Empty bytes will do if STC is robust.
-        # From serializable_tensor.py, `if not grpc_msg.data_bytes:` creates an empty tensor,
-        # it does not return None. The `RuntimeError` from `torch.from_buffer` is what causes None.
-        # For bool, from_buffer(b"",torch.bool) is tensor([]).
-        # This means our current "bad chunk" for bool won't make STC.try_parse return None.
-        # This test will pass for bool if STC.try_parse(empty_bytes_chunk) is *not* None.
-        # The assertion `if torch_dtype.itemsize > 1: assert parsed_sti is None else: assert parsed_sti is not None`
-        # handles this.
-        # To make STC.try_parse return None for bool, we would need a different malformed_data_bytes
-        # that actually causes a RuntimeError in from_buffer, which is hard for bool.
-        # Given the previous fix to this test's assertion, we'll keep this logic.
+        # For bool, empty bytes will lead to STC.try_parse creating an empty tensor,
+        # which is not None. The test relies on the logic that if a chunk is "bad"
+        # in a way that STC.try_parse *does* return None (like a size mismatch for from_buffer),
+        # then the parent parsing should also fail.
+        # The `if torch_dtype.itemsize > 1` check in the assertion handles this:
+        # b"\x00" will cause from_buffer error for itemsize > 1.
+        # b"" for bool will not cause STC.try_parse to be None.
         malformed_data_bytes = b""
 
-    bad_grpc_chunk = tensor_pb2.TensorChunk(
+    bad_grpc_chunk = TensorChunk(  # Changed usage
         data_bytes=malformed_data_bytes,
         timestamp=grpc_good_chunk.timestamp,
         starting_index=0,
     )
 
-    grpc_initial_state_with_bad_chunk = tensor_ops_pb2.TensorUpdate(
+    grpc_initial_state_with_bad_chunk = TensorUpdate(  # Changed usage
         chunks=[bad_grpc_chunk]
     )
 
-    grpc_msg = tensor_ops_pb2.TensorInitializer(
+    grpc_msg = TensorInitializer(  # Changed usage
         shape=shape_list,
         dtype=dtype_str,
         fill_value=fill_val,

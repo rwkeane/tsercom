@@ -2,9 +2,10 @@ from typing import List, Type, TypeVar, Optional
 
 import torch
 
-from tsercom.tensor.proto import tensor_ops_pb2
+# TensorChunk message type is used by the TensorUpdate protobuf message definition.
+from tsercom.tensor.proto import TensorUpdate
 from tsercom.tensor.serialization.serializable_tensor import (
-    SerializableTensorChunk,
+    SerializableTensorChunk,  # This is the Python wrapper class
 )
 
 STU = TypeVar("STU", bound="SerializableTensorUpdate")
@@ -19,17 +20,18 @@ class SerializableTensorUpdate:
     def __init__(self, chunks: List[SerializableTensorChunk]):
         self._chunks = chunks
 
-    def to_grpc_type(self) -> tensor_ops_pb2.TensorUpdate:
+    def to_grpc_type(self) -> TensorUpdate:
         """Converts this object to its gRPC protobuf representation."""
         grpc_chunks = [chunk.to_grpc_type() for chunk in self._chunks]
-        return tensor_ops_pb2.TensorUpdate(chunks=grpc_chunks)
+        # Note: The items in grpc_chunks are already gRPC TensorChunk messages.
+        return TensorUpdate(chunks=grpc_chunks)
 
     @classmethod
     def try_parse(
         cls: Type[STU],
-        grpc_msg: tensor_ops_pb2.TensorUpdate,
+        grpc_msg: TensorUpdate,  # Changed from tensor_ops_pb2.TensorUpdate
         dtype: torch.dtype,
-    ) -> Optional[STU]:  # Added Optional to reflect potential None return
+    ) -> Optional[STU]:
         """
         Attempts to parse a TensorUpdate protobuf message.
 

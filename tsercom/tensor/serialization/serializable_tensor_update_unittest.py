@@ -3,7 +3,7 @@ import datetime
 import pytest
 import torch
 
-from tsercom.tensor.proto import tensor_ops_pb2
+from tsercom.tensor.proto import TensorUpdate  # Changed import
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
 )
@@ -56,7 +56,7 @@ def test_serializable_tensor_update_to_grpc_empty(
 ):
     st_update = SerializableTensorUpdate(chunks=[])
     grpc_update = st_update.to_grpc_type()
-    assert isinstance(grpc_update, tensor_ops_pb2.TensorUpdate)
+    assert isinstance(grpc_update, TensorUpdate)  # Changed usage
     assert len(grpc_update.chunks) == 0
 
 
@@ -65,7 +65,7 @@ def test_serializable_tensor_update_to_grpc_single_chunk(common_dtype):
     st_update = SerializableTensorUpdate(chunks=[chunk1])
     grpc_update = st_update.to_grpc_type()
 
-    assert isinstance(grpc_update, tensor_ops_pb2.TensorUpdate)
+    assert isinstance(grpc_update, TensorUpdate)  # Changed usage
     assert len(grpc_update.chunks) == 1
     assert grpc_update.chunks[0].starting_index == chunk1.starting_index
     # Further checks on grpc_update.chunks[0].data_bytes would require deserializing it,
@@ -79,14 +79,14 @@ def test_serializable_tensor_update_to_grpc_multiple_chunks(common_dtype):
     st_update = SerializableTensorUpdate(chunks=[chunk1, chunk2])
     grpc_update = st_update.to_grpc_type()
 
-    assert isinstance(grpc_update, tensor_ops_pb2.TensorUpdate)
+    assert isinstance(grpc_update, TensorUpdate)  # Changed usage
     assert len(grpc_update.chunks) == 2
     assert grpc_update.chunks[0].starting_index == chunk1.starting_index
     assert grpc_update.chunks[1].starting_index == chunk2.starting_index
 
 
 def test_serializable_tensor_update_try_parse_empty(common_dtype):
-    grpc_update_msg = tensor_ops_pb2.TensorUpdate(chunks=[])
+    grpc_update_msg = TensorUpdate(chunks=[])  # Changed usage
     parsed_st_update = SerializableTensorUpdate.try_parse(
         grpc_update_msg, dtype=common_dtype
     )
@@ -102,7 +102,7 @@ def test_serializable_tensor_update_try_parse_multiple_chunks(common_dtype):
     grpc_chunk1 = original_chunk1.to_grpc_type()
     grpc_chunk2 = original_chunk2.to_grpc_type()
 
-    grpc_update_msg = tensor_ops_pb2.TensorUpdate(
+    grpc_update_msg = TensorUpdate(  # Changed usage
         chunks=[grpc_chunk1, grpc_chunk2]
     )
     parsed_st_update = SerializableTensorUpdate.try_parse(

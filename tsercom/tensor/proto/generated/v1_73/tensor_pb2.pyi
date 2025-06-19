@@ -4,7 +4,9 @@ isort:skip_file
 """
 
 import builtins
+import collections.abc
 import google.protobuf.descriptor
+import google.protobuf.internal.containers
 import google.protobuf.message
 import tsercom.timesync.common.proto as time_pb2
 import typing
@@ -49,3 +51,80 @@ class TensorChunk(google.protobuf.message.Message):
     ) -> None: ...
 
 global___TensorChunk = TensorChunk
+
+@typing.final
+class TensorUpdate(google.protobuf.message.Message):
+    """Definitions from tensor_ops.proto appended below"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHUNKS_FIELD_NUMBER: builtins.int
+    @property
+    def chunks(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[
+        global___TensorChunk
+    ]:
+        """A list of one or more chunks representing updates to the tensor."""
+
+    def __init__(
+        self,
+        *,
+        chunks: collections.abc.Iterable[global___TensorChunk] | None = ...,
+    ) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["chunks", b"chunks"]
+    ) -> None: ...
+
+global___TensorUpdate = TensorUpdate
+
+@typing.final
+class TensorInitializer(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SHAPE_FIELD_NUMBER: builtins.int
+    DTYPE_FIELD_NUMBER: builtins.int
+    FILL_VALUE_FIELD_NUMBER: builtins.int
+    INITIAL_STATE_FIELD_NUMBER: builtins.int
+    dtype: builtins.str
+    """The data type of the tensor as a string (e.g., "float32", "int64")."""
+    fill_value: builtins.float
+    """The default value to fill the tensor with upon creation."""
+    @property
+    def shape(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
+        builtins.int
+    ]:
+        """The full shape of the tensor being initialized (e.g., [10, 20])."""
+
+    @property
+    def initial_state(self) -> global___TensorUpdate:
+        """An optional initial set of data chunks to apply after creation."""
+
+    def __init__(
+        self,
+        *,
+        shape: collections.abc.Iterable[builtins.int] | None = ...,
+        dtype: builtins.str = ...,
+        fill_value: builtins.float = ...,
+        initial_state: global___TensorUpdate | None = ...,
+    ) -> None: ...
+    def HasField(
+        self, field_name: typing.Literal["initial_state", b"initial_state"]
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "dtype",
+            b"dtype",
+            "fill_value",
+            b"fill_value",
+            "initial_state",
+            b"initial_state",
+            "shape",
+            b"shape",
+        ],
+    ) -> None: ...
+
+global___TensorInitializer = TensorInitializer

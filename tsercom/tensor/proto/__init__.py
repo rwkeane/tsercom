@@ -1,37 +1,23 @@
-from typing import TYPE_CHECKING
+# flake8: noqa
+# Explicitly importing from the generated files to make symbols available.
+# Assumes v1_73 is the relevant generated version.
 
-# Explicitly import from the currently generated version directory (v1_73)
-# This will allow mypy to find the modules and their attributes.
-
-from .generated.v1_73 import tensor_pb2
-from .generated.v1_73 import tensor_ops_pb2
-
-from .generated.v1_73.tensor_pb2 import (
+from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import (
     TensorChunk,
-    # Add any other symbols from tensor.proto if they were directly exported before
-)
-
-from .generated.v1_73.tensor_ops_pb2 import (
-    TensorUpdate,
     TensorInitializer,
-    # Add any other symbols from tensor_ops.proto if needed
+    TensorUpdate,
 )
 
-# For type checking, we might need to expose these for tools like mypy
-# For runtime, Python will use the above imports.
-if TYPE_CHECKING:
-    pass
-
-# Note: The dynamic version switching logic present in the original __init__.py
-# has been simplified here to directly use v1_73, which is what the
-# generate_protos.py script currently seems to be targeting and generating.
-# A more robust generate_init in scripts/generate_protos.py would be needed
-# to handle this file correctly and comprehensively for all proto files in this package.
+# If there were other .proto files in this package (e.g., another_thing.proto)
+# that generated another_thing_pb2.py, and their messages were needed at this level,
+# they would be imported similarly:
+# from .generated.v1_73.another_thing_pb2 import (
+#    AnotherMessage,
+# )
 
 __all__ = [
-    "tensor_pb2",
-    "tensor_ops_pb2",
     "TensorChunk",
-    "TensorUpdate",
     "TensorInitializer",
+    "TensorUpdate",
+    # "AnotherMessage", # if it were imported above
 ]

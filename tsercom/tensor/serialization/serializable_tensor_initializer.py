@@ -2,7 +2,7 @@ from typing import List, Optional, Type, TypeVar
 
 import torch
 
-from tsercom.tensor.proto import tensor_ops_pb2
+from tsercom.tensor.proto import TensorInitializer, TensorUpdate
 from tsercom.tensor.serialization.serializable_tensor_update import (
     SerializableTensorUpdate,
 )
@@ -54,13 +54,13 @@ class SerializableTensorInitializer:
     def initial_state(self) -> Optional[SerializableTensorUpdate]:
         return self._initial_state
 
-    def to_grpc_type(self) -> tensor_ops_pb2.TensorInitializer:
+    def to_grpc_type(self) -> TensorInitializer:
         """Converts this object to its gRPC protobuf representation."""
-        grpc_initial_state: Optional[tensor_ops_pb2.TensorUpdate] = None
+        grpc_initial_state: Optional[TensorUpdate] = None  # Changed type hint
         if self._initial_state is not None:
             grpc_initial_state = self._initial_state.to_grpc_type()
 
-        return tensor_ops_pb2.TensorInitializer(
+        return TensorInitializer(  # Changed constructor
             shape=self._shape,
             dtype=self._dtype_str,
             fill_value=self._fill_value,
@@ -69,7 +69,7 @@ class SerializableTensorInitializer:
 
     @classmethod
     def try_parse(
-        cls: Type[STI], grpc_msg: tensor_ops_pb2.TensorInitializer
+        cls: Type[STI], grpc_msg: TensorInitializer  # Changed type hint
     ) -> Optional[STI]:
         """
         Attempts to parse a TensorInitializer protobuf message.

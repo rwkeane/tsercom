@@ -124,11 +124,7 @@ def modify_generated_file(file_path: Path) -> None:
         # Ensure e2e_test_service_pb2 is imported relatively from e2e_test_service_pb2_grpc.py
     }
     # Additional specific replacements can be added here
-    # For tensor_ops_pb2.py, ensure tensor_pb2 is imported relatively
-    if file_path.name == "tensor_ops_pb2.py":
-        updates["import tensor_pb2 as tensor__pb2"] = (
-            "from . import tensor_pb2 as tensor__pb2"
-        )
+    # tensor_ops_pb2.py is no longer generated, so its specific fix is removed.
 
     if not file_path.exists():
         print(f"Warning: Generated file not found, cannot modify: {file_path}")
@@ -463,12 +459,7 @@ def generate_protos(project_root: Path) -> None:
     )
     generate_proto_file(
         package_dir,
-        "tensor/proto/tensor.proto",
-        ["tensor/proto", "timesync/common/proto"],
-    )
-    generate_proto_file(
-        package_dir,
-        "tensor/proto/tensor_ops.proto",
+        "tensor/proto/tensor.proto",  # This now contains all tensor-related messages
         ["tensor/proto", "timesync/common/proto"],
     )
     generate_proto_file(
