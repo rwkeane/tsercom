@@ -3,7 +3,9 @@
 import grpc
 import warnings
 
-import e2e_test_service_pb2 as e2e__test__service__pb2
+from tsercom.tsercom.test.proto.generated.v1_70 import (
+    e2e_test_service_pb2 as e2e__test__service__pb2,
+)
 
 GRPC_GENERATED_VERSION = "1.70.0"
 GRPC_VERSION = grpc.__version__
