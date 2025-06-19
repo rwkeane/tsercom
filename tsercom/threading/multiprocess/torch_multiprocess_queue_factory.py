@@ -1,5 +1,6 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
+import multiprocessing as std_mp  # For type hinting BaseContext
 from typing import Tuple, TypeVar, Generic
 import torch.multiprocessing as mp
 
@@ -29,15 +30,24 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
     `MultiprocessQueueSource` for interface consistency.
     """
 
-    def __init__(self, ctx_method: str = "spawn"):
+    def __init__(
+        self,
+        ctx_method: str = "spawn",
+        context: std_mp.context.BaseContext | None = None,
+    ):
         """Initializes the TorchMultiprocessQueueFactory.
 
         Args:
-            ctx_method: The multiprocessing context method to use.
-                        Defaults to 'spawn'. Other options include 'fork'
-                        and 'forkserver'.
+            ctx_method: The multiprocessing context method to use if context
+                        is not provided. Defaults to 'spawn'. Other options
+                        include 'fork' and 'forkserver'.
+            context: An optional existing multiprocessing context to use.
+                     If None, a new context is created using ctx_method.
         """
-        self._mp_context = mp.get_context(ctx_method)
+        if context is not None:
+            self._mp_context = context
+        else:
+            self._mp_context = mp.get_context(ctx_method)
 
     def create_queues(
         self,
