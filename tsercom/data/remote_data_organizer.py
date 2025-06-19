@@ -11,7 +11,7 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
-from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.threading.is_running_tracker import IsRunningTracker
 
 logger = logging.getLogger(__name__)
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)

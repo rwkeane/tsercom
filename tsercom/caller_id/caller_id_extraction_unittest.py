@@ -12,7 +12,7 @@ from tsercom.caller_id.caller_id_extraction import (
     extract_id_from_first_call,
 )
 from tsercom.caller_id.caller_identifier import CallerIdentifier
-from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.threading.is_running_tracker import IsRunningTracker
 
 
 class MockGrpcCallerIdMessagePlaceholder:

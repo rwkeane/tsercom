@@ -18,7 +18,7 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.server.server_synchronized_clock import (
     ServerSynchronizedClock,
 )
-from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.threading.is_running_tracker import IsRunningTracker
 
 logger = logging.getLogger(__name__)
 

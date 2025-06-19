@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.threading.is_running_tracker import IsRunningTracker
 
 
 @pytest.fixture

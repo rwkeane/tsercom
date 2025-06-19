@@ -36,7 +36,7 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.global_event_loop import clear_tsercom_event_loop
 from tsercom.threading.atomic import Atomic
 from tsercom.threading.thread_watcher import ThreadWatcher
-from tsercom.util.is_running_tracker import IsRunningTracker
+from tsercom.threading.is_running_tracker import IsRunningTracker
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from zeroconf.asyncio import AsyncZeroconf
 

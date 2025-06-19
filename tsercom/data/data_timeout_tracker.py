@@ -10,7 +10,7 @@ from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
     run_on_event_loop,
 )
-from tsercom.util.is_running_tracker import (
+from tsercom.threading.is_running_tracker import (
     IsRunningTracker,
 )
 
