@@ -64,10 +64,10 @@ class TensorMultiplexer(abc.ABC):
         if data_timeout_seconds <= 0:
             raise ValueError("Data timeout must be positive.")
 
-        self._client = client
-        self._tensor_length = tensor_length
-        self._clock = clock
-        self._data_timeout_seconds = (
+        self.__client = client
+        self.__tensor_length = tensor_length
+        self.__clock = clock
+        self.__data_timeout_seconds = (
             data_timeout_seconds  # For subclasses to use
         )
         self.__lock = asyncio.Lock()
@@ -84,6 +84,26 @@ class TensorMultiplexer(abc.ABC):
     def history(self) -> List[TimestampedTensor]:
         """Provides access to the tensor history list."""
         return self.__history
+
+    @property
+    def client(self) -> "TensorMultiplexer.Client":
+        """Provides access to the client instance."""
+        return self.__client
+
+    @property
+    def tensor_length(self) -> int:
+        """Provides access to the tensor length."""
+        return self.__tensor_length
+
+    @property
+    def clock(self) -> "SynchronizedClock":
+        """Provides access to the synchronized clock instance."""
+        return self.__clock
+
+    @property
+    def data_timeout_seconds(self) -> float:
+        """Provides access to the data timeout duration in seconds."""
+        return self.__data_timeout_seconds
 
     @abc.abstractmethod
     async def process_tensor(

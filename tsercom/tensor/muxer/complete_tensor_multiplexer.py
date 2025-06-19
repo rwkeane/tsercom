@@ -42,7 +42,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
         super().__init__(client, tensor_length, clock, data_timeout_seconds)
         # self.history is provided by the base class.
         # Child classes should use self.history to access/manipulate it.
-        self._latest_processed_timestamp: Optional[datetime.datetime] = None
+        self.__latest_processed_timestamp: Optional[datetime.datetime] = None
 
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
@@ -52,9 +52,9 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
         It stores the full tensor and notifies the client of all its values.
         Handles out-of-order updates by replacing existing data if necessary.
         """
-        if len(tensor) != self._tensor_length:
+        if len(tensor) != self.tensor_length:
             raise ValueError(
-                f"Input tensor length {len(tensor)} does not match expected length {self._tensor_length}"
+                f"Input tensor length {len(tensor)} does not match expected length {self.tensor_length}"
             )
 
         # Determine effective cleanup reference timestamp (outside lock for this part)
@@ -66,12 +66,12 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             current_max_timestamp_for_cleanup = self.history[-1][0]
 
         if (
-            self._latest_processed_timestamp
-            and self._latest_processed_timestamp
+            self.__latest_processed_timestamp
+            and self.__latest_processed_timestamp
             > current_max_timestamp_for_cleanup
         ):
             current_max_timestamp_for_cleanup = (
-                self._latest_processed_timestamp
+                self.__latest_processed_timestamp
             )
 
         # Lock acquisition should happen before _cleanup_old_data if it modifies history
@@ -102,19 +102,19 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
                 potential_latest_ts = timestamp
 
             if (
-                self._latest_processed_timestamp is None
-                or potential_latest_ts > self._latest_processed_timestamp
+                self.__latest_processed_timestamp is None
+                or potential_latest_ts > self.__latest_processed_timestamp
             ):
-                self._latest_processed_timestamp = potential_latest_ts
+                self.__latest_processed_timestamp = potential_latest_ts
 
-            sync_timestamp = self._clock.sync(timestamp)
+            sync_timestamp = self.clock.sync(timestamp)
 
             chunk = SerializableTensorChunk(
                 tensor=tensor,
                 timestamp=sync_timestamp,
                 starting_index=0,
             )
-            await self._client.on_chunk_update(chunk)
+            await self.client.on_chunk_update(chunk)
 
     def _cleanup_old_data(
         self, current_max_timestamp: datetime.datetime
@@ -126,7 +126,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
         """
         if not self.history:
             return
-        timeout_delta = datetime.timedelta(seconds=self._data_timeout_seconds)
+        timeout_delta = datetime.timedelta(seconds=self.data_timeout_seconds)
         cutoff_timestamp = current_max_timestamp - timeout_delta
 
         keep_from_index = 0
@@ -151,3 +151,10 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
         """
         # Assumes self.history is sorted by timestamp for efficient lookup using bisect.
         return bisect.bisect_left(self.history, timestamp, key=lambda x: x[0])
+
+    # Method for test access only
+    def get_latest_processed_timestamp_for_testing(
+        self,
+    ) -> Optional[datetime.datetime]:
+        """Gets the latest processed timestamp for testing purposes."""
+        return self.__latest_processed_timestamp

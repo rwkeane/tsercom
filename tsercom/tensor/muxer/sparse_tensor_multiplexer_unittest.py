@@ -201,7 +201,7 @@ async def test_process_first_tensor(
     # For the first tensor, diff is against zeros
     zeros_tensor = torch.zeros_like(tensor1)
     expected_chunks = create_expected_chunks_for_diff(
-        zeros_tensor, tensor1, T1, mpx._tensor_length
+        zeros_tensor, tensor1, T1, mpx.tensor_length
     )
 
     received_chunks = mock_client.get_all_received_chunks_sorted()
@@ -224,7 +224,7 @@ async def test_simple_update_scenario1(
     await mpx.process_tensor(tensor2, T2)
 
     expected_chunks = create_expected_chunks_for_diff(
-        tensor1, tensor2, T2, mpx._tensor_length
+        tensor1, tensor2, T2, mpx.tensor_length
     )
     # Expected: chunk for index 2 (val 99.0), chunk for index 4 (val 88.0)
     assert len(expected_chunks) == 2
@@ -285,7 +285,7 @@ async def test_update_at_same_timestamp_different_data(
     # For the *updated* T1, state before T1 (i.e. index -1 in history if T1 is at index 0) is still zeros.
     zeros_tensor = torch.zeros_like(tensor2_at_T1)
     expected_chunks = create_expected_chunks_for_diff(
-        zeros_tensor, tensor2_at_T1, T1, mpx._tensor_length
+        zeros_tensor, tensor2_at_T1, T1, mpx.tensor_length
     )
     # Expected: chunks for indices 0 (val 1.0), 1 (val 9.0), 3 (val 8.0)
 
@@ -299,7 +299,7 @@ async def test_out_of_order_update_scenario2_full_cascade(
     mock_client: MockSparseTensorMultiplexerClient,
 ):
     mpx = multiplexer_tensor_len_5
-    zeros_tensor = torch.zeros(mpx._tensor_length, dtype=torch.float32)
+    zeros_tensor = torch.zeros(mpx.tensor_length, dtype=torch.float32)
 
     tensor_T2_val = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     await mpx.process_tensor(tensor_T2_val, T2)  # T2 vs zeros
@@ -311,11 +311,11 @@ async def test_out_of_order_update_scenario2_full_cascade(
     # Expected chunks:
     # 1. For T1 processing (T1 vs zeros):
     expected_T1_chunks = create_expected_chunks_for_diff(
-        zeros_tensor, tensor_T1_val, T1, mpx._tensor_length
+        zeros_tensor, tensor_T1_val, T1, mpx.tensor_length
     )
     # 2. For T2 re-evaluation (T2 vs new T1):
     expected_T2_reeval_chunks = create_expected_chunks_for_diff(
-        tensor_T1_val, tensor_T2_val, T2, mpx._tensor_length
+        tensor_T1_val, tensor_T2_val, T2, mpx.tensor_length
     )
 
     all_expected_chunks = sorted(
@@ -333,7 +333,7 @@ async def test_data_timeout_simple(
     mock_client: MockSparseTensorMultiplexerClient,
 ):
     mpx = multiplexer_short_timeout_len_5
-    zeros_tensor = torch.zeros(mpx._tensor_length, dtype=torch.float32)
+    zeros_tensor = torch.zeros(mpx.tensor_length, dtype=torch.float32)
 
     tensor_t0_val = torch.tensor([1.0] * 5)  # T0 = T_BASE - 30s
     await mpx.process_tensor(tensor_t0_val, T0)
@@ -345,7 +345,7 @@ async def test_data_timeout_simple(
 
     # T0 is timed out, so T2 is diffed against zeros.
     expected_chunks = create_expected_chunks_for_diff(
-        zeros_tensor, tensor_t2_val, T2, mpx._tensor_length
+        zeros_tensor, tensor_t2_val, T2, mpx.tensor_length
     )
 
     received_chunks = mock_client.get_all_received_chunks_sorted()
@@ -362,7 +362,7 @@ async def test_input_tensor_wrong_length(
     wrong_length_tensor = torch.tensor([1.0, 2.0])
     with pytest.raises(
         ValueError,
-        match=f"Input tensor length {len(wrong_length_tensor)} does not match expected length {mpx._tensor_length}",
+        match=f"Input tensor length {len(wrong_length_tensor)} does not match expected length {mpx.tensor_length}",
     ):
         await mpx.process_tensor(wrong_length_tensor, T1)
 
@@ -418,7 +418,7 @@ async def test_contiguous_and_non_contiguous_changes(
     await mpx.process_tensor(tensor2, T2)
 
     expected_chunks = create_expected_chunks_for_diff(
-        tensor1, tensor2, T2, mpx._tensor_length
+        tensor1, tensor2, T2, mpx.tensor_length
     )
     # Expected:
     # Chunk 1: start_index=0, data=[10.0]

@@ -183,7 +183,7 @@ async def test_add_first_publisher_append_sparse(
     publisher1: Publisher,
 ):
     await aggregator.add_to_aggregation(publisher1, 3, sparse=True)
-    assert aggregator._tensor_length == 3
+    assert aggregator.actual_aggregate_length == 3
 
     # Initial publish (all new, so one chunk)
     await publisher1.publish(TENSOR_L3_A, T1)
@@ -224,7 +224,7 @@ async def test_add_second_publisher_append_complete(
     await aggregator.add_to_aggregation(
         publisher2, 2, sparse=False
     )  # Indices 3-4
-    assert aggregator._tensor_length == 5
+    assert aggregator.actual_aggregate_length == 5
 
     mock_main_client.clear_calls()
     await publisher2.publish(TENSOR_L2_A, T1)  # P2 is complete
@@ -248,7 +248,7 @@ async def test_add_publisher_specific_range(
     await aggregator.add_to_aggregation(
         publisher1, target_range, tensor_len, sparse=False
     )
-    assert aggregator._tensor_length == 8
+    assert aggregator.actual_aggregate_length == 8
 
     mock_main_client.clear_calls()
     await publisher1.publish(TENSOR_L3_A, T1)
@@ -300,7 +300,7 @@ async def test_data_flow_multiple_publishers_mixed_modes(
     await aggregator.add_to_aggregation(
         publisher3, 4, sparse=True
     )  # Appends after current max index (7)
-    assert aggregator._tensor_length == 11
+    assert aggregator.actual_aggregate_length == 11
 
     # P1 (sparse) publishes TENSOR_L3_A at T1 (global indices 0-2)
     await publisher1.publish(TENSOR_L3_A, T1)
@@ -373,7 +373,7 @@ async def test_get_aggregated_tensor_at_timestamp(
     await aggregator.add_to_aggregation(
         publisher2, 2, sparse=False
     )  # Indices 3-4
-    assert aggregator._tensor_length == 5
+    assert aggregator.actual_aggregate_length == 5
 
     await publisher1.publish(TENSOR_L3_A, T1)
     await publisher2.publish(TENSOR_L2_A, T1)

@@ -101,27 +101,27 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             aggregator_ref: weakref.ref["AggregateTensorMultiplexer"],
             publisher_start_index: int,
         ):
-            self._aggregator_ref = aggregator_ref
-            self._publisher_start_index = publisher_start_index
+            self.__aggregator_ref = aggregator_ref
+            self.__publisher_start_index = publisher_start_index
 
         async def on_chunk_update(
             self, chunk: "SerializableTensorChunk"
         ) -> None:
             aggregator: "Optional[AggregateTensorMultiplexer]" = (
-                self._aggregator_ref()
+                self.__aggregator_ref()
             )
             if not aggregator:
                 return
 
             global_start_index = (
-                self._publisher_start_index + chunk.starting_index
+                self.__publisher_start_index + chunk.starting_index
             )
             main_client_chunk = SerializableTensorChunk(
                 tensor=chunk.tensor,
                 timestamp=chunk.timestamp,
                 starting_index=global_start_index,
             )
-            await aggregator._client.on_chunk_update(main_client_chunk)
+            await aggregator.client.on_chunk_update(main_client_chunk)
 
             async with aggregator.lock:
                 agg_timestamp_dt = chunk.timestamp.as_datetime()
@@ -132,15 +132,17 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 ):
                     current_max_ts_for_cleanup = aggregator.history[-1][0]
                 if (
-                    aggregator._latest_processed_timestamp
-                    and aggregator._latest_processed_timestamp
+                    aggregator.latest_processed_timestamp_property  # Use property
+                    and aggregator.latest_processed_timestamp_property
                     > current_max_ts_for_cleanup
                 ):
                     current_max_ts_for_cleanup = (
-                        aggregator._latest_processed_timestamp
+                        aggregator.latest_processed_timestamp_property
                     )
 
-                aggregator._cleanup_old_data(current_max_ts_for_cleanup)
+                aggregator._cleanup_old_data(
+                    current_max_ts_for_cleanup
+                )  # Internal method call
 
                 history_idx = aggregator._find_insertion_point(
                     agg_timestamp_dt
@@ -155,20 +157,21 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                         1
                     ].clone()
                 else:
-                    if aggregator._tensor_length > 0:
+                    if aggregator.actual_aggregate_length > 0:  # Use property
                         current_tensor_state = torch.zeros(
-                            aggregator._tensor_length, dtype=torch.float32
+                            aggregator.actual_aggregate_length,
+                            dtype=torch.float32,
                         )
                     else:
                         print(
-                            f"Warning (ATM.on_chunk_update): Aggregator tensor_length is {aggregator._tensor_length}. Cannot update history."
+                            f"Warning (ATM.on_chunk_update): Aggregator tensor_length is {aggregator.actual_aggregate_length}. Cannot update history."
                         )
                         return
 
                 if current_tensor_state is not None:
                     for i, value_item in enumerate(chunk.tensor.tolist()):
                         global_idx_for_history = (
-                            self._publisher_start_index
+                            self.__publisher_start_index
                             + chunk.starting_index
                             + i
                         )
@@ -204,13 +207,16 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                     potential_latest_ts = agg_timestamp_dt
 
                 if (
-                    aggregator._latest_processed_timestamp is None
+                    aggregator.latest_processed_timestamp_property
+                    is None  # Use property
                     or potential_latest_ts
-                    > aggregator._latest_processed_timestamp
+                    > aggregator.latest_processed_timestamp_property
                 ):
-                    aggregator._latest_processed_timestamp = (
-                        potential_latest_ts
-                    )
+                    # This assignment should be to the private member if latest_processed_timestamp_property is read-only
+                    # For now, assuming it will be handled by a setter or directly if property allows write.
+                    # This will be self.__latest_processed_timestamp = potential_latest_ts
+                    # Use the private setter method instead of direct mangled access
+                    aggregator._set_latest_processed_timestamp(potential_latest_ts)
 
     def __init__(
         self,
@@ -238,16 +244,16 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             clock=clock,
             data_timeout_seconds=data_timeout_seconds,
         )
-        self._tensor_length = initial_length_for_super
-        self._clock = clock
-        self._publishers_info: List[Dict[str, Any]] = []
+        self.__actual_aggregate_length = initial_length_for_super  # Renamed
+        # self.__clock = clock # Base class __init__ handles self.__clock via the property.
+        self.__publishers_info: List[Dict[str, Any]] = []
         # Each dict in _publishers_info stores info about a registered publisher,
         # including its tensor mapping and internal multiplexer instance.
 
-        self._current_max_index: int = 0
-        self._tensor_length: int = 0
+        self.__current_max_index: int = 0
+        # self.__actual_aggregate_length is already set
 
-        self._latest_processed_timestamp: Optional[datetime.datetime] = None
+        self.__latest_processed_timestamp: Optional[datetime.datetime] = None
 
     @overload
     async def add_to_aggregation(
@@ -344,9 +350,11 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                         "Internal error: arg2 should be None for append mode."
                     )
                 current_tensor_len = arg1
-                start_index = self._current_max_index
-                self._current_max_index += current_tensor_len
-                self._tensor_length = self._current_max_index
+                start_index = self.__current_max_index
+                self.__current_max_index += current_tensor_len
+                self.__actual_aggregate_length = (
+                    self.__current_max_index
+                )  # Update new name
             elif isinstance(
                 arg1, range
             ):  # Specific range mode (from Overload 2)
@@ -366,7 +374,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 start_index = index_range.start
 
                 # Check for overlap with existing publishers
-                for info in self._publishers_info:
+                for info in self.__publishers_info:
                     existing_range = range(
                         info["start_index"],
                         info["start_index"] + info["tensor_length"],
@@ -379,12 +387,12 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                             f"Provided index_range {index_range} overlaps with existing publisher range {existing_range}."
                         )
 
-                self._current_max_index = max(
-                    self._current_max_index, index_range.stop
+                self.__current_max_index = max(
+                    self.__current_max_index, index_range.stop
                 )
-                self._tensor_length = (
-                    self._current_max_index
-                )  # Update total length
+                self.__actual_aggregate_length = (  # Update new name
+                    self.__current_max_index
+                )
 
             else:
                 raise TypeError(
@@ -397,7 +405,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 )
 
             # Check if this publisher instance is already registered
-            for info in self._publishers_info:
+            for info in self.__publishers_info:
                 if info["publisher_instance"] == publisher:
                     raise ValueError(
                         f"Publisher {publisher} is already registered."
@@ -414,15 +422,15 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 internal_mux = SparseTensorMultiplexer(
                     client=internal_client,
                     tensor_length=current_tensor_len,
-                    clock=self._clock,
-                    data_timeout_seconds=self._data_timeout_seconds,
+                    clock=self.clock,  # Use property
+                    data_timeout_seconds=self.data_timeout_seconds,  # Use property
                 )
             else:
                 internal_mux = CompleteTensorMultiplexer(
                     client=internal_client,
                     tensor_length=current_tensor_len,
-                    clock=self._clock,
-                    data_timeout_seconds=self._data_timeout_seconds,
+                    clock=self.clock,  # Use property
+                    data_timeout_seconds=self.data_timeout_seconds,  # Use property
                 )
 
             publisher_info_dict = {
@@ -434,7 +442,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 "is_sparse": sparse,
                 "internal_client_instance": internal_client,
             }
-            self._publishers_info.append(publisher_info_dict)
+            self.__publishers_info.append(publisher_info_dict)
 
             # Register this aggregator with the publisher
             publisher._add_aggregator(self)
@@ -466,11 +474,11 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         # It's important to handle the lock correctly here if multiple publishers
         # could call this concurrently. However, each publisher.publish() is async,
         # and this method itself is async. The actual history modification
-        # for the AggregateTensorMultiplexer happens inside _InternalClient.on_index_update,
-        # which uses aggregator._lock.
+        # for the AggregateTensorMultiplexer happens inside _InternalClient.on_chunk_update,
+        # which uses aggregator.lock.
         # The internal_multiplexer.process_tensor will also use its own lock.
         found_publisher = False
-        for info in self._publishers_info:
+        for info in self.__publishers_info:
             if info["publisher_instance"] == publisher:
                 internal_multiplexer = info["internal_multiplexer"]
                 # The tensor provided by the publisher should match the length expected by its internal_multiplexer
@@ -502,7 +510,9 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         """
         if not self.history:
             return
-        timeout_delta = datetime.timedelta(seconds=self._data_timeout_seconds)
+        timeout_delta = datetime.timedelta(
+            seconds=self.data_timeout_seconds
+        )  # Use property
         cutoff_timestamp = current_max_timestamp - timeout_delta
 
         keep_from_index = 0
@@ -526,3 +536,35 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         return bisect.bisect_left(self.history, timestamp, key=lambda x: x[0])
 
     # get_tensor_at_timestamp is inherited and will use self.history and self.lock
+
+    @property
+    def actual_aggregate_length(self) -> int:
+        """Gets the actual current length of the aggregated tensor."""
+        return self.__actual_aggregate_length
+
+    @property
+    def latest_processed_timestamp_property(
+        self,
+    ) -> Optional[
+        datetime.datetime
+    ]:  # Renamed to avoid clash with base if any
+        """Gets the latest timestamp processed by the aggregator, for internal client use."""
+        return self.__latest_processed_timestamp
+
+    # Method for test access only
+    def get_latest_processed_timestamp_for_testing(
+        self,
+    ) -> Optional[datetime.datetime]:
+        """Gets the latest processed timestamp for testing purposes."""
+        return self.__latest_processed_timestamp
+
+    # Method for test access only
+    def get_publishers_info_for_testing(self) -> List[Dict[str, Any]]:
+        """Gets the list of publisher information dictionaries for testing."""
+        return self.__publishers_info
+
+    def _set_latest_processed_timestamp(
+        self, timestamp: datetime.datetime
+    ) -> None:
+        """Internal method to set the latest processed timestamp."""
+        self.__latest_processed_timestamp = timestamp
