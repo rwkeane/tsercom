@@ -1,0 +1,420 @@
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:128: error: Argument 1 of
+"on_update_received" is incompatible with supertype "TensorDemuxer"; supertype
+defines the argument type as "int"  [override]
+            index: Tuple[int, ...],
+            ^~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:128: note: This violates the Liskov substitution principle
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:128: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:11: error: Skipping
+analyzing "tsercom.tensor.demuxer.tensor_client": module is installed, but
+missing library stubs or py.typed marker  [import-untyped]
+    from tsercom.tensor.demuxer.tensor_client import TensorClient
+    ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:11: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:27: error: Returning
+Any from function declared to return "SmoothingStrategy"  [no-any-return]
+        return strategy
+        ^~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:43: error:
+Unexpected keyword argument "client" for "SmoothedTensorDemuxer"  [call-arg]
+        demuxer = SmoothedTensorDemuxer(
+                  ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:35: note: "SmoothedTensorDemuxer" defined here
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:43: error:
+Unexpected keyword argument "tensor_length" for "SmoothedTensorDemuxer"
+[call-arg]
+        demuxer = SmoothedTensorDemuxer(
+                  ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:35: note: "SmoothedTensorDemuxer" defined here
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:43: error:
+Unexpected keyword argument "data_timeout_seconds" for "SmoothedTensorDemuxer"
+[call-arg]
+        demuxer = SmoothedTensorDemuxer(
+                  ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:35: note: "SmoothedTensorDemuxer" defined here
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:60: error: Function
+is missing a return type annotation  [no-untyped-def]
+    def test_smoothed_demuxer_is_subclass_of_tensor_demuxer():
+    ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:60: note: Use "-> None" if function does not return a value
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:65: error: Function
+is missing a return type annotation  [no-untyped-def]
+    async def test_hook_receives_keyframe_and_updates_client(
+    ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:77: error:
+"SmoothingStrategy" has no attribute "get_latest_smoothed_tensor_and_timestamp"
+[attr-defined]
+        mock_smoothing_strategy.get_latest_smoothed_tensor_and_timestamp.r...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:83: error:
+"SmoothedTensorDemuxer" has no attribute "_SmoothedTensorDemuxer__output_client"
+ [attr-defined]
+            smoothed_demuxer_instance._SmoothedTensorDemuxer__output_clien...
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:91: error:
+"SmoothingStrategy" has no attribute "add_input_value"  [attr-defined]
+        mock_smoothing_strategy.add_input_value.assert_called_once()
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:92: error:
+"SmoothingStrategy" has no attribute "add_input_value"  [attr-defined]
+        called_args = mock_smoothing_strategy.add_input_value.call_args[0]
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:100: error:
+"Callable[[Tensor, datetime], Coroutine[Any, Any, None]]" has no attribute
+"assert_not_called"  [attr-defined]
+        smoothed_demuxer_instance.client.on_tensor_changed.assert_not_call...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:104: error: Function
+is missing a return type annotation  [no-untyped-def]
+    async def test_parent_logic_triggers_child_hook(
+    ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:120: error:
+"SmoothingStrategy" has no attribute "get_latest_smoothed_tensor_and_timestamp"
+[attr-defined]
+        mock_smoothing_strategy.get_latest_smoothed_tensor_and_timestamp.r...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:126: error:
+"SmoothedTensorDemuxer" has no attribute "_SmoothedTensorDemuxer__output_client"
+ [attr-defined]
+            smoothed_demuxer_instance._SmoothedTensorDemuxer__output_clien...
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:135: error: Argument
+1 to "on_update_received" of "SmoothedTensorDemuxer" has incompatible type
+"int"; expected "tuple[int, ...]"  [arg-type]
+                0, keyframe_tensor_from_parent[0].item(), keyframe_ts_from...
+                ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:138: error: Argument
+1 to "on_update_received" of "SmoothedTensorDemuxer" has incompatible type
+"int"; expected "tuple[int, ...]"  [arg-type]
+                1, keyframe_tensor_from_parent[1].item(), keyframe_ts_from...
+                ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:141: error: Argument
+1 to "on_update_received" of "SmoothedTensorDemuxer" has incompatible type
+"int"; expected "tuple[int, ...]"  [arg-type]
+                2, keyframe_tensor_from_parent[2].item(), keyframe_ts_from...
+                ^
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:156: error:
+"SmoothingStrategy" has no attribute "add_input_value"  [attr-defined]
+        mock_smoothing_strategy.add_input_value.assert_called_once()
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:157: error:
+"SmoothingStrategy" has no attribute "add_input_value"  [attr-defined]
+        called_args_hook = mock_smoothing_strategy.add_input_value.call_ar...
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/smoothed_tensor_demuxer_unittest.py:165: error:
+"Callable[[Tensor, datetime], Coroutine[Any, Any, None]]" has no attribute
+"assert_not_called"  [attr-defined]
+        smoothed_demuxer_instance.client.on_tensor_changed.assert_not_call...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:16: error: Function is
+missing a return type annotation  [no-untyped-def]
+        def __init__(self):
+        ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:16: note: Use "-> None" if function does not return a value
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:53: error: Call to untyped
+function "MockTensorDemuxerClient" in typed context  [no-untyped-call]
+        return MockTensorDemuxerClient()
+               ^~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:101: error: Function is
+missing a return type annotation  [no-untyped-def]
+    def test_constructor_validations():
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:101: note: Use "-> None" if function does not return a value
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:102: error: Call to untyped
+function "MockTensorDemuxerClient" in typed context  [no-untyped-call]
+        mock_cli = MockTensorDemuxerClient()
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:110: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_first_update(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:128: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_sequential_updates_same_timestamp(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:150: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_updates_different_timestamps(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:163: error: "None" object is
+not iterable  [misc]
+        tensor_t2, ts_t2 = mc.get_last_call()
+                           ^~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:171: error: Function is
+missing a type annotation  [no-untyped-def]
+        def _get_tensor(states_list, target_ts):
+        ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:177: error: Call to untyped
+function "_get_tensor" in typed context  [no-untyped-call]
+        internal_t1_state = _get_tensor(d._TensorDemuxer__tensor_states, T...
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:177: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        internal_t1_state = _get_tensor(d._TensorDemuxer__tensor_states, T...
+                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:181: error: Call to untyped
+function "_get_tensor" in typed context  [no-untyped-call]
+        internal_t2_state = _get_tensor(d._TensorDemuxer__tensor_states, T...
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:181: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        internal_t2_state = _get_tensor(d._TensorDemuxer__tensor_states, T...
+                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:189: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_state_propagation_on_new_sequential_timestamp(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:202: error: "None" object is
+not iterable  [misc]
+        t1_final_tensor, t1_final_ts = mc.get_last_call()
+                                       ^~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:213: error: "None" object is
+not iterable  [misc]
+        t2_tensor, t2_ts = mc.get_last_call()
+                           ^~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:225: error: Function is
+missing a type annotation  [no-untyped-def]
+        def _get_tensor(states_list, target_ts):
+        ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:231: error: Call to untyped
+function "_get_tensor" in typed context  [no-untyped-call]
+        internal_t1 = _get_tensor(d._TensorDemuxer__tensor_states, T1_std)
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:231: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        internal_t1 = _get_tensor(d._TensorDemuxer__tensor_states, T1_std)
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:232: error: Call to untyped
+function "_get_tensor" in typed context  [no-untyped-call]
+        internal_t2 = _get_tensor(d._TensorDemuxer__tensor_states, T2_std)
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:232: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        internal_t2 = _get_tensor(d._TensorDemuxer__tensor_states, T2_std)
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:241: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_out_of_order_scenario_from_prompt(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:247: error: Function is
+missing a type annotation  [no-untyped-def]
+        def _is_ts_present(states_list, target_ts):
+        ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:253: error: Function is
+missing a type annotation  [no-untyped-def]
+        def _get_tensor(states_list, target_ts):
+        ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:283: error: Call to untyped
+function "_get_tensor" in typed context  [no-untyped-call]
+        t2_tensor_internal = _get_tensor(d._TensorDemuxer__tensor_states, ...
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:283: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        t2_tensor_internal = _get_tensor(d._TensorDemuxer__tensor_states, ...
+                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:322: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_complex_out_of_order_state_inheritance(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:384: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert d._TensorDemuxer__tensor_states[0][0] == TS1
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:386: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+            d._TensorDemuxer__tensor_states[0][1],
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:389: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert d._TensorDemuxer__tensor_states[1][0] == TS2
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:391: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+            d._TensorDemuxer__tensor_states[1][1], expected_correct_t2
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:393: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert d._TensorDemuxer__tensor_states[2][0] == TS3
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:399: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+            d._TensorDemuxer__tensor_states[2][1], expected_cascaded_t3
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:401: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert d._TensorDemuxer__tensor_states[3][0] == TS4
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:406: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+            d._TensorDemuxer__tensor_states[3][1],
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:412: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_data_timeout(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:421: error: Function is
+missing a type annotation  [no-untyped-def]
+        def _is_ts_present(states_list, target_ts):
+        ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:426: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, ...
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:426: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, ...
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:433: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert not _is_ts_present(
+                   ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:434: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+            dmx_instance._TensorDemuxer__tensor_states, T0_std
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:436: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, ...
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:436: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, ...
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:438: error: "None" object is
+not iterable  [misc]
+        tensor_t2, ts_t2 = mc.get_last_call()
+                           ^~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:446: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert not _is_ts_present(
+                   ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:447: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+            dmx_instance._TensorDemuxer__tensor_states, T1_std
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:452: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_index_out_of_bounds(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:457: error: Function is
+missing a type annotation  [no-untyped-def]
+        def _is_ts_present(states_list, target_ts):
+        ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:471: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert not _is_ts_present(d._TensorDemuxer__tensor_states, T1_std)
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:471: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert not _is_ts_present(d._TensorDemuxer__tensor_states, T1_std)
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:475: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_update_no_value_change(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:492: error: "None" object is
+not iterable  [misc]
+        last_call_tensor, _ = mc.get_last_call()
+                              ^~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:497: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_timeout_behavior_cleanup_order(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:504: error: Function is
+missing a type annotation  [no-untyped-def]
+        def _is_ts_present(states_list, target_ts):
+        ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:509: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, ...
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:509: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, ...
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:510: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__latest_update_timestamp"; maybe
+"__latest_update_timestamp"?  [attr-defined]
+        assert dmx_instance._TensorDemuxer__latest_update_timestamp == T1_...
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:514: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert not _is_ts_present(
+                   ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:515: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+            dmx_instance._TensorDemuxer__tensor_states, T0_std
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:520: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert not _is_ts_present(
+                   ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:521: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+            dmx_instance._TensorDemuxer__tensor_states, T1_std
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:523: error: Call to untyped
+function "_is_ts_present" in typed context  [no-untyped-call]
+        assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, ...
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:523: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        assert _is_ts_present(dmx_instance._TensorDemuxer__tensor_states, ...
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:525: error: "None" object is
+not iterable  [misc]
+        tensor_t2, ts_t2 = mc.get_last_call()
+                           ^~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:531: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_get_tensor_at_timestamp(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:573: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_timestamp_with_no_explicit_updates_inherits_state(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:629: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        for ts, tensor_val, _ in d._TensorDemuxer__tensor_states:
+                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:638: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_many_explicit_updates_single_timestamp(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:655: error: "None" object is
+not iterable  [misc]
+        final_tensor, ts = mc.get_last_call()
+                           ^~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:662: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        for s_ts, _, s_explicits in d._TensorDemuxer__tensor_states:
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:685: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_explicit_updates_overwrite_and_add_to_inherited_state(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:702: error: "None" object is
+not iterable  [misc]
+        final_tensor, ts = mc.get_last_call()
+                           ^~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:709: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        for s_ts, _, s_explicits in d._TensorDemuxer__tensor_states:
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:729: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_cascade_with_tensor_explicit_updates(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:768: error: Function is
+missing a return type annotation  [no-untyped-def]
+    async def test_explicit_tensors_build_correctly(
+    ^
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:784: error: "TensorDemuxer"
+has no attribute "_TensorDemuxer__tensor_states"  [attr-defined]
+        for ts, _, (indices, values) in d._TensorDemuxer__tensor_states:
+                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tsercom/tensor/demuxer/tensor_demuxer_unittest.py:806: error: "None" object is
+not iterable  [misc]
+        final_tensor, final_ts = mc.get_last_call()
+                                 ^~~~~~~~~~~~~~~~~~
+Found 99 errors in 3 files (checked 4 source files)

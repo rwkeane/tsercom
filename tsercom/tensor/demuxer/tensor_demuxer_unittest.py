@@ -88,6 +88,22 @@ TS3 = TS_BASE + datetime.timedelta(seconds=3)
 TS4 = TS_BASE + datetime.timedelta(seconds=4)
 
 
+# TODO JULES: In tests verifying keyframe updates and client notifications,
+# use `mocker.spy(demuxer_instance, "_on_keyframe_updated")`
+# and assert it's called with (timestamp=expected_ts, new_tensor_state=expected_tensor).
+# Example:
+# hook_spy = mocker.spy(demuxer, "_on_keyframe_updated")
+# # ... trigger demuxer logic ...
+# hook_spy.assert_called_with(timestamp=correct_timestamp, new_tensor_state=correct_tensor)
+# # Also ensure that mock_client.on_tensor_changed is still called by the default hook implementation.
+
+
+
+# TODO JULES: Review any F841 errors (unused local variables) reported by Ruff.
+# If a variable is assigned for a side effect that's tested (e.g., an exception),
+# consider using `_ = function_call()` or `with pytest.raises(...):`.
+# If it's truly unused, remove the assignment.
+
 def test_constructor_validations():
     mock_cli = MockTensorDemuxerClient()
     with pytest.raises(ValueError, match="Tensor length must be positive"):

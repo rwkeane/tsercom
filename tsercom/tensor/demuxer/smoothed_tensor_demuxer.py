@@ -20,11 +20,12 @@ import numpy as np  # pylint: disable=import-error # Keep numpy for np.ndindex
 
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
+from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
 
 logger = logging.getLogger(__name__)
 
 
-class SmoothedTensorDemuxer:
+class SmoothedTensorDemuxer(TensorDemuxer):
     """
     Manages per-index keyframe data using torch.Tensors and provides smoothed,
     interpolated tensor updates.
@@ -33,9 +34,14 @@ class SmoothedTensorDemuxer:
 
     def __init__(
         self,
+        # Args for TensorDemuxer parent
+        client: Any, # Should be TensorDemuxer.Client, but Any for now if type not directly available
+        tensor_length: int, # For 1D representation in parent or overall size
+        data_timeout_seconds: float,
+        # Args for SmoothedTensorDemuxer
         tensor_name: str,
         tensor_shape: Tuple[int, ...],
-        output_client: Any,
+        output_client: Any, # This is SmoothedTensorDemuxer's own client for smoothed output
         smoothing_strategy: SmoothingStrategy,
         output_interval_seconds: float,
         max_keyframe_history_per_index: int = 100,
@@ -43,6 +49,7 @@ class SmoothedTensorDemuxer:
         fill_value: Union[int, float] = float("nan"),
         name: Optional[str] = None,
     ):
+        super().__init__(client=client, tensor_length=tensor_length, data_timeout_seconds=data_timeout_seconds)
         if not tensor_name:
             raise ValueError("tensor_name must be provided.")
         if not isinstance(tensor_shape, tuple) or not all(
@@ -128,6 +135,11 @@ class SmoothedTensorDemuxer:
         value: float,
         timestamp: python_datetime_module.datetime,
     ) -> None:
+        # TODO JULES: LSP Violation - This method's signature (especially `index: Tuple[int,...]`)
+        # is incompatible with parent TensorDemuxer.on_update_received (which expects `tensor_index: int`).
+        # This needs to be resolved. If SmoothedTensorDemuxer handles multi-dimensional tensors
+        # differently, it might not be able to simply call super().on_update_received without adaptation,
+        # or this method should not override the parent's if its role is different.
         if not isinstance(index, tuple) or not all(
             isinstance(i, int) for i in index
         ):
@@ -200,6 +212,9 @@ class SmoothedTensorDemuxer:
 
             self.__per_index_keyframes[index] = (new_timestamps, new_values)
 
+    # TODO JULES: Review `_interpolation_worker`, `start`, `stop` methods.
+    # The new design relies on `_on_keyframe_updated` to process and push smoothed tensors.
+    # Determine if this periodic worker is still needed or if its logic is now covered.
     async def _interpolation_worker(self) -> None:
         logger.info("[%s] Interpolation worker started.", self.__name)
         try:
@@ -414,3 +429,46 @@ class SmoothedTensorDemuxer:
 
     def get_tensor_shape(self) -> Tuple[int, ...]:
         return self.__tensor_shape
+
+    async def _on_keyframe_updated(
+        self,
+        timestamp: python_datetime_module.datetime,
+        new_tensor_state: torch.Tensor,
+    ) -> None:
+        """Handles a finalized keyframe from TensorDemuxer by feeding it to the smoothing strategy."""
+        # Ensure that smoothing_strategy and output_client are initialized.
+        # These should be set in __init__.
+        if not hasattr(self, '_SmoothedTensorDemuxer__smoothing_strategy') or self._SmoothedTensorDemuxer__smoothing_strategy is None:
+            logger.error(f'{self._SmoothedTensorDemuxer__name} missing smoothing strategy.')
+            return
+        if not hasattr(self, '_SmoothedTensorDemuxer__output_client') or self._SmoothedTensorDemuxer__output_client is None:
+            logger.error(f'{self._SmoothedTensorDemuxer__name} missing output client.')
+            return
+
+        # 1. Add keyframe to smoothing strategy
+        # Assuming new_tensor_state is a complete tensor for the timestamp.
+        # The original SmoothedTensorDemuxer handles per-index updates.
+        # This hook receives a *complete* keyframe tensor from the parent TensorDemuxer.
+        # This implies that if SmoothedTensorDemuxer is to use this hook, its internal
+        # logic for `__per_index_keyframes` and how `on_update_received` (the one taking Tuple index)
+        # interacts with parent `on_update_received` (taking int index) needs full reconciliation.
+        # For now, assume this hook is called with a full tensor that the strategy can use.
+        # This might mean the strategy needs to be adapted or this hook's purpose re-evaluated
+        # if the parent is 1D and child is multi-dimensional.
+        # logger.debug(f"[{self.name}] Hook _on_keyframe_updated received tensor for {timestamp}")
+
+        # TODO JULES: Reconcile how a full tensor from parent's _on_keyframe_updated
+        # (which itself is a 1D tensor in parent's current design)
+        # should be processed by a potentially multi-dimensional smoothing strategy here.
+        # For now, directly pass it to the strategy.
+        self._SmoothedTensorDemuxer__smoothing_strategy.add_input_value(timestamp, new_tensor_state.clone())
+
+        # 2. Get smoothed output from strategy
+        smoothed_timestamp, smoothed_tensor = self._SmoothedTensorDemuxer__smoothing_strategy.get_latest_smoothed_tensor_and_timestamp()
+
+        # 3. Notify SmoothedTensorDemuxer's own client with the smoothed tensor
+        if smoothed_tensor is not None:
+            # logger.debug(f"[{self.name}] Pushing smoothed update for {smoothed_timestamp}")
+            await self._SmoothedTensorDemuxer__output_client.push_tensor_update(self._SmoothedTensorDemuxer__tensor_name, smoothed_tensor, smoothed_timestamp)
+
+        # This method MUST NOT call super()._on_keyframe_updated(), as per design requirements.

@@ -78,6 +78,27 @@ class TensorDemuxer:
         if keep_from_index > 0:
             self.__tensor_states = self.__tensor_states[keep_from_index:]
 
+    async def _on_keyframe_updated(
+        self, timestamp: datetime.datetime, new_tensor_state: torch.Tensor
+    ) -> None:
+        """Called when a keyframe's tensor value is finalized.
+
+        This hook is triggered for both newly arrived chunks and for every keyframe
+        that gets re-calculated during a cascade.
+
+        Args:
+            timestamp: The timestamp of the updated keyframe.
+            new_tensor_state: The new tensor state for the keyframe.
+        """
+        # Default behavior: notify the client directly.
+        # Subclasses can override this to implement custom logic (e.g., interpolation)
+        # without calling super()._on_keyframe_updated().
+        if self.client:  # Accessing client via property
+            await self.client.on_tensor_changed(new_tensor_state, timestamp)
+        else:
+            # Log a warning or handle as appropriate if no client is set.
+            pass
+
     async def on_update_received(
         self, tensor_index: int, value: float, timestamp: datetime.datetime
     ) -> None:
@@ -213,14 +234,16 @@ class TensorDemuxer:
                 self.__tensor_states.insert(insertion_point, new_state_tuple)
                 idx_of_processed_ts = insertion_point
                 if value_actually_changed_tensor:
-                    await self.__client.on_tensor_changed(
-                        current_calculated_tensor.clone(), timestamp
+                    await self._on_keyframe_updated(
+                        timestamp=timestamp,
+                        new_tensor_state=current_calculated_tensor.clone(),
                     )
             else:
                 self.__tensor_states[idx_of_processed_ts] = new_state_tuple
                 if value_actually_changed_tensor:
-                    await self.__client.on_tensor_changed(
-                        current_calculated_tensor.clone(), timestamp
+                    await self._on_keyframe_updated(
+                        timestamp=timestamp,
+                        new_tensor_state=current_calculated_tensor.clone(),
                     )
 
             needs_cascade = value_actually_changed_tensor
@@ -255,8 +278,9 @@ class TensorDemuxer:
                             new_calculated_tensor_next,
                             (next_indices, next_values),
                         )
-                        await self.__client.on_tensor_changed(
-                            new_calculated_tensor_next.clone(), ts_next
+                        await self._on_keyframe_updated(
+                            timestamp=ts_next,
+                            new_tensor_state=new_calculated_tensor_next.clone(),
                         )
                     else:
                         break

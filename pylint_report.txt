@@ -1,0 +1,15 @@
+************* Module demuxer.tensor_demuxer
+tsercom/tensor/demuxer/tensor_demuxer.py:102:4: R0914: Too many local variables (28/15) (too-many-locals)
+tsercom/tensor/demuxer/tensor_demuxer.py:102:4: R0912: Too many branches (28/12) (too-many-branches)
+tsercom/tensor/demuxer/tensor_demuxer.py:102:4: R0915: Too many statements (82/50) (too-many-statements)
+************* Module demuxer.smoothed_tensor_demuxer
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:28:0: R0902: Too many instance attributes (14/7) (too-many-instance-attributes)
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:35:4: W0231: __init__ method from base class 'TensorDemuxer' is not called (super-init-not-called)
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:35:4: R0913: Too many arguments (10/5) (too-many-arguments)
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:35:4: R0917: Too many positional arguments (10/5) (too-many-positional-arguments)
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:126:4: W0237: Parameter 'tensor_index' has been renamed to 'index' in overriding 'SmoothedTensorDemuxer.on_update_received' method (arguments-renamed)
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:204:4: R0912: Too many branches (15/12) (too-many-branches)
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:430:8: W0107: Unnecessary pass statement (unnecessary-pass)
+
+------------------------------------------------------------------
+Your code has been rated at 9.65/10 (previous run: 9.13/10, +0.52)
