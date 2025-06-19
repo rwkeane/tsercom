@@ -11,6 +11,10 @@ from typing import (
 )
 
 import torch
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
+from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 # Using a type alias for clarity, though not strictly necessary for the ABC itself
 TensorHistoryValue = torch.Tensor
@@ -28,11 +32,14 @@ class TensorMultiplexer(abc.ABC):
         """
 
         @abc.abstractmethod
-        async def on_index_update(
-            self, tensor_index: int, value: float, timestamp: datetime.datetime
+        async def on_chunk_update(
+            self, chunk: "SerializableTensorChunk"
         ) -> None:
             """
-            Called when an index in the tensor has a new value at a given timestamp.
+            Called when a new tensor chunk is available.
+
+            Args:
+                chunk: The `SerializableTensorChunk` containing the update.
             """
             raise NotImplementedError
 
@@ -40,6 +47,7 @@ class TensorMultiplexer(abc.ABC):
         self,
         client: "TensorMultiplexer.Client",
         tensor_length: int,
+        clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
         """
@@ -48,6 +56,7 @@ class TensorMultiplexer(abc.ABC):
         Args:
             client: The client to notify of index updates.
             tensor_length: The expected length of the tensors.
+            clock: The synchronized clock instance.
             data_timeout_seconds: How long to keep tensor data (subclass responsibility).
         """
         if tensor_length <= 0:
@@ -55,9 +64,10 @@ class TensorMultiplexer(abc.ABC):
         if data_timeout_seconds <= 0:
             raise ValueError("Data timeout must be positive.")
 
-        self._client = client
-        self._tensor_length = tensor_length
-        self._data_timeout_seconds = (
+        self.__client = client
+        self.__tensor_length = tensor_length
+        self.__clock = clock
+        self.__data_timeout_seconds = (
             data_timeout_seconds  # For subclasses to use
         )
         self.__lock = asyncio.Lock()
@@ -74,6 +84,26 @@ class TensorMultiplexer(abc.ABC):
     def history(self) -> List[TimestampedTensor]:
         """Provides access to the tensor history list."""
         return self.__history
+
+    @property
+    def client(self) -> "TensorMultiplexer.Client":
+        """Provides access to the client instance."""
+        return self.__client
+
+    @property
+    def tensor_length(self) -> int:
+        """Provides access to the tensor length."""
+        return self.__tensor_length
+
+    @property
+    def clock(self) -> "SynchronizedClock":
+        """Provides access to the synchronized clock instance."""
+        return self.__clock
+
+    @property
+    def data_timeout_seconds(self) -> float:
+        """Provides access to the data timeout duration in seconds."""
+        return self.__data_timeout_seconds
 
     @abc.abstractmethod
     async def process_tensor(
@@ -102,8 +132,7 @@ class TensorMultiplexer(abc.ABC):
             A clone of the tensor if the timestamp exists in history, else None.
         """
         async with self.__lock:
-            # Use bisect_left with a key to compare timestamp with the first element of the tuples
-            # self.__history is expected to be sorted by timestamp.
+            # Assumes self.__history is sorted by timestamp for efficient lookup using bisect.
             i = bisect.bisect_left(
                 self.__history, timestamp, key=lambda x: x[0]
             )

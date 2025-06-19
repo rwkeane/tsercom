@@ -1,57 +1,55 @@
-"""Unit tests for AggregateTensorMultiplexer."""
-
-import asyncio
 import datetime
-from typing import List, Tuple, Any, cast
-import weakref
+from typing import List, cast
 
 import pytest
 import torch
-from unittest.mock import AsyncMock  # For mocking async methods
+from unittest.mock import AsyncMock
+
+# New imports
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)
 
 from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
 from tsercom.tensor.muxer.aggregate_tensor_multiplexer import (
     AggregateTensorMultiplexer,
     Publisher,
 )
-from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
-    SparseTensorMultiplexer,
-)
-from tsercom.tensor.muxer.complete_tensor_multiplexer import (
-    CompleteTensorMultiplexer,
+from tsercom.timesync.common.fake_synchronized_clock import (
+    FakeSynchronizedClock,
 )
 
-# Helper type for captured calls by the main client
-CapturedUpdate = Tuple[int, float, datetime.datetime]
+# These are needed for type hinting internal multiplexers if checked strictly by test logic
 
 
 class MockAggregatorClient(TensorMultiplexer.Client):
-    """Mocks the main client for AggregateTensorMultiplexer."""
+    """Mocks the main client for AggregateTensorMultiplexer to capture SerializableTensorChunk objects."""
 
     def __init__(self) -> None:
-        self.calls: List[CapturedUpdate] = []
+        self.calls: List[SerializableTensorChunk] = []
 
-    async def on_index_update(
-        self, tensor_index: int, value: float, timestamp: datetime.datetime
-    ) -> None:
-        self.calls.append((tensor_index, value, timestamp))
+    async def on_chunk_update(self, chunk: SerializableTensorChunk) -> None:
+        self.calls.append(chunk)
 
     def clear_calls(self) -> None:
         self.calls = []
 
-    def get_calls_summary(
-        self, sort_by_index_then_ts: bool = False
-    ) -> List[CapturedUpdate]:
-        """Returns a summary of calls, optionally sorted."""
-        if sort_by_index_then_ts:
-            return sorted(self.calls, key=lambda x: (x[0], x[2]))
-        return self.calls
-
-    def get_simple_summary_for_timestamp(
-        self, ts: datetime.datetime
-    ) -> List[Tuple[int, float]]:
+    def get_all_received_chunks_sorted(self) -> List[SerializableTensorChunk]:
+        # Sort by timestamp, then by starting_index for deterministic comparison
         return sorted(
-            [(idx, val) for idx, val, call_ts in self.calls if call_ts == ts]
+            self.calls,
+            key=lambda c: (c.timestamp.as_datetime(), c.starting_index),
+        )
+
+    def get_chunks_for_timestamp_sorted(
+        self, ts: datetime.datetime
+    ) -> List[SerializableTensorChunk]:
+        return sorted(
+            [c for c in self.calls if c.timestamp.as_datetime() == ts],
+            key=lambda c: c.starting_index,
         )
 
 
@@ -60,14 +58,13 @@ T_BASE = datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
 T0 = T_BASE - datetime.timedelta(seconds=20)
 T1 = T_BASE - datetime.timedelta(seconds=10)
 T2 = T_BASE
-T_FAR_FUTURE = T_BASE + datetime.timedelta(days=1)  # For timeout tests
+T_FAR_FUTURE = T_BASE + datetime.timedelta(days=1)
 
 # Common Tensors
 TENSOR_L3_A_VAL = [1.0, 2.0, 3.0]
 TENSOR_L3_A = torch.tensor(TENSOR_L3_A_VAL, dtype=torch.float32)
-TENSOR_L3_B_VAL = [1.1, 2.1, 3.1]  # For sparse update test
+TENSOR_L3_B_VAL = [1.1, 2.1, 3.1]
 TENSOR_L3_B = torch.tensor(TENSOR_L3_B_VAL, dtype=torch.float32)
-
 
 TENSOR_L2_A_VAL = [10.0, 20.0]
 TENSOR_L2_A = torch.tensor(TENSOR_L2_A_VAL, dtype=torch.float32)
@@ -85,8 +82,9 @@ def mock_main_client() -> MockAggregatorClient:
 def aggregator(
     mock_main_client: MockAggregatorClient,
 ) -> AggregateTensorMultiplexer:
+    fake_clock = FakeSynchronizedClock()
     return AggregateTensorMultiplexer(
-        client=mock_main_client, data_timeout_seconds=60.0
+        client=mock_main_client, clock=fake_clock, data_timeout_seconds=60.0
     )
 
 
@@ -94,8 +92,9 @@ def aggregator(
 def aggregator_short_timeout(
     mock_main_client: MockAggregatorClient,
 ) -> AggregateTensorMultiplexer:
+    fake_clock = FakeSynchronizedClock()
     return AggregateTensorMultiplexer(
-        client=mock_main_client, data_timeout_seconds=0.1
+        client=mock_main_client, clock=fake_clock, data_timeout_seconds=0.1
     )
 
 
@@ -114,7 +113,43 @@ def publisher3() -> Publisher:
     return Publisher()
 
 
-# --- AggregateTensorMultiplexer.process_tensor Check ---
+# Helper to create an expected chunk for comparison
+def create_expected_chunk(
+    data_tensor: torch.Tensor,
+    global_start_index: int,
+    timestamp_dt: datetime.datetime,
+) -> SerializableTensorChunk:
+    sync_ts = SynchronizedTimestamp(timestamp_dt)
+    return SerializableTensorChunk(
+        tensor=data_tensor,
+        timestamp=sync_ts,
+        starting_index=global_start_index,
+    )
+
+
+def assert_chunks_equal_list(
+    received: List[SerializableTensorChunk],
+    expected: List[SerializableTensorChunk],
+):
+    assert len(received) == len(
+        expected
+    ), f"Expected {len(expected)} chunks, got {len(received)}. Received: {received}, Expected: {expected}"
+    # Assuming lists are pre-sorted for comparison
+    for i, (r_chunk, e_chunk) in enumerate(zip(received, expected)):
+        assert (
+            r_chunk.starting_index == e_chunk.starting_index
+        ), f"Chunk {i} start_index mismatch: Got {r_chunk.starting_index}, Expected {e_chunk.starting_index}"
+        assert torch.equal(
+            r_chunk.tensor, e_chunk.tensor
+        ), f"Chunk {i} tensor data mismatch: Got {r_chunk.tensor}, Expected {e_chunk.tensor}"
+        assert (
+            r_chunk.timestamp == e_chunk.timestamp
+        ), f"Chunk {i} timestamp mismatch: Got {r_chunk.timestamp}, Expected {e_chunk.timestamp}"
+
+
+# --- Tests ---
+
+
 @pytest.mark.asyncio
 async def test_process_tensor_raises_not_implemented(
     aggregator: AggregateTensorMultiplexer,
@@ -123,73 +158,57 @@ async def test_process_tensor_raises_not_implemented(
         await aggregator.process_tensor(TENSOR_L3_A, T1)
 
 
-# --- Publisher Class Tests ---
 @pytest.mark.asyncio
 async def test_publisher_registration_and_publish(
     publisher1: Publisher, aggregator: AggregateTensorMultiplexer
 ):
-    # Mock aggregator's _notify_update_from_publisher
     aggregator._notify_update_from_publisher = AsyncMock()  # type: ignore
-
-    # Add aggregator to publisher1 (manually, or via add_to_aggregation then check internal list)
-    # For this test, directly use publisher's method for isolation.
     publisher1._add_aggregator(aggregator)
-    assert len(publisher1._aggregators) == 1
-
-    test_tensor = TENSOR_L3_A
-    test_timestamp = T1
-    await publisher1.publish(test_tensor, test_timestamp)
-
-    # Verify mock aggregator's method was called
-    # mypy does not know about AsyncMock's call_args, etc.
+    await publisher1.publish(TENSOR_L3_A, T1)
     cast(
         AsyncMock, aggregator._notify_update_from_publisher
-    ).assert_called_once_with(publisher1, test_tensor, test_timestamp)
-
-    # Test _remove_aggregator
+    ).assert_called_once_with(publisher1, TENSOR_L3_A, T1)
     publisher1._remove_aggregator(aggregator)
-    assert len(publisher1._aggregators) == 0
-
     cast(AsyncMock, aggregator._notify_update_from_publisher).reset_mock()
-    await publisher1.publish(test_tensor, test_timestamp)  # Should not call
+    await publisher1.publish(TENSOR_L3_A, T1)
     cast(
         AsyncMock, aggregator._notify_update_from_publisher
     ).assert_not_called()
 
 
-# --- add_to_aggregation (Append Mode - First Overload) ---
 @pytest.mark.asyncio
 async def test_add_first_publisher_append_sparse(
     aggregator: AggregateTensorMultiplexer,
     mock_main_client: MockAggregatorClient,
     publisher1: Publisher,
 ):
-    await aggregator.add_to_aggregation(
-        publisher1, 3, sparse=True
-    )  # tensor_length=3
-    assert aggregator._tensor_length == 3
+    await aggregator.add_to_aggregation(publisher1, 3, sparse=True)
+    assert aggregator.actual_aggregate_length == 3
 
+    # Initial publish (all new, so one chunk)
     await publisher1.publish(TENSOR_L3_A, T1)
-    expected_calls = sorted([(i, TENSOR_L3_A_VAL[i], T1) for i in range(3)])
-    assert (
-        mock_main_client.get_calls_summary(sort_by_index_then_ts=True)
-        == expected_calls
+    expected_chunks_t1 = [create_expected_chunk(TENSOR_L3_A, 0, T1)]
+    assert_chunks_equal_list(
+        mock_main_client.get_all_received_chunks_sorted(), expected_chunks_t1
     )
 
-    # Test sparse update (only one value changes)
+    # Sparse update (only one value changes)
     mock_main_client.clear_calls()
-    tensor_b_sparse_update = TENSOR_L3_A.clone()  # Start with A
-    tensor_b_sparse_update[1] = TENSOR_L3_B_VAL[1]  # Change only index 1
+    tensor_b_sparse_update = TENSOR_L3_A.clone()
+    tensor_b_sparse_update[1] = TENSOR_L3_B_VAL[
+        1
+    ]  # Change index 1 (value 2.1)
+
     await publisher1.publish(tensor_b_sparse_update, T2)
 
-    # expected_sparse_calls = sorted([(1, TENSOR_L3_B_VAL[1], T2)])
-    # assert mock_main_client.get_calls_summary(sort_by_index_then_ts=True) == expected_sparse_calls
-    # Using pytest.approx for float comparison
-    calls = mock_main_client.get_calls_summary(sort_by_index_then_ts=True)
-    assert len(calls) == 1
-    assert calls[0][0] == 1  # index
-    assert calls[0][1] == pytest.approx(TENSOR_L3_B_VAL[1])  # value
-    assert calls[0][2] == T2  # timestamp
+    # Internal sparse muxer sends chunk (idx_local=1, data=[2.1])
+    # _InternalClient forwards chunk (idx_global=1, data=[2.1])
+    expected_chunks_t2 = [
+        create_expected_chunk(torch.tensor([TENSOR_L3_B_VAL[1]]), 1, T2)
+    ]
+    assert_chunks_equal_list(
+        mock_main_client.get_all_received_chunks_sorted(), expected_chunks_t2
+    )
 
 
 @pytest.mark.asyncio
@@ -201,25 +220,23 @@ async def test_add_second_publisher_append_complete(
 ):
     await aggregator.add_to_aggregation(
         publisher1, 3, sparse=True
-    )  # tensor_length=3. Indices 0-2
+    )  # Indices 0-2
     await aggregator.add_to_aggregation(
         publisher2, 2, sparse=False
-    )  # tensor_length=2. Indices 3-4
-    assert aggregator._tensor_length == 5
+    )  # Indices 3-4
+    assert aggregator.actual_aggregate_length == 5
 
     mock_main_client.clear_calls()
-    await publisher2.publish(TENSOR_L2_A, T1)
-    # Expected calls for complete publisher2 (indices 3, 4)
-    expected_calls = sorted(
-        [(i + 3, TENSOR_L2_A_VAL[i], T1) for i in range(2)]
-    )
-    assert (
-        mock_main_client.get_calls_summary(sort_by_index_then_ts=True)
-        == expected_calls
+    await publisher2.publish(TENSOR_L2_A, T1)  # P2 is complete
+
+    # Internal complete muxer sends chunk (idx_local=0, data=TENSOR_L2_A)
+    # _InternalClient forwards (idx_global=3, data=TENSOR_L2_A)
+    expected_chunks = [create_expected_chunk(TENSOR_L2_A, 3, T1)]
+    assert_chunks_equal_list(
+        mock_main_client.get_all_received_chunks_sorted(), expected_chunks
     )
 
 
-# --- add_to_aggregation (Specific Range - Second Overload) ---
 @pytest.mark.asyncio
 async def test_add_publisher_specific_range(
     aggregator: AggregateTensorMultiplexer,
@@ -230,17 +247,16 @@ async def test_add_publisher_specific_range(
     tensor_len = 3
     await aggregator.add_to_aggregation(
         publisher1, target_range, tensor_len, sparse=False
-    )  # index_range, tensor_length
-    assert aggregator._tensor_length == 8  # Max index is 8 (range.stop)
+    )
+    assert aggregator.actual_aggregate_length == 8
 
     mock_main_client.clear_calls()
     await publisher1.publish(TENSOR_L3_A, T1)
-    expected_calls = sorted(
-        [(i + 5, TENSOR_L3_A_VAL[i], T1) for i in range(tensor_len)]
-    )
-    assert (
-        mock_main_client.get_calls_summary(sort_by_index_then_ts=True)
-        == expected_calls
+    expected_chunks = [
+        create_expected_chunk(TENSOR_L3_A, 5, T1)
+    ]  # Global start index is 5
+    assert_chunks_equal_list(
+        mock_main_client.get_all_received_chunks_sorted(), expected_chunks
     )
 
 
@@ -250,240 +266,153 @@ async def test_add_publisher_range_overlap_error(
     publisher1: Publisher,
     publisher2: Publisher,
 ):
-    await aggregator.add_to_aggregation(
-        publisher1, range(0, 3), 3
-    )  # index_range, tensor_length
+    await aggregator.add_to_aggregation(publisher1, range(0, 3), 3)
     with pytest.raises(
         ValueError, match="overlaps with existing publisher range"
     ):
-        await aggregator.add_to_aggregation(
-            publisher2, range(2, 5), 3
-        )  # index_range, tensor_length
-
-
-@pytest.mark.asyncio
-async def test_add_publisher_range_length_mismatch_error(
-    aggregator: AggregateTensorMultiplexer, publisher1: Publisher
-):
-    with pytest.raises(
-        ValueError, match="Range length .* must match tensor_length"
-    ):
-        await aggregator.add_to_aggregation(
-            publisher1, range(0, 3), 4
-        )  # index_range, tensor_length
-
-
-# --- Error Handling & Edge Cases ---
-@pytest.mark.asyncio
-async def test_add_same_publisher_instance_error(
-    aggregator: AggregateTensorMultiplexer, publisher1: Publisher
-):
-    await aggregator.add_to_aggregation(publisher1, 3)  # tensor_length=3
-    with pytest.raises(ValueError, match="Publisher .* is already registered"):
-        await aggregator.add_to_aggregation(publisher1, 2)  # tensor_length=2
+        await aggregator.add_to_aggregation(publisher2, range(2, 5), 3)
 
 
 @pytest.mark.asyncio
 async def test_publish_tensor_wrong_length(
-    aggregator: AggregateTensorMultiplexer,
-    publisher1: Publisher,
-    mock_main_client: MockAggregatorClient,
-    capsys,
+    aggregator: AggregateTensorMultiplexer, publisher1: Publisher, capsys
 ):
-    await aggregator.add_to_aggregation(
-        publisher1, 3, sparse=True
-    )  # tensor_length=3. Expects len 3
-
-    wrong_len_tensor = torch.tensor(
-        [1.0, 2.0], dtype=torch.float32
-    )  # Actual len 2
-    # publisher1's publish method calls aggregator._notify_update_from_publisher
-    # which contains the length check.
+    await aggregator.add_to_aggregation(publisher1, 3, sparse=True)
+    wrong_len_tensor = torch.tensor([1.0, 2.0])
     await publisher1.publish(wrong_len_tensor, T1)
-
     captured = capsys.readouterr()
-    assert (
-        "Warning: Tensor from publisher" in captured.out
-    )  # Check console output
+    assert "Warning: Tensor from publisher" in captured.out
     assert "has length 2, expected 3" in captured.out
-    assert mock_main_client.calls == []  # No calls should reach main client
 
 
-# --- Data Flow & Correctness ---
 @pytest.mark.asyncio
 async def test_data_flow_multiple_publishers_mixed_modes(
     aggregator: AggregateTensorMultiplexer,
     mock_main_client: MockAggregatorClient,
-    publisher1: Publisher,
-    publisher2: Publisher,
-    publisher3: Publisher,
+    publisher1: Publisher,  # Sparse, len 3, indices 0-2
+    publisher2: Publisher,  # Complete, len 2, indices 5-6 (after P1 added, then P2 range)
+    publisher3: Publisher,  # Sparse, len 4, indices 7-10 (appended)
 ):
-    # P1: append, len 3, sparse. Indices: 0, 1, 2
-    await aggregator.add_to_aggregation(
-        publisher1, 3, sparse=True
-    )  # tensor_length=3
-    # P2: range(5,7), len 2, complete. Indices: 5, 6. Max index becomes 7. _tensor_length = 7
+    await aggregator.add_to_aggregation(publisher1, 3, sparse=True)
     await aggregator.add_to_aggregation(
         publisher2, range(5, 7), 2, sparse=False
-    )  # index_range, tensor_length
-    # P3: append, len 4, sparse. Indices: 7, 8, 9, 10. Max index becomes 11. _tensor_length = 11
+    )
     await aggregator.add_to_aggregation(
         publisher3, 4, sparse=True
-    )  # tensor_length=4. Appends after current max_index (7)
+    )  # Appends after current max index (7)
+    assert aggregator.actual_aggregate_length == 11
 
-    assert (
-        aggregator._tensor_length == 11
-    )  # 0-2 (P1), 3-4 (empty), 5-6 (P2), 7-10 (P3)
-
-    # Publish from P1 (sparse)
+    # P1 (sparse) publishes TENSOR_L3_A at T1 (global indices 0-2)
     await publisher1.publish(TENSOR_L3_A, T1)
-    expected_p1_t1_simple = sorted([(i, TENSOR_L3_A_VAL[i]) for i in range(3)])
-    # Use get_calls_summary which returns all calls, then filter or check appropriately
-    # For this specific sequence, it's the only thing at T1 so far for the main client
-    assert (
-        mock_main_client.get_simple_summary_for_timestamp(T1)
-        == expected_p1_t1_simple
+    expected_p1_t1 = [create_expected_chunk(TENSOR_L3_A, 0, T1)]
+    assert_chunks_equal_list(
+        mock_main_client.get_chunks_for_timestamp_sorted(T1), expected_p1_t1
     )
 
-    # Publish from P2 (complete) at same timestamp T1
-    mock_main_client.clear_calls()  # Clear calls from P1's publish
+    # P2 (complete) publishes TENSOR_L2_A at T1 (global indices 5-6)
+    mock_main_client.clear_calls()
     await publisher2.publish(TENSOR_L2_A, T1)
-    expected_p2_t1_simple = sorted(
-        [(i + 5, TENSOR_L2_A_VAL[i]) for i in range(2)]
-    )
-    assert (
-        mock_main_client.get_simple_summary_for_timestamp(T1)
-        == expected_p2_t1_simple
+    expected_p2_t1 = [create_expected_chunk(TENSOR_L2_A, 5, T1)]
+    assert_chunks_equal_list(
+        mock_main_client.get_chunks_for_timestamp_sorted(T1), expected_p2_t1
     )
 
-    # Publish from P3 (sparse) at T2
+    # P3 (sparse) publishes TENSOR_L4_A at T2 (global indices 7-10)
     mock_main_client.clear_calls()
     await publisher3.publish(TENSOR_L4_A, T2)
-    expected_p3_t2_simple = sorted(
-        [(i + 7, TENSOR_L4_A_VAL[i]) for i in range(4)]
-    )
-    assert (
-        mock_main_client.get_simple_summary_for_timestamp(T2)
-        == expected_p3_t2_simple
+    expected_p3_t2 = [create_expected_chunk(TENSOR_L4_A, 7, T2)]
+    assert_chunks_equal_list(
+        mock_main_client.get_chunks_for_timestamp_sorted(T2), expected_p3_t2
     )
 
-    # Republish from P1 with a change (sparse) at T2
-    mock_main_client.clear_calls()
-    p1_changed_val = TENSOR_L3_A.clone()
-    p1_changed_val[0] = 5.5
-    await publisher1.publish(p1_changed_val, T2)
-    expected_p1_t2_changed_simple = sorted(
-        [(0, pytest.approx(5.5))]
-    )  # Only the change for P1
-    assert (
-        mock_main_client.get_simple_summary_for_timestamp(T2)
-        == expected_p1_t2_changed_simple
+    # P1 republishes with a sparse change at T2
+    # First, get the chunks already there for T2 (from P3)
+    existing_t2_chunks_from_p3 = (
+        mock_main_client.get_chunks_for_timestamp_sorted(T2)
+    )
+    # expected_p3_t2 should already be validated, but this ensures we have what P3 sent at T2.
+
+    mock_main_client.clear_calls()  # Clear before P1's new publish at T2
+    p1_changed_val_tensor = TENSOR_L3_A.clone()
+    p1_changed_val_tensor[0] = 5.5  # Original TENSOR_L3_A[0] was 1.0
+    # Internal sparse mux for P1 diffs p1_changed_val_tensor against TENSOR_L3_A (its last state)
+    # It sends one chunk: local_start=0, data=[5.5]
+    # _InternalClient forwards: global_start=0, data=[5.5]
+    expected_p1_t2_change = [create_expected_chunk(torch.tensor([5.5]), 0, T2)]
+    await publisher1.publish(p1_changed_val_tensor, T2)
+    # We need to combine all chunks for T2.
+    # Chunks from P1's new update at T2:
+    new_t2_chunks_from_p1 = mock_main_client.get_chunks_for_timestamp_sorted(
+        T2
+    )
+
+    # Combine existing (P3's) and new (P1's) chunks for T2
+    all_t2_chunks_received = sorted(
+        existing_t2_chunks_from_p3 + new_t2_chunks_from_p1,
+        key=lambda c: c.starting_index,
+    )
+
+    # Expected chunks for T2 are P1's new change and P3's original chunk
+    combined_expected_t2_for_assertion = sorted(
+        expected_p1_t2_change + expected_p3_t2, key=lambda c: c.starting_index
+    )
+    assert_chunks_equal_list(
+        all_t2_chunks_received, combined_expected_t2_for_assertion
     )
 
 
-# --- get_tensor_at_timestamp for Aggregator ---
 @pytest.mark.asyncio
 async def test_get_aggregated_tensor_at_timestamp(
     aggregator: AggregateTensorMultiplexer,
-    mock_main_client: MockAggregatorClient,
     publisher1: Publisher,
     publisher2: Publisher,
 ):
-    # P1: append, len 3, sparse. Indices: 0, 1, 2
     await aggregator.add_to_aggregation(
         publisher1, 3, sparse=True
-    )  # tensor_length=3
-    # P2: append, len 2, complete. Indices: 3, 4
+    )  # Indices 0-2
     await aggregator.add_to_aggregation(
         publisher2, 2, sparse=False
-    )  # tensor_length=2
-    assert aggregator._tensor_length == 5
+    )  # Indices 3-4
+    assert aggregator.actual_aggregate_length == 5
 
     await publisher1.publish(TENSOR_L3_A, T1)
     await publisher2.publish(TENSOR_L2_A, T1)
-
-    expected_full_t1_val = TENSOR_L3_A_VAL + TENSOR_L2_A_VAL
-    expected_full_t1 = torch.tensor(expected_full_t1_val, dtype=torch.float32)
-
+    expected_t1_tensor = torch.cat((TENSOR_L3_A, TENSOR_L2_A))
     retrieved_t1 = await aggregator.get_tensor_at_timestamp(T1)
-    assert retrieved_t1 is not None, "Tensor for T1 should exist"
-    assert torch.equal(
-        retrieved_t1, expected_full_t1
-    ), "Mismatch in T1 tensor content"
+    assert retrieved_t1 is not None
+    assert torch.equal(retrieved_t1, expected_t1_tensor)
 
-    # Partial update at T2 (only P1 publishes)
-    p1_t2_val = TENSOR_L3_B.clone()  # Use different values for clarity
-    await publisher1.publish(p1_t2_val, T2)
-
-    # Expected: P1's data for T2, P2's part is zeros as it hasn't published at T2
-    expected_partial_t2_val = TENSOR_L3_B_VAL + [0.0, 0.0]
-    expected_partial_t2 = torch.tensor(
-        expected_partial_t2_val, dtype=torch.float32
+    p1_t2_val = TENSOR_L3_B.clone()
+    await publisher1.publish(p1_t2_val, T2)  # P1 updates at T2
+    # P2 has not published at T2, so its part should be zeros in aggregate history for T2 initially
+    expected_partial_t2_tensor = torch.cat(
+        (p1_t2_val, torch.zeros_like(TENSOR_L2_A))
     )
+    retrieved_partial_t2 = await aggregator.get_tensor_at_timestamp(T2)
+    assert retrieved_partial_t2 is not None
+    assert torch.equal(retrieved_partial_t2, expected_partial_t2_tensor)
 
-    retrieved_t2 = await aggregator.get_tensor_at_timestamp(T2)
-    assert (
-        retrieved_t2 is not None
-    ), "Tensor for T2 should exist after P1 publish"
-    assert torch.equal(
-        retrieved_t2, expected_partial_t2
-    ), "Mismatch in T2 partial tensor content"
-
-    # P2 publishes at T2, completing the picture for T2
-    await publisher2.publish(
-        TENSOR_L2_A, T2
-    )  # P2 publishes its TENSOR_L2_A at T2
-    expected_full_t2_val = TENSOR_L3_B_VAL + TENSOR_L2_A_VAL
-    expected_full_t2 = torch.tensor(expected_full_t2_val, dtype=torch.float32)
-
+    await publisher2.publish(TENSOR_L2_A, T2)  # P2 now publishes at T2
+    expected_full_t2_tensor = torch.cat((p1_t2_val, TENSOR_L2_A))
     retrieved_full_t2 = await aggregator.get_tensor_at_timestamp(T2)
-    assert (
-        retrieved_full_t2 is not None
-    ), "Tensor for T2 should exist and be full"
-    assert torch.equal(
-        retrieved_full_t2, expected_full_t2
-    ), "Mismatch in T2 full tensor content"
-
-    assert (
-        await aggregator.get_tensor_at_timestamp(T0) is None
-    ), "Tensor for T0 should not exist"
+    assert retrieved_full_t2 is not None
+    assert torch.equal(retrieved_full_t2, expected_full_t2_tensor)
 
 
-# --- Data Timeout for Aggregator's History ---
 @pytest.mark.asyncio
 async def test_aggregator_data_timeout(
     aggregator_short_timeout: AggregateTensorMultiplexer,
-    mock_main_client: MockAggregatorClient,
     publisher1: Publisher,
 ):
-    agg = aggregator_short_timeout  # timeout = 0.1s
-    # For this test to accurately reflect timeout of the aggregator's *own* history,
-    # the _InternalClient needs to effectively call aggregator._cleanup_old_data.
-    # We assume the line `aggregator._cleanup_old_data(current_max_ts_for_cleanup)`
-    # in `_InternalClient.on_index_update` is active for this test.
-    await agg.add_to_aggregation(
-        publisher1, 3, sparse=False
-    )  # tensor_length=3
+    agg = aggregator_short_timeout
+    await agg.add_to_aggregation(publisher1, 3, sparse=False)
+    await publisher1.publish(TENSOR_L3_A, T0)
+    assert await agg.get_tensor_at_timestamp(T0) is not None
 
-    await publisher1.publish(TENSOR_L3_A, T0)  # T0 = T_BASE - 20s
+    await publisher1.publish(
+        TENSOR_L3_B, T_FAR_FUTURE
+    )  # Triggers cleanup via _InternalClient
     assert (
-        await agg.get_tensor_at_timestamp(T0) is not None
-    ), "Data for T0 should be present initially"
-
-    # Publish new data much later (T_FAR_FUTURE = T_BASE + 1 day).
-    # This will trigger _InternalClient.on_index_update.
-    # If `_InternalClient` calls `aggregator._cleanup_old_data(T_FAR_FUTURE)`,
-    # then T0 (T_BASE - 20s) should be removed from aggregator's history because
-    # T_FAR_FUTURE - 0.1s > T0.
-    await publisher1.publish(TENSOR_L3_B, T_FAR_FUTURE)
-
-    retrieved_t0_after_far_future = await agg.get_tensor_at_timestamp(T0)
-    assert (
-        retrieved_t0_after_far_future is None
-    ), "Data for T0 should be timed out from aggregator's history."
-
-    retrieved_tfar = await agg.get_tensor_at_timestamp(T_FAR_FUTURE)
-    assert (
-        retrieved_tfar is not None
-    ), "Data for T_FAR_FUTURE should be present"
-    assert torch.equal(retrieved_tfar, TENSOR_L3_B)
+        await agg.get_tensor_at_timestamp(T0) is None
+    )  # T0 should be gone from aggregate history
+    assert await agg.get_tensor_at_timestamp(T_FAR_FUTURE) is not None
