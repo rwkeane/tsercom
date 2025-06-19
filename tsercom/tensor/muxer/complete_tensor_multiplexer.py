@@ -2,14 +2,17 @@
 
 import bisect
 import datetime
-from typing import (
-    Tuple,
-    Optional,
-)
+from typing import Optional, Tuple
 
 import torch
 
 from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)
 
 # Using a type alias for clarity
 TimestampedTensor = Tuple[datetime.datetime, torch.Tensor]
@@ -109,10 +112,16 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             ):
                 self._latest_processed_timestamp = potential_latest_ts
 
-            for i in range(self._tensor_length):
-                await self._client.on_index_update(
-                    tensor_index=i, value=tensor[i].item(), timestamp=timestamp
-                )
+            # Create a SynchronizedTimestamp from the datetime.datetime timestamp
+            sync_timestamp = SynchronizedTimestamp(timestamp)
+
+            # Create a single chunk for the entire tensor
+            chunk = SerializableTensorChunk(
+                tensor=tensor,  # The full tensor being processed
+                timestamp=sync_timestamp,
+                starting_index=0,  # Starts from the beginning
+            )
+            await self._client.on_chunk_update(chunk)
 
     def _cleanup_old_data(
         self, current_max_timestamp: datetime.datetime

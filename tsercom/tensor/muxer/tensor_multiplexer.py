@@ -11,6 +11,9 @@ from typing import (
 )
 
 import torch
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
 
 # Using a type alias for clarity, though not strictly necessary for the ABC itself
 TensorHistoryValue = torch.Tensor
@@ -28,11 +31,14 @@ class TensorMultiplexer(abc.ABC):
         """
 
         @abc.abstractmethod
-        async def on_index_update(
-            self, tensor_index: int, value: float, timestamp: datetime.datetime
+        async def on_chunk_update(
+            self, chunk: "SerializableTensorChunk"
         ) -> None:
             """
-            Called when an index in the tensor has a new value at a given timestamp.
+            Called when a new tensor chunk is available.
+
+            Args:
+                chunk: The `SerializableTensorChunk` containing the update.
             """
             raise NotImplementedError
 
