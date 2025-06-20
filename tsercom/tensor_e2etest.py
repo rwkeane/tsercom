@@ -13,11 +13,44 @@ from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
 from tsercom.tensor.serialization.serializable_tensor import (
-    SerializableTensorChunk,
+    SerializableTensorChunk, # This is the REAL one from serialization
 )
+from typing import NamedTuple, Any # Import NamedTuple and Any
+
 
 # Timestamps for testing consistency
 T_COMP_BASE = datetime.datetime(2024, 3, 10, 10, 0, 0)
+
+# Mock SynchronizedTimestamp for creating test chunks to pass to TensorDemuxer
+class MockSynchronizedTimestampE2E: # Renamed to avoid clash if unit test one is imported
+    def __init__(self, dt: datetime.datetime):
+        self._dt = dt
+    def as_datetime(self) -> datetime.datetime:
+        return self._dt
+    def __eq__(self, other):
+        if isinstance(other, MockSynchronizedTimestampE2E):
+            return self._dt == other._dt
+        elif isinstance(other, datetime.datetime):
+             return self._dt == other
+        return False
+    def __lt__(self, other): # For sorting if lists of these are made
+        if isinstance(other, MockSynchronizedTimestampE2E):
+            return self._dt < other._dt
+        elif isinstance(other, datetime.datetime):
+             return self._dt < other
+        return NotImplemented
+    def __hash__(self):
+        return hash(self._dt)
+
+# Local SerializableTensorChunk for tests to construct chunks for the demuxer
+# This matches the structure expected by the refactored TensorDemuxer's type hints
+# (specifically, that its `timestamp` attribute has an `as_datetime` method).
+class TestSerializableTensorChunk(NamedTuple):
+    timestamp: MockSynchronizedTimestampE2E
+    starting_index: int
+    tensor: torch.Tensor
+    stream_id: str = "default_stream"
+
 T_COMP_0 = T_COMP_BASE
 T_COMP_1 = T_COMP_BASE + datetime.timedelta(seconds=10)
 T_COMP_2 = T_COMP_BASE + datetime.timedelta(seconds=20)
@@ -42,10 +75,16 @@ class MultiplexerOutputHandler(TensorMultiplexer.Client):
             value = element.item()  # Get Python float from tensor element
             self.raw_updates.append((tensor_idx, value, dt_timestamp))
             # Schedule the demuxer update
+            # Create a TestSerializableTensorChunk for each individual update
+            # to ensure its timestamp field has .as_datetime()
+            mock_sync_ts = MockSynchronizedTimestampE2E(dt_timestamp)
+            chunk_for_demuxer = TestSerializableTensorChunk(
+                timestamp=mock_sync_ts,
+                starting_index=tensor_idx,
+                tensor=torch.tensor([value], dtype=torch.float32),
+            )
             task = asyncio.create_task(
-                self.demuxer.on_update_received(
-                    tensor_idx, value, dt_timestamp
-                )
+                self.demuxer.on_chunk_received(chunk_for_demuxer)
             )
             self._tasks.append(task)
 
@@ -401,7 +440,13 @@ async def test_data_timeout_e2e() -> None:
 
     demuxer_client.clear()
     # Manually poke demuxer with an old update (should be ignored due to its own timeout logic)
-    task = asyncio.create_task(demuxer.on_update_received(0, 99.0, T_COMP_0))
+    # Create a TestSerializableTensorChunk for the manual poke
+    poke_chunk = TestSerializableTensorChunk(
+        timestamp=MockSynchronizedTimestampE2E(T_COMP_0),
+        starting_index=0,
+        tensor=torch.tensor([99.0], dtype=torch.float32),
+    )
+    task = asyncio.create_task(demuxer.on_chunk_received(poke_chunk))
     await asyncio.gather(task)
     assert await demuxer_client.get_tensor_at_ts(T_COMP_0) is None
 
