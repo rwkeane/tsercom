@@ -272,9 +272,11 @@ async def test_publish_tensor_wrong_length(
     await publisher1.publish(wrong_len_tensor, T1)
     found_log = False
     for record in caplog.records:
-        if "Tensor from publisher" in record.message and \
-           "has length 2, expected 3" in record.message and \
-           record.levelname == "WARNING":
+        if (
+            "Tensor from publisher" in record.message
+            and "has length 2, expected 3" in record.message
+            and record.levelname == "WARNING"
+        ):
             found_log = True
             break
     assert found_log, "Expected warning message not found in log records."

@@ -18,13 +18,11 @@ import asyncio
 import threading
 from collections import deque  # Use collections.deque directly
 from collections.abc import AsyncIterator
+from typing import Generic, TypeVar, TYPE_CHECKING  # Added TYPE_CHECKING here
 
 # Defer import of IsRunningTracker to break circular dependency
-from typing import (
-    TYPE_CHECKING,
-    Generic,
-    TypeVar,
-)
+# No longer deferred, moved to top:
+from tsercom.util.is_running_tracker import IsRunningTracker  # Moved import
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
@@ -89,8 +87,6 @@ class AsyncPoller(Generic[ResultTypeT]):
         self.__barrier: asyncio.Event = asyncio.Event()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
-        if not TYPE_CHECKING:
-            from tsercom.util.is_running_tracker import IsRunningTracker
         self.__is_loop_running: IsRunningTracker = IsRunningTracker()
         self.__is_loop_running.start()  # Start the poller as running by default
         self.__event_loop: asyncio.AbstractEventLoop | None = None

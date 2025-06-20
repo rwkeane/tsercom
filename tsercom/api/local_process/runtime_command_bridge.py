@@ -3,7 +3,6 @@
 import concurrent.futures
 from functools import partial
 from threading import Lock
-from typing import Optional
 
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.runtime.runtime import Runtime
@@ -22,7 +21,7 @@ class RuntimeCommandBridge:
     def __init__(self) -> None:
         """Initializes the RuntimeCommandBridge."""
         # Stores the last command received if the runtime is not yet set.
-        self.__state: Atomic[RuntimeCommand | None] = Atomic[Optional[RuntimeCommand]](
+        self.__state: Atomic[RuntimeCommand | None] = Atomic[RuntimeCommand | None](
             None
         )
 

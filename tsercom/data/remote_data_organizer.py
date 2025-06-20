@@ -372,8 +372,8 @@ class RemoteDataOrganizer(
                 payload_right_attr = getattr(item_right, "data", None)
                 data_left = deepcopy(payload_left_attr)
                 data_right = deepcopy(payload_right_attr)
-                if not isinstance(data_left, (int, float)) or not isinstance(
-                    data_right, (int, float)
+                if not isinstance(data_left, int | float) or not isinstance(
+                    data_right, int | float
                 ):
                     logger.error(
                         "Data payloads for interpolation are not numeric after "
@@ -395,7 +395,7 @@ class RemoteDataOrganizer(
             try:
                 interpolated_item = deepcopy(item_left)
                 interpolated_item.timestamp = timestamp
-                interpolated_item.data = interpolated_inner_data
+                interpolated_item.data = interpolated_inner_data  # type: ignore[attr-defined]
                 return interpolated_item
             except AttributeError as e:
                 logger.error(
