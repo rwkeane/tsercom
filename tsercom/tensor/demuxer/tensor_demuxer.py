@@ -39,6 +39,7 @@ class TensorDemuxer:
         client: "TensorDemuxer.Client",
         tensor_length: int,
         data_timeout_seconds: float = 60.0,
+        device: Optional[str] = "cpu",
     ):
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
@@ -48,6 +49,7 @@ class TensorDemuxer:
         self.__client = client
         self.__tensor_length = tensor_length
         self.__data_timeout_seconds = data_timeout_seconds
+        self.__device = device
         self.__processed_keyframes: list[
             tuple[
                 datetime.datetime,
@@ -97,6 +99,7 @@ class TensorDemuxer:
 
     async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
         async with self.__lock:
+            chunk_tensor = chunk.tensor.to(self.__device)
             timestamp = chunk.timestamp.as_datetime()
 
             if (
@@ -148,7 +151,7 @@ class TensorDemuxer:
                 is_new_timestamp_entry = True
                 if insertion_point == 0:
                     current_calculated_tensor = torch.zeros(
-                        self.__tensor_length, dtype=torch.float32
+                        self.__tensor_length, dtype=torch.float32, device=self.__device
                     )
                 else:
                     current_calculated_tensor = self.__processed_keyframes[
@@ -156,22 +159,26 @@ class TensorDemuxer:
                     ][1].clone()
 
                 pre_chunk_calculated_tensor_for_ts = current_calculated_tensor.clone()
-                explicit_indices = torch.empty(0, dtype=torch.int64)
-                explicit_values = torch.empty(0, dtype=torch.float32)
+                explicit_indices = torch.empty(
+                    0, dtype=torch.int64, device=self.__device
+                )
+                explicit_values = torch.empty(
+                    0, dtype=torch.float32, device=self.__device
+                )
 
-            for i, value_from_chunk_tensor in enumerate(chunk.tensor):
+            for i, value_from_chunk_tensor in enumerate(chunk_tensor):
                 tensor_index = chunk.starting_index + i
-                # Ensure value is float; chunk.tensor should be float, but
-                # defensive cast
                 value = float(value_from_chunk_tensor.item())
 
                 if not 0 <= tensor_index < self.__tensor_length:
                     continue
 
                 current_update_idx_tensor = torch.tensor(
-                    [tensor_index], dtype=torch.int64
+                    [tensor_index], dtype=torch.int64, device=self.__device
                 )
-                current_update_val_tensor = torch.tensor([value], dtype=torch.float32)
+                current_update_val_tensor = torch.tensor(
+                    [value], dtype=torch.float32, device=self.__device
+                )
 
                 match_mask = explicit_indices == current_update_idx_tensor
                 existing_explicit_entry_indices = match_mask.nonzero(as_tuple=True)[0]
@@ -193,7 +200,7 @@ class TensorDemuxer:
             base_for_final_calc: torch.Tensor
             if insertion_point == 0:
                 base_for_final_calc = torch.zeros(
-                    self.__tensor_length, dtype=torch.float32
+                    self.__tensor_length, dtype=torch.float32, device=self.__device
                 )
             else:
                 base_for_final_calc = self.__processed_keyframes[insertion_point - 1][
@@ -232,9 +239,8 @@ class TensorDemuxer:
                     self.__processed_keyframes.insert(insertion_point, new_state_tuple)
                     idx_of_processed_ts = insertion_point
                 # else: if new and no valid data, effectively ignore this chunk
-                # for keyframe creation
             else:
-                # Always update existing timestamp, as its content might have changed
+                # Always update existing timestamp if its content might have changed
                 self.__processed_keyframes[idx_of_processed_ts] = new_state_tuple
 
             if keyframe_content_changed:

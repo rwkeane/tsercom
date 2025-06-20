@@ -35,11 +35,6 @@ from tsercom.threading.aio.rate_limiter import (
 if TYPE_CHECKING:
     from tsercom.util.is_running_tracker import IsRunningTracker # Import for type checking
 
-# Maximum number of items to keep in the internal queue.
-# If more items are added via on_available() when the queue is full,
-# the oldest items will be discarded.
-MAX_RESPONSES: int = 30
-
 ResultTypeT = TypeVar("ResultTypeT")
 
 
@@ -62,7 +57,11 @@ class AsyncPoller(Generic[ResultTypeT]):
             `__anext__` if not explicitly set during initialization.
     """
 
-    def __init__(self, min_poll_frequency_seconds: float | None = None) -> None:
+    def __init__(
+        self,
+        min_poll_frequency_seconds: float | None = None,
+        max_responses_queued: int | None = 30,
+    ) -> None:
         """Initializes the AsyncPoller.
 
         Args:
@@ -74,6 +73,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                 If `None` or non-positive, a `NullRateLimiter` is used,
                 imposing no such delay.
         """
+        self.__max_responses_queued: Optional[int] = max_responses_queued
         self.__rate_limiter: RateLimiter
         if min_poll_frequency_seconds is not None and min_poll_frequency_seconds > 0:
             self.__rate_limiter = RateLimiterImpl(min_poll_frequency_seconds)
@@ -114,7 +114,10 @@ class AsyncPoller(Generic[ResultTypeT]):
             new_instance: The item of `ResultTypeT` to make available.
         """
         with self.__lock:
-            if len(self.__responses) >= MAX_RESPONSES:
+            if (
+                self.__max_responses_queued is not None
+                and len(self.__responses) >= self.__max_responses_queued
+            ):
                 self.__responses.popleft()
             self.__responses.append(new_instance)
 

@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import datetime
 from typing import Tuple, List, Any
+import lz4.frame
 
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
@@ -295,3 +296,199 @@ def test_try_parse_malformed_data_bytes_length(mocker: Any) -> None:
         "buffer size must be a multiple of element size"
         in str(call_args[2]).lower()  # Corrected to check the exception instance
     )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+def test_serializable_tensor_chunk_try_parse_device_param(mocker: Any) -> None:
+    """Tests the `device` parameter of `SerializableTensorChunk.try_parse`
+    for direct deserialization to CPU or GPU.
+    """
+    original_dtype = torch.float32
+    original_shape = (2, 3)
+    cuda_device_str = "cuda:0"
+    cpu_device_str = "cpu"
+
+    tensor_gpu_initial = torch.randn(original_shape, dtype=original_dtype).to(
+        cuda_device_str
+    )
+    serializable_chunk_gpu = SerializableTensorChunk(
+        tensor_gpu_initial, mock_sync_timestamp, 0
+    )
+    grpc_msg_gpu = serializable_chunk_gpu.to_grpc_type()
+    parsed_chunk_to_gpu = SerializableTensorChunk.try_parse(
+        grpc_msg_gpu, dtype=original_dtype, device=cuda_device_str
+    )
+    assert parsed_chunk_to_gpu is not None
+    assert parsed_chunk_to_gpu.tensor.device.type == "cuda"
+    assert str(parsed_chunk_to_gpu.tensor.device) == cuda_device_str
+    assert_tensors_equal(
+        tensor_gpu_initial, parsed_chunk_to_gpu.tensor, check_device=True
+    )
+    assert (
+        parsed_chunk_to_gpu.timestamp.as_datetime() == mock_sync_timestamp.as_datetime()
+    )
+    assert parsed_chunk_to_gpu.starting_index == 0
+
+    parsed_chunk_to_cpu_from_gpu = SerializableTensorChunk.try_parse(
+        grpc_msg_gpu, dtype=original_dtype, device=cpu_device_str
+    )
+    assert parsed_chunk_to_cpu_from_gpu is not None
+    assert parsed_chunk_to_cpu_from_gpu.tensor.device.type == "cpu"
+    # assert_tensors_equal expects the first tensor (original) to match the device of the second if check_device=True
+    # So, we compare against the CPU version of the original tensor.
+    assert_tensors_equal(
+        tensor_gpu_initial.to(cpu_device_str),
+        parsed_chunk_to_cpu_from_gpu.tensor,
+        check_device=True,
+    )
+    assert (
+        parsed_chunk_to_cpu_from_gpu.timestamp.as_datetime()
+        == mock_sync_timestamp.as_datetime()
+    )
+    assert parsed_chunk_to_cpu_from_gpu.starting_index == 0
+
+    tensor_cpu_initial = torch.randn(original_shape, dtype=original_dtype).to(
+        cpu_device_str
+    )
+    serializable_chunk_cpu = SerializableTensorChunk(
+        tensor_cpu_initial, mock_sync_timestamp, 0
+    )
+    grpc_msg_cpu = serializable_chunk_cpu.to_grpc_type()
+    parsed_chunk_to_gpu_from_cpu = SerializableTensorChunk.try_parse(
+        grpc_msg_cpu, dtype=original_dtype, device=cuda_device_str
+    )
+    assert parsed_chunk_to_gpu_from_cpu is not None
+    assert parsed_chunk_to_gpu_from_cpu.tensor.device.type == "cuda"
+    assert str(parsed_chunk_to_gpu_from_cpu.tensor.device) == cuda_device_str
+    # Compare against the GPU version of the original CPU tensor.
+    assert_tensors_equal(
+        tensor_cpu_initial.to(cuda_device_str),
+        parsed_chunk_to_gpu_from_cpu.tensor,
+        check_device=True,
+    )
+    assert (
+        parsed_chunk_to_gpu_from_cpu.timestamp.as_datetime()
+        == mock_sync_timestamp.as_datetime()
+    )
+    assert parsed_chunk_to_gpu_from_cpu.starting_index == 0
+
+
+@pytest.mark.parametrize("dtype", torch_dtypes_to_test)
+def test_tensor_chunk_serialization_no_compression(
+    dtype: torch.dtype, mocker: Any
+) -> None:
+    shape = (10, 20)
+    if dtype == torch.bool:
+        original_tensor = torch.randint(0, 2, shape, dtype=dtype).bool()
+    elif dtype.is_floating_point:
+        original_tensor = torch.randn(shape, dtype=dtype)
+    else:
+        info = torch.iinfo(dtype)
+        original_tensor = torch.randint(info.min, info.max, shape, dtype=dtype)
+
+    starting_index_val = 101
+    serializable_chunk = SerializableTensorChunk(
+        original_tensor,
+        mock_sync_timestamp,
+        starting_index_val,
+        compression=TensorChunk.CompressionType.NONE,
+    )
+    grpc_msg = serializable_chunk.to_grpc_type()
+
+    assert isinstance(grpc_msg, TensorChunk)
+    assert grpc_msg.starting_index == starting_index_val
+    assert grpc_msg.compression == TensorChunk.CompressionType.NONE
+
+    expected_byte_size = original_tensor.numel() * (
+        np.dtype(bool).itemsize
+        if dtype == torch.bool
+        else original_tensor.element_size()
+    )
+    if original_tensor.numel() == 0:
+        expected_byte_size = 0
+    assert len(grpc_msg.data_bytes) == expected_byte_size
+
+    parsed_chunk = SerializableTensorChunk.try_parse(
+        grpc_msg, dtype=original_tensor.dtype
+    )
+
+    assert parsed_chunk is not None
+    assert_tensors_equal(original_tensor, parsed_chunk.tensor, check_device=False)
+    assert parsed_chunk.timestamp.as_datetime() == mock_sync_timestamp.as_datetime()
+    assert parsed_chunk.starting_index == starting_index_val
+
+
+@pytest.mark.parametrize("dtype", torch_dtypes_to_test)
+def test_tensor_chunk_serialization_lz4_compression(
+    dtype: torch.dtype, mocker: Any
+) -> None:
+    shape = (100, 50)
+    if dtype == torch.bool:
+        original_tensor = torch.zeros(shape, dtype=dtype).bool()
+        original_tensor[::2, ::2] = True
+    elif dtype.is_floating_point:
+        x = torch.arange(shape[1], dtype=dtype)
+        y = torch.sin(x / 10.0)
+        original_tensor = y.repeat(shape[0], 1)
+    else:
+        info = torch.iinfo(dtype)
+        val_range = min(50, info.max // 2) if info.max is not None else 50
+        original_tensor = torch.randint(0, val_range, shape, dtype=dtype)
+
+    if original_tensor.numel() < 100:  # Ensure tensor is reasonably large
+        shape_large = (50, 50)
+        if dtype == torch.bool:
+            original_tensor = torch.randint(0, 2, shape_large, dtype=dtype).bool()
+        elif dtype.is_floating_point:
+            original_tensor = torch.rand(
+                shape_large, dtype=dtype
+            )  # Plain rand for simplicity
+        else:
+            original_tensor = torch.randint(0, 50, shape_large, dtype=dtype)
+
+    starting_index_val = 202
+    serializable_chunk = SerializableTensorChunk(
+        original_tensor,
+        mock_sync_timestamp,
+        starting_index_val,
+        compression=TensorChunk.CompressionType.LZ4,
+    )
+    grpc_msg = serializable_chunk.to_grpc_type()
+
+    assert isinstance(grpc_msg, TensorChunk)
+    assert grpc_msg.starting_index == starting_index_val
+    assert grpc_msg.compression == TensorChunk.CompressionType.LZ4
+
+    original_byte_size = original_tensor.numel() * (
+        np.dtype(bool).itemsize
+        if dtype == torch.bool
+        else original_tensor.element_size()
+    )
+    if original_tensor.numel() == 0:
+        original_byte_size = 0
+
+    if original_tensor.numel() > 0:
+        # For random data, LZ4 might not always compress well, or might add slight overhead.
+        # Allow for a small overhead (e.g., 50 bytes) for incompressible data.
+        assert (
+            len(grpc_msg.data_bytes) < original_byte_size + 50
+        ), f"LZ4 size {len(grpc_msg.data_bytes)} vs orig {original_byte_size} (tolerance 50 bytes)"
+    elif original_tensor.numel() == 0:
+        assert (
+            len(grpc_msg.data_bytes) == 0
+        ), "Compressed empty tensor should be 0 bytes"
+
+    parsed_chunk = SerializableTensorChunk.try_parse(
+        grpc_msg, dtype=original_tensor.dtype
+    )
+
+    assert parsed_chunk is not None
+    # Ensure tensors are on CPU for comparison via assert_tensors_equal
+    parsed_tensor_for_check = parsed_chunk.tensor.cpu()
+    original_tensor_for_check = original_tensor.cpu()
+
+    assert_tensors_equal(
+        original_tensor_for_check, parsed_tensor_for_check, check_device=False
+    )
+    assert parsed_chunk.timestamp.as_datetime() == mock_sync_timestamp.as_datetime()
+    assert parsed_chunk.starting_index == starting_index_val
