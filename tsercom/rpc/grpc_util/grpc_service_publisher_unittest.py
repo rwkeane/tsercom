@@ -3,7 +3,7 @@ import threading
 from typing import AsyncIterator, Tuple
 
 import pytest
-import pytest_asyncio  # Added for async fixture
+import pytest_asyncio
 import grpc
 from grpc_health.v1 import health_pb2  # type: ignore
 from tsercom.rpc.common.channel_info import GrpcChannelInfo
@@ -12,9 +12,7 @@ from tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory import (
 )
 
 from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
-from tsercom.threading.thread_watcher import (
-    ThreadWatcher,
-)  # Assuming this is the correct path based on typical structure
+from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 # Dummy connect callback for GrpcServicePublisher
@@ -57,7 +55,7 @@ def test_grpc_service_publisher_does_not_hang_in_threaded_loop() -> None:
     thread = threading.Thread(target=run_loop_in_thread, daemon=True)
     thread.start()
 
-    publisher = GrpcServicePublisher(watcher, port=50051)  # Use a test-specific port
+    publisher = GrpcServicePublisher(watcher, port=50051)
 
     async def start_and_stop_publisher() -> None:
         try:
@@ -89,26 +87,23 @@ def test_grpc_service_publisher_does_not_hang_in_threaded_loop() -> None:
         except Exception as e:
             pytest.fail(f"An unexpected exception occurred: {e!r}")
 
-    # Run the main test orchestrator coroutine
     asyncio.run(start_and_stop_publisher())
 
-    # Final cleanup of the thread
     if new_loop.is_running():
         new_loop.call_soon_threadsafe(new_loop.stop)
     thread.join(timeout=2)
 
 
 # Global test constants
-# Moved imports to the top
 TEST_HOST = "127.0.0.1"
-HEALTH_TEST_PORT = 50058  # Port for general health tests
+HEALTH_TEST_PORT = 50058
 HEALTH_STATUS_CHANGE_PORT = 50059  # Port for specific status change tests
 
 
 @pytest_asyncio.fixture(scope="function")
 async def grpc_server_and_channel_info() -> (
     AsyncIterator[Tuple[GrpcServicePublisher, GrpcChannelInfo]]
-):  # Removed event_loop parameter
+):
     """
     Pytest fixture to set up a GrpcServicePublisher and a GrpcChannelInfo
     for testing health check functionalities.
@@ -121,7 +116,7 @@ async def grpc_server_and_channel_info() -> (
     try:
         publisher = GrpcServicePublisher(watcher, HEALTH_TEST_PORT, addresses=TEST_HOST)
 
-        def connect_dummy(server: grpc.aio.Server) -> None:  # Changed to sync
+        def connect_dummy(server: grpc.aio.Server) -> None:
             # This dummy callback is sufficient as health service is auto-added
             pass
 
@@ -130,7 +125,6 @@ async def grpc_server_and_channel_info() -> (
             0.1
         )  # Brief pause after server start, before client channel creation
 
-        # Create channel to the server
         channel = await channel_factory.find_async_channel(
             addresses=TEST_HOST, port=HEALTH_TEST_PORT
         )
@@ -156,7 +150,7 @@ class TestGrpcHealthChecks:
         """
         Tests that GrpcChannelInfo.is_healthy() returns True when the server is running.
         """
-        publisher, channel_info = grpc_server_and_channel_info  # Changed back
+        publisher, channel_info = grpc_server_and_channel_info
         assert publisher is not None, "Publisher should be initialized"
         assert channel_info is not None, "GrpcChannelInfo should be initialized"
         assert channel_info.channel is not None, "gRPC channel should be initialized"
@@ -172,7 +166,7 @@ class TestGrpcHealthChecks:
         """
         Tests that GrpcChannelInfo.is_healthy() returns False after the server is stopped.
         """
-        publisher, channel_info = grpc_server_and_channel_info  # Changed back
+        publisher, channel_info = grpc_server_and_channel_info
         assert (
             await channel_info.is_healthy() is True
         ), "Service should be healthy initially"
@@ -189,7 +183,7 @@ class TestGrpcHealthChecks:
 
     async def test_health_check_overall_status_changes(
         self,
-        _function_event_loop: asyncio.AbstractEventLoop,  # Changed to internal name
+        _function_event_loop: asyncio.AbstractEventLoop,
     ) -> None:
         """
         Tests direct manipulation of health status on HealthServicer and its reflection
@@ -205,18 +199,13 @@ class TestGrpcHealthChecks:
                 watcher, HEALTH_STATUS_CHANGE_PORT, addresses=TEST_HOST
             )
 
-            def connect_empty(server: grpc.aio.Server) -> None:  # Changed to sync
+            def connect_empty(server: grpc.aio.Server) -> None:
                 pass  # Health servicer is added automatically
 
             await publisher.start_async(connect_empty)
             await asyncio.sleep(1.0)  # Max sleep attempt for server to stabilize
 
-            health_servicer_instance = publisher._health_servicer
-            assert (
-                health_servicer_instance is not None
-            ), "_health_servicer should be initialized"
-
-            channel = await channel_factory.find_async_channel(  # Removed type hint redefinition
+            channel = await channel_factory.find_async_channel(
                 addresses=TEST_HOST, port=HEALTH_STATUS_CHANGE_PORT
             )
             assert channel is not None, "Channel creation failed in status change test"
@@ -230,28 +219,26 @@ class TestGrpcHealthChecks:
             ), "Overall status should be SERVING initially"
 
             # 2. Change to NOT_SERVING
-            await health_servicer_instance.set(
+            await publisher.set_service_health_status(
                 "", health_pb2.HealthCheckResponse.NOT_SERVING
-            )  # Must be awaited
-            await asyncio.sleep(0.1)  # Allow propagation
+            )
+            # The set_service_health_status method already includes a 0.1s sleep.
             assert (
                 await channel_info.is_healthy() is False
             ), "Overall status set to NOT_SERVING should make is_healthy() False"
 
             # 3. Change to UNKNOWN
-            await health_servicer_instance.set(
+            await publisher.set_service_health_status(
                 "", health_pb2.HealthCheckResponse.UNKNOWN
-            )  # Must be awaited
-            await asyncio.sleep(0.1)  # Allow propagation
+            )
             assert (
                 await channel_info.is_healthy() is False
             ), "Overall status set to UNKNOWN should make is_healthy() False"
 
             # 4. Change back to SERVING
-            await health_servicer_instance.set(
+            await publisher.set_service_health_status(
                 "", health_pb2.HealthCheckResponse.SERVING
-            )  # Must be awaited
-            await asyncio.sleep(0.1)  # Allow propagation
+            )
             assert (
                 await channel_info.is_healthy() is True
             ), "Overall status set back to SERVING should make is_healthy() True"

@@ -11,13 +11,17 @@ from ipaddress import ip_address  # For SANs
 from typing import (
     Optional,
     Union,
-    AsyncIterator,  # Added
-    Tuple,  # Added
+    AsyncIterator,
+    Tuple,
     # Callable,
 )
 
 import grpc
-from tsercom.rpc.common.channel_info import GrpcChannelInfo  # Added import
+from grpc_health.v1 import health_pb2  # type: ignore[import-untyped]
+from tsercom.rpc.common.channel_info import GrpcChannelInfo
+from tsercom.rpc.grpc_util.grpc_service_publisher import (
+    check_grpc_channel_health,
+)
 import pytest
 import pytest_asyncio
 from cryptography import x509
@@ -1632,7 +1636,7 @@ async def test_client_auth_with_server_validation_untrusted_server_ca_fails(
 @pytest.mark.asyncio
 async def test_health_e2e_server_is_healthy(
     health_e2e_server: Tuple[str, int, GrpcServicePublisher],
-) -> None:  # Added return type hint
+) -> None:
     """
     Tests that a server started with health checking enabled reports as healthy.
     """
@@ -1670,7 +1674,7 @@ async def test_health_e2e_server_is_healthy(
 @pytest.mark.asyncio
 async def test_health_e2e_server_becomes_unhealthy_after_stop(
     health_e2e_server: Tuple[str, int, GrpcServicePublisher],
-) -> None:  # Added return type hint
+) -> None:
     """
     Tests that a server reports as unhealthy after it has been stopped.
     """
@@ -1721,3 +1725,88 @@ async def test_health_e2e_server_becomes_unhealthy_after_stop(
                 logger.debug(
                     "Channel already closed or errored on close after server stop."
                 )
+
+
+@pytest.mark.asyncio
+async def test_dynamic_service_health_status_changes(
+    health_e2e_server: Tuple[str, int, GrpcServicePublisher],
+) -> None:
+    """
+    Tests dynamically changing and checking specific service health statuses
+    as well as overall server health.
+    """
+    host, port, publisher = health_e2e_server
+    assert publisher is not None, "Publisher from health_e2e_server fixture is None"
+
+    channel_factory = InsecureGrpcChannelFactory()
+    client_channel: Optional[grpc.aio.Channel] = None
+
+    SPECIFIC_SERVICE_NAME = "E2ETestService"
+
+    try:
+        client_channel = await channel_factory.find_async_channel(host, port)
+        assert (
+            client_channel is not None
+        ), f"Failed to connect to health_e2e_server at {host}:{port}"
+
+        channel_info = GrpcChannelInfo(channel=client_channel, address=host, port=port)
+
+        await asyncio.sleep(0.2)  # Ensure server is fully up
+
+        # 1. Initial overall health should be SERVING
+        assert (
+            await channel_info.is_healthy() is True
+        ), f"Overall server health should be SERVING initially. Port: {port}"
+
+        # 2. Set a specific service to NOT_SERVING
+        logger.info(f"Setting '{SPECIFIC_SERVICE_NAME}' to NOT_SERVING on port {port}")
+        await publisher.set_service_health_status(
+            SPECIFIC_SERVICE_NAME, health_pb2.HealthCheckResponse.NOT_SERVING
+        )
+
+        # 3. Overall health should still be SERVING
+        assert (
+            await channel_info.is_healthy() is True
+        ), "Overall server health should remain SERVING even if one specific service is NOT_SERVING."
+
+        # 4. Specific service health should be NOT_SERVING
+        specific_service_is_healthy = await check_grpc_channel_health(
+            client_channel, service=SPECIFIC_SERVICE_NAME
+        )
+        assert (
+            specific_service_is_healthy is False
+        ), f"'{SPECIFIC_SERVICE_NAME}' health should be NOT_SERVING."
+        logger.info(
+            f"'{SPECIFIC_SERVICE_NAME}' on port {port} is NOT_SERVING, as expected."
+        )
+
+        # 5. Set the specific service back to SERVING
+        logger.info(f"Setting '{SPECIFIC_SERVICE_NAME}' back to SERVING on port {port}")
+        await publisher.set_service_health_status(
+            SPECIFIC_SERVICE_NAME, health_pb2.HealthCheckResponse.SERVING
+        )
+        specific_service_is_healthy_again = await check_grpc_channel_health(
+            client_channel, service=SPECIFIC_SERVICE_NAME
+        )
+        assert (
+            specific_service_is_healthy_again is True
+        ), f"'{SPECIFIC_SERVICE_NAME}' health should be SERVING again."
+        logger.info(
+            f"'{SPECIFIC_SERVICE_NAME}' on port {port} is SERVING again, as expected."
+        )
+
+        # 6. Set overall server health to NOT_SERVING
+        logger.info(f"Setting overall server health to NOT_SERVING on port {port}")
+        await publisher.set_service_health_status(
+            "", health_pb2.HealthCheckResponse.NOT_SERVING
+        )
+        assert (
+            await channel_info.is_healthy() is False
+        ), "Overall server health should be NOT_SERVING now."
+        logger.info(
+            f"Overall server health on port {port} is NOT_SERVING, as expected."
+        )
+
+    finally:
+        if client_channel:
+            await client_channel.close()
