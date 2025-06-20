@@ -6,7 +6,7 @@ import pytest
 import pytest_asyncio
 import grpc
 from grpc_health.v1 import health_pb2  # type: ignore
-from tsercom.rpc.common.channel_info import GrpcChannelInfo
+from tsercom.rpc.grpc_util.channel_info import GrpcChannelInfo
 from tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory import (
     InsecureGrpcChannelFactory,
 )

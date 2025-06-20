@@ -18,7 +18,7 @@ from typing import (
 
 import grpc
 from grpc_health.v1 import health_pb2  # type: ignore[import-untyped]
-from tsercom.rpc.common.channel_info import GrpcChannelInfo
+from tsercom.rpc.grpc_util.channel_info import GrpcChannelInfo
 from tsercom.rpc.grpc_util.grpc_service_publisher import (
     check_grpc_channel_health,
 )
