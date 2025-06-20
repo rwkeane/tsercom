@@ -1,5 +1,6 @@
 import datetime
 import torch
+from datetime import timezone
 import pytest
 import asyncio
 from typing import Dict, List, Tuple, Optional, Any
@@ -20,7 +21,7 @@ from tsercom.tensor.serialization.serializable_tensor import (
 )
 
 # Timestamps for testing consistency
-T_COMP_BASE = datetime.datetime(2024, 3, 10, 10, 0, 0)
+T_COMP_BASE = datetime.datetime(2024, 3, 10, 10, 0, 0, tzinfo=timezone.utc)
 T_COMP_0 = T_COMP_BASE
 T_COMP_1 = T_COMP_BASE + datetime.timedelta(seconds=10)
 T_COMP_2 = T_COMP_BASE + datetime.timedelta(seconds=20)
@@ -39,10 +40,26 @@ class MultiplexerOutputHandler(TensorMultiplexer.Client):
         chunk: SerializableTensorChunk,
     ) -> None:
         # The chunk is received from the multiplexer.
-        # Pass it directly to the demuxer's on_chunk_received method.
-        # No need to decompose it here as in the previous version.
+        # Serialize it to its protobuf representation
+        proto_chunk = chunk.to_grpc_type()
+
+        # Deserialize the protobuf message back into a new SerializableTensorChunk object
+        # Ensure dtype is passed to try_parse. Original chunk's tensor dtype can be used.
+        deserialized_chunk = SerializableTensorChunk.try_parse(
+            proto_chunk, dtype=chunk.tensor.dtype
+        )
+
+        if deserialized_chunk is None:
+            # Handle the case where deserialization might fail, though for this test
+            # it's an unexpected error if it does.
+            # For now, let's raise an error or log, as this indicates a problem.
+            raise ValueError("Failed to deserialize chunk during test.")
+
+        # Pass this new, deserialized chunk object to the demuxer's on_chunk_received method.
         task = asyncio.create_task(
-            self.demuxer.on_chunk_received(chunk)  # Pass the whole chunk
+            self.demuxer.on_chunk_received(
+                deserialized_chunk
+            )  # Pass the deserialized chunk
         )
         self._tasks.append(task)
 
