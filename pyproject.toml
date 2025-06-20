@@ -94,7 +94,7 @@ line-length = 88  # Must match Black's line-length
 select = [
     "F",  # Pyflakes (finds unused imports, undefined names)
     "E",  # pycodestyle errors  
-    # "W",  # pycodestyle warnings (enable for full PEP 8)
+    "W",  # pycodestyle warnings (enable for full PEP 8)
     "I",  # isort (import sorting)
     "B",  # flake8-bugbear (finds likely bugs)
     "UP", # pyupgrade (modernize syntax)
