@@ -34,6 +34,32 @@ if not TYPE_CHECKING:
             add_E2ETestServiceServicer_to_server,
             E2ETestService,
         )
+    elif version_string == "v1_72":
+        from tsercom.test.proto.generated.v1_72.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_72.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
+    elif version_string == "v1_71":
+        from tsercom.test.proto.generated.v1_71.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_71.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
     elif version_string == "v1_70":
         from tsercom.test.proto.generated.v1_70.e2e_test_service_pb2 import (
             EchoRequest,
@@ -47,11 +73,115 @@ if not TYPE_CHECKING:
             add_E2ETestServiceServicer_to_server,
             E2ETestService,
         )
+    elif version_string == "v1_69":
+        from tsercom.test.proto.generated.v1_69.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_69.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
+    elif version_string == "v1_68":
+        from tsercom.test.proto.generated.v1_68.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_68.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
+    elif version_string == "v1_67":
+        from tsercom.test.proto.generated.v1_67.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_67.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
+    elif version_string == "v1_66":
+        from tsercom.test.proto.generated.v1_66.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_66.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
+    elif version_string == "v1_65":
+        from tsercom.test.proto.generated.v1_65.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_65.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
+    elif version_string == "v1_64":
+        from tsercom.test.proto.generated.v1_64.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_64.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
+    elif version_string == "v1_63":
+        from tsercom.test.proto.generated.v1_63.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_63.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
+    elif version_string == "v1_62":
+        from tsercom.test.proto.generated.v1_62.e2e_test_service_pb2 import (
+            EchoRequest,
+            EchoResponse,
+            StreamDataRequest,
+            StreamDataResponse,
+        )
+        from tsercom.test.proto.generated.v1_62.e2e_test_service_pb2_grpc import (
+            E2ETestServiceStub,
+            E2ETestServiceServicer,
+            add_E2ETestServiceServicer_to_server,
+            E2ETestService,
+        )
     else:
         # The 'name' variable for the error message is 'e2e_test_service'
-        # The 'available_versions' for the error message is ['v1_70', 'v1_73']
+        # The 'available_versions' for the error message is ['v1_62', 'v1_63', 'v1_64', 'v1_65', 'v1_66', 'v1_67', 'v1_68', 'v1_69', 'v1_70', 'v1_71', 'v1_72', 'v1_73']
         raise ImportError(
-            f"Error: No code for version {version}, name 'e2e_test_service', available_versions ['v1_70', 'v1_73'], version_string {version_string}."
+            f"Error: No code for version {version}, name 'e2e_test_service', available_versions ['v1_62', 'v1_63', 'v1_64', 'v1_65', 'v1_66', 'v1_67', 'v1_68', 'v1_69', 'v1_70', 'v1_71', 'v1_72', 'v1_73'], version_string {version_string}."
         )
 
 else:  # When TYPE_CHECKING

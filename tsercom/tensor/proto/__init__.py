@@ -27,17 +27,77 @@ if not TYPE_CHECKING:
             TensorUpdate,
             TensorInitializer,
         )
+    elif version_string == "v1_72":
+        from tsercom.tensor.proto.generated.v1_72.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
+    elif version_string == "v1_71":
+        from tsercom.tensor.proto.generated.v1_71.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
     elif version_string == "v1_70":
         from tsercom.tensor.proto.generated.v1_70.tensor_pb2 import (
             TensorChunk,
             TensorUpdate,
             TensorInitializer,
         )
+    elif version_string == "v1_69":
+        from tsercom.tensor.proto.generated.v1_69.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
+    elif version_string == "v1_68":
+        from tsercom.tensor.proto.generated.v1_68.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
+    elif version_string == "v1_67":
+        from tsercom.tensor.proto.generated.v1_67.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
+    elif version_string == "v1_66":
+        from tsercom.tensor.proto.generated.v1_66.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
+    elif version_string == "v1_65":
+        from tsercom.tensor.proto.generated.v1_65.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
+    elif version_string == "v1_64":
+        from tsercom.tensor.proto.generated.v1_64.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
+    elif version_string == "v1_63":
+        from tsercom.tensor.proto.generated.v1_63.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
+    elif version_string == "v1_62":
+        from tsercom.tensor.proto.generated.v1_62.tensor_pb2 import (
+            TensorChunk,
+            TensorUpdate,
+            TensorInitializer,
+        )
     else:
         # The 'name' variable for the error message is 'tensor'
-        # The 'available_versions' for the error message is ['v1_70', 'v1_73']
+        # The 'available_versions' for the error message is ['v1_62', 'v1_63', 'v1_64', 'v1_65', 'v1_66', 'v1_67', 'v1_68', 'v1_69', 'v1_70', 'v1_71', 'v1_72', 'v1_73']
         raise ImportError(
-            f"Error: No code for version {version}, name 'tensor', available_versions ['v1_70', 'v1_73'], version_string {version_string}."
+            f"Error: No code for version {version}, name 'tensor', available_versions ['v1_62', 'v1_63', 'v1_64', 'v1_65', 'v1_66', 'v1_67', 'v1_68', 'v1_69', 'v1_70', 'v1_71', 'v1_72', 'v1_73'], version_string {version_string}."
         )
 
 else:  # When TYPE_CHECKING
