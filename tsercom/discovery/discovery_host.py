@@ -254,7 +254,6 @@ class DiscoveryHost(
             if hasattr(self.__client, "_on_service_removed") and callable(
                 getattr(self.__client, "_on_service_removed")
             ):
-
                 await self.__client._on_service_removed(service_name, caller_id)
             else:
                 logging.warning(

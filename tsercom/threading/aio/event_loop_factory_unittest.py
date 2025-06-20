@@ -104,7 +104,6 @@ def stop_loop_and_join_thread(
 
 
 class TestEventLoopFactory:
-
     def test_constructor_watcher_validation(self, mocker) -> None:
         """Test watcher validation in EventLoopFactory constructor."""
         with pytest.raises(ValueError, match="Watcher argument cannot be None"):

@@ -17,7 +17,6 @@ def create_mock_address(mocker, family, address):
 
 
 class TestIpUtils:
-
     # --- Tests for get_all_address_strings ---
 
     def test_get_all_address_strings_no_interfaces(self, mocker):

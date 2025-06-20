@@ -67,7 +67,6 @@ class ChannelFactorySelector:
             logger.info("Creating GrpcChannelFactory for Server CA configuration.")
             ca_cert_pem = self._read_file_content(auth_config.server_ca_cert_path)
             if not ca_cert_pem:
-
                 raise ValueError(
                     "Failed to read server_ca_cert_path: %s"
                     % auth_config.server_ca_cert_path
@@ -83,7 +82,6 @@ class ChannelFactorySelector:
                 auth_config.pinned_server_cert_path
             )
             if not pinned_cert_pem:
-
                 raise ValueError(
                     "Failed to read pinned_server_cert_path: %s"
                     % auth_config.pinned_server_cert_path

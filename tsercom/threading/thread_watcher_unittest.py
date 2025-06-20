@@ -30,7 +30,6 @@ class ExcFromTarget(Exception):
 
 
 class TestThreadWatcher:
-
     def setup_method(self) -> None:
         self.watcher = ThreadWatcher()
 
@@ -174,7 +173,9 @@ class TestThreadWatcher:
             self.watcher.check_for_exception()
 
         # Verify the barrier WAS set
-        assert self.watcher._ThreadWatcher__barrier.is_set(), "Barrier should be set for target exception."  # type: ignore
+        assert (
+            self.watcher._ThreadWatcher__barrier.is_set()
+        ), "Barrier should be set for target exception."  # type: ignore
 
     def test_create_tracked_thread_exception_during_start_behavior(
         self,
@@ -208,7 +209,9 @@ class TestThreadWatcher:
                 # tracked_thread.join() # Not strictly necessary as start fails
 
             # Now check if ThreadWatcher saw it
-            assert self.watcher._ThreadWatcher__barrier.is_set(), "Barrier should be set by on_exception_seen."  # type: ignore
+            assert (
+                self.watcher._ThreadWatcher__barrier.is_set()
+            ), "Barrier should be set by on_exception_seen."  # type: ignore
             with pytest.raises(
                 RuntimeError, match="Simulated error during thread.start()"
             ):
@@ -270,7 +273,9 @@ class TestThreadWatcher:
 
         # Verify internal state (not strictly necessary for black-box, but good for understanding)
         # Accessing private members for test verification:
-        assert len(self.watcher._ThreadWatcher__exceptions) == num_threads, "All exceptions should be recorded."  # type: ignore
+        assert (
+            len(self.watcher._ThreadWatcher__exceptions) == num_threads
+        ), "All exceptions should be recorded."  # type: ignore
 
         # The first exception raised by check_for_exception or run_until_exception
         # should be one of the exceptions_to_raise. Due to GIL and OS scheduling,
@@ -296,7 +301,9 @@ class TestThreadWatcher:
 
         # Check that all recorded exceptions are indeed the ones we sent.
         # This is more a check on the internal list integrity.
-        recorded_exception_strs = {str(e) for e in self.watcher._ThreadWatcher__exceptions}  # type: ignore
+        recorded_exception_strs = {
+            str(e) for e in self.watcher._ThreadWatcher__exceptions
+        }  # type: ignore
         expected_exception_strs = {str(e) for e in exceptions_to_raise}
         assert (
             recorded_exception_strs == expected_exception_strs

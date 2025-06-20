@@ -128,7 +128,6 @@ async def mock_aio_utils(mocker, monkeypatch, current_event_loop):
 
 @pytest.mark.asyncio
 class TestClientDisconnectionRetrier:
-
     async def test_initial_connection_success(
         self,
         mock_watcher,

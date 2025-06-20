@@ -94,8 +94,24 @@ exclude = [
     "**/*_pb2.pyi",    # Explicitly exclude .pyi files
     "**/*_pb2_grpc.py", # Clearer exclusion
     "**/*_unittest.py", # Clearer exclusion
+    "*/proto/*",
+    "scripts/*",
 ]
 fixable = ["ALL"]
+
+[tool.ruff.format]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    "**/*_pb2.py",
+    "**/*_pb2.pyi",
+    "**/*_pb2_grpc.py",
+    "*/proto/*",
+    "scripts/*",
+]
 
 [tool.pytest.ini_options]
 python_files = [

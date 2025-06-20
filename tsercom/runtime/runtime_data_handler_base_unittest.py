@@ -107,7 +107,6 @@ class TestableRuntimeDataHandler(RuntimeDataHandlerBase[DataType, Any]):
 
 
 class TestRuntimeDataHandlerBaseBehavior:
-
     # Removed local manage_event_loop fixture to rely on conftest.py version
     # @pytest.fixture(autouse=True)
     # def manage_event_loop(self):
@@ -425,7 +424,9 @@ class TestRuntimeDataHandlerBaseBehavior:
 
         # Use the custom MockAsyncIterator
         mock_event_batches = [[mock_event_item]]
-        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(mock_event_batches)  # type: ignore
+        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(
+            mock_event_batches
+        )  # type: ignore
 
         mock_per_caller_poller = mocker.MagicMock(spec=AsyncPoller)
         mock_per_caller_poller.on_available = mocker.MagicMock()
@@ -436,7 +437,9 @@ class TestRuntimeDataHandlerBaseBehavior:
 
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
 
-        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(test_caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(
+            test_caller_id
+        )  # type: ignore
         mock_per_caller_poller.on_available.assert_called_once_with(mock_event_item)
 
     @pytest.mark.asyncio
@@ -447,13 +450,17 @@ class TestRuntimeDataHandlerBaseBehavior:
         mock_event_item.caller_id = CallerIdentifier.random()
 
         mock_event_batches = [[mock_event_item]]
-        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(mock_event_batches)  # type: ignore
+        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(
+            mock_event_batches
+        )  # type: ignore
 
         handler._RuntimeDataHandlerBase__id_tracker.try_get = mocker.MagicMock(  # type: ignore
             return_value=None
         )
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
-        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(
+            mock_event_item.caller_id
+        )  # type: ignore
 
     @pytest.mark.asyncio
     async def test_dispatch_loop_event_caller_found_poller_none(self, handler, mocker):
@@ -463,13 +470,17 @@ class TestRuntimeDataHandlerBaseBehavior:
         mock_event_item.caller_id = CallerIdentifier.random()
 
         mock_event_batches = [[mock_event_item]]
-        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(mock_event_batches)  # type: ignore
+        handler._RuntimeDataHandlerBase__event_source = MockAsyncIterator(
+            mock_event_batches
+        )  # type: ignore
 
         handler._RuntimeDataHandlerBase__id_tracker.try_get = mocker.MagicMock(  # type: ignore
             return_value=("ip", 123, None)
         )
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
-        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(
+            mock_event_item.caller_id
+        )  # type: ignore
 
     @pytest.mark.asyncio
     async def test_create_data_processor_id_not_in_tracker(self, handler, mocker):
@@ -481,7 +492,9 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
         with pytest.raises(KeyError, match="ID not found"):
             handler._create_data_processor(test_caller_id, mock_clock)
-        handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(test_caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(
+            test_caller_id
+        )  # type: ignore
 
     @pytest.mark.asyncio
     async def test_create_data_processor_poller_is_none_in_tracker(
@@ -498,7 +511,9 @@ class TestRuntimeDataHandlerBaseBehavior:
             match="No data poller found in IdTracker for {}".format(test_caller_id),
         ):
             handler._create_data_processor(test_caller_id, mock_clock)
-        handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(test_caller_id)  # type: ignore
+        handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(
+            test_caller_id
+        )  # type: ignore
 
 
 class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):

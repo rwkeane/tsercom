@@ -169,9 +169,7 @@ async def test_on_service_added_existing_service(
     mock_ss_client._on_service_added.assert_awaited_once_with(
         service_info_updated, pre_existing_id
     )
-    assert (
-        host._DiscoveryHost__caller_id_map[existing_mdns_name] is pre_existing_id
-    )  # type: ignore[attr-defined]
+    assert host._DiscoveryHost__caller_id_map[existing_mdns_name] is pre_existing_id  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio

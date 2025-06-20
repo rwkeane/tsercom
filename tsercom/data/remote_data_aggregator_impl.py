@@ -398,7 +398,6 @@ class RemoteDataAggregatorImpl(
             data_organizer: The `RemoteDataOrganizer` instance that has new data.
         """
         if self.__client is not None:
-
             self.__client._on_data_available(self, data_organizer.caller_id)
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
@@ -445,7 +444,6 @@ class RemoteDataAggregatorImpl(
         data_organizer._on_data_ready(new_data)
 
         if is_new_organizer and self.__client is not None:
-
             self.__client._on_new_endpoint_began_transmitting(
                 self, data_organizer.caller_id
             )

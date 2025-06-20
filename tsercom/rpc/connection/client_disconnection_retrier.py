@@ -252,7 +252,9 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         logging.warning(
             f"Disconnect detected for instance. Error: {error}. Attempting to stop current instance."
         )
-        await self.__instance.stop()  # Ensure self.__instance is not None before calling stop
+        await (
+            self.__instance.stop()
+        )  # Ensure self.__instance is not None before calling stop
         self.__instance = None
 
         if self.__is_grpc_error_func(

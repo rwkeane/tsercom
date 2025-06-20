@@ -48,7 +48,6 @@ async def test_close_with_owned_zc_closes_zc(mocker):
             return_value=mock_service_browser_instance,
         ) as mock_browser_constructor,
     ):
-
         listener = RecordListener(
             client=mock_client,
             service_type="_testowned._tcp.local.",

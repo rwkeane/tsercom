@@ -69,7 +69,8 @@ class SerializableTensorInitializer:
 
     @classmethod
     def try_parse(
-        cls: Type[STI], grpc_msg: TensorInitializer  # Changed type hint
+        cls: Type[STI],
+        grpc_msg: TensorInitializer,  # Changed type hint
     ) -> Optional[STI]:
         """
         Attempts to parse a TensorInitializer protobuf message.

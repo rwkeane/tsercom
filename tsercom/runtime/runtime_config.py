@@ -155,7 +155,6 @@ class RuntimeConfig(Generic[DataTypeT]):
             )
 
         if other_config is not None:
-
             RuntimeConfig.__init__(
                 self,
                 service_type=other_config.service_type_enum,  # Use enum for internal consistency

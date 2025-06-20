@@ -68,7 +68,6 @@ def mock_watcher_for_global() -> MockThreadWatcherForGlobalLoop:
 
 
 class TestGlobalEventLoop:
-
     # 1. Initial State
     def test_initial_state(self):
         """Verify initial state of the global event loop."""

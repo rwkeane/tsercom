@@ -162,7 +162,6 @@ class RemoteDataOrganizer(
                 timestamp = timestamp.replace(tzinfo=self.__data[0].timestamp.tzinfo)
 
             class DummyItemForBisectSearch:
-
                 def __init__(self, ts: datetime.datetime) -> None:
                     """Initializes a RemoteDataOrganizer.
 
@@ -226,7 +225,6 @@ class RemoteDataOrganizer(
                 )
 
             class DummyItemForBisectSearch:
-
                 def __init__(self, ts: datetime.datetime) -> None:
                     """Initializes a RemoteDataOrganizer.
 
@@ -311,7 +309,6 @@ class RemoteDataOrganizer(
                 return deepcopy(self.__data[-1])  # type: ignore[no-any-return]
 
             class DummyItemForBisectSearch:
-
                 def __init__(self, ts: datetime.datetime) -> None:
                     """Initializes a RemoteDataOrganizer.
 

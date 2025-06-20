@@ -90,7 +90,6 @@ class DataReaderSource(Generic[DataTypeT]):
             data = self.__queue.get_blocking(timeout=1)
             if data is not None:
                 try:
-
                     self.__data_reader._on_data_ready(data)
                 except Exception as e:
                     # It's important to catch exceptions here to prevent the

@@ -112,7 +112,6 @@ class DataTimeoutTracker:
                 break
             for tracked_item in list(self.__tracked_list):  # Iterate a copy
                 try:
-
                     tracked_item._on_triggered(self.__timeout_seconds)
 
                 except Exception as e:

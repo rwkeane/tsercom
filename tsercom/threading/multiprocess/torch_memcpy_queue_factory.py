@@ -11,6 +11,7 @@ from typing import (
     Iterable,
     Optional,
 )  # Updated imports
+import logging
 import torch  # Keep torch for type hints if needed, or for tensor_accessor context
 import torch.multiprocessing as mp  # Third-party
 
@@ -153,8 +154,8 @@ class TorchMemcpyQueueSource(
                             tensor_item.share_memory_()  # type: ignore[no-untyped-call]
                 except Exception as e:
                     # Log warning if accessor fails, but return the item as is.
-                    print(
-                        f"Warning: Tensor accessor failed for received object of type {type(item)} during get: {e}"
+                    logging.warning(
+                        f"Tensor accessor failed for received object of type {type(item)} during get: {e}"
                     )
             elif isinstance(item, torch.Tensor):
                 # Default behavior if no accessor: try to share if item is a tensor.
@@ -219,8 +220,8 @@ class TorchMemcpyQueueSink(
             except Exception as e:
                 # Log a warning if the accessor fails, but still try to put the original object.
                 # The user of the queue might intend for non-tensor data or non-shareable tensors to pass.
-                print(
-                    f"Warning: Tensor accessor failed for object of type {type(obj)} during put: {e}"
+                logging.warning(
+                    f"Tensor accessor failed for object of type {type(obj)} during put: {e}"
                 )
         elif isinstance(obj, torch.Tensor):
             # Default behavior if no accessor: try to share if obj is a tensor.

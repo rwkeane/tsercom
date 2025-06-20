@@ -1073,14 +1073,14 @@ async def secure_async_test_server_factory():
                 log_host, log_port, log_cn = server_details_log[i]
 
             logger.info(
-                f"Stopping secure server instance {i+1}/{len(created_servers)} (CN: {log_cn}) at {log_host}:{log_port}..."
+                f"Stopping secure server instance {i + 1}/{len(created_servers)} (CN: {log_cn}) at {log_host}:{log_port}..."
             )
             try:
                 await server_instance.stop(None)
-                logger.info(f"Secure server instance {i+1} (CN: {log_cn}) stopped.")
+                logger.info(f"Secure server instance {i + 1} (CN: {log_cn}) stopped.")
             except Exception as e:
                 logger.error(
-                    f"Error stopping secure server instance {i+1} (CN: {log_cn}): {e}"
+                    f"Error stopping secure server instance {i + 1} (CN: {log_cn}): {e}"
                 )
 
         try:

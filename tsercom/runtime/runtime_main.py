@@ -100,7 +100,6 @@ def initialize_runtimes(
     created_runtimes: List[Runtime] = []
 
     for initializer_factory in initializers:
-
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
 
@@ -242,7 +241,6 @@ def remote_process_main(
     asyncs_task = get_global_event_loop().create_task(aggregate_asyncs)
     for factory in initializers:
         try:
-
             factory._stop()
 
         except Exception as e_factory_stop:

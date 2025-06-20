@@ -455,11 +455,13 @@ class TestInstanceListener:
         assert TestInstanceListener.captured_fake_mdns_listener is not None
         invalid_ip_bytes = b"this is not an ip"
         with patch("socket.inet_ntoa", side_effect=socket.error("Invalid IP format")):
-            await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
-                "InvalidIPService",
-                8080,
-                [invalid_ip_bytes],
-                {b"name": b"Invalid IP"},
+            await (
+                TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+                    "InvalidIPService",
+                    8080,
+                    [invalid_ip_bytes],
+                    {b"name": b"Invalid IP"},
+                )
             )
         # await asyncio.sleep(0) # No longer needed
         self.mock_il_client._on_service_added_mock.assert_not_called()
@@ -485,11 +487,13 @@ class TestInstanceListener:
             raise socket.error("Invalid IP")
 
         with patch("socket.inet_ntoa", side_effect=mock_inet_ntoa):
-            await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
-                "MixedIPService",
-                8080,
-                [invalid_ip_bytes, valid_ip_bytes],
-                {b"name": b"Mixed IP"},
+            await (
+                TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
+                    "MixedIPService",
+                    8080,
+                    [invalid_ip_bytes, valid_ip_bytes],
+                    {b"name": b"Mixed IP"},
+                )
             )
 
         # await asyncio.sleep(0) # No longer needed

@@ -10,7 +10,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 
 
 class TestMultiprocessQueueSink:
-
     @pytest.fixture
     def mock_mp_queue(self, mocker):
         """Provides a MagicMock for multiprocessing.Queue."""
