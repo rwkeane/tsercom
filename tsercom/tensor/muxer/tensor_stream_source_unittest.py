@@ -1,10 +1,12 @@
 import asyncio  # Added: Required for asyncio.wait_for
 import datetime
+from typing import Optional
 
 import pytest
 import torch
 
 from tsercom.tensor.muxer.tensor_stream_source import TensorStreamSource
+from tsercom.tensor.proto.generated.v1_73.tensor_pb2 import TensorUpdate
 from tsercom.tensor.serialization.serializable_tensor_initializer import (
     SerializableTensorInitializer,
 )
@@ -38,20 +40,67 @@ async def test_tensor_stream_source_creation_and_initializer(
     assert isinstance(initializer, SerializableTensorInitializer)
     assert initializer.shape == [initial_tensor.shape[0]]
     assert initializer.dtype_str == str(initial_tensor.dtype).replace("torch.", "")
-    assert initializer.fill_value == 0.0  # As per current implementation
-    # Current implementation sets initial_state to None in initializer
-    assert initializer.initial_state is None
+
+    # Determine expected fill_value based on initial_tensor content
+    if initial_tensor.numel() > 0:
+        unique_values, counts = torch.unique(initial_tensor, return_counts=True)
+        if unique_values.numel() > 0:
+            expected_fill_value = float(unique_values[torch.argmax(counts)].item())
+        else:
+            expected_fill_value = 0.0  # Fallback for unusual tensors (e.g. all NaNs)
+    else:
+        expected_fill_value = 0.0
+    assert initializer.fill_value == expected_fill_value
+
+    # Verify initial_state and its chunks
+    has_non_fill_values = False
+    if initial_tensor.numel() > 0:
+        for val_tensor in initial_tensor:
+            if (
+                abs(float(val_tensor.item()) - expected_fill_value) > 1e-9
+            ):  # float comparison
+                has_non_fill_values = True
+                break
+
+    if initial_tensor.numel() == 0 or not has_non_fill_values:
+        assert initializer.initial_state is None
+    else:
+        assert initializer.initial_state is not None
+        assert isinstance(initializer.initial_state.to_grpc_type(), TensorUpdate)
+        assert len(initializer.initial_state.chunks) > 0
+
+        # Verify chunk content by reconstructing the tensor
+        reconstructed_tensor = torch.full_like(
+            initial_tensor, fill_value=expected_fill_value, dtype=initial_tensor.dtype
+        )
+        for chunk in initializer.initial_state.chunks:
+            chunk_data = chunk.tensor
+            # Ensure chunk_data is a tensor. In source, it's created as torch.Tensor.
+            if not isinstance(chunk_data, torch.Tensor):
+                # This case should ideally not be hit if SerializableTensorChunk always stores a tensor
+                chunk_data = torch.tensor(chunk_data, dtype=initial_tensor.dtype)
+
+            # Ensure indices are within bounds and slice assignment is correct
+            start_idx = chunk.starting_index
+            end_idx = start_idx + len(chunk_data)
+            assert start_idx >= 0
+            assert end_idx <= reconstructed_tensor.numel()
+            reconstructed_tensor[start_idx:end_idx] = chunk_data
+
+        assert torch.equal(reconstructed_tensor, initial_tensor)
 
     # Verify internal components were created (basic check)
     assert source._internal_multiplexer is not None
-    # _internal_demuxer has been removed from TensorStreamSource
 
     # Test with sparse_updates=False to cover CompleteTensorMultiplexer path
     source_complete = TensorStreamSource(
         initial_tensor=initial_tensor, sparse_updates=False, clock=clock
     )
     assert source_complete is not None
+    # Initializer of source_complete should also be correct
     assert source_complete.initializer.shape == [initial_tensor.shape[0]]
+    # Fill value for source_complete should be the same as it's based on initial_tensor
+    assert source_complete.initializer.fill_value == expected_fill_value
 
 
 async def test_tensor_stream_source_update_sparse(
@@ -100,7 +149,7 @@ async def test_tensor_stream_source_update_sparse(
     new_tensor = torch.tensor(new_tensor_values, dtype=torch.float32)
 
     update_dt = clock.now.as_datetime() + datetime.timedelta(seconds=1)
-    clock._now = SynchronizedTimestamp(update_dt)  # type: ignore[attr-defined, protected-access]
+    clock._now = SynchronizedTimestamp(update_dt)  # type: ignore[attr-defined]
 
     await source.update(new_tensor, update_dt)
 
@@ -150,7 +199,7 @@ async def test_tensor_stream_source_update_complete(
 
     # First update: Prime with initial_tensor
     first_update_dt = clock.now.as_datetime() + datetime.timedelta(seconds=1)
-    clock._now = SynchronizedTimestamp(first_update_dt)  # type: ignore[attr-defined, protected-access]
+    clock._now = SynchronizedTimestamp(first_update_dt)  # type: ignore[attr-defined]
     await source.update(initial_tensor, first_update_dt)
 
     first_tensor_update = await asyncio.wait_for(
@@ -168,7 +217,7 @@ async def test_tensor_stream_source_update_complete(
 
     # Second update: Update with new_tensor
     second_update_dt = clock.now.as_datetime() + datetime.timedelta(seconds=1)
-    clock._now = SynchronizedTimestamp(second_update_dt)  # type: ignore[attr-defined, protected-access]
+    clock._now = SynchronizedTimestamp(second_update_dt)  # type: ignore[attr-defined]
     await source.update(new_tensor, second_update_dt)
 
     second_tensor_update = await asyncio.wait_for(
@@ -219,3 +268,114 @@ async def test_tensor_stream_source_init_validation(
     bad_shape_tensor = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
     with pytest.raises(ValueError, match="initial_tensor must be a 1D tensor"):
         TensorStreamSource(initial_tensor=bad_shape_tensor, clock=clock)
+
+
+@pytest.mark.parametrize(
+    "test_id, initial_tensor_values, expected_fill_value_override",
+    [
+        ("empty_tensor", [], 0.0),
+        ("all_zeros", [0.0, 0.0, 0.0], 0.0),
+        ("all_same_value", [7.0, 7.0, 7.0], 7.0),
+        ("mixed_values_most_common_zero", [0.0, 1.0, 0.0, 2.0, 0.0], 0.0),
+        ("mixed_values_most_common_nonzero", [1.0, 0.0, 1.0, 2.0, 1.0], 1.0),
+        ("single_value_tensor", [42.0], 42.0),
+        # For [0.0, 1.0, 0.0, 1.0], unique gives [0., 1.], counts gives [2, 2]. argmax is 0. So fill is 0.0.
+        ("alternating_values_fill_zero", [0.0, 1.0, 0.0, 1.0], 0.0),
+        # For [1.0, 0.0, 1.0, 0.0], unique gives [0., 1.], counts gives [2, 2]. argmax is 0. So fill is 0.0.
+        ("alternating_values_fill_still_zero", [1.0, 0.0, 1.0, 0.0], 0.0),
+        (
+            "unique_values_no_clear_majority",
+            [1.0, 2.0, 3.0],
+            1.0,
+        ),  # Expect first unique as fill if counts are same
+        ("tensor_with_negatives", [-1.0, 0.0, -1.0], -1.0),
+    ],
+)
+async def test_tensor_stream_source_initializer_logic(
+    test_id: str,
+    initial_tensor_values: list[float],
+    expected_fill_value_override: Optional[
+        float
+    ],  # This can be None if we want to purely rely on source's logic for expected
+    clock: FakeSynchronizedClock,
+) -> None:
+    """Test TensorInitializer logic with various initial_tensor configurations."""
+    initial_tensor = torch.tensor(initial_tensor_values, dtype=torch.float32)
+
+    # For "unique_values_no_clear_majority", the source code's logic for fill value is:
+    # unique_values, counts = torch.unique(initial_tensor, return_counts=True)
+    # fill_value_tensor = unique_values[torch.argmax(counts)]
+    # If counts are all 1, argmax(counts) is 0, so it takes the first element of unique_values.
+    # For [1.0, 2.0, 3.0], unique_values is [1.0, 2.0, 3.0], argmax(counts) is 0, so fill_value is 1.0.
+    # This is now correctly set in the parametrize table.
+
+    if test_id == "empty_tensor":
+        with pytest.raises(ValueError, match="Tensor length must be positive."):
+            TensorStreamSource(initial_tensor=initial_tensor, clock=clock)
+        # For empty tensor, TensorStreamSource creation fails, so no initializer to check.
+        # The check for ValueError is the assertion for this case.
+        return
+
+    source = TensorStreamSource(initial_tensor=initial_tensor, clock=clock)
+    initializer = source.initializer
+
+    # 1. Verify fill_value
+    # The expected_fill_value_override from parametrize is the ground truth.
+    expected_fill_value = expected_fill_value_override
+
+    assert (
+        initializer.fill_value == expected_fill_value
+    ), f"Test ID: {test_id} - Fill value mismatch"
+
+    # 2. Verify initial_state (is TensorUpdate, has chunks)
+    has_non_fill_values = False
+    if initial_tensor.numel() > 0:
+        for (
+            val_float
+        ) in initial_tensor_values:  # Iterate over python floats for direct comparison
+            if abs(val_float - expected_fill_value) > 1e-9:  # float comparison
+                has_non_fill_values = True
+                break
+
+    if initial_tensor.numel() == 0 or not has_non_fill_values:
+        assert (
+            initializer.initial_state is None
+        ), f"Test ID: {test_id} - Initial state should be None"
+    else:
+        assert (
+            initializer.initial_state is not None
+        ), f"Test ID: {test_id} - Initial state should not be None"
+        assert isinstance(
+            initializer.initial_state.to_grpc_type(), TensorUpdate
+        ), f"Test ID: {test_id} - Initial state is not TensorUpdate"
+        assert (
+            len(initializer.initial_state.chunks) > 0
+        ), f"Test ID: {test_id} - Initial state has no chunks"
+
+        # 3. Verify chunk content by reconstructing the tensor
+        reconstructed_tensor = torch.full_like(
+            initial_tensor,
+            fill_value=initializer.fill_value,
+            dtype=initial_tensor.dtype,
+        )
+        for chunk in initializer.initial_state.chunks:
+            chunk_data = chunk.tensor
+            if not isinstance(chunk_data, torch.Tensor):
+                chunk_data = torch.tensor(
+                    chunk_data, dtype=initial_tensor.dtype
+                )  # Should not be needed
+
+            start_idx = chunk.starting_index
+            end_idx = start_idx + len(chunk_data)
+            assert (
+                start_idx >= 0
+            ), f"Test ID: {test_id} - Chunk start index out of bounds"
+            assert (
+                end_idx <= reconstructed_tensor.numel()
+            ), f"Test ID: {test_id} - Chunk end index out of bounds"
+
+            reconstructed_tensor[start_idx:end_idx] = chunk_data
+
+        assert torch.equal(
+            reconstructed_tensor, initial_tensor
+        ), f"Test ID: {test_id} - Reconstructed tensor does not match original"
