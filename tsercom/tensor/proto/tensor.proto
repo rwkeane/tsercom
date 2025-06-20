@@ -1,11 +1,11 @@
 syntax = "proto3";
-package tsercom.tensor.proto;
+package tsercom;
 
 import "time.proto"; // Assuming this provides dtp.ServerTimestamp
 
 message TensorChunk {
   // Timestamp of the data chunk.
-  dtp.ServerTimestamp timestamp = 1;
+  ServerTimestamp timestamp = 1;
   // The starting index of this chunk in the larger conceptual 1D tensor.
   int64 starting_index = 2;
   // The raw bytes of the 1D tensor data chunk.

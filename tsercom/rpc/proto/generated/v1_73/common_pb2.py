@@ -9,9 +9,13 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
-
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC, 6, 31, 0, "", "common.proto"
+    _runtime_version.Domain.PUBLIC,
+    6,
+    31,
+    0,
+    '',
+    'common.proto'
 )
 # @@protoc_insertion_point(imports)
 
@@ -22,17 +26,15 @@ import tsercom.caller_id.proto as caller__id__pb2
 import tsercom.timesync.common.proto as time__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x0c\x63ommon.proto\x12\x03\x64tp\x1a\x0f\x63\x61ller_id.proto\x1a\ntime.proto"\x14\n\x12TestConnectionCall"\x18\n\x16TestConnectionResponseb\x06proto3'
-)
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x63ommon.proto\x12\x07tsercom\x1a\x0f\x63\x61ller_id.proto\x1a\ntime.proto\"\x14\n\x12TestConnectionCall\"\x18\n\x16TestConnectionResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "common_pb2", _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'common_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-    DESCRIPTOR._loaded_options = None
-    _globals["_TESTCONNECTIONCALL"]._serialized_start = 50
-    _globals["_TESTCONNECTIONCALL"]._serialized_end = 70
-    _globals["_TESTCONNECTIONRESPONSE"]._serialized_start = 72
-    _globals["_TESTCONNECTIONRESPONSE"]._serialized_end = 96
+  DESCRIPTOR._loaded_options = None
+  _globals['_TESTCONNECTIONCALL']._serialized_start=54
+  _globals['_TESTCONNECTIONCALL']._serialized_end=74
+  _globals['_TESTCONNECTIONRESPONSE']._serialized_start=76
+  _globals['_TESTCONNECTIONRESPONSE']._serialized_end=100
 # @@protoc_insertion_point(module_scope)

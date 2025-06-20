@@ -27,9 +27,7 @@ class EchoRequest(google.protobuf.message.Message):
         *,
         message: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing.Literal["message", b"message"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["message", b"message"]) -> None: ...
 
 global___EchoRequest = EchoRequest
 
@@ -44,9 +42,7 @@ class EchoResponse(google.protobuf.message.Message):
         *,
         response: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing.Literal["response", b"response"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["response", b"response"]) -> None: ...
 
 global___EchoResponse = EchoResponse
 
@@ -61,9 +57,7 @@ class StreamDataRequest(google.protobuf.message.Message):
         *,
         data_id: builtins.int = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing.Literal["data_id", b"data_id"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data_id", b"data_id"]) -> None: ...
 
 global___StreamDataRequest = StreamDataRequest
 
@@ -81,11 +75,6 @@ class StreamDataResponse(google.protobuf.message.Message):
         data_chunk: builtins.str = ...,
         sequence_number: builtins.int = ...,
     ) -> None: ...
-    def ClearField(
-        self,
-        field_name: typing.Literal[
-            "data_chunk", b"data_chunk", "sequence_number", b"sequence_number"
-        ],
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data_chunk", b"data_chunk", "sequence_number", b"sequence_number"]) -> None: ...
 
 global___StreamDataResponse = StreamDataResponse
