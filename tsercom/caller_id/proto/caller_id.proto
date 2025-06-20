@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package dtp;
+package tsercom;
 
 /*
 python3 -m grpc_tools.protoc \

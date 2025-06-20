@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 
-package dtp;
+package tsercom;
 
 /*
 python3 -m grpc_tools.protoc \

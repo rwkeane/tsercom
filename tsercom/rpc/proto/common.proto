@@ -3,7 +3,7 @@ syntax = "proto3";
 import "caller_id.proto";
 import "time.proto";
 
-package dtp;
+package tsercom;
 
 /*
 python3 -m grpc_tools.protoc    --proto_path=util/caller_id/proto    --proto_path=util/rpc/proto    --proto_path=timesync/common/proto    --python_out=util/rpc    --pyi_out=util/rpc    util/rpc/proto/common.proto
