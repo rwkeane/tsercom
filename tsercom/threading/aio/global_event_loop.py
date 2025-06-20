@@ -1,5 +1,4 @@
-"""
-Manages a global asyncio event loop for the `tsercom` library.
+"""Manages a global asyncio event loop for the `tsercom` library.
 
 This module provides a centralized mechanism for setting, accessing,
 creating, and clearing a global asyncio event loop that can be used
@@ -36,6 +35,7 @@ def is_global_event_loop_set() -> bool:
 
     Returns:
         bool: True if global event loop is set, False otherwise.
+
     """
     # No 'global' needed for read-only access to module-level variable
     return __g_global_event_loop is not None
@@ -51,6 +51,7 @@ def get_global_event_loop() -> AbstractEventLoop:
 
     Raises:
         AssertionError: If global event loop has not been set.
+
     """
     # No 'global' needed for read-only access
     assert (
@@ -67,6 +68,7 @@ def clear_tsercom_event_loop(try_stop_loop: bool = True) -> None:
 
     Args:
         try_stop_loop: If True, attempt to stop an internally created loop.
+
     """
     global __g_global_event_loop  # pylint: disable=global-statement
     global __g_event_loop_factory  # pylint: disable=global-statement
@@ -102,6 +104,7 @@ def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
 
     Raises:
         RuntimeError: If the global event loop has already been set.
+
     """
     global __g_global_event_loop  # pylint: disable=global-statement
     global __g_event_loop_factory  # pylint: disable=global-statement
@@ -127,6 +130,7 @@ def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
     Raises:
         AssertionError: If the provided event_loop is None.
         RuntimeError: If the global event loop has already been set.
+
     """
     assert event_loop is not None, "Cannot set global event loop to None."
 
@@ -148,6 +152,7 @@ def set_tsercom_event_loop_to_current_thread() -> None:
 
     Raises:
         RuntimeError: If the global event loop has already been set.
+
     """
     global __g_global_event_loop  # pylint: disable=global-statement
     # No 'global' needed for __g_global_event_loop_lock if only used in 'with'

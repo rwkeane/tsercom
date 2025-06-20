@@ -18,6 +18,7 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
     Returns:
         The `grpc.StatusCode` if the error is a gRPC error and a status code
         can be extracted, otherwise `None`.
+
     """
     from grpc_status import rpc_status
 
@@ -46,6 +47,7 @@ def is_server_unavailable_error(error: Exception) -> bool:
 
     Returns:
         True if the error indicates server unavailability, False otherwise.
+
     """
     if issubclass(type(error), StopAsyncIteration):
         return True
@@ -67,6 +69,7 @@ def is_grpc_error(error: Exception) -> bool:
 
     Returns:
         True if the exception has an associated gRPC status code, False otherwise.
+
     """
     return get_grpc_status_code(error) is not None
 

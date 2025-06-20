@@ -1,22 +1,23 @@
-import datetime
-import torch
-import pytest
 import asyncio
-from typing import Dict, List, Tuple, Optional, Any
+import datetime
+from typing import Any
 
-from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
+import pytest
+import torch
+
 from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
 from tsercom.tensor.muxer.complete_tensor_multiplexer import (
     CompleteTensorMultiplexer,
+)
+from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
 )
 from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
-)
-from tsercom.tensor.serialization.serializable_tensor import (
-    SerializableTensorChunk,
 )
 
 # Timestamps for testing consistency
@@ -31,8 +32,8 @@ T_COMP_4 = T_COMP_BASE + datetime.timedelta(seconds=40)  # For deeper cascade
 class MultiplexerOutputHandler(TensorMultiplexer.Client):
     def __init__(self, demuxer: TensorDemuxer) -> None:
         self.demuxer = demuxer
-        self.raw_updates: List[Tuple[int, float, datetime.datetime]] = []
-        self._tasks: List[asyncio.Task[Any]] = []  # Store tasks to await them
+        self.raw_updates: list[tuple[int, float, datetime.datetime]] = []
+        self._tasks: list[asyncio.Task[Any]] = []  # Store tasks to await them
 
     async def on_chunk_update(
         self,
@@ -58,9 +59,9 @@ class MultiplexerOutputHandler(TensorMultiplexer.Client):
 
 class DemuxerOutputHandler(TensorDemuxer.Client):
     def __init__(self) -> None:
-        self.reconstructed_tensors: Dict[datetime.datetime, torch.Tensor] = {}
-        self.call_log: List[Tuple[torch.Tensor, datetime.datetime]] = []
-        self._demuxer_instance: Optional[TensorDemuxer] = None
+        self.reconstructed_tensors: dict[datetime.datetime, torch.Tensor] = {}
+        self.call_log: list[tuple[torch.Tensor, datetime.datetime]] = []
+        self._demuxer_instance: TensorDemuxer | None = None
 
     def set_demuxer_instance(self, demuxer: TensorDemuxer) -> None:
         self._demuxer_instance = demuxer
@@ -375,7 +376,7 @@ async def test_data_timeout_e2e() -> None:
     assert _is_ts_present_in_demuxer_states(
         demuxer, T_COMP_0
     )  # Check Demuxer internal state
-    assert T_COMP_0 == multiplexer.history[0][0]
+    assert multiplexer.history[0][0] == T_COMP_0
 
     await asyncio.sleep(timeout_sec + 0.05)
 
@@ -412,8 +413,7 @@ async def test_data_timeout_e2e() -> None:
 
 @pytest.mark.asyncio
 async def test_deep_cascade_on_early_update_e2e() -> None:
-    """
-    Tests that an update to an early tensor in a sequence correctly
+    """Tests that an update to an early tensor in a sequence correctly
     cascades its effects through multiple subsequent tensors in both
     the multiplexer (re-emitting diffs) and the demuxer (recalculating states).
     """

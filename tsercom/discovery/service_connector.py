@@ -12,7 +12,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, Optional, Set, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_source import (
@@ -83,6 +83,7 @@ class ServiceConnector(
                     instance of the discovered service.
                 channel: The established communication channel (of type `ChannelTypeT`,
                     e.g., `grpc.aio.Channel`) to the service.
+
             """
 
     def __init__(
@@ -103,6 +104,7 @@ class ServiceConnector(
             service_source: A `ServiceSource` instance that will provide
                 information about discovered services (of type `SourceServiceInfoT`).
                 The `ServiceConnector` registers itself as a client to this source.
+
         """
         self.__client: ServiceConnector.Client = client
         self.__service_source: ServiceSource[SourceServiceInfoT] = (
@@ -112,12 +114,12 @@ class ServiceConnector(
             connection_factory
         )
 
-        self.__callers: Set[CallerIdentifier] = set()
+        self.__callers: set[CallerIdentifier] = set()
 
         # The event loop is captured on the first relevant async operation,
         # typically in _on_service_added, to ensure subsequent operations
         # are scheduled on the same loop for consistency.
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
         super().__init__()
 
@@ -153,6 +155,7 @@ class ServiceConnector(
             RuntimeError: If an event loop cannot be determined when attempting
                 to schedule the operation (should not happen if `start` has been
                 called and discovery is active).
+
         """
         if self.__event_loop is None:
             # Attempt to capture loop if not already. This might occur if mark_client_failed
@@ -190,6 +193,7 @@ class ServiceConnector(
 
         Args:
             caller_id: The `CallerIdentifier` of the client to remove.
+
         """
         assert caller_id in self.__callers, (
             f"Attempted to mark unknown caller {caller_id} as failed. "
@@ -220,6 +224,7 @@ class ServiceConnector(
             connection_info: The `ServiceInfoT` object containing details about
                 the newly discovered service.
             caller_id: The `CallerIdentifier` for the specific service instance.
+
         """
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
@@ -255,7 +260,7 @@ class ServiceConnector(
             connection_info.port,
         )
 
-        channel: Optional[ChannelTypeT] = (
+        channel: ChannelTypeT | None = (
             await self.__connection_factory.connect(
                 connection_info.addresses, connection_info.port
             )
@@ -289,7 +294,7 @@ class ServiceConnector(
         logging.info("Stopping ServiceConnector...")
 
         if hasattr(self.__service_source, "stop_discovery") and callable(
-            getattr(self.__service_source, "stop_discovery")
+            self.__service_source.stop_discovery
         ):
             try:
                 await self.__service_source.stop_discovery()
@@ -323,6 +328,7 @@ class ServiceConnector(
         Args:
             service_name: The mDNS instance name of the service that was removed.
             caller_id: The CallerIdentifier associated with the removed service.
+
         """
         _logger.info(
             f"Service {service_name} (CallerID: {caller_id}) removed. "

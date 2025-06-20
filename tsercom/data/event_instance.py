@@ -2,7 +2,7 @@
 
 import dataclasses
 from datetime import datetime
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
@@ -14,5 +14,5 @@ class EventInstance(Generic[DataTypeT]):
     """Represents a single event instance with associated data and metadata."""
 
     data: DataTypeT
-    caller_id: Optional[CallerIdentifier]
+    caller_id: CallerIdentifier | None
     timestamp: datetime

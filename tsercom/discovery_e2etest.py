@@ -1,19 +1,16 @@
 import asyncio
 import gc  # Moved import gc to top level
 import ipaddress
+import logging  # Added import
 import uuid
-from typing import Optional  # Added import
 
 import pytest
 import pytest_asyncio
+from zeroconf.asyncio import AsyncZeroconf  # Added import
 
 from tsercom.discovery.mdns.instance_listener import InstanceListener
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.service_info import ServiceInfo
-
-import logging  # Added import
-
-from zeroconf.asyncio import AsyncZeroconf  # Added import
 
 # pytest_asyncio is not directly imported but used via pytest.mark.asyncio
 from tsercom.threading.aio.global_event_loop import (
@@ -193,7 +190,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
     publisher1_obj = None
     publisher2_obj = None
     listener_obj = None
-    shared_zc: Optional[AsyncZeroconf] = None  # Initialize shared_zc
+    shared_zc: AsyncZeroconf | None = None  # Initialize shared_zc
 
     try:
         shared_zc = AsyncZeroconf()  # Create shared instance
@@ -393,10 +390,10 @@ async def test_instance_update_reflects_changes():
     listener_obj: InstanceListener | None = (
         None  # Initialize for finally block
     )
-    publisher1_obj: Optional[InstancePublisher] = None  # Type hint for clarity
-    publisher2_obj: Optional[InstancePublisher] = None  # Type hint for clarity
-    shared_zc1: Optional[AsyncZeroconf] = None
-    shared_zc2: Optional[AsyncZeroconf] = None
+    publisher1_obj: InstancePublisher | None = None  # Type hint for clarity
+    publisher2_obj: InstancePublisher | None = None  # Type hint for clarity
+    shared_zc1: AsyncZeroconf | None = None
+    shared_zc2: AsyncZeroconf | None = None
 
     try:
         _logger.info("Creating shared_zc1 for initial phase.")

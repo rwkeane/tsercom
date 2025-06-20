@@ -27,6 +27,7 @@ class ServiceType(Enum):
         SERVER: Indicates the runtime operates as a server, typically accepting
             connections, assigning `CallerIdentifier`s to clients, and acting as
             the authoritative time source.
+
     """
 
     CLIENT = 0
@@ -53,10 +54,10 @@ class RuntimeConfig(Generic[DataTypeT]):
         self,
         service_type: ServiceType,
         *,
-        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
-        timeout_seconds: Optional[int] = 60,
-        min_send_frequency_seconds: Optional[float] = None,
-        auth_config: Optional[BaseChannelAuthConfig] = None,
+        data_aggregator_client: RemoteDataAggregator.Client | None = None,
+        timeout_seconds: int | None = 60,
+        min_send_frequency_seconds: float | None = None,
+        auth_config: BaseChannelAuthConfig | None = None,
     ):
         """Initializes with ServiceType enum and optional configurations.
 
@@ -66,6 +67,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             timeout_seconds: Data timeout in seconds. Defaults to 60.
             min_send_frequency_seconds: Minimum event send interval.
             auth_config: Optional channel authentication configuration.
+
         """
         ...
 
@@ -74,10 +76,10 @@ class RuntimeConfig(Generic[DataTypeT]):
         self,
         service_type: Literal["Client", "Server"],
         *,
-        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
-        timeout_seconds: Optional[int] = 60,
-        min_send_frequency_seconds: Optional[float] = None,
-        auth_config: Optional[BaseChannelAuthConfig] = None,
+        data_aggregator_client: RemoteDataAggregator.Client | None = None,
+        timeout_seconds: int | None = 60,
+        min_send_frequency_seconds: float | None = None,
+        auth_config: BaseChannelAuthConfig | None = None,
     ):
         """Initializes with service type as string and optional configurations.
 
@@ -87,6 +89,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             timeout_seconds: Data timeout in seconds. Defaults to 60.
             min_send_frequency_seconds: Minimum event send interval.
             auth_config: Optional channel authentication configuration.
+
         """
         ...
 
@@ -97,20 +100,19 @@ class RuntimeConfig(Generic[DataTypeT]):
         Args:
             other_config: An existing `RuntimeConfig` instance to clone.
                 All other parameters will be ignored if this is provided.
+
         """
         ...
 
     def __init__(
         self,
-        service_type: Optional[
-            Literal["Client", "Server"] | ServiceType
-        ] = None,
+        service_type: Literal["Client", "Server"] | ServiceType | None = None,
         *,
         other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
-        data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
-        timeout_seconds: Optional[int] = 60,
-        min_send_frequency_seconds: Optional[float] = None,
-        auth_config: Optional[BaseChannelAuthConfig] = None,
+        data_aggregator_client: RemoteDataAggregator.Client | None = None,
+        timeout_seconds: int | None = 60,
+        min_send_frequency_seconds: float | None = None,
+        auth_config: BaseChannelAuthConfig | None = None,
     ):
         """Initializes the RuntimeConfig.
 
@@ -147,6 +149,7 @@ class RuntimeConfig(Generic[DataTypeT]):
                 or "Server".
             TypeError: If `service_type` is provided but is not a `ServiceType`
                 enum member or a valid string literal.
+
         """
         if (service_type is None) == (other_config is None):
             other_config_str = (
@@ -194,12 +197,10 @@ class RuntimeConfig(Generic[DataTypeT]):
                 "Must be ServiceType enum or string ('Client'/'Server')."
             )
 
-        self.__data_aggregator_client: Optional[
-            RemoteDataAggregator.Client  # Removed [DataTypeT]
-        ] = data_aggregator_client
-        self.__timeout_seconds: Optional[int] = timeout_seconds
-        self.__auth_config: Optional[BaseChannelAuthConfig] = auth_config
-        self.__min_send_frequency_seconds: Optional[float] = (
+        self.__data_aggregator_client: RemoteDataAggregator.Client | None = data_aggregator_client
+        self.__timeout_seconds: int | None = timeout_seconds
+        self.__auth_config: BaseChannelAuthConfig | None = auth_config
+        self.__min_send_frequency_seconds: float | None = (
             min_send_frequency_seconds
         )
 
@@ -211,6 +212,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             True if the `service_type` is `ServiceType.CLIENT`, False otherwise.
+
         """
         return self.__service_type == ServiceType.CLIENT
 
@@ -228,6 +230,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             True if the `service_type` is `ServiceType.SERVER`, False otherwise.
+
         """
         return self.__service_type == ServiceType.SERVER
 
@@ -240,41 +243,45 @@ class RuntimeConfig(Generic[DataTypeT]):
     @property
     def data_aggregator_client(
         self,
-    ) -> Optional[RemoteDataAggregator.Client]:
+    ) -> RemoteDataAggregator.Client | None:
         """The configured client for a `RemoteDataAggregator`, if any.
 
         Returns:
             The `RemoteDataAggregator.Client` instance, or `None` if no data
             aggregator client is configured.
+
         """
         return self.__data_aggregator_client
 
     @property
-    def timeout_seconds(self) -> Optional[int]:
+    def timeout_seconds(self) -> int | None:
         """The timeout duration in seconds for data items.
 
         Returns:
             The timeout in seconds, or `None` if data items should not time out.
+
         """
         return self.__timeout_seconds
 
     @property
-    def min_send_frequency_seconds(self) -> Optional[float]:
+    def min_send_frequency_seconds(self) -> float | None:
         """The minimum configured interval for sending/processing event batches.
 
         Returns:
             The minimum send frequency in seconds, or `None` if no such
             minimum is set at this configuration level.
+
         """
         return self.__min_send_frequency_seconds
 
     @property
-    def auth_config(self) -> Optional[BaseChannelAuthConfig]:
+    def auth_config(self) -> BaseChannelAuthConfig | None:
         """The channel authentication configuration.
 
         Returns:
             A `BaseChannelAuthConfig` instance defining security settings for
             gRPC channels, or `None` if insecure channels are to be used or
             no specific auth configuration is provided.
+
         """
         return self.__auth_config

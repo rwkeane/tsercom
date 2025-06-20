@@ -2,9 +2,9 @@
 
 import asyncio
 import threading
-from collections.abc import Coroutine
+from collections.abc import AsyncIterator, Callable, Coroutine
 from functools import partial
-from typing import Any, AsyncIterator, Callable, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none as default_get_running_loop_or_none,
@@ -19,8 +19,7 @@ ReturnTypeT = TypeVar("ReturnTypeT")
 
 
 class IsRunningTracker(Atomic[bool]):
-    """
-    This class provides a state-tracker to track whether the using object is
+    """This class provides a state-tracker to track whether the using object is
     running or stopped (the initial state), and utilities to work with this
     state.
 
@@ -30,12 +29,9 @@ class IsRunningTracker(Atomic[bool]):
 
     def __init__(
         self,
-        get_loop_func: Optional[
-            Callable[[], Optional[asyncio.AbstractEventLoop]]
-        ] = None,
+        get_loop_func: Callable[[], asyncio.AbstractEventLoop | None] | None = None,
     ) -> None:
-        """
-        Initializes an IsRunningTracker instance.
+        """Initializes an IsRunningTracker instance.
 
         Sets initial state to stopped, prepares asyncio events for run/stop
         states, and a lock for event loop sync.
@@ -53,28 +49,24 @@ class IsRunningTracker(Atomic[bool]):
 
     @property
     def is_running(self) -> bool:
-        """
-        Returns whether or not this instance is currently running.
+        """Returns whether or not this instance is currently running.
         """
         return self.get()
 
     def start(self) -> None:
-        """
-        Sets this instance to running at the next available opportunity. May be
+        """Sets this instance to running at the next available opportunity. May be
         called from any thread.
         """
         return self.set(True)
 
     def stop(self) -> None:
-        """
-        Sets this instance to stopped at the next available opportunity. May be
+        """Sets this instance to stopped at the next available opportunity. May be
         called from any thread.
         """
         return self.set(False)
 
     def set(self, value: bool) -> None:
-        """
-        Sets the state of this instance be running when |value| is True and
+        """Sets the state of this instance be running when |value| is True and
         stopped when |value| is False at the next available opportunity. May be
         called from any thread.
         """
@@ -103,8 +95,7 @@ class IsRunningTracker(Atomic[bool]):
             task.result()
 
     async def wait_until_started(self) -> None:
-        """
-        Waits until event loop started before continuing. May only be called
+        """Waits until event loop started before continuing. May only be called
         from a single asyncio loop with other asyncio functions of this object.
         """
         if self.get():
@@ -116,8 +107,7 @@ class IsRunningTracker(Atomic[bool]):
         await self.__running_barrier.wait()
 
     async def wait_until_stopped(self) -> None:
-        """
-        Waits until the event loop has been stopped before continuing. May only
+        """Waits until the event loop has been stopped before continuing. May only
         be called from a single asyncio loop, along with the other asyncio
         functions of this object.
         """
@@ -132,8 +122,7 @@ class IsRunningTracker(Atomic[bool]):
     async def task_or_stopped(
         self, call: Coroutine[Any, Any, ReturnTypeT]
     ) -> ReturnTypeT | None:
-        """
-        Runs |call| until completion, or until the current instance changes to
+        """Runs |call| until completion, or until the current instance changes to
         False. May only be called from a single asyncio loop with other asyncio
         functions. Returns result of |call| or None if instance stopped.
         """
@@ -167,8 +156,7 @@ class IsRunningTracker(Atomic[bool]):
     async def create_stoppable_iterator(
         self, iterator: AsyncIterator[ReturnTypeT]
     ) -> AsyncIterator[ReturnTypeT]:
-        """
-        Creates an iterator that can be used to ensure that iteration stops
+        """Creates an iterator that can be used to ensure that iteration stops
         when this instance stops running.
 
         Returns an AsyncIterator that yields items from `iterator` or None
@@ -179,6 +167,7 @@ class IsRunningTracker(Atomic[bool]):
 
         Returns:
             An async iterator that stops when this tracker is stopped.
+
         """
         await self.__ensure_event_loop_initialized()
         assert is_running_on_event_loop(self.__event_loop)
@@ -192,6 +181,7 @@ class IsRunningTracker(Atomic[bool]):
 
         Args:
             value: True for running state, False for stopped.
+
         """
         if value:
             self.__running_barrier.set()
@@ -201,8 +191,7 @@ class IsRunningTracker(Atomic[bool]):
             self.__running_barrier.clear()
 
     async def __ensure_event_loop_initialized(self) -> None:
-        """
-        Ensures that the event loop for this tracker is initialized.
+        """Ensures that the event loop for this tracker is initialized.
 
         If event loop not set, captures current running loop. Critical for
         syncing tracker's asyncio events with correct loop. Uses thread lock
@@ -233,12 +222,12 @@ class IsRunningTracker(Atomic[bool]):
             iterator: AsyncIterator[ReturnTypeT],
             tracker: "IsRunningTracker",
         ):
-            """
-            Initializes the _IteratorWrapper.
+            """Initializes the _IteratorWrapper.
 
             Args:
                 iterator: Async iterator to wrap.
                 tracker: IsRunningTracker to monitor for stop.
+
             """
             self.__iterator = iterator
             self.__tracker = tracker
@@ -246,17 +235,16 @@ class IsRunningTracker(Atomic[bool]):
         def __aiter__(
             self,
         ) -> "IsRunningTracker._IteratorWrapper[ReturnTypeT]":
-            """
-            Returns the iterator itself.
+            """Returns the iterator itself.
 
             Returns:
                 The instance of _IteratorWrapper.
+
             """
             return self
 
         async def __anext__(self) -> ReturnTypeT:
-            """
-            Retrieves the next item from the wrapped iterator.
+            """Retrieves the next item from the wrapped iterator.
 
             If the IsRunningTracker instance is stopped, this method
             raises StopAsyncIteration.
@@ -267,6 +255,7 @@ class IsRunningTracker(Atomic[bool]):
             Raises:
                 StopAsyncIteration: If the tracker is stopped or the underlying
                                    iterator is exhausted.
+
             """
             next_item_coro = anext(self.__iterator)
             # Explicitly cast to Coroutine for mypy; Awaitable should be fine.

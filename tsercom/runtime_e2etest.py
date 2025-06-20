@@ -2,6 +2,8 @@
 
 import asyncio
 import datetime
+import multiprocessing
+import os  # For checking if __main__ to avoid running this when imported by other test files
 import time
 from collections.abc import Callable
 from concurrent.futures import Future
@@ -24,10 +26,6 @@ from tsercom.threading.aio.global_event_loop import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-
-import multiprocessing
-import os  # For checking if __main__ to avoid running this when imported by other test files
-
 # Try to set the start method to 'spawn'. This should be done as early as possible.
 # Guarding with a check for __main__ or specific module name can prevent issues
 # if this file is imported by other test discovery processes.
@@ -41,9 +39,7 @@ if multiprocessing.get_start_method(allow_none=True) != "spawn":
         # This is a heuristic to avoid setting this multiple times if imported.
         # A better place might be a conftest.py if it affects many e2e tests.
         # For now, applying directly to the file mentioned in warnings.
-        if os.environ.get("PYTEST_CURRENT_TEST"):  # Check if pytest is running
-            multiprocessing.set_start_method("spawn", force=True)
-        elif __name__ == "__main__":  # If run as a script
+        if os.environ.get("PYTEST_CURRENT_TEST") or __name__ == "__main__":  # Check if pytest is running
             multiprocessing.set_start_method("spawn", force=True)
     except RuntimeError as e:
         # This can happen if the context has already been used.
@@ -1442,8 +1438,7 @@ def test_out_of_process_initializer_create_error(clear_loop_fixture):
 
 
 def test_multiple_runtimes_out_of_process(clear_loop_fixture):
-    """
-    Verify that RuntimeManager can manage multiple out-of-process runtimes,
+    """Verify that RuntimeManager can manage multiple out-of-process runtimes,
     that their data is correctly aggregated and distinguishable, and that they
     operate independently.
     """

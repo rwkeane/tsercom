@@ -8,12 +8,12 @@ and time synchronization with those remote entities.
 """
 
 import logging
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.event_instance import EventInstance
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
@@ -55,7 +55,7 @@ class ClientRuntimeDataHandler(
         thread_watcher: ThreadWatcher,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
-        min_send_frequency_seconds: Optional[float] = None,
+        min_send_frequency_seconds: float | None = None,
         *,
         is_testing: bool = False,
     ):
@@ -75,6 +75,7 @@ class ClientRuntimeDataHandler(
             is_testing: If True, configures certain components like
                 `TimeSyncTracker` to use test-specific behaviors (e.g.,
                 a fake time synchronization mechanism).
+
         """
         super().__init__(data_reader, event_source, min_send_frequency_seconds)
 
@@ -105,6 +106,7 @@ class ClientRuntimeDataHandler(
             An `EndpointDataProcessor` instance configured for communication
             with the registered remote caller, using a synchronized clock for
             that endpoint.
+
         """
         # Add to IdTracker (from base class) to associate caller_id with address
         self._id_tracker.add(caller_id, endpoint, port)
@@ -128,6 +130,7 @@ class ClientRuntimeDataHandler(
             True if the caller was found in the `IdTracker` and successfully
             unregistered (including from the clock tracker), False otherwise
             (e.g., if the `caller_id` was not found).
+
         """
         # Retrieve address details before removing from IdTracker
         # try_get by ID returns (address, port, data_poller)

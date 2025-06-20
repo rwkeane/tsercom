@@ -3,7 +3,7 @@
 import logging
 import threading
 import time
-from typing import Deque
+from collections import deque
 
 import ntplib  # type: ignore[import-untyped]
 
@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
 
 # pylint: disable=too-many-instance-attributes # State for time sync client.
 class TimeSyncClient(ClientSynchronizedClock.Client):
-    """
-    Synchronizes clocks with an NTP server.
+    """Synchronizes clocks with an NTP server.
 
     Defines client-side of NTP handshake.
     NOTE: This is a real NTP client, unlike FakeTimeSyncClient.
@@ -30,20 +29,20 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
     def __init__(
         self, watcher: ThreadWatcher, server_ip: str, ntp_port: int = kNtpPort
     ) -> None:
-        """
-        Initializes the TimeSyncClient.
+        """Initializes the TimeSyncClient.
 
         Args:
             watcher: ThreadWatcher to monitor the synchronization thread.
             server_ip: IP address of the NTP server.
             ntp_port: Port of the NTP server.
+
         """
         self.__watcher = watcher
         self.__server_ip = server_ip
         self.__ntp_port = ntp_port
         self.__sync_loop_thread: threading.Thread | None = None
         self.__time_offset_lock = threading.Lock()
-        self.__time_offsets = Deque[float]()
+        self.__time_offsets = deque[float]()
         self.__is_running = IsRunningTracker()
         self.__start_barrier = threading.Event()
 
@@ -61,6 +60,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
 
         Raises:
             AssertionError: If called after barrier set but offsets empty.
+
         """
         self.__start_barrier.wait()
         with self.__time_offset_lock:

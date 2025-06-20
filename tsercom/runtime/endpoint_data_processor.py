@@ -9,7 +9,7 @@ runtimes manage incoming data and events for individual clients or connections.
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from typing import Generic, List, Optional, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 import grpc
 
@@ -36,6 +36,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     Attributes:
         caller_id: The `CallerIdentifier` for the endpoint this processor handles.
+
     """
 
     def __init__(self, caller_id: CallerIdentifier):
@@ -44,6 +45,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         Args:
             caller_id: The unique identifier of the caller endpoint this
                 processor is associated with.
+
         """
         self.__caller_id = caller_id
 
@@ -56,7 +58,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     async def desynchronize(
         self,
         timestamp: ServerTimestamp,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> datetime | None:
         """Converts a server-side timestamp to a local, desynchronized datetime.
 
@@ -79,6 +81,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             Returns `None` if desynchronization is not possible. If `context` was
             provided and desynchronization failed, the gRPC call would have been
             aborted before returning `None`.
+
         """
 
     @abstractmethod
@@ -101,6 +104,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
         Args:
             data: The data item of type `DataTypeT` to process.
+
         """
 
     @overload
@@ -111,6 +115,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             data: The data item of type `DataTypeT` to process.
             timestamp: The `datetime` object associated with the data. It is
                 assumed to be an aware datetime object (e.g., in UTC).
+
         """
 
     @overload
@@ -118,7 +123,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         self,
         data: DataTypeT,
         timestamp: ServerTimestamp,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> None:
         """Processes incoming data with a `ServerTimestamp`.
 
@@ -132,13 +137,14 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             timestamp: The `ServerTimestamp` associated with the data.
             context: Optional. The `grpc.aio.ServicerContext` for a gRPC call,
                 used for potentially aborting the call if timestamp desynchronization fails.
+
         """
 
     async def process_data(
         self,
         data: DataTypeT,
         timestamp: datetime | ServerTimestamp | None = None,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> None:
         """Processes incoming data, handling timestamp normalization and delegation.
 
@@ -164,6 +170,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             context: Optional. The `grpc.aio.ServicerContext` for the current
                 gRPC call. If provided and timestamp desynchronization from a
                 `ServerTimestamp` fails, the gRPC call will be aborted.
+
         """
         actual_timestamp: datetime
         if timestamp is None:
@@ -197,12 +204,13 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             data: The data item of type `DataTypeT` to be processed.
             timestamp: The synchronized and normalized `datetime` object (UTC)
                 associated with the data.
+
         """
 
     @abstractmethod
     def __aiter__(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+    ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
         """Returns an asynchronous iterator for events specific to this endpoint.
 
         Subclasses must implement this to provide a mechanism for consuming

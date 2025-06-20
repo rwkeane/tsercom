@@ -1,6 +1,7 @@
-import grpc
 import subprocess
 from typing import TYPE_CHECKING
+
+import grpc
 
 if not TYPE_CHECKING:
     try:
@@ -29,10 +30,10 @@ if not TYPE_CHECKING:
             StreamDataResponse,
         )
         from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc import (
-            E2ETestServiceStub,
-            E2ETestServiceServicer,
-            add_E2ETestServiceServicer_to_server,
             E2ETestService,
+            E2ETestServiceServicer,
+            E2ETestServiceStub,
+            add_E2ETestServiceServicer_to_server,
         )
     elif version_string == "v1_70":
         from tsercom.test.proto.generated.v1_70.e2e_test_service_pb2 import (
@@ -42,10 +43,10 @@ if not TYPE_CHECKING:
             StreamDataResponse,
         )
         from tsercom.test.proto.generated.v1_70.e2e_test_service_pb2_grpc import (
-            E2ETestServiceStub,
-            E2ETestServiceServicer,
-            add_E2ETestServiceServicer_to_server,
             E2ETestService,
+            E2ETestServiceServicer,
+            E2ETestServiceStub,
+            add_E2ETestServiceServicer_to_server,
         )
     else:
         # The 'name' variable for the error message is 'e2e_test_service'
@@ -68,14 +69,14 @@ else:  # When TYPE_CHECKING
         StreamDataResponse as StreamDataResponse,
     )
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc import (
-        E2ETestServiceStub as E2ETestServiceStub,
+        E2ETestService as E2ETestService,
     )
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc import (
         E2ETestServiceServicer as E2ETestServiceServicer,
     )
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc import (
-        add_E2ETestServiceServicer_to_server as add_E2ETestServiceServicer_to_server,
+        E2ETestServiceStub as E2ETestServiceStub,
     )
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc import (
-        E2ETestService as E2ETestService,
+        add_E2ETestServiceServicer_to_server as add_E2ETestServiceServicer_to_server,
     )

@@ -2,7 +2,6 @@
 
 import bisect
 import datetime
-from typing import Optional, Tuple
 
 import torch
 
@@ -14,15 +13,13 @@ from tsercom.tensor.serialization.serializable_tensor import (
 )
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
-
 # Using a type alias for clarity
 TensorHistoryValue = torch.Tensor
-TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue]
+TimestampedTensor = tuple[datetime.datetime, TensorHistoryValue]
 
 
 class SparseTensorMultiplexer(TensorMultiplexer):
-    """
-    Multiplexes tensor updates into granular, serializable messages.
+    """Multiplexes tensor updates into granular, serializable messages.
 
     Handles out-of-order tensor snapshots and calls a client with index-level
     updates. If an out-of-order tensor is inserted or an existing tensor is
@@ -38,17 +35,17 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
-        """
-        Initializes the SparseTensorMultiplexer.
+        """Initializes the SparseTensorMultiplexer.
 
         Args:
             client: The client to notify of index updates.
             tensor_length: The expected length of the tensors.
             clock: The synchronized clock instance.
             data_timeout_seconds: How long to keep tensor data before it's considered stale.
+
         """
         super().__init__(client, tensor_length, clock, data_timeout_seconds)
-        self.__latest_processed_timestamp: Optional[datetime.datetime] = None
+        self.__latest_processed_timestamp: datetime.datetime | None = None
 
     def _cleanup_old_data(
         self, current_max_timestamp: datetime.datetime
@@ -77,7 +74,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     def _get_tensor_state_before(
         self,
         timestamp: datetime.datetime,
-        current_insertion_point: Optional[int] = None,
+        current_insertion_point: int | None = None,
     ) -> TensorHistoryValue:
         idx_of_timestamp_entry = (
             current_insertion_point
@@ -94,8 +91,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         new_tensor: TensorHistoryValue,
         timestamp: datetime.datetime,
     ) -> None:
-        """
-        Calculates the difference between two tensor states, groups contiguous changes
+        """Calculates the difference between two tensor states, groups contiguous changes
         into `SerializableTensorChunk` objects, and emits them to the client.
         """
         if len(old_tensor) != len(new_tensor):
@@ -145,8 +141,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """
-        Processes a new tensor snapshot, handling out-of-order updates and history management.
+        """Processes a new tensor snapshot, handling out-of-order updates and history management.
 
         This method calculates differences against the previous relevant tensor state,
         emits these changes as chunks, and manages a cascading update for subsequent
@@ -235,6 +230,6 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     # Method for test access only
     def get_latest_processed_timestamp_for_testing(
         self,
-    ) -> Optional[datetime.datetime]:
+    ) -> datetime.datetime | None:
         """Gets the latest processed timestamp for testing purposes."""
         return self.__latest_processed_timestamp

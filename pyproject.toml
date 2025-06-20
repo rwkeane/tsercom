@@ -64,6 +64,8 @@ Documentation = "https://github.com/rwkeane/tsercom"
 Repository = "https://github.com/rwkeane/tsercom"
 Issues = "https://github.com/rwkeane/tsercom/issues"
 
+# BUILDING THE PROJECT
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tsercom*"]
@@ -77,13 +79,32 @@ include-package-data = true # To let me include protos
 write_to = "tsercom/_version.py"
 write_to_template = "__version__ = '{version}'"
 
+# BLACK SETTINGS
+
 [tool.black]
 line-length = 79
+
+# RUFF SETTINGS
 
 [tool.ruff]
 line-length = 79  # Must match Black's line-length
 
 [tool.ruff.lint]
+# Select all the recommended rule sets.
+select = [
+    "F",  # Pyflakes (finds unused imports, undefined names)
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings (enable for full PEP 8)
+    "I",  # isort (import sorting)
+    "B",  # flake8-bugbear (finds likely bugs)
+    "UP", # pyupgrade (modernize syntax)
+    "S",  # bandit (security checks)
+    "SIM",# flake8-simplify (suggests simpler code)
+    "T20",# flake8-print (finds leftover print statements)
+    "TID",# flake8-tidy-imports (enforce import styles)
+    "D",  # pydocstyle (docstring conventions)
+]
+
 exclude = [
     ".git",
     "__pycache__",
@@ -95,7 +116,16 @@ exclude = [
     "**/*_pb2_grpc.py", # Clearer exclusion
     "**/*_unittest.py", # Clearer exclusion
 ]
+
+# Allow ruff's auto-fix for all enabled rules.
 fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+# Ensure ruff's isort implementation knows where your source code starts.
+known-first-party = ["tsercom"]
+
+# PYTEST SETTINGS
 
 [tool.pytest.ini_options]
 python_files = [
@@ -121,6 +151,8 @@ filterwarnings = [
     "ignore:cannot collect test class 'TestConnectionResponse'.*has a __init__ constructor:pytest.PytestCollectionWarning",
     "ignore:cannot collect test class 'E2ETestServiceStub'.*has a __init__ constructor:pytest.PytestCollectionWarning",
 ]
+
+# MYPY SETTINGS
 
 [tool.mypy]
 strict = true
@@ -170,6 +202,8 @@ disable_error_code = ["attr-defined"]
 module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*" ]  # Target the grpc module and its submodules
 ignore_missing_imports = true
 
+# PYLINT SETTINGS
+
 [tool.pylint.MASTER]
 # Comma-separated list of glob patterns for files/directories to ignore.
 # This list consolidates exclusions from Ruff, Mypy, and setuptools configurations.
@@ -208,6 +242,8 @@ disable = [
     "W0511",
     "W2301",
 ]
+
+# CODE COVERAGE SETTINGS
 
 [tool.coverage.run]
 source = ["tsercom"]

@@ -14,6 +14,7 @@ def get_client_ip(context: "grpc.aio.ServicerContext") -> str | None:
     Returns:
         The client's IP address as a string, or 'localhost' for Unix sockets.
         Returns None if the address format is unknown.
+
     """
     peer_address = context.peer()
 
@@ -38,6 +39,7 @@ def get_client_port(context: "grpc.aio.ServicerContext") -> int | None:
 
     Returns:
         The client's port number as an integer, or None if it cannot be parsed.
+
     """
     peer_address = context.peer()
 

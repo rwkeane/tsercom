@@ -1,5 +1,5 @@
 import asyncio
-from typing import Generator  # Added for type hint
+from collections.abc import Generator  # Added for type hint
 
 import pytest
 from pytest import FixtureRequest  # Added for type hint

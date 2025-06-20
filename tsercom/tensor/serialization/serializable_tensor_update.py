@@ -1,4 +1,4 @@
-from typing import List, Type, TypeVar, Optional
+from typing import TypeVar
 
 import torch
 
@@ -13,12 +13,11 @@ STU = TypeVar("STU", bound="SerializableTensorUpdate")
 
 
 class SerializableTensorUpdate:
-    """
-    Represents a collection of tensor chunks, typically for an update operation
+    """Represents a collection of tensor chunks, typically for an update operation
     or as part of a tensor initialization state.
     """
 
-    def __init__(self, chunks: List[SerializableTensorChunk]):
+    def __init__(self, chunks: list[SerializableTensorChunk]):
         self._chunks = chunks
 
     def to_grpc_type(self) -> TensorUpdate:
@@ -28,12 +27,11 @@ class SerializableTensorUpdate:
 
     @classmethod
     def try_parse(
-        cls: Type[STU],
+        cls: type[STU],
         grpc_msg: TensorUpdate,
         dtype: torch.dtype,
-    ) -> Optional[STU]:
-        """
-        Attempts to parse a TensorUpdate protobuf message.
+    ) -> STU | None:
+        """Attempts to parse a TensorUpdate protobuf message.
 
         Args:
             grpc_msg: The protobuf message to parse.
@@ -44,6 +42,7 @@ class SerializableTensorUpdate:
             any constituent chunk fails to parse and the original message had chunks.
             Returns an instance with an empty list of chunks if the input message
             had no chunks.
+
         """
         parsed_chunks_potentially_none = [
             SerializableTensorChunk.try_parse(chunk_msg, dtype=dtype)
@@ -62,5 +61,5 @@ class SerializableTensorUpdate:
         return cls(chunks=parsed_chunks)
 
     @property
-    def chunks(self) -> List[SerializableTensorChunk]:
+    def chunks(self) -> list[SerializableTensorChunk]:
         return self._chunks

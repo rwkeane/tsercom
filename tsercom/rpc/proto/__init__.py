@@ -1,6 +1,7 @@
-import grpc
 import subprocess
 from typing import TYPE_CHECKING
+
+import grpc
 
 if not TYPE_CHECKING:
     try:
@@ -28,15 +29,15 @@ if not TYPE_CHECKING:
         )
     elif version_string == "v1_72":
         from tsercom.rpc.proto.generated.v1_72.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_71":
         from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_70":
         from tsercom.rpc.proto.generated.v1_70.common_pb2 import (
@@ -45,51 +46,51 @@ if not TYPE_CHECKING:
         )
     elif version_string == "v1_69":
         from tsercom.rpc.proto.generated.v1_69.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_68":
         from tsercom.rpc.proto.generated.v1_68.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_67":
         from tsercom.rpc.proto.generated.v1_67.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_66":
         from tsercom.rpc.proto.generated.v1_66.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_65":
         from tsercom.rpc.proto.generated.v1_65.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_64":
         from tsercom.rpc.proto.generated.v1_64.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_63":
         from tsercom.rpc.proto.generated.v1_63.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     elif version_string == "v1_62":
         from tsercom.rpc.proto.generated.v1_62.common_pb2 import (
+            Tensor,
             TestConnectionCall,
             TestConnectionResponse,
-            Tensor,
         )
     else:
         # The 'name' variable for the error message is 'common'

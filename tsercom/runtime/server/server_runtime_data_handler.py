@@ -8,12 +8,12 @@ truth for time, providing a synchronized clock for its clients, often through
 a `TimeSyncServer`.
 """
 
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.event_instance import EventInstance
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.threading.aio.async_poller import AsyncPoller
@@ -49,7 +49,7 @@ class ServerRuntimeDataHandler(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
-        min_send_frequency_seconds: Optional[float] = None,
+        min_send_frequency_seconds: float | None = None,
         *,
         is_testing: bool = False,
     ):
@@ -66,11 +66,12 @@ class ServerRuntimeDataHandler(
             is_testing: If True, a `FakeSynchronizedClock` is used as the time
                 source. Otherwise, a `TimeSyncServer` is started to provide
                 time synchronization to clients.
+
         """
         super().__init__(data_reader, event_source, min_send_frequency_seconds)
 
         self.__clock: SynchronizedClock
-        self.__server: Optional[TimeSyncServer] = (
+        self.__server: TimeSyncServer | None = (
             None  # Store server if created
         )
 
@@ -102,6 +103,7 @@ class ServerRuntimeDataHandler(
         Returns:
             An `EndpointDataProcessor` instance configured for communication
             with the registered client caller, using the server\'s authoritative clock.
+
         """
         self._id_tracker.add(caller_id, endpoint, port)
         return self._create_data_processor(caller_id, self.__clock)
@@ -120,6 +122,7 @@ class ServerRuntimeDataHandler(
 
         Returns:
             False, indicating the caller is not actively removed by this method.
+
         """
         # To fully remove, one might call:
         return False

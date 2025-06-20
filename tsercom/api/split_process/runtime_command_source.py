@@ -3,7 +3,6 @@
 import logging
 import threading
 from functools import partial
-from typing import Optional  # For Optional[ThreadWatcher]
 
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.runtime.runtime import Runtime
@@ -32,12 +31,13 @@ class RuntimeCommandSource:
 
         Args:
             runtime_command_queue: Queue for receiving `RuntimeCommand` objects.
+
         """
         self.__runtime_command_queue = runtime_command_queue
         self.__is_running: IsRunningTracker | None = None
         self.__runtime: Runtime | None = None
         self.__command_thread: threading.Thread | None = None
-        self.__thread_watcher: Optional[ThreadWatcher] = None
+        self.__thread_watcher: ThreadWatcher | None = None
 
     def start_async(
         self, thread_watcher: ThreadWatcher, runtime: Runtime
@@ -53,6 +53,7 @@ class RuntimeCommandSource:
 
         Raises:
             AssertionError: If called multiple times or state is inconsistent.
+
         """
         # Ensure that start_async is called only once and in a valid state.
         # Long but readable assertion message
@@ -129,6 +130,7 @@ class RuntimeCommandSource:
 
         Raises:
             AssertionError: If not running or internal state inconsistent.
+
         """
         RuntimeCommandSource.logger.info(
             "RuntimeCommandSource.stop_async() called"

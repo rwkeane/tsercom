@@ -61,6 +61,7 @@ class RemoteRuntimeFactory(
             event_source_queue: Queue source for receiving EventInstances.
             data_reader_queue: Queue sink for sending AnnotatedInstances.
             command_source_queue: Queue source for receiving RuntimeCommands.
+
         """
         super().__init__(other_config=initializer)
         self._initializer_instance = initializer
@@ -97,6 +98,7 @@ class RemoteRuntimeFactory(
 
         Returns:
             A `DataReaderSink` instance.
+
         """
         # Note: Base `RuntimeFactory` expects RemoteDataReader[AnnotatedInstance[DataTypeT]].
         # DataReaderSink is compatible.
@@ -113,6 +115,7 @@ class RemoteRuntimeFactory(
 
         Returns:
             An `EventSource` instance.
+
         """
         if self.__event_source is None:
             self.__event_source = EventSource(self.__event_source_queue)
@@ -136,6 +139,7 @@ class RemoteRuntimeFactory(
 
         Returns:
             Created Runtime instance, configured for remote operation.
+
         """
         runtime = self._initializer_instance.create(
             thread_watcher=thread_watcher,

@@ -51,6 +51,7 @@ class RateLimiterImpl(RateLimiter):
 
         Raises:
             ValueError: If `interval_seconds` is negative.
+
         """
         super().__init__()  # Call superclass __init__
         if interval_seconds < 0:

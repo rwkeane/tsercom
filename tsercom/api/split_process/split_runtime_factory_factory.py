@@ -1,7 +1,7 @@
 """Factory for creating split-process runtime factories and handles."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, TypeVar, get_args
+from typing import TypeVar, get_args
 
 import torch
 
@@ -26,14 +26,14 @@ from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
 )
-from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
-    TorchMultiprocessQueueFactory,
-)
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
+)
+from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
+    TorchMultiprocessQueueFactory,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
@@ -58,6 +58,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             thread_pool: ThreadPoolExecutor for async tasks (e.g. data aggregator).
             thread_watcher: ThreadWatcher to monitor threads from components
                             like ShimRuntimeHandle.
+
         """
         super().__init__()
 
@@ -66,7 +67,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
     def _create_pair(
         self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
-    ) -> Tuple[
+    ) -> tuple[
         RuntimeHandle[DataTypeT, EventTypeT],
         RuntimeFactory[DataTypeT, EventTypeT],
     ]:
@@ -81,6 +82,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
         Returns:
             A tuple: (ShimRuntimeHandle, RemoteRuntimeFactory).
+
         """
         # --- Dynamic queue factory selection ---
         resolved_data_type = None

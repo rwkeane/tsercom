@@ -1,7 +1,6 @@
 """Selects and manages gRPC channel factories based on configuration."""
 
 import logging
-from typing import Optional
 
 from tsercom.rpc.grpc_util.channel_auth_config import (
     BaseChannelAuthConfig,
@@ -38,15 +37,14 @@ class ChannelFactorySelector:
         try:
             with open(file_path, "rb") as f:
                 return f.read()
-        except IOError as e:
+        except OSError as e:
             logger.error("Error reading file %s: %s", file_path, e)
             raise  # Re-raise the exception to be handled by the caller
 
     def create_factory(
-        self, auth_config: Optional[BaseChannelAuthConfig]
+        self, auth_config: BaseChannelAuthConfig | None
     ) -> GrpcChannelFactory:
-        """
-        Creates an instance of a GrpcChannelFactory based on the provided
+        """Creates an instance of a GrpcChannelFactory based on the provided
         ChannelAuthConfig.
 
         Args:
@@ -59,6 +57,7 @@ class ChannelFactorySelector:
         Raises:
             ValueError: If a BaseChannelAuthConfig subclass is provided but
                         is not recognized, or files not accessible.
+
         """
         if auth_config is None or isinstance(
             auth_config, InsecureChannelConfig

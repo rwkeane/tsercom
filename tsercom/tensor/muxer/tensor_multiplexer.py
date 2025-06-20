@@ -4,13 +4,9 @@ import abc
 import asyncio
 import bisect
 import datetime
-from typing import (
-    List,
-    Tuple,
-    Optional,
-)
 
 import torch
+
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
 )
@@ -18,28 +14,26 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 # Using a type alias for clarity, though not strictly necessary for the ABC itself
 TensorHistoryValue = torch.Tensor
-TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue]
+TimestampedTensor = tuple[datetime.datetime, TensorHistoryValue]
 
 
 class TensorMultiplexer(abc.ABC):
-    """
-    Abstract base class for multiplexing tensor updates.
+    """Abstract base class for multiplexing tensor updates.
     """
 
     class Client(abc.ABC):  # pylint: disable=too-few-public-methods
-        """
-        Client interface for TensorMultiplexer to report index updates.
+        """Client interface for TensorMultiplexer to report index updates.
         """
 
         @abc.abstractmethod
         async def on_chunk_update(
             self, chunk: "SerializableTensorChunk"
         ) -> None:
-            """
-            Called when a new tensor chunk is available.
+            """Called when a new tensor chunk is available.
 
             Args:
                 chunk: The `SerializableTensorChunk` containing the update.
+
             """
             raise NotImplementedError
 
@@ -50,14 +44,14 @@ class TensorMultiplexer(abc.ABC):
         clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
-        """
-        Initializes the TensorMultiplexer.
+        """Initializes the TensorMultiplexer.
 
         Args:
             client: The client to notify of index updates.
             tensor_length: The expected length of the tensors.
             clock: The synchronized clock instance.
             data_timeout_seconds: How long to keep tensor data (subclass responsibility).
+
         """
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
@@ -73,7 +67,7 @@ class TensorMultiplexer(abc.ABC):
         self.__lock = asyncio.Lock()
         # Placeholder for type hinting and get_tensor_at_timestamp.
         # Subclasses are responsible for managing the actual history.
-        self.__history: List[TimestampedTensor] = []
+        self.__history: list[TimestampedTensor] = []
 
     @property
     def lock(self) -> asyncio.Lock:
@@ -81,7 +75,7 @@ class TensorMultiplexer(abc.ABC):
         return self.__lock
 
     @property
-    def history(self) -> List[TimestampedTensor]:
+    def history(self) -> list[TimestampedTensor]:
         """Provides access to the tensor history list."""
         return self.__history
 
@@ -109,17 +103,15 @@ class TensorMultiplexer(abc.ABC):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """
-        Processes a new tensor snapshot at a given timestamp.
+        """Processes a new tensor snapshot at a given timestamp.
         Subclasses must implement how the tensor is processed and how diffs are emitted.
         """
         raise NotImplementedError
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Optional[torch.Tensor]:
-        """
-        Retrieves a clone of the tensor snapshot for a specific timestamp.
+    ) -> torch.Tensor | None:
+        """Retrieves a clone of the tensor snapshot for a specific timestamp.
 
         This method assumes that `self._history` is a list of tuples
         (timestamp, tensor_data), sorted by timestamp. Subclasses are
@@ -130,6 +122,7 @@ class TensorMultiplexer(abc.ABC):
 
         Returns:
             A clone of the tensor if the timestamp exists in history, else None.
+
         """
         async with self.__lock:
             # Assumes self.__history is sorted by timestamp for efficient lookup using bisect.

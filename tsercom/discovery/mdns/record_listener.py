@@ -3,12 +3,13 @@
 import asyncio
 import logging
 import uuid
-from typing import Optional
+
 from zeroconf import Zeroconf
 from zeroconf.asyncio import (
     AsyncServiceBrowser,
     AsyncZeroconf,
 )
+
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 
 
@@ -23,7 +24,7 @@ class RecordListener(MdnsListener):
         self,
         client: MdnsListener.Client,
         service_type: str,
-        zc_instance: Optional[AsyncZeroconf] = None,
+        zc_instance: AsyncZeroconf | None = None,
     ) -> None:
         """Initializes the RecordListener.
 
@@ -35,6 +36,7 @@ class RecordListener(MdnsListener):
         Raises:
             ValueError: If args invalid or service_type missing leading '_'.
             TypeError: If args are not of expected types.
+
         """
         if client is None:
             raise ValueError("Client cannot be None for RecordListener.")

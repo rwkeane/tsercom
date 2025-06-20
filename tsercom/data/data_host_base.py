@@ -1,6 +1,6 @@
 """DataHostBase: reusable base for DataHost & RemoteDataReader."""
 
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from tsercom.data.data_host import DataHost
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -29,7 +29,7 @@ class DataHostBase(
     def __init__(
         self,
         watcher: ThreadWatcher,
-        aggregation_client: Optional[RemoteDataAggregator.Client] = None,
+        aggregation_client: RemoteDataAggregator.Client | None = None,
         timeout_seconds: int = 60,
         *args: Any,
         **kwargs: Any,
@@ -44,13 +44,14 @@ class DataHostBase(
                              timeout tracking disabled.
             *args: Variable length arguments for superclass.
             **kwargs: Keyword arguments for superclass.
+
         """
         # This ensures sequential processing of data aggregation tasks.
         thread_pool = watcher.create_tracked_thread_pool_executor(
             max_workers=1
         )
 
-        tracker: Optional[DataTimeoutTracker] = None
+        tracker: DataTimeoutTracker | None = None
         if timeout_seconds > 0:
             tracker = DataTimeoutTracker(timeout_seconds)
             tracker.start()
@@ -77,6 +78,7 @@ class DataHostBase(
 
         Args:
             new_data: The new data item that has become available.
+
         """
         # pylint: disable=W0212 # Calling client's data ready method
         self.__aggregator._on_data_ready(new_data)
@@ -88,5 +90,6 @@ class DataHostBase(
 
         Returns:
             The `RemoteDataAggregator[DataTypeT]` instance used by this host.
+
         """
         return self.__aggregator

@@ -1,7 +1,8 @@
 """Manages mDNS service discovery and notifies clients of services."""
 
 import logging
-from typing import Callable, Dict, Generic, Optional, overload
+from collections.abc import Callable
+from typing import Generic, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.mdns.instance_listener import (
@@ -33,6 +34,7 @@ class DiscoveryHost(
         Args:
             service_type: The mDNS service type string to discover
                           (e.g., "_my_service._tcp.local.").
+
         """
         ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
 
@@ -53,6 +55,7 @@ class DiscoveryHost(
             instance_listener_factory: A callable that takes an
                 `InstanceListener.Client` (which will be this DiscoveryHost instance)
                 and returns an `InstanceListener[ServiceInfoT]` instance.
+
         """
         ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
 
@@ -68,20 +71,16 @@ class DiscoveryHost(
 
         Args:
             mdns_listener_factory: A callable to create a new MdnsListener.
+
         """
         ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
 
     def __init__(
         self,
         *,
-        service_type: Optional[str] = None,
-        instance_listener_factory: Optional[
-            Callable[
-                [InstanceListener.Client],
-                InstanceListener[ServiceInfoT],
-            ]
-        ] = None,
-        mdns_listener_factory: Optional[MdnsListenerFactory] = None,
+        service_type: str | None = None,
+        instance_listener_factory: Callable[[InstanceListener.Client], InstanceListener[ServiceInfoT]] | None = None,
+        mdns_listener_factory: MdnsListenerFactory | None = None,
     ) -> None:
         """Initializes DiscoveryHost. Overloaded: use one keyword arg.
 
@@ -93,6 +92,7 @@ class DiscoveryHost(
 
         Raises:
             ValueError: If neither or both args provided.
+
         """
         # Ensure exclusive provision of service_type or factory
         num_modes_selected = sum(
@@ -134,9 +134,9 @@ class DiscoveryHost(
 
             self.__instance_listener_factory = instance_factory
 
-        self.__discoverer: Optional[InstanceListener[ServiceInfoT]] = None
-        self.__client: Optional[ServiceSource.Client] = None
-        self.__caller_id_map: Dict[str, CallerIdentifier] = {}
+        self.__discoverer: InstanceListener[ServiceInfoT] | None = None
+        self.__client: ServiceSource.Client | None = None
+        self.__caller_id_map: dict[str, CallerIdentifier] = {}
 
     async def start_discovery(self, client: ServiceSource.Client) -> None:
         """Starts service discovery.
@@ -146,6 +146,7 @@ class DiscoveryHost(
 
         Args:
             client: `ServiceSource.Client` for discovery notifications.
+
         """
         await self.__start_discovery_impl(client)
 
@@ -164,6 +165,7 @@ class DiscoveryHost(
         Raises:
             ValueError: If the provided `client` is None.
             RuntimeError: If discovery has already been started.
+
         """
         if client is None:
             raise ValueError(
@@ -212,6 +214,7 @@ class DiscoveryHost(
 
         Raises:
             RuntimeError: If `DiscoveryHost` client not set (start_discovery issue).
+
         """
         if self.__client is None:
             # Programming error: discovery should have been started with a client.
@@ -242,6 +245,7 @@ class DiscoveryHost(
 
         Args:
             service_name: The mDNS instance name of the service that was removed.
+
         """
         logging.info("Service removed by DiscoveryHost: %s", service_name)
         caller_id = self.__caller_id_map.pop(service_name, None)
@@ -255,7 +259,7 @@ class DiscoveryHost(
 
         if caller_id:
             if hasattr(self.__client, "_on_service_removed") and callable(
-                getattr(self.__client, "_on_service_removed")
+                self.__client._on_service_removed
             ):
                 # pylint: disable=protected-access, W0212
                 await self.__client._on_service_removed(
@@ -278,11 +282,11 @@ class DiscoveryHost(
         logging.info("Stopping DiscoveryHost...")
         if self.__discoverer is not None:
             if hasattr(self.__discoverer, "async_stop") and callable(
-                getattr(self.__discoverer, "async_stop")
+                self.__discoverer.async_stop
             ):
                 await self.__discoverer.async_stop()
             elif hasattr(self.__discoverer, "stop") and callable(
-                getattr(self.__discoverer, "stop")
+                self.__discoverer.stop
             ):
                 self.__discoverer.stop()
             self.__discoverer = None

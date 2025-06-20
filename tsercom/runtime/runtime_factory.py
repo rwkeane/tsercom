@@ -61,6 +61,7 @@ class RuntimeFactory(
 
         Returns:
             A `RemoteDataReader` instance.
+
         """
 
     @abstractmethod
@@ -73,9 +74,9 @@ class RuntimeFactory(
 
         Returns:
             An `AsyncPoller` instance.
+
         """
 
     def _stop(self) -> None:
-        """
-        Stops any underlying calls and executions associated with this instance.
+        """Stops any underlying calls and executions associated with this instance.
         """

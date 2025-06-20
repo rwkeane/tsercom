@@ -9,7 +9,7 @@ for collecting and accessing data from multiple remote endpoints.
 import datetime
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Generic, List, Optional, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -42,13 +42,14 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client] = None,
+        client: RemoteDataAggregator.Client | None = None,
     ):
         """Initializes with thread pool and optional client.
 
         Args:
             thread_pool: Executor for asynchronous tasks.
             client: Optional client for data event callbacks.
+
         """
         ...
 
@@ -56,7 +57,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client] = None,
+        client: RemoteDataAggregator.Client | None = None,
         *,
         tracker: DataTimeoutTracker,
     ):
@@ -66,6 +67,7 @@ class RemoteDataAggregatorImpl(
             thread_pool: Executor for asynchronous tasks.
             client: Optional client for data event callbacks.
             tracker: Custom `DataTimeoutTracker` instance.
+
         """
         ...
 
@@ -73,7 +75,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client] = None,
+        client: RemoteDataAggregator.Client | None = None,
         *,
         timeout: int,
     ):
@@ -85,16 +87,17 @@ class RemoteDataAggregatorImpl(
             thread_pool: Executor for asynchronous tasks.
             client: Optional client for data event callbacks.
             timeout: Timeout duration in seconds for data tracking.
+
         """
         ...
 
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client] = None,
+        client: RemoteDataAggregator.Client | None = None,
         *,
-        tracker: Optional[DataTimeoutTracker] = None,
-        timeout: Optional[int] = None,
+        tracker: DataTimeoutTracker | None = None,
+        timeout: int | None = None,
     ) -> None:
         """Initializes the RemoteDataAggregatorImpl.
 
@@ -116,6 +119,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             AssertionError: If both `tracker` and `timeout` are provided.
+
         """
         assert not (
             timeout is not None and tracker is not None
@@ -129,13 +133,13 @@ class RemoteDataAggregatorImpl(
         self.__client = client
         self.__tracker = tracker
 
-        self.__organizers: Dict[
+        self.__organizers: dict[
             CallerIdentifier, RemoteDataOrganizer[DataTypeT]
         ] = {}
         self.__lock: threading.Lock = threading.Lock()
 
     def stop(
-        self, identifier: Optional[CallerIdentifier] = None
+        self, identifier: CallerIdentifier | None = None
     ) -> None:  # Renamed id to identifier
         """Stops data processing for one or all callers.
 
@@ -147,6 +151,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but not found among active organizers.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -163,11 +168,12 @@ class RemoteDataAggregatorImpl(
 
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     @overload
-    def has_new_data(self) -> Dict[CallerIdentifier, bool]:
+    def has_new_data(self) -> dict[CallerIdentifier, bool]:
         """Checks for new data for all callers.
 
         Returns:
             Dict[CallerIdentifier, bool]: True if new data for a caller.
+
         """
         ...
 
@@ -180,12 +186,13 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             bool: True if new data is available, False otherwise.
+
         """
         ...
 
     def has_new_data(
-        self, identifier: Optional[CallerIdentifier] = None
-    ) -> Dict[CallerIdentifier, bool] | bool:
+        self, identifier: CallerIdentifier | None = None
+    ) -> dict[CallerIdentifier, bool] | bool:
         """Checks for new data for one or all callers.
 
         Args:
@@ -196,6 +203,7 @@ class RemoteDataAggregatorImpl(
             If `identifier` is provided, returns a boolean indicating if new data is available for that caller (returns False if the `identifier` is not found).
             If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
             to a boolean.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -211,16 +219,17 @@ class RemoteDataAggregatorImpl(
 
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     @overload
-    def get_new_data(self) -> Dict[CallerIdentifier, List[DataTypeT]]:
+    def get_new_data(self) -> dict[CallerIdentifier, list[DataTypeT]]:
         """Retrieves all new data items for all callers.
 
         Returns:
             Dict[CallerIdentifier, List[DataTypeT]]: New data from each caller.
+
         """
         ...
 
     @overload
-    def get_new_data(self, identifier: CallerIdentifier) -> List[DataTypeT]:
+    def get_new_data(self, identifier: CallerIdentifier) -> list[DataTypeT]:
         """Retrieves all new data items for a specific caller.
 
         Args:
@@ -228,12 +237,13 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             List[DataTypeT]: New data items from the specified caller.
+
         """
         ...
 
     def get_new_data(
-        self, identifier: Optional[CallerIdentifier] = None
-    ) -> Dict[CallerIdentifier, List[DataTypeT]] | List[DataTypeT]:
+        self, identifier: CallerIdentifier | None = None
+    ) -> dict[CallerIdentifier, list[DataTypeT]] | list[DataTypeT]:
         """Retrieves new data for one or all callers.
 
         Args:
@@ -247,6 +257,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but not found.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -265,20 +276,21 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_most_recent_data(
         self,
-    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]:
+    ) -> dict[CallerIdentifier, DataTypeT | None]:
         """Retrieves the most recent data item for all callers.
 
         Returns `None` for a caller if no data or if timed out.
 
         Returns:
             Dict[CallerIdentifier, Optional[DataTypeT]]: Most recent data or None.
+
         """
         ...
 
     @overload
     def get_most_recent_data(
         self, identifier: CallerIdentifier
-    ) -> Optional[DataTypeT]:
+    ) -> DataTypeT | None:
         """Retrieves the most recent data item for a specific caller.
 
         Returns `None` if no data for this caller or if timed out.
@@ -288,13 +300,14 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Optional[DataTypeT]: The most recent data item or `None`.
+
         """
         ...
 
     # pylint: disable=arguments-differ # Signature matches base, Pylint false positive with @overload
     def get_most_recent_data(
-        self, identifier: Optional[CallerIdentifier] = None
-    ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
+        self, identifier: CallerIdentifier | None = None
+    ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves the most recent data for one or all callers.
 
         Args:
@@ -309,6 +322,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but not found.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -327,7 +341,7 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]:
+    ) -> dict[CallerIdentifier, DataTypeT | None]:
         """Retrieves data before or at `timestamp` for all callers.
 
         Returns `None` for a caller if no suitable data exists.
@@ -337,13 +351,14 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Dict[CallerIdentifier, Optional[DataTypeT]]: Relevant data or None.
+
         """
         ...
 
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier
-    ) -> Optional[DataTypeT]:
+    ) -> DataTypeT | None:
         """Retrieves data before or at `timestamp` for a specific caller.
 
         Returns `None` if no suitable data exists for this caller.
@@ -354,6 +369,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Optional[DataTypeT]: Relevant data item or `None`.
+
         """
         ...
 
@@ -361,8 +377,8 @@ class RemoteDataAggregatorImpl(
     def get_data_for_timestamp(
         self,
         timestamp: datetime.datetime,
-        identifier: Optional[CallerIdentifier] = None,
-    ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
+        identifier: CallerIdentifier | None = None,
+    ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves data for a specific timestamp for one or all callers.
 
         Args:
@@ -378,6 +394,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but not found.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -406,6 +423,7 @@ class RemoteDataAggregatorImpl(
 
         Args:
             data_organizer: The `RemoteDataOrganizer` instance that has new data.
+
         """
         if self.__client is not None:
             # pylint: disable=W0212 # Calling listener method
@@ -424,8 +442,8 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             TypeError: If `new_data` is not a subclass of `ExposedData`.
-        """
 
+        """
         if not isinstance(new_data, ExposedData):
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."

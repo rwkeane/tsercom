@@ -4,7 +4,6 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import List
 
 from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
@@ -39,6 +38,7 @@ class DataTimeoutTracker:
             Args:
                 timeout_seconds: The duration of the timeout that triggered
                                  this callback.
+
             """
 
     def __init__(self, timeout_seconds: int = 60) -> None:
@@ -46,9 +46,10 @@ class DataTimeoutTracker:
 
         Args:
             timeout_seconds: Interval in secs for notifying `Tracked` objects.
+
         """
         self.__timeout_seconds: int = timeout_seconds
-        self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
+        self.__tracked_list: list[DataTimeoutTracker.Tracked] = []
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
     def register(self, tracked: Tracked) -> None:
@@ -58,6 +59,7 @@ class DataTimeoutTracker:
 
         Args:
             tracked: Object to register (must implement `Tracked`).
+
         """
         run_on_event_loop(partial(self.__register_impl, tracked))
 
@@ -68,6 +70,7 @@ class DataTimeoutTracker:
 
         Args:
             tracked: The `Tracked` object to add to the list.
+
         """
         # Ensure this part of the registration runs on the designated event loop.
         assert (
@@ -79,8 +82,10 @@ class DataTimeoutTracker:
         """Starts the periodic timeout checking mechanism.
 
         This schedules the `__execute_periodically` coroutine on the event loop.
+
         Raises:
             RuntimeError: If the tracker is already running.
+
         """
         self.__is_running.start()
         run_on_event_loop(self.__execute_periodically)

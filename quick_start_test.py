@@ -4,20 +4,21 @@
 # to it, sends a request, and receives a response.
 
 import asyncio
-import grpc  # For gRPC types and channel creation
 import logging  # For basic logging
+
+import grpc  # For gRPC types and channel creation
 
 # Import necessary components from the tsercom library
 from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
-from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.rpc.proto import (
     TestConnectionCall,
     TestConnectionResponse,
 )  # For TestConnectionCall and TestConnectionResponse
 from tsercom.threading.aio.global_event_loop import (
-    set_tsercom_event_loop,
     clear_tsercom_event_loop,
+    set_tsercom_event_loop,
 )
+from tsercom.threading.thread_watcher import ThreadWatcher
 
 # --- Configuration ---
 # Define a service name and method name for the gRPC interaction.
@@ -38,16 +39,14 @@ logger = logging.getLogger(__name__)
 
 
 class SimpleService:
-    """
-    A simple service implementation.
+    """A simple service implementation.
     This class defines the methods that will be exposed via gRPC.
     """
 
     async def Communicate(
         self, request: TestConnectionCall, context: grpc.aio.ServicerContext
     ) -> TestConnectionResponse:
-        """
-        The gRPC method implemented by this service.
+        """The gRPC method implemented by this service.
         It receives a TestConnectionCall and returns a TestConnectionResponse.
         For this example, the request and response are empty, but it demonstrates
         the communication flow.
@@ -60,8 +59,7 @@ class SimpleService:
 
 
 async def run_server(stop_event: asyncio.Event) -> None:
-    """
-    Sets up and runs the gRPC server.
+    """Sets up and runs the gRPC server.
     """
     logger.info("Server: Initializing...")
     # ThreadWatcher is required by GrpcServicePublisher for managing threads.
@@ -147,8 +145,7 @@ async def run_server(stop_event: asyncio.Event) -> None:
 
 
 async def run_client() -> None:
-    """
-    Runs the gRPC client to connect to the server and make a call.
+    """Runs the gRPC client to connect to the server and make a call.
     """
     logger.info("Client: Initializing...")
     server_target = f"{_SERVER_ADDRESS}:{_SERVER_PORT}"
@@ -195,8 +192,7 @@ async def run_client() -> None:
 
 
 async def main() -> None:
-    """
-    Coordinates the server and client startup and shutdown.
+    """Coordinates the server and client startup and shutdown.
     """
     # Set the tsercom global event loop to the current asyncio event loop
     try:

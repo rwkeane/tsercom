@@ -5,7 +5,7 @@ that run in separate threads, monitored by a ThreadWatcher.
 import asyncio
 import logging
 import threading
-from typing import Any, Optional
+from typing import Any
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 
@@ -14,16 +14,14 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 # in a separate thread.
 # pylint: disable=too-few-public-methods # Factory pattern, public method is start_asyncio_loop
 class EventLoopFactory:
-    """
-    Factory class for creating and managing an asyncio event loop.
+    """Factory class for creating and managing an asyncio event loop.
 
     The event loop runs in a separate thread and is monitored by a
     ThreadWatcher.
     """
 
     def __init__(self, watcher: "ThreadWatcher") -> None:
-        """
-        Initializes the EventLoopFactory.
+        """Initializes the EventLoopFactory.
 
         Args:
             watcher: ThreadWatcher instance to monitor event loop thread.
@@ -31,6 +29,7 @@ class EventLoopFactory:
         Raises:
             ValueError: If the watcher argument is None.
             TypeError: If watcher is not a subclass of ThreadWatcher.
+
         """
         if watcher is None:
             raise ValueError(
@@ -43,32 +42,32 @@ class EventLoopFactory:
                 % type(watcher).__name__
             )
         self.__watcher = watcher
-        self.__event_loop_thread: Optional[threading.Thread] = None
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
+        self.__event_loop_thread: threading.Thread | None = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
     def start_asyncio_loop(self) -> asyncio.AbstractEventLoop:
-        """
-        Starts an asyncio event loop in a new thread.
+        """Starts an asyncio event loop in a new thread.
 
         The loop has an exception handler that logs unhandled exceptions
         and notifies the ThreadWatcher.
 
         Returns:
             The created and running event loop.
+
         """
         barrier = threading.Event()
 
         def handle_exception(
             _loop: asyncio.AbstractEventLoop, context: dict[str, Any]
         ) -> None:
-            """
-            Handles exceptions occurring in the event loop.
+            """Handles exceptions occurring in the event loop.
 
             Logs the exception and notifies the ThreadWatcher.
 
             Args:
                 _loop: The event loop where the exception occurred (unused).
                 context: Dictionary containing exception details.
+
             """
             exception = context.get("exception")
             message = context.get("message")
@@ -90,8 +89,7 @@ class EventLoopFactory:
                 )
 
         def start_event_loop() -> None:
-            """
-            Initializes and runs the asyncio event loop in this thread.
+            """Initializes and runs the asyncio event loop in this thread.
 
             Sets up new loop, custom handler, makes it current for thread,
             signals readiness, and runs loop forever.

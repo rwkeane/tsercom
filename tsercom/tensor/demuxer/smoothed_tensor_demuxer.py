@@ -1,15 +1,9 @@
-"""
-Provides the SmoothedTensorDemuxer class for interpolating tensor data over time.
+"""Provides the SmoothedTensorDemuxer class for interpolating tensor data over time.
 """
 
 import asyncio
 import datetime
 import logging
-from typing import (
-    Optional,
-    Tuple,
-    Union,
-)
 
 import numpy as np
 import torch
@@ -24,22 +18,21 @@ logger = logging.getLogger(__name__)
 
 
 class SmoothedTensorDemuxer(TensorDemuxer):
-    """
-    Manages per-index keyframe data using torch.Tensors and provides smoothed,
+    """Manages per-index keyframe data using torch.Tensors and provides smoothed,
     interpolated tensor updates.
     Uses a specified smoothing strategy for per-index "cascading forward" interpolation.
     """
 
     def __init__(
         self,
-        tensor_shape: Tuple[int, ...],
+        tensor_shape: tuple[int, ...],
         output_client: TensorDemuxer.Client,
         smoothing_strategy: SmoothingStrategy,
         output_interval_seconds: float,
         data_timeout_seconds: float = 60.0,
         align_output_timestamps: bool = False,
-        fill_value: Union[int, float] = float("nan"),
-        name: Optional[str] = None,
+        fill_value: int | float = float("nan"),
+        name: str | None = None,
     ):
         self.__tensor_shape_internal = tensor_shape
         _1d_tensor_length = 1
@@ -64,8 +57,8 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         self.__align_output_timestamps = align_output_timestamps
         self.__fill_value = float(fill_value)
 
-        self.__last_pushed_timestamp: Optional[datetime.datetime] = None
-        self.__interpolation_worker_task: Optional[asyncio.Task[None]] = None
+        self.__last_pushed_timestamp: datetime.datetime | None = None
+        self.__interpolation_worker_task: asyncio.Task[None] | None = None
         self.__stop_event = asyncio.Event()
 
         logger.info(
@@ -96,8 +89,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         return self.__align_output_timestamps
 
     async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
-        """
-        Handles an incoming tensor data chunk.
+        """Handles an incoming tensor data chunk.
         This method delegates the core processing to the parent TensorDemuxer's
         on_chunk_received method, which manages keyframe storage and cascading updates.
         The parent will then call `_on_keyframe_updated` (overridden by this class)
@@ -110,8 +102,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         timestamp: datetime.datetime,
         new_tensor_state: torch.Tensor,
     ) -> None:
-        """
-        Callback triggered when the parent TensorDemuxer detects a full keyframe update.
+        """Callback triggered when the parent TensorDemuxer detects a full keyframe update.
         This method then triggers the interpolation and output push.
         """
         logger.debug(
@@ -126,8 +117,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         return datetime.datetime.now(datetime.timezone.utc)
 
     async def __try_interpolate_and_push(self) -> None:
-        """
-        Attempts to interpolate the tensor to the next output timestamp and push it.
+        """Attempts to interpolate the tensor to the next output timestamp and push it.
         This is the core logic for generating smoothed tensor outputs.
         """
         if self.__stop_event.is_set():
@@ -307,6 +297,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                 )
         logger.info("[%s] SmoothedTensorDemuxer stopped.", self.__name)
 
-    def get_tensor_shape(self) -> Tuple[int, ...]:
+    def get_tensor_shape(self) -> tuple[int, ...]:
         """Returns the shape of the tensor being managed."""
         return self.__tensor_shape_internal

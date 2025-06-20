@@ -1,10 +1,10 @@
 import ast
+import os
 import re
 import subprocess
-import os
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable
 
 import grpc
 
@@ -20,6 +20,7 @@ def generate_proto_file(
         package_dir: The root directory of the package.
         proto_file_path: The path to the .proto file, relative to package_dir.
         import_paths: An iterable of import paths relative to package_dir.
+
     """
     # Construct the absolute path to the .proto file.
     absolute_proto_path = Path.joinpath(package_dir, proto_file_path)
@@ -88,6 +89,7 @@ def make_versioned_output_dir(base_dir: Path) -> Path:
 
     Raises:
         RuntimeError: If the grpcio-tools version cannot be determined.
+
     """
     try:
         version = grpc.__version__
@@ -114,7 +116,7 @@ def make_versioned_output_dir(base_dir: Path) -> Path:
 
 def modify_generated_file(file_path: Path) -> None:
     """Performs string replacement in the generated file."""
-    updates: Dict[str, str] = {
+    updates: dict[str, str] = {
         "import caller_id_pb2\n": "import tsercom.caller_id.proto as caller_id_pb2\n",
         "import time_pb2\n": "import tsercom.timesync.common.proto as time_pb2\n",
         "import common_pb2\n": "import tsercom.rpc.proto as common_pb2\n",
@@ -236,7 +238,7 @@ def _update_pyproject_version_range(versioned_dirs: list[str]) -> None:
         if not pyproject_path.exists():
             pyproject_path = Path("pyproject.toml")
 
-        with open(pyproject_path, "r") as f:
+        with open(pyproject_path) as f:
             pyproject_content = f.read()
 
         patterns_to_update = [
@@ -268,13 +270,12 @@ def _update_pyproject_version_range(versioned_dirs: list[str]) -> None:
 
 
 def get_public_symbols_from_file(filepath: Path) -> list[str]:
-    """
-    Gets a list of public class and function names defined in a Python file.
+    """Gets a list of public class and function names defined in a Python file.
     """
     if not filepath.exists():
         return []
     try:
-        with open(filepath, "r", encoding="utf-8") as file:
+        with open(filepath, encoding="utf-8") as file:
             tree = ast.parse(file.read(), filename=str(filepath))
     except SyntaxError:
         print(f"Warning: Syntax error in {filepath}. Returning empty list.")
@@ -431,7 +432,7 @@ if not TYPE_CHECKING:
         with open(init_py_path, "w") as f:
             f.write(init_file_content)
         print(f"Generated __init__.py at {init_py_path}")
-    except IOError as e:
+    except OSError as e:
         print(f"Error writing __init__.py at {init_py_path}: {e}")
         raise
 

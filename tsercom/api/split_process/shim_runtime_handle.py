@@ -1,7 +1,7 @@
 """ShimRuntimeHandle for interacting with a separate process runtime."""
 
 import datetime
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.runtime_handle import RuntimeHandle
@@ -57,6 +57,7 @@ class ShimRuntimeHandle(
             data_aggregator: Aggregator for data from remote via data_queue.
             block: If True, `on_event` blocks until event is queued.
                    If False, it's non-blocking.
+
         """
         super().__init__()
 
@@ -91,13 +92,9 @@ class ShimRuntimeHandle(
     def on_event(
         self,
         event: EventTypeT,
-        caller_id: Optional[
-            CallerIdentifier
-        ] = None,  # Added for RuntimeHandle compatibility
+        caller_id: CallerIdentifier | None = None,  # Added for RuntimeHandle compatibility
         *,
-        timestamp: Optional[
-            datetime.datetime
-        ] = None,  # Added for RuntimeHandle compatibility
+        timestamp: datetime.datetime | None = None,  # Added for RuntimeHandle compatibility
     ) -> None:
         """Sends an event to the remote runtime.
 
@@ -109,6 +106,7 @@ class ShimRuntimeHandle(
             event: The event to send.
             caller_id: Optional caller ID (ignored).
             timestamp: Optional event timestamp (ignored).
+
         """
         # `caller_id` and `timestamp` are part of RuntimeHandle interface,
         # but shim doesn't use them when sending to queue.
@@ -146,6 +144,7 @@ class ShimRuntimeHandle(
 
         Args:
             new_data: New data item from remote runtime.
+
         """
         # This handle (as RemoteDataReader) gets data from DataReaderSource
         # and forwards to the __data_aggregator from init.
@@ -159,6 +158,7 @@ class ShimRuntimeHandle(
 
         Returns:
             The `RemoteDataAggregator` that processes data from remote.
+
         """
         return self.__data_aggregator
 

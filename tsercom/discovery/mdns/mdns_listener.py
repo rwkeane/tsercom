@@ -1,7 +1,6 @@
 """MdnsListener ABC and client interface for mDNS service discovery."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, List
 
 from zeroconf import ServiceListener, Zeroconf
 
@@ -17,8 +16,7 @@ class MdnsListener(ServiceListener):
 
     @abstractmethod
     async def start(self) -> None:
-        """
-        Starts listening for mDNS services.
+        """Starts listening for mDNS services.
         """
         raise NotImplementedError(
             "MdnsListener.start must be implemented by subclasses."
@@ -62,8 +60,8 @@ class MdnsListener(ServiceListener):
             self,
             name: str,  # mDNS instance name of the service.
             port: int,  # Service port number.
-            addresses: List[bytes],  # Raw binary IP addresses.
-            txt_record: Dict[bytes, bytes | None],  # Parsed TXT record.
+            addresses: list[bytes],  # Raw binary IP addresses.
+            txt_record: dict[bytes, bytes | None],  # Parsed TXT record.
         ) -> None:
             """Callback for new or updated service discovery.
 
@@ -73,6 +71,7 @@ class MdnsListener(ServiceListener):
                 addresses: List of raw binary IP addresses (A/AAAA records).
                 txt_record: Dict of service's TXT record (metadata).
                             Keys are bytes, values are bytes or None.
+
             """
             # This method must be implemented by concrete client classes.
             raise NotImplementedError(
@@ -89,4 +88,5 @@ class MdnsListener(ServiceListener):
                 name: Unique mDNS name (e.g., "MyDevice._myservice._tcp.local").
                 service_type: The type of the service that was removed.
                 record_listener_uuid: The UUID of the RecordListener instance.
+
             """

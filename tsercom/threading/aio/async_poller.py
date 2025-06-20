@@ -17,15 +17,12 @@ Key features include:
 import asyncio
 import threading
 from collections import deque  # Use collections.deque directly
+from collections.abc import AsyncIterator
 
 # Defer import of IsRunningTracker to break circular dependency
 from typing import (
     TYPE_CHECKING,
-    AsyncIterator,
-    Deque,
     Generic,
-    List,
-    Optional,
     TypeVar,
 )
 
@@ -41,7 +38,7 @@ from tsercom.threading.aio.rate_limiter import (
 )
 
 if TYPE_CHECKING:
-    from tsercom.util.is_running_tracker import IsRunningTracker
+    pass
 
 # Maximum number of items to keep in the internal queue.
 # If more items are added via on_available() when the queue is full,
@@ -68,10 +65,11 @@ class AsyncPoller(Generic[ResultTypeT]):
         event_loop: The asyncio event loop this poller is associated with.
             It is typically determined from the first call to `wait_instance` or
             `__anext__` if not explicitly set during initialization.
+
     """
 
     def __init__(
-        self, min_poll_frequency_seconds: Optional[float] = None
+        self, min_poll_frequency_seconds: float | None = None
     ) -> None:
         """Initializes the AsyncPoller.
 
@@ -83,6 +81,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                 the previous batch was yielded before yielding a new batch.
                 If `None` or non-positive, a `NullRateLimiter` is used,
                 imposing no such delay.
+
         """
         self.__rate_limiter: RateLimiter
         if (
@@ -93,18 +92,18 @@ class AsyncPoller(Generic[ResultTypeT]):
         else:
             self.__rate_limiter = NullRateLimiter()
 
-        self.__responses: Deque[ResultTypeT] = deque()
+        self.__responses: deque[ResultTypeT] = deque()
         self.__barrier: asyncio.Event = asyncio.Event()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
         if not TYPE_CHECKING:
             from tsercom.util.is_running_tracker import IsRunningTracker
-        self.__is_loop_running: "IsRunningTracker" = IsRunningTracker()
+        self.__is_loop_running: IsRunningTracker = IsRunningTracker()
         self.__is_loop_running.start()  # Start the poller as running by default
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
     @property
-    def event_loop(self) -> Optional[asyncio.AbstractEventLoop]:
+    def event_loop(self) -> asyncio.AbstractEventLoop | None:
         """The asyncio event loop this poller is or will be associated with.
 
         This is typically the loop on which `wait_instance` (or `__anext__`)
@@ -125,6 +124,7 @@ class AsyncPoller(Generic[ResultTypeT]):
 
         Args:
             new_instance: The item of `ResultTypeT` to make available.
+
         """
         with self.__lock:
             if len(self.__responses) >= MAX_RESPONSES:
@@ -148,7 +148,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         with self.__lock:
             self.__responses.clear()
 
-    async def wait_instance(self) -> List[ResultTypeT]:
+    async def wait_instance(self) -> list[ResultTypeT]:
         """Asynchronously waits for and retrieves a batch of available items.
 
         This method first respects the configured rate limit (if any). It then
@@ -171,6 +171,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                 wait). Also raised if called from a different event loop than the
                 one it was first associated with, or if no event loop is running
                 when it\'s first called.
+
         """
         await self.__rate_limiter.wait_for_pass()
 
@@ -189,7 +190,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             not self.__is_loop_running.get()
         ):  # Check if stopped before loop association or after
             # If stopped, attempt to drain any residual items before raising error
-            current_batch_on_stop: List[ResultTypeT] = []
+            current_batch_on_stop: list[ResultTypeT] = []
             with self.__lock:
                 if self.__responses:
                     while self.__responses:
@@ -208,7 +209,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             )
 
         while self.__is_loop_running.get():
-            current_batch: List[ResultTypeT] = []
+            current_batch: list[ResultTypeT] = []
             with self.__lock:
                 self.__barrier.clear()
                 if self.__responses:
@@ -237,11 +238,11 @@ class AsyncPoller(Generic[ResultTypeT]):
             "AsyncPoller is stopped."
         )  # Should be hit if loop_running was false initially
 
-    def __aiter__(self) -> AsyncIterator[List[ResultTypeT]]:
+    def __aiter__(self) -> AsyncIterator[list[ResultTypeT]]:
         """Returns self, as `AsyncPoller` is an asynchronous iterator."""
         return self
 
-    async def __anext__(self) -> List[ResultTypeT]:
+    async def __anext__(self) -> list[ResultTypeT]:
         """Asynchronously retrieves the next batch of available items.
 
         This method is part of the asynchronous iterator protocol, allowing
@@ -254,6 +255,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         Raises:
             StopAsyncIteration: If the poller is stopped (which causes
                 `wait_instance` to raise a `RuntimeError`).
+
         """
         try:
             return await self.wait_instance()

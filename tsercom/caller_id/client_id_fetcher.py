@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
@@ -25,12 +25,13 @@ class ClientIdFetcher:
 
         Args:
             stub: The gRPC stub with `GetId(GetIdRequest) -> GetIdResponse` method.
+
         """
         self.__stub: Any = stub
-        self.__id: Optional[CallerIdentifier] = None
+        self.__id: CallerIdentifier | None = None
         self.__lock = asyncio.Lock()  # Lock for thread-safe lazy ID init.
 
-    async def get_id_async(self) -> Optional[CallerIdentifier]:
+    async def get_id_async(self) -> CallerIdentifier | None:
         """Lazily fetches and returns the client ID.
 
         The first time this method is called, it makes a gRPC call to the
@@ -47,6 +48,7 @@ class ClientIdFetcher:
                        or subsequent processing if not caught by the broad
                        exception handler within the method. The method attempts
                        to catch common issues and return None.
+
         """
         try:
             # Ensure only one coroutine attempts to fetch the ID at a time.

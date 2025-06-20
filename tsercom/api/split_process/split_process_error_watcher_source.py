@@ -30,6 +30,7 @@ class SplitProcessErrorWatcherSource:
         Args:
             thread_watcher: Local ThreadWatcher to report exceptions from queue to.
             exception_queue: Multiprocess queue source to read exceptions from.
+
         """
         self.__thread_watcher: ThreadWatcher = thread_watcher
         self.__queue: MultiprocessQueueSource[Exception] = exception_queue
@@ -44,6 +45,7 @@ class SplitProcessErrorWatcherSource:
 
         Raises:
             RuntimeError: If `start` is called when already running.
+
         """
         self.__is_running.start()  # Will raise RuntimeError if already running.
 
@@ -82,6 +84,7 @@ class SplitProcessErrorWatcherSource:
 
         Raises:
             RuntimeError: If `stop` called when source not currently running.
+
         """
         self.__is_running.stop()  # Will raise RuntimeError if not running.
         if self.__thread is not None:  # Check if thread exists
@@ -99,5 +102,6 @@ class SplitProcessErrorWatcherSource:
 
         Returns:
             True if polling thread is active, False otherwise.
+
         """
         return self.__is_running.get()

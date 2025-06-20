@@ -1,22 +1,15 @@
-from tsercom.test.proto import (
-    E2ETestServiceStub,
-    add_E2ETestServiceServicer_to_server,
-    EchoRequest,
-    EchoResponse,
-    StreamDataRequest,
-    E2ETestServiceServicer,
-)
-
 import asyncio
 import logging
-from typing import Optional, TYPE_CHECKING, AsyncIterator, cast, Any
+import socket
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Any, cast
 
 import grpc
-from grpc_health.v1 import health, health_pb2, health_pb2_grpc  # type: ignore
 import pytest
 import pytest_asyncio
-import socket
 import torch
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc  # type: ignore
+from zeroconf.asyncio import AsyncZeroconf
 
 from tsercom.api import RuntimeManager
 from tsercom.api.local_process.runtime_wrapper import RuntimeWrapper
@@ -24,6 +17,7 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.discovery_host import DiscoveryHost
 from tsercom.discovery.mdns.instance_listener import MdnsListenerFactory
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
+from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.service_connector import ServiceConnector
 from tsercom.discovery.service_info import ServiceInfo
 from tsercom.rpc.common.channel_info import ChannelInfo
@@ -33,12 +27,18 @@ from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_config import ServiceType
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
+from tsercom.test.proto import (
+    E2ETestServiceServicer,
+    E2ETestServiceStub,
+    EchoRequest,
+    EchoResponse,
+    StreamDataRequest,
+    add_E2ETestServiceServicer_to_server,
+)
 from tsercom.threading.aio.global_event_loop import clear_tsercom_event_loop
 from tsercom.threading.atomic import Atomic
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
-from tsercom.discovery.mdns.mdns_listener import MdnsListener
-from zeroconf.asyncio import AsyncZeroconf
 
 if TYPE_CHECKING:
     pass  # This can remain for type checking if it's used elsewhere, or be removed if AsyncZeroconf replaces all uses.
@@ -57,7 +57,7 @@ class FakeMdnsListener(MdnsListener):
         client: MdnsListener.Client,
         service_type: str,
         port: int,
-        zc_instance: Optional[AsyncZeroconf] = None,
+        zc_instance: AsyncZeroconf | None = None,
     ):
         # zc_instance is accepted for signature compatibility but not used by this Fake
         # super().__init__() # MdnsListener's parent (ServiceListener) has no __init__
@@ -132,8 +132,7 @@ class GenericServerRuntime(
     Runtime,
     ServiceConnector[ServiceInfo, grpc.Channel].Client,
 ):
-    """
-    Top-level class for handling connections with a client instance.
+    """Top-level class for handling connections with a client instance.
     """
 
     def __init__(
@@ -142,13 +141,13 @@ class GenericServerRuntime(
         data_handler: RuntimeDataHandler[torch.Tensor, torch.Tensor],
         channel_factory: GrpcChannelFactory,
         *,
-        mdns_listener_factory: Optional[MdnsListenerFactory] = None,
-        server_grpc_port: Optional[int] = None,
+        mdns_listener_factory: MdnsListenerFactory | None = None,
+        server_grpc_port: int | None = None,
     ):
         self.__watcher = watcher
         self.__data_handler = data_handler
         self.__server_grpc_port = server_grpc_port
-        self.__grpc_publisher: Optional[GrpcServicePublisher] = None
+        self.__grpc_publisher: GrpcServicePublisher | None = None
         if self.__server_grpc_port is not None:
             logging.info(
                 f"GenericServerRuntime will publish its own gRPC services on port {self.__server_grpc_port}"
@@ -176,8 +175,7 @@ class GenericServerRuntime(
         super().__init__()
 
     async def start_async(self):
-        """
-        Allow for connections with clients to start.
+        """Allow for connections with clients to start.
         """
         if self.__grpc_publisher:
 
@@ -198,7 +196,7 @@ class GenericServerRuntime(
             await self.__grpc_publisher.start_async(__connect_e2e_servicer)
         await self.__connector.start()
 
-    async def stop(self, exception: Optional[Exception] = None):
+    async def stop(self, exception: Exception | None = None):
         if self.__grpc_publisher:
             await self.__grpc_publisher.stop_async()
         logging.info("GenericServerRuntime stopping...")
@@ -218,8 +216,7 @@ class GenericServerRuntime(
 class GenericClientRuntime(
     Runtime,
 ):
-    """
-    This is the top-level class for the client-side of the Service.
+    """This is the top-level class for the client-side of the Service.
     """
 
     def __init__(
@@ -243,8 +240,7 @@ class GenericClientRuntime(
         super().__init__()
 
     async def start_async(self):
-        """
-        Starts connecting with server instances, as well as advertising the
+        """Starts connecting with server instances, as well as advertising the
         connect-ability over mDNS.
         """
         assert not self.__is_running.get()
@@ -252,9 +248,7 @@ class GenericClientRuntime(
 
         def __connect(server: grpc.Server):
             # Add health servicer
-            from grpc_health.v1 import health
-            from grpc_health.v1 import health_pb2
-            from grpc_health.v1 import health_pb2_grpc
+            from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
             health_servicer = health.HealthServicer()
             health_pb2_grpc.add_HealthServicer_to_server(
@@ -270,17 +264,17 @@ class GenericClientRuntime(
 
         await self.__mdns_publiser.publish()
 
-    async def stop(self, exception: Optional[Exception] = None):
+    async def stop(self, exception: Exception | None = None):
         logging.info("GenericClientRuntime stopping...")
         self.__is_running.stop()
         if self.__mdns_publiser:
             # Assuming InstancePublisher might need an async unpublish or close
             if hasattr(self.__mdns_publiser, "close") and callable(
-                getattr(self.__mdns_publiser, "close")
+                self.__mdns_publiser.close
             ):
                 await self.__mdns_publiser.close()
             elif hasattr(self.__mdns_publiser, "unpublish") and callable(
-                getattr(self.__mdns_publiser, "unpublish")
+                self.__mdns_publiser.unpublish
             ):
                 # If unpublish is not async, and close is preferred for async cleanup
                 # This branch might indicate a sync unpublish. For now, assume close is the async one if present.
@@ -300,6 +294,7 @@ class GenericClientRuntime(
 
         Returns:
             An E2ETestServiceStub instance.
+
         """
         logging.info(
             f"GenericClientRuntime creating E2ETestServiceStub for target: {target_address}"
@@ -337,9 +332,9 @@ class GenericServerRuntimeInitializer(
     def __init__(
         self,
         *,
-        listener_factory: Optional[MdnsListenerFactory] = None,
-        fake_service_port: Optional[int] = None,
-        server_grpc_port: Optional[int] = None,
+        listener_factory: MdnsListenerFactory | None = None,
+        fake_service_port: int | None = None,
+        server_grpc_port: int | None = None,
     ):
         self.__listener_factory = listener_factory
         self.__fake_service_port = fake_service_port
@@ -352,7 +347,7 @@ class GenericServerRuntimeInitializer(
         data_handler: RuntimeDataHandler[torch.Tensor, torch.Tensor],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        actual_mdns_listener_factory: Optional[MdnsListenerFactory] = None
+        actual_mdns_listener_factory: MdnsListenerFactory | None = None
         if self.__fake_service_port is not None:
             logging.info(
                 f"Using FakeMdnsListener for port {self.__fake_service_port}"
@@ -363,7 +358,7 @@ class GenericServerRuntimeInitializer(
             def fake_factory(
                 client: MdnsListener.Client,
                 service_type_arg: str,
-                zc_instance_arg: Optional[AsyncZeroconf] = None,
+                zc_instance_arg: AsyncZeroconf | None = None,
             ) -> FakeMdnsListener:
                 return FakeMdnsListener(
                     client,
@@ -531,8 +526,7 @@ class E2eTestServicer(E2ETestServiceServicer):
 
 @pytest.mark.asyncio
 async def test_full_app_with_grpc_transport(clear_loop_fixture, caplog):
-    """
-    Tests the full application setup using direct gRPC communication between
+    """Tests the full application setup using direct gRPC communication between
     GenericClientRuntime and GenericServerRuntime for the E2ETestService.
     """
     caplog.set_level(logging.INFO)

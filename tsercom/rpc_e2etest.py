@@ -8,10 +8,6 @@ from collections.abc import (
     Callable,
 )
 from ipaddress import ip_address  # For SANs
-from typing import (
-    Optional,
-    Union,
-)
 
 import grpc
 import pytest
@@ -69,8 +65,7 @@ def generate_private_key(key_size=2048) -> rsa.RSAPrivateKey:
 def generate_ca_certificate(
     common_name: str = "Test CA", key_size: int = 2048
 ) -> tuple[bytes, bytes]:
-    """
-    Generates a self-signed CA certificate and its private key.
+    """Generates a self-signed CA certificate and its private key.
 
     Args:
         common_name: The common name for the CA.
@@ -78,6 +73,7 @@ def generate_ca_certificate(
 
     Returns:
         A tuple of (ca_cert_pem, ca_key_pem), both bytes.
+
     """
     private_key = generate_private_key(key_size)
     public_key = private_key.public_key()
@@ -135,12 +131,11 @@ def generate_signed_certificate(
     ca_cert_pem: bytes,
     ca_key_pem: bytes,
     common_name: str,
-    sans: Optional[list[str]] = None,
+    sans: list[str] | None = None,
     is_server: bool = True,
     key_size: int = 2048,
 ) -> tuple[bytes, bytes]:
-    """
-    Generates a server or client certificate signed by the provided CA.
+    """Generates a server or client certificate signed by the provided CA.
 
     Args:
         ca_cert_pem: PEM encoded CA certificate (bytes).
@@ -152,6 +147,7 @@ def generate_signed_certificate(
 
     Returns:
         A tuple of (cert_pem, key_pem), both bytes.
+
     """
     ca_cert = x509.load_pem_x509_certificate(ca_cert_pem)
     ca_private_key = serialization.load_pem_private_key(
@@ -251,7 +247,7 @@ class CustomServicePublisherRpcE2E(GrpcServicePublisher):
         self,
         watcher: ThreadWatcher,
         port: int,
-        addresses: Union[str, list[str], None] = None,
+        addresses: str | list[str] | None = None,
     ):
         super().__init__(watcher, port, addresses)
         self._chosen_port: int | None = None
@@ -379,8 +375,7 @@ async def async_test_server():
 
 @pytest.mark.asyncio
 async def test_grpc_connection_e2e(async_test_server):
-    """
-    E2E test for gRPC connection using AsyncTestConnectionServer.
+    """E2E test for gRPC connection using AsyncTestConnectionServer.
     - Starts a server using the async_test_server fixture.
     - Creates a client that connects to this server.
     - Sends a TestConnectionCall.
@@ -390,7 +385,7 @@ async def test_grpc_connection_e2e(async_test_server):
     logger.info(f"Test client connecting to server at {host}:{port}")
 
     channel_factory = InsecureGrpcChannelFactory()
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
 
     try:
         grpc_channel = await channel_factory.find_async_channel(host, port)
@@ -441,16 +436,14 @@ FULL_DELAYED_RESPONSE_METHOD_PATH = (
 
 
 class ErrorAndTimeoutTestServiceServer:
-    """
-    A gRPC service implementation for testing error handling and timeouts.
+    """A gRPC service implementation for testing error handling and timeouts.
     It reuses TestConnectionCall and TestConnectionResponse for simplicity.
     """
 
     async def TriggerError(
         self, request: TestConnectionCall, context: grpc.aio.ServicerContext
     ) -> TestConnectionResponse:
-        """
-        Simulates a server-side error. For now, it always returns INVALID_ARGUMENT.
+        """Simulates a server-side error. For now, it always returns INVALID_ARGUMENT.
         Could be extended to take error type from request if needed.
         """
         logger.info(
@@ -463,8 +456,7 @@ class ErrorAndTimeoutTestServiceServer:
     async def DelayedResponse(
         self, request: TestConnectionCall, context: grpc.aio.ServicerContext
     ) -> TestConnectionResponse:
-        """
-        Simulates a delay before sending a response.
+        """Simulates a delay before sending a response.
         The actual delay duration could be passed in the request in a real scenario,
         but for this test, we'll use a fixed delay, and the client will try to timeout sooner.
         """
@@ -481,8 +473,7 @@ class ErrorAndTimeoutTestServiceServer:
 
 @pytest_asyncio.fixture
 async def error_timeout_test_server():
-    """
-    Pytest fixture to start and stop the ErrorAndTimeoutTestServiceServer.
+    """Pytest fixture to start and stop the ErrorAndTimeoutTestServiceServer.
     """
     watcher = ThreadWatcher()
     service_publisher = CustomServicePublisherRpcE2E(
@@ -493,7 +484,6 @@ async def error_timeout_test_server():
 
     def connect_call(server: grpc.aio.Server):
         """Callback to add RPC handlers for ErrorAndTimeoutTestServiceServer to the gRPC server."""
-
         trigger_error_rpc_handler = grpc.unary_unary_rpc_method_handler(
             service_impl.TriggerError,
             request_deserializer=TestConnectionCall.FromString,
@@ -586,8 +576,7 @@ async def error_timeout_test_server():
 
 @pytest.mark.asyncio
 async def test_server_returns_grpc_error(error_timeout_test_server):
-    """
-    Tests that the server can return a specific gRPC error,
+    """Tests that the server can return a specific gRPC error,
     and the client correctly receives and identifies it.
     """
     host, port = error_timeout_test_server
@@ -596,7 +585,7 @@ async def test_server_returns_grpc_error(error_timeout_test_server):
     )
 
     channel_factory = InsecureGrpcChannelFactory()
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
 
     try:
         grpc_channel = await channel_factory.find_async_channel(host, port)
@@ -644,8 +633,7 @@ async def test_server_returns_grpc_error(error_timeout_test_server):
 
 @pytest.mark.asyncio
 async def test_client_handles_timeout(error_timeout_test_server):
-    """
-    Tests that the client correctly handles a timeout when the server's
+    """Tests that the client correctly handles a timeout when the server's
     response is too slow.
     """
     host, port = error_timeout_test_server
@@ -654,7 +642,7 @@ async def test_client_handles_timeout(error_timeout_test_server):
     )
 
     channel_factory = InsecureGrpcChannelFactory()
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
 
     client_timeout_seconds = 0.5
 
@@ -709,8 +697,7 @@ RETRIER_TEST_FIXED_PORT = 50052
 
 @pytest_asyncio.fixture
 async def retrier_server_controller():
-    """
-    Pytest fixture that provides control over a gRPC server's lifecycle
+    """Pytest fixture that provides control over a gRPC server's lifecycle
     (stop, start/restart) for testing client retrier mechanisms.
     It hosts the basic AsyncTestConnectionServer on a fixed port.
     """
@@ -851,8 +838,7 @@ class StopableChannelWrapper(Stopable):
 class CustomDisconnectionRetrierRpcE2E(
     ClientDisconnectionRetrier[StopableChannelWrapper]
 ):
-    """
-    A testable subclass of ClientDisconnectionRetrier that manages StopableChannelWrapper instances.
+    """A testable subclass of ClientDisconnectionRetrier that manages StopableChannelWrapper instances.
     """
 
     def __init__(
@@ -924,8 +910,7 @@ class CustomDisconnectionRetrierRpcE2E(
 
 @pytest.mark.asyncio
 async def test_client_retrier_reconnects(retrier_server_controller):
-    """
-    Tests ClientDisconnectionRetrier's ability to reconnect after server outage.
+    """Tests ClientDisconnectionRetrier's ability to reconnect after server outage.
     """
     server_ctrl = retrier_server_controller
     watcher = ThreadWatcher()
@@ -1037,8 +1022,7 @@ async def test_client_retrier_reconnects(retrier_server_controller):
 
 @pytest_asyncio.fixture
 async def secure_async_test_server_factory():
-    """
-    Pytest fixture factory to start and stop an AsyncTestConnectionServer with SSL/TLS.
+    """Pytest fixture factory to start and stop an AsyncTestConnectionServer with SSL/TLS.
     Yields an async function that can be called by tests to create configured servers.
     """
     created_servers: list[grpc.aio.Server] = []
@@ -1047,12 +1031,11 @@ async def secure_async_test_server_factory():
     async def _factory(
         server_key_pem: bytes,
         server_cert_pem: bytes,
-        client_ca_cert_pem: Optional[bytes] = None,
+        client_ca_cert_pem: bytes | None = None,
         require_client_auth: bool = False,
         server_cn: str = "localhost",
     ) -> tuple[str, int, str]:
-        """
-        Actual server creation logic.
+        """Actual server creation logic.
         Args: (same as original secure_async_test_server)
         Yields: (host, port, server_common_name)
         """
@@ -1148,8 +1131,7 @@ async def secure_async_test_server_factory():
 async def test_server_auth_successful_connection(
     secure_async_test_server_factory,
 ):
-    """
-    Tests Scenario 1: Client validates server using the correct CA.
+    """Tests Scenario 1: Client validates server using the correct CA.
     """
     ca_cert_pem, ca_key_pem = generate_ca_certificate(
         common_name="Test Root CA S1 Success"
@@ -1175,7 +1157,7 @@ async def test_server_auth_successful_connection(
         server_hostname_override=server_cn,
     )
 
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
         assert (
@@ -1204,8 +1186,7 @@ async def test_server_auth_successful_connection(
 async def test_server_auth_untrusted_ca_fails(
     secure_async_test_server_factory,
 ):
-    """
-    Tests Scenario 1: Client fails to validate server if using an untrusted CA.
+    """Tests Scenario 1: Client fails to validate server if using an untrusted CA.
     """
     server_ca_cert_pem, server_ca_key_pem = generate_ca_certificate(
         common_name="Actual Server CA S1 Failure"
@@ -1234,7 +1215,7 @@ async def test_server_auth_untrusted_ca_fails(
         server_hostname_override=server_cn,
     )
 
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
         assert (
@@ -1263,8 +1244,7 @@ async def test_server_auth_untrusted_ca_fails(
 async def test_pinned_server_auth_successful_connection(
     secure_async_test_server_factory,
 ):
-    """
-    Tests Scenario 2: Client validates server by pinning the correct server certificate.
+    """Tests Scenario 2: Client validates server by pinning the correct server certificate.
     """
     ca_cert_pem, ca_key_pem = generate_ca_certificate(
         common_name="Test Root CA S2 Pinning"
@@ -1290,7 +1270,7 @@ async def test_pinned_server_auth_successful_connection(
         server_hostname_override=server_cn,
     )
 
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
         assert (
@@ -1319,8 +1299,7 @@ async def test_pinned_server_auth_successful_connection(
 async def test_pinned_server_auth_incorrect_pinned_cert_fails(
     secure_async_test_server_factory,
 ):
-    """
-    Tests Scenario 2: Client fails if it pins a different certificate than the server's actual certificate.
+    """Tests Scenario 2: Client fails if it pins a different certificate than the server's actual certificate.
     """
     ca_cert_pem, ca_key_pem = generate_ca_certificate(
         common_name="Test Root CA S2 IncorrectPin"
@@ -1357,7 +1336,7 @@ async def test_pinned_server_auth_incorrect_pinned_cert_fails(
         server_hostname_override=server_cn,
     )
 
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
         assert (
@@ -1385,8 +1364,7 @@ async def test_pinned_server_auth_incorrect_pinned_cert_fails(
 async def test_pinned_server_auth_server_changes_cert_fails(
     secure_async_test_server_factory,
 ):
-    """
-    Tests Scenario 2: Client fails if server changes its certificate, and client pins the old one.
+    """Tests Scenario 2: Client fails if server changes its certificate, and client pins the old one.
     """
     ca_cert_pem, ca_key_pem = generate_ca_certificate(
         common_name="Test Root CA S2 ServerChange"
@@ -1421,7 +1399,7 @@ async def test_pinned_server_auth_server_changes_cert_fails(
         server_hostname_override=server_cn,
     )
 
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
         assert (
@@ -1453,8 +1431,7 @@ async def test_pinned_server_auth_server_changes_cert_fails(
 async def test_client_auth_no_server_validation_by_client(
     secure_async_test_server_factory, server_requires_client_auth
 ):
-    """
-    Tests Scenario 3: Client uses its cert, client does NOT validate server.
+    """Tests Scenario 3: Client uses its cert, client does NOT validate server.
     Server is configured to either optionally or require client certs.
     """
     ca_cert_pem, ca_key_pem = generate_ca_certificate(
@@ -1492,7 +1469,7 @@ async def test_client_auth_no_server_validation_by_client(
         server_hostname_override=None,
     )
 
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
         assert grpc_channel is None, (
@@ -1514,8 +1491,7 @@ async def test_client_auth_no_server_validation_by_client(
 async def test_client_auth_with_server_validation_mtls(
     secure_async_test_server_factory,
 ):
-    """
-    Tests Scenario 3: Client uses its cert, client DOES validate server (mTLS).
+    """Tests Scenario 3: Client uses its cert, client DOES validate server (mTLS).
     Server must require client certs and validate them.
     """
     ca_cert_pem, ca_key_pem = generate_ca_certificate(
@@ -1553,7 +1529,7 @@ async def test_client_auth_with_server_validation_mtls(
         server_hostname_override=server_cn,
     )
 
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
         assert (
@@ -1580,8 +1556,7 @@ async def test_client_auth_with_server_validation_mtls(
 async def test_client_auth_with_server_validation_untrusted_server_ca_fails(
     secure_async_test_server_factory,
 ):
-    """
-    Tests Scenario 3: Client uses its cert, tries to validate server, but server's CA is untrusted by client.
+    """Tests Scenario 3: Client uses its cert, tries to validate server, but server's CA is untrusted by client.
     """
     actual_ca_cert_pem, actual_ca_key_pem = generate_ca_certificate(
         common_name="Actual CA S3 UntrustedServer"
@@ -1620,7 +1595,7 @@ async def test_client_auth_with_server_validation_untrusted_server_ca_fails(
         server_hostname_override=server_cn,
     )
 
-    grpc_channel: Optional[grpc.Channel] = None
+    grpc_channel: grpc.Channel | None = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
         assert (

@@ -6,7 +6,9 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy  # ADDED
 from functools import partial
 from typing import Generic, Optional, TypeVar
+
 from sortedcontainers import SortedList  # type: ignore
+
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
@@ -27,7 +29,8 @@ class RemoteDataOrganizer(
     It ensures thread-safe access to this data, handles data input via the
     `RemoteDataReader` interface, and implements the `DataTimeoutTracker.Tracked`
     interface to facilitate data timeout logic. It can notify a `Client` when
-    new data becomes available."""
+    new data becomes available.
+    """
 
     class Client(ABC):
         """Interface for clients that need to be notified by `RemoteDataOrganizer`."""
@@ -40,6 +43,7 @@ class RemoteDataOrganizer(
 
             Args:
                 data_organizer: The `RemoteDataOrganizer` instance that has new data.
+
             """
             raise NotImplementedError
 
@@ -57,7 +61,9 @@ class RemoteDataOrganizer(
             caller_id: The `CallerIdentifier` for the remote endpoint whose
                        data this organizer will manage.
             client: An optional client implementing `RemoteDataOrganizer.Client`
-                    to receive callbacks when new data is available."""
+                    to receive callbacks when new data is available.
+
+        """
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__caller_id: CallerIdentifier = caller_id
         self.__client: RemoteDataOrganizer.Client | None = client
@@ -76,7 +82,9 @@ class RemoteDataOrganizer(
         """Gets the `CallerIdentifier` associated with this data organizer.
 
         Returns:
-            The `CallerIdentifier` instance."""
+            The `CallerIdentifier` instance.
+
+        """
         return self.__caller_id
 
     def start(self) -> None:
@@ -84,6 +92,7 @@ class RemoteDataOrganizer(
 
         Raises:
             RuntimeError: If the organizer is already running (typically by `IsRunningTracker.start()`).
+
         """
         self.__is_running.start()
 
@@ -96,6 +105,7 @@ class RemoteDataOrganizer(
 
         Raises:
             RuntimeError: If the organizer is not running or has already been stopped (typically by `IsRunningTracker.stop()`).
+
         """
         self.__is_running.stop()
 
@@ -106,7 +116,9 @@ class RemoteDataOrganizer(
         the timestamp of the last item retrieved by `get_new_data`.
 
         Returns:
-            True if new data is available, False otherwise."""
+            True if new data is available, False otherwise.
+
+        """
         with self.__data_lock:
             if not self.__data:
                 return False
@@ -122,7 +134,9 @@ class RemoteDataOrganizer(
 
         Returns:
             A list of new `DataTypeT` items, ordered from most recent to oldest.
-            Returns an empty list if no new data is available."""
+            Returns an empty list if no new data is available.
+
+        """
         with self.__data_lock:
             results: list[DataTypeT] = []
             if not self.__data:
@@ -141,6 +155,7 @@ class RemoteDataOrganizer(
 
         Returns:
             The most recent `DataTypeT` item, or `None` if no data has been received.
+
         """
         with self.__data_lock:
             if not self.__data:
@@ -158,7 +173,9 @@ class RemoteDataOrganizer(
         Returns:
             The `DataTypeT` item whose timestamp is the latest at or before the
             specified `timestamp`, or `None` if no such data exists (e.g., all
-            data is newer, or no data at all)."""
+            data is newer, or no data at all).
+
+        """
         with self.__data_lock:
             if not self.__data:
                 return None
@@ -182,6 +199,7 @@ class RemoteDataOrganizer(
                                    data this organizer will manage.
                         client: An optional client implementing `RemoteDataOrganizer.Client`
                                 to receive callbacks when new data is available.
+
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -204,7 +222,9 @@ class RemoteDataOrganizer(
         Raises:
             TypeError: If `new_data` is not an instance of `ExposedData`.
             AssertionError: If `new_data.caller_id` does not match this
-                            organizer's `caller_id`."""
+                            organizer's `caller_id`.
+
+        """
         if not isinstance(new_data, ExposedData):
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
@@ -222,7 +242,9 @@ class RemoteDataOrganizer(
         the client if data was inserted or updated.
 
         Args:
-            new_data: The `DataTypeT` item to process."""
+            new_data: The `DataTypeT` item to process.
+
+        """
         if not self.__is_running.get():
             return
         data_inserted_or_updated = False
@@ -248,6 +270,7 @@ class RemoteDataOrganizer(
                                    data this organizer will manage.
                         client: An optional client implementing `RemoteDataOrganizer.Client`
                                 to receive callbacks when new data is available.
+
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -279,6 +302,7 @@ class RemoteDataOrganizer(
 
         Args:
             timeout_seconds: The duration of the timeout that triggered this callback.
+
         """
         self.__thread_pool.submit(
             partial(self.__timeout_old_data, timeout_seconds)
@@ -293,7 +317,9 @@ class RemoteDataOrganizer(
 
         Args:
             timeout_seconds: The timeout duration in seconds. Data older than
-                             `now - timeout_seconds` will be removed."""
+                             `now - timeout_seconds` will be removed.
+
+        """
         if not self.__is_running.get():
             return
         reference_tz = None
@@ -341,6 +367,7 @@ class RemoteDataOrganizer(
                                    data this organizer will manage.
                         client: An optional client implementing `RemoteDataOrganizer.Client`
                                 to receive callbacks when new data is available.
+
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -392,7 +419,7 @@ class RemoteDataOrganizer(
             try:
                 interpolated_item = deepcopy(item_left)
                 interpolated_item.timestamp = timestamp
-                setattr(interpolated_item, "data", interpolated_inner_data)
+                interpolated_item.data = interpolated_inner_data
                 return interpolated_item
             except AttributeError as e:
                 logger.error(

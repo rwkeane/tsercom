@@ -1,7 +1,7 @@
 """Defines the abstract base class for runtime factory creators."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, Tuple, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.data.exposed_data import ExposedData
@@ -37,6 +37,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
 
             Args:
                 handle: The newly created RuntimeHandle.
+
             """
 
     def __init__(self) -> None:
@@ -45,7 +46,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
     @abstractmethod
     def _create_pair(
         self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
-    ) -> Tuple[
+    ) -> tuple[
         RuntimeHandle[DataTypeT, EventTypeT],
         RuntimeFactory[DataTypeT, EventTypeT],
     ]:
@@ -60,6 +61,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
 
         Returns:
             A tuple: (created RuntimeHandle, RuntimeFactory).
+
         """
 
     def create_factory(
@@ -83,8 +85,8 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
         Raises:
             ValueError: If the client argument is None.
             TypeError: If the client is not an instance of RuntimeFactoryFactory.Client.
-        """
 
+        """
         if client is None:
             raise ValueError(
                 "Client argument cannot be None for create_factory."

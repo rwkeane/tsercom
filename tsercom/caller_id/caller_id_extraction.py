@@ -1,7 +1,8 @@
 """Utilities for extracting CallerIdentifier from gRPC calls, especially from iterators."""
 
 import logging
-from typing import AsyncIterator, Callable, Optional, Tuple, TypeVar
+from collections.abc import AsyncIterator, Callable
+from typing import TypeVar
 
 import grpc
 
@@ -16,13 +17,12 @@ MAX_CALLER_ID_STRING_LENGTH = 256
 
 async def extract_id_from_first_call(
     iterator: AsyncIterator[TCallType],
-    is_running: Optional[IsRunningTracker] = None,
-    context: Optional[grpc.aio.ServicerContext] = None,
-    extractor: Optional[Callable[[TCallType], GrpcCallerId]] = None,
-    validate_against: Optional[CallerIdentifier] = None,
-) -> Tuple[CallerIdentifier | None, TCallType | None]:
-    """
-    Extracts the CallerIdentifier for the next available instance received from
+    is_running: IsRunningTracker | None = None,
+    context: grpc.aio.ServicerContext | None = None,
+    extractor: Callable[[TCallType], GrpcCallerId] | None = None,
+    validate_against: CallerIdentifier | None = None,
+) -> tuple[CallerIdentifier | None, TCallType | None]:
+    """Extracts the CallerIdentifier for the next available instance received from
     |iterator|, returning both the  CallerId and the call itself if the method
     succeeds.
 
@@ -90,12 +90,11 @@ async def extract_id_from_first_call(
 
 async def extract_id_from_call(
     call: TCallType,
-    context: Optional[grpc.aio.ServicerContext] = None,
-    extractor: Optional[Callable[[TCallType], GrpcCallerId]] = None,
-    validate_against: Optional[CallerIdentifier] = None,
+    context: grpc.aio.ServicerContext | None = None,
+    extractor: Callable[[TCallType], GrpcCallerId] | None = None,
+    validate_against: CallerIdentifier | None = None,
 ) -> CallerIdentifier | None:
-    """
-    Extracts the CallerIdentifier associated with |call|, returning the CallerId
+    """Extracts the CallerIdentifier associated with |call|, returning the CallerId
     if the method succeeds.
 
     |context| (if provided) is used to respond to the caller if an invalid

@@ -1,7 +1,6 @@
 """Manages time synchronization with multiple IP endpoints."""
 
 import logging
-from typing import Dict
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.client_synchronized_clock import (
@@ -31,9 +30,10 @@ class TimeSyncTracker:
         Args:
             thread_watcher: For monitoring threads by TimeSyncClient.
             is_testing: If True, uses `FakeTimeSyncClient`.
+
         """
         self.__thread_watcher = thread_watcher
-        self.__map: Dict[str, tuple[int, ClientSynchronizedClock.Client]] = {}
+        self.__map: dict[str, tuple[int, ClientSynchronizedClock.Client]] = {}
         self.__is_test_run = is_testing
 
     def on_connect(self, ip: str) -> SynchronizedClock:
@@ -47,6 +47,7 @@ class TimeSyncTracker:
 
         Returns:
             A `SynchronizedClock` instance associated with the endpoint.
+
         """
         new_client: ClientSynchronizedClock.Client
         if ip not in self.__map:
@@ -74,6 +75,7 @@ class TimeSyncTracker:
 
         Raises:
             KeyError: If the IP was not previously tracked.
+
         """
         if ip not in self.__map:
             # pylint: disable=consider-using-f-string

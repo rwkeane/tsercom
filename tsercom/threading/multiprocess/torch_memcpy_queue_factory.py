@@ -1,16 +1,13 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
 import multiprocessing as std_mp  # Standard library, aliased
+from collections.abc import Callable, Iterable  # Updated imports
 from typing import (
-    Tuple,
+    Any,
     Generic,
     TypeVar,
-    Callable,
-    Any,
-    Union,
-    Iterable,
-    Optional,
-)  # Updated imports
+)
+
 import torch  # Keep torch for type hints if needed, or for tensor_accessor context
 import torch.multiprocessing as mp  # Third-party
 
@@ -30,8 +27,7 @@ QueueElementT = TypeVar("QueueElementT")
 class TorchMemcpyQueueFactory(
     MultiprocessQueueFactory[QueueElementT], Generic[QueueElementT]
 ):  # Now generic
-    """
-    Provides an implementation of `MultiprocessQueueFactory` specialized for
+    """Provides an implementation of `MultiprocessQueueFactory` specialized for
     `torch.Tensor` objects.
 
     It utilizes `torch.multiprocessing.Queue` instances, which are chosen
@@ -45,12 +41,8 @@ class TorchMemcpyQueueFactory(
     def __init__(
         self,
         ctx_method: str = "spawn",
-        context: Optional[
-            std_mp.context.BaseContext
-        ] = None,  # Corrected type hint
-        tensor_accessor: Optional[
-            Callable[[Any], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = None,
+        context: std_mp.context.BaseContext | None = None,  # Corrected type hint
+        tensor_accessor: Callable[[Any], torch.Tensor | Iterable[torch.Tensor]] | None = None,
     ) -> None:
         """Initializes the TorchMultiprocessQueueFactory.
 
@@ -62,6 +54,7 @@ class TorchMemcpyQueueFactory(
                      If None, a new context is created using ctx_method.
             tensor_accessor: An optional function that, given an object of type T (or Any for flexibility here),
                              returns a torch.Tensor or an Iterable of torch.Tensors found within it.
+
         """
         # super().__init__() # Assuming MultiprocessQueueFactory has no __init__ or parameterless one
         if context:
@@ -72,7 +65,7 @@ class TorchMemcpyQueueFactory(
 
     def create_queues(
         self,
-    ) -> Tuple[
+    ) -> tuple[
         "TorchMemcpyQueueSink[QueueElementT]",
         "TorchMemcpyQueueSource[QueueElementT]",
     ]:  # Return specialized generic sink/source
@@ -85,6 +78,7 @@ class TorchMemcpyQueueFactory(
         Returns:
             A tuple containing TorchTensorQueueSink and TorchTensorQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
+
         """
         torch_queue: mp.Queue[QueueElementT] = (
             self._mp_context.Queue()
@@ -102,8 +96,7 @@ class TorchMemcpyQueueFactory(
 class TorchMemcpyQueueSource(
     Generic[QueueElementT], MultiprocessQueueSource[QueueElementT]
 ):
-    """
-    A MultiprocessQueueSource that can find and prepare torch.Tensor objects
+    """A MultiprocessQueueSource that can find and prepare torch.Tensor objects
     (single, or an iterable of tensors) for shared memory transfer using a
     provided tensor_accessor function after an item is retrieved from the queue.
     If no accessor is provided, it defaults to checking if the object itself is a tensor.
@@ -112,32 +105,25 @@ class TorchMemcpyQueueSource(
     def __init__(
         self,
         queue: "mp.Queue[QueueElementT]",
-        tensor_accessor: Optional[
-            Callable[
-                [QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]
-            ]
-        ] = None,
+        tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = None,
     ) -> None:
         super().__init__(queue)
-        self._tensor_accessor: Optional[
-            Callable[
-                [QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]
-            ]
-        ] = tensor_accessor
+        self._tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = tensor_accessor
 
     def get_blocking(
         self, timeout: float | None = None
     ) -> QueueElementT | None:
-        """
-        Gets an item from the queue. If a tensor_accessor is provided, it's used
+        """Gets an item from the queue. If a tensor_accessor is provided, it's used
         to find and call share_memory_() on any torch.Tensor objects within the item.
         If no accessor, it checks if the item itself is a tensor.
 
         Args:
             timeout: Max time (secs) to wait. None means block indefinitely.
+
         Returns:
             The item from queue, or None on timeout. Tensors within (if found)
             will have share_memory_() called.
+
         """
         item = super().get_blocking(timeout=timeout)
         if item is not None:
@@ -175,8 +161,7 @@ class TorchMemcpyQueueSource(
 class TorchMemcpyQueueSink(
     Generic[QueueElementT], MultiprocessQueueSink[QueueElementT]
 ):
-    """
-    A MultiprocessQueueSink that can find and prepare torch.Tensor objects
+    """A MultiprocessQueueSink that can find and prepare torch.Tensor objects
     (single, or an iterable of tensors) for shared memory transfer using a
     provided tensor_accessor function. If no accessor is provided, it defaults
     to checking if the object itself is a tensor.
@@ -185,32 +170,25 @@ class TorchMemcpyQueueSink(
     def __init__(
         self,
         queue: "mp.Queue[QueueElementT]",
-        tensor_accessor: Optional[
-            Callable[
-                [QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]
-            ]
-        ] = None,
+        tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = None,
     ) -> None:
         super().__init__(queue)
-        self._tensor_accessor: Optional[
-            Callable[
-                [QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]
-            ]
-        ] = tensor_accessor
+        self._tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = tensor_accessor
 
     def put_blocking(
         self, obj: QueueElementT, timeout: float | None = None
     ) -> bool:
-        """
-        Puts an item into the queue. If a tensor_accessor is provided, it's used
+        """Puts an item into the queue. If a tensor_accessor is provided, it's used
         to find and call share_memory_() on any torch.Tensor objects.
         If no accessor is provided, it checks if the object itself is a tensor.
 
         Args:
             obj: The item to put into the queue.
             timeout: Max time (secs) to wait. None means block indefinitely.
+
         Returns:
             True if successful, False on timeout.
+
         """
         if self._tensor_accessor:
             try:
