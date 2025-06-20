@@ -13,34 +13,40 @@ from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
 from tsercom.tensor.serialization.serializable_tensor import (
-    SerializableTensorChunk, # This is the REAL one from serialization
+    SerializableTensorChunk,  # This is the REAL one from serialization
 )
-from typing import NamedTuple, Any # Import NamedTuple and Any
+from typing import NamedTuple  # Import NamedTuple and Any
 
 
 # Timestamps for testing consistency
 T_COMP_BASE = datetime.datetime(2024, 3, 10, 10, 0, 0)
 
+
 # Mock SynchronizedTimestamp for creating test chunks to pass to TensorDemuxer
-class MockSynchronizedTimestampE2E: # Renamed to avoid clash if unit test one is imported
+class MockSynchronizedTimestampE2E:  # Renamed to avoid clash if unit test one is imported
     def __init__(self, dt: datetime.datetime):
         self._dt = dt
+
     def as_datetime(self) -> datetime.datetime:
         return self._dt
+
     def __eq__(self, other):
         if isinstance(other, MockSynchronizedTimestampE2E):
             return self._dt == other._dt
         elif isinstance(other, datetime.datetime):
-             return self._dt == other
+            return self._dt == other
         return False
-    def __lt__(self, other): # For sorting if lists of these are made
+
+    def __lt__(self, other):  # For sorting if lists of these are made
         if isinstance(other, MockSynchronizedTimestampE2E):
             return self._dt < other._dt
         elif isinstance(other, datetime.datetime):
-             return self._dt < other
+            return self._dt < other
         return NotImplemented
+
     def __hash__(self):
         return hash(self._dt)
+
 
 # Local SerializableTensorChunk for tests to construct chunks for the demuxer
 # This matches the structure expected by the refactored TensorDemuxer's type hints
@@ -50,6 +56,7 @@ class TestSerializableTensorChunk(NamedTuple):
     starting_index: int
     tensor: torch.Tensor
     stream_id: str = "default_stream"
+
 
 T_COMP_0 = T_COMP_BASE
 T_COMP_1 = T_COMP_BASE + datetime.timedelta(seconds=10)
