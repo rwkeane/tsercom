@@ -1,4 +1,5 @@
 import torch
+from typing import Optional # Added import
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 
@@ -7,6 +8,15 @@ class LinearInterpolationStrategy(SmoothingStrategy):
     """
     Implements linear interpolation for a series of data points using torch.Tensor.
     """
+
+    def __init__(
+        self,
+        max_extrapolation_seconds: Optional[float] = None,
+        max_interpolation_gap_seconds: Optional[float] = None,
+    ):
+        super().__init__()
+        self.max_extrapolation_seconds = max_extrapolation_seconds
+        self.max_interpolation_gap_seconds = max_interpolation_gap_seconds
 
     def interpolate_series(
         self,
