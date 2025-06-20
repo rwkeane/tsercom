@@ -5,7 +5,7 @@ from tsercom.rpc.grpc_util.grpc_service_publisher import check_grpc_channel_heal
 
 
 @dataclasses.dataclass
-class GrpcChannelInfo:
+class ChannelInfo:
     """Encapsulates information about a gRPC channel and its connection endpoint."""
 
     channel: grpc.aio.Channel

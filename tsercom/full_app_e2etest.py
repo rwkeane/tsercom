@@ -26,7 +26,7 @@ from tsercom.discovery.mdns.instance_listener import MdnsListenerFactory
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.service_connector import ServiceConnector
 from tsercom.discovery.service_info import ServiceInfo
-from tsercom.rpc.grpc_util.channel_info import GrpcChannelInfo  # Renamed
+from tsercom.rpc.grpc_util.channel_info import ChannelInfo  # Renamed
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
 from tsercom.runtime.runtime import Runtime
@@ -196,7 +196,7 @@ class GenericServerRuntime(
         self,
         connection_info: ServiceInfo,
         caller_id: CallerIdentifier,
-        channel_info: GrpcChannelInfo,  # Renamed
+        channel_info: ChannelInfo,  # Renamed
     ):
         has_been_hit.set(True)
 

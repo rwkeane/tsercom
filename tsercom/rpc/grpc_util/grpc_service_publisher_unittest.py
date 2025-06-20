@@ -6,7 +6,7 @@ import pytest
 import pytest_asyncio
 import grpc
 from grpc_health.v1 import health_pb2  # type: ignore
-from tsercom.rpc.grpc_util.channel_info import GrpcChannelInfo
+from tsercom.rpc.grpc_util.channel_info import ChannelInfo
 from tsercom.rpc.grpc_util.transport.insecure_grpc_channel_factory import (
     InsecureGrpcChannelFactory,
 )
@@ -102,7 +102,7 @@ HEALTH_STATUS_CHANGE_PORT = 50059  # Port for specific status change tests
 
 @pytest_asyncio.fixture(scope="function")
 async def grpc_server_and_channel_info() -> (
-    AsyncIterator[Tuple[GrpcServicePublisher, GrpcChannelInfo]]
+    AsyncIterator[Tuple[GrpcServicePublisher, ChannelInfo]]
 ):
     """
     Pytest fixture to set up a GrpcServicePublisher and a GrpcChannelInfo
@@ -129,7 +129,7 @@ async def grpc_server_and_channel_info() -> (
             addresses=TEST_HOST, port=HEALTH_TEST_PORT
         )
         assert channel is not None, "Channel creation failed in fixture"
-        channel_info = GrpcChannelInfo(
+        channel_info = ChannelInfo(
             channel=channel, address=TEST_HOST, port=HEALTH_TEST_PORT
         )
         yield publisher, channel_info
@@ -145,7 +145,7 @@ class TestGrpcHealthChecks:
     """Unit tests for gRPC health checking functionalities."""
 
     async def test_service_healthy_when_server_running(
-        self, grpc_server_and_channel_info: Tuple[GrpcServicePublisher, GrpcChannelInfo]
+        self, grpc_server_and_channel_info: Tuple[GrpcServicePublisher, ChannelInfo]
     ) -> None:
         """
         Tests that GrpcChannelInfo.is_healthy() returns True when the server is running.
@@ -161,7 +161,7 @@ class TestGrpcHealthChecks:
         ), "Service should be healthy when server is running"
 
     async def test_service_unhealthy_after_server_stop(
-        self, grpc_server_and_channel_info: Tuple[GrpcServicePublisher, GrpcChannelInfo]
+        self, grpc_server_and_channel_info: Tuple[GrpcServicePublisher, ChannelInfo]
     ) -> None:
         """
         Tests that GrpcChannelInfo.is_healthy() returns False after the server is stopped.
@@ -209,7 +209,7 @@ class TestGrpcHealthChecks:
                 addresses=TEST_HOST, port=HEALTH_STATUS_CHANGE_PORT
             )
             assert channel is not None, "Channel creation failed in status change test"
-            channel_info = GrpcChannelInfo(
+            channel_info = ChannelInfo(
                 channel=channel, address=TEST_HOST, port=HEALTH_STATUS_CHANGE_PORT
             )
 

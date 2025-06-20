@@ -18,7 +18,7 @@ from typing import (
 
 import grpc
 from grpc_health.v1 import health_pb2  # type: ignore[import-untyped]
-from tsercom.rpc.grpc_util.channel_info import GrpcChannelInfo
+from tsercom.rpc.grpc_util.channel_info import ChannelInfo
 from tsercom.rpc.grpc_util.grpc_service_publisher import (
     check_grpc_channel_health,
 )
@@ -1644,7 +1644,7 @@ async def test_health_e2e_server_is_healthy(
     assert publisher is not None, "Publisher from health_e2e_server fixture is None"
 
     channel_factory = InsecureGrpcChannelFactory()
-    channel_info: Optional[GrpcChannelInfo] = None
+    channel_info: Optional[ChannelInfo] = None
     client_channel: Optional[grpc.aio.Channel] = None
 
     try:
@@ -1653,7 +1653,7 @@ async def test_health_e2e_server_is_healthy(
             client_channel is not None
         ), f"Failed to connect to health_e2e_server at {host}:{port}"
 
-        channel_info = GrpcChannelInfo(channel=client_channel, address=host, port=port)
+        channel_info = ChannelInfo(channel=client_channel, address=host, port=port)
 
         # Allow some time for the server to be fully ready and health status to be queryable
         await asyncio.sleep(
@@ -1683,7 +1683,7 @@ async def test_health_e2e_server_becomes_unhealthy_after_stop(
 
     channel_factory = InsecureGrpcChannelFactory()
     client_channel: Optional[grpc.aio.Channel] = None
-    channel_info: Optional[GrpcChannelInfo] = None
+    channel_info: Optional[ChannelInfo] = None
 
     try:
         client_channel = await channel_factory.find_async_channel(host, port)
@@ -1691,7 +1691,7 @@ async def test_health_e2e_server_becomes_unhealthy_after_stop(
             client_channel is not None
         ), f"Failed to connect to health_e2e_server at {host}:{port}"
 
-        channel_info = GrpcChannelInfo(channel=client_channel, address=host, port=port)
+        channel_info = ChannelInfo(channel=client_channel, address=host, port=port)
 
         # Allow some time for server to be fully ready and health status to be queryable
         await asyncio.sleep(0.2)
@@ -1749,7 +1749,7 @@ async def test_dynamic_service_health_status_changes(
             client_channel is not None
         ), f"Failed to connect to health_e2e_server at {host}:{port}"
 
-        channel_info = GrpcChannelInfo(channel=client_channel, address=host, port=port)
+        channel_info = ChannelInfo(channel=client_channel, address=host, port=port)
 
         await asyncio.sleep(0.2)  # Ensure server is fully up
 

@@ -16,7 +16,7 @@ from tsercom.rpc.grpc_util.grpc_caller import (
 )
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
-from tsercom.rpc.grpc_util.channel_info import GrpcChannelInfo
+from tsercom.rpc.grpc_util.channel_info import ChannelInfo
 
 __all__ = [
     "BaseChannelAuthConfig",
@@ -31,5 +31,5 @@ __all__ = [
     "is_server_unavailable_error",
     "is_grpc_error",
     "GrpcServicePublisher",
-    "GrpcChannelInfo",
+    "ChannelInfo",
 ]
