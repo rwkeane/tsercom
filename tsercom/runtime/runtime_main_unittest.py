@@ -1,4 +1,5 @@
-import multiprocessing # Added import
+import multiprocessing  # Added import
+
 """Tests for tsercom.runtime.runtime_main."""
 
 import pytest

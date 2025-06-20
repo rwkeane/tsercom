@@ -1,24 +1,25 @@
 import sys
 import multiprocessing
-from unittest import mock # Import the whole module
-import importlib # Added for reloading
+from unittest import mock  # Import the whole module
+import importlib  # Added for reloading
 
 import pytest
 
 # Conditional import for torch and its types for testing
 try:
-    import torch # noqa: F401
-    import torch.multiprocessing as torch_mp # noqa: F401
+    import torch  # noqa: F401
+    import torch.multiprocessing as torch_mp  # noqa: F401
+
     # For type checking, get the specific context type if torch is available
     # Note: isinstance checks will use the actual runtime types.
     if hasattr(torch_mp, "get_context"):
-      TorchContextType = type(torch_mp.get_context("spawn"))
-    else: # Older torch versions might not have get_context in the same way
-      TorchContextType = object # Fallback
+        TorchContextType = type(torch_mp.get_context("spawn"))
+    else:  # Older torch versions might not have get_context in the same way
+        TorchContextType = object  # Fallback
     _TORCH_INSTALLED = True
 except ImportError:
     _TORCH_INSTALLED = False
-    TorchContextType = type("TorchContextType", (), {}) # Dummy type
+    TorchContextType = type("TorchContextType", (), {})  # Dummy type
 
 StdContextType = type(multiprocessing.get_context("spawn"))
 
@@ -28,9 +29,15 @@ StdContextType = type(multiprocessing.get_context("spawn"))
 # So, we will import/reload it inside test functions or fixtures where needed.
 
 # Default import for type hints outside mocks
-from tsercom.threading.multiprocess.multiprocessing_context_provider import MultiprocessingContextProvider
-from tsercom.threading.multiprocess.default_multiprocess_queue_factory import DefaultMultiprocessQueueFactory
-from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import TorchMultiprocessQueueFactory
+from tsercom.threading.multiprocess.multiprocessing_context_provider import (
+    MultiprocessingContextProvider,
+)
+from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+    DefaultMultiprocessQueueFactory,
+)
+from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
+    TorchMultiprocessQueueFactory,
+)
 
 
 def get_provider_module_for_testing(torch_available_mock_value: bool):
@@ -44,7 +51,9 @@ def get_provider_module_for_testing(torch_available_mock_value: bool):
 
     # Patch the _TORCH_AVAILABLE flag within that module.
     # The path to _TORCH_AVAILABLE should be absolute from the perspective of where `patch` looks.
-    with mock.patch(f"{provider_module_name}._TORCH_AVAILABLE", torch_available_mock_value):
+    with mock.patch(
+        f"{provider_module_name}._TORCH_AVAILABLE", torch_available_mock_value
+    ):
         # Reload the module. This is crucial because the module might have already
         # evaluated _TORCH_AVAILABLE at its import time. Reloading makes it re-evaluate.
         reloaded_module = importlib.reload(sys.modules[provider_module_name])
@@ -52,7 +61,10 @@ def get_provider_module_for_testing(torch_available_mock_value: bool):
         return reloaded_module.MultiprocessingContextProvider
 
 
-@pytest.mark.skipif(not _TORCH_INSTALLED, reason="PyTorch is not installed, skipping torch-specific tests")
+@pytest.mark.skipif(
+    not _TORCH_INSTALLED,
+    reason="PyTorch is not installed, skipping torch-specific tests",
+)
 def test_lazy_init_with_torch_available() -> None:
     """
     Tests lazy initialization when PyTorch is available.
@@ -64,13 +76,19 @@ def test_lazy_init_with_torch_available() -> None:
     # Mock the actual context creation and factory instantiation to check call counts
     # These paths are relative to where they are called *from* (i.e., inside the provider module)
     provider_module_name = MultiprocessingContextProvider.__module__
-    with mock.patch(f"{provider_module_name}.get_torch_context") as mock_get_torch_ctx, \
-         mock.patch(f"{provider_module_name}.TorchMultiprocessQueueFactory") as mock_torch_q_factory_class:
+    with (
+        mock.patch(f"{provider_module_name}.get_torch_context") as mock_get_torch_ctx,
+        mock.patch(
+            f"{provider_module_name}.TorchMultiprocessQueueFactory"
+        ) as mock_torch_q_factory_class,
+    ):
 
         mock_torch_ctx_instance = mock.MagicMock(spec=TorchContextType)
         mock_get_torch_ctx.return_value = mock_torch_ctx_instance
 
-        mock_torch_q_factory_instance = mock.MagicMock(spec=TorchMultiprocessQueueFactory)
+        mock_torch_q_factory_instance = mock.MagicMock(
+            spec=TorchMultiprocessQueueFactory
+        )
         mock_torch_q_factory_class.return_value = mock_torch_q_factory_instance
 
         # First access of context
@@ -82,7 +100,9 @@ def test_lazy_init_with_torch_available() -> None:
         factory1 = provider.queue_factory
         # mock_get_torch_ctx should still be called once (due to factory accessing context)
         mock_get_torch_ctx.assert_called_once()
-        mock_torch_q_factory_class.assert_called_once_with(context=mock_torch_ctx_instance)
+        mock_torch_q_factory_class.assert_called_once_with(
+            context=mock_torch_ctx_instance
+        )
         assert factory1 is mock_torch_q_factory_instance
 
         # Second access
@@ -92,8 +112,8 @@ def test_lazy_init_with_torch_available() -> None:
         # Creation methods should still only have been called once
         mock_get_torch_ctx.assert_called_once()
         mock_torch_q_factory_class.assert_called_once()
-        assert context2 is context1 # Check for cached instance
-        assert factory2 is factory1 # Check for cached instance
+        assert context2 is context1  # Check for cached instance
+        assert factory2 is factory1  # Check for cached instance
 
         # Test get_context_and_factory
         context3, factory3 = provider.get_context_and_factory()
@@ -112,13 +132,19 @@ def test_lazy_init_with_torch_unavailable() -> None:
     provider = PatchedProvider(context_method="spawn")
 
     provider_module_name = MultiprocessingContextProvider.__module__
-    with mock.patch(f"{provider_module_name}.get_std_context") as mock_get_std_ctx, \
-         mock.patch(f"{provider_module_name}.DefaultMultiprocessQueueFactory") as mock_std_q_factory_class:
+    with (
+        mock.patch(f"{provider_module_name}.get_std_context") as mock_get_std_ctx,
+        mock.patch(
+            f"{provider_module_name}.DefaultMultiprocessQueueFactory"
+        ) as mock_std_q_factory_class,
+    ):
 
         mock_std_ctx_instance = mock.MagicMock(spec=StdContextType)
         mock_get_std_ctx.return_value = mock_std_ctx_instance
 
-        mock_std_q_factory_instance = mock.MagicMock(spec=DefaultMultiprocessQueueFactory)
+        mock_std_q_factory_instance = mock.MagicMock(
+            spec=DefaultMultiprocessQueueFactory
+        )
         mock_std_q_factory_class.return_value = mock_std_q_factory_instance
 
         # First access
@@ -127,10 +153,9 @@ def test_lazy_init_with_torch_unavailable() -> None:
         assert context1 is mock_std_ctx_instance
 
         factory1 = provider.queue_factory
-        mock_get_std_ctx.assert_called_once() # Still once
+        mock_get_std_ctx.assert_called_once()  # Still once
         mock_std_q_factory_class.assert_called_once_with(context=mock_std_ctx_instance)
         assert factory1 is mock_std_q_factory_instance
-
 
         # Second access
         context2 = provider.context
@@ -160,9 +185,12 @@ def test_properties_return_correct_types_with_torch() -> None:
 
     assert isinstance(context, TorchContextType)
     # We need to import the actual TorchMultiprocessQueueFactory for isinstance check
-    from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import TorchMultiprocessQueueFactory as ActualTorchFactory
+    from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
+        TorchMultiprocessQueueFactory as ActualTorchFactory,
+    )
+
     assert isinstance(factory, ActualTorchFactory)
-    assert factory._mp_context is context # Check context is passed to factory
+    assert factory._mp_context is context  # Check context is passed to factory
 
     # Verify get_context_and_factory also returns correct types
     ctx_tuple, factory_tuple = provider.get_context_and_factory()
@@ -181,7 +209,10 @@ def test_properties_return_correct_types_without_torch() -> None:
 
     assert isinstance(context, StdContextType)
     # We need to import the actual DefaultMultiprocessQueueFactory for isinstance check
-    from tsercom.threading.multiprocess.default_multiprocess_queue_factory import DefaultMultiprocessQueueFactory as ActualDefaultFactory
+    from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+        DefaultMultiprocessQueueFactory as ActualDefaultFactory,
+    )
+
     assert isinstance(factory, ActualDefaultFactory)
     assert factory._mp_context is context
 
@@ -195,27 +226,32 @@ def test_different_context_methods() -> None:
     """Test that different context methods are respected (if supported by system)."""
     # Test with torch (if available)
     if _TORCH_INSTALLED:
-        PatchedProviderTorch = get_provider_module_for_testing(torch_available_mock_value=True)
+        PatchedProviderTorch = get_provider_module_for_testing(
+            torch_available_mock_value=True
+        )
         provider_torch_spawn = PatchedProviderTorch(context_method="spawn")
         ctx_torch_spawn = provider_torch_spawn.context
         assert "spawn" in ctx_torch_spawn.__class__.__name__.lower()
-        assert hasattr(ctx_torch_spawn, 'Process')
+        assert hasattr(ctx_torch_spawn, "Process")
 
     # Test without torch
-    PatchedProviderStd = get_provider_module_for_testing(torch_available_mock_value=False)
+    PatchedProviderStd = get_provider_module_for_testing(
+        torch_available_mock_value=False
+    )
     provider_std_spawn = PatchedProviderStd(context_method="spawn")
     ctx_std_spawn = provider_std_spawn.context
     assert "spawn" in ctx_std_spawn.__class__.__name__.lower()
-    assert hasattr(ctx_std_spawn, 'Process')
+    assert hasattr(ctx_std_spawn, "Process")
 
     # Example for 'fork' if we wanted to test it (would need OS conditional logic for it to pass everywhere)
     # This test mainly ensures the method string is passed; actual context type name can vary.
-    if sys.platform != "win32": # 'fork' is not available on Windows
+    if sys.platform != "win32":  # 'fork' is not available on Windows
         provider_std_fork = PatchedProviderStd(context_method="fork")
         ctx_std_fork = provider_std_fork.context
         # Depending on the system, the name might be 'ForkContext' or similar.
         # Checking for 'fork' in the name is a reasonable heuristic.
         assert "fork" in ctx_std_fork.__class__.__name__.lower()
-        assert hasattr(ctx_std_fork, 'Process')
+        assert hasattr(ctx_std_fork, "Process")
+
 
 EOL

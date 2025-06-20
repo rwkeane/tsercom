@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import Iterator # Added Iterator
+from typing import Iterator  # Added Iterator
 from unittest import mock
 import multiprocessing  # Added for context object
 
@@ -11,7 +11,7 @@ from tsercom.api.split_process.split_runtime_factory_factory import (
 from tsercom.api.split_process.remote_runtime_factory import RemoteRuntimeFactory
 from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.runtime.runtime_config import ServiceType # Added import
+from tsercom.runtime.runtime_config import ServiceType  # Added import
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
@@ -90,7 +90,10 @@ def test_create_pair_uses_default_context_and_factory(
 
         # Configure the mock for when DefaultMultiprocessQueueFactory[RuntimeCommand](...) is called
         mock_configured_cmd_instance = mock.Mock()
-        mock_configured_cmd_instance.create_queues.return_value = (mock.Mock(), mock.Mock())
+        mock_configured_cmd_instance.create_queues.return_value = (
+            mock.Mock(),
+            mock.Mock(),
+        )
 
         # Make DefaultMultiprocessQueueFactory[RuntimeCommand] return a mock that, when called, returns the configured instance
         mock_getitem_result = mock.Mock()
@@ -102,11 +105,12 @@ def test_create_pair_uses_default_context_and_factory(
         # For safety, ensure the direct return_value also points to something reasonable or the same mock.
         mock_cmd_q_factory_class.return_value = mock_configured_cmd_instance
 
-
         initializer = MockRuntimeInitializer()
         initializer.timeout_seconds = None  # Simplify aggregator mocking
         initializer.data_aggregator_client = None
-        initializer.service_type_enum = ServiceType.SERVER # Configure service_type_enum (corrected indentation)
+        initializer.service_type_enum = (
+            ServiceType.SERVER
+        )  # Configure service_type_enum (corrected indentation)
 
         runtime_handle, runtime_factory = (
             split_runtime_factory_factory_instance._create_pair(initializer)
@@ -120,7 +124,8 @@ def test_create_pair_uses_default_context_and_factory(
         # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the correct context
         # The call is DefaultMultiprocessQueueFactory[RuntimeCommand](context=mock_std_context_instance)
         # So, __getitem__ is called with RuntimeCommand, then the result is called with context.
-        from tsercom.api.runtime_command import RuntimeCommand # Import for assertion
+        from tsercom.api.runtime_command import RuntimeCommand  # Import for assertion
+
         mock_cmd_q_factory_class.__getitem__.assert_called_with(RuntimeCommand)
         mock_getitem_result.assert_called_once_with(context=mock_std_context_instance)
         mock_configured_cmd_instance.create_queues.assert_called_once()
@@ -161,19 +166,26 @@ def test_create_pair_uses_torch_context_and_factory(
 
         # Configure the mock for when DefaultMultiprocessQueueFactory[RuntimeCommand](...) is called
         mock_configured_cmd_instance = mock.Mock()
-        mock_configured_cmd_instance.create_queues.return_value = (mock.Mock(), mock.Mock())
+        mock_configured_cmd_instance.create_queues.return_value = (
+            mock.Mock(),
+            mock.Mock(),
+        )
 
         # Make DefaultMultiprocessQueueFactory[RuntimeCommand] return a mock that, when called, returns the configured instance
         mock_getitem_result = mock.Mock()
         mock_getitem_result.return_value = mock_configured_cmd_instance
         mock_cmd_q_factory_class.__getitem__.return_value = mock_getitem_result
 
-        mock_cmd_q_factory_class.return_value = mock_configured_cmd_instance # For safety, as in the other test
+        mock_cmd_q_factory_class.return_value = (
+            mock_configured_cmd_instance  # For safety, as in the other test
+        )
 
         initializer = MockRuntimeInitializer()
         initializer.timeout_seconds = None
         initializer.data_aggregator_client = None
-        initializer.service_type_enum = ServiceType.SERVER # Configure service_type_enum (corrected indentation)
+        initializer.service_type_enum = (
+            ServiceType.SERVER
+        )  # Configure service_type_enum (corrected indentation)
 
         runtime_handle, runtime_factory = (
             split_runtime_factory_factory_instance._create_pair(initializer)
@@ -185,7 +197,8 @@ def test_create_pair_uses_torch_context_and_factory(
         assert mock_torch_q_factory_instance.create_queues.call_count == 2
 
         # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the torch context
-        from tsercom.api.runtime_command import RuntimeCommand # Import for assertion
+        from tsercom.api.runtime_command import RuntimeCommand  # Import for assertion
+
         mock_cmd_q_factory_class.__getitem__.assert_called_with(RuntimeCommand)
         mock_getitem_result.assert_called_once_with(context=mock_torch_context_instance)
         mock_configured_cmd_instance.create_queues.assert_called_once()

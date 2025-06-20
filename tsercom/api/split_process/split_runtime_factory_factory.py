@@ -13,7 +13,6 @@ from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
 from tsercom.data.annotated_instance import (
     AnnotatedInstance,
 )
-from tsercom.data.event_instance import EventInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_factory import RuntimeFactory
@@ -21,7 +20,9 @@ from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.multiprocess.multiprocessing_context_provider import (
     MultiprocessingContextProvider,
 )
-from tsercom.threading.multiprocess.default_multiprocess_queue_factory import DefaultMultiprocessQueueFactory
+from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+    DefaultMultiprocessQueueFactory,
+)
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
 )
@@ -57,8 +58,9 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__thread_watcher: ThreadWatcher = thread_watcher
         # Default to "spawn" context method as it is generally safer and widely compatible.
-        self.__mp_context_provider = MultiprocessingContextProvider(context_method="spawn")
-
+        self.__mp_context_provider = MultiprocessingContextProvider(
+            context_method="spawn"
+        )
 
     def _create_pair(
         self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
@@ -86,7 +88,9 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
         # Command queues use a Default factory but with the context derived from the provider,
         # ensuring consistency if the main context is, for example, PyTorch-specific.
-        command_queue_factory = DefaultMultiprocessQueueFactory[RuntimeCommand](context=mp_context)
+        command_queue_factory = DefaultMultiprocessQueueFactory[RuntimeCommand](
+            context=mp_context
+        )
         runtime_command_sink: MultiprocessQueueSink[RuntimeCommand]
         runtime_command_source: MultiprocessQueueSource[RuntimeCommand]
         runtime_command_sink, runtime_command_source = (
@@ -122,4 +126,6 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         )
 
         return runtime_handle, factory
+
+
 EOL
