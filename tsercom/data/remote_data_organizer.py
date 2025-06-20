@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy  # ADDED
 from functools import partial
 from typing import Generic, Optional, TypeVar
-from sortedcontainers import SortedList
+from sortedcontainers import SortedList  # type: ignore
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
