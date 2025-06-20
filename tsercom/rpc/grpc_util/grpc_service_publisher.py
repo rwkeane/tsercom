@@ -1,9 +1,12 @@
 """Provides GrpcServicePublisher for hosting gRPC services."""
 
+import asyncio
 import logging
 from typing import Callable, Iterable
 
 import grpc
+from grpc_health.v1 import health_pb2, health_pb2_grpc  # type: ignore
+from grpc_health.v1._async import HealthServicer  # type: ignore[import-untyped]
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings
@@ -32,6 +35,7 @@ class GrpcServicePublisher:
             addresses = [addresses]
         self.__addresses = list(addresses)
 
+        self._health_servicer = HealthServicer()
         self.__port = port
         self.__server: grpc.Server = None
         self.__watcher = watcher
@@ -77,8 +81,37 @@ class GrpcServicePublisher:
             maximum_concurrent_rpcs=None,
         )
         connect_call(self.__server)
+        health_pb2_grpc.add_HealthServicer_to_server(
+            self._health_servicer, self.__server
+        )
+        # Empty string for service_name sets the overall server health.
+        await self._health_servicer.set("", health_pb2.HealthCheckResponse.SERVING)
+        await asyncio.sleep(0)  # Allow gRPC to process the status update internally
         self._connect()
         await self.__server.start()
+
+    async def set_service_health_status(
+        self, service: str, status: health_pb2.HealthCheckResponse.ServingStatus
+    ) -> None:
+        """Explicity sets the health status of a specific service or the overall server.
+
+        Args:
+            service: The name of the service to set the status for.
+                     An empty string sets the overall server health.
+            status: The desired health status (e.g., SERVING, NOT_SERVING).
+        """
+        if self._health_servicer is None:
+            logging.error(
+                "Cannot set service status because health servicer is not initialized."
+            )
+            return
+
+        status_name = health_pb2.HealthCheckResponse.ServingStatus.Name(status)
+        logging.info(f"Setting health status for service '{service}' to {status_name}.")
+        await self._health_servicer.set(service, status)
+
+        # Allow time for the status to propagate, especially in an async environment.
+        await asyncio.sleep(0.1)
 
     def _connect(self) -> bool:
         """Binds the gRPC server to the configured addresses and port.
@@ -89,7 +122,6 @@ class GrpcServicePublisher:
         Returns:
             True if the server successfully bound to at least one address, False otherwise.
         """
-        # Connect to a port.
         worked = 0
         for address in self.__addresses:
             try:
@@ -107,7 +139,6 @@ class GrpcServicePublisher:
                 ):  # AssertionError is a RuntimeError subtype
                     self.__watcher.on_exception_seen(e)
                     raise e
-                # Log other exceptions that prevent binding to a specific address
                 logging.warning(
                     "Failed to bind gRPC server to %s:%s. Error: %s",
                     address,
@@ -182,8 +213,60 @@ class GrpcServicePublisher:
             )  # For grpc.aio.Server, keyword is 'grace'
             logging.info("GrpcServicePublisher: gRPC Server stopped (async).")
         except Exception as e:
-            # Log the full exception for better debugging
             logging.exception(
                 "GrpcServicePublisher: Exception during async server stop: %r",
                 e,
             )
+
+
+async def check_grpc_channel_health(
+    channel: grpc.aio.Channel, service: str = ""
+) -> bool:
+    """Checks the health of a given gRPC channel for a specific service.
+
+    Args:
+        channel: The gRPC channel to check.
+        service: The name of the service to check. An empty string checks overall server health.
+
+    Returns:
+        True if the channel is serving for the specified service, False otherwise (including errors).
+    """
+    if not channel:
+        logging.debug(
+            f"Health check: Channel is None or empty for service '{service}'."
+        )
+        return False
+
+    logging.debug(
+        f"Health check: Creating HealthStub for channel: {channel}, service: '{service}'"
+    )
+    health_stub = health_pb2_grpc.HealthStub(channel)
+    request = health_pb2.HealthCheckRequest(service=service)
+    logging.debug(
+        f"Health check: Sending HealthCheckRequest: {request} for service '{service}'"
+    )
+
+    try:
+        response = await health_stub.Check(request, timeout=1.0)
+        logging.info(f"Health check: Received response status: {response.status}")
+        if response.status == health_pb2.HealthCheckResponse.SERVING:
+            logging.debug("Health check: Status is SERVING, returning True.")
+            return True
+        else:
+            service_status_name = health_pb2.HealthCheckResponse.ServingStatus.Name(
+                response.status
+            )
+            logging.warning(
+                f"Health check: Status is {service_status_name}, expected SERVING. Returning False."
+            )
+            return False
+    except grpc.aio.AioRpcError as e:
+        logging.error(
+            f"Health check: AioRpcError for channel {channel}: {e.details()} (code: {e.code()})"
+        )
+        return False
+    except Exception as e:
+        logging.error(
+            f"Health check: Unexpected error for channel {channel}: {e}", exc_info=True
+        )
+        return False

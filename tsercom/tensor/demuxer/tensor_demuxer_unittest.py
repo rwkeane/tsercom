@@ -66,6 +66,21 @@ async def demuxer(
 
 
 @pytest_asyncio.fixture
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+async def gpu_demuxer(
+    mock_client: MockTensorDemuxerClient,
+) -> Tuple[TensorDemuxer, MockTensorDemuxerClient]:
+    """Provides a TensorDemuxer configured for CUDA device and its mock client."""
+    demuxer_instance = TensorDemuxer(
+        client=mock_client,
+        tensor_length=4,  # Consistent with other tests
+        data_timeout_seconds=60.0,
+        device="cuda:0",
+    )
+    return demuxer_instance, mock_client
+
+
+@pytest_asyncio.fixture
 async def demuxer_short_timeout(
     mock_client: MockTensorDemuxerClient,
 ) -> Tuple[TensorDemuxer, MockTensorDemuxerClient]:
@@ -1331,3 +1346,69 @@ async def test_multi_element_chunk_triggers_cascade(
     kf_t3 = await d.get_tensor_at_timestamp(T3_std)
     assert kf_t3 is not None
     assert torch.equal(kf_t3, torch.tensor([100.0, 10.0, 20.0, 0.0]))
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+async def test_demuxer_gpu_operation_client_callback(
+    gpu_demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+) -> None:
+    """Tests that the client receives tensors on the specified GPU device."""
+    demuxer_instance, client = gpu_demuxer
+    cuda_device_str = "cuda:0"
+
+    # Create a tensor on CPU, as SerializableTensorChunk expects CPU tensor for its own processing
+    # The TensorDemuxer is responsible for moving it to its configured device ('cuda:0')
+    cpu_tensor_data = torch.tensor([1.0, 2.0], dtype=torch.float32)
+    timestamp = datetime.datetime.now(datetime.timezone.utc)
+    sync_ts = SynchronizedTimestamp(timestamp)
+    chunk = SerializableTensorChunk(
+        tensor=cpu_tensor_data, timestamp=sync_ts, starting_index=0
+    )
+
+    await demuxer_instance.on_chunk_received(chunk)
+
+    assert client.call_count == 1, "Client should have been called once"
+    last_call = client.get_last_call()
+    assert last_call is not None
+    received_tensor, received_ts = last_call
+
+    assert received_tensor.device.type == "cuda", "Tensor in callback should be on CUDA"
+    assert (
+        str(received_tensor.device) == cuda_device_str
+    ), f"Tensor should be on {cuda_device_str}"
+
+    expected_tensor_on_gpu = torch.tensor([1.0, 2.0, 0.0, 0.0], device=cuda_device_str)
+    assert torch.equal(received_tensor, expected_tensor_on_gpu), "Tensor data mismatch"
+    assert received_ts == timestamp, "Timestamp mismatch"
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+async def test_demuxer_gpu_operation_get_tensor(
+    gpu_demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+) -> None:
+    """Tests that get_tensor_at_timestamp returns tensors on the specified GPU device."""
+    demuxer_instance, _ = gpu_demuxer  # Client not directly used here
+    cuda_device_str = "cuda:0"
+
+    cpu_tensor_data = torch.tensor([3.0, 4.0], dtype=torch.float32)
+    timestamp = datetime.datetime.now(datetime.timezone.utc)
+    sync_ts = SynchronizedTimestamp(timestamp)
+    chunk = SerializableTensorChunk(
+        tensor=cpu_tensor_data, timestamp=sync_ts, starting_index=1  # Start at index 1
+    )
+
+    await demuxer_instance.on_chunk_received(chunk)
+
+    retrieved_tensor = await demuxer_instance.get_tensor_at_timestamp(timestamp)
+
+    assert retrieved_tensor is not None, "Retrieved tensor should not be None"
+    assert retrieved_tensor.device.type == "cuda", "Retrieved tensor should be on CUDA"
+    assert (
+        str(retrieved_tensor.device) == cuda_device_str
+    ), f"Retrieved tensor should be on {cuda_device_str}"
+
+    # Initial state is zeros on GPU. Chunk updates index 1 to 3.0, index 2 to 4.0
+    expected_tensor_on_gpu = torch.tensor([0.0, 3.0, 4.0, 0.0], device=cuda_device_str)
+    assert torch.equal(retrieved_tensor, expected_tensor_on_gpu), "Tensor data mismatch"

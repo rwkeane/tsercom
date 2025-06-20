@@ -419,3 +419,57 @@ async def test_contiguous_and_non_contiguous_changes(
         assert torch.equal(received_chunks[0].tensor, torch.tensor([10.0]))
         assert received_chunks[1].starting_index == 2
         assert torch.equal(received_chunks[1].tensor, torch.tensor([30.0, 40.0]))
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+async def test_process_tensor_gpu_input_sparse(
+    multiplexer_tensor_len_5: SparseTensorMultiplexer,
+    mock_client: MockSparseTensorMultiplexerClient,
+):
+    """Tests processing of a GPU tensor that results in sparse diff chunks."""
+    mpx = multiplexer_tensor_len_5
+    cuda_device_str = "cuda:0"
+
+    tensor1_cpu = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], dtype=torch.float32)
+    await mpx.process_tensor(tensor1_cpu, T1)
+    mock_client.clear_calls()
+
+    # Define a second CPU tensor that differs from the first
+    # Changes at index 1 (2.0 -> 20.0) and index 3 (4.0 -> 40.0)
+    tensor2_cpu = torch.tensor([1.0, 20.0, 3.0, 40.0, 5.0], dtype=torch.float32)
+    tensor2_gpu = tensor2_cpu.to(cuda_device_str)
+
+    await mpx.process_tensor(tensor2_gpu, T2)
+    received_chunks = mock_client.get_all_received_chunks_sorted()
+
+    # Helper `create_expected_chunks_for_diff` takes CPU tensors.
+    # The key is that the *input* to process_tensor was GPU, and we check
+    # if the *output* chunks (before actual serialization) reflect this.
+    expected_cpu_chunks = create_expected_chunks_for_diff(
+        tensor1_cpu, tensor2_cpu, T2, mpx.tensor_length
+    )
+
+    assert len(received_chunks) == len(
+        expected_cpu_chunks
+    ), f"Expected {len(expected_cpu_chunks)} chunks, but got {len(received_chunks)}"
+
+    for r_chunk, e_chunk in zip(received_chunks, expected_cpu_chunks):
+        assert (
+            r_chunk.tensor.is_cuda
+        ), f"Received chunk tensor for start_index {r_chunk.starting_index} should be on CUDA"
+        assert (
+            str(r_chunk.tensor.device) == cuda_device_str
+        ), f"Received chunk tensor should be on {cuda_device_str}, but was {r_chunk.tensor.device}"
+
+        assert torch.equal(
+            r_chunk.tensor.cpu(), e_chunk.tensor
+        ), f"Tensor data mismatch for chunk with start_index {r_chunk.starting_index}"
+
+        assert (
+            r_chunk.timestamp.as_datetime() == e_chunk.timestamp.as_datetime()
+        ), "Timestamp mismatch for chunk"
+
+        assert (
+            r_chunk.starting_index == e_chunk.starting_index
+        ), "Starting index mismatch for chunk"
