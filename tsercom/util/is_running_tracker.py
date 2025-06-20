@@ -43,8 +43,7 @@ class IsRunningTracker(Atomic[bool]):
         self.__running_barrier = asyncio.Event()
         self.__stopped_barrier = asyncio.Event()
 
-        # For keeping the event loop with which this instance is associated in
-        # sync.
+        # Lock for __event_loop synchronization.
         self.__event_loop_lock = threading.Lock()
         self.__event_loop: asyncio.AbstractEventLoop | None = None
         self._get_loop_func = get_loop_func or default_get_running_loop_or_none
@@ -92,8 +91,6 @@ class IsRunningTracker(Atomic[bool]):
                 # will call __set_impl(self.get()) which will correctly set barriers.
                 return
 
-            # If an event loop is associated, schedule __set_impl on it.
-            # Add a check to see if the loop is already closed.
             if self.__event_loop.is_closed():
                 # If the loop is closed, try to set barriers directly.
                 # This is a best-effort for cleanup if stop() is called late.
@@ -105,10 +102,8 @@ class IsRunningTracker(Atomic[bool]):
                     self.__running_barrier.clear()
                 return
 
-        # If loop exists and is not closed, proceed with scheduling
         task = run_on_event_loop(partial(self.__set_impl, value), self.__event_loop)
 
-        # Simplified callback, mainly for resetting loop if it was temporary.
         # Restore the original clear callback logic which is expected by the unit test.
         def clear_on_done(_future: Any) -> None:
             with self.__event_loop_lock:
@@ -123,7 +118,6 @@ class IsRunningTracker(Atomic[bool]):
         if not is_running_on_event_loop(self.__event_loop):
             # If set() is called from a different thread than the event loop's thread,
             # block until the task completes to ensure state is synchronized.
-            # This helps maintain thread-safety for the state change.
             try:
                 task.result()  # This will also raise exceptions from the task if any.
             except asyncio.CancelledError:
@@ -257,13 +251,11 @@ class IsRunningTracker(Atomic[bool]):
 
             self.__event_loop = self._get_loop_func()
             if self.__event_loop is None:
-                # Long error message
                 raise RuntimeError(
                     "Event loop not found by _get_loop_func. "
                     "Must be called from within a running event loop or have an event loop set."
                 )
             value = self.get()
-        # Initialize asyncio event states based on current value.
         await self.__set_impl(value)
 
     class _IteratorWrapper(AsyncIterator[ReturnTypeT]):
