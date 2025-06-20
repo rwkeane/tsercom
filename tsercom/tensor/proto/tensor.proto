@@ -4,12 +4,17 @@ package tsercom;
 import "time.proto"; // Assuming this provides dtp.ServerTimestamp
 
 message TensorChunk {
+  enum CompressionType {
+    NONE = 0;
+    LZ4 = 1;
+  }
   // Timestamp of the data chunk.
   ServerTimestamp timestamp = 1;
   // The starting index of this chunk in the larger conceptual 1D tensor.
   int64 starting_index = 2;
   // The raw bytes of the 1D tensor data chunk.
   bytes data_bytes = 3;
+  CompressionType compression = 4; // New field
 }
 
 // Definitions from tensor_ops.proto appended below

@@ -7,9 +7,16 @@ import builtins
 import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
+import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
+import sys
 import tsercom.timesync.common.proto as time_pb2
 import typing
+
+if sys.version_info >= (3, 10):
+    import typing as typing_extensions
+else:
+    import typing_extensions
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
@@ -17,13 +24,36 @@ DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 class TensorChunk(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
+    class _CompressionType:
+        ValueType = typing.NewType("ValueType", builtins.int)
+        V: typing_extensions.TypeAlias = ValueType
+
+    class _CompressionTypeEnumTypeWrapper(
+        google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[
+            TensorChunk._CompressionType.ValueType
+        ],
+        builtins.type,
+    ):
+        DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+        NONE: TensorChunk._CompressionType.ValueType  # 0
+        LZ4: TensorChunk._CompressionType.ValueType  # 1
+
+    class CompressionType(
+        _CompressionType, metaclass=_CompressionTypeEnumTypeWrapper
+    ): ...
+    NONE: TensorChunk.CompressionType.ValueType  # 0
+    LZ4: TensorChunk.CompressionType.ValueType  # 1
+
     TIMESTAMP_FIELD_NUMBER: builtins.int
     STARTING_INDEX_FIELD_NUMBER: builtins.int
     DATA_BYTES_FIELD_NUMBER: builtins.int
+    COMPRESSION_FIELD_NUMBER: builtins.int
     starting_index: builtins.int
     """The starting index of this chunk in the larger conceptual 1D tensor."""
     data_bytes: builtins.bytes
     """The raw bytes of the 1D tensor data chunk."""
+    compression: global___TensorChunk.CompressionType.ValueType
+    """New field"""
     @property
     def timestamp(self) -> time_pb2.ServerTimestamp:
         """Timestamp of the data chunk."""
@@ -34,6 +64,7 @@ class TensorChunk(google.protobuf.message.Message):
         timestamp: time_pb2.ServerTimestamp | None = ...,
         starting_index: builtins.int = ...,
         data_bytes: builtins.bytes = ...,
+        compression: global___TensorChunk.CompressionType.ValueType = ...,
     ) -> None: ...
     def HasField(
         self, field_name: typing.Literal["timestamp", b"timestamp"]
@@ -41,6 +72,8 @@ class TensorChunk(google.protobuf.message.Message):
     def ClearField(
         self,
         field_name: typing.Literal[
+            "compression",
+            b"compression",
             "data_bytes",
             b"data_bytes",
             "starting_index",
