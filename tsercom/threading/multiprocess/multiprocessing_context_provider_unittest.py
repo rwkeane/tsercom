@@ -252,6 +252,3 @@ def test_different_context_methods() -> None:
         # Checking for 'fork' in the name is a reasonable heuristic.
         assert "fork" in ctx_std_fork.__class__.__name__.lower()
         assert hasattr(ctx_std_fork, "Process")
-
-
-EOL

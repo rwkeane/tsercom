@@ -134,10 +134,11 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             else SplitErrorWatcherSourceFactory()
         )
 
-        self.__local_runtime_factory_factory: LocalRuntimeFactoryFactory[
-            DataTypeT, EventTypeT
-        ] = local_runtime_factory_factory
-        if self.__local_runtime_factory_factory is None:
+        if local_runtime_factory_factory is not None:
+            self.__local_runtime_factory_factory: RuntimeFactoryFactory[
+                DataTypeT, EventTypeT
+            ] = local_runtime_factory_factory
+        else:
             default_local_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
                     max_workers=1  # Typically for local runtime factory tasks
@@ -147,10 +148,11 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
                 default_local_factory_thread_pool
             )
 
-        self.__split_runtime_factory_factory: SplitRuntimeFactoryFactory[
-            DataTypeT, EventTypeT
-        ] = split_runtime_factory_factory
-        if self.__split_runtime_factory_factory is None:
+        if split_runtime_factory_factory is not None:
+            self.__split_runtime_factory_factory: RuntimeFactoryFactory[
+                DataTypeT, EventTypeT
+            ] = split_runtime_factory_factory  # Use imported
+        else:
             default_split_factory_thread_pool = (
                 self.__thread_watcher.create_tracked_thread_pool_executor(
                     max_workers=1  # Typically for split runtime factory tasks
@@ -332,12 +334,10 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         )
         process_daemon = start_as_daemon or self.__is_testing
 
-        mp_context = self.__split_runtime_factory_factory.multiprocessing_context
         self.__process = self.__process_creator.create_process(
             target=process_target,
             args=(),
             daemon=process_daemon,
-            context=mp_context,
         )
 
         if self.__process:

@@ -122,12 +122,12 @@ def test_create_pair_uses_default_context_and_factory(
         assert mock_default_q_factory_instance.create_queues.call_count == 2
 
         # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the correct context
-        # The call is DefaultMultiprocessQueueFactory[RuntimeCommand](context=mock_std_context_instance)
+        # The call is DefaultMultiprocessQueueFactory[RuntimeCommand](coTorchMemcpyQueueFactoryinstance)
         # So, __getitem__ is called with RuntimeCommand, then the result is called with context.
         from tsercom.api.runtime_command import RuntimeCommand  # Import for assertion
 
         mock_cmd_q_factory_class.__getitem__.assert_called_with(RuntimeCommand)
-        mock_getitem_result.assert_called_once_with(context=mock_std_context_instance)
+        mock_getitem_result.assert_called_once_with(contTorchMemcpyQueueFactorystance)
         mock_configured_cmd_instance.create_queues.assert_called_once()
 
         assert isinstance(runtime_handle, ShimRuntimeHandle)
