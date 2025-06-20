@@ -298,3 +298,38 @@ async def test_cleanup_respects_latest_processed_timestamp(
     assert len(mpx.history) == 2
     assert mpx.history[0][0] == T0
     assert mpx.history[1][0] == T3
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+async def test_process_tensor_gpu_input(
+    multiplexer: CompleteTensorMultiplexer,
+    mock_client: MockCompleteTensorMultiplexerClient,
+):
+    """Tests processing of a tensor located on a GPU device."""
+    original_cpu_tensor = TENSOR_A.clone()
+    # Ensure 'cuda:0' is used if available, otherwise 'cuda' might select a different default GPU
+    # However, skipif already ensures CUDA is available, so 'cuda:0' should be fine.
+    # If specific device indices cause issues in some environments, 'cuda' is a fallback.
+    cuda_device_str = "cuda:0"
+    gpu_tensor = original_cpu_tensor.to(cuda_device_str)
+
+    # T1 is already defined with timezone information
+    await multiplexer.process_tensor(gpu_tensor, T1)
+
+    received_chunk = mock_client.get_received_chunk()
+    assert received_chunk is not None, "No chunk received by the mock client"
+
+    assert received_chunk.tensor.is_cuda, "Tensor in received chunk should be on CUDA"
+    assert (
+        str(received_chunk.tensor.device) == cuda_device_str
+    ), f"Tensor in chunk should be on device {cuda_device_str}, but was {received_chunk.tensor.device}"
+
+    assert torch.equal(
+        received_chunk.tensor.cpu(), original_cpu_tensor
+    ), "Tensor data mismatch after GPU processing and CPU transfer"
+
+    assert received_chunk.timestamp.as_datetime() == T1, "Timestamp mismatch"
+    assert (
+        received_chunk.starting_index == 0
+    ), "Starting index should be 0 for complete tensor"

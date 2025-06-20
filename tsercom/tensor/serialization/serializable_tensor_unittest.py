@@ -298,6 +298,81 @@ def test_try_parse_malformed_data_bytes_length(mocker: Any) -> None:
     )
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+def test_serializable_tensor_chunk_try_parse_device_param(mocker: Any) -> None:
+    """Tests the `device` parameter of `SerializableTensorChunk.try_parse`
+    for direct deserialization to CPU or GPU.
+    """
+    original_dtype = torch.float32
+    original_shape = (2, 3)
+    cuda_device_str = "cuda:0"
+    cpu_device_str = "cpu"
+
+    tensor_gpu_initial = torch.randn(original_shape, dtype=original_dtype).to(
+        cuda_device_str
+    )
+    serializable_chunk_gpu = SerializableTensorChunk(
+        tensor_gpu_initial, mock_sync_timestamp, 0
+    )
+    grpc_msg_gpu = serializable_chunk_gpu.to_grpc_type()
+    parsed_chunk_to_gpu = SerializableTensorChunk.try_parse(
+        grpc_msg_gpu, dtype=original_dtype, device=cuda_device_str
+    )
+    assert parsed_chunk_to_gpu is not None
+    assert parsed_chunk_to_gpu.tensor.device.type == "cuda"
+    assert str(parsed_chunk_to_gpu.tensor.device) == cuda_device_str
+    assert_tensors_equal(
+        tensor_gpu_initial, parsed_chunk_to_gpu.tensor, check_device=True
+    )
+    assert (
+        parsed_chunk_to_gpu.timestamp.as_datetime() == mock_sync_timestamp.as_datetime()
+    )
+    assert parsed_chunk_to_gpu.starting_index == 0
+
+    parsed_chunk_to_cpu_from_gpu = SerializableTensorChunk.try_parse(
+        grpc_msg_gpu, dtype=original_dtype, device=cpu_device_str
+    )
+    assert parsed_chunk_to_cpu_from_gpu is not None
+    assert parsed_chunk_to_cpu_from_gpu.tensor.device.type == "cpu"
+    # assert_tensors_equal expects the first tensor (original) to match the device of the second if check_device=True
+    # So, we compare against the CPU version of the original tensor.
+    assert_tensors_equal(
+        tensor_gpu_initial.to(cpu_device_str),
+        parsed_chunk_to_cpu_from_gpu.tensor,
+        check_device=True,
+    )
+    assert (
+        parsed_chunk_to_cpu_from_gpu.timestamp.as_datetime()
+        == mock_sync_timestamp.as_datetime()
+    )
+    assert parsed_chunk_to_cpu_from_gpu.starting_index == 0
+
+    tensor_cpu_initial = torch.randn(original_shape, dtype=original_dtype).to(
+        cpu_device_str
+    )
+    serializable_chunk_cpu = SerializableTensorChunk(
+        tensor_cpu_initial, mock_sync_timestamp, 0
+    )
+    grpc_msg_cpu = serializable_chunk_cpu.to_grpc_type()
+    parsed_chunk_to_gpu_from_cpu = SerializableTensorChunk.try_parse(
+        grpc_msg_cpu, dtype=original_dtype, device=cuda_device_str
+    )
+    assert parsed_chunk_to_gpu_from_cpu is not None
+    assert parsed_chunk_to_gpu_from_cpu.tensor.device.type == "cuda"
+    assert str(parsed_chunk_to_gpu_from_cpu.tensor.device) == cuda_device_str
+    # Compare against the GPU version of the original CPU tensor.
+    assert_tensors_equal(
+        tensor_cpu_initial.to(cuda_device_str),
+        parsed_chunk_to_gpu_from_cpu.tensor,
+        check_device=True,
+    )
+    assert (
+        parsed_chunk_to_gpu_from_cpu.timestamp.as_datetime()
+        == mock_sync_timestamp.as_datetime()
+    )
+    assert parsed_chunk_to_gpu_from_cpu.starting_index == 0
+
+
 @pytest.mark.parametrize("dtype", torch_dtypes_to_test)
 def test_tensor_chunk_serialization_no_compression(
     dtype: torch.dtype, mocker: Any

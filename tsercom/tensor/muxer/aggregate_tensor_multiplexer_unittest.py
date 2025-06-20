@@ -392,3 +392,50 @@ async def test_aggregator_data_timeout(
         await agg.get_tensor_at_timestamp(T0) is None
     )  # T0 should be gone from aggregate history
     assert await agg.get_tensor_at_timestamp(T_FAR_FUTURE) is not None
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
+async def test_publish_gpu_tensor_aggregate(
+    aggregator: AggregateTensorMultiplexer,
+    mock_main_client: MockAggregatorClient,
+    publisher1: Publisher,
+):
+    """Tests that a GPU tensor published via a complete muxer in aggregator
+    results in a GPU tensor chunk at the main client."""
+    cuda_device_str = "cuda:0"
+
+    tensor_cpu = TENSOR_L3_A.clone()  # TENSOR_L3_A is [1.0, 2.0, 3.0]
+    tensor_gpu = tensor_cpu.to(cuda_device_str)
+
+    # The tensor_len should match tensor_cpu.shape[0]
+    await aggregator.add_to_aggregation(
+        publisher1, tensor_len=tensor_cpu.shape[0], sparse=False
+    )
+    mock_main_client.clear_calls()
+
+    # T1 is a pre-defined timestamp
+    await publisher1.publish(tensor_gpu, T1)
+    received_chunks = mock_main_client.get_all_received_chunks_sorted()
+
+    assert (
+        len(received_chunks) == 1
+    ), f"Expected 1 chunk, but got {len(received_chunks)}"
+    r_chunk = received_chunks[0]
+
+    assert r_chunk.tensor.is_cuda, "Tensor in received chunk should be on CUDA"
+    assert (
+        str(r_chunk.tensor.device) == cuda_device_str
+    ), f"Tensor in chunk should be on device {cuda_device_str}, but was {r_chunk.tensor.device}"
+
+    assert torch.equal(
+        r_chunk.tensor.cpu(), tensor_cpu
+    ), "Tensor data mismatch after GPU processing and CPU transfer"
+
+    assert r_chunk.timestamp.as_datetime() == T1, "Timestamp mismatch"
+
+    # This assumes publisher1 is the first and only one added, or added to range(0, len)
+    # The default add_to_aggregation appends, so if it's the first, its global index is 0.
+    assert (
+        r_chunk.starting_index == 0
+    ), f"Starting index should be 0, but was {r_chunk.starting_index}"
