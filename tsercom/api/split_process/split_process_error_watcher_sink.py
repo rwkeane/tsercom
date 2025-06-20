@@ -9,7 +9,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 from tsercom.threading.thread_watcher import ThreadWatcher
 
 
-# pylint: disable=R0903 # Abstract interface/protocol class
 class SplitProcessErrorWatcherSink(ErrorWatcher):
     """An ErrorWatcher that forwards caught exceptions to a multiprocess queue.
 

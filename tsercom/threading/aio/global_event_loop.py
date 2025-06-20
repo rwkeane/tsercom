@@ -68,8 +68,8 @@ def clear_tsercom_event_loop(try_stop_loop: bool = True) -> None:
     Args:
         try_stop_loop: If True, attempt to stop an internally created loop.
     """
-    global __g_global_event_loop  # pylint: disable=global-statement
-    global __g_event_loop_factory  # pylint: disable=global-statement
+    global __g_global_event_loop
+    global __g_event_loop_factory
     # No 'global' needed for __g_global_event_loop_lock if only used in 'with'
 
     with __g_global_event_loop_lock:
@@ -103,8 +103,8 @@ def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
     Raises:
         RuntimeError: If the global event loop has already been set.
     """
-    global __g_global_event_loop  # pylint: disable=global-statement
-    global __g_event_loop_factory  # pylint: disable=global-statement
+    global __g_global_event_loop
+    global __g_event_loop_factory
     # No 'global' needed for __g_global_event_loop_lock if only used in 'with'
 
     with __g_global_event_loop_lock:
@@ -130,7 +130,7 @@ def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
     """
     assert event_loop is not None, "Cannot set global event loop to None."
 
-    global __g_global_event_loop  # pylint: disable=global-statement
+    global __g_global_event_loop
     # No 'global' needed for __g_global_event_loop_lock if only used in 'with'
 
     with __g_global_event_loop_lock:
@@ -149,7 +149,7 @@ def set_tsercom_event_loop_to_current_thread() -> None:
     Raises:
         RuntimeError: If the global event loop has already been set.
     """
-    global __g_global_event_loop  # pylint: disable=global-statement
+    global __g_global_event_loop
     # No 'global' needed for __g_global_event_loop_lock if only used in 'with'
 
     with __g_global_event_loop_lock:

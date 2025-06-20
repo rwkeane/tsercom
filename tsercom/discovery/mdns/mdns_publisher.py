@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 
 
-# pylint: disable=R0903 # Interface implementation
 class MdnsPublisher(ABC):
     """Abstract base class for mDNS service publishers.
 

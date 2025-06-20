@@ -24,7 +24,6 @@ class DataTimeoutTracker:
     periodically after a defined timeout. Operates asynchronously.
     """
 
-    # pylint: disable=R0903 # Abstract listener interface
     class Tracked(ABC):
         """Interface for objects that can be tracked for timeouts.
 
@@ -115,9 +114,9 @@ class DataTimeoutTracker:
                 break
             for tracked_item in list(self.__tracked_list):  # Iterate a copy
                 try:
-                    # pylint: disable=W0212 # Calling listener's trigger method
+
                     tracked_item._on_triggered(self.__timeout_seconds)
-                # pylint: disable=W0718 # Catch any exception from listener callback
+
                 except Exception as e:
                     logger.error(
                         "Exception in DataTimeoutTracker._on_triggered for %s: %s",

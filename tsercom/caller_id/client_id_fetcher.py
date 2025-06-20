@@ -8,7 +8,6 @@ from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.caller_id.proto import GetIdRequest, GetIdResponse
 
 
-# pylint: disable=too-few-public-methods
 class ClientIdFetcher:
     """Fetches and caches a client ID (CallerIdentifier) from a gRPC service.
 
@@ -76,7 +75,7 @@ class ClientIdFetcher:
 
                 # This could be None if fetching or parsing failed.
                 return self.__id
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             # Broad exception catch for RPC/processing issues.
             # Production systems might prefer more specific error handling.
             ClientIdFetcher.logger.error(

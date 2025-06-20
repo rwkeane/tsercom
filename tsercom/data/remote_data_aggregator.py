@@ -1,4 +1,3 @@
-# pylint: disable=C0301
 """Defines the RemoteDataAggregator abstract base class, an interface for aggregating and accessing data from remote sources."""
 
 import datetime
@@ -24,7 +23,6 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     availability and new endpoint discovery.
     """
 
-    # pylint: disable=R0903 # Abstract listener interface
     class Client(ABC):
         """Interface for clients wishing to receive callbacks from a RemoteDataAggregator.
 

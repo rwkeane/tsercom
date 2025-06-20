@@ -6,7 +6,6 @@ from typing import Generic, List, Optional, TypeVar, Union
 ConnectionTypeT = TypeVar("ConnectionTypeT")
 
 
-# pylint: disable=R0903 # Abstract factory interface
 class ConnectionFactory(Generic[ConnectionTypeT], ABC):
     """An abstract factory for creating connections of a specific type."""
 

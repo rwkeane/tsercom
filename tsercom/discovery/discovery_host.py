@@ -12,7 +12,6 @@ from tsercom.discovery.service_info import ServiceInfoT
 from tsercom.discovery.service_source import ServiceSource
 
 
-# pylint: disable=R0903 # Implements ServiceSource and InstanceListener.Client
 class DiscoveryHost(
     Generic[ServiceInfoT],
     ServiceSource[ServiceInfoT],
@@ -34,7 +33,7 @@ class DiscoveryHost(
             service_type: The mDNS service type string to discover
                           (e.g., "_my_service._tcp.local.").
         """
-        ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
+        ...
 
     @overload
     def __init__(
@@ -54,7 +53,7 @@ class DiscoveryHost(
                 `InstanceListener.Client` (which will be this DiscoveryHost instance)
                 and returns an `InstanceListener[ServiceInfoT]` instance.
         """
-        ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
+        ...
 
     @overload
     def __init__(
@@ -69,7 +68,7 @@ class DiscoveryHost(
         Args:
             mdns_listener_factory: A callable to create a new MdnsListener.
         """
-        ...  # pylint: disable=W2301 # Ellipsis is part of overload definition
+        ...
 
     def __init__(
         self,
@@ -228,8 +227,6 @@ class DiscoveryHost(
             caller_id = CallerIdentifier.random()
             self.__caller_id_map[service_mdns_name] = caller_id
 
-        # pylint: disable=protected-access # Internal callback to client
-        # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_service_added(connection_info, caller_id)
 
     async def _on_service_removed(self, service_name: str) -> None:
@@ -257,7 +254,7 @@ class DiscoveryHost(
             if hasattr(self.__client, "_on_service_removed") and callable(
                 getattr(self.__client, "_on_service_removed")
             ):
-                # pylint: disable=protected-access, W0212
+
                 await self.__client._on_service_removed(
                     service_name, caller_id
                 )

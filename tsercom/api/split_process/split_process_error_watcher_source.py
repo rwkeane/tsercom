@@ -57,7 +57,7 @@ class SplitProcessErrorWatcherSource:
                         self.__thread_watcher.on_exception_seen(
                             remote_exception
                         )
-                    # pylint: disable=W0718 # Catch any error from queue processing to keep watcher alive
+
                     except Exception as e_seen:
                         # Long but readable error log
                         logger.error(

@@ -35,7 +35,6 @@ class ShimRuntimeHandle(
     in a different process, using multiprocess queues for communication.
     """
 
-    # pylint: disable=R0913,R0917 # Many parameters needed for full handle setup
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
@@ -149,7 +148,7 @@ class ShimRuntimeHandle(
         """
         # This handle (as RemoteDataReader) gets data from DataReaderSource
         # and forwards to the __data_aggregator from init.
-        # pylint: disable=W0212 # Internal callback for client data readiness
+
         self.__data_aggregator._on_data_ready(new_data)
 
     def _get_remote_data_aggregator(

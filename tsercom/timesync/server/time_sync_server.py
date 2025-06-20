@@ -103,7 +103,6 @@ class TimeSyncServer:
                 return
             raise
 
-    # pylint: disable=too-many-locals # Complex NTP logic contained in one loop.
     async def __run_server(self) -> None:
         """Main async loop for NTP server. Listens, processes, responds."""
         ntp_packet_format = "!B B B b 11I"

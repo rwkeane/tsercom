@@ -26,7 +26,7 @@ class TensorMultiplexer(abc.ABC):
     Abstract base class for multiplexing tensor updates.
     """
 
-    class Client(abc.ABC):  # pylint: disable=too-few-public-methods
+    class Client(abc.ABC):
         """
         Client interface for TensorMultiplexer to report index updates.
         """

@@ -11,7 +11,6 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
-# pylint: disable=R0903 # Abstract interface/protocol class
 class DataReaderSink(Generic[DataTypeT], RemoteDataReader[DataTypeT]):
     """Implements RemoteDataReader to send data to a MultiprocessQueueSink.
 

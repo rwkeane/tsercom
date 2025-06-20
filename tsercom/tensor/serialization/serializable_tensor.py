@@ -84,7 +84,7 @@ class SerializableTensorChunk:
 
     @classmethod
     # The large number of dtype checks is inherent to supporting multiple tensor types.
-    # pylint: disable=too-many-branches
+
     def try_parse(
         cls, grpc_msg: Optional[TensorChunk], dtype: torch.dtype
     ) -> Optional["SerializableTensorChunk"]:
@@ -122,7 +122,7 @@ class SerializableTensorChunk:
         # This try-except block handles errors during byte-to-tensor conversion,
         # which can occur due to mismatched data types, corrupted byte streams,
         # or unsupported dtypes.
-        # pylint: disable=broad-exception-caught
+
         try:
             # The mapping from torch.dtype to numpy.dtype is essential because
             # np.frombuffer requires a NumPy-compatible dtype object or string.

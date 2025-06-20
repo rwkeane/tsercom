@@ -13,7 +13,6 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
-# pylint: disable=R0903 # Base class providing concrete interface implementations
 class DataHostBase(
     Generic[DataTypeT], DataHost[DataTypeT], RemoteDataReader[DataTypeT]
 ):
@@ -25,7 +24,6 @@ class DataHostBase(
     and optionally a `DataTimeoutTracker`.
     """
 
-    # pylint: disable=W1113 # False positive with complex defaults and *args
     def __init__(
         self,
         watcher: ThreadWatcher,
@@ -78,7 +76,7 @@ class DataHostBase(
         Args:
             new_data: The new data item that has become available.
         """
-        # pylint: disable=W0212 # Calling client's data ready method
+
         self.__aggregator._on_data_ready(new_data)
 
     def _remote_data_aggregator(self) -> RemoteDataAggregator[DataTypeT]:

@@ -24,7 +24,7 @@ class TensorDemuxer:
     Internal storage for explicit updates per timestamp uses torch.Tensors for efficiency.
     """
 
-    class Client(abc.ABC):  # pylint: disable=too-few-public-methods
+    class Client(abc.ABC):
         """
         Client interface for TensorDemuxer to report reconstructed tensors.
         """

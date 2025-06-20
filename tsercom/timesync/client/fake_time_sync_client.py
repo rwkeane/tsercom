@@ -12,7 +12,6 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.util.is_running_tracker import IsRunningTracker
 
 
-# pylint: disable=too-many-instance-attributes # State for fake client.
 class FakeTimeSyncClient(ClientSynchronizedClock.Client):
     """
     This class is used to synchronize clocks with an endpoint running an
@@ -37,14 +36,12 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
             server_ip: IP address of the time sync server (unused in fake).
             ntp_port: Port for NTP communication (unused in fake).
         """
-        self.__watcher = watcher  # pylint: disable=unused-private-member # API compatibility
-        self.__server_ip = (  # pylint: disable=unused-private-member # API compatibility
-            server_ip
-        )
-        self.__ntp_port = ntp_port  # pylint: disable=unused-private-member # API compatibility
+        self.__watcher = watcher
+        self.__server_ip = server_ip
+        self.__ntp_port = ntp_port
 
         # __sync_loop_thread: Intended for actual NTP sync loop. Remains None.
-        # pylint: disable=unused-private-member # API compatibility, retained for future use or consistency
+
         self.__sync_loop_thread: threading.Thread | None = None
 
         # __time_offset_lock: Lock for thread-safe access to __time_offsets.

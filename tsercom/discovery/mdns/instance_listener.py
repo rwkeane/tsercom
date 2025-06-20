@@ -27,7 +27,6 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
     and notifies its `Client`.
     """
 
-    # pylint: disable=R0903 # Abstract listener client interface
     class Client(ABC):
         """Interface for `InstanceListener` clients.
 
@@ -101,7 +100,6 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         self.__client: InstanceListener.Client = client
         # This InstanceListener acts as client to MdnsListener.
 
-        # pylint: disable=W0238 # Listener managed by this class (its lifecycle)
         self.__listener: MdnsListener
         if mdns_listener_factory is None:
             # Default factory creates RecordListener
@@ -260,14 +258,14 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         )
 
         # Client's _on_service_added is expected to be a coroutine.
-        # pylint: disable=W0212 # Calling client's notification method
+
         await self.__client._on_service_added(typed_service_info)
 
     async def _on_service_removed(
         self,
         name: str,
         service_type: str,
-        record_listener_uuid: str,  # pylint: disable=unused-argument
+        record_listener_uuid: str,
     ) -> None:
         """Callback from `RecordListener` when a service is removed.
 
@@ -280,7 +278,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             record_listener_uuid: UUID of the RecordListener (unused).
         """
         # Client's _on_service_removed is expected to be a coroutine.
-        # pylint: disable=W0212 # Calling client's notification method
+
         await self.__client._on_service_removed(name)
 
     async def async_stop(self) -> None:

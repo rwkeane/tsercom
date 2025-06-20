@@ -1,4 +1,3 @@
-# pylint: disable=no-name-in-module
 """Defines SynchronizedTimestamp for time-offset-aware timestamps."""
 
 import dataclasses

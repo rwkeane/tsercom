@@ -41,7 +41,6 @@ DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
 
 
-# pylint: disable=R0903 # Concrete factory implementation
 class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
     """Creates factories and handles for split-process runtimes.
 
@@ -179,7 +178,6 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                 AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
                 timeout=initializer.timeout_seconds,
             )
@@ -188,7 +186,6 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                 AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                # pylint: disable=W0511 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
             )
         runtime_handle = ShimRuntimeHandle[DataTypeT, EventTypeT](

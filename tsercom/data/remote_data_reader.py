@@ -8,7 +8,6 @@ from tsercom.data.exposed_data import ExposedData
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
-# pylint: disable=R0903 # Abstract data reading interface
 class RemoteDataReader(ABC, Generic[DataTypeT]):
     """Abstract interface for classes that process incoming remote data.
 

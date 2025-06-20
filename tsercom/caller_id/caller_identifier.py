@@ -110,7 +110,7 @@ class CallerIdentifier:
         """
         if not isinstance(other, CallerIdentifier):
             return NotImplemented  # Use NotImplemented for type mismatches in comparison
-        return self.__id == other.__id  # pylint: disable=protected-access
+        return self.__id == other.__id
 
     def __ne__(self, other: object) -> bool:
         """Checks inequality with another CallerIdentifier.

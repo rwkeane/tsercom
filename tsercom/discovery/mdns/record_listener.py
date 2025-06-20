@@ -133,7 +133,6 @@ class RecordListener(MdnsListener):
                 "No addresses for updated service '%s' type '%s'.", name, type_
             )
 
-        # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_service_added(
             name,
             info.port,
@@ -177,7 +176,6 @@ class RecordListener(MdnsListener):
             type_,
         )
 
-        # pylint: disable=W0212 # Calling listener's notification method
         logging.info(
             "[REC_LISTENER] _handle_remove_service: About to call client._on_service_removed for %s",
             name,
@@ -238,7 +236,6 @@ class RecordListener(MdnsListener):
                 "No addresses for added service '%s' type '%s'.", name, type_
             )
 
-        # pylint: disable=W0212 # Calling listener's notification method
         await self.__client._on_service_added(
             name,
             info.port,
@@ -273,7 +270,7 @@ class RecordListener(MdnsListener):
             )
             try:
                 await self.__mdns.async_close()
-            except Exception as e:  # pylint: disable=broad-except
+            except Exception as e:
                 logging.error(
                     "Error during owned AsyncZeroconf.async_close() for %s: %s",
                     self.__expected_type,

@@ -59,7 +59,6 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-# pylint: disable=keyword-arg-before-vararg # event_loop is valid positional arg with default
 def run_on_event_loop(
     call: Callable[P, Coroutine[Any, Any, T]],
     event_loop: Optional[AbstractEventLoop] = None,

@@ -19,7 +19,6 @@ class InstancePublisher:
     a TXT record (name, timestamp). Uses `RecordPublisher` to announce.
     """
 
-    # pylint: disable=R0913,R0912 # Handles complex initialization logic for service properties
     def __init__(
         self,
         port: int,
@@ -170,7 +169,7 @@ class InstancePublisher:
             try:
                 # Assuming the close method of the publisher is async
                 await self.__record_publisher.close()
-            # pylint: disable=W0718 # Catch all exceptions to keep publish loop alive
+
             except Exception as e:
                 _logger.error(
                     "Error while closing the record publisher: %s",

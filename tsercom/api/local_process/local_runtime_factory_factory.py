@@ -24,7 +24,6 @@ DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
 
 
-# pylint: disable=R0903 # Concrete factory implementation
 class LocalRuntimeFactoryFactory(
     RuntimeFactoryFactory[DataTypeT, EventTypeT]
 ):  # Added type parameters
@@ -61,7 +60,6 @@ class LocalRuntimeFactoryFactory(
                 AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                # pylint: disable=W0511,C0301 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
                 timeout=initializer.timeout_seconds,
             )
@@ -70,7 +68,6 @@ class LocalRuntimeFactoryFactory(
                 AnnotatedInstance[DataTypeT]
             ](
                 self.__thread_pool,
-                # pylint: disable=W0511,C0301 # type: ignore [arg-type] # TODO: Client expects RemoteDataAggregator[DataTypeT], gets [AnnotatedInstance[DataTypeT]]
                 client=initializer.data_aggregator_client,
             )
         event_poller = AsyncPoller[EventInstance[EventTypeT]]()

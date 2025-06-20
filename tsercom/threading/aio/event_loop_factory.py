@@ -12,7 +12,8 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 # Class responsible for creating and managing an asyncio event loop
 # in a separate thread.
-# pylint: disable=too-few-public-methods # Factory pattern, public method is start_asyncio_loop
+
+
 class EventLoopFactory:
     """
     Factory class for creating and managing an asyncio event loop.
@@ -37,7 +38,7 @@ class EventLoopFactory:
                 "Watcher argument cannot be None for EventLoopFactory."
             )
         if not issubclass(type(watcher), ThreadWatcher):
-            # pylint: disable=consider-using-f-string
+
             raise TypeError(
                 "Watcher must be a subclass of ThreadWatcher, got %s."
                 % type(watcher).__name__

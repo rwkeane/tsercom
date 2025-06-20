@@ -18,7 +18,6 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-many-instance-attributes # State for time sync client.
 class TimeSyncClient(ClientSynchronizedClock.Client):
     """
     Synchronizes clocks with an NTP server.
@@ -108,7 +107,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                 logging.info("New NTP Offset: %.6f seconds", response.offset)
             except ntplib.NTPException as e:
                 logging.error("NTP error: %s", e)
-            # pylint: disable=broad-exception-caught # Ensures loop continues
+
             except Exception as e:
                 if isinstance(e, AssertionError):
                     logging.error("AssertionError during NTP sync: %s", e)
