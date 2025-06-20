@@ -162,6 +162,7 @@ def test_set_method_interaction_with_run_on_event_loop_and_clear(mocker):
     and the clear() callback.
     """
     mock_loop = MagicMock(spec=asyncio.AbstractEventLoop)
+    mock_loop.is_closed.return_value = False  # Ensure the mock loop is not "closed"
 
     # Mock where run_on_event_loop is imported and used by IsRunningTracker.set
     mock_run_on_event_loop = mocker.patch(
