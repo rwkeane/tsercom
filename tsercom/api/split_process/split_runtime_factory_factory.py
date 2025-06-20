@@ -85,7 +85,8 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         resolved_data_type = None
         resolved_event_type = None
 
-        # Prioritize inspecting the initializer's direct __orig_class__ (e.g., for MyInitializer[torch.Tensor, str])
+        # Prioritize inspecting the initializer's direct __orig_class__
+        # (e.g., for MyInitializer[torch.Tensor, str])
         if hasattr(initializer, "__orig_class__"):
             generic_args = get_args(initializer.__orig_class__)
             if generic_args and len(generic_args) == 2:
@@ -94,7 +95,8 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                 if not isinstance(generic_args[1], TypeVar):
                     resolved_event_type = generic_args[1]
 
-        # Fallback: Iterate __orig_bases__ to find the RuntimeInitializer[SpecificA, SpecificB]
+        # Fallback: Iterate __orig_bases__ to find the
+        # RuntimeInitializer[SpecificA, SpecificB]
         if resolved_data_type is None or resolved_event_type is None:
             for base in getattr(initializer, "__orig_bases__", []):
                 if (
@@ -127,7 +129,8 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             uses_torch_tensor = True
 
         if uses_torch_tensor:
-            # Assuming EventInstance and AnnotatedInstance generics are compatible with Torch queues
+            # Assuming EventInstance and AnnotatedInstance generics are
+            # compatible with Torch queues
             event_queue_factory = TorchMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
             ]()

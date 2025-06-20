@@ -97,7 +97,6 @@ def initialize_runtimes(
     created_runtimes: list[Runtime] = []
 
     for initializer_factory in initializers:
-
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
 
@@ -105,8 +104,9 @@ def initialize_runtimes(
         channel_factory = channel_factory_selector.create_factory(auth_config)
 
         # The event poller from the factory should now be directly compatible
-        # with RuntimeDataHandlerBase, which expects AsyncPoller[EventInstance[EventTypeT]].
-        # The conversion to SerializableAnnotatedInstance is handled within _DataProcessorImpl.
+        # with RuntimeDataHandlerBase, which expects
+        # AsyncPoller[EventInstance[EventTypeT]]. The conversion to
+        # SerializableAnnotatedInstance is handled within _DataProcessorImpl.
         #     event_poller
         # )
 
@@ -149,7 +149,8 @@ def initialize_runtimes(
             runtime.start_async, event_loop=active_loop
         )
 
-        # Add a callback to propagate exceptions from runtime startup to the thread_watcher.
+        # Add a callback to propagate exceptions from runtime startup
+        # to the thread_watcher.
         def _runtime_start_done_callback(
             f: concurrent.futures.Future[Any],
             watcher: ThreadWatcher,
@@ -162,8 +163,9 @@ def initialize_runtimes(
                         watcher.on_exception_seen(exc)
                     elif exc is not None:  # BaseException but not Exception
                         logger.warning(
-                            "Runtime start_async future completed with a non-Exception "
-                            "BaseException: %s. This will not be reported via ThreadWatcher.",
+                            "Runtime start_async future completed with a "
+                            "non-Exception BaseException: %s. This will not be "
+                            "reported via ThreadWatcher.",
                             type(exc).__name__,
                         )
 
@@ -239,7 +241,6 @@ def remote_process_main(
     asyncs_task = get_global_event_loop().create_task(aggregate_asyncs)
     for factory in initializers:
         try:
-
             factory._stop()
 
         except Exception as e_factory_stop:

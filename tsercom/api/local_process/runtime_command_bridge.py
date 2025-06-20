@@ -22,9 +22,9 @@ class RuntimeCommandBridge:
     def __init__(self) -> None:
         """Initializes the RuntimeCommandBridge."""
         # Stores the last command received if the runtime is not yet set.
-        self.__state: Atomic[RuntimeCommand | None] = Atomic[
-            Optional[RuntimeCommand]
-        ](None)
+        self.__state: Atomic[RuntimeCommand | None] = Atomic[Optional[RuntimeCommand]](
+            None
+        )
 
         self.__runtime: Runtime | None = None
         self.__runtime_mutex: Lock = Lock()

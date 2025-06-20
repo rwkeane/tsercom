@@ -87,7 +87,7 @@ class ThrowingThread(threading.Thread):
 
         except Exception as e_start:
             logging.error(
-                "ThrowingThread.start() EXCEPTION during super().start() for " "%s: %r",
+                "ThrowingThread.start() EXCEPTION during super().start() for %s: %r",
                 self.name,
                 e_start,
                 exc_info=True,

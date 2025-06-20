@@ -31,7 +31,8 @@ class SerializableTensorInitializer:
             shape: The full shape of the tensor (e.g., [10, 20]).
             dtype: The data type of the tensor as a string (e.g., "float32", "int64").
             fill_value: The default value to fill the tensor with upon creation.
-            initial_state: An optional SerializableTensorUpdate with initial data chunks.
+            initial_state: An optional SerializableTensorUpdate with initial
+                           data chunks.
         """
         self._shape: list[int] = shape
         self._dtype_str: str = dtype
@@ -69,7 +70,8 @@ class SerializableTensorInitializer:
 
     @classmethod
     def try_parse(
-        cls: type[STI], grpc_msg: TensorInitializer  # Changed type hint
+        cls: type[STI],
+        grpc_msg: TensorInitializer,  # Changed type hint
     ) -> STI | None:
         """
         Attempts to parse a TensorInitializer protobuf message.
@@ -81,8 +83,10 @@ class SerializableTensorInitializer:
         Returns:
             An instance of SerializableTensorInitializer if successful.
             Returns None if:
-            - The `dtype` string is unknown/unsupported and `initial_state` contains chunks.
-            - Parsing of `initial_state` (when present and containing chunks) fails.
+            - The `dtype` string is unknown/unsupported and `initial_state`
+              contains chunks.
+            - Parsing of `initial_state` (when present and containing chunks)
+              fails.
         """
         if not grpc_msg:
             return None

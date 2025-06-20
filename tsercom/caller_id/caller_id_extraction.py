@@ -1,4 +1,7 @@
-"""Utilities for extracting CallerIdentifier from gRPC calls, especially from iterators."""
+"""
+Utilities for extracting CallerIdentifier from gRPC calls,
+especially from iterators.
+"""
 
 import logging
 from collections.abc import AsyncIterator, Callable
@@ -56,10 +59,12 @@ async def extract_id_from_first_call(
                 )
             break
     except Exception as e:
-        # TODO(developer): Consider checking specific gRPC exception codes for more granular behavior.
+        # TODO(developer): Consider checking specific gRPC exception codes for
+        # more granular behavior.
         if isinstance(e, grpc.RpcError):
             logging.error(
-                f"RpcError while iterating for first call: code={e.code()}, details='{e.details()}'. Original exception: {e}",
+                f"RpcError while iterating for first call: code={e.code()}, "
+                f"details='{e.details()}'. Original exception: {e}",
                 exc_info=True,
             )
         else:
@@ -130,12 +135,16 @@ async def extract_id_from_call(
 
     if len(extracted.id) > MAX_CALLER_ID_STRING_LENGTH:
         logging.error(
-            f"CallerID string exceeds maximum length. Length: {len(extracted.id)}, Max: {MAX_CALLER_ID_STRING_LENGTH}"
+            f"CallerID string exceeds maximum length. Length: {len(extracted.id)}, "
+            f"Max: {MAX_CALLER_ID_STRING_LENGTH}"
         )
         if context is not None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
-                f"CallerID string exceeds maximum length of {MAX_CALLER_ID_STRING_LENGTH}.",
+                (
+                    f"CallerID string exceeds maximum length of "
+                    f"{MAX_CALLER_ID_STRING_LENGTH}."
+                ),
             )
         return None
 

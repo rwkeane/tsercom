@@ -72,7 +72,8 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             timestamp: The `ServerTimestamp` (usually a protobuf message containing
                 seconds and nanos) received from the remote endpoint.
             context: Optional. The `grpc.aio.ServicerContext` for a gRPC call.
-                If provided and desynchronization fails, the call will be aborted.
+                If provided and desynchronization fails, the call will be
+                aborted.
 
         Returns:
             A local `datetime` object representing the server timestamp in UTC.
@@ -83,7 +84,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def deregister_caller(self) -> None:
-        """Performs cleanup and resource release when the associated caller is deregistered.
+        """
+        Performs cleanup and resource release when the associated caller is
+        deregistered.
 
         Subclasses should implement this to handle any necessary cleanup
         when an endpoint is no longer active or considered valid. This might
@@ -130,8 +133,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         Args:
             data: The data item of type `DataTypeT` to process.
             timestamp: The `ServerTimestamp` associated with the data.
-            context: Optional. The `grpc.aio.ServicerContext` for a gRPC call,
-                used for potentially aborting the call if timestamp desynchronization fails.
+            context: Optional. The `grpc.aio.ServicerContext` for a gRPC call, used
+                for potentially aborting the call if timestamp desynchronization
+                fails.
         """
 
     async def process_data(
@@ -185,7 +189,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-        """Processes the data item with its fully synchronized and normalized `datetime`.
+        """
+        Processes the data item with its fully synchronized and normalized
+        `datetime`.
 
         Subclasses must implement this method to define the specific business logic
         for handling the incoming data and its associated `datetime` timestamp.

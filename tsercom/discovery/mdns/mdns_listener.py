@@ -74,7 +74,8 @@ class MdnsListener(ServiceListener):
             """
             # This method must be implemented by concrete client classes.
             raise NotImplementedError(
-                "MdnsListener.Client._on_service_added must be implemented by subclasses."
+                "MdnsListener.Client._on_service_added must be implemented by "
+                "subclasses."
             )
 
         @abstractmethod

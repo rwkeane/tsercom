@@ -30,9 +30,9 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
             root_ca_cert_pem: PEM-encoded root CA certificate (bytes or string).
             server_hostname_override: If provided, this hostname will be used
                                       for SSL target name override, which is
-                                      useful if the server's certificate CN
-                                      does not match the target address (e.g., for IP addresses
-                                      or localhost testing).
+                                      useful if the server's certificate CN does
+                                      not match the target address (e.g., for IP
+                                      addresses or localhost testing).
         """
         self.root_ca_cert_pem: bytes
         if isinstance(root_ca_cert_pem, str):
@@ -65,7 +65,8 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
             address_list = list(addresses)
 
         logger.info(
-            f"Attempting secure connection (Server Auth) to addresses: {address_list} on port {port}"
+            f"Attempting secure connection (Server Auth) to addresses: "
+            f"{address_list} on port {port}"
         )
 
         credentials = grpc.ssl_channel_credentials(
@@ -103,9 +104,11 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
                 return channel
 
             except grpc.aio.AioRpcError as e:
-                # This specifically catches gRPC errors, e.g., connection failure, handshake failure
+                # This specifically catches gRPC errors, e.g., connection
+                # failure, handshake failure
                 logger.warning(
-                    f"Secure connection to {target} (Server Auth) failed: gRPC Error {e.code()} - {e.details()}"
+                    f"Secure connection to {target} (Server Auth) failed: "
+                    f"gRPC Error {e.code()} - {e.details()}"
                 )
                 if channel:
                     await channel.close()
@@ -117,7 +120,8 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
                     await channel.close()
             except Exception as e:
                 logger.error(
-                    f"An unexpected error occurred while trying to connect to {target} (Server Auth): {e}"
+                    f"An unexpected error occurred while trying to connect to "
+                    f"{target} (Server Auth): {e}"
                 )
                 if channel:  # Ensure channel is closed
                     await channel.close()
@@ -125,6 +129,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
                     raise
 
         logger.warning(
-            f"Failed to establish secure connection (Server Auth) to any of the provided addresses: {address_list} on port {port}"
+            f"Failed to establish secure connection (Server Auth) to any of "
+            f"the provided addresses: {address_list} on port {port}"
         )
         return None

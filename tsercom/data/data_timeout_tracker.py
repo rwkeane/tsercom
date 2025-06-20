@@ -111,7 +111,6 @@ class DataTimeoutTracker:
                 break
             for tracked_item in list(self.__tracked_list):  # Iterate a copy
                 try:
-
                     tracked_item._on_triggered(self.__timeout_seconds)
 
                 except Exception as e:
@@ -135,6 +134,7 @@ class DataTimeoutTracker:
             logger.info("Unregistered item: %s", tracked)
         except ValueError:
             logger.warning(
-                "Attempted to unregister a non-registered or already unregistered item: %s",
+                "Attempted to unregister a non-registered or already "
+                "unregistered item: %s",
                 tracked,
             )

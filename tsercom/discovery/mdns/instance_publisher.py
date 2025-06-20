@@ -27,7 +27,13 @@ class InstancePublisher:
         readable_name: str | None = None,
         instance_name: str | None = None,
         *,
-        mdns_publisher_factory: Callable[[str, str, int, dict[bytes, bytes | None] | None, AsyncZeroconf | None], MdnsPublisher] | None = None,
+        mdns_publisher_factory: (
+            Callable[
+                [str, str, int, dict[bytes, bytes | None] | None, AsyncZeroconf | None],
+                MdnsPublisher,
+            ]
+            | None
+        ) = None,
         zc_instance: AsyncZeroconf | None = None,
     ) -> None:
         """Initializes the InstancePublisher.
@@ -64,12 +70,14 @@ class InstancePublisher:
 
         if readable_name is not None and not isinstance(readable_name, str):
             raise TypeError(
-                f"readable_name must be str or None, got {type(readable_name).__name__}."
+                f"readable_name must be str or None, "
+                f"got {type(readable_name).__name__}."
             )
 
         if instance_name is not None and not isinstance(instance_name, str):
             raise TypeError(
-                f"instance_name must be str or None, got {type(instance_name).__name__}."
+                f"instance_name must be str or None, "
+                f"got {type(instance_name).__name__}."
             )
 
         self.__name: str | None = readable_name

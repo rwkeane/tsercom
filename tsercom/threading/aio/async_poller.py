@@ -127,7 +127,10 @@ class AsyncPoller(Generic[ResultTypeT]):
             run_on_event_loop(self.__set_results_available, self.__event_loop)
 
     async def __set_results_available(self) -> None:
-        """Internal coroutine to set the barrier event, run on the poller\'s event loop."""
+        """
+        Internal coroutine to set the barrier event, run on the poller's event
+        loop.
+        """
         with self.__lock:
             if self.__responses:
                 self.__barrier.set()
@@ -170,12 +173,14 @@ class AsyncPoller(Generic[ResultTypeT]):
             current_loop = get_running_loop_or_none()
             if current_loop is None:
                 raise RuntimeError(
-                    "AsyncPoller.wait_instance must be called from within a running asyncio event loop."
+                    "AsyncPoller.wait_instance must be called from within a "
+                    "running asyncio event loop."
                 )
             self.__event_loop = current_loop
-            # self.__is_loop_running.set(True) # Removed: __is_loop_running now started in __init__
-            # and IsRunningTracker manages its own loop sync.
-        # elif not self.__is_loop_running.get(): # This check is now effectively done below
+            # self.__is_loop_running.set(True) # Removed: __is_loop_running now
+            # started in __init__ and IsRunningTracker manages its own loop sync.
+        # elif not self.__is_loop_running.get(): # This check is now effectively
+        # done below
 
         if (
             not self.__is_loop_running.get()
@@ -211,8 +216,9 @@ class AsyncPoller(Generic[ResultTypeT]):
             await self.__is_loop_running.task_or_stopped(self.__barrier.wait())
 
             if not self.__is_loop_running.get():
-                # This handles a race condition where stop() is called after the while condition
-                # but before or during asyncio.wait_for, and on_available adds items just before stop.
+                # This handles a race condition where stop() is called after the
+                # while condition but before or during asyncio.wait_for, and
+                # on_available adds items just before stop.
                 with self.__lock:
                     if self.__responses:
                         while self.__responses:
@@ -277,13 +283,16 @@ class AsyncPoller(Generic[ResultTypeT]):
             self.__is_loop_running.set(False)
 
         if was_running:  # Only process if it was running
-            # self.__is_loop_running.set(False) was already called if was_running is true.
-            # This ensures the IsRunningTracker's __stopped_barrier is scheduled.
+            # self.__is_loop_running.set(False) was already called if
+            # was_running is true. This ensures the IsRunningTracker's
+            # __stopped_barrier is scheduled.
 
             if self.__event_loop is not None:
-                # Unconditionally set the main barrier to ensure wait_instance unblocks.
-                # Use call_soon_threadsafe as stop() might be called from another thread.
+                # Unconditionally set the main barrier to ensure wait_instance
+                # unblocks. Use call_soon_threadsafe as stop() might be called
+                # from another thread.
                 self.__event_loop.call_soon_threadsafe(self.__barrier.set)
             # If self.__event_loop is None, wait_instance() hasn't run yet.
-            # When it does, it will check self.__is_loop_running.get() which is now False,
-            # and it should raise RuntimeError("AsyncPoller is stopped.") before waiting on __barrier.
+            # When it does, it will check self.__is_loop_running.get() which is
+            # now False, and it should raise RuntimeError("AsyncPoller is
+            # stopped.") before waiting on __barrier.

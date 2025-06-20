@@ -77,7 +77,8 @@ class ServerRuntimeDataHandler(
         else:
             # In a real server scenario, TimeSyncServer provides the clock.
             self.__server = TimeSyncServer()
-            self.__server.start_async()  # Assuming start_async is a non-blocking call that schedules startup
+            # Assuming start_async is a non-blocking call that schedules startup
+            self.__server.start_async()
             self.__clock = self.__server.get_synchronized_clock()
 
     async def _register_caller(

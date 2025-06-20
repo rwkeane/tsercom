@@ -1,4 +1,7 @@
-"""Provides utility functions for handling gRPC errors, status codes, and retry logic."""
+"""
+Provides utility functions for handling gRPC errors, status codes, and retry
+logic.
+"""
 
 from __future__ import annotations
 

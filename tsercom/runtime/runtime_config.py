@@ -155,10 +155,10 @@ class RuntimeConfig(Generic[DataTypeT]):
             )
 
         if other_config is not None:
-
             RuntimeConfig.__init__(
                 self,
-                service_type=other_config.service_type_enum,  # Use enum for internal consistency
+                service_type=other_config.service_type_enum,  # Use enum for
+                # internal consistency
                 data_aggregator_client=other_config.data_aggregator_client,
                 timeout_seconds=other_config.timeout_seconds,
                 min_send_frequency_seconds=other_config.min_send_frequency_seconds,
@@ -166,7 +166,8 @@ class RuntimeConfig(Generic[DataTypeT]):
             )
             return
 
-        # Ensure service_type is not None due to the initial check, then validate and assign.
+        # Ensure service_type is not None due to the initial check, then validate
+        # and assign.
         assert service_type is not None
         if isinstance(service_type, str):
             if (
@@ -190,7 +191,9 @@ class RuntimeConfig(Generic[DataTypeT]):
                 "Must be ServiceType enum or string ('Client'/'Server')."
             )
 
-        self.__data_aggregator_client: RemoteDataAggregator.Client | None = data_aggregator_client
+        self.__data_aggregator_client: RemoteDataAggregator.Client | None = (
+            data_aggregator_client
+        )
         self.__timeout_seconds: int | None = timeout_seconds
         self.__auth_config: BaseChannelAuthConfig | None = auth_config
         self.__min_send_frequency_seconds: float | None = min_send_frequency_seconds

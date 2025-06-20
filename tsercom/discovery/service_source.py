@@ -28,7 +28,8 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
                 caller_id: Unique ID for the discovered service instance.
             """
             raise NotImplementedError(
-                "ServiceSource.Client._on_service_added must be implemented by subclasses."
+                "ServiceSource.Client._on_service_added must be implemented "
+                "by subclasses."
             )
 
         @abstractmethod
@@ -45,7 +46,8 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
                            when it was added.
             """
             raise NotImplementedError(
-                "ServiceSource.Client._on_service_removed must be implemented by subclasses."
+                "ServiceSource.Client._on_service_removed must be implemented "
+                "by subclasses."
             )
 
     @abstractmethod

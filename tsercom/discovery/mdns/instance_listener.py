@@ -89,7 +89,8 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             # The error message still refers to the conceptual "InstanceListener.Client"
             # as that's what the user would code against.
             raise TypeError(
-                f"Client must be an InstanceListener.Client, got {type(client).__name__}."
+                f"Client must be an InstanceListener.Client, "
+                f"got {type(client).__name__}."
             )
         if not isinstance(service_type, str):
             raise TypeError(
@@ -122,14 +123,16 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         if self.__listener:
             await self.__listener.start()  # Changed to await
         else:
-            # This case should ideally not be reached if __init__ ensures __listener is set.
+            # This case should ideally not be reached if __init__ ensures
+            # __listener is set.
             logging.error(
                 "InstanceListener cannot start: __listener is not initialized."
             )
 
     def __populate_service_info(
-        # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
-        # to build a cohesive ServiceInfo object representing a discovered service.
+        # This method aggregates information from disparate mDNS records
+        # (SRV, A/AAAA, TXT) to build a cohesive ServiceInfo object
+        # representing a discovered service.
         self,
         record_name: str,
         port: int,
@@ -278,12 +281,8 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
     async def async_stop(self) -> None:
         # Stops the listener and cleans up resources.
-        if hasattr(self.__listener, "close") and callable(
-            self.__listener.close
-        ):
+        if hasattr(self.__listener, "close") and callable(self.__listener.close):
             await self.__listener.close()
-        elif hasattr(self.__listener, "stop") and callable(
-            self.__listener.stop
-        ):
+        elif hasattr(self.__listener, "stop") and callable(self.__listener.stop):
             self.__listener.stop()
         logging.info("InstanceListener stopped.")

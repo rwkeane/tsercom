@@ -216,8 +216,8 @@ class IsRunningTracker(Atomic[bool]):
             if self.__event_loop is None:
                 # Long error message
                 raise RuntimeError(
-                    "Event loop not found by _get_loop_func. "
-                    "Must be called from within a running event loop or have an event loop set."
+                    "Event loop not found by _get_loop_func. Must be called from "
+                    "within a running event loop or have an event loop set."
                 )
             value = self.get()
         # Initialize asyncio event states based on current value.
