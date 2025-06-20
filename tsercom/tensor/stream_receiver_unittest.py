@@ -9,7 +9,7 @@ from pytest_mock import MockerFixture
 import torch
 
 from tsercom.tensor.stream_receiver import TensorStreamReceiver
-from tsercom.tensor.proto.tensor_pb2 import (  # type: ignore[import-untyped]
+from tsercom.tensor.proto import (
     TensorInitializer as GrpcTensorInitializer,
 )
 from tsercom.tensor.serialization.serializable_tensor_initializer import (

@@ -1,5 +1,5 @@
 import torch
-from typing import Optional # Added import
+from typing import Optional  # Added import
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 
