@@ -11,9 +11,13 @@ from ipaddress import ip_address  # For SANs
 from typing import (
     Optional,
     Union,
+    AsyncIterator,  # Added
+    Tuple,  # Added
+    # Callable,
 )
 
 import grpc
+from tsercom.rpc.common.channel_info import GrpcChannelInfo  # Added import
 import pytest
 import pytest_asyncio
 from cryptography import x509
@@ -1394,6 +1398,40 @@ async def test_pinned_server_auth_server_changes_cert_fails(
 # --- Tests for ClientAuthGrpcChannelFactory (Scenario 3) ---
 
 
+HEALTH_E2E_TEST_PORT = 50060  # Use a fixed, non-zero port
+
+
+@pytest_asyncio.fixture(scope="function")
+async def health_e2e_server() -> AsyncIterator[Tuple[str, int, GrpcServicePublisher]]:
+    """
+    Pytest fixture to start a GrpcServicePublisher with only the health service.
+    Yields host, port, and the publisher instance.
+    """
+    watcher = ThreadWatcher()
+    publisher: Optional[GrpcServicePublisher] = None
+    host = "127.0.0.1"
+
+    try:
+        publisher = GrpcServicePublisher(
+            watcher, port=HEALTH_E2E_TEST_PORT, addresses=host
+        )
+
+        def dummy_connect(server: grpc.aio.Server) -> None:  # Ensured this is sync
+            # Health servicer is added automatically by GrpcServicePublisher
+            pass
+
+        await publisher.start_async(dummy_connect)
+
+        # Yielding the configured fixed port directly.
+        yield host, HEALTH_E2E_TEST_PORT, publisher
+
+    finally:
+        if publisher:
+            await publisher.stop_async()
+        # Add cleanup for ThreadWatcher if it had global state or unclosed resources
+        # watcher.stop() # Assuming ThreadWatcher has a stop method if needed
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("server_requires_client_auth", [False, True])
 async def test_client_auth_no_server_validation_by_client(
@@ -1457,7 +1495,7 @@ async def test_client_auth_no_server_validation_by_client(
 
 
 @pytest.mark.asyncio
-async def test_client_auth_with_server_validation_mtls(
+async def test_client_auth_with_server_validation_mtls(  # This is an existing test, the new fixture is added BEFORE it.
     secure_async_test_server_factory,
 ):
     """
@@ -1586,3 +1624,100 @@ async def test_client_auth_with_server_validation_untrusted_server_ca_fails(
                 "Closing channel that should not have been successfully created in untrusted server CA test."
             )
             await grpc_channel.close()
+
+
+# --- Health Check E2E Tests ---
+
+
+@pytest.mark.asyncio
+async def test_health_e2e_server_is_healthy(
+    health_e2e_server: Tuple[str, int, GrpcServicePublisher],
+) -> None:  # Added return type hint
+    """
+    Tests that a server started with health checking enabled reports as healthy.
+    """
+    host, port, publisher = health_e2e_server
+    assert publisher is not None, "Publisher from health_e2e_server fixture is None"
+
+    channel_factory = InsecureGrpcChannelFactory()
+    channel_info: Optional[GrpcChannelInfo] = None
+    client_channel: Optional[grpc.aio.Channel] = None
+
+    try:
+        client_channel = await channel_factory.find_async_channel(host, port)
+        assert (
+            client_channel is not None
+        ), f"Failed to connect to health_e2e_server at {host}:{port}"
+
+        channel_info = GrpcChannelInfo(channel=client_channel, address=host, port=port)
+
+        # Allow some time for the server to be fully ready and health status to be queryable
+        await asyncio.sleep(
+            0.2
+        )  # Similar to delays used in unit tests after server start
+
+        is_healthy = await channel_info.is_healthy()
+        assert (
+            is_healthy is True
+        ), f"Health check failed for server at {host}:{port}. Expected healthy."
+        logger.info(f"Server at {host}:{port} is healthy as expected.")
+
+    finally:
+        if client_channel:
+            await client_channel.close()
+
+
+@pytest.mark.asyncio
+async def test_health_e2e_server_becomes_unhealthy_after_stop(
+    health_e2e_server: Tuple[str, int, GrpcServicePublisher],
+) -> None:  # Added return type hint
+    """
+    Tests that a server reports as unhealthy after it has been stopped.
+    """
+    host, port, publisher = health_e2e_server
+    assert publisher is not None, "Publisher from health_e2e_server fixture is None"
+
+    channel_factory = InsecureGrpcChannelFactory()
+    client_channel: Optional[grpc.aio.Channel] = None
+    channel_info: Optional[GrpcChannelInfo] = None
+
+    try:
+        client_channel = await channel_factory.find_async_channel(host, port)
+        assert (
+            client_channel is not None
+        ), f"Failed to connect to health_e2e_server at {host}:{port}"
+
+        channel_info = GrpcChannelInfo(channel=client_channel, address=host, port=port)
+
+        # Allow some time for server to be fully ready and health status to be queryable
+        await asyncio.sleep(0.2)
+
+        is_healthy_initially = await channel_info.is_healthy()
+        assert (
+            is_healthy_initially is True
+        ), f"Server at {host}:{port} should be healthy initially."
+        logger.info(f"Server at {host}:{port} is healthy initially.")
+
+        # Stop the server
+        await publisher.stop_async()
+        logger.info(f"Server at {host}:{port} stopped via publisher.")
+
+        # Allow some time for the server to fully stop and health status to reflect this
+        await asyncio.sleep(0.2)
+
+        is_healthy_after_stop = await channel_info.is_healthy()
+        assert (
+            is_healthy_after_stop is False
+        ), f"Server at {host}:{port} should be unhealthy after stop."
+        logger.info(f"Server at {host}:{port} is unhealthy after stop, as expected.")
+
+    finally:
+        if client_channel:
+            # Channel might already be closed or error out if server stopped abruptly,
+            # so guard the close call.
+            try:
+                await client_channel.close()
+            except grpc.aio.AioRpcError:
+                logger.debug(
+                    "Channel already closed or errored on close after server stop."
+                )
