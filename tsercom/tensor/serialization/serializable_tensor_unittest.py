@@ -297,7 +297,7 @@ def test_try_parse_malformed_data_bytes_length(mocker: Any) -> None:
         in str(call_args[2]).lower()  # Corrected to check the exception instance
     )
 
-    
+
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires cuda")
 def test_serializable_tensor_chunk_try_parse_device_param(mocker: Any) -> None:
     """Tests the `device` parameter of `SerializableTensorChunk.try_parse`
@@ -372,7 +372,7 @@ def test_serializable_tensor_chunk_try_parse_device_param(mocker: Any) -> None:
     )
     assert parsed_chunk_to_gpu_from_cpu.starting_index == 0
 
-    
+
 @pytest.mark.parametrize("dtype", torch_dtypes_to_test)
 def test_tensor_chunk_serialization_no_compression(
     dtype: torch.dtype, mocker: Any
@@ -417,7 +417,7 @@ def test_tensor_chunk_serialization_no_compression(
     assert parsed_chunk.timestamp.as_datetime() == mock_sync_timestamp.as_datetime()
     assert parsed_chunk.starting_index == starting_index_val
 
-    
+
 @pytest.mark.parametrize("dtype", torch_dtypes_to_test)
 def test_tensor_chunk_serialization_lz4_compression(
     dtype: torch.dtype, mocker: Any
