@@ -1,5 +1,6 @@
 """RemoteRuntimeFactory for creating Runtimes for separate processes."""
 
+import multiprocessing
 from typing import Generic, TypeVar
 
 from tsercom.api.runtime_command import RuntimeCommand
@@ -10,9 +11,6 @@ from tsercom.api.split_process.runtime_command_source import (
 )
 from tsercom.data.annotated_instance import AnnotatedInstance
 from tsercom.data.event_instance import EventInstance
-
-# SerializableAnnotatedInstance will be removed
-# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
 from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
@@ -28,6 +26,10 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
     MultiprocessQueueSource,
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
+
+# SerializableAnnotatedInstance will be removed
+# from tsercom.data.serializable_annotated_instance import SerializableAnnotatedInstance
+
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
@@ -53,6 +55,9 @@ class RemoteRuntimeFactory(
         event_source_queue: MultiprocessQueueSource[EventInstance[EventTypeT]],
         data_reader_queue: MultiprocessQueueSink[AnnotatedInstance[DataTypeT]],
         command_source_queue: MultiprocessQueueSource[RuntimeCommand],
+        mp_context: (
+            multiprocessing.context.BaseContext | None
+        ) = None,  # Added mp_context
     ) -> None:
         """Initializes the RemoteRuntimeFactory.
 
@@ -61,12 +66,14 @@ class RemoteRuntimeFactory(
             event_source_queue: Queue source for receiving EventInstances.
             data_reader_queue: Queue sink for sending AnnotatedInstances.
             command_source_queue: Queue source for receiving RuntimeCommands.
+            mp_context: The multiprocessing context to use, if any.
         """
         super().__init__(other_config=initializer)
         self._initializer_instance = initializer
         self.__event_source_queue = event_source_queue  # Type updated
         self.__data_reader_queue = data_reader_queue
         self.__command_source_queue = command_source_queue
+        self._mp_context = mp_context  # Store mp_context
 
         self.__data_reader_sink: DataReaderSink[AnnotatedInstance[DataTypeT]] | None = (
             None
