@@ -9,6 +9,7 @@ from typing import (
     Optional,
     Tuple,
     Union,
+    TYPE_CHECKING,  # Added TYPE_CHECKING
 )
 
 import numpy as np
@@ -17,9 +18,16 @@ import torch
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
 
+if TYPE_CHECKING:
+    # This import is only for type checking, not a runtime dependency.
+    from tsercom.tensor.serialization.serializable_tensor import (
+        SerializableTensorChunk,
+    )
+
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=too-many-instance-attributes
 class SmoothedTensorDemuxer(TensorDemuxer):
     """
     Manages per-index keyframe data using torch.Tensors and provides smoothed,
@@ -27,6 +35,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
     Uses a specified smoothing strategy for per-index "cascading forward" interpolation.
     """
 
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(
         self,
         tensor_shape: Tuple[int, ...],
@@ -92,14 +101,14 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         """Returns whether output timestamps should be aligned."""
         return self.__align_output_timestamps
 
-    async def on_update_received(
-        self, tensor_index: int, value: float, timestamp: datetime.datetime
+    async def on_chunk_received(
+        self,
+        chunk: "SerializableTensorChunk",  # Back to string literal for Pylint
     ) -> None:
         """
-        Handles an update for a single element in the tensor.
-        This is typically called by the parent class or an external source.
+        Handles a chunk of tensor data. Delegates to the parent class.
         """
-        await super().on_update_received(tensor_index, value, timestamp)
+        await super().on_chunk_received(chunk)
 
     async def _on_keyframe_updated(
         self,
@@ -121,6 +130,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         """Gets the current UTC timestamp."""
         return datetime.datetime.now(datetime.timezone.utc)
 
+    # pylint: disable=too-many-locals, too-many-branches, too-many-nested-blocks
     async def __try_interpolate_and_push(self) -> None:
         """
         Attempts to interpolate the tensor to the next output timestamp and push it.
@@ -200,7 +210,11 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                     per_element_timestamps = []
                     per_element_values = []
 
-                    for p_ts, p_1d_tensor, _ in history_from_parent:
+                    for (
+                        p_ts,
+                        p_1d_tensor,
+                        _,
+                    ) in history_from_parent:
                         try:
                             p_nd_tensor_reshaped = p_1d_tensor.reshape(
                                 self.__tensor_shape_internal
@@ -293,7 +307,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                     "[%s] Interpolation worker task was cancelled during stop.",
                     self.__name,
                 )
-            except (
+            except (  # pylint: disable=broad-exception-caught
                 Exception
             ) as e:  # Catch other potential errors during wait_for
                 logger.error(
