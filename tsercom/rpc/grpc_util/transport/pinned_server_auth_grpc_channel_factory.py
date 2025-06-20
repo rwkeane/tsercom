@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any
 
 import grpc
 
@@ -20,7 +20,7 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
     def __init__(
         self,
         expected_server_cert_pem: bytes | str,
-        server_hostname_override: Optional[str] = None,
+        server_hostname_override: str | None = None,
     ):
         """
         Initializes the factory with the expected server certificate.
@@ -39,12 +39,12 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
         else:
             self.expected_server_cert_pem = expected_server_cert_pem
 
-        self.server_hostname_override: Optional[str] = server_hostname_override
+        self.server_hostname_override: str | None = server_hostname_override
         super().__init__()
 
     async def find_async_channel(
-        self, addresses: Union[List[str], str], port: int
-    ) -> Optional[grpc.Channel]:
+        self, addresses: list[str] | str, port: int
+    ) -> grpc.Channel | None:
         """
         Attempts to establish a secure gRPC channel to the specified address(es)
         and port, authenticating the server by pinning its certificate.
@@ -57,7 +57,7 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
         """
-        address_list: List[str]
+        address_list: list[str]
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
@@ -86,7 +86,7 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
         # For pinning, you might primarily care about the cert content, and override ensures hostname validation doesn't fail separately
         # if the pinned cert is correct.
 
-        active_channel: Optional[grpc.aio.Channel] = None
+        active_channel: grpc.aio.Channel | None = None
 
         for current_address in address_list:
             target = f"{current_address}:{port}"

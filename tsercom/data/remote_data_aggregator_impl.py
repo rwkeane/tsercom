@@ -8,7 +8,7 @@ for collecting and accessing data from multiple remote endpoints.
 import datetime
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Generic, List, Optional, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -40,7 +40,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client] = None,
+        client: RemoteDataAggregator.Client | None = None,
     ):
         """Initializes with thread pool and optional client.
 
@@ -54,7 +54,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client] = None,
+        client: RemoteDataAggregator.Client | None = None,
         *,
         tracker: DataTimeoutTracker,
     ):
@@ -71,7 +71,7 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client] = None,
+        client: RemoteDataAggregator.Client | None = None,
         *,
         timeout: int,
     ):
@@ -89,10 +89,10 @@ class RemoteDataAggregatorImpl(
     def __init__(
         self,
         thread_pool: ThreadPoolExecutor,
-        client: Optional[RemoteDataAggregator.Client] = None,
+        client: RemoteDataAggregator.Client | None = None,
         *,
-        tracker: Optional[DataTimeoutTracker] = None,
-        timeout: Optional[int] = None,
+        tracker: DataTimeoutTracker | None = None,
+        timeout: int | None = None,
     ) -> None:
         """Initializes the RemoteDataAggregatorImpl.
 
@@ -127,11 +127,11 @@ class RemoteDataAggregatorImpl(
         self.__client = client
         self.__tracker = tracker
 
-        self.__organizers: Dict[CallerIdentifier, RemoteDataOrganizer[DataTypeT]] = {}
+        self.__organizers: dict[CallerIdentifier, RemoteDataOrganizer[DataTypeT]] = {}
         self.__lock: threading.Lock = threading.Lock()
 
     def stop(
-        self, identifier: Optional[CallerIdentifier] = None
+        self, identifier: CallerIdentifier | None = None
     ) -> None:  # Renamed id to identifier
         """Stops data processing for one or all callers.
 
@@ -158,7 +158,7 @@ class RemoteDataAggregatorImpl(
                 organizer.stop()
 
     @overload
-    def has_new_data(self) -> Dict[CallerIdentifier, bool]:
+    def has_new_data(self) -> dict[CallerIdentifier, bool]:
         """Checks for new data for all callers.
 
         Returns:
@@ -179,8 +179,8 @@ class RemoteDataAggregatorImpl(
         ...
 
     def has_new_data(
-        self, identifier: Optional[CallerIdentifier] = None
-    ) -> Dict[CallerIdentifier, bool] | bool:
+        self, identifier: CallerIdentifier | None = None
+    ) -> dict[CallerIdentifier, bool] | bool:
         """Checks for new data for one or all callers.
 
         Args:
@@ -205,7 +205,7 @@ class RemoteDataAggregatorImpl(
             return results
 
     @overload
-    def get_new_data(self) -> Dict[CallerIdentifier, List[DataTypeT]]:
+    def get_new_data(self) -> dict[CallerIdentifier, list[DataTypeT]]:
         """Retrieves all new data items for all callers.
 
         Returns:
@@ -214,7 +214,7 @@ class RemoteDataAggregatorImpl(
         ...
 
     @overload
-    def get_new_data(self, identifier: CallerIdentifier) -> List[DataTypeT]:
+    def get_new_data(self, identifier: CallerIdentifier) -> list[DataTypeT]:
         """Retrieves all new data items for a specific caller.
 
         Args:
@@ -226,8 +226,8 @@ class RemoteDataAggregatorImpl(
         ...
 
     def get_new_data(
-        self, identifier: Optional[CallerIdentifier] = None
-    ) -> Dict[CallerIdentifier, List[DataTypeT]] | List[DataTypeT]:
+        self, identifier: CallerIdentifier | None = None
+    ) -> dict[CallerIdentifier, list[DataTypeT]] | list[DataTypeT]:
         """Retrieves new data for one or all callers.
 
         Args:
@@ -259,7 +259,7 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_most_recent_data(
         self,
-    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]:
+    ) -> dict[CallerIdentifier, DataTypeT | None]:
         """Retrieves the most recent data item for all callers.
 
         Returns `None` for a caller if no data or if timed out.
@@ -270,7 +270,7 @@ class RemoteDataAggregatorImpl(
         ...
 
     @overload
-    def get_most_recent_data(self, identifier: CallerIdentifier) -> Optional[DataTypeT]:
+    def get_most_recent_data(self, identifier: CallerIdentifier) -> DataTypeT | None:
         """Retrieves the most recent data item for a specific caller.
 
         Returns `None` if no data for this caller or if timed out.
@@ -284,8 +284,8 @@ class RemoteDataAggregatorImpl(
         ...
 
     def get_most_recent_data(
-        self, identifier: Optional[CallerIdentifier] = None
-    ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
+        self, identifier: CallerIdentifier | None = None
+    ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves the most recent data for one or all callers.
 
         Args:
@@ -318,7 +318,7 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Dict[CallerIdentifier, Optional[DataTypeT]]:
+    ) -> dict[CallerIdentifier, DataTypeT | None]:
         """Retrieves data before or at `timestamp` for all callers.
 
         Returns `None` for a caller if no suitable data exists.
@@ -334,7 +334,7 @@ class RemoteDataAggregatorImpl(
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier
-    ) -> Optional[DataTypeT]:
+    ) -> DataTypeT | None:
         """Retrieves data before or at `timestamp` for a specific caller.
 
         Returns `None` if no suitable data exists for this caller.
@@ -351,8 +351,8 @@ class RemoteDataAggregatorImpl(
     def get_data_for_timestamp(
         self,
         timestamp: datetime.datetime,
-        identifier: Optional[CallerIdentifier] = None,
-    ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
+        identifier: CallerIdentifier | None = None,
+    ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves data for a specific timestamp for one or all callers.
 
         Args:

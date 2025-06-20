@@ -5,11 +5,6 @@ Provides the SmoothedTensorDemuxer class for interpolating tensor data over time
 import asyncio
 import datetime
 import logging
-from typing import (
-    Optional,
-    Tuple,
-    Union,
-)
 
 import numpy as np
 import torch
@@ -32,14 +27,14 @@ class SmoothedTensorDemuxer(TensorDemuxer):
 
     def __init__(
         self,
-        tensor_shape: Tuple[int, ...],
+        tensor_shape: tuple[int, ...],
         output_client: TensorDemuxer.Client,
         smoothing_strategy: SmoothingStrategy,
         output_interval_seconds: float,
         data_timeout_seconds: float = 60.0,
         align_output_timestamps: bool = False,
-        fill_value: Union[int, float] = float("nan"),
-        name: Optional[str] = None,
+        fill_value: int | float = float("nan"),
+        name: str | None = None,
     ):
         self.__tensor_shape_internal = tensor_shape
         _1d_tensor_length = 1
@@ -62,8 +57,8 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         self.__align_output_timestamps = align_output_timestamps
         self.__fill_value = float(fill_value)
 
-        self.__last_pushed_timestamp: Optional[datetime.datetime] = None
-        self.__interpolation_worker_task: Optional[asyncio.Task[None]] = None
+        self.__last_pushed_timestamp: datetime.datetime | None = None
+        self.__interpolation_worker_task: asyncio.Task[None] | None = None
         self.__stop_event = asyncio.Event()
 
         logger.info(
@@ -290,6 +285,6 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                 )
         logger.info("[%s] SmoothedTensorDemuxer stopped.", self.__name)
 
-    def get_tensor_shape(self) -> Tuple[int, ...]:
+    def get_tensor_shape(self) -> tuple[int, ...]:
         """Returns the shape of the tensor being managed."""
         return self.__tensor_shape_internal

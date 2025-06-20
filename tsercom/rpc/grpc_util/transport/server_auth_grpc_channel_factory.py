@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any
 
 import grpc
 
@@ -21,7 +21,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
     def __init__(
         self,
         root_ca_cert_pem: bytes | str,
-        server_hostname_override: Optional[str] = None,
+        server_hostname_override: str | None = None,
     ):
         """
         Initializes the factory with the root CA certificate.
@@ -40,12 +40,12 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
         else:
             self.root_ca_cert_pem = root_ca_cert_pem
 
-        self.server_hostname_override: Optional[str] = server_hostname_override
+        self.server_hostname_override: str | None = server_hostname_override
         super().__init__()
 
     async def find_async_channel(
-        self, addresses: Union[List[str], str], port: int
-    ) -> Optional[grpc.Channel]:
+        self, addresses: list[str] | str, port: int
+    ) -> grpc.Channel | None:
         """
         Attempts to establish a secure gRPC channel to the specified address(es)
         and port, authenticating the server using the root CA.
@@ -58,7 +58,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
         """
-        address_list: List[str]
+        address_list: list[str]
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
@@ -81,7 +81,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
                 )
             )
 
-        channel: Optional[grpc.aio.Channel] = None
+        channel: grpc.aio.Channel | None = None
         for current_address in address_list:
             target = f"{current_address}:{port}"
             try:

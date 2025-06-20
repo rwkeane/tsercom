@@ -9,7 +9,7 @@ runtimes manage incoming data and events for individual clients or connections.
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-from typing import Generic, List, Optional, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 import grpc
 
@@ -56,7 +56,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     async def desynchronize(
         self,
         timestamp: ServerTimestamp,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> datetime | None:
         """Converts a server-side timestamp to a local, desynchronized datetime.
 
@@ -118,7 +118,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         self,
         data: DataTypeT,
         timestamp: ServerTimestamp,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> None:
         """Processes incoming data with a `ServerTimestamp`.
 
@@ -138,7 +138,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         self,
         data: DataTypeT,
         timestamp: datetime | ServerTimestamp | None = None,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> None:
         """Processes incoming data, handling timestamp normalization and delegation.
 
@@ -200,7 +200,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     @abstractmethod
     def __aiter__(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+    ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
         """Returns an asynchronous iterator for events specific to this endpoint.
 
         Subclasses must implement this to provide a mechanism for consuming

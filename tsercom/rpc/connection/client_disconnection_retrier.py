@@ -1,13 +1,11 @@
 import asyncio
 import logging
 from abc import abstractmethod
+from collections.abc import Callable, Coroutine
 from functools import partial
 from typing import (
     Any,
-    Callable,
-    Coroutine,
     Generic,
-    Optional,
     TypeVar,
 )
 
@@ -16,7 +14,11 @@ from tsercom.rpc.connection.client_reconnection_handler import (
 )
 from tsercom.rpc.grpc_util.grpc_caller import (
     delay_before_retry as default_delay_before_retry,
+)
+from tsercom.rpc.grpc_util.grpc_caller import (
     is_grpc_error as default_is_grpc_error,
+)
+from tsercom.rpc.grpc_util.grpc_caller import (
     is_server_unavailable_error as default_is_server_unavailable_error,
 )
 from tsercom.threading.aio.aio_utils import (
@@ -42,14 +44,12 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
     def __init__(
         self,
         watcher: ThreadWatcher,
-        safe_disconnection_handler: Optional[Callable[[], None]] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
-        delay_before_retry_func: Optional[
-            Callable[[], Coroutine[Any, Any, None]]
-        ] = None,
-        is_grpc_error_func: Optional[Callable[[Exception], bool]] = None,
-        is_server_unavailable_error_func: Optional[Callable[[Exception], bool]] = None,
-        max_retries: Optional[int] = 5,
+        safe_disconnection_handler: Callable[[], None] | None = None,
+        event_loop: asyncio.AbstractEventLoop | None = None,
+        delay_before_retry_func: Callable[[], Coroutine[Any, Any, None]] | None = None,
+        is_grpc_error_func: Callable[[Exception], bool] | None = None,
+        is_server_unavailable_error_func: Callable[[Exception], bool] | None = None,
+        max_retries: int | None = 5,
     ) -> None:
         """Initializes the ClientDisconnectionRetrier.
 
@@ -73,9 +73,9 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
                 f"Watcher must be an instance of ThreadWatcher, got {type(watcher).__name__}."
             )
 
-        self.__instance: Optional[TInstanceType] = None
+        self.__instance: TInstanceType | None = None
         self.__watcher: ThreadWatcher = watcher
-        self.__safe_disconnection_handler: Optional[Callable[[], None]] = (
+        self.__safe_disconnection_handler: Callable[[], None] | None = (
             safe_disconnection_handler
         )
         self.__provided_event_loop = event_loop
@@ -90,7 +90,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         self.__max_retries = max_retries
 
         # Event loop on which this instance's async methods should primarily run.
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = (
+        self.__event_loop: asyncio.AbstractEventLoop | None = (
             self.__provided_event_loop
         )
 
@@ -195,7 +195,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             self.__instance = None
         logging.info("ClientDisconnectionRetrier stopped.")
 
-    async def _on_disconnect(self, error: Optional[Exception] = None) -> None:
+    async def _on_disconnect(self, error: Exception | None = None) -> None:
         """Handles disconnection events and attempts reconnection if appropriate.
 
         This method is typically called when an operation on the managed instance

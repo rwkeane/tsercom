@@ -1,7 +1,7 @@
 """Provides an asynchronous gRPC server component for the GetId method."""
 
 import logging
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import grpc
 
@@ -22,8 +22,8 @@ class AsyncGetIdServer:
 
     def __init__(
         self,
-        on_id_created: Optional[Callable[[CallerIdentifier], None]] = None,
-        on_disconnect_handler: Optional[ClientReconnectionManager] = None,
+        on_id_created: Callable[[CallerIdentifier], None] | None = None,
+        on_disconnect_handler: ClientReconnectionManager | None = None,
     ) -> None:
         """Initializes the AsyncGetIdServer.
 

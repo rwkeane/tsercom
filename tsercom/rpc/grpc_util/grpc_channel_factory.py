@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union
 
 import grpc
 
@@ -20,9 +19,9 @@ class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
     @abstractmethod
     async def find_async_channel(
         self,
-        addresses: Union[List[str], str],
+        addresses: list[str] | str,
         port: int,
-    ) -> Optional[grpc.Channel]:
+    ) -> grpc.Channel | None:
         """Finds an asynchronous gRPC channel to the specified address(es) and port.
 
         Implementations should attempt to establish a connection and return
@@ -39,8 +38,8 @@ class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
         pass
 
     async def connect(
-        self, addresses: Union[List[str], str], port: int
-    ) -> Optional[grpc.Channel]:
+        self, addresses: list[str] | str, port: int
+    ) -> grpc.Channel | None:
         """Establishes a gRPC channel to the specified address(es) and port.
 
         This method implements the `ConnectionFactory.connect` interface by

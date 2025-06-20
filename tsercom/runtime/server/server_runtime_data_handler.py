@@ -8,12 +8,12 @@ truth for time, providing a synchronized clock for its clients, often through
 a `TimeSyncServer`.
 """
 
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.event_instance import EventInstance
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.threading.aio.async_poller import AsyncPoller
@@ -49,7 +49,7 @@ class ServerRuntimeDataHandler(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
-        min_send_frequency_seconds: Optional[float] = None,
+        min_send_frequency_seconds: float | None = None,
         *,
         is_testing: bool = False,
     ):
@@ -70,7 +70,7 @@ class ServerRuntimeDataHandler(
         super().__init__(data_reader, event_source, min_send_frequency_seconds)
 
         self.__clock: SynchronizedClock
-        self.__server: Optional[TimeSyncServer] = None  # Store server if created
+        self.__server: TimeSyncServer | None = None  # Store server if created
 
         if is_testing:
             self.__clock = FakeSynchronizedClock()

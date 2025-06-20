@@ -1,7 +1,8 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
 import multiprocessing as std_mp  # For type hinting BaseContext
-from typing import Tuple, TypeVar, Generic
+from typing import Generic, TypeVar
+
 import torch.multiprocessing as mp
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -51,7 +52,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
 
     def create_queues(
         self,
-    ) -> Tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
+    ) -> tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
         """Creates a pair of torch.multiprocessing queues wrapped in Sink/Source.
 
         These queues are suitable for inter-process communication, especially

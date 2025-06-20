@@ -1,7 +1,7 @@
 """Defines the abstract base class for runtime factory creators."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, Tuple, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.api.runtime_handle import RuntimeHandle
 from tsercom.data.exposed_data import ExposedData
@@ -43,7 +43,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
     @abstractmethod
     def _create_pair(
         self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
-    ) -> Tuple[
+    ) -> tuple[
         RuntimeHandle[DataTypeT, EventTypeT],
         RuntimeFactory[DataTypeT, EventTypeT],
     ]:

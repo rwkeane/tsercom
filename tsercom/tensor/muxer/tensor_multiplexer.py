@@ -4,13 +4,9 @@ import abc
 import asyncio
 import bisect
 import datetime
-from typing import (
-    List,
-    Tuple,
-    Optional,
-)
 
 import torch
+
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
 )
@@ -18,7 +14,7 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 # Using a type alias for clarity, though not strictly necessary for the ABC itself
 TensorHistoryValue = torch.Tensor
-TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue]
+TimestampedTensor = tuple[datetime.datetime, TensorHistoryValue]
 
 
 class TensorMultiplexer(abc.ABC):
@@ -69,7 +65,7 @@ class TensorMultiplexer(abc.ABC):
         self.__lock = asyncio.Lock()
         # Placeholder for type hinting and get_tensor_at_timestamp.
         # Subclasses are responsible for managing the actual history.
-        self.__history: List[TimestampedTensor] = []
+        self.__history: list[TimestampedTensor] = []
 
     @property
     def lock(self) -> asyncio.Lock:
@@ -77,7 +73,7 @@ class TensorMultiplexer(abc.ABC):
         return self.__lock
 
     @property
-    def history(self) -> List[TimestampedTensor]:
+    def history(self) -> list[TimestampedTensor]:
         """Provides access to the tensor history list."""
         return self.__history
 
@@ -113,7 +109,7 @@ class TensorMultiplexer(abc.ABC):
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Optional[torch.Tensor]:
+    ) -> torch.Tensor | None:
         """
         Retrieves a clone of the tensor snapshot for a specific timestamp.
 

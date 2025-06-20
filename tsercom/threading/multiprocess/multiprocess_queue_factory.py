@@ -6,7 +6,7 @@ which is considered for deprecation in favor of concrete factory implementations
 """
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Tuple, Generic
+from typing import Generic, TypeVar
 
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -29,7 +29,7 @@ class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
     @abstractmethod
     def create_queues(
         self,
-    ) -> Tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
+    ) -> tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
         """
         Creates a pair of queues for inter-process communication.
 

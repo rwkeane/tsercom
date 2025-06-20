@@ -3,7 +3,6 @@
 import logging
 import threading
 from functools import partial
-from typing import Optional  # For Optional[ThreadWatcher]
 
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.runtime.runtime import Runtime
@@ -37,7 +36,7 @@ class RuntimeCommandSource:
         self.__is_running: IsRunningTracker | None = None
         self.__runtime: Runtime | None = None
         self.__command_thread: threading.Thread | None = None
-        self.__thread_watcher: Optional[ThreadWatcher] = None
+        self.__thread_watcher: ThreadWatcher | None = None
 
     def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime) -> None:
         """Starts the command watching thread and associates the runtime.

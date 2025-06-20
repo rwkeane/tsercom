@@ -1,16 +1,13 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
 import multiprocessing as std_mp  # Standard library, aliased
+from collections.abc import Callable, Iterable  # Updated imports
 from typing import (
-    Tuple,
+    Any,
     Generic,
     TypeVar,
-    Callable,
-    Any,
-    Union,
-    Iterable,
-    Optional,
-)  # Updated imports
+)
+
 import torch  # Keep torch for type hints if needed, or for tensor_accessor context
 import torch.multiprocessing as mp  # Third-party
 
@@ -45,10 +42,8 @@ class TorchMemcpyQueueFactory(
     def __init__(
         self,
         ctx_method: str = "spawn",
-        context: Optional[std_mp.context.BaseContext] = None,  # Corrected type hint
-        tensor_accessor: Optional[
-            Callable[[Any], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = None,
+        context: std_mp.context.BaseContext | None = None,  # Corrected type hint
+        tensor_accessor: Callable[[Any], torch.Tensor | Iterable[torch.Tensor]] | None = None,
     ) -> None:
         """Initializes the TorchMultiprocessQueueFactory.
 
@@ -70,7 +65,7 @@ class TorchMemcpyQueueFactory(
 
     def create_queues(
         self,
-    ) -> Tuple[
+    ) -> tuple[
         "TorchMemcpyQueueSink[QueueElementT]",
         "TorchMemcpyQueueSource[QueueElementT]",
     ]:  # Return specialized generic sink/source
@@ -110,14 +105,10 @@ class TorchMemcpyQueueSource(
     def __init__(
         self,
         queue: "mp.Queue[QueueElementT]",
-        tensor_accessor: Optional[
-            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = None,
+        tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = None,
     ) -> None:
         super().__init__(queue)
-        self._tensor_accessor: Optional[
-            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = tensor_accessor
+        self._tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = tensor_accessor
 
     def get_blocking(self, timeout: float | None = None) -> QueueElementT | None:
         """
@@ -175,14 +166,10 @@ class TorchMemcpyQueueSink(
     def __init__(
         self,
         queue: "mp.Queue[QueueElementT]",
-        tensor_accessor: Optional[
-            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = None,
+        tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = None,
     ) -> None:
         super().__init__(queue)
-        self._tensor_accessor: Optional[
-            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = tensor_accessor
+        self._tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = tensor_accessor
 
     def put_blocking(self, obj: QueueElementT, timeout: float | None = None) -> bool:
         """

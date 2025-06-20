@@ -6,11 +6,7 @@ import abc
 import asyncio
 import bisect
 import datetime
-from typing import (
-    List,
-    Tuple,
-    Optional,
-)
+
 import torch
 
 from tsercom.tensor.serialization.serializable_tensor import (
@@ -51,24 +47,24 @@ class TensorDemuxer:
         self.__client = client
         self.__tensor_length = tensor_length
         self.__data_timeout_seconds = data_timeout_seconds
-        self.__processed_keyframes: List[
-            Tuple[
+        self.__processed_keyframes: list[
+            tuple[
                 datetime.datetime,
                 torch.Tensor,
-                Tuple[torch.Tensor, torch.Tensor],
+                tuple[torch.Tensor, torch.Tensor],
             ]
         ] = []
-        self.__latest_update_timestamp: Optional[datetime.datetime] = None
+        self.__latest_update_timestamp: datetime.datetime | None = None
         self.__lock: asyncio.Lock = asyncio.Lock()
 
     @property
     def _processed_keyframes(
         self,
-    ) -> List[
-        Tuple[
+    ) -> list[
+        tuple[
             datetime.datetime,
             torch.Tensor,
-            Tuple[torch.Tensor, torch.Tensor],
+            tuple[torch.Tensor, torch.Tensor],
         ]
     ]:
         return self.__processed_keyframes
@@ -129,7 +125,7 @@ class TensorDemuxer:
 
             # Store the state of the tensor *before* this chunk's updates for this TS
             # This is used to determine if _on_keyframe_updated needs to be called.
-            pre_chunk_calculated_tensor_for_ts: Optional[torch.Tensor] = None
+            pre_chunk_calculated_tensor_for_ts: torch.Tensor | None = None
 
             if (
                 insertion_point < len(self.__processed_keyframes)
@@ -278,7 +274,7 @@ class TensorDemuxer:
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Optional[torch.Tensor]:
+    ) -> torch.Tensor | None:
         async with self.__lock:
             i = bisect.bisect_left(
                 self.__processed_keyframes, timestamp, key=lambda x: x[0]

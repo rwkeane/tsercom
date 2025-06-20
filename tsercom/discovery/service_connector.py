@@ -12,7 +12,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, Optional, Set, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_source import (
@@ -108,12 +108,12 @@ class ServiceConnector(
         self.__service_source: ServiceSource[SourceServiceInfoT] = service_source
         self.__connection_factory: ConnectionFactory[ChannelTypeT] = connection_factory
 
-        self.__callers: Set[CallerIdentifier] = set()
+        self.__callers: set[CallerIdentifier] = set()
 
         # The event loop is captured on the first relevant async operation,
         # typically in _on_service_added, to ensure subsequent operations
         # are scheduled on the same loop for consistency.
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
         super().__init__()
 
@@ -249,7 +249,7 @@ class ServiceConnector(
             connection_info.port,
         )
 
-        channel: Optional[ChannelTypeT] = await self.__connection_factory.connect(
+        channel: ChannelTypeT | None = await self.__connection_factory.connect(
             connection_info.addresses, connection_info.port
         )
 
@@ -281,7 +281,7 @@ class ServiceConnector(
         logging.info("Stopping ServiceConnector...")
 
         if hasattr(self.__service_source, "stop_discovery") and callable(
-            getattr(self.__service_source, "stop_discovery")
+            self.__service_source.stop_discovery
         ):
             try:
                 await self.__service_source.stop_discovery()

@@ -3,7 +3,7 @@
 import logging
 import threading
 import time
-from typing import Deque
+from collections import deque
 
 import ntplib  # type: ignore[import-untyped]
 
@@ -42,7 +42,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
         self.__ntp_port = ntp_port
         self.__sync_loop_thread: threading.Thread | None = None
         self.__time_offset_lock = threading.Lock()
-        self.__time_offsets = Deque[float]()
+        self.__time_offsets = deque[float]()
         self.__is_running = IsRunningTracker()
         self.__start_barrier = threading.Event()
 

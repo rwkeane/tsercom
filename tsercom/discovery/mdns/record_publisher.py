@@ -1,9 +1,8 @@
 """Publishes mDNS service records using zeroconf."""
 
 import logging
-from typing import Dict, Optional
 
-from zeroconf import ServiceInfo, IPVersion
+from zeroconf import IPVersion, ServiceInfo
 from zeroconf.asyncio import AsyncZeroconf
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
@@ -35,8 +34,8 @@ class RecordPublisher(MdnsPublisher):
         name: str,  # The mDNS instance name (e.g., "MyDevice")
         type_: str,  # The base service type (e.g., "_myservice")
         port: int,
-        properties: Optional[Dict[bytes, bytes | None]] = None,
-        zc_instance: Optional[AsyncZeroconf] = None,  # Added
+        properties: dict[bytes, bytes | None] | None = None,
+        zc_instance: AsyncZeroconf | None = None,  # Added
     ) -> None:
         """Initializes the RecordPublisher.
 
@@ -64,9 +63,9 @@ class RecordPublisher(MdnsPublisher):
         self.__ptr: str = f"{type_}._tcp.local."
         self.__srv: str = f"{name}.{self.__ptr}"
         self.__port: int = port
-        self.__txt: Dict[bytes, bytes | None] = properties
-        self.__shared_zc: Optional[AsyncZeroconf] = zc_instance
-        self.__owned_zc: Optional[AsyncZeroconf] = None
+        self.__txt: dict[bytes, bytes | None] = properties
+        self.__shared_zc: AsyncZeroconf | None = zc_instance
+        self.__owned_zc: AsyncZeroconf | None = None
         self._zc: AsyncZeroconf | None = (
             None  # This will point to either shared_zc or owned_zc
         )

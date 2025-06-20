@@ -2,7 +2,7 @@
 
 import datetime
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, List, Optional, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.exposed_data import ExposedData
@@ -75,7 +75,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
 
     @abstractmethod
     def stop(
-        self, identifier: Optional[CallerIdentifier] = None
+        self, identifier: CallerIdentifier | None = None
     ) -> None:  # Renamed id to identifier
         """Stops data processing.
 
@@ -87,7 +87,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         raise NotImplementedError()
 
     @overload
-    def has_new_data(self) -> Dict[CallerIdentifier, bool]:
+    def has_new_data(self) -> dict[CallerIdentifier, bool]:
         """Checks for new data for all callers.
 
         Returns:
@@ -113,8 +113,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @abstractmethod
     def has_new_data(
         self,
-        identifier: Optional[CallerIdentifier] = None,  # Renamed id to identifier
-    ) -> Dict[CallerIdentifier, bool] | bool:
+        identifier: CallerIdentifier | None = None,  # Renamed id to identifier
+    ) -> dict[CallerIdentifier, bool] | bool:
         """Checks for new data.
 
         If `identifier` is provided, checks for the specific caller. Otherwise, checks
@@ -146,7 +146,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         return bool(all_data_status)
 
     @overload
-    def get_new_data(self) -> Dict[CallerIdentifier, List[DataTypeT]]:
+    def get_new_data(self) -> dict[CallerIdentifier, list[DataTypeT]]:
         """Retrieves all new data items for all callers.
 
         Returns:
@@ -158,7 +158,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @overload
     def get_new_data(
         self, identifier: CallerIdentifier
-    ) -> List[DataTypeT]:  # Renamed id to identifier
+    ) -> list[DataTypeT]:  # Renamed id to identifier
         """Retrieves all new data items for a specific caller.
 
         Args:
@@ -172,8 +172,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @abstractmethod
     def get_new_data(
         self,
-        identifier: Optional[CallerIdentifier] = None,  # Renamed id to identifier
-    ) -> Dict[CallerIdentifier, List[DataTypeT]] | List[DataTypeT]:
+        identifier: CallerIdentifier | None = None,  # Renamed id to identifier
+    ) -> dict[CallerIdentifier, list[DataTypeT]] | list[DataTypeT]:
         """Retrieves new data.
 
         If `identifier` is provided, retrieves data for the specific caller.
@@ -183,7 +183,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         raise NotImplementedError()
 
     @overload
-    def get_most_recent_data(self) -> Dict[CallerIdentifier, DataTypeT | None]:
+    def get_most_recent_data(self) -> dict[CallerIdentifier, DataTypeT | None]:
         """Retrieves the most recently received data item for all callers.
 
         Returns `None` for a caller if no data has been received or if it has timed out.
@@ -213,8 +213,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @abstractmethod
     def get_most_recent_data(
         self,
-        identifier: Optional[CallerIdentifier] = None,  # Renamed id to identifier
-    ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
+        identifier: CallerIdentifier | None = None,  # Renamed id to identifier
+    ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves the most recent data.
 
         If `identifier` is provided, retrieves data for the specific caller.
@@ -227,7 +227,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Dict[CallerIdentifier, DataTypeT | None]:
+    ) -> dict[CallerIdentifier, DataTypeT | None]:
         """Retrieves the most recent data item received before or at a specific timestamp for all callers.
 
         Returns `None` for a caller if no suitable data exists or if it has timed out.
@@ -265,7 +265,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         self,
         timestamp: datetime.datetime,
         identifier: CallerIdentifier | None = None,  # Renamed id to identifier
-    ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
+    ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves data for a specific timestamp.
 
         If `identifier` is provided, retrieves data for the specific caller.

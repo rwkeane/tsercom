@@ -32,7 +32,7 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
         Args:
             queue: The multiprocessing queue to be used as source.
         """
-        self.__queue: "MpQueue[QueueTypeT]" = queue
+        self.__queue: MpQueue[QueueTypeT] = queue
 
     def get_blocking(self, timeout: float | None = None) -> QueueTypeT | None:
         """

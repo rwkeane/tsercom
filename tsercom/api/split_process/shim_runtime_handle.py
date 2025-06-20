@@ -1,7 +1,7 @@
 """ShimRuntimeHandle for interacting with a separate process runtime."""
 
 import datetime
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.runtime_handle import RuntimeHandle
@@ -88,13 +88,9 @@ class ShimRuntimeHandle(
     def on_event(
         self,
         event: EventTypeT,
-        caller_id: Optional[
-            CallerIdentifier
-        ] = None,  # Added for RuntimeHandle compatibility
+        caller_id: CallerIdentifier | None = None,  # Added for RuntimeHandle compatibility
         *,
-        timestamp: Optional[
-            datetime.datetime
-        ] = None,  # Added for RuntimeHandle compatibility
+        timestamp: datetime.datetime | None = None,  # Added for RuntimeHandle compatibility
     ) -> None:
         """Sends an event to the remote runtime.
 

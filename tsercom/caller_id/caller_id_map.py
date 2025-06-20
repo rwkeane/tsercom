@@ -1,7 +1,8 @@
 """Thread-safe map for CallerIdentifier to generic object association."""
 
 import threading
-from typing import Callable, Dict, Generic, TypeVar
+from collections.abc import Callable
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
@@ -18,7 +19,7 @@ class CallerIdMap(Generic[MapValueT]):
     def __init__(self) -> None:
         """Initializes a new CallerIdMap instance."""
         self.__lock = threading.Lock()
-        self.__map: Dict[CallerIdentifier, MapValueT] = {}
+        self.__map: dict[CallerIdentifier, MapValueT] = {}
 
     def find_instance(
         self, caller_id: CallerIdentifier, factory: Callable[[], MapValueT]

@@ -4,26 +4,21 @@ import bisect
 import datetime
 import weakref
 from typing import (
-    List,
-    Tuple,
-    Optional,
-    Dict,
     Any,
-    Union,
     overload,
 )
 
 import torch
 
-from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
-from tsercom.tensor.serialization.serializable_tensor import (
-    SerializableTensorChunk,
+from tsercom.tensor.muxer.complete_tensor_multiplexer import (
+    CompleteTensorMultiplexer,
 )
 from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
     SparseTensorMultiplexer,
 )
-from tsercom.tensor.muxer.complete_tensor_multiplexer import (
-    CompleteTensorMultiplexer,
+from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
 )
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
@@ -31,7 +26,7 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 # or if AggregateTensorMultiplexer is defined after _InternalClient which needs it.
 # class AggregateTensorMultiplexer(TensorMultiplexer): ...
 
-TimestampedTensor = Tuple[datetime.datetime, torch.Tensor]
+TimestampedTensor = tuple[datetime.datetime, torch.Tensor]
 
 
 class Publisher:
@@ -43,7 +38,7 @@ class Publisher:
         """Initializes the Publisher."""
         # Using a WeakSet to allow AggregateTensorMultiplexer instances to be garbage collected
         # if they are no longer referenced elsewhere, even if registered with a Publisher.
-        self._aggregators: weakref.WeakSet["AggregateTensorMultiplexer"] = (
+        self._aggregators: weakref.WeakSet[AggregateTensorMultiplexer] = (
             weakref.WeakSet()
         )
 
@@ -95,7 +90,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             self.__publisher_start_index = publisher_start_index
 
         async def on_chunk_update(self, chunk: "SerializableTensorChunk") -> None:
-            aggregator: "Optional[AggregateTensorMultiplexer]" = self.__aggregator_ref()
+            aggregator: AggregateTensorMultiplexer | None = self.__aggregator_ref()
             if not aggregator:
                 return
 
@@ -129,7 +124,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 )  # Internal method call
 
                 history_idx = aggregator._find_insertion_point(agg_timestamp_dt)
-                current_tensor_state: Optional[torch.Tensor] = None
+                current_tensor_state: torch.Tensor | None = None
 
                 if (
                     0 <= history_idx < len(aggregator.history)
@@ -221,14 +216,14 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         )
         self.__actual_aggregate_length = initial_length_for_super  # Renamed
         # self.__clock = clock # Base class __init__ handles self.__clock via the property.
-        self.__publishers_info: List[Dict[str, Any]] = []
+        self.__publishers_info: list[dict[str, Any]] = []
         # Each dict in _publishers_info stores info about a registered publisher,
         # including its tensor mapping and internal multiplexer instance.
 
         self.__current_max_index: int = 0
         # self.__actual_aggregate_length is already set
 
-        self.__latest_processed_timestamp: Optional[datetime.datetime] = None
+        self.__latest_processed_timestamp: datetime.datetime | None = None
 
     @overload
     async def add_to_aggregation(
@@ -286,8 +281,8 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             current_tensor_len: int
             sparse: bool = kwargs.get("sparse", False)
 
-            arg1: Union[int, range]
-            arg2: Optional[int] = None
+            arg1: int | range
+            arg2: int | None = None
 
             if len(args) == 1 and isinstance(args[0], int):  # Overload 1
                 arg1 = args[0]
@@ -508,19 +503,19 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
     @property
     def latest_processed_timestamp_property(
         self,
-    ) -> Optional[datetime.datetime]:  # Renamed to avoid clash with base if any
+    ) -> datetime.datetime | None:  # Renamed to avoid clash with base if any
         """Gets the latest timestamp processed by the aggregator, for internal client use."""
         return self.__latest_processed_timestamp
 
     # Method for test access only
     def get_latest_processed_timestamp_for_testing(
         self,
-    ) -> Optional[datetime.datetime]:
+    ) -> datetime.datetime | None:
         """Gets the latest processed timestamp for testing purposes."""
         return self.__latest_processed_timestamp
 
     # Method for test access only
-    def get_publishers_info_for_testing(self) -> List[Dict[str, Any]]:
+    def get_publishers_info_for_testing(self) -> list[dict[str, Any]]:
         """Gets the list of publisher information dictionaries for testing."""
         return self.__publishers_info
 

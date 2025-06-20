@@ -1,7 +1,6 @@
 """Provides a mechanism to asynchronously wait for a CallerIdentifier."""
 
 import asyncio
-from typing import Optional
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 
@@ -16,7 +15,7 @@ class CallerIdentifierWaiter:
 
     def __init__(self) -> None:
         """Initializes a new CallerIdentifierWaiter instance."""
-        self.__caller_id: Optional[CallerIdentifier] = None
+        self.__caller_id: CallerIdentifier | None = None
         # Use an asyncio.Event as a barrier to signal when the caller_id is set.
         self.__barrier = asyncio.Event()
 

@@ -1,7 +1,7 @@
 """Defines the CallerIdentifier class for uniquely identifying callers."""
 
 import uuid
-from typing import Optional, Union
+from typing import Optional
 
 from tsercom.caller_id.proto import CallerId
 
@@ -41,7 +41,7 @@ class CallerIdentifier:
     @classmethod
     def try_parse(
         cls,
-        value: Union[str, CallerId],  # Using typing.Union for broader compatibility
+        value: str | CallerId,  # Using typing.Union for broader compatibility
     ) -> Optional["CallerIdentifier"]:
         """Tries to parse a string or gRPC CallerId object into a CallerIdentifier.
 
@@ -53,7 +53,7 @@ class CallerIdentifier:
             A `CallerIdentifier` instance if parsing is successful,
             otherwise `None`.
         """
-        parsed_id_str: Optional[str] = None
+        parsed_id_str: str | None = None
         if isinstance(value, CallerId):  # Check against the specific imported type
             parsed_id_str = value.id
 

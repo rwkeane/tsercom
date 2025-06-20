@@ -11,8 +11,8 @@ This module provides helper functions to:
 import asyncio
 import concurrent
 from asyncio import AbstractEventLoop
-from collections.abc import Callable
-from typing import Any, Coroutine, Optional, ParamSpec, TypeVar
+from collections.abc import Callable, Coroutine
+from typing import Any, ParamSpec, TypeVar
 
 from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
@@ -35,7 +35,7 @@ def get_running_loop_or_none() -> AbstractEventLoop | None:
 
 # Note: Similar utility exists in cpython or could be contributed.
 def is_running_on_event_loop(
-    event_loop: Optional[AbstractEventLoop] = None,
+    event_loop: AbstractEventLoop | None = None,
 ) -> bool:
     """
     Returns true if current function is on SPECIFIC |event_loop|,
@@ -61,7 +61,7 @@ T = TypeVar("T")
 
 def run_on_event_loop(
     call: Callable[P, Coroutine[Any, Any, T]],
-    event_loop: Optional[AbstractEventLoop] = None,
+    event_loop: AbstractEventLoop | None = None,
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> concurrent.futures.Future[T]:

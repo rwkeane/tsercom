@@ -1,10 +1,10 @@
 """Serialization utilities for PyTorch Tensors using gRPC messages."""
 
 import logging
-from typing import Optional, Any
+from typing import Any, Optional
 
-import torch
 import numpy as np
+import torch
 
 from tsercom.tensor.proto import TensorChunk
 from tsercom.timesync.common.synchronized_timestamp import (
@@ -86,7 +86,7 @@ class SerializableTensorChunk:
     # The large number of dtype checks is inherent to supporting multiple tensor types.
 
     def try_parse(
-        cls, grpc_msg: Optional[TensorChunk], dtype: torch.dtype
+        cls, grpc_msg: TensorChunk | None, dtype: torch.dtype
     ) -> Optional["SerializableTensorChunk"]:
         """Attempts to parse a `TensorChunk` message into a `SerializableTensorChunk`.
 

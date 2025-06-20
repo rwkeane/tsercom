@@ -20,8 +20,6 @@ import logging
 from functools import partial
 from typing import (
     Any,
-    List,
-    Optional,
 )
 
 from tsercom.api.split_process.split_process_error_watcher_sink import (
@@ -32,6 +30,7 @@ from tsercom.runtime.client.client_runtime_data_handler import (
     ClientRuntimeDataHandler,
 )
 from tsercom.runtime.runtime import Runtime
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.server.server_runtime_data_handler import (
     ServerRuntimeDataHandler,
@@ -48,17 +47,15 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-
 logger = logging.getLogger(__name__)
 
 
 def initialize_runtimes(
     thread_watcher: ThreadWatcher,
-    initializers: List[RuntimeFactory[Any, Any]],
+    initializers: list[RuntimeFactory[Any, Any]],
     *,
     is_testing: bool = False,
-) -> List[Runtime]:
+) -> list[Runtime]:
     """Initializes, configures, and starts a list of Tsercom runtimes.
 
     This function iterates through the provided `RuntimeFactory` instances (referred
@@ -97,7 +94,7 @@ def initialize_runtimes(
     assert is_global_event_loop_set(), "Global Tsercom event loop must be set."
 
     channel_factory_selector = ChannelFactorySelector()
-    created_runtimes: List[Runtime] = []
+    created_runtimes: list[Runtime] = []
 
     for initializer_factory in initializers:
 
@@ -182,7 +179,7 @@ def initialize_runtimes(
 
 
 def remote_process_main(
-    initializers: List[RuntimeFactory[Any, Any]],
+    initializers: list[RuntimeFactory[Any, Any]],
     error_queue: MultiprocessQueueSink[Exception],
     *,
     is_testing: bool = False,
@@ -221,8 +218,8 @@ def remote_process_main(
     # Error sink to report exceptions from this process to the parent.
     error_sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
-    active_runtimes: List[Runtime] = []
-    captured_exception: Optional[Exception] = None
+    active_runtimes: list[Runtime] = []
+    captured_exception: Exception | None = None
     try:
         active_runtimes = initialize_runtimes(
             thread_watcher, initializers, is_testing=is_testing

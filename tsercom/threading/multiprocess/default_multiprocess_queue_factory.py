@@ -1,7 +1,7 @@
 """Defines the DefaultMultiprocessQueueFactory."""
 
 import multiprocessing as std_mp  # Added for context and explicit queue type
-from typing import Tuple, TypeVar, Generic
+from typing import Generic, TypeVar
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
@@ -49,7 +49,7 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
 
     def create_queues(
         self,
-    ) -> Tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
+    ) -> tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
         """
         Creates a pair of standard multiprocessing queues wrapped in Sink/Source,
         using the configured multiprocessing context.

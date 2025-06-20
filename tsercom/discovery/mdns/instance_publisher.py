@@ -2,10 +2,11 @@
 
 import datetime
 import logging
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 from uuid import getnode as get_mac
 
 from zeroconf.asyncio import AsyncZeroconf
+
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
 from tsercom.discovery.mdns.record_publisher import RecordPublisher
 
@@ -26,19 +27,8 @@ class InstancePublisher:
         readable_name: str | None = None,
         instance_name: str | None = None,
         *,
-        mdns_publisher_factory: Optional[
-            Callable[
-                [
-                    str,
-                    str,
-                    int,
-                    Optional[Dict[bytes, bytes | None]],
-                    Optional[AsyncZeroconf],
-                ],
-                MdnsPublisher,
-            ]
-        ] = None,
-        zc_instance: Optional[AsyncZeroconf] = None,
+        mdns_publisher_factory: Callable[[str, str, int, dict[bytes, bytes | None] | None, AsyncZeroconf | None], MdnsPublisher] | None = None,
+        zc_instance: AsyncZeroconf | None = None,
     ) -> None:
         """Initializes the InstancePublisher.
 
@@ -110,8 +100,8 @@ class InstancePublisher:
                 eff_inst_name: str,
                 s_type: str,
                 p: int,
-                txt: Optional[Dict[bytes, bytes | None]],
-                zc: Optional[AsyncZeroconf],
+                txt: dict[bytes, bytes | None] | None,
+                zc: AsyncZeroconf | None,
             ) -> MdnsPublisher:
                 return RecordPublisher(eff_inst_name, s_type, p, txt, zc_instance=zc)
 
@@ -158,7 +148,7 @@ class InstancePublisher:
     async def close(self) -> None:
         """Closes the underlying record publisher if it supports closing."""
         if hasattr(self.__record_publisher, "close") and callable(
-            getattr(self.__record_publisher, "close")
+            self.__record_publisher.close
         ):
             try:
                 # Assuming the close method of the publisher is async

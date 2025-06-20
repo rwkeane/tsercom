@@ -4,7 +4,6 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import List
 
 from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
@@ -47,7 +46,7 @@ class DataTimeoutTracker:
             timeout_seconds: Interval in secs for notifying `Tracked` objects.
         """
         self.__timeout_seconds: int = timeout_seconds
-        self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
+        self.__tracked_list: list[DataTimeoutTracker.Tracked] = []
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
     def register(self, tracked: Tracked) -> None:

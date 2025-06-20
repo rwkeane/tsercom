@@ -1,6 +1,6 @@
 """Provides an asynchronous gRPC server interceptor for centralized exception handling."""
 
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 import grpc
 import grpc.aio  # Explicitly import grpc.aio

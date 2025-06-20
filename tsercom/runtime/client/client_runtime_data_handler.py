@@ -8,12 +8,12 @@ and time synchronization with those remote entities.
 """
 
 import logging
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.event_instance import EventInstance
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.client.timesync_tracker import TimeSyncTracker
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
@@ -55,7 +55,7 @@ class ClientRuntimeDataHandler(
         thread_watcher: ThreadWatcher,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
-        min_send_frequency_seconds: Optional[float] = None,
+        min_send_frequency_seconds: float | None = None,
         *,
         is_testing: bool = False,
     ):

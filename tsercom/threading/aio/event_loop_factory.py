@@ -5,10 +5,9 @@ that run in separate threads, monitored by a ThreadWatcher.
 import asyncio
 import logging
 import threading
-from typing import Any, Optional
+from typing import Any
 
 from tsercom.threading.thread_watcher import ThreadWatcher
-
 
 # Class responsible for creating and managing an asyncio event loop
 # in a separate thread.
@@ -42,8 +41,8 @@ class EventLoopFactory:
                 % type(watcher).__name__
             )
         self.__watcher = watcher
-        self.__event_loop_thread: Optional[threading.Thread] = None
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
+        self.__event_loop_thread: threading.Thread | None = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
     def start_asyncio_loop(self) -> asyncio.AbstractEventLoop:
         """

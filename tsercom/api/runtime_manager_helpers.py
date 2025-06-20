@@ -1,8 +1,9 @@
 """Helper classes for RuntimeManager: process creation, factories."""
 
 import logging
+from collections.abc import Callable
 from multiprocessing import Process
-from typing import Any, Callable, Optional, Tuple
+from typing import Any
 
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
@@ -22,8 +23,8 @@ class ProcessCreator:
     """Wraps `multiprocessing.Process` for centralized creation and testing."""
 
     def create_process(
-        self, target: Callable[..., Any], args: Tuple[Any, ...], daemon: bool
-    ) -> Optional[Process]:
+        self, target: Callable[..., Any], args: tuple[Any, ...], daemon: bool
+    ) -> Process | None:
         """Creates and returns a multiprocessing.Process.
 
         Args:

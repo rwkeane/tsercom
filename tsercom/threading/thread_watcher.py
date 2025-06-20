@@ -9,7 +9,7 @@ from them for centralized error monitoring.
 
 import threading
 from collections.abc import Callable
-from typing import Any, List
+from typing import Any
 
 from tsercom.threading.error_watcher import ErrorWatcher
 from tsercom.threading.throwing_thread import ThrowingThread
@@ -34,7 +34,7 @@ class ThreadWatcher(ErrorWatcher):
         """
         self.__barrier = threading.Event()
         self.__exceptions_lock = threading.Lock()  # Protects __exceptions
-        self.__exceptions: List[Exception] = []
+        self.__exceptions: list[Exception] = []
 
     def create_tracked_thread(
         self, target: Callable[[], None], is_daemon: bool = True

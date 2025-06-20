@@ -2,7 +2,6 @@
 
 import bisect
 import datetime
-from typing import Optional, Tuple
 
 import torch
 
@@ -14,10 +13,9 @@ from tsercom.tensor.serialization.serializable_tensor import (
 )
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
-
 # Using a type alias for clarity
 TensorHistoryValue = torch.Tensor
-TimestampedTensor = Tuple[datetime.datetime, TensorHistoryValue]
+TimestampedTensor = tuple[datetime.datetime, TensorHistoryValue]
 
 
 class SparseTensorMultiplexer(TensorMultiplexer):
@@ -48,7 +46,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             data_timeout_seconds: How long to keep tensor data before it's considered stale.
         """
         super().__init__(client, tensor_length, clock, data_timeout_seconds)
-        self.__latest_processed_timestamp: Optional[datetime.datetime] = None
+        self.__latest_processed_timestamp: datetime.datetime | None = None
 
     def _cleanup_old_data(self, current_max_timestamp: datetime.datetime) -> None:
         # This is an internal method, assumes lock is held by caller (process_tensor)
@@ -75,7 +73,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     def _get_tensor_state_before(
         self,
         timestamp: datetime.datetime,
-        current_insertion_point: Optional[int] = None,
+        current_insertion_point: int | None = None,
     ) -> TensorHistoryValue:
         idx_of_timestamp_entry = (
             current_insertion_point
@@ -226,6 +224,6 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     # Method for test access only
     def get_latest_processed_timestamp_for_testing(
         self,
-    ) -> Optional[datetime.datetime]:
+    ) -> datetime.datetime | None:
         """Gets the latest processed timestamp for testing purposes."""
         return self.__latest_processed_timestamp

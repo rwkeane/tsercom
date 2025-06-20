@@ -2,7 +2,6 @@
 
 import bisect
 import datetime
-from typing import Optional, Tuple
 
 import torch
 
@@ -13,7 +12,7 @@ from tsercom.tensor.serialization.serializable_tensor import (
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 # Using a type alias for clarity
-TimestampedTensor = Tuple[datetime.datetime, torch.Tensor]
+TimestampedTensor = tuple[datetime.datetime, torch.Tensor]
 
 
 class CompleteTensorMultiplexer(TensorMultiplexer):
@@ -42,7 +41,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
         super().__init__(client, tensor_length, clock, data_timeout_seconds)
         # self.history is provided by the base class.
         # Child classes should use self.history to access/manipulate it.
-        self.__latest_processed_timestamp: Optional[datetime.datetime] = None
+        self.__latest_processed_timestamp: datetime.datetime | None = None
 
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
@@ -145,6 +144,6 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
     # Method for test access only
     def get_latest_processed_timestamp_for_testing(
         self,
-    ) -> Optional[datetime.datetime]:
+    ) -> datetime.datetime | None:
         """Gets the latest processed timestamp for testing purposes."""
         return self.__latest_processed_timestamp

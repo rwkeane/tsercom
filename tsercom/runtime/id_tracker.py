@@ -7,14 +7,10 @@ accessed and modified in a thread-safe manner.
 """
 
 import threading
+from collections.abc import Callable, Iterator
 from typing import (
     Any,
-    Callable,
-    Dict,
     Generic,
-    Iterator,
-    List,
-    Optional,
     TypeVar,
     overload,
 )
@@ -50,7 +46,7 @@ class IdTracker(Generic[TrackedDataT]):
     """
 
     def __init__(
-        self, data_factory: Optional[Callable[[], TrackedDataT]] = None
+        self, data_factory: Callable[[], TrackedDataT] | None = None
     ) -> None:
         """Initializes the IdTracker.
 
@@ -61,16 +57,16 @@ class IdTracker(Generic[TrackedDataT]):
                 `CallerIdentifier` added to the tracker. If `None`, no custom
                 data is stored besides the ID-address mapping.
         """
-        self.__data_factory: Optional[Callable[[], TrackedDataT]] = data_factory
+        self.__data_factory: Callable[[], TrackedDataT] | None = data_factory
         self.__lock: threading.Lock = threading.Lock()
-        self.__address_to_id: Dict[tuple[str, int], CallerIdentifier] = {}
-        self.__id_to_address: Dict[CallerIdentifier, tuple[str, int]] = {}
-        self.__data_map: Dict[CallerIdentifier, TrackedDataT] = {}
+        self.__address_to_id: dict[tuple[str, int], CallerIdentifier] = {}
+        self.__id_to_address: dict[CallerIdentifier, tuple[str, int]] = {}
+        self.__data_map: dict[CallerIdentifier, TrackedDataT] = {}
 
     @overload
     def try_get(
         self, caller_id_obj: CallerIdentifier
-    ) -> Optional[tuple[str, int, Optional[TrackedDataT]]]:
+    ) -> tuple[str, int, TrackedDataT | None] | None:
         """Tries to get address and data by CallerIdentifier.
 
         Args:
@@ -86,7 +82,7 @@ class IdTracker(Generic[TrackedDataT]):
     @overload
     def try_get(
         self, address: str, port: int
-    ) -> Optional[tuple[CallerIdentifier, Optional[TrackedDataT]]]:
+    ) -> tuple[CallerIdentifier, TrackedDataT | None] | None:
         """Tries to get CallerIdentifier and data by address/port.
 
         Args:
@@ -102,10 +98,7 @@ class IdTracker(Generic[TrackedDataT]):
 
     def try_get(
         self, *args: Any, **kwargs: Any
-    ) -> Optional[
-        tuple[str, int, Optional[TrackedDataT]]
-        | tuple[CallerIdentifier, Optional[TrackedDataT]]
-    ]:
+    ) -> tuple[str, int, TrackedDataT | None] | tuple[CallerIdentifier, TrackedDataT | None] | None:
         """Attempts to retrieve associated information for a given identifier or address.
 
         This method provides a way to look up mappings without raising an
@@ -134,9 +127,9 @@ class IdTracker(Generic[TrackedDataT]):
             ValueError: If incorrect arguments are provided (e.g., mixing
                 ID and address lookups, or providing partial address information).
         """
-        _id: Optional[CallerIdentifier] = None
-        _address: Optional[str] = None
-        _port: Optional[int] = None
+        _id: CallerIdentifier | None = None
+        _address: str | None = None
+        _port: int | None = None
 
         if args:
             if len(args) == 1 and isinstance(args[0], CallerIdentifier):
@@ -227,7 +220,7 @@ class IdTracker(Generic[TrackedDataT]):
     @overload
     def get(
         self, caller_id_obj: CallerIdentifier
-    ) -> tuple[str, int, Optional[TrackedDataT]]:
+    ) -> tuple[str, int, TrackedDataT | None]:
         """Gets address and data by CallerIdentifier, raises KeyError if not found.
 
         Args:
@@ -246,7 +239,7 @@ class IdTracker(Generic[TrackedDataT]):
     @overload
     def get(
         self, address: str, port: int
-    ) -> tuple[CallerIdentifier, Optional[TrackedDataT]]:
+    ) -> tuple[CallerIdentifier, TrackedDataT | None]:
         """Gets CallerIdentifier and data by address/port, raises KeyError if not found.
 
         Args:
@@ -266,8 +259,8 @@ class IdTracker(Generic[TrackedDataT]):
     def get(
         self, *args: Any, **kwargs: Any
     ) -> (
-        tuple[str, int, Optional[TrackedDataT]]
-        | tuple[CallerIdentifier, Optional[TrackedDataT]]
+        tuple[str, int, TrackedDataT | None]
+        | tuple[CallerIdentifier, TrackedDataT | None]
     ):
         """Retrieves associated information, raising KeyError if not found.
 
@@ -414,7 +407,7 @@ class IdTracker(Generic[TrackedDataT]):
 
             return True
 
-    def get_all_tracked_data(self) -> List[TrackedDataT]:
+    def get_all_tracked_data(self) -> list[TrackedDataT]:
         """Retrieves all data items stored in the tracker.
 
         This method is thread-safe. It returns a new list containing

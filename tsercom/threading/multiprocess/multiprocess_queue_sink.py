@@ -32,7 +32,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
         Args:
             queue: The multiprocessing queue to be used as the sink.
         """
-        self.__queue: "MpQueue[QueueTypeT]" = queue
+        self.__queue: MpQueue[QueueTypeT] = queue
 
     def put_blocking(self, obj: QueueTypeT, timeout: float | None = None) -> bool:
         """

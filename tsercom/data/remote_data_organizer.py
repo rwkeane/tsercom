@@ -6,7 +6,9 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy  # ADDED
 from functools import partial
 from typing import Generic, Optional, TypeVar
+
 from sortedcontainers import SortedList  # type: ignore
+
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
 from tsercom.data.exposed_data import ExposedData
@@ -369,7 +371,7 @@ class RemoteDataOrganizer(
             try:
                 interpolated_item = deepcopy(item_left)
                 interpolated_item.timestamp = timestamp
-                setattr(interpolated_item, "data", interpolated_inner_data)
+                interpolated_item.data = interpolated_inner_data
                 return interpolated_item
             except AttributeError as e:
                 logger.error(

@@ -2,9 +2,9 @@
 
 import asyncio
 import threading
-from collections.abc import Coroutine
+from collections.abc import AsyncIterator, Callable, Coroutine
 from functools import partial
-from typing import Any, AsyncIterator, Callable, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none as default_get_running_loop_or_none,
@@ -30,9 +30,7 @@ class IsRunningTracker(Atomic[bool]):
 
     def __init__(
         self,
-        get_loop_func: Optional[
-            Callable[[], Optional[asyncio.AbstractEventLoop]]
-        ] = None,
+        get_loop_func: Callable[[], asyncio.AbstractEventLoop | None] | None = None,
     ) -> None:
         """
         Initializes an IsRunningTracker instance.

@@ -1,7 +1,7 @@
 """Fake TimeSyncClient implementation for testing purposes."""
 
 import threading
-from typing import Deque
+from collections import deque
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.client_synchronized_clock import (
@@ -48,7 +48,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         self.__time_offset_lock = threading.Lock()
 
         # __time_offsets: Deque for offset samples. Fake client uses [0.0].
-        self.__time_offsets = Deque[float]()
+        self.__time_offsets = deque[float]()
 
         # __is_running: Manages running state of this client.
         self.__is_running = IsRunningTracker()

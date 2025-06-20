@@ -4,9 +4,6 @@ import asyncio
 import logging
 from typing import (
     Any,
-    List,
-    Optional,
-    Union,
 )
 
 import grpc
@@ -26,8 +23,8 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         self,
         client_cert_pem: bytes | str,
         client_key_pem: bytes | str,
-        root_ca_cert_pem: Optional[bytes | str] = None,
-        server_hostname_override: Optional[str] = None,
+        root_ca_cert_pem: bytes | str | None = None,
+        server_hostname_override: str | None = None,
     ):
         """
         Initializes the factory with client credentials and optional CA for server validation.
@@ -52,7 +49,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         else:
             self.client_key_pem_bytes = client_key_pem
 
-        self.root_ca_cert_pem_bytes: Optional[bytes]  # Declare type once
+        self.root_ca_cert_pem_bytes: bytes | None  # Declare type once
         if root_ca_cert_pem:
             if isinstance(root_ca_cert_pem, str):
                 self.root_ca_cert_pem_bytes = root_ca_cert_pem.encode("utf-8")
@@ -61,12 +58,12 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         else:
             self.root_ca_cert_pem_bytes = None
 
-        self.server_hostname_override: Optional[str] = server_hostname_override
+        self.server_hostname_override: str | None = server_hostname_override
         super().__init__()
 
     async def find_async_channel(
-        self, addresses: Union[List[str], str], port: int
-    ) -> Optional[grpc.Channel]:
+        self, addresses: list[str] | str, port: int
+    ) -> grpc.Channel | None:
         """
         Attempts to establish a secure gRPC channel using client credentials.
 
@@ -78,7 +75,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
         """
-        address_list: List[str]
+        address_list: list[str]
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
@@ -109,7 +106,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 )
             )
 
-        active_channel: Optional[grpc.aio.Channel] = None
+        active_channel: grpc.aio.Channel | None = None
 
         for current_address in address_list:
             target = f"{current_address}:{port}"

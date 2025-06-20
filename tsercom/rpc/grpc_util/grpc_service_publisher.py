@@ -1,7 +1,7 @@
 """Provides GrpcServicePublisher for hosting gRPC services."""
 
 import logging
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 
 import grpc
 

@@ -11,7 +11,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
 from multiprocessing import Process
-from typing import Generic, List, Optional
+from typing import Generic
 
 from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
@@ -87,17 +87,11 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         self,
         *,
         is_testing: bool = False,
-        thread_watcher: Optional[ThreadWatcher] = None,
-        local_runtime_factory_factory: Optional[
-            LocalRuntimeFactoryFactory[DataTypeT, EventTypeT]
-        ] = None,
-        split_runtime_factory_factory: Optional[
-            SplitRuntimeFactoryFactory[DataTypeT, EventTypeT]
-        ] = None,
-        process_creator: Optional[ProcessCreator] = None,
-        split_error_watcher_source_factory: Optional[
-            SplitErrorWatcherSourceFactory
-        ] = None,
+        thread_watcher: ThreadWatcher | None = None,
+        local_runtime_factory_factory: LocalRuntimeFactoryFactory[DataTypeT, EventTypeT] | None = None,
+        split_runtime_factory_factory: SplitRuntimeFactoryFactory[DataTypeT, EventTypeT] | None = None,
+        process_creator: ProcessCreator | None = None,
+        split_error_watcher_source_factory: SplitErrorWatcherSourceFactory | None = None,
     ) -> None:
         """Initializes the RuntimeManager.
 
@@ -162,10 +156,10 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
                 default_split_factory_thread_pool, self.__thread_watcher
             )
 
-        self.__initializers: List[InitializationPair[DataTypeT, EventTypeT]] = []
+        self.__initializers: list[InitializationPair[DataTypeT, EventTypeT]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
-        self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
-        self.__process: Optional[Process] = None
+        self.__error_watcher: SplitProcessErrorWatcherSource | None = None
+        self.__process: Process | None = None
 
     @property
     def has_started(self) -> bool:
@@ -438,7 +432,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
     def __create_factories(
         self,
         factory_factory: RuntimeFactoryFactory[DataTypeT, EventTypeT],
-    ) -> List[RuntimeFactory[DataTypeT, EventTypeT]]:
+    ) -> list[RuntimeFactory[DataTypeT, EventTypeT]]:
         """Creates runtime factories for all registered initializers.
 
         This internal helper method iterates through each `InitializationPair`
@@ -459,7 +453,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             A list of created `RuntimeFactory` instances, one for each
             registered `RuntimeInitializer`.
         """
-        results: List[RuntimeFactory[DataTypeT, EventTypeT]] = []
+        results: list[RuntimeFactory[DataTypeT, EventTypeT]] = []
         for pair in self.__initializers:
             populator_client = RuntimeFuturePopulator[DataTypeT, EventTypeT](
                 pair.handle_future
