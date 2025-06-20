@@ -16,6 +16,9 @@ import torch
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -92,14 +95,15 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         """Returns whether output timestamps should be aligned."""
         return self.__align_output_timestamps
 
-    async def on_update_received(
-        self, tensor_index: int, value: float, timestamp: datetime.datetime
-    ) -> None:
+    async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
         """
-        Handles an update for a single element in the tensor.
-        This is typically called by the parent class or an external source.
+        Handles an incoming tensor data chunk.
+        This method delegates the core processing to the parent TensorDemuxer's
+        on_chunk_received method, which manages keyframe storage and cascading updates.
+        The parent will then call `_on_keyframe_updated` (overridden by this class)
+        to trigger smoothing logic.
         """
-        await super().on_update_received(tensor_index, value, timestamp)
+        await super().on_chunk_received(chunk)
 
     async def _on_keyframe_updated(
         self,

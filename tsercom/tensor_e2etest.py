@@ -12,6 +12,9 @@ from tsercom.tensor.muxer.complete_tensor_multiplexer import (
 from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
 )
@@ -35,19 +38,13 @@ class MultiplexerOutputHandler(TensorMultiplexer.Client):
         self,
         chunk: SerializableTensorChunk,
     ) -> None:
-        # The timestamp from the chunk is a SynchronizedTimestamp, convert to datetime
-        dt_timestamp = chunk.timestamp.as_datetime()
-        for i, element in enumerate(chunk.tensor.flatten()):
-            tensor_idx = chunk.starting_index + i
-            value = element.item()  # Get Python float from tensor element
-            self.raw_updates.append((tensor_idx, value, dt_timestamp))
-            # Schedule the demuxer update
-            task = asyncio.create_task(
-                self.demuxer.on_update_received(
-                    tensor_idx, value, dt_timestamp
-                )
-            )
-            self._tasks.append(task)
+        # The chunk is received from the multiplexer.
+        # Pass it directly to the demuxer's on_chunk_received method.
+        # No need to decompose it here as in the previous version.
+        task = asyncio.create_task(
+            self.demuxer.on_chunk_received(chunk)  # Pass the whole chunk
+        )
+        self._tasks.append(task)
 
     async def flush_tasks(self) -> None:
         """Waits for all scheduled demuxer updates to complete."""
@@ -401,7 +398,14 @@ async def test_data_timeout_e2e() -> None:
 
     demuxer_client.clear()
     # Manually poke demuxer with an old update (should be ignored due to its own timeout logic)
-    task = asyncio.create_task(demuxer.on_update_received(0, 99.0, T_COMP_0))
+    temp_tensor_timeout = torch.tensor([99.0], dtype=torch.float32)
+    temp_sync_ts_timeout = SynchronizedTimestamp(T_COMP_0)
+    temp_chunk_timeout = SerializableTensorChunk(
+        tensor=temp_tensor_timeout,
+        timestamp=temp_sync_ts_timeout,
+        starting_index=0,
+    )
+    task = asyncio.create_task(demuxer.on_chunk_received(temp_chunk_timeout))
     await asyncio.gather(task)
     assert await demuxer_client.get_tensor_at_ts(T_COMP_0) is None
 
@@ -443,16 +447,24 @@ async def test_deep_cascade_on_early_update_e2e() -> None:
 
     # 1. Process initial tensors sequentially
     await multiplexer.process_tensor(tensor_A_v1, TS_A)
-    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_A
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure Demuxer processes updates for TS_A
 
     await multiplexer.process_tensor(tensor_B_v1, TS_B)
-    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_B
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure Demuxer processes updates for TS_B
 
     await multiplexer.process_tensor(tensor_C_v1, TS_C)
-    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_C
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure Demuxer processes updates for TS_C
 
     await multiplexer.process_tensor(tensor_D_v1, TS_D)
-    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_D
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure Demuxer processes updates for TS_D
 
     # Verify initial states in Demuxer
     recon_A_v1 = await demuxer_client.get_tensor_at_ts(TS_A)
@@ -471,7 +483,9 @@ async def test_deep_cascade_on_early_update_e2e() -> None:
     # 2. Update tensor_A (triggering cascade)
     tensor_A_v2 = torch.tensor([1.0, 5.0, 1.0])  # Changed value from [1,1,1]
     await multiplexer.process_tensor(tensor_A_v2, TS_A)
-    await multiplexer_client.flush_tasks()  # Ensure all cascaded updates are processed by Demuxer
+    await (
+        multiplexer_client.flush_tasks()
+    )  # Ensure all cascaded updates are processed by Demuxer
 
     # 3. Verification of final states in Demuxer
     final_A = await demuxer_client.get_tensor_at_ts(TS_A)
