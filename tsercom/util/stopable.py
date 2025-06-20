@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 
 
-# pylint: disable=R0903 # Abstract interface for stopable components
 class Stopable(ABC):
     """Represents an object that has a defined stopping mechanism.
 

@@ -9,11 +9,9 @@ from tsercom.discovery.service_info import ServiceInfo
 ServiceInfoT = TypeVar("ServiceInfoT", bound=ServiceInfo)
 
 
-# pylint: disable=R0903 # Abstract service source interface
 class ServiceSource(Generic[ServiceInfoT], ABC):
     """Abstract base for service discovery. Finds services, notifies client."""
 
-    # pylint: disable=R0903 # Abstract listener interface
     class Client(ABC):
         """Interface for `ServiceSource` clients. Notified of new services."""
 

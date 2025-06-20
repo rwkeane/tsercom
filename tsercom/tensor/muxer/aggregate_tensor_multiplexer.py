@@ -39,7 +39,6 @@ class Publisher:
     A source of tensor data that can be registered with AggregateTensorMultiplexer.
     """
 
-    # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         """Initializes the Publisher."""
         # Using a WeakSet to allow AggregateTensorMultiplexer instances to be garbage collected
@@ -94,7 +93,6 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         and updates the AggregateTensorMultiplexer's own history.
         """
 
-        # pylint: disable=too-few-public-methods,protected-access
         def __init__(
             self,
             # main_aggregator_client: TensorMultiplexer.Client, # This is self._client of the parent

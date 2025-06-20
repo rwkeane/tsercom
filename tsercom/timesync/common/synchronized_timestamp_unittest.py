@@ -224,8 +224,8 @@ def test_equality_with_other_types():
     assert ST_FIXED != "some_string"
     assert not (ST_FIXED == 12345)
     assert ST_FIXED != 12345
-    assert not (ST_FIXED == None)  # pylint: disable=singleton-comparison
-    assert ST_FIXED != None  # pylint: disable=singleton-comparison
+    assert not (ST_FIXED == None)
+    assert ST_FIXED != None
 
 
 def test_comparison_invalid_type_raises_assertion_error():

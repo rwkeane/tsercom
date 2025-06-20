@@ -161,7 +161,7 @@ class TorchMemcpyQueueSource(
                             tensor_item, torch.Tensor
                         ):  # Double check for safety
                             tensor_item.share_memory_()  # type: ignore[no-untyped-call]
-                except Exception as e:  # pylint: disable=broad-except
+                except Exception as e:
                     # Log warning if accessor fails, but return the item as is.
                     print(
                         f"Warning: Tensor accessor failed for received object of type {type(item)} during get: {e}"
@@ -234,7 +234,7 @@ class TorchMemcpyQueueSink(
                     # The provided snippet has it, so keeping it.
                     if isinstance(tensor_item, torch.Tensor):
                         tensor_item.share_memory_()  # type: ignore[no-untyped-call]
-            except Exception as e:  # pylint: disable=broad-except
+            except Exception as e:
                 # Log a warning if the accessor fails, but still try to put the original object.
                 # The user of the queue might intend for non-tensor data or non-shareable tensors to pass.
                 print(

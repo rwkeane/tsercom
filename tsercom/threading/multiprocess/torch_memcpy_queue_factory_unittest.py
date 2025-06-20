@@ -36,11 +36,11 @@ def _consumer_process_helper_func(
                     )
                     if not put_successful:
                         print("Child (Tensor): C2P put_blocking timed out.")
-                except Exception as e_put:  # pylint: disable=broad-except
+                except Exception as e_put:
                     print(f"Child (Tensor): Error during C2P put: {e_put}")
         except queue.Empty:
             pass
-        except Exception as e_main:  # pylint: disable=broad-except
+        except Exception as e_main:
             print(f"Child (Tensor): Error in main processing loop: {e_main}")
             time.sleep(0.1)
         time.sleep(0.05)
@@ -77,7 +77,7 @@ def _container_consumer_process_helper_func(
                     print("Child (Container): C2P put_blocking timed out.")
         except queue.Empty:
             pass
-        except Exception as e_main:  # pylint: disable=broad-except
+        except Exception as e_main:
             print(
                 f"Child (Container): Error in main processing loop: {e_main}"
             )

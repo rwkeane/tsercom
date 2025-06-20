@@ -15,7 +15,6 @@ class ThrowingThread(threading.Thread):
     reporting them via a callback.
     """
 
-    # pylint: disable=too-many-arguments, too-many-positional-arguments # Initialization requires many parameters.
     def __init__(
         self,
         target: Callable[..., Any],
@@ -58,7 +57,7 @@ class ThrowingThread(threading.Thread):
         """
         try:
             self._actual_target(*self._actual_args, **self._actual_kwargs)
-        # pylint: disable=broad-exception-caught # Thread's main run method, catches all to report.
+
         except Exception as e:
             logging.error(
                 "ThrowingThread._wrapped_target: Exception caught in thread "
@@ -87,7 +86,7 @@ class ThrowingThread(threading.Thread):
         """
         try:
             super().start()
-        # pylint: disable=broad-exception-caught # Catches errors during thread start.
+
         except Exception as e_start:
             logging.error(
                 "ThrowingThread.start() EXCEPTION during super().start() for "

@@ -27,7 +27,6 @@ from tsercom.rpc.grpc_util.transport.server_auth_grpc_channel_factory import (
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods # Factory selector pattern
 class ChannelFactorySelector:
     """Selects gRPC channel factories based on ChannelAuthConfig."""
 
@@ -76,7 +75,7 @@ class ChannelFactorySelector:
                 auth_config.server_ca_cert_path
             )
             if not ca_cert_pem:
-                # pylint: disable=consider-using-f-string
+
                 raise ValueError(
                     "Failed to read server_ca_cert_path: %s"
                     % auth_config.server_ca_cert_path
@@ -94,7 +93,7 @@ class ChannelFactorySelector:
                 auth_config.pinned_server_cert_path
             )
             if not pinned_cert_pem:
-                # pylint: disable=consider-using-f-string
+
                 raise ValueError(
                     "Failed to read pinned_server_cert_path: %s"
                     % auth_config.pinned_server_cert_path
@@ -131,7 +130,7 @@ class ChannelFactorySelector:
 
         # This case handles unknown subclasses of BaseChannelAuthConfig
         # (implicit else after all returns from ifs)
-        # pylint: disable=consider-using-f-string
+
         raise ValueError(
             "Unknown or unsupported ChannelAuthConfig type: %s"
             % type(auth_config)

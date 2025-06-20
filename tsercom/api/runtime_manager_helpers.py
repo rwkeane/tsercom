@@ -18,7 +18,6 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=R0903 # Simple factory/helper class
 class ProcessCreator:
     """Wraps `multiprocessing.Process` for centralized creation and testing."""
 
@@ -40,7 +39,7 @@ class ProcessCreator:
         """
         try:
             return Process(target=target, args=args, daemon=daemon)
-        # pylint: disable=W0718 # Catching any Process creation error is intentional
+
         except Exception as e:
             target_name = (
                 target.__name__ if hasattr(target, "__name__") else str(target)
@@ -55,7 +54,6 @@ class ProcessCreator:
             return None
 
 
-# pylint: disable=R0903 # Simple factory/helper class
 class SplitErrorWatcherSourceFactory:
     """Factory for `SplitProcessErrorWatcherSource`. For DI."""
 

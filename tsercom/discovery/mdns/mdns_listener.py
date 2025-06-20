@@ -49,7 +49,6 @@ class MdnsListener(ServiceListener):
         """Stops listening and cleans up resources."""
         raise NotImplementedError()
 
-    # pylint: disable=R0903 # Internal helper/callback class for zeroconf
     class Client(ABC):
         """Interface for `MdnsListener` clients.
 

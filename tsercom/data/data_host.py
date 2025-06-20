@@ -9,7 +9,6 @@ from tsercom.data.remote_data_aggregator import RemoteDataAggregator
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 
 
-# pylint: disable=R0903 # Abstract data hosting interface
 class DataHost(ABC, Generic[DataTypeT]):
     """Abstract base class for data hosts that expose a RemoteDataAggregator.
 

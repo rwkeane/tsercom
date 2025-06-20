@@ -92,7 +92,7 @@ class RuntimeWrapper(
         Args:
             new_data: The new data instance that has become available.
         """
-        # pylint: disable=W0212 # Internal callback for client data readiness
+
         self.__aggregator._on_data_ready(new_data)
 
     def _get_remote_data_aggregator(

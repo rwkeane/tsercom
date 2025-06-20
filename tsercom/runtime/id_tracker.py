@@ -69,7 +69,6 @@ class IdTracker(Generic[TrackedDataT]):
         self.__id_to_address: Dict[CallerIdentifier, tuple[str, int]] = {}
         self.__data_map: Dict[CallerIdentifier, TrackedDataT] = {}
 
-    # pylint: disable=too-many-branches # Handles multiple lookup methods by design
     @overload
     def try_get(
         self, caller_id_obj: CallerIdentifier

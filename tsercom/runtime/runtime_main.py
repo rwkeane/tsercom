@@ -53,7 +53,6 @@ from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=too-many-locals # Initialization involves many components.
 def initialize_runtimes(
     thread_watcher: ThreadWatcher,
     initializers: List[RuntimeFactory[Any, Any]],
@@ -101,7 +100,7 @@ def initialize_runtimes(
     created_runtimes: List[Runtime] = []
 
     for initializer_factory in initializers:
-        # pylint: disable=protected-access # Accessing factory internals for setup
+
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
 
@@ -170,7 +169,7 @@ def initialize_runtimes(
                             "BaseException: %s. This will not be reported via ThreadWatcher.",
                             type(exc).__name__,
                         )
-            # pylint: disable=broad-exception-caught
+
             except Exception as e_callback:
                 # Log errors within the callback itself to prevent ThreadWatcher issues.
                 logger.error(
@@ -245,9 +244,9 @@ def remote_process_main(
     asyncs_task = get_global_event_loop().create_task(aggregate_asyncs)
     for factory in initializers:
         try:
-            # pylint: disable=protected-access
+
             factory._stop()
-        # pylint: disable=broad-exception-caught
+
         except Exception as e_factory_stop:
             logger.error(
                 "Error stopping factory %s: %s", factory, e_factory_stop
@@ -257,7 +256,7 @@ def remote_process_main(
 
     try:
         asyncs_task.result()
-    except Exception as e:  # pylint: disable=broad-exception-caught
+    except Exception as e:
         # TODO: Create AggregateException with both if captured_exception is NOT
         # None.
         if captured_exception is None:
@@ -268,7 +267,7 @@ def remote_process_main(
         if error_queue:
             try:
                 error_queue.put_nowait(captured_exception)
-            # pylint: disable=broad-exception-caught
+
             except Exception as q_e:
                 logger.error(
                     "Failed to put exception onto error_queue: %s", q_e

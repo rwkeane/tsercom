@@ -278,7 +278,7 @@ class ServiceConnector(
         )
 
         self.__callers.add(caller_id)
-        # pylint: disable=protected-access # Calling client's designated callback
+
         await self.__client._on_channel_connected(
             connection_info,
             caller_id,
@@ -293,7 +293,7 @@ class ServiceConnector(
         ):
             try:
                 await self.__service_source.stop_discovery()
-            except Exception as e:  # pylint: disable=broad-except
+            except Exception as e:
                 logging.error(
                     "Error during service_source.stop_discovery(): %s",
                     e,
