@@ -1,7 +1,6 @@
 import asyncio
 import datetime
-import math
-from typing import AsyncIterator, List, Optional
+from typing import AsyncIterator, List, Optional, Callable  # Ensured Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,6 +9,9 @@ from pytest_mock import MockerFixture
 import torch
 
 from tsercom.tensor.stream_receiver import TensorStreamReceiver
+from tsercom.tensor.proto.tensor_pb2 import (  # type: ignore[import-untyped]
+    TensorInitializer as GrpcTensorInitializer,
+)
 from tsercom.tensor.serialization.serializable_tensor_initializer import (
     SerializableTensorInitializer,
 )
@@ -30,6 +32,44 @@ TEST_SHAPE_SCALAR = ()
 TEST_DTYPE_FLOAT32 = torch.float32
 TEST_DTYPE_INT64 = torch.int64
 
+# Helper map for tests
+TORCH_DTYPE_TO_STR_MAP = {
+    torch.float32: "float32",
+    torch.int64: "int64",
+    torch.bool: "bool",
+    # Add other dtypes if used in tests
+}
+
+
+@pytest.fixture
+def serializable_tensor_initializer_factory() -> (
+    Callable[[List[int], str, float], SerializableTensorInitializer]
+):  # Corrected Callable syntax
+    def _factory(
+        shape: List[int], dtype_str: str, fill_value: float
+    ) -> SerializableTensorInitializer:
+        return SerializableTensorInitializer(
+            shape=shape,
+            dtype=dtype_str,
+            fill_value=fill_value,  # Keep kwargs here for clarity in factory
+        )
+
+    return _factory
+
+
+@pytest.fixture
+def grpc_tensor_initializer_factory() -> (
+    Callable[[List[int], str, float], GrpcTensorInitializer]
+):  # Corrected Callable syntax
+    def _factory(
+        shape: List[int], dtype_str: str, fill_value: float
+    ) -> GrpcTensorInitializer:
+        return GrpcTensorInitializer(
+            shape=shape, dtype=dtype_str, fill_value=fill_value
+        )
+
+    return _factory
+
 
 @pytest.fixture
 def mock_smoothing_strategy(mocker: MockerFixture) -> MagicMock:
@@ -45,81 +85,151 @@ def linear_smoothing_strategy() -> LinearInterpolationStrategy:
 
 
 @pytest_asyncio.fixture
-async def receiver_normal() -> AsyncIterator[TensorStreamReceiver]:
-    receiver = TensorStreamReceiver(shape=TEST_SHAPE_SIMPLE, dtype=TEST_DTYPE_FLOAT32)
+async def receiver_normal(
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
+) -> AsyncIterator[TensorStreamReceiver]:
+    sti = serializable_tensor_initializer_factory(
+        list(TEST_SHAPE_SIMPLE),  # Positional
+        TORCH_DTYPE_TO_STR_MAP[TEST_DTYPE_FLOAT32],  # Positional
+        float("nan"),  # Positional
+    )
+    receiver = TensorStreamReceiver(initializer=sti)
     yield receiver
 
 
 @pytest_asyncio.fixture
-async def receiver_normal_scalar() -> AsyncIterator[TensorStreamReceiver]:
-    receiver = TensorStreamReceiver(shape=TEST_SHAPE_SCALAR, dtype=TEST_DTYPE_FLOAT32)
+async def receiver_normal_scalar(
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
+) -> AsyncIterator[TensorStreamReceiver]:
+    sti = serializable_tensor_initializer_factory(
+        list(TEST_SHAPE_SCALAR),  # Positional
+        TORCH_DTYPE_TO_STR_MAP[TEST_DTYPE_FLOAT32],  # Positional
+        float("nan"),  # Positional
+    )
+    receiver = TensorStreamReceiver(initializer=sti)
     yield receiver
 
 
 @pytest_asyncio.fixture
 async def receiver_smoothed(
-    linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
+    linear_smoothing_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
 ) -> AsyncIterator[TensorStreamReceiver]:
     mocker.patch.object(SmoothedTensorDemuxer, "start", new_callable=mocker.AsyncMock)
+    sti = serializable_tensor_initializer_factory(
+        list(TEST_SHAPE_MULTI_DIM),  # Positional
+        TORCH_DTYPE_TO_STR_MAP[TEST_DTYPE_FLOAT32],  # Positional
+        float("nan"),  # Positional
+    )
     receiver = TensorStreamReceiver(
-        shape=TEST_SHAPE_MULTI_DIM,
-        dtype=TEST_DTYPE_FLOAT32,
+        initializer=sti,
         smoothing_strategy=linear_smoothing_strategy,
     )
     yield receiver
     await receiver.stop()  # Ensure resources are cleaned up
 
 
-def test_init_normal_demuxer_initializer_properties() -> None:
-    shape = TEST_SHAPE_MULTI_DIM
+def test_init_with_serializable_tensor_initializer(
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
+) -> None:
+    shape_list = list(TEST_SHAPE_MULTI_DIM)
     dtype = TEST_DTYPE_FLOAT32
-    receiver = TensorStreamReceiver(shape=shape, dtype=dtype)
+    dtype_str = TORCH_DTYPE_TO_STR_MAP[dtype]
+    fill_value = 0.5
+
+    sti = serializable_tensor_initializer_factory(shape_list, dtype_str, fill_value)
+    receiver = TensorStreamReceiver(initializer=sti)
+
+    assert receiver.initializer is sti  # Should be the same object
+    assert receiver._TensorStreamReceiver__shape == TEST_SHAPE_MULTI_DIM  # type: ignore[attr-defined]
+    assert receiver._TensorStreamReceiver__dtype == dtype  # type: ignore[attr-defined]
+    assert receiver._TensorStreamReceiver__fill_value == fill_value  # type: ignore[attr-defined]
+    assert isinstance(receiver._TensorStreamReceiver__demuxer, TensorDemuxer)  # type: ignore[attr-defined]
+
+
+def test_init_with_grpc_tensor_initializer(
+    grpc_tensor_initializer_factory: Callable[
+        [List[int], str, float], GrpcTensorInitializer
+    ],
+) -> None:
+    shape_list: List[int] = list(TEST_SHAPE_SCALAR)  # Added type hint
+    dtype = TEST_DTYPE_INT64
+    dtype_str = TORCH_DTYPE_TO_STR_MAP[dtype]
+    fill_value = 10.0
+
+    grpc_init = grpc_tensor_initializer_factory(
+        shape_list, dtype_str, fill_value
+    )  # Positional is fine here
+    receiver = TensorStreamReceiver(initializer=grpc_init)
 
     assert isinstance(receiver.initializer, SerializableTensorInitializer)
-    assert receiver.initializer.shape == list(shape)
-    assert receiver.initializer.dtype_str == str(dtype).split(".")[-1]
-    assert math.isnan(receiver.initializer.fill_value)
+    assert receiver.initializer.shape == shape_list
+    assert receiver.initializer.dtype_str == dtype_str
+    assert receiver.initializer.fill_value == fill_value
 
-
-def test_init_normal_demuxer_internal_demuxer_type() -> None:
-    receiver = TensorStreamReceiver(shape=TEST_SHAPE_SIMPLE, dtype=TEST_DTYPE_FLOAT32)
-    assert isinstance(receiver._TensorStreamReceiver__demuxer, TensorDemuxer)  # type: ignore[attr-defined]
-    assert not isinstance(
-        receiver._TensorStreamReceiver__demuxer, SmoothedTensorDemuxer  # type: ignore[attr-defined]
-    )
+    assert receiver._TensorStreamReceiver__shape == TEST_SHAPE_SCALAR  # type: ignore[attr-defined]
+    assert receiver._TensorStreamReceiver__dtype == dtype  # type: ignore[attr-defined]
+    assert receiver._TensorStreamReceiver__fill_value == fill_value  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_init_smoothed_demuxer_initializer_properties(
-    linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
+async def test_init_smoothed_demuxer_with_initializer(
+    linear_smoothing_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
 ) -> None:
     mocker.patch.object(SmoothedTensorDemuxer, "start", new_callable=mocker.AsyncMock)
-    shape = TEST_SHAPE_MULTI_DIM
+    shape_list = list(TEST_SHAPE_MULTI_DIM)
     dtype = TEST_DTYPE_INT64
+    dtype_str = TORCH_DTYPE_TO_STR_MAP[dtype]
     fill_val = 10.0
+
+    sti = serializable_tensor_initializer_factory(shape_list, dtype_str, fill_val)
     receiver = TensorStreamReceiver(
-        shape=shape,
-        dtype=dtype,
+        initializer=sti,
         smoothing_strategy=linear_smoothing_strategy,
-        fill_value=fill_val,
     )
 
-    assert isinstance(receiver.initializer, SerializableTensorInitializer)
-    assert receiver.initializer.shape == list(shape)
-    assert receiver.initializer.dtype_str == str(dtype).split(".")[-1]
-    assert receiver.initializer.fill_value == float(fill_val)
+    assert receiver.initializer is sti
+    assert receiver._TensorStreamReceiver__shape == TEST_SHAPE_MULTI_DIM  # type: ignore[attr-defined]
+    assert receiver._TensorStreamReceiver__dtype == dtype  # type: ignore[attr-defined]
+    assert receiver._TensorStreamReceiver__fill_value == fill_val  # type: ignore[attr-defined]
+    assert isinstance(receiver._TensorStreamReceiver__demuxer, SmoothedTensorDemuxer)  # type: ignore[attr-defined]
+    # Check that SmoothedTensorDemuxer was called with correct params derived from STI
+    # This requires inspecting the call to SmoothedTensorDemuxer constructor,
+    # which is more involved (e.g. by patching SmoothedTensorDemuxer.__init__)
+    # For now, ensuring the internal attributes are set and demuxer type is correct.
 
 
 @pytest.mark.asyncio
-async def test_init_smoothed_demuxer_internal_demuxer_type(
-    linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
+async def test_init_smoothed_demuxer_internal_demuxer_type(  # Name kept for now, but behavior changes
+    linear_smoothing_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
 ) -> None:
     mock_start = mocker.patch.object(
         SmoothedTensorDemuxer, "start", new_callable=mocker.AsyncMock
     )
+    sti = serializable_tensor_initializer_factory(
+        list(TEST_SHAPE_SIMPLE),  # Positional
+        TORCH_DTYPE_TO_STR_MAP[TEST_DTYPE_FLOAT32],  # Positional
+        0.0,  # Positional
+    )
     receiver = TensorStreamReceiver(
-        shape=TEST_SHAPE_SIMPLE,
-        dtype=TEST_DTYPE_FLOAT32,
+        initializer=sti,
         smoothing_strategy=linear_smoothing_strategy,
     )
     assert isinstance(receiver._TensorStreamReceiver__demuxer, SmoothedTensorDemuxer)  # type: ignore[attr-defined]
@@ -128,16 +238,24 @@ async def test_init_smoothed_demuxer_internal_demuxer_type(
 
 @pytest.mark.asyncio
 async def test_init_smoothed_demuxer_start_called(
-    linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
+    linear_smoothing_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
 ) -> None:
     mock_demuxer_start = mocker.AsyncMock()
     mocker.patch(
         "tsercom.tensor.stream_receiver.SmoothedTensorDemuxer.start", mock_demuxer_start
     )
 
+    sti = serializable_tensor_initializer_factory(
+        list(TEST_SHAPE_SIMPLE),  # Positional
+        TORCH_DTYPE_TO_STR_MAP[TEST_DTYPE_FLOAT32],  # Positional
+        0.0,  # Positional
+    )
     TensorStreamReceiver(
-        shape=TEST_SHAPE_SIMPLE,
-        dtype=TEST_DTYPE_FLOAT32,
+        initializer=sti,
         smoothing_strategy=linear_smoothing_strategy,
     )
     assert mock_demuxer_start.called
@@ -167,12 +285,22 @@ async def test_async_iterator_normal_demuxer(
 
 
 @pytest.mark.asyncio
-async def test_async_iterator_normal_demuxer_multidim(mocker: MockerFixture) -> None:
-    shape = (2, 2)
-    dtype = torch.float32
-    receiver = TensorStreamReceiver(shape=shape, dtype=dtype)
+async def test_async_iterator_normal_demuxer_multidim(
+    mocker: MockerFixture,
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
+) -> None:
+    shape_list = [2, 2]
+    dtype = TEST_DTYPE_FLOAT32
+    dtype_str = TORCH_DTYPE_TO_STR_MAP[dtype]
 
-    expected_tensor = torch.arange(4, dtype=dtype).reshape(shape)
+    sti = serializable_tensor_initializer_factory(
+        shape_list, dtype_str, 0.0
+    )  # Positional is fine here
+    receiver = TensorStreamReceiver(initializer=sti)
+
+    expected_tensor = torch.arange(4, dtype=dtype).reshape(tuple(shape_list))
     expected_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
     async def feed_queue() -> None:
@@ -278,11 +406,19 @@ async def test_stop_method_normal_demuxer(
 
 @pytest.mark.asyncio
 async def test_async_iterator_terminates_after_stop_smoothed(
-    linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
+    linear_smoothing_strategy: LinearInterpolationStrategy,
+    mocker: MockerFixture,
+    serializable_tensor_initializer_factory: Callable[
+        [List[int], str, float], SerializableTensorInitializer
+    ],
 ) -> None:
+    sti = serializable_tensor_initializer_factory(
+        list(TEST_SHAPE_SIMPLE),  # Positional
+        TORCH_DTYPE_TO_STR_MAP[TEST_DTYPE_FLOAT32],  # Positional
+        0.0,  # Positional
+    )
     receiver = TensorStreamReceiver(
-        shape=TEST_SHAPE_SIMPLE,
-        dtype=TEST_DTYPE_FLOAT32,
+        initializer=sti,
         smoothing_strategy=linear_smoothing_strategy,
     )
 

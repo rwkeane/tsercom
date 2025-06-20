@@ -16,6 +16,9 @@ from tsercom.tensor.serialization.serializable_tensor import (
 )
 from tsercom.util.is_running_tracker import IsRunningTracker
 
+# Updated import path for GrpcTensorInitializer
+from tsercom.tensor.proto import TensorInitializer as GrpcTensorInitializer
+
 
 class TensorStreamReceiver(TensorDemuxer.Client):
     """
@@ -29,122 +32,128 @@ class TensorStreamReceiver(TensorDemuxer.Client):
     @overload
     def __init__(
         self,
-        shape: Tuple[int, ...],
-        dtype: torch.dtype,
+        initializer: Union[SerializableTensorInitializer, GrpcTensorInitializer],
         *,
         data_timeout_seconds: float = 60.0,
-        fill_value: Union[int, float] = float("nan"),
     ) -> None:
         """
         Initializes a TensorStreamReceiver with a standard TensorDemuxer.
         This configuration is used for receiving raw tensor keyframes without interpolation.
 
         Args:
-            shape: The shape of the tensor to be received.
-            dtype: The torch.dtype of the tensor.
+            initializer: The tensor initializer (Serializable or gRPC).
             data_timeout_seconds: Timeout for data chunks.
-            fill_value: Value for uninitialized parts of the tensor.
         """
         ...
 
     @overload
     def __init__(
         self,
-        shape: Tuple[int, ...],
-        dtype: torch.dtype,
+        initializer: Union[SerializableTensorInitializer, GrpcTensorInitializer],
         *,
         smoothing_strategy: SmoothingStrategy,
         output_interval_seconds: float = 0.1,
         data_timeout_seconds: float = 60.0,
         align_output_timestamps: bool = False,
-        fill_value: Union[int, float] = float("nan"),
     ) -> None:
         """
         Initializes a TensorStreamReceiver with a SmoothedTensorDemuxer.
         This configuration is used for receiving interpolated tensor data.
 
         Args:
-            shape: The shape of the tensor to be received.
-            dtype: The torch.dtype of the tensor.
+            initializer: The tensor initializer (Serializable or gRPC).
             smoothing_strategy: The strategy for smoothing/interpolating tensor data.
             output_interval_seconds: Interval for generating smoothed tensors.
             data_timeout_seconds: Timeout for data chunks.
             align_output_timestamps: Whether to align output timestamps.
-            fill_value: Value for uninitialized parts or padding.
         """
         ...
 
     def __init__(
         self,
-        shape: Tuple[int, ...],
-        dtype: torch.dtype,
+        initializer: Union[SerializableTensorInitializer, GrpcTensorInitializer],
         smoothing_strategy: Optional[SmoothingStrategy] = None,
         data_timeout_seconds: float = 60.0,
-        fill_value: Union[int, float] = float("nan"),
         output_interval_seconds: float = 0.1,
         align_output_timestamps: bool = False,
     ) -> None:
         """
         Unified constructor for TensorStreamReceiver.
 
-        This constructor handles both raw tensor (TensorDemuxer) and smoothed tensor
-        (SmoothedTensorDemuxer) stream reception based on the presence of
-        `smoothing_strategy`. Overloads provide type-hinting for specific use cases.
+        Accepts either a SerializableTensorInitializer or a GrpcTensorInitializer
+        to configure the tensor stream. Handles both raw (TensorDemuxer) and
+        smoothed (SmoothedTensorDemuxer) stream reception based on the presence
+        of `smoothing_strategy`. Overloads provide type-hinting for specific use cases.
 
         Args:
-            shape: The shape of the tensor.
-            dtype: The torch.dtype of the tensor.
+            initializer: The tensor initializer (Serializable or gRPC object).
             smoothing_strategy: If provided, uses SmoothedTensorDemuxer with this strategy.
             data_timeout_seconds: Timeout for data chunks (applies to both demuxers).
-            fill_value: Fill value for tensors.
             output_interval_seconds: Interval for SmoothedTensorDemuxer output.
             align_output_timestamps: Alignment for SmoothedTensorDemuxer timestamps.
         """
         self.__is_running_tracker: IsRunningTracker = IsRunningTracker()
-        self.__shape: Tuple[int, ...] = shape
-        self.__dtype: torch.dtype = dtype
         self.__queue: asyncio.Queue[Tuple[torch.Tensor, datetime.datetime]] = (
             asyncio.Queue()
         )
 
-        dtype_str_map = {
-            torch.bool: "bool",
-            torch.float16: "float16",
-            torch.float32: "float32",
-            torch.float64: "float64",
-            torch.int8: "int8",
-            torch.uint8: "uint8",
-            torch.int16: "int16",
-            torch.int32: "int32",
-            torch.int64: "int64",
-        }
-        dtype_str_val = dtype_str_map.get(dtype)
-        if dtype_str_val is None:
-            raise ValueError(
-                f"Unsupported dtype for SerializableTensorInitializer: {dtype}"
+        sti: SerializableTensorInitializer
+        if isinstance(initializer, SerializableTensorInitializer):
+            sti = initializer
+        elif isinstance(initializer, GrpcTensorInitializer):
+            shape_list = list(initializer.shape)
+            dtype_str = initializer.dtype
+            fill_val = float(
+                initializer.fill_value
+            )  # Ensure fill_value from gRPC is float
+            sti = SerializableTensorInitializer(
+                shape=shape_list, dtype=dtype_str, fill_value=fill_val
+            )
+        else:
+            raise TypeError(
+                "Initializer must be SerializableTensorInitializer or GrpcTensorInitializer"
             )
 
-        self.__initializer: SerializableTensorInitializer = (
-            SerializableTensorInitializer(
-                shape=list(shape), dtype=dtype_str_val, fill_value=float(fill_value)
+        self.__initializer = sti
+        self.__shape = tuple(sti.shape)
+        self.__fill_value = sti.fill_value  # Already float from STI creation
+
+        # Convert dtype string from STI to torch.dtype
+        str_to_torch_dtype_map = {
+            "bool": torch.bool,
+            "float16": torch.float16,
+            "float32": torch.float32,
+            "float64": torch.float64,
+            "int8": torch.int8,
+            "uint8": torch.uint8,
+            "int16": torch.int16,
+            "int32": torch.int32,
+            "int64": torch.int64,
+        }
+        torch_dtype = str_to_torch_dtype_map.get(sti.dtype_str.lower())
+        if torch_dtype is None:
+            raise ValueError(
+                f"Unsupported dtype string from initializer: {sti.dtype_str}"
             )
-        )
+        self.__dtype: torch.dtype = torch_dtype
 
         if smoothing_strategy:
             self.__demuxer: Union[SmoothedTensorDemuxer, TensorDemuxer] = (
                 SmoothedTensorDemuxer(
-                    tensor_shape=shape,
+                    tensor_shape=self.__shape,  # Use self.__shape
                     output_client=self,
                     smoothing_strategy=smoothing_strategy,
                     output_interval_seconds=output_interval_seconds,
                     data_timeout_seconds=data_timeout_seconds,
                     align_output_timestamps=align_output_timestamps,
-                    fill_value=float(fill_value),
+                    fill_value=self.__fill_value,  # Use self.__fill_value
                 )
             )
             asyncio.create_task(self.__demuxer.start())
         else:
-            tensor_length = int(numpy.prod(shape)) if shape else 1
+            tensor_length = (
+                int(numpy.prod(self.__shape)) if self.__shape else 1
+            )  # Use self.__shape
             self.__demuxer = TensorDemuxer(
                 client=self,
                 tensor_length=tensor_length,
