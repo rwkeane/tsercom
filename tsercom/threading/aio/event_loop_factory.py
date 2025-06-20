@@ -35,10 +35,9 @@ class EventLoopFactory:
         if watcher is None:
             raise ValueError("Watcher argument cannot be None for EventLoopFactory.")
         if not issubclass(type(watcher), ThreadWatcher):
-
             raise TypeError(
-                "Watcher must be a subclass of ThreadWatcher, got %s."
-                % type(watcher).__name__
+                f"Watcher must be a subclass of ThreadWatcher, "
+                f"got {type(watcher).__name__}."
             )
         self.__watcher = watcher
         self.__event_loop_thread: threading.Thread | None = None

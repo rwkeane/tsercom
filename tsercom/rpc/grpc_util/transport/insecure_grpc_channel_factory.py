@@ -65,6 +65,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
                 # For other exceptions, continue to the next address.
 
         logging.warning(
-            f"Failed to connect to any of the provided addresses: {address_list} on port {port}"
+            f"Failed to connect to any of the provided addresses: {address_list} "
+            f"on port {port}"
         )
         return None

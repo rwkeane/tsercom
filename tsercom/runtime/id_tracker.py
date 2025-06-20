@@ -21,7 +21,9 @@ TrackedDataT = TypeVar("TrackedDataT")
 
 
 class IdTracker(Generic[TrackedDataT]):
-    """Tracks associations between CallerIdentifiers, network addresses, and optional data.
+    """
+    Tracks associations between CallerIdentifiers, network addresses, and
+    optional data.
 
     This class provides a thread-safe, bidirectional dictionary-like structure
     to map `CallerIdentifier` instances to (address, port) tuples and vice-versa.
@@ -45,9 +47,7 @@ class IdTracker(Generic[TrackedDataT]):
             `CallerIdentifier` if a `data_factory` is provided.
     """
 
-    def __init__(
-        self, data_factory: Callable[[], TrackedDataT] | None = None
-    ) -> None:
+    def __init__(self, data_factory: Callable[[], TrackedDataT] | None = None) -> None:
         """Initializes the IdTracker.
 
         Args:
@@ -98,22 +98,28 @@ class IdTracker(Generic[TrackedDataT]):
 
     def try_get(
         self, *args: Any, **kwargs: Any
-    ) -> tuple[str, int, TrackedDataT | None] | tuple[CallerIdentifier, TrackedDataT | None] | None:
-        """Attempts to retrieve associated information for a given identifier or address.
+    ) -> (
+        tuple[str, int, TrackedDataT | None]
+        | tuple[CallerIdentifier, TrackedDataT | None]
+        | None
+    ):
+        """
+        Attempts to retrieve associated information for a given identifier or
+        address.
 
         This method provides a way to look up mappings without raising an
         exception if the key is not found.
 
         If looking up by `CallerIdentifier` (`caller_id_obj`):
-            Returns a 3-tuple `(address: str, port: int, tracked_data: Optional[TrackedDataT])`
-            if the `CallerIdentifier` is found. `tracked_data` is the result of
-            the `data_factory` if one was provided and the ID was added with it,
-            otherwise it is `None`.
+            Returns a 3-tuple `(address: str, port: int, tracked_data:
+            Optional[TrackedDataT])` if the `CallerIdentifier` is found.
+            `tracked_data` is the result of the `data_factory` if one was
+            provided and the ID was added with it, otherwise it is `None`.
 
         If looking up by network address (`address`, `port`):
-            Returns a 2-tuple `(caller_identifier: CallerIdentifier, tracked_data: Optional[TrackedDataT])`
-            if the address/port combination is found. `tracked_data` is determined
-            as above.
+            Returns a 2-tuple `(caller_identifier: CallerIdentifier,
+            tracked_data: Optional[TrackedDataT])` if the address/port
+            combination is found. `tracked_data` is determined as above.
 
         Args:
             *args: Can be `(CallerIdentifier)` or `(address_str, port_int)`.
@@ -184,7 +190,8 @@ class IdTracker(Generic[TrackedDataT]):
         if kwargs:  # Any remaining kwargs are unexpected
             raise ValueError(f"Unexpected kwargs: {list(kwargs.keys())}")
 
-        # Validate that either ID or (address and port) is provided, but not both/neither.
+        # Validate that either ID or (address and port) is provided, but not
+        # both/neither.
         if (_id is None) == (_address is None and _port is None):
             raise ValueError(
                 "Provide CallerIdentifier or (address and port), not both or neither."
@@ -300,8 +307,8 @@ class IdTracker(Generic[TrackedDataT]):
         to a *different* `CallerIdentifier`, a `KeyError` is raised.
 
         If a `data_factory` was provided during `IdTracker` initialization,
-        it is called (only if `caller_id_obj` is new to `__data_map` or was previously removed)
-        and its result is stored with the `caller_id_obj`.
+        it is called (only if `caller_id_obj` is new to `__data_map` or was
+        previously removed) and its result is stored with the `caller_id_obj`.
 
         Args:
             caller_id_obj: The `CallerIdentifier` for the mapping.
@@ -334,10 +341,11 @@ class IdTracker(Generic[TrackedDataT]):
             self.__address_to_id[(address, port)] = caller_id_obj
             self.__id_to_address[caller_id_obj] = (address, port)
 
-            # Add/update data from data_factory only if factory exists
-            # and if the id is new to the data_map or was previously cleared.
-            # The current logic effectively re-calls factory on every add if factory exists.
-            # To call factory only once per ID: check `if caller_id_obj not in self.__data_map:`
+            # Add/update data from data_factory only if factory exists and if the
+            # id is new to the data_map or was previously cleared. The current
+            # logic effectively re-calls factory on every add if factory exists.
+            # To call factory only once per ID: check
+            # `if caller_id_obj not in self.__data_map:`
             if self.__data_factory is not None:
                 self.__data_map[caller_id_obj] = self.__data_factory()
 
@@ -376,8 +384,9 @@ class IdTracker(Generic[TrackedDataT]):
     def __iter__(self) -> Iterator[CallerIdentifier]:
         """Returns an iterator over the tracked `CallerIdentifier`s."""
         with self.__lock:
-            # Returns an iterator over a copy of the keys to allow safe iteration
-            # if modifications occur in another thread (though individual operations are locked).
+            # Returns an iterator over a copy of the keys to allow safe
+            # iteration if modifications occur in another thread (though
+            # individual operations are locked).
             return iter(list(self.__id_to_address.keys()))
 
     def remove(self, caller_id_obj: CallerIdentifier) -> bool:

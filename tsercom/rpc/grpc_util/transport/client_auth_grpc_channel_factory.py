@@ -27,13 +27,15 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         server_hostname_override: str | None = None,
     ):
         """
-        Initializes the factory with client credentials and optional CA for server validation.
+        Initializes the factory with client credentials and optional CA for
+        server validation.
 
         Args:
             client_cert_pem: PEM-encoded client certificate (bytes or string).
             client_key_pem: PEM-encoded client private key (bytes or string).
-            root_ca_cert_pem: Optional PEM-encoded root CA certificate for server validation.
-                              If None, server certificate is not validated by the client.
+            root_ca_cert_pem: Optional PEM-encoded root CA certificate for server
+                              validation. If None, server certificate is not
+                              validated by the client.
             server_hostname_override: If provided, this hostname will be used
                                       for SSL target name override.
         """
@@ -88,7 +90,8 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             auth_type += " (No Server Validation by Client)"
 
         logger.info(
-            f"Attempting secure connection ({auth_type}) to addresses: {address_list} on port {port}"
+            f"Attempting secure connection ({auth_type}) to addresses: "
+            f"{address_list} on port {port}"
         )
 
         credentials = grpc.ssl_channel_credentials(
@@ -130,7 +133,8 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
 
             except grpc.aio.AioRpcError as e:
                 logger.warning(
-                    f"Secure connection to {target} ({auth_type}) failed: gRPC Error {e.code()} - {e.details()}"
+                    f"Secure connection to {target} ({auth_type}) failed: "
+                    f"gRPC Error {e.code()} - {e.details()}"
                 )
             except asyncio.TimeoutError:
                 logger.warning(
@@ -138,7 +142,8 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 )
             except Exception as e:
                 logger.error(
-                    f"An unexpected error occurred while trying to connect to {target} ({auth_type}): {e}"
+                    f"An unexpected error occurred while trying to connect to "
+                    f"{target} ({auth_type}): {e}"
                 )
                 if isinstance(e, AssertionError):  # Re-raise assertion errors
                     raise
@@ -150,6 +155,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                     active_channel = None  # Reset to prevent re-closing
 
         logger.warning(
-            f"Failed to establish secure connection ({auth_type}) to any of the provided addresses: {address_list} on port {port}"
+            f"Failed to establish secure connection ({auth_type}) to any of "
+            f"the provided addresses: {address_list} on port {port}"
         )
         return None

@@ -38,7 +38,9 @@ class RemoteDataOrganizer(
         def _on_data_available(
             self, data_organizer: "RemoteDataOrganizer[DataTypeT]"
         ) -> None:
-            """Callback invoked when new data is processed and available in the organizer.
+            """
+            Callback invoked when new data is processed and available in the
+            organizer.
 
             Args:
                 data_organizer: The `RemoteDataOrganizer` instance that has new data.
@@ -83,7 +85,8 @@ class RemoteDataOrganizer(
         """Starts this data organizer, allowing it to process incoming data.
 
         Raises:
-            RuntimeError: If the organizer is already running (typically by `IsRunningTracker.start()`).
+            RuntimeError: If the organizer is already running (typically by
+                `IsRunningTracker.start()`).
         """
         self.__is_running.start()
 
@@ -95,7 +98,8 @@ class RemoteDataOrganizer(
         based on the tracker's implementation.
 
         Raises:
-            RuntimeError: If the organizer is not running or has already been stopped (typically by `IsRunningTracker.stop()`).
+            RuntimeError: If the organizer is not running or has already been
+                stopped (typically by `IsRunningTracker.stop()`).
         """
         self.__is_running.stop()
 
@@ -164,17 +168,17 @@ class RemoteDataOrganizer(
                 timestamp = timestamp.replace(tzinfo=self.__data[0].timestamp.tzinfo)
 
             class DummyItemForBisectSearch:
-
                 def __init__(self, ts: datetime.datetime) -> None:
                     """Initializes a RemoteDataOrganizer.
 
                     Args:
                         thread_pool: A `ThreadPoolExecutor` used for submitting data
                                      processing tasks asynchronously.
-                        caller_id: The `CallerIdentifier` for the remote endpoint whose
-                                   data this organizer will manage.
-                        client: An optional client implementing `RemoteDataOrganizer.Client`
-                                to receive callbacks when new data is available.
+                        caller_id: The `CallerIdentifier` for the remote endpoint
+                                   whose data this organizer will manage.
+                        client: An optional client implementing
+                                `RemoteDataOrganizer.Client` to receive callbacks
+                                when new data is available.
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -198,11 +202,13 @@ class RemoteDataOrganizer(
                             organizer's `caller_id`."""
         if not isinstance(new_data, ExposedData):
             raise TypeError(
-                f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+                f"Expected new_data to be an instance of ExposedData, "
+                f"but got {type(new_data).__name__}."
             )
-        assert (
-            new_data.caller_id == self.caller_id
-        ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
+        assert new_data.caller_id == self.caller_id, (
+            f"Data's caller_id '{new_data.caller_id}' does not match "
+            f"organizer's '{self.caller_id}'"
+        )
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: DataTypeT) -> None:
@@ -228,17 +234,17 @@ class RemoteDataOrganizer(
                 )
 
             class DummyItemForBisectSearch:
-
                 def __init__(self, ts: datetime.datetime) -> None:
                     """Initializes a RemoteDataOrganizer.
 
                     Args:
                         thread_pool: A `ThreadPoolExecutor` used for submitting data
                                      processing tasks asynchronously.
-                        caller_id: The `CallerIdentifier` for the remote endpoint whose
-                                   data this organizer will manage.
-                        client: An optional client implementing `RemoteDataOrganizer.Client`
-                                to receive callbacks when new data is available.
+                        caller_id: The `CallerIdentifier` for the remote endpoint
+                                   whose data this organizer will manage.
+                        client: An optional client implementing
+                                `RemoteDataOrganizer.Client` to receive callbacks
+                                when new data is available.
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -295,7 +301,22 @@ class RemoteDataOrganizer(
                 self.__data.pop(0)
 
     def get_interpolated_at(self, timestamp: datetime.datetime) -> DataTypeT | None:
-        """Gets a linearly interpolated data value for any given timestamp.\\n\\nArgs:\\n    timestamp: The timestamp for which to get an interpolated value.\\n\\nReturns:\\n    An optional `DataTypeT` instance. This instance is newly created,\\n    with its `timestamp` attribute set to the query `timestamp` and its `data`\\n    attribute (or equivalent payload) holding the linearly interpolated value.\\n    Returns the nearest keyframe if the timestamp is outside the known range,\\n    or an exact keyframe if the timestamp matches one. Returns `None` if\\n    the internal data store is empty or if interpolation fails (e.g., due\\n    to non-numeric data types that do not support arithmetic operations)."""
+        """Interpolates data to the given timestamp using linear interpolation.
+
+        Args:
+            timestamp: The timestamp for which to get an interpolated value.
+
+        Returns:
+            An optional `DataTypeT` instance. This instance is newly
+            created, with its `timestamp` attribute set to the query
+            `timestamp` and its `data` attribute (or equivalent payload)
+            holding the linearly interpolated value. Returns the nearest
+            keyframe if the timestamp is outside the known range, or an
+            exact keyframe if the timestamp matches one. Returns `None`
+            if the internal data store is empty or if interpolation
+            fails (e.g., due to non-numeric data types that do not
+            support arithmetic operations).
+        """
         with self.__data_lock:
             if not self.__data:
                 return None
@@ -304,7 +325,8 @@ class RemoteDataOrganizer(
                 timestamp = timestamp.replace(tzinfo=ref_tz)
             elif ref_tz is None and timestamp.tzinfo is not None:
                 logger.warning(
-                    "Query timestamp timezone awareness mismatch with stored data (naive)."
+                    "Query timestamp timezone awareness mismatch with stored data "
+                    "(naive)."
                 )
                 timestamp = timestamp.replace(tzinfo=None)
             if timestamp <= self.__data[0].timestamp:
@@ -313,17 +335,17 @@ class RemoteDataOrganizer(
                 return deepcopy(self.__data[-1])  # type: ignore[no-any-return]
 
             class DummyItemForBisectSearch:
-
                 def __init__(self, ts: datetime.datetime) -> None:
                     """Initializes a RemoteDataOrganizer.
 
                     Args:
                         thread_pool: A `ThreadPoolExecutor` used for submitting data
                                      processing tasks asynchronously.
-                        caller_id: The `CallerIdentifier` for the remote endpoint whose
-                                   data this organizer will manage.
-                        client: An optional client implementing `RemoteDataOrganizer.Client`
-                                to receive callbacks when new data is available.
+                        caller_id: The `CallerIdentifier` for the remote endpoint
+                                   whose data this organizer will manage.
+                        client: An optional client implementing
+                                `RemoteDataOrganizer.Client` to receive callbacks
+                                when new data is available.
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -350,11 +372,12 @@ class RemoteDataOrganizer(
                 payload_right_attr = getattr(item_right, "data", None)
                 data_left = deepcopy(payload_left_attr)
                 data_right = deepcopy(payload_right_attr)
-                if not isinstance(data_left, (int, float)) or not isinstance(
-                    data_right, (int, float)
+                if not isinstance(data_left, int | float) or not isinstance(
+                    data_right, int | float
                 ):
                     logger.error(
-                        "Data payloads for interpolation are not numeric after deepcopy. Left: %s (%s), Right: %s (%s)",
+                        "Data payloads for interpolation are not numeric after "
+                        "deepcopy. Left: %s (%s), Right: %s (%s)",
                         data_left,
                         type(data_left).__name__,
                         data_right,
@@ -364,18 +387,20 @@ class RemoteDataOrganizer(
                 interpolated_inner_data = data_left + ratio * (data_right - data_left)
             except TypeError as e:
                 logger.error(
-                    "Type error during arithmetic operations for interpolation. Error: %s",
+                    "Type error during arithmetic operations for interpolation. "
+                    "Error: %s",
                     e,
                 )
                 return None
             try:
                 interpolated_item = deepcopy(item_left)
                 interpolated_item.timestamp = timestamp
-                interpolated_item.data = interpolated_inner_data
+                interpolated_item.data = interpolated_inner_data  # type: ignore[attr-defined]
                 return interpolated_item
             except AttributeError as e:
                 logger.error(
-                    "Failed to set attributes on new instance of type %s for interpolated data: %s",
+                    "Failed to set attributes on new instance of type %s for "
+                    "interpolated data: %s",
                     type(item_left).__name__,
                     e,
                 )

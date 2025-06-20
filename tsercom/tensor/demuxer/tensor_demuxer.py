@@ -17,7 +17,8 @@ from tsercom.tensor.serialization.serializable_tensor import (
 class TensorDemuxer:
     """
     Aggregates granular tensor index updates back into complete tensor objects.
-    Internal storage for explicit updates per timestamp uses torch.Tensors for efficiency.
+    Internal storage for explicit updates per timestamp uses torch.Tensors for
+    efficiency.
     """
 
     class Client(abc.ABC):
@@ -160,7 +161,8 @@ class TensorDemuxer:
 
             for i, value_from_chunk_tensor in enumerate(chunk.tensor):
                 tensor_index = chunk.starting_index + i
-                # Ensure value is float; chunk.tensor should be float, but defensive cast
+                # Ensure value is float; chunk.tensor should be float, but
+                # defensive cast
                 value = float(value_from_chunk_tensor.item())
 
                 if not 0 <= tensor_index < self.__tensor_length:
@@ -176,7 +178,8 @@ class TensorDemuxer:
 
                 if existing_explicit_entry_indices.numel() > 0:
                     entry_pos = existing_explicit_entry_indices[0]
-                    # Only update if value actually changed to avoid unnecessary marking of keyframe as changed
+                    # Only update if value actually changed to avoid unnecessary
+                    # marking of keyframe as changed
                     if explicit_values[entry_pos].item() != value:
                         explicit_values[entry_pos] = current_update_val_tensor
                 else:
@@ -205,7 +208,8 @@ class TensorDemuxer:
                     )
                 )
 
-            # Keyframe considered changed if it's new and contains data, or if its calculated tensor differs.
+            # Keyframe considered changed if it's new and contains data, or if
+            # its calculated tensor differs.
             keyframe_content_changed = False
             if is_new_timestamp_entry and explicit_indices.numel() > 0:
                 keyframe_content_changed = True
@@ -227,7 +231,8 @@ class TensorDemuxer:
                 ):  # Only add new timestamp if it has some valid data
                     self.__processed_keyframes.insert(insertion_point, new_state_tuple)
                     idx_of_processed_ts = insertion_point
-                # else: if new and no valid data, effectively ignore this chunk for keyframe creation
+                # else: if new and no valid data, effectively ignore this chunk
+                # for keyframe creation
             else:
                 # Always update existing timestamp, as its content might have changed
                 self.__processed_keyframes[idx_of_processed_ts] = new_state_tuple
@@ -269,7 +274,8 @@ class TensorDemuxer:
                             ts_next, new_calculated_tensor_next
                         )
                     else:
-                        # If a cascaded tensor doesn't change, subsequent ones won't either from this cascade path
+                        # If a cascaded tensor doesn't change, subsequent ones
+                        # won't either from this cascade path
                         break
 
     async def get_tensor_at_timestamp(

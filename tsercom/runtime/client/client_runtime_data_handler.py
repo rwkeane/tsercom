@@ -146,8 +146,8 @@ class ClientRuntimeDataHandler(
 
         if not was_removed_from_id_tracker:
             logging.warning(
-                "Failed to remove caller_id %s from IdTracker, though it was initially found. "
-                "Skipping clock_tracker.on_disconnect.",
+                "Failed to remove caller_id %s from IdTracker, though it was "
+                "initially found. Skipping clock_tracker.on_disconnect.",
                 caller_id,
             )
             return False

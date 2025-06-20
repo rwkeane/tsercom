@@ -83,7 +83,8 @@ class RuntimeCommandSource:
                     # called correctly and stop_async sets self.__runtime to None.
                     # Long but readable warning
                     RuntimeCommandSource.logger.warning(
-                        "RuntimeCommandSource: __runtime is None in watch_commands loop, skipping command."
+                        "RuntimeCommandSource: __runtime is None in "
+                        "watch_commands loop, skipping command."
                     )
                     continue
 
@@ -100,7 +101,8 @@ class RuntimeCommandSource:
                         raise ValueError(f"Unknown command: {command}")
                 except Exception as e:
                     RuntimeCommandSource.logger.error(
-                        "Exception executing runtime command %s in RuntimeCommandSource: %s",
+                        "Exception executing runtime command %s in "
+                        "RuntimeCommandSource: %s",
                         command,
                         e,
                         exc_info=True,
@@ -140,5 +142,7 @@ class RuntimeCommandSource:
             if self.__command_thread.is_alive():
                 # Long but readable error message
                 raise RuntimeError(
-                    f"ERROR: RuntimeCommandSource thread for queue {self.__runtime_command_queue} did not terminate within 5 seconds."
+                    f"ERROR: RuntimeCommandSource thread for queue "
+                    f"{self.__runtime_command_queue} did not terminate within 5 "
+                    f"seconds."
                 )

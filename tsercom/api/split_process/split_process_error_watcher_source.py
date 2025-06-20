@@ -59,8 +59,9 @@ class SplitProcessErrorWatcherSource:
                     except Exception as e_seen:
                         # Long but readable error log
                         logger.error(
-                            "Exception occurred within ThreadWatcher.on_exception_seen() "
-                            "while handling %s: %s",
+                            "Exception occurred within "
+                            "ThreadWatcher.on_exception_seen() while handling "
+                            "%s: %s",
                             type(remote_exception).__name__,
                             e_seen,
                             exc_info=True,
@@ -87,7 +88,8 @@ class SplitProcessErrorWatcherSource:
             if self.__thread.is_alive():
                 # Long warning message
                 logger.warning(
-                    "SplitProcessErrorWatcherSource: Polling thread %s did not join in 2.0s.",
+                    "SplitProcessErrorWatcherSource: Polling thread %s did not "
+                    "join in 2.0s.",
                     self.__thread.name,
                 )
 

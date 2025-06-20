@@ -62,7 +62,8 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         self.__stop_event = asyncio.Event()
 
         logger.info(
-            "Initialized SmoothedTensorDemuxer '%s' with shape %s, output interval %ss.",
+            "Initialized SmoothedTensorDemuxer '%s' with shape %s, output "
+            "interval %ss.",
             self.__name,
             self.__tensor_shape_internal,
             self.__output_interval_seconds,
@@ -200,7 +201,8 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                             per_element_values.append(element_value)
                         except (RuntimeError, ValueError) as e_reshape:
                             logger.warning(
-                                "[%s] Error reshaping parent tensor or accessing element %s for ts %s: %s",
+                                "[%s] Error reshaping parent tensor or accessing "
+                                "element %s for ts %s: %s",
                                 self.__name,
                                 index_tuple,
                                 p_ts,

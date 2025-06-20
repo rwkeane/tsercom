@@ -87,7 +87,8 @@ class GrpcServicePublisher:
         Logs successes and failures.
 
         Returns:
-            True if the server successfully bound to at least one address, False otherwise.
+            True if the server successfully bound to at least one address,
+            False otherwise.
         """
         # Connect to a port.
         worked = 0
@@ -129,15 +130,16 @@ class GrpcServicePublisher:
         """
         if self.__server is None:
             logging.warning(
-                "GrpcServicePublisher: Server not started or already stopped when calling stop()."
+                "GrpcServicePublisher: Server not started or already stopped "
+                "when calling stop()."
             )
             return
 
         if isinstance(self.__server, grpc.aio.Server):
             logging.error(
-                "GrpcServicePublisher: Synchronous stop() called on an grpc.aio.Server. "
-                "This is incorrect and will not stop the server gracefully. "
-                "Use stop_async() instead."
+                "GrpcServicePublisher: Synchronous stop() called on an "
+                "grpc.aio.Server. This is incorrect and will not stop the "
+                "server gracefully. Use stop_async() instead."
             )
             return
 
@@ -158,7 +160,8 @@ class GrpcServicePublisher:
         """
         if self.__server is None:
             logging.warning(
-                "GrpcServicePublisher: Server not started or already stopped when calling stop_async()."
+                "GrpcServicePublisher: Server not started or already stopped "
+                "when calling stop_async()."
             )
             return
 

@@ -47,7 +47,8 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
         if not issubclass(type(responder), RemoteDataResponder):
             # Long error message
             raise TypeError(
-                f"Responder must be RemoteDataResponder subclass, got {type(responder).__name__}."
+                f"Responder must be RemoteDataResponder subclass, "
+                f"got {type(responder).__name__}."
             )
 
         self.__responder: RemoteDataResponder[ResponseTypeT] = responder

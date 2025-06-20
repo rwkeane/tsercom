@@ -43,7 +43,8 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             client: The client to notify of index updates.
             tensor_length: The expected length of the tensors.
             clock: The synchronized clock instance.
-            data_timeout_seconds: How long to keep tensor data before it's considered stale.
+            data_timeout_seconds: How long to keep tensor data before it's
+                                  considered stale.
         """
         super().__init__(client, tensor_length, clock, data_timeout_seconds)
         self.__latest_processed_timestamp: datetime.datetime | None = None
@@ -142,16 +143,19 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
         """
-        Processes a new tensor snapshot, handling out-of-order updates and history management.
+        Processes a new tensor snapshot, handling out-of-order updates and
+        history management.
 
-        This method calculates differences against the previous relevant tensor state,
-        emits these changes as chunks, and manages a cascading update for subsequent
-        tensors in history if the current tensor affects their diff base.
+        This method calculates differences against the previous relevant tensor
+        state, emits these changes as chunks, and manages a cascading update
+        for subsequent tensors in history if the current tensor affects their
+        diff base.
         """
         async with self.lock:
             if len(tensor) != self.tensor_length:
                 raise ValueError(
-                    f"Input tensor length {len(tensor)} does not match expected length {self.tensor_length}"
+                    f"Input tensor length {len(tensor)} does not match "
+                    f"expected length {self.tensor_length}"
                 )
             effective_cleanup_ref_ts = timestamp
             if self.history:

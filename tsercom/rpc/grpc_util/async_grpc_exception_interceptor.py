@@ -1,6 +1,10 @@
-"""Provides an asynchronous gRPC server interceptor for centralized exception handling."""
+"""
+Provides an asynchronous gRPC server interceptor for centralized exception
+handling.
+"""
 
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable  # Added AsyncIterator
+from typing import cast  # Added cast
 
 import grpc
 import grpc.aio  # Explicitly import grpc.aio
@@ -89,9 +93,8 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
                 raise  # Make it clear this path does not return normally
-            except (
-                Warning
-            ) as e:  # PEP 8: E722 do not use bare 'except' -> but this is 'except Warning'
+            except Warning as e:  # PEP 8: E722 do not use bare 'except' -> but this is
+                # 'except Warning'
                 await self._handle_exception(e, method_name, context)
                 raise  # Make it clear this path does not return normally
 
@@ -109,12 +112,17 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
     ]:  # Wrapper returns an Awaitable
         """Wraps a unary-stream RPC method to provide exception handling."""
 
-        async def wrapper(request: object, context: grpc.aio.ServicerContext) -> Awaitable[object]:  # type: ignore
+        async def wrapper(
+            request: object, context: grpc.aio.ServicerContext
+        ) -> AsyncIterator[
+            object
+        ]:  # Changed Awaitable to AsyncIterator, removed type: ignore
             try:
-                # The original method for unary-stream is expected to be an async generator.
-                # However, the type hint from grpc.RpcMethodHandler is Awaitable[object].
-                # We iterate over it as if it's an async generator.
-                async for response in method(request, context):  # type: ignore[attr-defined]
+                # The original method for unary-stream is expected to be an async
+                # generator. However, the type hint from grpc.RpcMethodHandler
+                # is Awaitable[object]. We iterate over it as if it's an async
+                # generator.
+                async for response in method(request, context):  # type: ignore[attr-defined] # Keep this ignore for now
                     yield response
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
@@ -123,7 +131,9 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                 await self._handle_exception(e, method_name, context)
                 raise  # Make it clear this path does not return normally
 
-        return wrapper
+        return cast(
+            Callable[[object, grpc.aio.ServicerContext], Awaitable[object]], wrapper
+        )
 
     def _wrap_stream_unary(
         self,
@@ -162,11 +172,15 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
     ]:  # Wrapper returns an Awaitable
         """Wraps a stream-stream RPC method to provide exception handling."""
 
-        async def wrapper(request_iterator: object, context: grpc.aio.ServicerContext) -> Awaitable[object]:  # type: ignore
+        async def wrapper(
+            request_iterator: object, context: grpc.aio.ServicerContext
+        ) -> AsyncIterator[
+            object
+        ]:  # Changed Awaitable to AsyncIterator, removed type: ignore
             try:
                 # The original method for stream-stream is an async generator
                 # that takes an async iterator.
-                async for response in method(request_iterator, context):  # type: ignore[attr-defined]
+                async for response in method(request_iterator, context):  # type: ignore[attr-defined] # Keep this ignore for now
                     yield response
             except Exception as e:
                 await self._handle_exception(e, method_name, context)
@@ -175,7 +189,9 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                 await self._handle_exception(e, method_name, context)
                 raise  # Make it clear this path does not return normally
 
-        return wrapper
+        return cast(
+            Callable[[object, grpc.aio.ServicerContext], Awaitable[object]], wrapper
+        )
 
     async def _handle_exception(
         self, e: Exception, method_name: str, context: grpc.aio.ServicerContext

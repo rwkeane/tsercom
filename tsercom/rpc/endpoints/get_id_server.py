@@ -70,7 +70,8 @@ class AsyncGetIdServer:
             if isinstance(e, AssertionError):
                 raise
             logging.error(
-                f"Error during GetId processing for context {context.peer() if context else 'Unknown'}: {e}",
+                f"Error during GetId processing for context "
+                f"{context.peer() if context else 'Unknown'}: {e}",
                 exc_info=True,
             )
             await context.abort(

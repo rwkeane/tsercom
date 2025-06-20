@@ -51,7 +51,8 @@ class TensorMultiplexer(abc.ABC):
             client: The client to notify of index updates.
             tensor_length: The expected length of the tensors.
             clock: The synchronized clock instance.
-            data_timeout_seconds: How long to keep tensor data (subclass responsibility).
+            data_timeout_seconds: How long to keep tensor data (subclass
+                                  responsibility).
         """
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
@@ -124,7 +125,8 @@ class TensorMultiplexer(abc.ABC):
             A clone of the tensor if the timestamp exists in history, else None.
         """
         async with self.__lock:
-            # Assumes self.__history is sorted by timestamp for efficient lookup using bisect.
+            # Assumes self.__history is sorted by timestamp for efficient lookup
+            # using bisect.
             i = bisect.bisect_left(self.__history, timestamp, key=lambda x: x[0])
             if i != len(self.__history) and self.__history[i][0] == timestamp:
                 return self.__history[i][1].clone()

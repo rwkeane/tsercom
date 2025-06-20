@@ -74,7 +74,8 @@ class RecordListener(MdnsListener):
         else:
             self.__mdns = AsyncZeroconf()
             logging.info(
-                "Created new AsyncZeroconf for RecordListener, type: %s (AsyncServiceBrowser with default IPVersion)",
+                "Created new AsyncZeroconf for RecordListener, type: %s "
+                "(AsyncServiceBrowser with default IPVersion)",
                 self.__expected_type,
             )
 
@@ -90,7 +91,8 @@ class RecordListener(MdnsListener):
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a service's info (e.g., TXT) is updated."""
         logging.info(
-            "Sync update_service called: type='%s', name='%s'. Scheduling async handler.",
+            "Sync update_service called: type='%s', name='%s'. "
+            "Scheduling async handler.",
             type_,
             name,
         )
@@ -145,7 +147,8 @@ class RecordListener(MdnsListener):
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called by `zeroconf` when a service is removed from the network."""
         logging.info(
-            "Sync remove_service called: type='%s', name='%s'. Scheduling async handler.",
+            "Sync remove_service called: type='%s', name='%s'. "
+            "Scheduling async handler.",
             type_,
             name,
         )
@@ -164,18 +167,21 @@ class RecordListener(MdnsListener):
     async def _handle_remove_service(self, type_: str, name: str) -> None:
         """Async handler for service removal."""
         logging.info(
-            "[REC_LISTENER] _handle_remove_service (async) started for name: %s, type: %s",
+            "[REC_LISTENER] _handle_remove_service (async) started for name: "
+            "%s, type: %s",
             name,
             type_,
         )
 
         logging.info(
-            "[REC_LISTENER] _handle_remove_service: About to call client._on_service_removed for %s",
+            "[REC_LISTENER] _handle_remove_service: About to call "
+            "client._on_service_removed for %s",
             name,
         )
         await self.__client._on_service_removed(name, type_, self._uuid_str)
         logging.info(
-            "[REC_LISTENER] _handle_remove_service: Returned from client._on_service_removed for %s",
+            "[REC_LISTENER] _handle_remove_service: Returned from "
+            "client._on_service_removed for %s",
             name,
         )
         logging.info(
@@ -248,13 +254,14 @@ class RecordListener(MdnsListener):
             )
             # For AsyncServiceBrowser, cancellation is typically handled when
             # the AsyncZeroconf instance it's tied to is closed via async_close().
-            # AsyncServiceBrowser itself does not have a cancel() or async_cancel() method.
-            # We just set it to None here as its tasks will be cancelled by AsyncZeroconf.
+            # AsyncServiceBrowser itself does not have a cancel() or
+            # async_cancel() method. We just set it to None here as its tasks
+            # will be cancelled by AsyncZeroconf.
             self.__browser = None  # Browser is cancelled by closing AsyncZeroconf
 
         if not self.__is_shared_zc and self.__mdns:
             logging.info(
-                "Closing owned AsyncZeroconf instance for RecordListener, type: %s",
+                "Closing owned AsyncZeroconf instance for RecordListener, " "type: %s",
                 self.__expected_type,
             )
             try:
@@ -268,7 +275,8 @@ class RecordListener(MdnsListener):
                 )
         elif self.__is_shared_zc:
             logging.info(
-                "Not closing shared AsyncZeroconf instance for RecordListener, type: %s",
+                "Not closing shared AsyncZeroconf instance for RecordListener, "
+                "type: %s",
                 self.__expected_type,
             )
 

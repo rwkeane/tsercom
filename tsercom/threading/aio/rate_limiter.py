@@ -18,8 +18,9 @@ class RateLimiter(ABC):
     rate-limiting logic.
     """
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: B027
         """Initializes the rate limiter."""
+        pass
 
     @abstractmethod
     async def wait_for_pass(self) -> None:

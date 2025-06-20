@@ -88,7 +88,8 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
         if not isinstance(client, RuntimeFactoryFactory.Client):
             # Long but readable error message string
             raise TypeError(
-                f"Client must be an instance of RuntimeFactoryFactory.Client, got {type(client).__name__}."
+                f"Client must be an instance of RuntimeFactoryFactory.Client, "
+                f"got {type(client).__name__}."
             )
 
         handle, factory = self._create_pair(initializer)

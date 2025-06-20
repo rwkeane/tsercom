@@ -101,7 +101,8 @@ class SerializableTensorChunk:
             dtype: The `torch.dtype` required to correctly interpret the `data_bytes`.
 
         Returns:
-            A `SerializableTensorChunk` instance if parsing is successful, otherwise `None`.
+            A `SerializableTensorChunk` instance if parsing is successful,
+            otherwise `None`.
         """
         if grpc_msg is None:
             # Logging this helps identify issues where an expected message is missing.
@@ -110,9 +111,11 @@ class SerializableTensorChunk:
 
         parsed_timestamp = SynchronizedTimestamp.try_parse(grpc_msg.timestamp)
         if parsed_timestamp is None:
-            # Timestamp is critical metadata; failure to parse it makes the chunk unusable.
+            # Timestamp is critical metadata; failure to parse it makes the
+            # chunk unusable.
             logging.warning(
-                "Failed to parse timestamp from TensorChunk, cannot create SerializableTensorChunk."
+                "Failed to parse timestamp from TensorChunk, cannot create "
+                "SerializableTensorChunk."
             )
             return None
 

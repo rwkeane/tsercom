@@ -1,5 +1,6 @@
 """Unit tests for TorchMultiprocessQueueFactory."""
 
+import logging
 import sys  # Added import for sys
 import pytest
 import torch
@@ -35,13 +36,13 @@ def _consumer_process_helper_func(
                         tensor_to_send_back, timeout=5
                     )
                     if not put_successful:
-                        print("Child (Tensor): C2P put_blocking timed out.")
+                        logging.debug("Child (Tensor): C2P put_blocking timed out.")
                 except Exception as e_put:
-                    print(f"Child (Tensor): Error during C2P put: {e_put}")
+                    logging.debug(f"Child (Tensor): Error during C2P put: {e_put}")
         except queue.Empty:
             pass
         except Exception as e_main:
-            print(f"Child (Tensor): Error in main processing loop: {e_main}")
+            logging.debug(f"Child (Tensor): Error in main processing loop: {e_main}")
             time.sleep(0.1)
         time.sleep(0.05)
 
@@ -74,11 +75,11 @@ def _container_consumer_process_helper_func(
                     container_val, timeout=5
                 )
                 if not put_successful:
-                    print("Child (Container): C2P put_blocking timed out.")
+                    logging.debug("Child (Container): C2P put_blocking timed out.")
         except queue.Empty:
             pass
         except Exception as e_main:
-            print(f"Child (Container): Error in main processing loop: {e_main}")
+            logging.debug(f"Child (Container): Error in main processing loop: {e_main}")
             time.sleep(0.1)
         time.sleep(0.05)
 

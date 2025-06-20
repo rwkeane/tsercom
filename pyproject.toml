@@ -88,8 +88,26 @@ line-length = 88
 
 [tool.ruff]
 line-length = 88  # Must match Black's line-length
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    "**/*_pb2.py",
+    "**/*_pb2.pyi",
+    "**/*_pb2_grpc.py",
+    "**/*_unittest.py",
+    "**/*_unittests.py",
+    "**/*_test.py",
+    "**/*_tests.py",
+    "**/*_e2etest.py",
+    "**/*_e2etests.py",
+    "*/proto/*", # Catches files like tsercom/caller_id/proto/generated/v1_64/caller_id_pb2.py
+    "scripts/*",
+]
 
-[tool.ruff.lint] 
+[tool.ruff.lint]
 # Select all the recommended rule sets.
 select = [
     "F",  # Pyflakes (finds unused imports, undefined names)
@@ -105,23 +123,6 @@ select = [
     # "D",  # pydocstyle (docstring conventions)
 ]
 ignore = ["S101", "S104"]
-
-exclude = [
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    "venv", 
-    "**/*_pb2.py",     # Clearer exclusion for .py files
-    "**/*_pb2.pyi",    # Explicitly exclude .pyi files
-    "**/*_pb2_grpc.py", # Clearer exclusion 
-    "**/*_unittest.py",
-    "**/*_unittests.py",
-    "**/*_test.py",
-    "**/*_tests.py",
-    "**/*_e2etest.py",
-    "**/*_e2etests.py",
-]
 
 # Allow ruff's auto-fix for all enabled rules.
 fixable = ["ALL"]

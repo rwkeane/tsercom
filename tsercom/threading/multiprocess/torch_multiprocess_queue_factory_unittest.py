@@ -1,5 +1,6 @@
 """Unit tests for TorchMultiprocessQueueFactory."""
 
+import logging
 import sys
 import time
 import pytest
@@ -161,8 +162,9 @@ class TestTorchMultiprocessQueueFactory:
                 process.join(timeout=10)
 
             if process_started_successfully and process.is_alive():
-                print(
-                    f"Warning: Child process {getattr(process, 'pid', 'unknown')} did not terminate cleanly after terminate() and join(). Attempting kill()."
+                logging.debug(
+                    f"Warning: Child process {getattr(process, 'pid', 'unknown')} did not "
+                    f"terminate cleanly after terminate() and join(). Attempting kill()."
                 )
                 if hasattr(process, "kill"):  # Available from Python 3.7+
                     process.kill()
