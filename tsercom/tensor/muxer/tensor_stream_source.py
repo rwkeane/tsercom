@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, List  # Modified import
+from typing import Optional, List
 
 import torch
 
@@ -59,8 +59,7 @@ class TensorStreamSource(TensorMultiplexer.Client):
 
         self.__internal_muxer_client = _InternalMuxerClient(owner_source=self)
 
-        # --- New TensorInitializer logic ---
-        fill_value_float: float = 0.0  # Default if tensor is empty
+        fill_value_float: float = 0.0
         initial_chunks: List[SerializableTensorChunk] = []
 
         if self.__initial_tensor.numel() > 0:
@@ -68,55 +67,42 @@ class TensorStreamSource(TensorMultiplexer.Client):
             unique_values, counts = torch.unique(
                 self.__initial_tensor, return_counts=True
             )
-            # Ensure unique_values is not empty before proceeding
+
             if unique_values.numel() > 0:
                 most_frequent_idx = torch.argmax(counts)
                 fill_value_tensor = unique_values[most_frequent_idx]
                 fill_value_float = float(fill_value_tensor.item())
-            # else: if unique_values is empty (e.g. tensor had NaNs or other non-sortable values that unique removed)
-            # fill_value_float remains 0.0 or could be set to initial_tensor[0].item() if tensor not empty.
-            # For simplicity, if unique_values is empty after torch.unique on a non-empty tensor,
-            # this indicates an unusual tensor; defaulting to 0.0 is a safe fallback.
-            # However, torch.unique on a tensor with actual numbers should always return unique_values.
 
             creation_timestamp = self.__clock.now
-            current_chunk_values_list: List[torch.Tensor] = (
-                []
-            )  # Stores tensor elements for current chunk
+            current_chunk_values_list: List[torch.Tensor] = []
             current_chunk_start_index: int = -1
 
             for i, value_tensor_element in enumerate(self.__initial_tensor):
                 value_float_element = float(value_tensor_element.item())
 
-                if (
-                    abs(value_float_element - fill_value_float) > 1e-9
-                ):  # Compare floats with tolerance
+                if abs(value_float_element - fill_value_float) > 1e-9:
                     if current_chunk_start_index == -1:
                         current_chunk_start_index = i
                     current_chunk_values_list.append(value_tensor_element)
                 else:
                     if current_chunk_start_index != -1:
-                        # End of a non-fill_value chunk
-                        # Use torch.stack if current_chunk_values_list contains tensors,
-                        # or torch.tensor if it contains Python numbers.
-                        # Since we append value_tensor_element, it contains tensors.
                         chunk_tensor_data = torch.stack(current_chunk_values_list)
                         initial_chunks.append(
                             SerializableTensorChunk(
                                 starting_index=current_chunk_start_index,
-                                tensor=chunk_tensor_data,  # Pass the torch.Tensor directly
+                                tensor=chunk_tensor_data,
                                 timestamp=creation_timestamp,
                             )
                         )
                         current_chunk_values_list = []
                         current_chunk_start_index = -1
 
-            if current_chunk_start_index != -1:  # After loop, handle any trailing chunk
+            if current_chunk_start_index != -1:
                 chunk_tensor_data = torch.stack(current_chunk_values_list)
                 initial_chunks.append(
                     SerializableTensorChunk(
                         starting_index=current_chunk_start_index,
-                        tensor=chunk_tensor_data,  # Pass the torch.Tensor directly
+                        tensor=chunk_tensor_data,
                         timestamp=creation_timestamp,
                     )
                 )
@@ -124,7 +110,6 @@ class TensorStreamSource(TensorMultiplexer.Client):
         initial_state_update: Optional[SerializableTensorUpdate] = None
         if initial_chunks:
             initial_state_update = SerializableTensorUpdate(chunks=initial_chunks)
-        # --- End of New TensorInitializer logic ---
 
         if sparse_updates:
             self.__multiplexer = SparseTensorMultiplexer(
@@ -180,7 +165,6 @@ class TensorStreamSource(TensorMultiplexer.Client):
 
     async def __anext__(self) -> SerializableTensorUpdate:
         """Retrieves the next batch of tensor chunks as a SerializableTensorUpdate."""
-        # The AsyncPoller.__anext__ returns List[ResultTypeT], which is List[SerializableTensorChunk] here.
         chunks: List[SerializableTensorChunk] = await self.__async_poller.__anext__()
         return SerializableTensorUpdate(chunks=chunks)
 

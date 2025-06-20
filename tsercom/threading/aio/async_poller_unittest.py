@@ -6,8 +6,6 @@ import pytest_asyncio
 
 from tsercom.threading.aio.async_poller import AsyncPoller
 
-# K_MAX_RESPONSES = 30 # This constant was removed from the test logic
-
 
 from typing import (
     Any,
@@ -16,7 +14,7 @@ from typing import (
     Dict,
     AsyncGenerator,
     List,
-)  # Added List, AsyncGenerator
+)
 from unittest.mock import MagicMock
 
 
