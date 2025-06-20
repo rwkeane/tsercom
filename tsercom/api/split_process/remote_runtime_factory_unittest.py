@@ -1,5 +1,4 @@
 import pytest
-import multiprocessing  # Added import
 
 from typing import Optional, List, Union
 import grpc
@@ -307,7 +306,6 @@ def factory(
         event_source_queue=fake_event_queue,  # Changed to event_source_queue
         data_reader_queue=fake_data_sink_queue,  # Changed to data_reader_queue
         command_source_queue=fake_command_queue,  # Changed to command_source_queue
-        mp_context=multiprocessing.get_context("spawn"),  # Added mp_context
     )
 
 
