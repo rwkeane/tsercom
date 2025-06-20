@@ -14,7 +14,7 @@ from tsercom.tensor.serialization.serializable_tensor_initializer import (
 from tsercom.tensor.serialization.serializable_tensor import (
     SerializableTensorChunk,
 )
-from tsercom.util.is_running_tracker import IsRunningTracker  # Added import
+from tsercom.util.is_running_tracker import IsRunningTracker
 
 
 class TensorStreamReceiver(TensorDemuxer.Client):
@@ -187,10 +187,8 @@ class TensorStreamReceiver(TensorDemuxer.Client):
                     print(
                         f"Error reshaping tensor: {e}. Passing original tensor."
                     )  # Replace with proper logging
-                    # Fallthrough to put the original tensor
             elif not self.__shape and tensor.numel() == 1:
-                # Scalar tensor (empty shape), tensor_to_put is already a scalar
-                pass
+                pass  # Scalar tensor, no reshape needed.
             # else: If shape is empty but tensor is not scalar, it's ambiguous. Pass as is.
 
         await self.__queue.put((tensor_to_put, timestamp))
@@ -198,8 +196,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
     async def __internal_queue_iterator(
         self,
     ) -> AsyncIterator[Tuple[torch.Tensor, datetime.datetime]]:
-        # This iterator is managed by IsRunningTracker.create_stoppable_iterator.
-        # It stops when the tracker is stopped, which handles CancelledError from queue.get().
+        # This iterator is managed and stopped by IsRunningTracker.create_stoppable_iterator.
         while True:
             yield await self.__queue.get()
             # No task_done() here; the stoppable_iterator is the direct consumer.
@@ -211,8 +208,6 @@ class TensorStreamReceiver(TensorDemuxer.Client):
             self.__internal_queue_iterator()
         )
 
-    # __anext__ is no longer needed as IsRunningTracker handles iteration.
-
     async def stop(self) -> None:
         """
         Stops the tensor stream receiver and cleans up resources.
@@ -221,5 +216,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
         if isinstance(self.__demuxer, SmoothedTensorDemuxer):
             await self.__demuxer.stop()
         self.__is_running_tracker.stop()
-        # IsRunningTracker cancels tasks using create_stoppable_iterator,
-        # unblocking __internal_queue_iterator's queue.get().
+        # IsRunningTracker.stop() ensures that the iterator from
+        # create_stoppable_iterator is properly terminated,
+        # which includes handling the unblocking of self.__queue.get()
+        # if __internal_queue_iterator is currently awaiting it.

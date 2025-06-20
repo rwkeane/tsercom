@@ -1,15 +1,14 @@
 import asyncio
 import datetime
-import math  # Added import
+import math
 from typing import AsyncIterator, List, Optional
-from unittest.mock import MagicMock  # For creating mock objects for chunks
+from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
-from pytest_mock import MockerFixture  # Added import
+from pytest_mock import MockerFixture
 import torch
 
-# Imports from tsercom
 from tsercom.tensor.stream_receiver import TensorStreamReceiver
 from tsercom.tensor.serialization.serializable_tensor_initializer import (
     SerializableTensorInitializer,
@@ -25,7 +24,6 @@ from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
 from tsercom.tensor.demuxer.smoothed_tensor_demuxer import SmoothedTensorDemuxer
 
 
-# Common test parameters
 TEST_SHAPE_SIMPLE = (10,)
 TEST_SHAPE_MULTI_DIM = (2, 3)
 TEST_SHAPE_SCALAR = ()
@@ -50,8 +48,6 @@ def linear_smoothing_strategy() -> LinearInterpolationStrategy:
 async def receiver_normal() -> AsyncIterator[TensorStreamReceiver]:
     receiver = TensorStreamReceiver(shape=TEST_SHAPE_SIMPLE, dtype=TEST_DTYPE_FLOAT32)
     yield receiver
-    # No explicit stop needed for normal receiver as it doesn't manage background tasks
-    # that require explicit shutdown via its stop() method in this configuration.
 
 
 @pytest_asyncio.fixture
@@ -74,9 +70,6 @@ async def receiver_smoothed(
     await receiver.stop()  # Ensure resources are cleaned up
 
 
-# --- __init__ and initializer tests ---
-
-
 def test_init_normal_demuxer_initializer_properties() -> None:
     shape = TEST_SHAPE_MULTI_DIM
     dtype = TEST_DTYPE_FLOAT32
@@ -85,9 +78,7 @@ def test_init_normal_demuxer_initializer_properties() -> None:
     assert isinstance(receiver.initializer, SerializableTensorInitializer)
     assert receiver.initializer.shape == list(shape)
     assert receiver.initializer.dtype_str == str(dtype).split(".")[-1]
-    assert math.isnan(
-        receiver.initializer.fill_value
-    )  # Default, check for NaN correctly
+    assert math.isnan(receiver.initializer.fill_value)
 
 
 def test_init_normal_demuxer_internal_demuxer_type() -> None:
@@ -98,8 +89,8 @@ def test_init_normal_demuxer_internal_demuxer_type() -> None:
     )
 
 
-@pytest.mark.asyncio  # Added
-async def test_init_smoothed_demuxer_initializer_properties(  # Added async
+@pytest.mark.asyncio
+async def test_init_smoothed_demuxer_initializer_properties(
     linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
 ) -> None:
     mocker.patch.object(SmoothedTensorDemuxer, "start", new_callable=mocker.AsyncMock)
@@ -119,8 +110,8 @@ async def test_init_smoothed_demuxer_initializer_properties(  # Added async
     assert receiver.initializer.fill_value == float(fill_val)
 
 
-@pytest.mark.asyncio  # Added
-async def test_init_smoothed_demuxer_internal_demuxer_type(  # Added async
+@pytest.mark.asyncio
+async def test_init_smoothed_demuxer_internal_demuxer_type(
     linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
 ) -> None:
     mock_start = mocker.patch.object(
@@ -132,11 +123,11 @@ async def test_init_smoothed_demuxer_internal_demuxer_type(  # Added async
         smoothing_strategy=linear_smoothing_strategy,
     )
     assert isinstance(receiver._TensorStreamReceiver__demuxer, SmoothedTensorDemuxer)  # type: ignore[attr-defined]
-    mock_start.assert_called_once()  # or called via asyncio.create_task
+    mock_start.assert_called_once()
 
 
-@pytest.mark.asyncio  # Added
-async def test_init_smoothed_demuxer_start_called(  # Added async
+@pytest.mark.asyncio
+async def test_init_smoothed_demuxer_start_called(
     linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
 ) -> None:
     mock_demuxer_start = mocker.AsyncMock()
@@ -149,12 +140,7 @@ async def test_init_smoothed_demuxer_start_called(  # Added async
         dtype=TEST_DTYPE_FLOAT32,
         smoothing_strategy=linear_smoothing_strategy,
     )
-    # Verifies that SmoothedTensorDemuxer.start() is called via asyncio.create_task
-    # by checking if the (mocked) start method was invoked.
     assert mock_demuxer_start.called
-
-
-# --- Async Iterator tests ---
 
 
 @pytest.mark.asyncio
@@ -225,9 +211,6 @@ async def test_async_iterator_smoothed_demuxer(
     await task
 
 
-# --- on_chunk_received delegation tests ---
-
-
 @pytest.mark.asyncio
 async def test_on_chunk_received_delegation_normal(
     receiver_normal: TensorStreamReceiver, mocker: MockerFixture
@@ -256,9 +239,6 @@ async def test_on_chunk_received_delegation_smoothed(
 
     await receiver_smoothed.on_chunk_received(mock_chunk)
     mock_internal_on_chunk.assert_awaited_once_with(mock_chunk)
-
-
-# --- stop() method tests ---
 
 
 @pytest.mark.asyncio
@@ -300,10 +280,6 @@ async def test_stop_method_normal_demuxer(
 async def test_async_iterator_terminates_after_stop_smoothed(
     linear_smoothing_strategy: LinearInterpolationStrategy, mocker: MockerFixture
 ) -> None:
-    # This test verifies that IsRunningTracker correctly stops the iteration.
-    # Specific control over internal SmoothedTensorDemuxer events is less critical here,
-    # as IsRunningTracker.stop() should handle forceful termination of the iterator.
-
     receiver = TensorStreamReceiver(
         shape=TEST_SHAPE_SIMPLE,
         dtype=TEST_DTYPE_FLOAT32,
@@ -320,37 +296,24 @@ async def test_async_iterator_terminates_after_stop_smoothed(
             iterator = await receiver.__aiter__()
             async for _ in iterator:
                 results.append(1)
-            consume_task_completed_normally = (
-                True  # Should be reached if StopAsyncIteration
-            )
-        except BaseException as e:  # Catch any exception, including CancelledError
+            consume_task_completed_normally = True
+        except BaseException as e:
             consume_task_exception = e
 
     consume_task = asyncio.create_task(consume())
-    await asyncio.sleep(
-        0.01
-    )  # Let consume task start and potentially await queue.get()
+    await asyncio.sleep(0.01)
 
-    await receiver.stop()  # This should trigger IsRunningTracker to stop the iterator.
+    await receiver.stop()
 
-    # Wait for the consume_task to finish.
-    # IsRunningTracker's create_stoppable_iterator should raise StopAsyncIteration
-    # or be cancelled, allowing the consumer to exit.
     try:
         await asyncio.wait_for(consume_task, timeout=1.0)
     except asyncio.TimeoutError:
-        # This might happen if the task was cancelled but didn't propagate StopAsyncIteration
-        # or if it's truly stuck.
         if consume_task_exception is None and not consume_task_completed_normally:
             pytest.fail("Consumer task timed out without completing or known exception")
 
-    assert not results  # No items should have been processed if stop is quick
-    # Check that StopAsyncIteration was the way it exited, or it completed normally
-    # after processing 0 items because it was stopped before any items were produced.
-    # If IsRunningTracker cancels, consume_task_exception might be CancelledError.
-    # If it propagates StopAsyncIteration, consume_task_completed_normally would be true.
+    assert not results
     assert consume_task_completed_normally or isinstance(
         consume_task_exception, asyncio.CancelledError
     )
     if consume_task_completed_normally:
-        assert not results  # Ensure no items if exited via StopAsyncIteration
+        assert not results

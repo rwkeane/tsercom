@@ -1,7 +1,8 @@
+import random  # Moved from bottom
 from datetime import datetime, timedelta, timezone
 
 import pytest
-import torch  # Added torch
+import torch
 
 from tsercom.tensor.demuxer.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
@@ -34,7 +35,38 @@ def linear_strategy() -> LinearInterpolationStrategy:
     return LinearInterpolationStrategy()
 
 
-def test_empty_keyframes(linear_strategy: LinearInterpolationStrategy):
+def test_linear_interpolation_strategy_init_default_parameters() -> None:
+    """Tests that __init__ sets default None for parameters if not provided."""
+    strategy = LinearInterpolationStrategy()
+    assert strategy.max_extrapolation_seconds is None
+    assert strategy.max_interpolation_gap_seconds is None
+
+
+def test_linear_interpolation_strategy_init_stores_parameters() -> None:
+    """Tests that __init__ correctly stores provided parameters."""
+    max_extrapolation = 2.5
+    max_interpolation_gap = 5.5
+    strategy = LinearInterpolationStrategy(
+        max_extrapolation_seconds=max_extrapolation,
+        max_interpolation_gap_seconds=max_interpolation_gap,
+    )
+    assert strategy.max_extrapolation_seconds == max_extrapolation
+    assert strategy.max_interpolation_gap_seconds == max_interpolation_gap
+
+
+def test_linear_interpolation_strategy_init_stores_parameters_other_values() -> None:
+    """Tests __init__ with another set of values, including zero."""
+    max_extrapolation = 0.0
+    max_interpolation_gap = 0.0
+    strategy = LinearInterpolationStrategy(
+        max_extrapolation_seconds=max_extrapolation,
+        max_interpolation_gap_seconds=max_interpolation_gap,
+    )
+    assert strategy.max_extrapolation_seconds == max_extrapolation
+    assert strategy.max_interpolation_gap_seconds == max_interpolation_gap
+
+
+def test_empty_keyframes(linear_strategy: LinearInterpolationStrategy) -> None:
     """Test interpolation with no keyframes. Should return NaNs."""
     req_dt_list = [datetime(2023, 1, 1, 0, 0, 15, tzinfo=timezone.utc)]
     req_ts_tensor = req_timestamps_to_tensor(req_dt_list)
@@ -55,7 +87,7 @@ def test_empty_keyframes(linear_strategy: LinearInterpolationStrategy):
     assert result_empty_req.numel() == 0
 
 
-def test_single_keyframe(linear_strategy: LinearInterpolationStrategy):
+def test_single_keyframe(linear_strategy: LinearInterpolationStrategy) -> None:
     """Test interpolation with a single keyframe. Should extrapolate its value."""
     kf_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
     kf_val = 10.0
@@ -78,7 +110,7 @@ def test_single_keyframe(linear_strategy: LinearInterpolationStrategy):
 
 def test_timestamp_before_first_keyframe(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
     kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
     keyframes_list = [(kf1_dt, 10.0), (kf2_dt, 20.0)]
@@ -95,7 +127,7 @@ def test_timestamp_before_first_keyframe(
 
 def test_timestamp_after_last_keyframe(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
     kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
     keyframes_list = [(kf1_dt, 10.0), (kf2_dt, 20.0)]
@@ -112,7 +144,7 @@ def test_timestamp_after_last_keyframe(
 
 def test_timestamp_exactly_on_keyframe(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
     kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)
     kf3_dt = datetime(2023, 1, 1, 0, 0, 30, tzinfo=timezone.utc)
@@ -137,7 +169,7 @@ def test_timestamp_exactly_on_keyframe(
 
 def test_timestamp_between_keyframes(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf1_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)  # Value 10.0
     kf2_dt = datetime(2023, 1, 1, 0, 0, 20, tzinfo=timezone.utc)  # Value 20.0
     keyframes_list = [(kf1_dt, 10.0), (kf2_dt, 20.0)]
@@ -158,7 +190,7 @@ def test_timestamp_between_keyframes(
 
 def test_multiple_required_timestamps(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf_base_dt = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     keyframes_list = [
         (kf_base_dt + timedelta(seconds=10), 10.0),
@@ -190,7 +222,7 @@ def test_multiple_required_timestamps(
 
 def test_timestamps_with_microseconds(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf1_dt = datetime(2023, 1, 1, 0, 0, 10, 100000, tzinfo=timezone.utc)  # 10.0 @ 10.1s
     kf2_dt = datetime(2023, 1, 1, 0, 0, 10, 600000, tzinfo=timezone.utc)  # 20.0 @ 10.6s
     keyframes_list = [(kf1_dt, 10.0), (kf2_dt, 20.0)]
@@ -209,7 +241,7 @@ def test_timestamps_with_microseconds(
 
 def test_identical_timestamps_in_keyframes(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf_base_dt = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     keyframes_list = [
         (kf_base_dt + timedelta(seconds=10), 10.0),
@@ -255,7 +287,7 @@ def test_identical_timestamps_in_keyframes(
     ).item() == pytest.approx(26.0)
 
 
-def test_plateaus_in_keyframes(linear_strategy: LinearInterpolationStrategy):
+def test_plateaus_in_keyframes(linear_strategy: LinearInterpolationStrategy) -> None:
     kf_base_dt = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     keyframes_list = [
         (kf_base_dt + timedelta(seconds=10), 10.0),
@@ -285,12 +317,9 @@ def test_plateaus_in_keyframes(linear_strategy: LinearInterpolationStrategy):
     assert torch.allclose(actual_values_tensor, expected_values, atol=1e-5)
 
 
-import random
-
-
 def test_many_random_keyframes_and_timestamps(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     num_keyframes = 100
     num_req_timestamps = 200
     base_time_int = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp())
@@ -366,7 +395,7 @@ def test_many_random_keyframes_and_timestamps(
 
 def test_required_timestamps_very_close_to_keyframes(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf_base_dt = datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     epsilon_td = timedelta(microseconds=1)
 
@@ -413,7 +442,7 @@ def test_required_timestamps_very_close_to_keyframes(
 
 def test_interpolation_over_zero_duration_segment(
     linear_strategy: LinearInterpolationStrategy,
-):
+) -> None:
     kf_dt = datetime(2023, 1, 1, 0, 0, 10, tzinfo=timezone.utc)
     keyframes_list1 = [(kf_dt, 10.0), (kf_dt, 20.0)]  # Two kfs at same time
     kf_ts_tensor1, kf_vals_tensor1 = keyframes_to_tensors(keyframes_list1)
