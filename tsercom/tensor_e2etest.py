@@ -197,9 +197,9 @@ async def test_out_of_order_pass_through_mux_cascade_effect() -> None:
     # Check T2 in Demuxer - should be correct based on T1
     reconstructed_t2 = await demuxer_client.get_tensor_at_ts(T_COMP_2)
     assert reconstructed_t2 is not None, "T2 not reconstructed"
-    assert torch.equal(tensor_t2, reconstructed_t2), (
-        f"T2 mismatch: {tensor_t2} vs {reconstructed_t2}"
-    )
+    assert torch.equal(
+        tensor_t2, reconstructed_t2
+    ), f"T2 mismatch: {tensor_t2} vs {reconstructed_t2}"
 
     # Check T3 in Demuxer - Demuxer should have processed T3's re-diffed updates from Mux.
     # Demuxer's T3 was [3,3,3,3] (based on T1).
@@ -207,12 +207,12 @@ async def test_out_of_order_pass_through_mux_cascade_effect() -> None:
     # If T2 = [2,2,2,2] and T3_orig = [3,3,3,3], then diff(T3_orig,T2) is all 3s.
     # Demuxer T3 state starts as T2 state [2,2,2,2], applies diffs, becomes [3,3,3,3].
     reconstructed_t3 = await demuxer_client.get_tensor_at_ts(T_COMP_3)
-    assert reconstructed_t3 is not None, (
-        "T3 not reconstructed after T2 insertion"
-    )
-    assert torch.equal(tensor_t3, reconstructed_t3), (
-        f"T3 mismatch: {tensor_t3} vs {reconstructed_t3}"
-    )
+    assert (
+        reconstructed_t3 is not None
+    ), "T3 not reconstructed after T2 insertion"
+    assert torch.equal(
+        tensor_t3, reconstructed_t3
+    ), f"T3 mismatch: {tensor_t3} vs {reconstructed_t3}"
 
     # Ensure T1 is still correct
     reconstructed_t1_final = await demuxer_client.get_tensor_at_ts(T_COMP_1)
@@ -325,14 +325,14 @@ async def test_mux_cascade_three_deep_e2e() -> None:
     assert torch.equal(reconstructed_t2_final, t2_val), "T2 incorrect"
     reconstructed_t3_final = await demuxer_client.get_tensor_at_ts(T_COMP_3)
     assert reconstructed_t3_final is not None
-    assert torch.equal(reconstructed_t3_final, t3_val), (
-        "T3 incorrect after T2 insertion"
-    )
+    assert torch.equal(
+        reconstructed_t3_final, t3_val
+    ), "T3 incorrect after T2 insertion"
     reconstructed_t4_final = await demuxer_client.get_tensor_at_ts(T_COMP_4)
     assert reconstructed_t4_final is not None
-    assert torch.equal(reconstructed_t4_final, t4_val), (
-        "T4 incorrect after T2 insertion"
-    )
+    assert torch.equal(
+        reconstructed_t4_final, t4_val
+    ), "T4 incorrect after T2 insertion"
 
 
 @pytest.mark.asyncio
@@ -382,15 +382,15 @@ async def test_data_timeout_e2e() -> None:
     await multiplexer.process_tensor(tensor_t1, T_COMP_1)
     await multiplexer_client.flush_tasks()
 
-    assert not any(ts == T_COMP_0 for ts, _ in multiplexer.history), (
-        "T0 Mux history"
-    )
-    assert await demuxer_client.get_tensor_at_ts(T_COMP_0) is None, (
-        "T0 Demuxer output"
-    )  # This relies on DemuxerOutputHandler reflecting timeout
-    assert not _is_ts_present_in_demuxer_states(demuxer, T_COMP_0), (
-        "T0 Demuxer internal"
-    )
+    assert not any(
+        ts == T_COMP_0 for ts, _ in multiplexer.history
+    ), "T0 Mux history"
+    assert (
+        await demuxer_client.get_tensor_at_ts(T_COMP_0) is None
+    ), "T0 Demuxer output"  # This relies on DemuxerOutputHandler reflecting timeout
+    assert not _is_ts_present_in_demuxer_states(
+        demuxer, T_COMP_0
+    ), "T0 Demuxer internal"
 
     reconstructed_t1 = await demuxer_client.get_tensor_at_ts(T_COMP_1)
     assert reconstructed_t1 is not None
@@ -494,9 +494,9 @@ async def test_deep_cascade_on_early_update_e2e() -> None:
     final_D = await demuxer_client.get_tensor_at_ts(TS_D)
 
     assert final_A is not None, "Final TS_A is None"
-    assert torch.equal(final_A, tensor_A_v2), (
-        f"Final TS_A mismatch. Expected {tensor_A_v2}, Got {final_A}"
-    )
+    assert torch.equal(
+        final_A, tensor_A_v2
+    ), f"Final TS_A mismatch. Expected {tensor_A_v2}, Got {final_A}"
 
     # The cascade logic in TensorMultiplexer re-emits diffs.
     # TensorDemuxer's cascade logic applies these diffs to the *new* preceding state.
@@ -512,16 +512,16 @@ async def test_deep_cascade_on_early_update_e2e() -> None:
     #   Demuxer takes A_v2 state, applies diffs, should result in B_v1.
     # This means B, C, D should remain their original values if the cascade is perfect.
     assert final_B is not None, "Final TS_B is None"
-    assert torch.equal(final_B, tensor_B_v1), (
-        f"Final TS_B mismatch. Expected {tensor_B_v1}, Got {final_B}"
-    )
+    assert torch.equal(
+        final_B, tensor_B_v1
+    ), f"Final TS_B mismatch. Expected {tensor_B_v1}, Got {final_B}"
 
     assert final_C is not None, "Final TS_C is None"
-    assert torch.equal(final_C, tensor_C_v1), (
-        f"Final TS_C mismatch. Expected {tensor_C_v1}, Got {final_C}"
-    )
+    assert torch.equal(
+        final_C, tensor_C_v1
+    ), f"Final TS_C mismatch. Expected {tensor_C_v1}, Got {final_C}"
 
     assert final_D is not None, "Final TS_D is None"
-    assert torch.equal(final_D, tensor_D_v1), (
-        f"Final TS_D mismatch. Expected {tensor_D_v1}, Got {final_D}"
-    )
+    assert torch.equal(
+        final_D, tensor_D_v1
+    ), f"Final TS_D mismatch. Expected {tensor_D_v1}, Got {final_D}"

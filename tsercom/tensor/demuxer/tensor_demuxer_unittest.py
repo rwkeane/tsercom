@@ -1245,9 +1245,9 @@ async def test_multi_element_chunk_updates_existing_timestamp(
 
     await d.on_chunk_received(update_chunk)
 
-    assert mc.call_count == 1, (
-        "Client should be notified once for the updating chunk"
-    )
+    assert (
+        mc.call_count == 1
+    ), "Client should be notified once for the updating chunk"
     last_call = mc.get_last_call()
     assert last_call is not None
     tensor, ts = last_call
@@ -1323,9 +1323,9 @@ async def test_multi_element_chunk_triggers_cascade(
     # 2. For T2 cascade: T1's state + T2's explicit [100, 200 (from T1) but T2 has explicit 10 at index 1 -> 100, 10, 0, 0] -> [100,10,0,0]
     #    Wait, T2's explicit was (1,10). So T2 becomes [100, 10, 0, 0]
     # 3. For T3 cascade: T2's new state + T3's explicit [100, 10 (from T2) + T3 has explicit 20 at index 2] -> [100, 10, 20, 0]
-    assert mc.call_count == 3, (
-        "Should be 3 calls: T1 direct, T2 cascade, T3 cascade"
-    )
+    assert (
+        mc.call_count == 3
+    ), "Should be 3 calls: T1 direct, T2 cascade, T3 cascade"
 
     # Call 1: T1
     t1_tensor, t1_ts = mc.calls[0]
