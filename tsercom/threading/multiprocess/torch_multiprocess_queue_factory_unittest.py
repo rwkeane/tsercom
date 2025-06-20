@@ -95,27 +95,19 @@ class TestTorchMultiprocessQueueFactory:
                 tensor_to_send, received_tensor
             ), "Tensor sent and received via Sink/Source are not equal."
         except Exception as e:
-            pytest.fail(
-                f"Tensor transfer via Sink/Source failed with exception: {e}"
-            )
+            pytest.fail(f"Tensor transfer via Sink/Source failed with exception: {e}")
 
     @pytest.mark.timeout(20)
     @pytest.mark.parametrize("start_method", ["fork", "spawn", "forkserver"])
-    def test_interprocess_tensor_transfer_with_context(
-        self, start_method: str
-    ) -> None:
+    def test_interprocess_tensor_transfer_with_context(self, start_method: str) -> None:
         """
         Tests tensor transfer between processes using different multiprocessing start methods.
         """
         if start_method == "forkserver" and sys.platform != "linux":
-            pytest.skip(
-                "forkserver start method is only reliably available on Linux"
-            )
+            pytest.skip("forkserver start method is only reliably available on Linux")
 
         mp_context = mp.get_context(start_method)
-        factory = TorchMultiprocessQueueFactory[torch.Tensor](
-            context=mp_context
-        )
+        factory = TorchMultiprocessQueueFactory[torch.Tensor](context=mp_context)
         sink, source = factory.create_queues()
         result_queue: "mp.Queue[Any]" = mp_context.Queue()
 
@@ -140,9 +132,7 @@ class TestTorchMultiprocessQueueFactory:
                 # Add some variation for easier identification if debugging.
                 original_tensor[0, 0] = float(i + 1)
                 put_success = sink.put_blocking(original_tensor, timeout=5)
-                assert (
-                    put_success
-                ), f"Failed to put tensor {i + 1} onto the sink queue"
+                assert put_success, f"Failed to put tensor {i + 1} onto the sink queue"
                 sent_tensors.append(original_tensor)
 
             # Increased timeout per item for receive loop, overall test timeout is 20s.
@@ -181,13 +171,9 @@ class TestTorchMultiprocessQueueFactory:
                     import signal
 
                     try:
-                        if (
-                            process.pid is not None
-                        ):  # Check if pid is available
+                        if process.pid is not None:  # Check if pid is available
                             os.kill(process.pid, signal.SIGKILL)
-                    except (
-                        ProcessLookupError
-                    ):  # Process might have already died.
+                    except ProcessLookupError:  # Process might have already died.
                         pass
                 process.join(timeout=5)
 

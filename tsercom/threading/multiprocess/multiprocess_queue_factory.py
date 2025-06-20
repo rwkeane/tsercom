@@ -29,9 +29,7 @@ class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
     @abstractmethod
     def create_queues(
         self,
-    ) -> Tuple[
-        MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]
-    ]:
+    ) -> Tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
         """
         Creates a pair of queues for inter-process communication.
 

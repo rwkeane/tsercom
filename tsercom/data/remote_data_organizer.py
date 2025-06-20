@@ -62,9 +62,7 @@ class RemoteDataOrganizer(
         self.__caller_id: CallerIdentifier = caller_id
         self.__client: RemoteDataOrganizer.Client | None = client
         self.__data_lock: threading.Lock = threading.Lock()
-        self.__data: SortedList[DataTypeT] = SortedList(
-            key=lambda item: item.timestamp
-        )
+        self.__data: SortedList[DataTypeT] = SortedList(key=lambda item: item.timestamp)
         self.__last_access: datetime.datetime = datetime.datetime.min.replace(
             tzinfo=datetime.timezone.utc
         )
@@ -147,9 +145,7 @@ class RemoteDataOrganizer(
                 return None
             return self.__data[-1]  # type: ignore[no-any-return]
 
-    def get_data_for_timestamp(
-        self, timestamp: datetime.datetime
-    ) -> DataTypeT | None:
+    def get_data_for_timestamp(self, timestamp: datetime.datetime) -> DataTypeT | None:
         """Returns the most recent data item received at or before the given timestamp.
 
         Args:
@@ -162,13 +158,8 @@ class RemoteDataOrganizer(
         with self.__data_lock:
             if not self.__data:
                 return None
-            if (
-                timestamp.tzinfo is None
-                and self.__data[0].timestamp.tzinfo is not None
-            ):
-                timestamp = timestamp.replace(
-                    tzinfo=self.__data[0].timestamp.tzinfo
-                )
+            if timestamp.tzinfo is None and self.__data[0].timestamp.tzinfo is not None:
+                timestamp = timestamp.replace(tzinfo=self.__data[0].timestamp.tzinfo)
 
             class DummyItemForBisectSearch:
 
@@ -185,9 +176,7 @@ class RemoteDataOrganizer(
                     """
                     self.timestamp: datetime.datetime = ts
 
-            idx: int = self.__data.bisect_right(
-                DummyItemForBisectSearch(timestamp)
-            )
+            idx: int = self.__data.bisect_right(DummyItemForBisectSearch(timestamp))
             if idx == 0:
                 return None
             return self.__data[idx - 1]  # type: ignore[no-any-return]
@@ -254,8 +243,7 @@ class RemoteDataOrganizer(
             item_to_find = DummyItemForBisectSearch(new_data.timestamp)
             idx: int = self.__data.bisect_left(item_to_find)
             item_is_latest = (
-                not self.__data
-                or new_data.timestamp >= self.__data[-1].timestamp
+                not self.__data or new_data.timestamp >= self.__data[-1].timestamp
             )
             if (
                 idx < len(self.__data)
@@ -280,9 +268,7 @@ class RemoteDataOrganizer(
         Args:
             timeout_seconds: The duration of the timeout that triggered this callback.
         """
-        self.__thread_pool.submit(
-            partial(self.__timeout_old_data, timeout_seconds)
-        )
+        self.__thread_pool.submit(partial(self.__timeout_old_data, timeout_seconds))
 
     def __timeout_old_data(self, timeout_seconds: int) -> None:
         """Removes data older than the specified timeout period.
@@ -303,15 +289,10 @@ class RemoteDataOrganizer(
         timeout_delta = datetime.timedelta(seconds=timeout_seconds)
         oldest_allowed_timestamp = current_time - timeout_delta
         with self.__data_lock:
-            while (
-                self.__data
-                and self.__data[0].timestamp < oldest_allowed_timestamp
-            ):
+            while self.__data and self.__data[0].timestamp < oldest_allowed_timestamp:
                 self.__data.pop(0)
 
-    def get_interpolated_at(
-        self, timestamp: datetime.datetime
-    ) -> DataTypeT | None:
+    def get_interpolated_at(self, timestamp: datetime.datetime) -> DataTypeT | None:
         """Gets a linearly interpolated data value for any given timestamp.\\n\\nArgs:\\n    timestamp: The timestamp for which to get an interpolated value.\\n\\nReturns:\\n    An optional `DataTypeT` instance. This instance is newly created,\\n    with its `timestamp` attribute set to the query `timestamp` and its `data`\\n    attribute (or equivalent payload) holding the linearly interpolated value.\\n    Returns the nearest keyframe if the timestamp is outside the known range,\\n    or an exact keyframe if the timestamp matches one. Returns `None` if\\n    the internal data store is empty or if interpolation fails (e.g., due\\n    to non-numeric data types that do not support arithmetic operations)."""
         with self.__data_lock:
             if not self.__data:
@@ -355,9 +336,7 @@ class RemoteDataOrganizer(
                 return deepcopy(self.__data[idx_right])  # type: ignore[no-any-return]
             item_left: DataTypeT = self.__data[idx_right - 1]
             item_right: DataTypeT = self.__data[idx_right]
-            t_diff_secs: float = (
-                timestamp - item_left.timestamp
-            ).total_seconds()
+            t_diff_secs: float = (timestamp - item_left.timestamp).total_seconds()
             total_t_interval_secs: float = (
                 item_right.timestamp - item_left.timestamp
             ).total_seconds()
@@ -380,9 +359,7 @@ class RemoteDataOrganizer(
                         type(data_right).__name__,
                     )
                     return None
-                interpolated_inner_data = data_left + ratio * (
-                    data_right - data_left
-                )
+                interpolated_inner_data = data_left + ratio * (data_right - data_left)
             except TypeError as e:
                 logger.error(
                     "Type error during arithmetic operations for interpolation. Error: %s",

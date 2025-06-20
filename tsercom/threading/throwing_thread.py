@@ -20,9 +20,7 @@ class ThrowingThread(threading.Thread):
         target: Callable[..., Any],
         on_error_cb: Callable[[Exception], None],
         args: tuple[Any, ...] = (),  # Explicit 'args' for target
-        kwargs: Optional[
-            dict[str, Any]
-        ] = None,  # Explicit 'kwargs' for target
+        kwargs: Optional[dict[str, Any]] = None,  # Explicit 'kwargs' for target
         # Allow other threading.Thread parameters too
         group: None = None,
         name: None = None,
@@ -89,8 +87,7 @@ class ThrowingThread(threading.Thread):
 
         except Exception as e_start:
             logging.error(
-                "ThrowingThread.start() EXCEPTION during super().start() for "
-                "%s: %r",
+                "ThrowingThread.start() EXCEPTION during super().start() for " "%s: %r",
                 self.name,
                 e_start,
                 exc_info=True,

@@ -74,9 +74,9 @@ class FakeMdnsListener(MdnsListener):
         )
         fake_mdns_instance_name = f"FakedServiceInstance.{self.__service_type}"
         if not fake_mdns_instance_name.endswith(".local."):
-            if self.__service_type.count(
+            if self.__service_type.count(".") == 2 and self.__service_type.endswith(
                 "."
-            ) == 2 and self.__service_type.endswith("."):
+            ):
                 fake_mdns_instance_name = (
                     f"FakedServiceInstance.{self.__service_type}local."
                 )
@@ -97,28 +97,18 @@ class FakeMdnsListener(MdnsListener):
             f"FakeMdnsListener: _on_service_added called for {fake_mdns_instance_name}"
         )
 
-    async def add_service(
-        self, zc: AsyncZeroconf, type_: str, name: str
-    ) -> None:
+    async def add_service(self, zc: AsyncZeroconf, type_: str, name: str) -> None:
         logging.debug(
             f"FakeMdnsListener: add_service called for {name} type {type_}, no action."
         )
         pass
 
-    async def update_service(
-        self, zc: AsyncZeroconf, type_: str, name: str
-    ) -> None:
-        logging.debug(
-            f"FakeMdnsListener: update_service called for {name}, no action."
-        )
+    async def update_service(self, zc: AsyncZeroconf, type_: str, name: str) -> None:
+        logging.debug(f"FakeMdnsListener: update_service called for {name}, no action.")
         pass
 
-    async def remove_service(
-        self, zc: AsyncZeroconf, type_: str, name: str
-    ) -> None:
-        logging.debug(
-            f"FakeMdnsListener: remove_service called for {name}, no action."
-        )
+    async def remove_service(self, zc: AsyncZeroconf, type_: str, name: str) -> None:
+        logging.debug(f"FakeMdnsListener: remove_service called for {name}, no action.")
         pass
 
     async def close(self) -> None:
@@ -166,9 +156,7 @@ class GenericServerRuntime(
         if mdns_listener_factory is None:
             discoverer = DiscoveryHost(service_type="_foo._tcp")
         else:
-            discoverer = DiscoveryHost(
-                mdns_listener_factory=mdns_listener_factory
-            )
+            discoverer = DiscoveryHost(mdns_listener_factory=mdns_listener_factory)
         self.__connector = ServiceConnector[ServiceInfo, grpc.Channel](
             self, channel_factory, discoverer
         )
@@ -187,9 +175,7 @@ class GenericServerRuntime(
                 )
                 add_E2ETestServiceServicer_to_server(E2eTestServicer(), server)
                 health_servicer = health.HealthServicer()
-                health_pb2_grpc.add_HealthServicer_to_server(
-                    health_servicer, server
-                )
+                health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
                 health_servicer.set(
                     "tsercom.GenericServerRuntime.E2ETestService",
                     health_pb2.HealthCheckResponse.SERVING,
@@ -235,9 +221,7 @@ class GenericClientRuntime(
         self.__grpc_channel_factory = grpc_channel_factory
 
         self.__is_running = IsRunningTracker()
-        self.__mdns_publiser = InstancePublisher(
-            port, "_foo._tcp", readable_name
-        )
+        self.__mdns_publiser = InstancePublisher(port, "_foo._tcp", readable_name)
         self.__grpc_publisher = GrpcServicePublisher(self.__watcher, port)
 
         super().__init__()
@@ -257,9 +241,7 @@ class GenericClientRuntime(
             from grpc_health.v1 import health_pb2_grpc
 
             health_servicer = health.HealthServicer()
-            health_pb2_grpc.add_HealthServicer_to_server(
-                health_servicer, server
-            )
+            health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
             # Mark the service as serving. Adjust service name as needed.
             health_servicer.set(
                 "tsercom.GenericClientRuntime",
@@ -290,9 +272,7 @@ class GenericClientRuntime(
             await self.__grpc_publisher.stop_async()
         logging.info("GenericClientRuntime stopped.")
 
-    async def create_e2e_test_stub(
-        self, target_address: str
-    ) -> E2ETestServiceStub:
+    async def create_e2e_test_stub(self, target_address: str) -> E2ETestServiceStub:
         """Creates a gRPC stub for the E2ETestService.
 
         Args:
@@ -331,9 +311,7 @@ class GenericClientRuntime(
         return stub
 
 
-class GenericServerRuntimeInitializer(
-    RuntimeInitializer[torch.Tensor, torch.Tensor]
-):
+class GenericServerRuntimeInitializer(RuntimeInitializer[torch.Tensor, torch.Tensor]):
     def __init__(
         self,
         *,
@@ -354,9 +332,7 @@ class GenericServerRuntimeInitializer(
     ) -> Runtime:
         actual_mdns_listener_factory: Optional[MdnsListenerFactory] = None
         if self.__fake_service_port is not None:
-            logging.info(
-                f"Using FakeMdnsListener for port {self.__fake_service_port}"
-            )
+            logging.info(f"Using FakeMdnsListener for port {self.__fake_service_port}")
 
             # The service_type_arg in the lambda is what DiscoveryHost would pass to the factory.
             # FakeMdnsListener will use this service_type_arg.
@@ -385,9 +361,7 @@ class GenericServerRuntimeInitializer(
         )
 
 
-class GenericClientRuntimeInitializer(
-    RuntimeInitializer[torch.Tensor, torch.Tensor]
-):
+class GenericClientRuntimeInitializer(RuntimeInitializer[torch.Tensor, torch.Tensor]):
     def __init__(self, host_port: int, name: str):
         self.__host_port = host_port
         self.__name = name
@@ -433,17 +407,11 @@ async def test_anomoly_service(clear_loop_fixture):
         logger_instance.setLevel(temp_level)
 
     client_initializer = GenericClientRuntimeInitializer(2024, "Client")
-    server_initializer = GenericServerRuntimeInitializer(
-        fake_service_port=2024
-    )
+    server_initializer = GenericServerRuntimeInitializer(fake_service_port=2024)
 
     runtime_manager = RuntimeManager(is_testing=True)
-    client_handle_f = runtime_manager.register_runtime_initializer(
-        client_initializer
-    )
-    server_handle_f = runtime_manager.register_runtime_initializer(
-        server_initializer
-    )
+    client_handle_f = runtime_manager.register_runtime_initializer(client_initializer)
+    server_handle_f = runtime_manager.register_runtime_initializer(server_initializer)
 
     await runtime_manager.start_in_process_async()
     runtime_manager.check_for_exception()
@@ -486,9 +454,7 @@ class E2eTestServicer(E2ETestServiceServicer):
     __test__ = False
 
     async def Echo(self, request: EchoRequest, context) -> EchoResponse:
-        logging.info(
-            f"E2eTestServicer received Echo request: {request.message}"
-        )
+        logging.info(f"E2eTestServicer received Echo request: {request.message}")
         e2e_servicer_received_messages.append(request.message)
         return EchoResponse(response=f"Server echoes: {request.message}")
 
@@ -501,9 +467,7 @@ class E2eTestServicer(E2ETestServiceServicer):
             "ServerStreamData not fully implemented",
         )
 
-    async def ClientStreamData(
-        self, request_iterator, context
-    ) -> EchoResponse:
+    async def ClientStreamData(self, request_iterator, context) -> EchoResponse:
         messages_received_count = 0
         async for req in request_iterator:
             logging.info(
@@ -517,9 +481,7 @@ class E2eTestServicer(E2ETestServiceServicer):
     async def BidirectionalStreamData(self, request_iterator, context):
         logging.info("E2eTestServicer BidirectionalStreamData called")
         async for req in request_iterator:
-            logging.info(
-                f"E2eTestServicer (Bidi) consumed data_id: {req.data_id}"
-            )
+            logging.info(f"E2eTestServicer (Bidi) consumed data_id: {req.data_id}")
         raise grpc.aio.RpcError(
             grpc.StatusCode.UNIMPLEMENTED,
             "BidirectionalStreamData response generation not implemented",
@@ -552,12 +514,8 @@ async def test_full_app_with_grpc_transport(clear_loop_fixture, caplog):
     )
 
     runtime_manager = RuntimeManager(is_testing=True)
-    server_handle_f = runtime_manager.register_runtime_initializer(
-        server_initializer
-    )
-    client_handle_f = runtime_manager.register_runtime_initializer(
-        client_initializer
-    )
+    server_handle_f = runtime_manager.register_runtime_initializer(server_initializer)
+    client_handle_f = runtime_manager.register_runtime_initializer(client_initializer)
 
     await runtime_manager.start_in_process_async()
     assert server_handle_f.done() and client_handle_f.done()
@@ -574,15 +532,11 @@ async def test_full_app_with_grpc_transport(clear_loop_fixture, caplog):
         client_runtime_maybe is not None
     ), "Failed to get actual client runtime from handle"
     client_runtime: GenericClientRuntime = client_runtime_maybe  # type: ignore[assignment]
-    stub = await client_runtime.create_e2e_test_stub(
-        f"localhost:{SERVER_GRPC_PORT}"
-    )
+    stub = await client_runtime.create_e2e_test_stub(f"localhost:{SERVER_GRPC_PORT}")
 
     test_message = "Hello GRPC E2E"
     try:
-        response = await stub.Echo(
-            EchoRequest(message=test_message), timeout=5.0
-        )
+        response = await stub.Echo(EchoRequest(message=test_message), timeout=5.0)
         logging.info(f"Echo response received: {response.response}")
         assert f"Server echoes: {test_message}" in response.response
         assert test_message in e2e_servicer_received_messages

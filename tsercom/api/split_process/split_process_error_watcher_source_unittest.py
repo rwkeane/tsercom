@@ -152,12 +152,10 @@ def error_source(
 def test_init(error_source, fake_watcher, fake_exception_queue):
     """Test SplitProcessErrorWatcherSource.__init__."""
     assert (
-        error_source._SplitProcessErrorWatcherSource__thread_watcher
-        is fake_watcher
+        error_source._SplitProcessErrorWatcherSource__thread_watcher is fake_watcher
     )  # Corrected attribute name
     assert (
-        error_source._SplitProcessErrorWatcherSource__queue
-        is fake_exception_queue
+        error_source._SplitProcessErrorWatcherSource__queue is fake_exception_queue
     )  # Corrected attribute name
     # Check that IsRunningTracker was instantiated (and is our Fake due to patch)
     internal_tracker = error_source._SplitProcessErrorWatcherSource__is_running
@@ -176,9 +174,7 @@ def test_start_method(error_source, fake_watcher):
     error_source.start()
 
     assert internal_tracker.start_call_count == 1
-    assert (
-        fake_watcher.created_thread_target is not None
-    )  # Target is an inner function
+    assert fake_watcher.created_thread_target is not None  # Target is an inner function
     assert callable(fake_watcher.created_thread_target)
     assert fake_watcher.fake_thread is not None
     assert fake_watcher.fake_thread._started is True
@@ -205,9 +201,7 @@ def test_is_running_method(error_source):
 
     # Before start
     assert error_source.is_running is False  # Access as property
-    assert (
-        internal_tracker.get_call_count == 1
-    )  # is_running property calls get()
+    assert internal_tracker.get_call_count == 1  # is_running property calls get()
 
     # After start
     error_source.start()
@@ -233,9 +227,7 @@ def setup_loop_test(error_source, fake_watcher):
     return internal_tracker, loop_target
 
 
-def test_loop_exception_received(
-    error_source, fake_watcher, fake_exception_queue
-):
+def test_loop_exception_received(error_source, fake_watcher, fake_exception_queue):
     """Scenario 1: Exception received from queue."""
     internal_tracker, loop_target = setup_loop_test(error_source, fake_watcher)
     test_exception = RuntimeError("Test Exception from Queue")
@@ -251,9 +243,7 @@ def test_loop_exception_received(
 def test_loop_queue_timeout(error_source, fake_watcher, fake_exception_queue):
     """Scenario 2: Queue timeout (returns None)."""
     internal_tracker, loop_target = setup_loop_test(error_source, fake_watcher)
-    fake_exception_queue.set_return_values(
-        [None, StopIteration]
-    )  # Simulate timeout
+    fake_exception_queue.set_return_values([None, StopIteration])  # Simulate timeout
 
     with pytest.raises(StopIteration):
         loop_target()
@@ -290,9 +280,7 @@ def test_loop_termination_on_is_running_false(
     )  # Processed one exception
     assert fake_exception_queue.get_blocking_call_count == 1  # Read one item
 
-    internal_tracker.get = (
-        original_get_method  # Restore for other tests if any
-    )
+    internal_tracker.get = original_get_method  # Restore for other tests if any
     internal_tracker.set_is_running(False)  # Ensure it's reset for other tests
 
 
@@ -316,18 +304,14 @@ def test_stop_join_timeout_logs_warning(
     )  # So start() thinks it can run for the thread to be created
     error_source.start()
 
-    assert (
-        fake_watcher.fake_thread is not None
-    ), "Thread should have been created"
+    assert fake_watcher.fake_thread is not None, "Thread should have been created"
 
     # Mock thread.join to do nothing (simulating it never finishes on its own)
     mocker.patch.object(
         fake_watcher.fake_thread, "join", side_effect=lambda timeout=None: None
     )
     # Mock thread.is_alive to always return True
-    mocker.patch.object(
-        fake_watcher.fake_thread, "is_alive", return_value=True
-    )
+    mocker.patch.object(fake_watcher.fake_thread, "is_alive", return_value=True)
 
     mock_logger = mocker.patch(
         "tsercom.api.split_process.split_process_error_watcher_source.logger"
@@ -339,9 +323,7 @@ def test_stop_join_timeout_logs_warning(
     try:
         error_source.stop()  # This call will set __is_running to False and then try to join
     except RuntimeError:  # pragma: no cover
-        pytest.fail(
-            "stop() should not raise RuntimeError on join timeout, only log."
-        )
+        pytest.fail("stop() should not raise RuntimeError on join timeout, only log.")
 
     fake_watcher.fake_thread.join.assert_called_once_with(
         timeout=2.0
@@ -385,9 +367,7 @@ def test_loop_watcher_on_exception_seen_fails(
     internal_tracker, loop_target = setup_loop_test(error_source, fake_watcher)
 
     test_exception_from_queue = ConnectionRefusedError("Remote process error")
-    fake_exception_queue.set_return_values(
-        [test_exception_from_queue, StopIteration]
-    )
+    fake_exception_queue.set_return_values([test_exception_from_queue, StopIteration])
 
     internal_watcher_exception = TypeError("Watcher failed to process")
     # Ensure on_exception_seen is a mock and then set its side_effect
@@ -409,9 +389,7 @@ def test_loop_watcher_on_exception_seen_fails(
     ):  # Loop terminates due to StopIteration from queue
         loop_target()
 
-    fake_watcher.on_exception_seen.assert_called_once_with(
-        test_exception_from_queue
-    )
+    fake_watcher.on_exception_seen.assert_called_once_with(test_exception_from_queue)
 
     # Check for the specific error log
     mock_logger.error.assert_called_once()

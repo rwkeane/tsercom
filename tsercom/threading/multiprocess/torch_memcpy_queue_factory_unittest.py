@@ -78,9 +78,7 @@ def _container_consumer_process_helper_func(
         except queue.Empty:
             pass
         except Exception as e_main:
-            print(
-                f"Child (Container): Error in main processing loop: {e_main}"
-            )
+            print(f"Child (Container): Error in main processing loop: {e_main}")
             time.sleep(0.1)
         time.sleep(0.05)
 
@@ -124,15 +122,11 @@ class TestTorchMultiprocessQueueFactory:
                 tensor_to_send, received_tensor
             ), "Tensor sent and received are not equal."
         except Exception as e:
-            pytest.fail(
-                f"Tensor transfer via specialized Sink/Source failed: {e}"
-            )
+            pytest.fail(f"Tensor transfer via specialized Sink/Source failed: {e}")
 
     @pytest.mark.timeout(20)
     @pytest.mark.parametrize("start_method", ["fork", "spawn", "forkserver"])
-    def test_interprocess_tensor_transfer_with_context(
-        self, start_method: str
-    ) -> None:
+    def test_interprocess_tensor_transfer_with_context(self, start_method: str) -> None:
         if start_method == "forkserver" and sys.platform != "linux":
             pytest.skip("forkserver is only available on Linux")
 
@@ -155,23 +149,17 @@ class TestTorchMultiprocessQueueFactory:
         process.start()
 
         num_tensors_to_test = 3
-        original_tensors = [
-            torch.randn(2, 2).cpu() for _ in range(num_tensors_to_test)
-        ]
+        original_tensors = [torch.randn(2, 2).cpu() for _ in range(num_tensors_to_test)]
 
         for i in range(num_tensors_to_test):
-            put_successful = p2c_sink.put_blocking(
-                original_tensors[i], timeout=10
-            )
+            put_successful = p2c_sink.put_blocking(original_tensors[i], timeout=10)
             assert put_successful, f"Failed to put original_tensors[{i}]"
 
         received_tensors = []
         try:
             for i in range(num_tensors_to_test):
                 received_tensor = c2p_source.get_blocking(timeout=10)
-                assert (
-                    received_tensor is not None
-                ), f"Received None for tensor {i}"
+                assert received_tensor is not None, f"Received None for tensor {i}"
                 assert isinstance(
                     received_tensor, torch.Tensor
                 ), f"Tensor {i} not torch.Tensor"
@@ -191,9 +179,7 @@ class TestTorchMultiprocessQueueFactory:
 
     @pytest.mark.timeout(20)
     @pytest.mark.parametrize("start_method", ["fork", "spawn", "forkserver"])
-    def test_interprocess_tensor_container_transfer(
-        self, start_method: str
-    ) -> None:
+    def test_interprocess_tensor_container_transfer(self, start_method: str) -> None:
         if start_method == "forkserver" and sys.platform != "linux":
             pytest.skip("forkserver is only available on Linux")
 
@@ -231,27 +217,21 @@ class TestTorchMultiprocessQueueFactory:
         ]
 
         for i in range(num_tensors_to_test):
-            put_successful = p2c_sink.put_blocking(
-                original_containers[i], timeout=10
-            )
+            put_successful = p2c_sink.put_blocking(original_containers[i], timeout=10)
             assert put_successful, f"Failed to put original_containers[{i}]"
 
         received_containers: List[TensorContainer] = []
         try:
             for i in range(num_tensors_to_test):
                 container = c2p_source.get_blocking(timeout=10)
-                assert (
-                    container is not None
-                ), f"Received None for container {i}"
+                assert container is not None, f"Received None for container {i}"
                 assert isinstance(
                     container, TensorContainer
                 ), f"Container {i} not TensorContainer"
                 received_containers.append(container)
 
             assert len(original_containers) == len(received_containers)
-            for orig_c, recv_c in zip(
-                original_containers, received_containers
-            ):
+            for orig_c, recv_c in zip(original_containers, received_containers):
                 assert orig_c.name == recv_c.name, "Container names differ"
                 assert (
                     orig_c.other_data == recv_c.other_data

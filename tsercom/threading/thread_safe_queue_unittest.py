@@ -129,9 +129,7 @@ def test_thread_safety_concurrent_pops() -> None:
     num_threads = 10
     popped_items_collection: List[List[Any]] = [[] for _ in range(num_threads)]
     threads: List[threading.Thread] = []
-    lock = (
-        threading.Lock()
-    )  # To safely append to popped_items_collection lists
+    lock = threading.Lock()  # To safely append to popped_items_collection lists
 
     # Use a barrier to try and start all threads as close to simultaneously as possible
     # after the queue is populated.
@@ -257,9 +255,7 @@ def test_thread_safety_mixed_push_pop() -> None:
         except queue.Empty:
             break  # Queue is exhausted
 
-    assert (
-        q.empty()
-    ), f"Queue should be empty after all operations. Size: {q.size()}"
+    assert q.empty(), f"Queue should be empty after all operations. Size: {q.size()}"
     assert (
         len(pushed_items_global) == total_items_to_push
     ), f"Number of unique pushed items should be {total_items_to_push}. Got: {len(pushed_items_global)}"

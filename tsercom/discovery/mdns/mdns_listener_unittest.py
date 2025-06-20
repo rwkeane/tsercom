@@ -26,9 +26,7 @@ class MockMdnsClient(IMdnsListenerClientProto.Client):
 
 
 class FaultyCustomListener(MdnsListener):
-    def __init__(
-        self, client: IMdnsListenerClientProto.Client, service_type: str
-    ):
+    def __init__(self, client: IMdnsListenerClientProto.Client, service_type: str):
         # This call was initially expected to trigger a TypeError, but none occurs in the current codebase.
         super().__init__()
         self._client = client

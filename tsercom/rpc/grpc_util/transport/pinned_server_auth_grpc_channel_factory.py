@@ -35,9 +35,7 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
         """
         self.expected_server_cert_pem: bytes
         if isinstance(expected_server_cert_pem, str):
-            self.expected_server_cert_pem = expected_server_cert_pem.encode(
-                "utf-8"
-            )
+            self.expected_server_cert_pem = expected_server_cert_pem.encode("utf-8")
         else:
             self.expected_server_cert_pem = expected_server_cert_pem
 
@@ -102,9 +100,7 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
 
                 # Wait for the channel to be ready, with a timeout.
                 # Consider making the timeout configurable or part of class constants.
-                await asyncio.wait_for(
-                    active_channel.channel_ready(), timeout=5.0
-                )
+                await asyncio.wait_for(active_channel.channel_ready(), timeout=5.0)
 
                 logger.info(
                     f"Successfully connected securely to {target} (Pinned Server Auth)."

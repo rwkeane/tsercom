@@ -41,9 +41,7 @@ class ShimRuntimeHandle(
         event_queue: MultiprocessQueueSink[EventInstance[EventTypeT]],
         data_queue: MultiprocessQueueSource[AnnotatedInstance[DataTypeT]],
         runtime_command_queue: MultiprocessQueueSink[RuntimeCommand],
-        data_aggregator: RemoteDataAggregatorImpl[
-            AnnotatedInstance[DataTypeT]
-        ],
+        data_aggregator: RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]],
         block: bool = False,
     ) -> None:
         """Initializes the ShimRuntimeHandle.
@@ -59,9 +57,9 @@ class ShimRuntimeHandle(
         """
         super().__init__()
 
-        self.__event_queue: MultiprocessQueueSink[
-            EventInstance[EventTypeT]
-        ] = event_queue
+        self.__event_queue: MultiprocessQueueSink[EventInstance[EventTypeT]] = (
+            event_queue
+        )
         self.__runtime_command_queue: MultiprocessQueueSink[RuntimeCommand] = (
             runtime_command_queue
         )
@@ -70,12 +68,12 @@ class ShimRuntimeHandle(
         ] = data_aggregator
         self.__block: bool = block
 
-        self.__data_reader_source: DataReaderSource[
-            AnnotatedInstance[DataTypeT]
-        ] = DataReaderSource(
-            thread_watcher,
-            data_queue,
-            self.__data_aggregator,
+        self.__data_reader_source: DataReaderSource[AnnotatedInstance[DataTypeT]] = (
+            DataReaderSource(
+                thread_watcher,
+                data_queue,
+                self.__data_aggregator,
+            )
         )
 
     def start(self) -> None:

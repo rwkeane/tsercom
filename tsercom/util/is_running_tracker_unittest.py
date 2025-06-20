@@ -139,9 +139,7 @@ def test_methods_fail_without_proper_event_loop_setup(mocker):
     # Sub-test for wait_until_stopped() when tracker is already stopped (initial state)
     # This tracker does not need the get_loop_func injection as __ensure_event_loop_initialized
     # should not be called.
-    tracker_ws_stopped = (
-        IsRunningTracker()
-    )  # New instance, initially False (stopped)
+    tracker_ws_stopped = IsRunningTracker()  # New instance, initially False (stopped)
     # It returns early, __ensure_event_loop_initialized is not called.
     run_async(tracker_ws_stopped.wait_until_stopped())
     assert (
@@ -216,12 +214,10 @@ def test_set_method_interaction_with_run_on_event_loop_and_clear(mocker):
 
     # Check that barriers are new event objects
     assert (
-        tracker._IsRunningTracker__running_barrier
-        is not original_running_barrier
+        tracker._IsRunningTracker__running_barrier is not original_running_barrier
     )  # pyright: ignore[reportPrivateUsage]
     assert (
-        tracker._IsRunningTracker__stopped_barrier
-        is not original_stopped_barrier
+        tracker._IsRunningTracker__stopped_barrier is not original_stopped_barrier
     )  # pyright: ignore[reportPrivateUsage]
     # Check their state (should be default: not set)
     assert (

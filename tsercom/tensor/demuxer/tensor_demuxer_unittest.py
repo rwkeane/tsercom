@@ -334,9 +334,7 @@ async def test_out_of_order_scenario_from_prompt(
         T2_std,  # Changed
     )
     assert t2_tensor_internal is not None
-    assert torch.equal(
-        t2_tensor_internal, torch.tensor([0.0, 10.0, 0.0, 40.0])
-    )
+    assert torch.equal(t2_tensor_internal, torch.tensor([0.0, 10.0, 0.0, 40.0]))
     chunk_tensor_T1_std_2 = torch.tensor([88.0], dtype=torch.float32)
     sync_ts_T1_std_2 = SynchronizedTimestamp(T1_std)
     chunk_T1_std_2 = SerializableTensorChunk(
@@ -446,13 +444,9 @@ async def test_complex_out_of_order_state_inheritance(
     await d.on_chunk_received(chunk_TS3_3)
     assert mc.call_count == 2
     expected_correct_t3 = torch.tensor([1.0, 2.0, 7.0, 8.0])
-    latest_tensor_for_t3_after_direct_updates = mc.get_latest_tensor_for_ts(
-        TS3
-    )
+    latest_tensor_for_t3_after_direct_updates = mc.get_latest_tensor_for_ts(TS3)
     assert latest_tensor_for_t3_after_direct_updates is not None
-    assert torch.equal(
-        latest_tensor_for_t3_after_direct_updates, expected_correct_t3
-    )
+    assert torch.equal(latest_tensor_for_t3_after_direct_updates, expected_correct_t3)
 
     chunk_tensor_TS2_0 = torch.tensor([0.0], dtype=torch.float32)
     sync_ts_TS2_0 = SynchronizedTimestamp(TS2)
@@ -475,18 +469,14 @@ async def test_complex_out_of_order_state_inheritance(
 
     tensor_states_list = getattr(d, "_processed_keyframes")  # Changed
     assert tensor_states_list[0][0] == TS1
-    assert torch.equal(
-        tensor_states_list[0][1], torch.tensor([1.0, 2.0, 3.0, 4.0])
-    )
+    assert torch.equal(tensor_states_list[0][1], torch.tensor([1.0, 2.0, 3.0, 4.0]))
     assert tensor_states_list[1][0] == TS2
     assert torch.equal(tensor_states_list[1][1], expected_correct_t2)
     assert tensor_states_list[2][0] == TS3
     expected_cascaded_t3 = torch.tensor([0.0, 5.0, 7.0, 8.0])
     assert torch.equal(tensor_states_list[2][1], expected_cascaded_t3)
     assert tensor_states_list[3][0] == TS4
-    assert torch.equal(
-        tensor_states_list[3][1], torch.tensor([2.0, 3.0, 4.0, 5.0])
-    )
+    assert torch.equal(tensor_states_list[3][1], torch.tensor([2.0, 3.0, 4.0, 5.0]))
 
 
 @pytest.mark.asyncio
@@ -649,10 +639,7 @@ async def test_timeout_behavior_cleanup_order(
         getattr(dmx_instance, "_processed_keyframes"),
         T1_std,  # Changed
     )
-    assert (
-        getattr(dmx_instance, "_TensorDemuxer__latest_update_timestamp")
-        == T1_std
-    )
+    assert getattr(dmx_instance, "_TensorDemuxer__latest_update_timestamp") == T1_std
     mc.clear_calls()
     chunk_tensor_T0_std_0 = torch.tensor([2.0], dtype=torch.float32)
     sync_ts_T0_std_0 = SynchronizedTimestamp(T0_std)
@@ -825,9 +812,7 @@ async def test_many_explicit_updates_single_timestamp(
     tensor_len = d.tensor_length
     expected_values = [float(i * 10) for i in range(tensor_len)]
     for i in range(tensor_len):
-        chunk_tensor_T1_std_i = torch.tensor(
-            [expected_values[i]], dtype=torch.float32
-        )
+        chunk_tensor_T1_std_i = torch.tensor([expected_values[i]], dtype=torch.float32)
         sync_ts_T1_std_i = SynchronizedTimestamp(T1_std)
         chunk_T1_std_i = SerializableTensorChunk(
             tensor=chunk_tensor_T1_std_i,
@@ -1149,9 +1134,7 @@ async def test_on_newest_timestamp_hook_only_for_latest_direct_update(  # type: 
     spy_on_keyframe_updated.assert_called_once()
     call_args_keyframe = spy_on_keyframe_updated.call_args_list[0]
     assert call_args_keyframe[0][0] == ts1
-    assert torch.equal(
-        call_args_keyframe[0][1], torch.tensor([1.0, 0.0, 0.0, 0.0])
-    )
+    assert torch.equal(call_args_keyframe[0][1], torch.tensor([1.0, 0.0, 0.0, 0.0]))
     # No assertions for spy_on_newest_timestamp_updated
     assert mc.call_count == 1
     mc.clear_calls()
@@ -1192,9 +1175,7 @@ async def test_multi_element_chunk_new_timestamp(
     assert last_call is not None
     tensor, ts = last_call
 
-    expected_tensor = torch.tensor(
-        [10.0, 20.0, 30.0, 0.0]
-    )  # tensor_length is 4
+    expected_tensor = torch.tensor([10.0, 20.0, 30.0, 0.0])  # tensor_length is 4
     assert torch.equal(tensor, expected_tensor)
     assert ts == T1_std
 
@@ -1214,9 +1195,7 @@ async def test_multi_element_chunk_new_timestamp(
 
     expected_values_map = {0: 10.0, 1: 20.0, 2: 30.0}
     for i_val, idx in enumerate(explicit_indices.tolist()):
-        assert explicit_values[i_val].item() == pytest.approx(
-            expected_values_map[idx]
-        )
+        assert explicit_values[i_val].item() == pytest.approx(expected_values_map[idx])
 
 
 @pytest.mark.asyncio
@@ -1245,9 +1224,7 @@ async def test_multi_element_chunk_updates_existing_timestamp(
 
     await d.on_chunk_received(update_chunk)
 
-    assert (
-        mc.call_count == 1
-    ), "Client should be notified once for the updating chunk"
+    assert mc.call_count == 1, "Client should be notified once for the updating chunk"
     last_call = mc.get_last_call()
     assert last_call is not None
     tensor, ts = last_call
@@ -1278,9 +1255,7 @@ async def test_multi_element_chunk_updates_existing_timestamp(
 
     expected_values_map = {0: 1.0, 1: 22.0, 2: 33.0}
     for i_val, idx in enumerate(explicit_indices.tolist()):
-        assert explicit_values[i_val].item() == pytest.approx(
-            expected_values_map[idx]
-        )
+        assert explicit_values[i_val].item() == pytest.approx(expected_values_map[idx])
 
 
 @pytest.mark.asyncio
@@ -1323,9 +1298,7 @@ async def test_multi_element_chunk_triggers_cascade(
     # 2. For T2 cascade: T1's state + T2's explicit [100, 200 (from T1) but T2 has explicit 10 at index 1 -> 100, 10, 0, 0] -> [100,10,0,0]
     #    Wait, T2's explicit was (1,10). So T2 becomes [100, 10, 0, 0]
     # 3. For T3 cascade: T2's new state + T3's explicit [100, 10 (from T2) + T3 has explicit 20 at index 2] -> [100, 10, 20, 0]
-    assert (
-        mc.call_count == 3
-    ), "Should be 3 calls: T1 direct, T2 cascade, T3 cascade"
+    assert mc.call_count == 3, "Should be 3 calls: T1 direct, T2 cascade, T3 cascade"
 
     # Call 1: T1
     t1_tensor, t1_ts = mc.calls[0]

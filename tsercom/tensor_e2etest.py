@@ -93,8 +93,8 @@ class DemuxerOutputHandler(TensorDemuxer.Client):
         self, timestamp: datetime.datetime
     ) -> torch.Tensor | None:
         if self._demuxer_instance:
-            actual_tensor = (
-                await self._demuxer_instance.get_tensor_at_timestamp(timestamp)
+            actual_tensor = await self._demuxer_instance.get_tensor_at_timestamp(
+                timestamp
             )
             if actual_tensor is None:
                 if timestamp in self.reconstructed_tensors:
@@ -224,9 +224,7 @@ async def test_out_of_order_pass_through_mux_cascade_effect() -> None:
     # If T2 = [2,2,2,2] and T3_orig = [3,3,3,3], then diff(T3_orig,T2) is all 3s.
     # Demuxer T3 state starts as T2 state [2,2,2,2], applies diffs, becomes [3,3,3,3].
     reconstructed_t3 = await demuxer_client.get_tensor_at_ts(T_COMP_3)
-    assert (
-        reconstructed_t3 is not None
-    ), "T3 not reconstructed after T2 insertion"
+    assert reconstructed_t3 is not None, "T3 not reconstructed after T2 insertion"
     assert torch.equal(
         tensor_t3, reconstructed_t3
     ), f"T3 mismatch: {tensor_t3} vs {reconstructed_t3}"
@@ -399,9 +397,7 @@ async def test_data_timeout_e2e() -> None:
     await multiplexer.process_tensor(tensor_t1, T_COMP_1)
     await multiplexer_client.flush_tasks()
 
-    assert not any(
-        ts == T_COMP_0 for ts, _ in multiplexer.history
-    ), "T0 Mux history"
+    assert not any(ts == T_COMP_0 for ts, _ in multiplexer.history), "T0 Mux history"
     assert (
         await demuxer_client.get_tensor_at_ts(T_COMP_0) is None
     ), "T0 Demuxer output"  # This relies on DemuxerOutputHandler reflecting timeout
@@ -464,24 +460,16 @@ async def test_deep_cascade_on_early_update_e2e() -> None:
 
     # 1. Process initial tensors sequentially
     await multiplexer.process_tensor(tensor_A_v1, TS_A)
-    await (
-        multiplexer_client.flush_tasks()
-    )  # Ensure Demuxer processes updates for TS_A
+    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_A
 
     await multiplexer.process_tensor(tensor_B_v1, TS_B)
-    await (
-        multiplexer_client.flush_tasks()
-    )  # Ensure Demuxer processes updates for TS_B
+    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_B
 
     await multiplexer.process_tensor(tensor_C_v1, TS_C)
-    await (
-        multiplexer_client.flush_tasks()
-    )  # Ensure Demuxer processes updates for TS_C
+    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_C
 
     await multiplexer.process_tensor(tensor_D_v1, TS_D)
-    await (
-        multiplexer_client.flush_tasks()
-    )  # Ensure Demuxer processes updates for TS_D
+    await multiplexer_client.flush_tasks()  # Ensure Demuxer processes updates for TS_D
 
     # Verify initial states in Demuxer
     recon_A_v1 = await demuxer_client.get_tensor_at_ts(TS_A)

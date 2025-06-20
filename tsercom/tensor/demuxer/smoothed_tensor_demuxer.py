@@ -55,9 +55,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             data_timeout_seconds=data_timeout_seconds,
         )
 
-        self.__name = (
-            name if name else f"SmoothedTensorDemuxer(shape={tensor_shape})"
-        )
+        self.__name = name if name else f"SmoothedTensorDemuxer(shape={tensor_shape})"
 
         self.__smoothing_strategy = smoothing_strategy
         self.__output_interval_seconds = output_interval_seconds
@@ -138,24 +136,17 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         if self.__last_pushed_timestamp is None:
             if self.__align_output_timestamps:
                 self.__last_pushed_timestamp = datetime.datetime.fromtimestamp(
-                    (
-                        current_time.timestamp()
-                        // self.__output_interval_seconds
-                    )
+                    (current_time.timestamp() // self.__output_interval_seconds)
                     * self.__output_interval_seconds,
                     datetime.timezone.utc,
                 )
             else:
-                self.__last_pushed_timestamp = (
-                    current_time
-                    - datetime.timedelta(
-                        seconds=self.__output_interval_seconds
-                    )
+                self.__last_pushed_timestamp = current_time - datetime.timedelta(
+                    seconds=self.__output_interval_seconds
                 )
 
-        next_output_datetime = (
-            self.__last_pushed_timestamp
-            + datetime.timedelta(seconds=self.__output_interval_seconds)
+        next_output_datetime = self.__last_pushed_timestamp + datetime.timedelta(
+            seconds=self.__output_interval_seconds
         )
 
         if self.__align_output_timestamps:
@@ -209,9 +200,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
                             p_nd_tensor_reshaped = p_1d_tensor.reshape(
                                 self.__tensor_shape_internal
                             )
-                            element_value = p_nd_tensor_reshaped[
-                                index_tuple
-                            ].item()
+                            element_value = p_nd_tensor_reshaped[index_tuple].item()
                             per_element_timestamps.append(p_ts.timestamp())
                             per_element_values.append(element_value)
                         except (RuntimeError, ValueError) as e_reshape:
@@ -285,21 +274,15 @@ class SmoothedTensorDemuxer(TensorDemuxer):
             and not self.__interpolation_worker_task.done()
         ):
             try:
-                await asyncio.wait_for(
-                    self.__interpolation_worker_task, timeout=1.0
-                )
+                await asyncio.wait_for(self.__interpolation_worker_task, timeout=1.0)
             except asyncio.TimeoutError:
                 self.__interpolation_worker_task.cancel()
-            except (
-                asyncio.CancelledError
-            ):  # More specific for task cancellation
+            except asyncio.CancelledError:  # More specific for task cancellation
                 logger.warning(
                     "[%s] Interpolation worker task was cancelled during stop.",
                     self.__name,
                 )
-            except (
-                Exception
-            ) as e:  # Catch other potential errors during wait_for
+            except Exception as e:  # Catch other potential errors during wait_for
                 logger.error(
                     "[%s] Exception while stopping interpolation worker: %s",
                     self.__name,

@@ -112,9 +112,7 @@ class TestInstancePublisher:
 
         assert captured_pub.txt_record is not None
         assert b"name" in captured_pub.txt_record
-        assert captured_pub.txt_record[b"name"] == self.READABLE_NAME.encode(
-            "utf-8"
-        )
+        assert captured_pub.txt_record[b"name"] == self.READABLE_NAME.encode("utf-8")
         assert b"published_on" in captured_pub.txt_record
 
     def test_init_generated_instance_name(self):
@@ -143,18 +141,14 @@ class TestInstancePublisher:
                 else expected_name_part
             )
 
-            captured_pub = (
-                TestInstancePublisher.captured_fake_publisher_instance
-            )
+            captured_pub = TestInstancePublisher.captured_fake_publisher_instance
             assert captured_pub is not None
             assert captured_pub.instance_name == expected_name
 
     def test_init_generated_instance_name_truncation(self):
         """Test instance name generation with truncation."""
         factory = self._get_fake_mdns_publisher_factory()
-        long_mac_value = (
-            123456789012345  # Results in a name > 15 chars with port
-        )
+        long_mac_value = 123456789012345  # Results in a name > 15 chars with port
 
         with patch(
             "tsercom.discovery.mdns.instance_publisher.get_mac",
@@ -172,9 +166,7 @@ class TestInstancePublisher:
             assert len(expected_name_part) > 15  # Ensure it needs truncation
             expected_name = expected_name_part[:15]
 
-            captured_pub = (
-                TestInstancePublisher.captured_fake_publisher_instance
-            )
+            captured_pub = TestInstancePublisher.captured_fake_publisher_instance
             assert captured_pub is not None
             assert captured_pub.instance_name == expected_name
             assert len(captured_pub.instance_name) == 15
@@ -193,14 +185,10 @@ class TestInstancePublisher:
         captured_pub = TestInstancePublisher.captured_fake_publisher_instance
         assert captured_pub is not None and captured_pub.txt_record is not None
         assert b"published_on" in captured_pub.txt_record
-        assert captured_pub.txt_record[b"name"] == self.READABLE_NAME.encode(
-            "utf-8"
-        )
+        assert captured_pub.txt_record[b"name"] == self.READABLE_NAME.encode("utf-8")
 
         # Check 'published_on' format (basic check for date-time like string)
-        published_on_str = captured_pub.txt_record[b"published_on"].decode(
-            "utf-8"
-        )
+        published_on_str = captured_pub.txt_record[b"published_on"].decode("utf-8")
         assert len(published_on_str) > 18  # e.g., "YYYY-MM-DD HH:MM:SS"
         assert ":" in published_on_str and "-" in published_on_str
 
@@ -212,9 +200,7 @@ class TestInstancePublisher:
             readable_name=None,
             mdns_publisher_factory=factory,
         )
-        captured_pub_no_name = (
-            TestInstancePublisher.captured_fake_publisher_instance
-        )
+        captured_pub_no_name = TestInstancePublisher.captured_fake_publisher_instance
         assert (
             captured_pub_no_name is not None
             and captured_pub_no_name.txt_record is not None
@@ -240,9 +226,7 @@ class TestInstancePublisher:
         with pytest.raises(
             TypeError if invalid_port is not None else ValueError
         ):  # Changed to is not None
-            InstancePublisher(
-                port=invalid_port, service_type=self.SERVICE_TYPE
-            )
+            InstancePublisher(port=invalid_port, service_type=self.SERVICE_TYPE)
 
     @pytest.mark.parametrize("invalid_service_type", [None, 123, {}])
     def test_init_invalid_service_type_type(self, invalid_service_type):
@@ -251,9 +235,7 @@ class TestInstancePublisher:
             if invalid_service_type is not None
             else ValueError  # Changed to is not None
         ):
-            InstancePublisher(
-                port=self.PORT, service_type=invalid_service_type
-            )
+            InstancePublisher(port=self.PORT, service_type=invalid_service_type)
 
     @pytest.mark.parametrize("invalid_readable_name", [123, [], {}])
     def test_init_invalid_readable_name_type(self, invalid_readable_name):

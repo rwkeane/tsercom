@@ -76,9 +76,7 @@ class ThreadWatcher(ErrorWatcher):
             # User-provided 'error_cb' is overridden.
             del kwargs["error_cb"]
 
-        return ThrowingThreadPoolExecutor(
-            self.on_exception_seen, *args, **kwargs
-        )
+        return ThrowingThreadPoolExecutor(self.on_exception_seen, *args, **kwargs)
 
     def run_until_exception(self) -> None:
         """

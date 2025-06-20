@@ -142,9 +142,7 @@ def test_serializable_tensor_update_round_trip(common_dtype):
     original_st_update = SerializableTensorUpdate(chunks=[chunk1, chunk2])
 
     grpc_msg = original_st_update.to_grpc_type()
-    parsed_st_update = SerializableTensorUpdate.try_parse(
-        grpc_msg, dtype=common_dtype
-    )
+    parsed_st_update = SerializableTensorUpdate.try_parse(grpc_msg, dtype=common_dtype)
 
     assert parsed_st_update is not None
     assert len(parsed_st_update.chunks) == len(original_st_update.chunks)
@@ -158,7 +156,4 @@ def test_serializable_tensor_update_round_trip(common_dtype):
         else:
             assert torch.equal(parsed_chunk.tensor, original_chunk.tensor)
 
-        assert (
-            parsed_chunk.timestamp.timestamp
-            == original_chunk.timestamp.timestamp
-        )
+        assert parsed_chunk.timestamp.timestamp == original_chunk.timestamp.timestamp

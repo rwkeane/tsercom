@@ -127,9 +127,7 @@ class RemoteDataAggregatorImpl(
         self.__client = client
         self.__tracker = tracker
 
-        self.__organizers: Dict[
-            CallerIdentifier, RemoteDataOrganizer[DataTypeT]
-        ] = {}
+        self.__organizers: Dict[CallerIdentifier, RemoteDataOrganizer[DataTypeT]] = {}
         self.__lock: threading.Lock = threading.Lock()
 
     def stop(
@@ -272,9 +270,7 @@ class RemoteDataAggregatorImpl(
         ...
 
     @overload
-    def get_most_recent_data(
-        self, identifier: CallerIdentifier
-    ) -> Optional[DataTypeT]:
+    def get_most_recent_data(self, identifier: CallerIdentifier) -> Optional[DataTypeT]:
         """Retrieves the most recent data item for a specific caller.
 
         Returns `None` if no data for this caller or if timed out.

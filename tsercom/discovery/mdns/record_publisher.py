@@ -77,9 +77,7 @@ class RecordPublisher(MdnsPublisher):
 
     async def publish(self) -> None:
         if self._zc:
-            _logger.info(
-                "Service %s already published. Re-registering.", self.__srv
-            )
+            _logger.info("Service %s already published. Re-registering.", self.__srv)
             # Optionally, unregister first or update. For now, assume
             # re-registering is desired or Zeroconf handles it.
 
@@ -93,13 +91,9 @@ class RecordPublisher(MdnsPublisher):
 
         if self.__shared_zc:
             self._zc = self.__shared_zc
-            _logger.info(
-                "Using shared AsyncZeroconf instance for %s.", self.__srv
-            )
+            _logger.info("Using shared AsyncZeroconf instance for %s.", self.__srv)
         else:
-            _logger.info(
-                "Creating new AsyncZeroconf instance for %s.", self.__srv
-            )
+            _logger.info("Creating new AsyncZeroconf instance for %s.", self.__srv)
             self.__owned_zc = AsyncZeroconf(ip_version=IPVersion.V4Only)
             self._zc = self.__owned_zc
 
@@ -132,9 +126,7 @@ class RecordPublisher(MdnsPublisher):
                         service_info_at_start_of_close
                     )
                     unregistration_succeeded = True
-                    _logger.info(
-                        "Service %s unregistered successfully.", self.__srv
-                    )
+                    _logger.info("Service %s unregistered successfully.", self.__srv)
                 else:
                     _logger.warning(
                         "No self._service_info found for %s at start of close method. Skipping unregistration call.",
@@ -152,13 +144,9 @@ class RecordPublisher(MdnsPublisher):
 
             # Close owned zeroconf instance if it exists
             if self.__owned_zc:
-                _logger.info(
-                    "Closing owned AsyncZeroconf instance for %s.", self.__srv
-                )
+                _logger.info("Closing owned AsyncZeroconf instance for %s.", self.__srv)
                 await self.__owned_zc.async_close()
-                _logger.info(
-                    "Owned AsyncZeroconf instance for %s closed.", self.__srv
-                )
+                _logger.info("Owned AsyncZeroconf instance for %s closed.", self.__srv)
 
         except Exception as e:
             # Log detailed error for unregistration or closing owned_zc
@@ -188,9 +176,7 @@ class RecordPublisher(MdnsPublisher):
 
             if self.__owned_zc:  # Ensure owned_zc is cleared if it was set
                 self.__owned_zc = None
-            self._zc = (
-                None  # Clear the active reference in all cases after attempts
-            )
+            self._zc = None  # Clear the active reference in all cases after attempts
 
             # Final debug log for state
             if not self._service_info and not self._zc and not self.__owned_zc:

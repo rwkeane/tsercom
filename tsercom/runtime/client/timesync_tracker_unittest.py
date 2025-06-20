@@ -36,9 +36,7 @@ class TestTimeSyncTracker:
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.100"
 
-        actual_client_instance_created = (
-            mock_time_sync_client_class.return_value
-        )
+        actual_client_instance_created = mock_time_sync_client_class.return_value
         mock_synchronized_clock = (
             actual_client_instance_created.get_synchronized_clock.return_value
         )
@@ -50,8 +48,7 @@ class TestTimeSyncTracker:
         )
         actual_client_instance_created.start_async.assert_called_once()
         assert (
-            tracker._TimeSyncTracker__map[test_ip][1]
-            == actual_client_instance_created
+            tracker._TimeSyncTracker__map[test_ip][1] == actual_client_instance_created
         )
         assert tracker._TimeSyncTracker__map[test_ip][0] == 1
         actual_client_instance_created.get_synchronized_clock.assert_called_once()
@@ -83,10 +80,7 @@ class TestTimeSyncTracker:
             mock_thread_watcher, test_ip
         )
         original_client_instance.start_async.assert_called_once()
-        assert (
-            tracker._TimeSyncTracker__map[test_ip][1]
-            == original_client_instance
-        )
+        assert tracker._TimeSyncTracker__map[test_ip][1] == original_client_instance
         assert tracker._TimeSyncTracker__map[test_ip][0] == 2
         assert original_client_instance.get_synchronized_clock.call_count == 2
         assert returned_clock_second == mock_synchronized_clock
@@ -130,9 +124,7 @@ class TestTimeSyncTracker:
         tracker = TimeSyncTracker(mock_thread_watcher)
         test_ip = "192.168.1.104"
 
-        with pytest.raises(
-            KeyError, match=f"IP address '{test_ip}' not found"
-        ):
+        with pytest.raises(KeyError, match=f"IP address '{test_ip}' not found"):
             tracker.on_disconnect(test_ip)
 
     def test_on_connect_different_ips(

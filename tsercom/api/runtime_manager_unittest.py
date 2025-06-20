@@ -68,9 +68,7 @@ def mock_process_creator(mocker: Any) -> Any:  # Changed to Any
 @pytest.fixture
 def mock_split_ewsf(mocker: Any) -> Any:  # Changed to Any
     mock = mocker.MagicMock(spec=SplitErrorWatcherSourceFactory)
-    mock.create.return_value = mocker.MagicMock(
-        spec=SplitProcessErrorWatcherSource
-    )
+    mock.create.return_value = mocker.MagicMock(spec=SplitProcessErrorWatcherSource)
     return mock
 
 
@@ -223,14 +221,10 @@ class TestRuntimeManager:
             RuntimeError,
             match="Cannot register runtime initializer after the manager has started.",
         ):
-            manager_with_mocks.register_runtime_initializer(
-                mock_runtime_initializer
-            )
+            manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
 
     @patch("tsercom.api.runtime_manager.set_tsercom_event_loop")
-    @patch(
-        "tsercom.runtime.runtime_main.initialize_runtimes"  # Corrected target
-    )
+    @patch("tsercom.runtime.runtime_main.initialize_runtimes")  # Corrected target
     def test_start_in_process(
         self,
         mock_initialize_runtimes_in_manager_scope: UMMagicMock,
@@ -245,9 +239,7 @@ class TestRuntimeManager:
         try:
             gev_loop.set_tsercom_event_loop(loop)
 
-            manager_with_mocks.register_runtime_initializer(
-                mock_runtime_initializer
-            )
+            manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
 
             mock_factory_instance = UMMagicMock()
             mock_factory_instance.auth_config = None
@@ -263,9 +255,7 @@ class TestRuntimeManager:
 
             manager_with_mocks.start_in_process(loop)
 
-            mock_set_tsercom_event_loop_in_manager.assert_called_once_with(
-                loop
-            )
+            mock_set_tsercom_event_loop_in_manager.assert_called_once_with(loop)
             assert manager_with_mocks._RuntimeManager__error_watcher is None  # type: ignore[attr-defined]
             assert (
                 manager_with_mocks._RuntimeManager__thread_watcher  # type: ignore[attr-defined]
@@ -320,9 +310,7 @@ class TestRuntimeManager:
             mock_handle = UMMagicMock(spec=RuntimeHandle)
             future_handle.set_result(mock_handle)
 
-            returned_value = asyncio.run(
-                manager_with_mocks.start_in_process_async()
-            )
+            returned_value = asyncio.run(manager_with_mocks.start_in_process_async())
 
             mock_start_in_process_sync.assert_called_once_with(loop)
             assert returned_value is None
@@ -335,13 +323,9 @@ class TestRuntimeManager:
                 gev_loop.clear_tsercom_event_loop()
             loop.close()
 
-    @patch(
-        "tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher"
-    )
+    @patch("tsercom.api.runtime_manager.create_tsercom_event_loop_from_watcher")
     @patch("tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory")
-    @patch(
-        "tsercom.runtime.runtime_main.remote_process_main"
-    )  # Corrected target
+    @patch("tsercom.runtime.runtime_main.remote_process_main")  # Corrected target
     def test_start_out_of_process(
         self,
         mock_remote_process_main_in_manager_scope: UMMagicMock,
@@ -369,23 +353,15 @@ class TestRuntimeManager:
             mock_error_sink,
             mock_error_source_queue,
         )
-        mock_error_watcher_source_instance = (
-            mock_split_ewsf.create.return_value
-        )
-        manager_with_mocks.register_runtime_initializer(
-            mock_runtime_initializer
-        )
+        mock_error_watcher_source_instance = mock_split_ewsf.create.return_value
+        manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
 
         # This mock_factory_instance is for the mock_split_rff.create_factory()
         mock_factory_instance_for_split_rff = UMMagicMock()
         mock_factory_instance_for_split_rff.auth_config = None
-        mock_split_rff.create_factory.return_value = (
-            mock_factory_instance_for_split_rff
-        )
+        mock_split_rff.create_factory.return_value = mock_factory_instance_for_split_rff
 
-        mock_process_instance = (
-            mock_process_creator.create_process.return_value
-        )
+        mock_process_instance = mock_process_creator.create_process.return_value
 
         manager_with_mocks.start_out_of_process(start_as_daemon=True)
 
@@ -439,9 +415,7 @@ class TestRuntimeManager:
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
         # Configure for Generic[Exception] access
-        mock_mp_factory_class_mock.__getitem__.return_value = (
-            mock_mp_factory_class_mock
-        )
+        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
 
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
@@ -462,9 +436,7 @@ class TestRuntimeManager:
     def test_run_until_exception_not_started(
         self, manager_with_mocks: RuntimeManager[Any, Any]
     ) -> None:
-        with pytest.raises(
-            RuntimeError, match="RuntimeManager has not been started."
-        ):
+        with pytest.raises(RuntimeError, match="RuntimeManager has not been started."):
             manager_with_mocks.run_until_exception()
 
     def test_run_until_exception_error_watcher_none(
@@ -544,9 +516,7 @@ class TestRuntimeManager:
         mock_thread_watcher.check_for_exception.assert_called_once()
 
     @patch("tsercom.api.runtime_manager.set_tsercom_event_loop")
-    @patch(
-        "tsercom.runtime.runtime_main.initialize_runtimes"  # Corrected target
-    )
+    @patch("tsercom.runtime.runtime_main.initialize_runtimes")  # Corrected target
     def test_runtime_future_populator_indirectly(
         self,
         mock_initialize_runtimes_in_manager_scope: UMMagicMock,
@@ -584,18 +554,14 @@ class TestRuntimeManager:
                 factory_mock.create.return_value = mock_runtime_on_factory
                 return factory_mock
 
-            mock_local_rff.create_factory.side_effect = (
-                mock_create_factory_impl
-            )
+            mock_local_rff.create_factory.side_effect = mock_create_factory_impl
 
             manager_with_mocks.start_in_process(loop)
 
             assert future_handle.done()
             assert future_handle.result(timeout=0) is mock_created_handle
             mock_local_rff.create_factory.assert_called_once()
-            mock_set_tsercom_event_loop_in_manager.assert_called_once_with(
-                loop
-            )
+            mock_set_tsercom_event_loop_in_manager.assert_called_once_with(loop)
             mock_initialize_runtimes_in_manager_scope.assert_called_once()
         finally:
             gev_loop.clear_tsercom_event_loop()
@@ -614,9 +580,7 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = (
-            mock_mp_factory_class_mock
-        )
+        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
             UMMagicMock(),  # sink
@@ -662,9 +626,7 @@ class TestRuntimeManager:
             RuntimeError,
             match="Cannot register runtime initializer after the manager has started.",
         ):
-            manager_with_mocks.register_runtime_initializer(
-                mock_runtime_initializer
-            )
+            manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
 
     def test_register_after_start_out_of_process(
         self,
@@ -679,9 +641,7 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = (
-            mock_mp_factory_class_mock
-        )
+        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
             UMMagicMock(),  # sink
@@ -699,9 +659,7 @@ class TestRuntimeManager:
             RuntimeError,
             match="Cannot register runtime initializer after the manager has started.",
         ):
-            manager_with_mocks.register_runtime_initializer(
-                mock_runtime_initializer
-            )
+            manager_with_mocks.register_runtime_initializer(mock_runtime_initializer)
 
     def test_start_in_process_multiple_times(
         self, manager_with_mocks: RuntimeManager[Any, Any], mocker: Any
@@ -727,9 +685,7 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = (
-            mock_mp_factory_class_mock
-        )
+        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
             UMMagicMock(),  # sink
@@ -764,9 +720,7 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = (
-            mock_mp_factory_class_mock
-        )
+        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
             UMMagicMock(),  # sink
@@ -803,9 +757,7 @@ class TestRuntimeManager:
         mock_mp_factory_class_mock = mocker.patch(
             "tsercom.api.runtime_manager.DefaultMultiprocessQueueFactory"
         )
-        mock_mp_factory_class_mock.__getitem__.return_value = (
-            mock_mp_factory_class_mock
-        )
+        mock_mp_factory_class_mock.__getitem__.return_value = mock_mp_factory_class_mock
         mock_mp_factory_instance = mock_mp_factory_class_mock.return_value
         mock_mp_factory_instance.create_queues.return_value = (
             UMMagicMock(),  # sink
@@ -845,18 +797,14 @@ class TestRuntimeManager:
         manager: RuntimeManager[Any, Any] = RuntimeManager()  # Fresh instance
         # Ensure ThreadWatcher is created for this test if not using manager_with_mocks
         manager._RuntimeManager__thread_watcher = UMMagicMock(spec=ThreadWatcher)  # type: ignore[attr-defined]
-        with pytest.raises(
-            RuntimeError, match="RuntimeManager has not been started."
-        ):
+        with pytest.raises(RuntimeError, match="RuntimeManager has not been started."):
             manager.run_until_exception()
 
     def test_check_for_exception_before_start(self, mocker: Any) -> None:
         """Tests check_for_exception before the manager has started. Should not raise."""
         # We need a ThreadWatcher instance, but it shouldn't be called.
         mock_tw = mocker.patch("tsercom.api.runtime_manager.ThreadWatcher")
-        manager: RuntimeManager[Any, Any] = RuntimeManager(
-            thread_watcher=mock_tw
-        )
+        manager: RuntimeManager[Any, Any] = RuntimeManager(thread_watcher=mock_tw)
 
         # Explicitly ensure has_started is False
         mocker.patch.object(

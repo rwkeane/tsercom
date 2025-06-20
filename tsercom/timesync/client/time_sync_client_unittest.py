@@ -20,9 +20,7 @@ def mock_thread_watcher_fixture(mocker):
     watcher = mocker.MagicMock(spec=ThreadWatcher)
 
     def create_thread_side_effect(target, *args, **kwargs):
-        thread = threading.Thread(
-            target=target, args=args, kwargs=kwargs, daemon=True
-        )
+        thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True)
         return thread
 
     watcher.create_tracked_thread = mocker.MagicMock(
@@ -56,9 +54,7 @@ def mock_time_sleep_fixture(mocker):
 class TestTimeSyncClientNTPFailures:
     """Tests TimeSyncClient behavior when NTP requests consistently fail."""
 
-    @pytest.mark.usefixtures(
-        "mock_ntp_client_fixture", "mock_time_sleep_fixture"
-    )
+    @pytest.mark.usefixtures("mock_ntp_client_fixture", "mock_time_sleep_fixture")
     def test_start_barrier_not_set_and_no_offsets_if_ntp_fails_consistently(
         self, mock_thread_watcher_fixture, mock_ntp_client_fixture
     ):
@@ -77,15 +73,11 @@ class TestTimeSyncClientNTPFailures:
         ), "Time offsets should be empty if NTP requests fail."
 
         client.stop()
-        sync_thread = getattr(
-            client, "_TimeSyncClient__sync_loop_thread", None
-        )
+        sync_thread = getattr(client, "_TimeSyncClient__sync_loop_thread", None)
         if sync_thread is not None and sync_thread.is_alive():
             sync_thread.join(timeout=0.5)
 
-    @pytest.mark.usefixtures(
-        "mock_ntp_client_fixture", "mock_time_sleep_fixture"
-    )
+    @pytest.mark.usefixtures("mock_ntp_client_fixture", "mock_time_sleep_fixture")
     def test_get_offset_seconds_blocks_when_barrier_not_set(
         self, mock_thread_watcher_fixture, mock_ntp_client_fixture
     ):
@@ -117,17 +109,13 @@ class TestTimeSyncClientNTPFailures:
 
         client.stop()
         thread.join(timeout=0.5)
-        assert (
-            not offset_result
-        ), "get_offset_seconds should not have returned a value."
+        assert not offset_result, "get_offset_seconds should not have returned a value."
         if exception_result:
             assert isinstance(
                 exception_result[0], (AssertionError, RuntimeError)
             ), f"Unexpected exception: {exception_result[0]}"
 
-    @pytest.mark.usefixtures(
-        "mock_ntp_client_fixture", "mock_time_sleep_fixture"
-    )
+    @pytest.mark.usefixtures("mock_ntp_client_fixture", "mock_time_sleep_fixture")
     def test_barrier_set_and_offset_available_on_successful_ntp_request(
         self, mock_thread_watcher_fixture, mock_ntp_client_fixture
     ):
@@ -137,18 +125,14 @@ class TestTimeSyncClientNTPFailures:
         client = TimeSyncClient(mock_thread_watcher_fixture, "dummy_server_ip")
         client.start_async()
         barrier_set = client._TimeSyncClient__start_barrier.wait(timeout=1.0)
-        assert (
-            barrier_set
-        ), "Start barrier should be set after successful NTP request."
+        assert barrier_set, "Start barrier should be set after successful NTP request."
         assert (
             len(client._TimeSyncClient__time_offsets) > 0
         ), "Time offsets should not be empty after successful NTP request."
         assert client._TimeSyncClient__time_offsets[0] == 0.123
         assert client.get_offset_seconds() == 0.123
         client.stop()
-        sync_thread = getattr(
-            client, "_TimeSyncClient__sync_loop_thread", None
-        )
+        sync_thread = getattr(client, "_TimeSyncClient__sync_loop_thread", None)
         if sync_thread is not None and sync_thread.is_alive():
             sync_thread.join(timeout=0.5)
 
@@ -176,9 +160,7 @@ class TestTimeSyncClientOperations:
         if sync_thread and sync_thread.is_alive():
             sync_thread.join(timeout=1.0)
 
-    def test_offset_averaging(
-        self, client: TimeSyncClient, mock_ntp_client_fixture
-    ):
+    def test_offset_averaging(self, client: TimeSyncClient, mock_ntp_client_fixture):
         offsets = [0.1, 0.2, 0.3, 0.4, 0.5]
         mock_ntp_client_fixture.request.side_effect = [
             MagicMock(offset=o) for o in offsets
@@ -202,17 +184,13 @@ class TestTimeSyncClientOperations:
         assert client.get_offset_seconds() == pytest.approx(expected_average)
         assert list(client._TimeSyncClient__time_offsets) == offsets
 
-    def test_max_offset_count(
-        self, client: TimeSyncClient, mock_ntp_client_fixture
-    ):
+    def test_max_offset_count(self, client: TimeSyncClient, mock_ntp_client_fixture):
         # Note: kMaxOffsetCount is a local variable within TimeSyncClient.__run_sync_loop.
         # It's hardcoded to 10 in the source. We test against this known value.
         # Direct patching of this local variable to a different value (e.g., 3) from
         # a test is not straightforward without modifying the source code structure.
         k_max_offset_count_from_source = 10
-        num_offsets_to_send = (
-            12  # Send more than kMaxOffsetCount to test truncation
-        )
+        num_offsets_to_send = 12  # Send more than kMaxOffsetCount to test truncation
 
         offsets = [0.1 * (i + 1) for i in range(num_offsets_to_send)]
         mock_ntp_client_fixture.request.side_effect = [
@@ -238,13 +216,8 @@ class TestTimeSyncClientOperations:
         ), f"NTP request not called enough times. Expected at least: {num_offsets_to_send}, Got: {mock_ntp_client_fixture.request.call_count}"
 
         expected_stored_offsets = offsets[-k_max_offset_count_from_source:]
-        assert (
-            list(client._TimeSyncClient__time_offsets)
-            == expected_stored_offsets
-        )
-        expected_average = sum(expected_stored_offsets) / len(
-            expected_stored_offsets
-        )
+        assert list(client._TimeSyncClient__time_offsets) == expected_stored_offsets
+        expected_average = sum(expected_stored_offsets) / len(expected_stored_offsets)
         assert client.get_offset_seconds() == pytest.approx(expected_average)
 
     def test_stop_terminates_sync_loop(
@@ -269,8 +242,7 @@ class TestTimeSyncClientOperations:
         max_wait_cycles = 5
         cycles = 0
         while (
-            mock_ntp_client_fixture.request.call_count < 1
-            and cycles < max_wait_cycles
+            mock_ntp_client_fixture.request.call_count < 1 and cycles < max_wait_cycles
         ):
             time.sleep(0.001)
             cycles += 1
@@ -333,9 +305,7 @@ class TestTimeSyncClientOperations:
                 raise test_value_error
             return mock_ok_response
 
-        mock_ntp_client_fixture.request.side_effect = (
-            request_side_effect_with_default
-        )
+        mock_ntp_client_fixture.request.side_effect = request_side_effect_with_default
 
         client.start_async()
         barrier_set = client._TimeSyncClient__start_barrier.wait(timeout=1.0)
@@ -374,15 +344,11 @@ class TestTimeSyncClientOperations:
         self, client: TimeSyncClient, mock_ntp_client_fixture
     ):
         # Explicitly reset the mock for the request method to ensure clean state
-        mock_ntp_client_fixture.request.reset_mock(
-            return_value=True, side_effect=True
-        )
+        mock_ntp_client_fixture.request.reset_mock(return_value=True, side_effect=True)
 
         mock_ok_response = MagicMock(offset=0.333)
         # Test with one failure, then one success
-        mock_ok_response = MagicMock(
-            offset=0.333
-        )  # Ensure mock_ok_response is defined
+        mock_ok_response = MagicMock(offset=0.333)  # Ensure mock_ok_response is defined
         second_call_done_event = threading.Event()
 
         call_number = 0
@@ -402,9 +368,7 @@ class TestTimeSyncClientOperations:
                     f"Called more than expected (call_number: {call_number}). Client should have stopped."
                 )
 
-        mock_ntp_client_fixture.request.side_effect = (
-            request_side_effect_limited
-        )
+        mock_ntp_client_fixture.request.side_effect = request_side_effect_limited
 
         client.start_async()
         # Allow some time for the sync thread to start and make the first (failing) call.
@@ -447,9 +411,7 @@ class TestTimeSyncClientOperations:
             mock_ntp_client_fixture.request.call_count <= 3
         ), f"Expected 2 or 3 NTP requests. Got {mock_ntp_client_fixture.request.call_count}"
 
-        assert (
-            not client.is_running()
-        ), "Client should not be running after stop()."
+        assert not client.is_running(), "Client should not be running after stop()."
 
     def test_start_async_already_running(
         self, client: TimeSyncClient, mock_ntp_client_fixture

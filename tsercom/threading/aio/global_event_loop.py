@@ -83,9 +83,7 @@ def clear_tsercom_event_loop(try_stop_loop: bool = True) -> None:
                 )
                 __g_global_event_loop.stop()
             else:
-                logging.debug(
-                    "clear_tsercom_event_loop: External loop, not stopping."
-                )
+                logging.debug("clear_tsercom_event_loop: External loop, not stopping.")
 
         __g_global_event_loop = None
         __g_event_loop_factory = None

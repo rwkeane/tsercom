@@ -157,9 +157,7 @@ def spy_on_available():
 def test_init(event_source_instance, fake_event_queue):
     """Test EventSource.__init__."""
     assert event_source_instance._EventSource__event_source is fake_event_queue
-    assert isinstance(
-        event_source_instance._EventSource__is_running, IsRunningTracker
-    )
+    assert isinstance(event_source_instance._EventSource__is_running, IsRunningTracker)
     assert (
         event_source_instance._EventSource__is_running.get() is False
     )  # Should be False initially
@@ -182,9 +180,7 @@ def test_start_method(
     )  # It's an inner function
     assert fake_thread_watcher.fake_thread is not None
     assert fake_thread_watcher.fake_thread._started is True
-    assert (
-        fake_thread_watcher.fake_thread.daemon is True
-    )  # Check daemon status
+    assert fake_thread_watcher.fake_thread.daemon is True  # Check daemon status
 
     # Restore original tracker
     event_source_instance._EventSource__is_running = original_tracker
@@ -221,9 +217,7 @@ def setup_loop_test(
     return original_tracker, original_on_available
 
 
-def teardown_loop_test(
-    event_source_instance, original_tracker, original_on_available
-):
+def teardown_loop_test(event_source_instance, original_tracker, original_on_available):
     """Helper to tear down after loop testing."""
     event_source_instance._EventSource__is_running = original_tracker
     event_source_instance.on_available = original_on_available
@@ -261,9 +255,7 @@ def test_loop_single_event_then_stop(
     assert spy_on_available.called_with_arg is test_event_instance
     assert fake_event_queue.get_blocking_call_count >= 1  # Called for the item
 
-    teardown_loop_test(
-        event_source_instance, original_tracker, original_on_available
-    )
+    teardown_loop_test(event_source_instance, original_tracker, original_on_available)
 
 
 def test_loop_timeout_then_stop(
@@ -278,9 +270,7 @@ def test_loop_timeout_then_stop(
         event_source_instance, fake_is_running_tracker, spy_on_available
     )
 
-    fake_event_queue.set_return_values(
-        [None, StopIteration]
-    )  # None for timeout
+    fake_event_queue.set_return_values([None, StopIteration])  # None for timeout
     fake_is_running_tracker.set_is_running(True)
 
     event_source_instance.start(fake_thread_watcher)
@@ -294,9 +284,7 @@ def test_loop_timeout_then_stop(
     assert not spy_on_available.called  # on_available should not be called
     assert fake_event_queue.get_blocking_call_count >= 1  # Called for the None
 
-    teardown_loop_test(
-        event_source_instance, original_tracker, original_on_available
-    )
+    teardown_loop_test(event_source_instance, original_tracker, original_on_available)
 
 
 def test_loop_multiple_events_then_stop(
@@ -330,9 +318,7 @@ def test_loop_multiple_events_then_stop(
     # A more robust spy would be: self.args_list.append(event_instance)
     assert spy_on_available.called_with_arg is event2
 
-    teardown_loop_test(
-        event_source_instance, original_tracker, original_on_available
-    )
+    teardown_loop_test(event_source_instance, original_tracker, original_on_available)
 
 
 def test_loop_terminates_on_stop_call(
@@ -370,9 +356,7 @@ def test_loop_terminates_on_stop_call(
             event_source_instance._EventSource__is_running.get()
             and iterations_done < max_iterations
         ):
-            event = (
-                event_source_instance._EventSource__event_source.get_blocking()
-            )
+            event = event_source_instance._EventSource__event_source.get_blocking()
             if event:
                 event_source_instance.on_available(event)
             iterations_done += 1
@@ -386,9 +370,7 @@ def test_loop_terminates_on_stop_call(
     )  # Should have processed 2 events before stop
     assert fake_is_running_tracker.get() is False  # Stop was called
 
-    teardown_loop_test(
-        event_source_instance, original_tracker, original_on_available
-    )
+    teardown_loop_test(event_source_instance, original_tracker, original_on_available)
 
 
 def test_stop_join_timeout(
@@ -403,9 +385,7 @@ def test_stop_join_timeout(
     event_source_instance._EventSource__is_running = fake_is_running_tracker
 
     # Call start() to create and start the thread
-    fake_is_running_tracker.set_is_running(
-        True
-    )  # So start() thinks it can run
+    fake_is_running_tracker.set_is_running(True)  # So start() thinks it can run
     event_source_instance.start(fake_thread_watcher)
 
     assert (
@@ -419,9 +399,7 @@ def test_stop_join_timeout(
         side_effect=lambda timeout=None: None,
     )
     # Mock thread.is_alive to always return True after join is called (which means it's still running)
-    mocker.patch.object(
-        fake_thread_watcher.fake_thread, "is_alive", return_value=True
-    )
+    mocker.patch.object(fake_thread_watcher.fake_thread, "is_alive", return_value=True)
 
     with pytest.raises(
         RuntimeError,
@@ -488,12 +466,8 @@ def test_loop_on_available_exception(
     with pytest.raises(ValueError, match="on_available error"):
         loop_target()  # Directly call the thread's target function
 
-    event_source_instance.on_available.assert_called_once_with(
-        test_event_instance
-    )
-    fake_thread_watcher.on_exception_seen.assert_called_once_with(
-        test_exception
-    )
+    event_source_instance.on_available.assert_called_once_with(test_event_instance)
+    fake_thread_watcher.on_exception_seen.assert_called_once_with(test_exception)
 
     # Restore original get method and tracker
     fake_is_running_tracker.get = original_get_method

@@ -105,12 +105,8 @@ class ServiceConnector(
                 The `ServiceConnector` registers itself as a client to this source.
         """
         self.__client: ServiceConnector.Client = client
-        self.__service_source: ServiceSource[SourceServiceInfoT] = (
-            service_source
-        )
-        self.__connection_factory: ConnectionFactory[ChannelTypeT] = (
-            connection_factory
-        )
+        self.__service_source: ServiceSource[SourceServiceInfoT] = service_source
+        self.__connection_factory: ConnectionFactory[ChannelTypeT] = connection_factory
 
         self.__callers: Set[CallerIdentifier] = set()
 
@@ -180,9 +176,7 @@ class ServiceConnector(
 
         await self._mark_client_failed_impl(caller_id)
 
-    async def _mark_client_failed_impl(
-        self, caller_id: CallerIdentifier
-    ) -> None:
+    async def _mark_client_failed_impl(self, caller_id: CallerIdentifier) -> None:
         """Internal implementation for marking a client as failed.
 
         This method must be called on the `ServiceConnector`\'s event loop.
@@ -255,10 +249,8 @@ class ServiceConnector(
             connection_info.port,
         )
 
-        channel: Optional[ChannelTypeT] = (
-            await self.__connection_factory.connect(
-                connection_info.addresses, connection_info.port
-            )
+        channel: Optional[ChannelTypeT] = await self.__connection_factory.connect(
+            connection_info.addresses, connection_info.port
         )
 
         if channel is None:
@@ -300,9 +292,7 @@ class ServiceConnector(
                     exc_info=True,
                 )
         else:
-            logging.debug(
-                "Service source does not have stop_discovery method."
-            )
+            logging.debug("Service source does not have stop_discovery method.")
 
         self.__callers.clear()
 

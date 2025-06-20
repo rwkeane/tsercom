@@ -23,12 +23,8 @@ def mock_asyncio_sleep(mocker):
 @pytest.fixture
 def mock_is_running_on_event_loop(mocker):
     # Patch where it's imported and used by DataTimeoutTracker
-    mock = mocker.patch(
-        "tsercom.data.data_timeout_tracker.is_running_on_event_loop"
-    )
-    mock.return_value = (
-        True  # Default to True for most async method internal checks
-    )
+    mock = mocker.patch("tsercom.data.data_timeout_tracker.is_running_on_event_loop")
+    mock.return_value = True  # Default to True for most async method internal checks
     return mock
 
 
@@ -147,12 +143,8 @@ async def test_execute_periodically_multiple_objects(
     test_timeout = 35
     tracker = DataTimeoutTracker(timeout_seconds=test_timeout)
 
-    tracked_obj1 = mocker.create_autospec(
-        DataTimeoutTracker.Tracked, instance=True
-    )
-    tracked_obj2 = mocker.create_autospec(
-        DataTimeoutTracker.Tracked, instance=True
-    )
+    tracked_obj1 = mocker.create_autospec(DataTimeoutTracker.Tracked, instance=True)
+    tracked_obj2 = mocker.create_autospec(DataTimeoutTracker.Tracked, instance=True)
 
     await tracker._DataTimeoutTracker__register_impl(tracked_obj1)
     await tracker._DataTimeoutTracker__register_impl(tracked_obj2)
@@ -164,9 +156,7 @@ async def test_execute_periodically_multiple_objects(
         tracker._DataTimeoutTracker__is_running.stop()
         raise BreakLoop("Break from obj2._on_triggered")
 
-    tracked_obj2._on_triggered.side_effect = (
-        stop_and_raise_breakloop_on_obj2_triggered
-    )
+    tracked_obj2._on_triggered.side_effect = stop_and_raise_breakloop_on_obj2_triggered
 
     # __execute_periodically will catch BreakLoop from _on_triggered and log it.
     await tracker._DataTimeoutTracker__execute_periodically()
@@ -214,9 +204,7 @@ async def test_execute_periodically_handles_exception_in_on_triggered_and_contin
     test_timeout = 25
     tracker = DataTimeoutTracker(timeout_seconds=test_timeout)
 
-    tracked_obj1 = mocker.create_autospec(
-        DataTimeoutTracker.Tracked, instance=True
-    )
+    tracked_obj1 = mocker.create_autospec(DataTimeoutTracker.Tracked, instance=True)
     tracked_obj2 = mocker.create_autospec(
         DataTimeoutTracker.Tracked, instance=True
     )  # Will raise error
@@ -224,9 +212,7 @@ async def test_execute_periodically_handles_exception_in_on_triggered_and_contin
         DataTimeoutTracker.Tracked, instance=True
     )  # Should still be called
 
-    tracked_obj2._on_triggered.side_effect = RuntimeError(
-        "Test error in _on_triggered"
-    )
+    tracked_obj2._on_triggered.side_effect = RuntimeError("Test error in _on_triggered")
     # Make the last object's _on_triggered raise BreakLoop to exit the test loop
     tracked_obj3._on_triggered.side_effect = BreakLoop
 
@@ -246,9 +232,7 @@ async def test_execute_periodically_handles_exception_in_on_triggered_and_contin
             "Test error in _on_triggered"
         )
     )
-    tracked_obj3._on_triggered.side_effect = (
-        stop_and_raise_breakloop_on_obj3_triggered
-    )
+    tracked_obj3._on_triggered.side_effect = stop_and_raise_breakloop_on_obj3_triggered
 
     # __execute_periodically will catch RuntimeError and BreakLoop. Loop terminates via side effect.
     await tracker._DataTimeoutTracker__execute_periodically()
@@ -268,9 +252,7 @@ async def test_execute_periodically_handles_exception_in_on_triggered_and_contin
 
 
 # 5. stop() and __signal_stop_impl() tests
-def test_stop_calls_run_on_event_loop_if_running(
-    mocker, mock_run_on_event_loop
-):
+def test_stop_calls_run_on_event_loop_if_running(mocker, mock_run_on_event_loop):
     tracker = DataTimeoutTracker()
     # Call tracker.start() to make it "running" and set up internal future
     tracker.start()
@@ -302,9 +284,7 @@ def test_stop_does_nothing_if_not_running(mocker, mock_run_on_event_loop):
     tracker = DataTimeoutTracker()
     # Use the real IsRunningTracker instance, ensure it's not running
     internal_is_running_tracker = tracker._DataTimeoutTracker__is_running
-    assert (
-        internal_is_running_tracker.get() is False
-    )  # Should be false by default
+    assert internal_is_running_tracker.get() is False  # Should be false by default
 
     # Spy on the stop method of the real IsRunningTracker instance
     # spy_internal_stop = mocker.spy(internal_is_running_tracker, 'stop') # Spying might be tricky; check effect instead
@@ -312,9 +292,7 @@ def test_stop_does_nothing_if_not_running(mocker, mock_run_on_event_loop):
     tracker.stop()
 
     mock_run_on_event_loop.assert_not_called()
-    assert (
-        internal_is_running_tracker.get() is False
-    )  # Check the effect of stop()
+    assert internal_is_running_tracker.get() is False  # Check the effect of stop()
 
 
 @pytest.mark.asyncio
@@ -346,13 +324,9 @@ async def test_signal_stop_impl_asserts_if_not_on_event_loop(
     mocker, mock_is_running_on_event_loop
 ):
     tracker = DataTimeoutTracker()
-    mock_is_running_on_event_loop.return_value = (
-        False  # Simulate not on event loop
-    )
+    mock_is_running_on_event_loop.return_value = False  # Simulate not on event loop
 
-    with pytest.raises(
-        AssertionError, match="Stop signal must be on event loop."
-    ):
+    with pytest.raises(AssertionError, match="Stop signal must be on event loop."):
         await tracker._DataTimeoutTracker__signal_stop_impl()
 
 
@@ -422,9 +396,7 @@ async def test_unregister_impl_item_not_present_logs_warning(
         "Attempted to unregister a non-registered or already unregistered item: %s",
         non_existent_tracked,
     )
-    assert tracker._DataTimeoutTracker__tracked_list == [
-        tracked1
-    ]  # List unchanged
+    assert tracker._DataTimeoutTracker__tracked_list == [tracked1]  # List unchanged
 
 
 @pytest.mark.asyncio
@@ -432,13 +404,9 @@ async def test_unregister_impl_asserts_if_not_on_event_loop(
     mocker, mock_is_running_on_event_loop, mock_tracked_object
 ):
     tracker = DataTimeoutTracker()
-    mock_is_running_on_event_loop.return_value = (
-        False  # Simulate not on event loop
-    )
+    mock_is_running_on_event_loop.return_value = False  # Simulate not on event loop
 
-    with pytest.raises(
-        AssertionError, match="Unregistration must be on event loop."
-    ):
+    with pytest.raises(AssertionError, match="Unregistration must be on event loop."):
         await tracker._DataTimeoutTracker__unregister_impl(mock_tracked_object)
 
 

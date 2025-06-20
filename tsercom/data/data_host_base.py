@@ -44,9 +44,7 @@ class DataHostBase(
             **kwargs: Keyword arguments for superclass.
         """
         # This ensures sequential processing of data aggregation tasks.
-        thread_pool = watcher.create_tracked_thread_pool_executor(
-            max_workers=1
-        )
+        thread_pool = watcher.create_tracked_thread_pool_executor(max_workers=1)
 
         tracker: Optional[DataTimeoutTracker] = None
         if timeout_seconds > 0:

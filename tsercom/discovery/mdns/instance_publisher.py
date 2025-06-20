@@ -60,9 +60,7 @@ class InstancePublisher:
             raise TypeError(f"port must be int, got {type(port).__name__}.")
 
         if service_type is None:
-            raise ValueError(
-                "service_type cannot be None for InstancePublisher."
-            )
+            raise ValueError("service_type cannot be None for InstancePublisher.")
         if not isinstance(service_type, str):
             raise TypeError(
                 f"service_type must be str, got {type(service_type).__name__}."
@@ -103,9 +101,7 @@ class InstancePublisher:
         txt_record = self._make_txt_record()
         # This check is defensive; _make_txt_record should always return a dict.
         if txt_record is None:
-            raise RuntimeError(
-                "_make_txt_record failed to produce TXT record."
-            )
+            raise RuntimeError("_make_txt_record failed to produce TXT record.")
 
         self.__record_publisher: MdnsPublisher
         if mdns_publisher_factory is None:
@@ -117,9 +113,7 @@ class InstancePublisher:
                 txt: Optional[Dict[bytes, bytes | None]],
                 zc: Optional[AsyncZeroconf],
             ) -> MdnsPublisher:
-                return RecordPublisher(
-                    eff_inst_name, s_type, p, txt, zc_instance=zc
-                )
+                return RecordPublisher(eff_inst_name, s_type, p, txt, zc_instance=zc)
 
             self.__record_publisher = default_mdns_publisher_factory(
                 effective_instance_name,

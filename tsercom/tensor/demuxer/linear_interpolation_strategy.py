@@ -76,9 +76,7 @@ class LinearInterpolationStrategy(SmoothingStrategy):
         # If required_ts is timestamps[-1], idx_right is len(timestamps)-1. We want values[-1].
 
         # Initialize result tensor
-        interpolated_values = torch.empty_like(
-            required_timestamps, dtype=values.dtype
-        )
+        interpolated_values = torch.empty_like(required_timestamps, dtype=values.dtype)
 
         # Handle extrapolation for points before the first keyframe
         before_mask = required_timestamps < timestamps[0]
@@ -150,9 +148,7 @@ class LinearInterpolationStrategy(SmoothingStrategy):
             calculated_proportion = (
                 current_req_ts[~zero_denom_mask] - t1[~zero_denom_mask]
             ) / denominator[~zero_denom_mask]
-            proportion[~zero_denom_mask] = calculated_proportion.to(
-                proportion.dtype
-            )
+            proportion[~zero_denom_mask] = calculated_proportion.to(proportion.dtype)
 
             # Handle cases where proportion might be slightly out of [0,1] due to float precision
             proportion = torch.clamp(proportion, 0.0, 1.0)

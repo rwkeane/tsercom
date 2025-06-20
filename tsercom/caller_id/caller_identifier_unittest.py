@@ -90,9 +90,7 @@ def test_to_grpc_type(PatchedCallerIdentifier):
     identifier = PatchedCallerIdentifier.random()
     grpc_id = identifier.to_grpc_type()
 
-    assert isinstance(
-        grpc_id, MockProtoCallerIdType
-    )  # Check against our mock type
+    assert isinstance(grpc_id, MockProtoCallerIdType)  # Check against our mock type
     assert grpc_id.id == str(identifier._CallerIdentifier__id)
 
 
@@ -105,9 +103,7 @@ def test_equality(PatchedCallerIdentifier):
     assert id1 == id2
     assert id1 != id3
     assert id2 != id3
-    assert (
-        id1 == str(uuid_val)
-    ) is False  # Comparison with non-CallerIdentifier type
+    assert (id1 == str(uuid_val)) is False  # Comparison with non-CallerIdentifier type
     assert (id1 != None) is True  # Comparison with None
 
 

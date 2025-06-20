@@ -27,9 +27,7 @@ class EchoRequest(google.protobuf.message.Message):
         *,
         message: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing.Literal["message", b"message"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["message", b"message"]) -> None: ...
 
 global___EchoRequest = EchoRequest
 
@@ -61,9 +59,7 @@ class StreamDataRequest(google.protobuf.message.Message):
         *,
         data_id: builtins.int = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing.Literal["data_id", b"data_id"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data_id", b"data_id"]) -> None: ...
 
 global___StreamDataRequest = StreamDataRequest
 

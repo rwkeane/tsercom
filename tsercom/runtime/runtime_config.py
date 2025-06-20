@@ -102,9 +102,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
     def __init__(
         self,
-        service_type: Optional[
-            Literal["Client", "Server"] | ServiceType
-        ] = None,
+        service_type: Optional[Literal["Client", "Server"] | ServiceType] = None,
         *,
         other_config: Optional["RuntimeConfig[DataTypeT]"] = None,
         data_aggregator_client: Optional[RemoteDataAggregator.Client] = None,
@@ -149,9 +147,7 @@ class RuntimeConfig(Generic[DataTypeT]):
                 enum member or a valid string literal.
         """
         if (service_type is None) == (other_config is None):
-            other_config_str = (
-                "<Provided>" if other_config is not None else None
-            )
+            other_config_str = "<Provided>" if other_config is not None else None
             raise ValueError(
                 "Exactly one of 'service_type' or 'other_config' must be "
                 f"provided. Got service_type={service_type}, "
@@ -199,9 +195,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         ] = data_aggregator_client
         self.__timeout_seconds: Optional[int] = timeout_seconds
         self.__auth_config: Optional[BaseChannelAuthConfig] = auth_config
-        self.__min_send_frequency_seconds: Optional[float] = (
-            min_send_frequency_seconds
-        )
+        self.__min_send_frequency_seconds: Optional[float] = min_send_frequency_seconds
 
     def is_client(self) -> bool:
         """Checks if the runtime is configured to operate as a client.

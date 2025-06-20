@@ -32,9 +32,7 @@ class TimeSyncServer:
     in order to open a socket.
     """
 
-    def __init__(
-        self, address: str = "0.0.0.0", ntp_port: int = kNtpPort
-    ) -> None:
+    def __init__(self, address: str = "0.0.0.0", ntp_port: int = kNtpPort) -> None:
         """
         Initializes the TimeSyncServer.
 
@@ -70,9 +68,7 @@ class TimeSyncServer:
         with self.__socket_lock:
             self.__socket.close()
         try:
-            with socket.socket(
-                socket.AF_INET, socket.SOCK_DGRAM
-            ) as temp_socket:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as temp_socket:
                 temp_socket.sendto(b"shutdown", (self.__address, self.__port))
         except OSError as e:
             logging.warning(
@@ -110,9 +106,7 @@ class TimeSyncServer:
         ntp_server_mode = 4
         ntp_delta = 2208988800  # Unix to NTP epoch offset
 
-        logging.info(
-            "NTP server listening on %s:%s", self.__address, self.__port
-        )
+        logging.info("NTP server listening on %s:%s", self.__address, self.__port)
 
         while self.__is_running.get():
             try:
@@ -122,9 +116,7 @@ class TimeSyncServer:
                         logging.info("Socket closed, exiting server loop.")
                         break
                     receive_call = self.__receive(self.__socket)
-                    pair = await self.__is_running.task_or_stopped(
-                        receive_call
-                    )
+                    pair = await self.__is_running.task_or_stopped(receive_call)
 
                 if pair is None or not self.__is_running.get():
                     logging.info("Server stopping or task was cancelled.")
@@ -164,13 +156,9 @@ class TimeSyncServer:
                         continue
 
                     current_time_ns = time.time_ns()
-                    server_timestamp_sec = (
-                        current_time_ns // 1_000_000_000 + ntp_delta
-                    )
+                    server_timestamp_sec = current_time_ns // 1_000_000_000 + ntp_delta
                     server_timestamp_frac = (
-                        (current_time_ns % 1_000_000_000)
-                        * (2**32)
-                        // 1_000_000_000
+                        (current_time_ns % 1_000_000_000) * (2**32) // 1_000_000_000
                     )
                     client_timestamp_sec = unpacked_data[10]
                     client_timestamp_frac = unpacked_data[11]
@@ -196,9 +184,7 @@ class TimeSyncServer:
                     with self.__socket_lock:
                         if self.__socket.fileno() == -1:
                             break
-                        send_task = self.__send(
-                            self.__socket, response_packet, addr
-                        )
+                        send_task = self.__send(self.__socket, response_packet, addr)
                         await self.__is_running.task_or_stopped(send_task)
                         if not self.__is_running.get():
                             break
@@ -208,9 +194,7 @@ class TimeSyncServer:
                 raise
         logging.info("NTP server stopped.")
 
-    async def __receive(
-        self, s: socket.socket
-    ) -> tuple[bytes, tuple[str, int]]:
+    async def __receive(self, s: socket.socket) -> tuple[bytes, tuple[str, int]]:
         """Async receives data from UDP socket via executor."""
         loop = get_running_loop_or_none()
         assert loop is not None, "Cannot run __receive without event loop."

@@ -119,9 +119,7 @@ class TestServerRuntimeDataHandler:
             is_testing=False,
         )
         # Force set the __id_tracker to our mock instance
-        handler_instance._RuntimeDataHandlerBase__id_tracker = (
-            mock_id_tracker_instance
-        )
+        handler_instance._RuntimeDataHandlerBase__id_tracker = mock_id_tracker_instance
 
         yield {
             "handler": handler_instance,
@@ -137,16 +135,12 @@ class TestServerRuntimeDataHandler:
     ):
         """Tests constructor for correct initialization and dependency usage."""
         handler = handler_with_mocks["handler"]
-        TimeSyncServer_class_mock = handler_with_mocks[
-            "TimeSyncServer_class_mock"
-        ]
+        TimeSyncServer_class_mock = handler_with_mocks["TimeSyncServer_class_mock"]
         time_sync_server_instance_mock = handler_with_mocks[
             "time_sync_server_instance_mock"
         ]
         id_tracker_init_mock = handler_with_mocks["id_tracker_init_mock"]
-        id_tracker_instance_mock = handler_with_mocks[
-            "id_tracker_instance_mock"
-        ]
+        id_tracker_instance_mock = handler_with_mocks["id_tracker_instance_mock"]
 
         TimeSyncServer_class_mock.assert_called_once_with()
         time_sync_server_instance_mock.start_async.assert_called_once()
@@ -171,10 +165,7 @@ class TestServerRuntimeDataHandler:
         )
 
         assert handler._RuntimeDataHandlerBase__data_reader == mock_data_reader
-        assert (
-            handler._RuntimeDataHandlerBase__event_source
-            == mock_event_source_poller
-        )
+        assert handler._RuntimeDataHandlerBase__event_source == mock_event_source_poller
 
     @pytest.mark.asyncio
     async def test_register_caller(
@@ -182,9 +173,7 @@ class TestServerRuntimeDataHandler:
     ):
         """Tests _register_caller method for correct registration flow."""
         handler = handler_with_mocks["handler"]
-        id_tracker_instance_mock = handler_with_mocks[
-            "id_tracker_instance_mock"
-        ]
+        id_tracker_instance_mock = handler_with_mocks["id_tracker_instance_mock"]
 
         mock_caller_id = CallerIdentifier.random()
         mock_endpoint = "192.168.1.100"
@@ -205,9 +194,7 @@ class TestServerRuntimeDataHandler:
         id_tracker_instance_mock.add.assert_called_once_with(
             mock_caller_id, mock_endpoint, mock_port
         )
-        mock_create_dp_method.assert_called_once_with(
-            mock_caller_id, expected_clock
-        )
+        mock_create_dp_method.assert_called_once_with(mock_caller_id, expected_clock)
         assert returned_processor == mock_endpoint_data_processor
 
     @pytest.mark.asyncio
@@ -215,9 +202,7 @@ class TestServerRuntimeDataHandler:
         """Tests _unregister_caller method's current behavior."""
         # TODO(developer): Update assertions to reflect that SUT's _unregister_caller now calls id_tracker.has_id() and returns bool.
         handler = handler_with_mocks["handler"]
-        id_tracker_instance_mock = handler_with_mocks[
-            "id_tracker_instance_mock"
-        ]
+        id_tracker_instance_mock = handler_with_mocks["id_tracker_instance_mock"]
         time_sync_server_instance_mock = handler_with_mocks[
             "time_sync_server_instance_mock"
         ]
@@ -228,9 +213,7 @@ class TestServerRuntimeDataHandler:
         try:
             result = await handler._unregister_caller(mock_caller_id)
         except Exception as e:
-            pytest.fail(
-                f"_unregister_caller raised an exception unexpectedly: {e}"
-            )
+            pytest.fail(f"_unregister_caller raised an exception unexpectedly: {e}")
 
         # Assuming the method now simply returns False and does not interact with id_tracker.
         assert (
@@ -246,14 +229,10 @@ class TestServerRuntimeDataHandler:
         if hasattr(time_sync_server_instance_mock, "on_disconnect"):
             time_sync_server_instance_mock.on_disconnect.assert_not_called()
 
-    def test_try_get_caller_id(
-        self, handler_with_mocks, mocker
-    ):  # Added mocker
+    def test_try_get_caller_id(self, handler_with_mocks, mocker):  # Added mocker
         """Tests _try_get_caller_id for a successfully found ID."""
         handler = handler_with_mocks["handler"]
-        id_tracker_instance_mock = handler_with_mocks[
-            "id_tracker_instance_mock"
-        ]
+        id_tracker_instance_mock = handler_with_mocks["id_tracker_instance_mock"]
 
         mock_endpoint = "10.0.0.1"
         mock_port = 8080
@@ -264,9 +243,7 @@ class TestServerRuntimeDataHandler:
             mocker.MagicMock(),  # Mock for the TrackedDataT part
         )
 
-        returned_caller_id = handler._try_get_caller_id(
-            mock_endpoint, mock_port
-        )
+        returned_caller_id = handler._try_get_caller_id(mock_endpoint, mock_port)
 
         id_tracker_instance_mock.try_get.assert_called_once_with(
             mock_endpoint, mock_port
@@ -276,18 +253,14 @@ class TestServerRuntimeDataHandler:
     def test_try_get_caller_id_not_found(self, handler_with_mocks):
         """Tests _try_get_caller_id when the ID is not found."""
         handler = handler_with_mocks["handler"]
-        id_tracker_instance_mock = handler_with_mocks[
-            "id_tracker_instance_mock"
-        ]
+        id_tracker_instance_mock = handler_with_mocks["id_tracker_instance_mock"]
 
         mock_endpoint = "10.0.0.2"
         mock_port = 8081
 
         id_tracker_instance_mock.try_get.return_value = None
 
-        returned_caller_id = handler._try_get_caller_id(
-            mock_endpoint, mock_port
-        )
+        returned_caller_id = handler._try_get_caller_id(mock_endpoint, mock_port)
 
         id_tracker_instance_mock.try_get.assert_called_once_with(
             mock_endpoint, mock_port
@@ -302,18 +275,14 @@ class TestServerRuntimeDataHandler:
             "tsercom.runtime.server.server_runtime_data_handler.FakeSynchronizedClock"
         )
         mock_fake_clock_instance = mocker.MagicMock(spec=SynchronizedClock)
-        mock_FakeSynchronizedClock_class.return_value = (
-            mock_fake_clock_instance
-        )
+        mock_FakeSynchronizedClock_class.return_value = mock_fake_clock_instance
 
         mock_TimeSyncServer_class = mocker.patch(
             "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer"
         )
 
         # Mock IdTracker.__init__ as it's called in the base class constructor
-        mocker.patch(
-            "tsercom.runtime.id_tracker.IdTracker.__init__", return_value=None
-        )
+        mocker.patch("tsercom.runtime.id_tracker.IdTracker.__init__", return_value=None)
 
         handler = ServerRuntimeDataHandler(
             data_reader=mock_data_reader,
@@ -323,7 +292,4 @@ class TestServerRuntimeDataHandler:
 
         mock_FakeSynchronizedClock_class.assert_called_once_with()
         mock_TimeSyncServer_class.assert_not_called()
-        assert (
-            handler._ServerRuntimeDataHandler__clock
-            is mock_fake_clock_instance
-        )
+        assert handler._ServerRuntimeDataHandler__clock is mock_fake_clock_instance

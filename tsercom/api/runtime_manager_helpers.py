@@ -71,6 +71,4 @@ class SplitErrorWatcherSourceFactory:
         Returns:
             A new instance of `SplitProcessErrorWatcherSource`.
         """
-        return SplitProcessErrorWatcherSource(
-            thread_watcher, error_source_queue
-        )
+        return SplitProcessErrorWatcherSource(thread_watcher, error_source_queue)

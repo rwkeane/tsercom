@@ -70,9 +70,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             `__anext__` if not explicitly set during initialization.
     """
 
-    def __init__(
-        self, min_poll_frequency_seconds: Optional[float] = None
-    ) -> None:
+    def __init__(self, min_poll_frequency_seconds: Optional[float] = None) -> None:
         """Initializes the AsyncPoller.
 
         Args:
@@ -85,10 +83,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                 imposing no such delay.
         """
         self.__rate_limiter: RateLimiter
-        if (
-            min_poll_frequency_seconds is not None
-            and min_poll_frequency_seconds > 0
-        ):
+        if min_poll_frequency_seconds is not None and min_poll_frequency_seconds > 0:
             self.__rate_limiter = RateLimiterImpl(min_poll_frequency_seconds)
         else:
             self.__rate_limiter = NullRateLimiter()
@@ -193,9 +188,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             with self.__lock:
                 if self.__responses:
                     while self.__responses:
-                        current_batch_on_stop.append(
-                            self.__responses.popleft()
-                        )
+                        current_batch_on_stop.append(self.__responses.popleft())
             if current_batch_on_stop:
                 return current_batch_on_stop
             raise RuntimeError("AsyncPoller is stopped.")
@@ -229,9 +222,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                             current_batch.append(self.__responses.popleft())
                 if current_batch:
                     return current_batch
-                raise RuntimeError(
-                    "AsyncPoller stopped while waiting for instance."
-                )
+                raise RuntimeError("AsyncPoller stopped while waiting for instance.")
 
         raise RuntimeError(
             "AsyncPoller is stopped."
@@ -258,9 +249,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         try:
             return await self.wait_instance()
         except RuntimeError as e:
-            raise StopAsyncIteration(
-                f"AsyncPoller iteration stopped: {e}"
-            ) from e
+            raise StopAsyncIteration(f"AsyncPoller iteration stopped: {e}") from e
 
     def __len__(self) -> int:
         """Returns the current number of items in the internal response queue.

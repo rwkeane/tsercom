@@ -24,9 +24,7 @@ def assert_tensors_equal(
     of `SerializableTensorChunk.try_parse`. The original tensor (t1) will be
     flattened for comparison.
     """
-    assert (
-        t2.ndim == 1
-    ), f"Parsed tensor t2 should be 1D, but has shape {t2.shape}"
+    assert t2.ndim == 1, f"Parsed tensor t2 should be 1D, but has shape {t2.shape}"
     t1_flat = t1.flatten().contiguous()
 
     assert (
@@ -47,9 +45,7 @@ def assert_tensors_equal(
     t2_cmp = t2.cpu()
 
     if t1_cmp.dtype == torch.bool:
-        assert torch.all(
-            t1_cmp == t2_cmp
-        ).item(), "Boolean tensor content mismatch"
+        assert torch.all(t1_cmp == t2_cmp).item(), "Boolean tensor content mismatch"
     else:
         assert torch.equal(t1_cmp, t2_cmp), "Tensor content mismatch"
 
@@ -126,13 +122,9 @@ def test_tensor_chunk_serialization_deserialization(
     if expected_num_elements > 0:
         if dtype == torch.bool:
             # NumPy's representation of a bool array item is 1 byte.
-            expected_byte_size = (
-                expected_num_elements * np.dtype(bool).itemsize
-            )
+            expected_byte_size = expected_num_elements * np.dtype(bool).itemsize
         else:
-            expected_byte_size = (
-                expected_num_elements * original_tensor.element_size()
-            )
+            expected_byte_size = expected_num_elements * original_tensor.element_size()
     assert len(grpc_msg.data_bytes) == expected_byte_size
 
     parsed_chunk = SerializableTensorChunk.try_parse(
@@ -140,16 +132,9 @@ def test_tensor_chunk_serialization_deserialization(
     )
 
     assert parsed_chunk is not None
-    assert (
-        parsed_chunk.tensor.device.type == "cpu"
-    )  # try_parse constructs on CPU.
-    assert_tensors_equal(
-        original_tensor, parsed_chunk.tensor, check_device=False
-    )
-    assert (
-        parsed_chunk.timestamp.as_datetime()
-        == mock_sync_timestamp.as_datetime()
-    )
+    assert parsed_chunk.tensor.device.type == "cpu"  # try_parse constructs on CPU.
+    assert_tensors_equal(original_tensor, parsed_chunk.tensor, check_device=False)
+    assert parsed_chunk.timestamp.as_datetime() == mock_sync_timestamp.as_datetime()
     assert parsed_chunk.starting_index == starting_index_val
 
 
@@ -189,9 +174,7 @@ def test_gpu_tensor_chunk_serialization_and_device_move(
     assert parsed_chunk is not None
     assert parsed_chunk.tensor.device.type == "cpu"
 
-    assert_tensors_equal(
-        original_tensor_cpu, parsed_chunk.tensor, check_device=False
-    )
+    assert_tensors_equal(original_tensor_cpu, parsed_chunk.tensor, check_device=False)
 
     parsed_tensor_on_target = parsed_chunk.tensor.to(target_device_after_parse)
     assert parsed_tensor_on_target.device == target_device_after_parse
@@ -202,10 +185,7 @@ def test_gpu_tensor_chunk_serialization_and_device_move(
         check_device=True,
     )
 
-    assert (
-        parsed_chunk.timestamp.as_datetime()
-        == mock_sync_timestamp.as_datetime()
-    )
+    assert parsed_chunk.timestamp.as_datetime() == mock_sync_timestamp.as_datetime()
     assert parsed_chunk.starting_index == starting_index_val
 
 
@@ -220,18 +200,13 @@ def test_try_parse_none_or_default_tensor_chunk(mocker: Any) -> None:
     # Test case: Timestamp parsing fails.
     mocker.patch.object(SynchronizedTimestamp, "try_parse", return_value=None)
     assert (
-        SerializableTensorChunk.try_parse(default_grpc_chunk, dtype=test_dtype)
-        is None
+        SerializableTensorChunk.try_parse(default_grpc_chunk, dtype=test_dtype) is None
     )
     mocker.stopall()
 
     # Test case: Timestamp parsing succeeds, but data_bytes is empty (default).
-    mock_ts_obj = SynchronizedTimestamp(
-        datetime.datetime.now(datetime.timezone.utc)
-    )
-    mocker.patch.object(
-        SynchronizedTimestamp, "try_parse", return_value=mock_ts_obj
-    )
+    mock_ts_obj = SynchronizedTimestamp(datetime.datetime.now(datetime.timezone.utc))
+    mocker.patch.object(SynchronizedTimestamp, "try_parse", return_value=mock_ts_obj)
 
     parsed_chunk_from_default = SerializableTensorChunk.try_parse(
         default_grpc_chunk, dtype=test_dtype
@@ -249,16 +224,12 @@ def test_serialization_of_empty_tensor_data() -> None:
     and that it can be correctly parsed back.
     """
     empty_tensor = torch.empty((5, 0, 3), dtype=torch.float32)
-    serializable_chunk = SerializableTensorChunk(
-        empty_tensor, mock_sync_timestamp, 0
-    )
+    serializable_chunk = SerializableTensorChunk(empty_tensor, mock_sync_timestamp, 0)
     grpc_msg = serializable_chunk.to_grpc_type()
 
     assert len(grpc_msg.data_bytes) == 0
 
-    parsed_chunk = SerializableTensorChunk.try_parse(
-        grpc_msg, dtype=empty_tensor.dtype
-    )
+    parsed_chunk = SerializableTensorChunk.try_parse(grpc_msg, dtype=empty_tensor.dtype)
     assert parsed_chunk is not None
     assert parsed_chunk.tensor.numel() == 0
     assert parsed_chunk.tensor.shape == (0,)
@@ -269,12 +240,8 @@ def test_try_parse_unsupported_dtype(mocker: Any) -> None:
     """Tests that try_parse returns None and logs an error when an unsupported
     torch.dtype (not in the internal numpy conversion map) is provided.
     """
-    mock_ts_obj = SynchronizedTimestamp(
-        datetime.datetime.now(datetime.timezone.utc)
-    )
-    mocker.patch.object(
-        SynchronizedTimestamp, "try_parse", return_value=mock_ts_obj
-    )
+    mock_ts_obj = SynchronizedTimestamp(datetime.datetime.now(datetime.timezone.utc))
+    mocker.patch.object(SynchronizedTimestamp, "try_parse", return_value=mock_ts_obj)
 
     chunk_msg = TensorChunk()
     chunk_msg.timestamp.CopyFrom(mock_sync_timestamp.to_grpc_type())
@@ -285,9 +252,7 @@ def test_try_parse_unsupported_dtype(mocker: Any) -> None:
     unsupported_dtype = torch.complex32
 
     mock_log_error = mocker.patch("logging.error")
-    result = SerializableTensorChunk.try_parse(
-        chunk_msg, dtype=unsupported_dtype
-    )
+    result = SerializableTensorChunk.try_parse(chunk_msg, dtype=unsupported_dtype)
     assert result is None
 
     mock_log_error.assert_called_once()
@@ -296,22 +261,17 @@ def test_try_parse_unsupported_dtype(mocker: Any) -> None:
     assert isinstance(
         call_args[2], ValueError
     )  # Corrected to check the exception instance
-    assert (
-        f"Unsupported torch.dtype for numpy conversion: {unsupported_dtype}"
-        in str(call_args[2])  # Corrected to check the exception instance
-    )
+    assert f"Unsupported torch.dtype for numpy conversion: {unsupported_dtype}" in str(
+        call_args[2]
+    )  # Corrected to check the exception instance
 
 
 def test_try_parse_malformed_data_bytes_length(mocker: Any) -> None:
     """Tests that try_parse returns None and logs an error if data_bytes length
     is incompatible with the specified dtype's item size (e.g., not a multiple).
     """
-    mock_ts_obj = SynchronizedTimestamp(
-        datetime.datetime.now(datetime.timezone.utc)
-    )
-    mocker.patch.object(
-        SynchronizedTimestamp, "try_parse", return_value=mock_ts_obj
-    )
+    mock_ts_obj = SynchronizedTimestamp(datetime.datetime.now(datetime.timezone.utc))
+    mocker.patch.object(SynchronizedTimestamp, "try_parse", return_value=mock_ts_obj)
     mock_log_error = mocker.patch("logging.error")
 
     chunk_msg = TensorChunk()
@@ -333,7 +293,5 @@ def test_try_parse_malformed_data_bytes_length(mocker: Any) -> None:
     )  # Corrected to check the exception instance
     assert (
         "buffer size must be a multiple of element size"
-        in str(
-            call_args[2]
-        ).lower()  # Corrected to check the exception instance
+        in str(call_args[2]).lower()  # Corrected to check the exception instance
     )

@@ -165,9 +165,7 @@ class DiscoveryHost(
             RuntimeError: If discovery has already been started.
         """
         if client is None:
-            raise ValueError(
-                "Client argument cannot be None for start_discovery."
-            )
+            raise ValueError("Client argument cannot be None for start_discovery.")
 
         if self.__discoverer is not None:
             raise RuntimeError("Discovery has already been started.")
@@ -197,7 +195,9 @@ class DiscoveryHost(
                         stop_e,
                         exc_info=True,
                     )
-            self.__discoverer = None  # Ensure discoverer is None if any part of init/start fails
+            self.__discoverer = (
+                None  # Ensure discoverer is None if any part of init/start fails
+            )
 
     async def _on_service_added(self, connection_info: ServiceInfoT) -> None:  # type: ignore[override]
         """Callback from `InstanceListener` when a new service instance is found.
@@ -255,9 +255,7 @@ class DiscoveryHost(
                 getattr(self.__client, "_on_service_removed")
             ):
 
-                await self.__client._on_service_removed(
-                    service_name, caller_id
-                )
+                await self.__client._on_service_removed(service_name, caller_id)
             else:
                 logging.warning(
                     "Client %s does not implement _on_service_removed, cannot notify for %s.",

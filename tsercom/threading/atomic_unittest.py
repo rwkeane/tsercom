@@ -104,9 +104,7 @@ def test_atomic_thread_safety_custom_object() -> None:
     initial_obj = MyObject("initial")
     atomic_custom = Atomic[MyObject](initial_obj)
 
-    possible_final_objects = {
-        MyObject(f"thread_{i}") for i in range(num_threads)
-    }
+    possible_final_objects = {MyObject(f"thread_{i}") for i in range(num_threads)}
     # Add the initial object as a possible value if no thread successfully sets its value first
     # or if threads complete so quickly only the initial/last set value is seen.
     # More accurately, any object set by any thread is a possible final value.

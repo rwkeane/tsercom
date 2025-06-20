@@ -16,18 +16,14 @@ class TestMultiprocessQueueSink:
         """Provides a MagicMock for multiprocessing.Queue."""
         # Use spec=multiprocessing.Queue to ensure the mock behaves like the actual Queue
         # regarding available methods and their expected signatures (to some extent).
-        return mocker.MagicMock(
-            spec=queues.Queue, name="MockMultiprocessingQueue"
-        )
+        return mocker.MagicMock(spec=queues.Queue, name="MockMultiprocessingQueue")
 
     def test_put_blocking_successful(self, mock_mp_queue):
         print("\n--- Test: test_put_blocking_successful ---")
         sink = MultiprocessQueueSink[str](mock_mp_queue)
         test_obj = "test_data_blocking"
         test_timeout = 5.0
-        print(
-            f"  Calling put_blocking with obj='{test_obj}', timeout={test_timeout}"
-        )
+        print(f"  Calling put_blocking with obj='{test_obj}', timeout={test_timeout}")
 
         # Assume put() does not raise Full for successful scenario
         mock_mp_queue.put.return_value = (
@@ -81,9 +77,7 @@ class TestMultiprocessQueueSink:
         result = sink.put_nowait(test_obj)
 
         mock_mp_queue.put_nowait.assert_called_once_with(test_obj)
-        print(
-            "  Assertion: mock_mp_queue.put_nowait called correctly - PASSED"
-        )
+        print("  Assertion: mock_mp_queue.put_nowait called correctly - PASSED")
         assert result is True, "put_nowait should return True on success"
         print("  Assertion: result is True - PASSED")
         print("--- Test: test_put_nowait_successful finished ---")
@@ -101,9 +95,7 @@ class TestMultiprocessQueueSink:
         result = sink.put_nowait(test_obj)
 
         mock_mp_queue.put_nowait.assert_called_once_with(test_obj)
-        print(
-            "  Assertion: mock_mp_queue.put_nowait called correctly - PASSED"
-        )
+        print("  Assertion: mock_mp_queue.put_nowait called correctly - PASSED")
         assert (
             result is False
         ), "put_nowait should return False when queue.Full is raised"

@@ -146,11 +146,11 @@ def modify_generated_file(file_path: Path) -> None:
 
                     if tsercom_index != -1:
                         # Construct the module path from 'tsercom' up to the directory containing the file
-                        absolute_module_prefix = ".".join(
-                            path_parts[tsercom_index:]
-                        )
+                        absolute_module_prefix = ".".join(path_parts[tsercom_index:])
 
-                        original_import_line = "import e2e_test_service_pb2 as e2e__test__service__pb2"
+                        original_import_line = (
+                            "import e2e_test_service_pb2 as e2e__test__service__pb2"
+                        )
                         correct_module_name = "e2e_test_service_pb2"
                         correct_alias = "e2e__test__service__pb2"
 
@@ -218,17 +218,13 @@ def _update_pyproject_version_range(versioned_dirs: list[str]) -> None:
                 print(f"Warning: Could not parse version string: {v_str}")
 
     if not versions:
-        print(
-            "Warning: No valid versions parsed. Skipping pyproject.toml update."
-        )
+        print("Warning: No valid versions parsed. Skipping pyproject.toml update.")
         return
 
     min_version_tuple = min(versions)
     max_version_tuple = max(versions)
     min_version_str = f"{min_version_tuple[0]}.{min_version_tuple[1]}.0"
-    next_minor_version_str = (
-        f"{max_version_tuple[0]}.{max_version_tuple[1] + 1}.0"
-    )
+    next_minor_version_str = f"{max_version_tuple[0]}.{max_version_tuple[1] + 1}.0"
 
     try:
         script_dir = Path(__file__).parent.resolve()
@@ -245,13 +241,9 @@ def _update_pyproject_version_range(versioned_dirs: list[str]) -> None:
             r'(grpcio-status\s*=\s*")[^"]*(")',
             r'(grpcio-health-checking\s*=\s*")[^"]*(")',
         ]
-        replacement_string = (
-            f"\1>={min_version_str}, <{next_minor_version_str}\2"
-        )
+        replacement_string = f"\1>={min_version_str}, <{next_minor_version_str}\2"
         for pattern in patterns_to_update:
-            pyproject_content = re.sub(
-                pattern, replacement_string, pyproject_content
-            )
+            pyproject_content = re.sub(pattern, replacement_string, pyproject_content)
 
         with open(pyproject_path, "w") as f:
             f.write(pyproject_content)
@@ -280,9 +272,7 @@ def get_public_symbols_from_file(filepath: Path) -> list[str]:
         print(f"Warning: Syntax error in {filepath}. Returning empty list.")
         return []
     except FileNotFoundError:
-        print(
-            f"Warning: File not found for get_public_symbols_from_file: {filepath}"
-        )
+        print(f"Warning: File not found for get_public_symbols_from_file: {filepath}")
         return []
 
     symbols = []
@@ -293,9 +283,7 @@ def get_public_symbols_from_file(filepath: Path) -> list[str]:
     return symbols
 
 
-def generate_init(
-    package_dir: Path, proto_path: str, generated_path: Path
-) -> None:
+def generate_init(package_dir: Path, proto_path: str, generated_path: Path) -> None:
     """Generates an __init__.py file for the generated protobuf package."""
 
     def _parse_ver(v_str: str) -> tuple[int, int]:
@@ -327,9 +315,7 @@ if not TYPE_CHECKING:
 """
     name = Path(proto_path).name.split(".")[0]
     versioned_dirs_data = []
-    base_package = (
-        generated_path.relative_to(package_dir).as_posix().replace("/", ".")
-    )
+    base_package = generated_path.relative_to(package_dir).as_posix().replace("/", ".")
 
     for item in generated_path.iterdir():
         if item.is_dir() and item.name.startswith("v"):
@@ -338,18 +324,14 @@ if not TYPE_CHECKING:
             pb2_grpc_py_path = item.joinpath(f"{name}_pb2_grpc.py")
             grpc_symbols = get_public_symbols_from_file(pb2_grpc_py_path)
             if message_symbols or grpc_symbols:
-                versioned_dirs_data.append(
-                    (item.name, message_symbols, grpc_symbols)
-                )
+                versioned_dirs_data.append((item.name, message_symbols, grpc_symbols))
 
     if not versioned_dirs_data:
         print(
             f"Warning: No versioned symbols found for {name} in {generated_path}. __init__.py may be incomplete."
         )
 
-    _update_pyproject_version_range(
-        [vd[0] for vd in versioned_dirs_data if vd[0]]
-    )
+    _update_pyproject_version_range([vd[0] for vd in versioned_dirs_data if vd[0]])
 
     if versioned_dirs_data:
         runtime_sorted_dirs = sorted(
@@ -357,9 +339,7 @@ if not TYPE_CHECKING:
         )
         for version_dir_name, msg_symbols, grpc_syms in runtime_sorted_dirs:
             current_ver = version_dir_name[1:]
-            init_file_content += (
-                f'\n    elif version_string == "v{current_ver}":'
-            )
+            init_file_content += f'\n    elif version_string == "v{current_ver}":'
             if msg_symbols:
                 init_file_content += f"\n        from tsercom.{base_package}.{version_dir_name}.{name}_pb2 import {', '.join(msg_symbols)}"
             if grpc_syms:
@@ -401,9 +381,7 @@ if not TYPE_CHECKING:
         versioned_dirs_data.sort(
             key=lambda x: _parse_ver(x[0])
         )  # Ensure it's sorted for "latest"
-        latest_ver_name, latest_msg_syms, latest_grpc_syms = (
-            versioned_dirs_data[-1]
-        )
+        latest_ver_name, latest_msg_syms, latest_grpc_syms = versioned_dirs_data[-1]
 
         type_checking_imports = []
         if latest_msg_syms:

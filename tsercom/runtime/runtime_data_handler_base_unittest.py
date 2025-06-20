@@ -59,12 +59,8 @@ from tsercom.timesync.common.fake_synchronized_clock import (
 DataType = TypeVar("DataType")
 
 
-class MockAsyncIterator(
-    AsyncIterator[List[Any]]
-):  # Type with List[Any] for batches
-    def __init__(
-        self, items_to_yield: List[List[Any]]
-    ):  # Takes a list of batches
+class MockAsyncIterator(AsyncIterator[List[Any]]):  # Type with List[Any] for batches
+    def __init__(self, items_to_yield: List[List[Any]]):  # Takes a list of batches
         self._items = iter(items_to_yield)
 
     def __aiter__(self) -> "MockAsyncIterator":
@@ -89,9 +85,7 @@ class TestableRuntimeDataHandler(RuntimeDataHandlerBase[DataType, Any]):
         super().__init__(data_reader, event_source)
         self.mock_register_caller = mocker.AsyncMock()
         self.mock_unregister_caller = mocker.AsyncMock(return_value=True)
-        self.mock_try_get_caller_id = mocker.MagicMock(
-            name="_try_get_caller_id_impl"
-        )
+        self.mock_try_get_caller_id = mocker.MagicMock(name="_try_get_caller_id_impl")
         self._on_data_ready = (
             mocker.AsyncMock(  # This mock is for the SUT's _on_data_ready
                 name="handler_sut_on_data_ready_mock"
@@ -165,9 +159,7 @@ class TestRuntimeDataHandlerBaseBehavior:
 
     @pytest.fixture
     def mock_caller_id(self, mocker):
-        return mocker.MagicMock(
-            spec=CallerIdentifier, name="MockCallerIdInstance"
-        )
+        return mocker.MagicMock(spec=CallerIdentifier, name="MockCallerIdInstance")
 
     @pytest.fixture
     def mock_servicer_context(self, mocker):
@@ -182,9 +174,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         # was intended for the dispatch_poller_data_loop.
         # However, __dispatch_poller_data_loop is started via loop.create_task directly
         # in __start_dispatch_loop if is_global_event_loop_set is true.
-        h = TestableRuntimeDataHandler(
-            mock_data_reader, mock_event_source, mocker
-        )
+        h = TestableRuntimeDataHandler(mock_data_reader, mock_event_source, mocker)
         yield h
         # Async cleanup by calling the new async_close method
         await h.async_close()
@@ -224,9 +214,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
 
     @pytest.mark.asyncio
-    async def test_constructor(
-        self, handler, mock_data_reader, mock_event_source
-    ):
+    async def test_constructor(self, handler, mock_data_reader, mock_event_source):
         assert handler._RuntimeDataHandlerBase__data_reader is mock_data_reader  # type: ignore
         assert handler._RuntimeDataHandlerBase__event_source is mock_event_source  # type: ignore
 
@@ -258,9 +246,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         port_num = 1122
         handler.mock_try_get_caller_id.return_value = mock_caller_id
         result = handler.check_for_caller_id(endpoint_str, port_num)
-        handler.mock_try_get_caller_id.assert_called_once_with(
-            endpoint_str, port_num
-        )
+        handler.mock_try_get_caller_id.assert_called_once_with(endpoint_str, port_num)
         assert result is mock_caller_id
 
     @pytest.mark.asyncio
@@ -272,9 +258,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         await RuntimeDataHandlerBase._on_data_ready(  # type: ignore
             handler, mock_annotated_instance
         )
-        mock_data_reader._on_data_ready.assert_called_once_with(
-            mock_annotated_instance
-        )
+        mock_data_reader._on_data_ready.assert_called_once_with(mock_annotated_instance)
 
     # These tests use the data_processor fixture
 
@@ -292,17 +276,12 @@ class TestRuntimeDataHandlerBaseBehavior:
         expected_datetime = datetime.datetime.now(datetime.timezone.utc)
         mock_sync_clock.desync.return_value = expected_datetime
 
-        result_dt = await data_processor.desynchronize(
-            mock_server_ts, context=None
-        )
+        result_dt = await data_processor.desynchronize(mock_server_ts, context=None)
 
         mock_sync_clock.desync.assert_called_once()
         args, _ = mock_sync_clock.desync.call_args
         assert isinstance(args[0], SynchronizedTimestamp)
-        assert (
-            args[0].timestamp
-            == mock_server_ts.timestamp.ToDatetime.return_value
-        )
+        assert args[0].timestamp == mock_server_ts.timestamp.ToDatetime.return_value
         assert result_dt is expected_datetime
 
     @pytest.mark.asyncio
@@ -344,9 +323,7 @@ class TestRuntimeDataHandlerBaseBehavior:
             return_value=None,
         )
 
-        result = await data_processor.desynchronize(
-            mock_server_ts, context=None
-        )
+        result = await data_processor.desynchronize(mock_server_ts, context=None)
         assert result is None
         # was created and passed. The main check is that it returns None and doesn't error.
 
@@ -355,9 +332,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         self, data_processor, handler, test_caller_id_instance
     ):
         await data_processor.deregister_caller()
-        handler.mock_unregister_caller.assert_called_once_with(
-            test_caller_id_instance
-        )
+        handler.mock_unregister_caller.assert_called_once_with(test_caller_id_instance)
 
     @pytest.mark.asyncio
     async def test_processor_process_data_with_datetime(
@@ -399,10 +374,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         mock_sync_clock.desync.assert_called_once()
         args, _ = mock_sync_clock.desync.call_args
         assert isinstance(args[0], SynchronizedTimestamp)
-        assert (
-            args[0].timestamp
-            == mock_server_ts.timestamp.ToDatetime.return_value
-        )
+        assert args[0].timestamp == mock_server_ts.timestamp.ToDatetime.return_value
         handler._on_data_ready.assert_called_once()
         args, _ = handler._on_data_ready.call_args
         annotated_instance: AnnotatedInstance = args[0]
@@ -465,14 +437,10 @@ class TestRuntimeDataHandlerBaseBehavior:
         await handler._RuntimeDataHandlerBase__dispatch_poller_data_loop()  # type: ignore
 
         handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(test_caller_id)  # type: ignore
-        mock_per_caller_poller.on_available.assert_called_once_with(
-            mock_event_item
-        )
+        mock_per_caller_poller.on_available.assert_called_once_with(mock_event_item)
 
     @pytest.mark.asyncio
-    async def test_dispatch_loop_event_for_unknown_caller(
-        self, handler, mocker
-    ):
+    async def test_dispatch_loop_event_for_unknown_caller(self, handler, mocker):
         mock_event_item = mocker.MagicMock(
             spec=EventInstance
         )  # Changed to EventInstance
@@ -488,9 +456,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_dispatch_loop_event_caller_found_poller_none(
-        self, handler, mocker
-    ):
+    async def test_dispatch_loop_event_caller_found_poller_none(self, handler, mocker):
         mock_event_item = mocker.MagicMock(
             spec=EventInstance
         )  # Changed to EventInstance
@@ -506,9 +472,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         handler._RuntimeDataHandlerBase__id_tracker.try_get.assert_called_once_with(mock_event_item.caller_id)  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_create_data_processor_id_not_in_tracker(
-        self, handler, mocker
-    ):
+    async def test_create_data_processor_id_not_in_tracker(self, handler, mocker):
         test_caller_id = CallerIdentifier.random()
         mock_clock = mocker.MagicMock(spec=SynchronizedClock)
 
@@ -531,9 +495,7 @@ class TestRuntimeDataHandlerBaseBehavior:
         )
         with pytest.raises(
             ValueError,
-            match="No data poller found in IdTracker for {}".format(
-                test_caller_id
-            ),
+            match="No data poller found in IdTracker for {}".format(test_caller_id),
         ):
             handler._create_data_processor(test_caller_id, mock_clock)
         handler._RuntimeDataHandlerBase__id_tracker.get.assert_called_once_with(test_caller_id)  # type: ignore
@@ -544,15 +506,9 @@ class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):
 
     def __init__(self, data_reader, event_source, mocker):
         super().__init__(data_reader, event_source)
-        self._register_caller_mock = mocker.AsyncMock(
-            spec=self._register_caller
-        )
-        self._unregister_caller_mock = mocker.AsyncMock(
-            spec=self._unregister_caller
-        )
-        self._try_get_caller_id_mock = mocker.MagicMock(
-            spec=self._try_get_caller_id
-        )
+        self._register_caller_mock = mocker.AsyncMock(spec=self._register_caller)
+        self._unregister_caller_mock = mocker.AsyncMock(spec=self._unregister_caller)
+        self._try_get_caller_id_mock = mocker.MagicMock(spec=self._try_get_caller_id)
 
     async def _register_caller(  # Make it async
         self, caller_id: CallerIdentifier, endpoint: str, port: int
@@ -566,9 +522,7 @@ class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):
     ) -> bool:  # Make it async
         return await self._unregister_caller_mock(caller_id)  # Added await
 
-    def _try_get_caller_id(
-        self, endpoint: str, port: int
-    ) -> CallerIdentifier | None:
+    def _try_get_caller_id(self, endpoint: str, port: int) -> CallerIdentifier | None:
         return self._try_get_caller_id_mock(endpoint, port)
 
 
@@ -590,9 +544,7 @@ def mock_context_fixture(mocker):
 
 
 @pytest.fixture
-def handler_fixture(
-    mock_data_reader_fixture, mock_event_source_fixture, mocker
-):
+def handler_fixture(mock_data_reader_fixture, mock_event_source_fixture, mocker):
     # Patch run_on_event_loop called by RuntimeDataHandlerBase.__init__
     return ConcreteRuntimeDataHandler(
         mock_data_reader_fixture, mock_event_source_fixture, mocker
@@ -608,9 +560,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
     """Tests for the register_caller method of RuntimeDataHandlerBase."""
 
     @pytest.fixture(autouse=True)
-    def manage_event_loop(
-        self, request
-    ):  # Add request to check for asyncio marker
+    def manage_event_loop(self, request):  # Add request to check for asyncio marker
         from tsercom.threading.aio.global_event_loop import (
             is_global_event_loop_set,
             set_tsercom_event_loop,
@@ -758,8 +708,7 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 caller_id, context=mock_context_fixture
             )
         expected_msg_part = (
-            "Could not get client port from context for endpoint: "
-            + expected_ip
+            "Could not get client port from context for endpoint: " + expected_ip
         )
         assert (expected_msg_part + ".") == str(excinfo.value)
         mock_get_ip.assert_called_once_with(mock_context_fixture)
@@ -778,9 +727,8 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
                 port=123,
                 context=mock_context_fixture,
             )
-        assert (
-            "Cannot use context via args & kwargs, or with endpoint/port."
-            in str(excinfo.value)
+        assert "Cannot use context via args & kwargs, or with endpoint/port." in str(
+            excinfo.value
         )
 
     @pytest.mark.asyncio
@@ -794,29 +742,21 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
         )
 
     @pytest.mark.asyncio
-    async def test_register_caller_endpoint_without_port(
-        self, handler_fixture
-    ):
+    async def test_register_caller_endpoint_without_port(self, handler_fixture):
         caller_id = CallerIdentifier.random()
         with pytest.raises(ValueError) as excinfo:
-            await handler_fixture.register_caller(
-                caller_id, endpoint="1.2.3.4"
-            )
-        assert (
-            "If 'endpoint' is provided, 'port' must also be, and vice-versa."
-            in str(excinfo.value)
+            await handler_fixture.register_caller(caller_id, endpoint="1.2.3.4")
+        assert "If 'endpoint' is provided, 'port' must also be, and vice-versa." in str(
+            excinfo.value
         )
 
     @pytest.mark.asyncio
-    async def test_register_caller_port_without_endpoint(
-        self, handler_fixture
-    ):
+    async def test_register_caller_port_without_endpoint(self, handler_fixture):
         caller_id = CallerIdentifier.random()
         with pytest.raises(ValueError) as excinfo:
             await handler_fixture.register_caller(caller_id, port=1234)
-        assert (
-            "If 'endpoint' is provided, 'port' must also be, and vice-versa."
-            in str(excinfo.value)
+        assert "If 'endpoint' is provided, 'port' must also be, and vice-versa." in str(
+            excinfo.value
         )
 
     @pytest.mark.asyncio
@@ -837,9 +777,8 @@ class TestRuntimeDataHandlerBaseRegisterCaller:
             await handler_fixture.register_caller(
                 caller_id, context=not_a_servicer_context
             )
-        assert (
-            "Expected context: grpc.aio.ServicerContext, got object."
-            in str(excinfo.value)
+        assert "Expected context: grpc.aio.ServicerContext, got object." in str(
+            excinfo.value
         )
         mock_get_ip.assert_not_called()
         mock_get_port.assert_not_called()
@@ -864,9 +803,7 @@ async def test_data_processor_impl_produces_serializable_with_synchronized_times
     mock_sync = MagicMock(wraps=original_sync_method)
     fake_clock.sync = mock_sync
 
-    mock_data_poller = AsyncPoller[
-        EventInstance[str]
-    ]()  # Using str as EventTypeT
+    mock_data_poller = AsyncPoller[EventInstance[str]]()  # Using str as EventTypeT
 
     processor_instance = RuntimeDataHandlerBase._DataProcessorImpl[str, str](
         data_handler=mock_parent_data_handler,
@@ -902,10 +839,5 @@ async def test_data_processor_impl_produces_serializable_with_synchronized_times
     mock_sync.assert_called_once_with(original_dt)
 
     # Default offset is 0.
-    expected_synced_ts = original_sync_method(
-        original_dt
-    )  # Get what it should be
-    assert (
-        processed_event.timestamp.as_datetime()
-        == expected_synced_ts.as_datetime()
-    )
+    expected_synced_ts = original_sync_method(original_dt)  # Get what it should be
+    assert processed_event.timestamp.as_datetime() == expected_synced_ts.as_datetime()

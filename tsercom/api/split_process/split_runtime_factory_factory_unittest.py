@@ -78,9 +78,7 @@ class GenericFakeRuntimeInitializer(
             timeout_seconds=timeout_seconds,
         )
 
-    def create(
-        self, thread_watcher, data_handler, grpc_channel_factory
-    ) -> Any:
+    def create(self, thread_watcher, data_handler, grpc_channel_factory) -> Any:
         return MagicMock()
 
 
@@ -92,9 +90,7 @@ g_fake_shim_runtime_handle_instances = []
 class FakeRemoteRuntimeFactory:
     __class_getitem__ = classmethod(lambda cls, item: cls)
 
-    def __init__(
-        self, initializer, event_source, data_reader_sink, command_source
-    ):
+    def __init__(self, initializer, event_source, data_reader_sink, command_source):
         self.initializer = initializer
         self.event_source = event_source
         self.data_reader_sink = data_reader_sink
@@ -224,18 +220,14 @@ def mock_queue_factories(mocker):
 @pytest.fixture
 def patch_other_dependencies(request, mocker):
     originals = {
-        "RemoteRuntimeFactory": getattr(
-            srff_module, "RemoteRuntimeFactory", None
-        ),
+        "RemoteRuntimeFactory": getattr(srff_module, "RemoteRuntimeFactory", None),
         "RemoteDataAggregatorImpl": getattr(
             srff_module, "RemoteDataAggregatorImpl", None
         ),
         "ShimRuntimeHandle": getattr(srff_module, "ShimRuntimeHandle", None),
     }
     setattr(srff_module, "RemoteRuntimeFactory", FakeRemoteRuntimeFactory)
-    setattr(
-        srff_module, "RemoteDataAggregatorImpl", FakeRemoteDataAggregatorImpl
-    )
+    setattr(srff_module, "RemoteDataAggregatorImpl", FakeRemoteDataAggregatorImpl)
     setattr(srff_module, "ShimRuntimeHandle", FakeShimRuntimeHandle)
 
     def cleanup():
@@ -260,9 +252,7 @@ def test_create_factory_and_pair_logic_default_queues(
     factory_factory = SplitRuntimeFactoryFactory(
         thread_pool=fake_executor, thread_watcher=fake_watcher
     )
-    returned_factory = factory_factory.create_factory(
-        fake_client, fake_initializer
-    )
+    returned_factory = factory_factory.create_factory(fake_client, fake_initializer)
 
     mock_queue_factories["default_init"].assert_called()
     assert mock_queue_factories["default_create_queues"].call_count == 3
@@ -275,9 +265,7 @@ def test_create_factory_and_pair_logic_default_queues(
     shim_handle = g_fake_shim_runtime_handle_instances[0]
 
     event_sink_q = shim_handle.event_queue._MultiprocessQueueSink__queue
-    event_source_q = (
-        remote_factory.event_source._MultiprocessQueueSource__queue
-    )
+    event_source_q = remote_factory.event_source._MultiprocessQueueSource__queue
     assert isinstance(event_sink_q, type(std_mp_context.Queue()))
     assert (
         event_sink_q
@@ -308,12 +296,8 @@ def test_create_factory_and_pair_logic_default_queues(
         ]._MultiprocessQueueSource__queue
     )
 
-    cmd_sink_q = (
-        shim_handle.runtime_command_queue._MultiprocessQueueSink__queue
-    )
-    cmd_source_q = (
-        remote_factory.command_source._MultiprocessQueueSource__queue
-    )
+    cmd_sink_q = shim_handle.runtime_command_queue._MultiprocessQueueSink__queue
+    cmd_source_q = remote_factory.command_source._MultiprocessQueueSource__queue
     assert isinstance(cmd_sink_q, type(std_mp_context.Queue()))
     assert (
         cmd_sink_q
@@ -331,9 +315,7 @@ def test_create_factory_and_pair_logic_default_queues(
     assert len(g_fake_remote_data_aggregator_instances) == 1
     aggregator_instance = g_fake_remote_data_aggregator_instances[0]
     assert aggregator_instance.thread_pool is fake_executor
-    assert (
-        aggregator_instance.client == fake_initializer.data_aggregator_client
-    )
+    assert aggregator_instance.client == fake_initializer.data_aggregator_client
     assert aggregator_instance.timeout == fake_initializer.timeout_seconds
 
     assert remote_factory.initializer is fake_initializer
@@ -439,9 +421,7 @@ def test_dynamic_queue_selection(
     data_source_q = shim_handle.data_queue._MultiprocessQueueSource__queue
     assert isinstance(data_source_q, expected_internal_q_type)
 
-    cmd_sink_q = (
-        shim_handle.runtime_command_queue._MultiprocessQueueSink__queue
-    )
+    cmd_sink_q = shim_handle.runtime_command_queue._MultiprocessQueueSink__queue
     assert isinstance(cmd_sink_q, type(std_mp_context.Queue()))
 
 
@@ -449,14 +429,8 @@ def test_init_method(fake_executor, fake_watcher):
     factory_factory = SplitRuntimeFactoryFactory(
         thread_pool=fake_executor, thread_watcher=fake_watcher
     )
-    assert (
-        factory_factory._SplitRuntimeFactoryFactory__thread_pool
-        is fake_executor
-    )
-    assert (
-        factory_factory._SplitRuntimeFactoryFactory__thread_watcher
-        is fake_watcher
-    )
+    assert factory_factory._SplitRuntimeFactoryFactory__thread_pool is fake_executor
+    assert factory_factory._SplitRuntimeFactoryFactory__thread_watcher is fake_watcher
 
 
 def test_create_pair_aggregator_no_timeout(
@@ -472,9 +446,7 @@ def test_create_pair_aggregator_no_timeout(
     initializer_no_timeout = GenericFakeRuntimeInitializer[str, str](
         timeout_seconds=None
     )
-    mock_aggregator_init = mocker.spy(
-        srff_module.RemoteDataAggregatorImpl, "__init__"
-    )
+    mock_aggregator_init = mocker.spy(srff_module.RemoteDataAggregatorImpl, "__init__")
     factory_factory._create_pair(initializer_no_timeout)
     mock_aggregator_init.assert_called_once()
     assert mock_queue_factories["default_create_queues"].call_count == 3

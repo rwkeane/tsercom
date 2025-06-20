@@ -49,18 +49,14 @@ class TestCallerIdExtraction:
             async for item in iterator_arg:
                 yield item
 
-        async def mock_create_stoppable_iterator_method(
-            iterator_arg, stop_event=None
-        ):
+        async def mock_create_stoppable_iterator_method(iterator_arg, stop_event=None):
             return actual_stoppable_iterator(iterator_arg, stop_event)
 
         tracker.create_stoppable_iterator = mocker.MagicMock(
             side_effect=mock_create_stoppable_iterator_method,
             name="mock_create_stoppable_iterator",
         )
-        tracker.get = mocker.MagicMock(
-            return_value=True, name="mock_is_running_get"
-        )
+        tracker.get = mocker.MagicMock(return_value=True, name="mock_is_running_get")
         return tracker
 
     @pytest.fixture
@@ -75,9 +71,7 @@ class TestCallerIdExtraction:
         valid_uuid_str = str(uuid.uuid4())
         mock_call_object.id = GrpcCallerIdMessage(id=valid_uuid_str)
 
-        caller_id = await extract_id_from_call(
-            mock_call_object, mock_servicer_context
-        )
+        caller_id = await extract_id_from_call(mock_call_object, mock_servicer_context)
 
         assert isinstance(caller_id, CallerIdentifier)
         assert str(caller_id) == valid_uuid_str
@@ -88,9 +82,7 @@ class TestCallerIdExtraction:
     ):
         mock_call_object.id = None
 
-        caller_id = await extract_id_from_call(
-            mock_call_object, mock_servicer_context
-        )
+        caller_id = await extract_id_from_call(mock_call_object, mock_servicer_context)
 
         assert caller_id is None
         mock_servicer_context.abort.assert_called_once_with(
@@ -116,9 +108,7 @@ class TestCallerIdExtraction:
     ):
         mock_call_object.id = GrpcCallerIdMessage(id="invalid-id-format")
 
-        caller_id = await extract_id_from_call(
-            mock_call_object, mock_servicer_context
-        )
+        caller_id = await extract_id_from_call(mock_call_object, mock_servicer_context)
 
         assert caller_id is None
         mock_servicer_context.abort.assert_called_once_with(
@@ -168,9 +158,7 @@ class TestCallerIdExtraction:
         self, mock_servicer_context, mock_call_object, mocker
     ):
         valid_uuid_str = str(uuid.uuid4())
-        mock_call_object.custom_field_data = GrpcCallerIdMessage(
-            id=valid_uuid_str
-        )
+        mock_call_object.custom_field_data = GrpcCallerIdMessage(id=valid_uuid_str)
 
         custom_extractor = lambda x: x.custom_field_data
 

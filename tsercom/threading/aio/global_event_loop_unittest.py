@@ -19,9 +19,7 @@ class MockThreadWatcherForGlobalLoop(ThreadWatcher):
         self.exception_event = threading.Event()
 
     def on_exception_seen(self, e: Exception) -> None:
-        super().on_exception_seen(
-            e
-        )  # Allow parent to manage its state if needed
+        super().on_exception_seen(e)  # Allow parent to manage its state if needed
         self.exceptions_seen_by_watcher.append(e)
         self.exception_event.set()
 
@@ -83,9 +81,7 @@ class TestGlobalEventLoop:
             global_event_loop.get_global_event_loop()
 
     # 2. set_tsercom_event_loop()
-    def test_set_tsercom_event_loop(
-        self, new_event_loop: asyncio.AbstractEventLoop
-    ):
+    def test_set_tsercom_event_loop(self, new_event_loop: asyncio.AbstractEventLoop):
         """Test setting and getting the global event loop with set_tsercom_event_loop."""
         global_event_loop.set_tsercom_event_loop(new_event_loop)
         assert (
@@ -126,13 +122,9 @@ class TestGlobalEventLoop:
         global_event_loop.set_tsercom_event_loop_to_current_thread()
 
         assert global_event_loop.is_global_event_loop_set()
-        assert (
-            global_event_loop.get_global_event_loop() is current_running_loop
-        )
+        assert global_event_loop.get_global_event_loop() is current_running_loop
 
-        with pytest.raises(
-            RuntimeError, match="Only one Global Event Loop may be set"
-        ):
+        with pytest.raises(RuntimeError, match="Only one Global Event Loop may be set"):
             global_event_loop.set_tsercom_event_loop_to_current_thread()  # Call again
 
         global_event_loop.clear_tsercom_event_loop()
@@ -203,9 +195,7 @@ class TestGlobalEventLoop:
             ), "get_global_event_loop() returned None."
 
             # The loop obtained by get_event_loop() inside the SUT should be the current one.
-            current_policy_loop = (
-                asyncio.get_event_loop_policy().get_event_loop()
-            )
+            current_policy_loop = asyncio.get_event_loop_policy().get_event_loop()
             assert (
                 the_loop_that_was_set is current_policy_loop
             ), "Set loop is not the one from current policy."
@@ -322,14 +312,10 @@ class TestGlobalEventLoop:
         with pytest.raises(AssertionError):
             global_event_loop.get_global_event_loop()
         # new_event_loop is not stopped by clear_tsercom_event_loop as it wasn't factory created.
-        assert (
-            not new_event_loop.is_running()
-        )  # It was never started in this test.
+        assert not new_event_loop.is_running()  # It was never started in this test.
 
     # 6. Thread Safety of Setters (Basic Check)
-    def test_thread_safety_of_setters(
-        self, new_event_loop: asyncio.AbstractEventLoop
-    ):
+    def test_thread_safety_of_setters(self, new_event_loop: asyncio.AbstractEventLoop):
         """Basic test for thread safety when multiple threads try to set the global loop."""
         num_threads = 5
         threads: list[threading.Thread] = []
@@ -354,9 +340,7 @@ class TestGlobalEventLoop:
                 pass  # Let test fail if something else goes wrong
 
         for i in range(num_threads):
-            thread = threading.Thread(
-                target=attempt_set_loop, args=(loops_to_set[i],)
-            )
+            thread = threading.Thread(target=attempt_set_loop, args=(loops_to_set[i],))
             threads.append(thread)
 
         for thread in threads:

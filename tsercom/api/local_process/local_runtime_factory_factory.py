@@ -56,17 +56,13 @@ class LocalRuntimeFactoryFactory(
             A tuple (RuntimeHandle, LocalRuntimeFactory).
         """
         if initializer.timeout_seconds is not None:
-            data_aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[DataTypeT]
-            ](
+            data_aggregator = RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]](
                 self.__thread_pool,
                 client=initializer.data_aggregator_client,
                 timeout=initializer.timeout_seconds,
             )
         else:
-            data_aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[DataTypeT]
-            ](
+            data_aggregator = RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]](
                 self.__thread_pool,
                 client=initializer.data_aggregator_client,
             )

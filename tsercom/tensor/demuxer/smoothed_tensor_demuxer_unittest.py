@@ -20,20 +20,14 @@ from tsercom.tensor.demuxer.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
 )
 
-T_BASE = real_datetime_module.datetime(
-    2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc
-)
+T_BASE = real_datetime_module.datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
 
 class MockOutputClient(TensorDemuxer.Client):
     def __init__(self) -> None:
-        self.calls: List[
-            Tuple[torch.Tensor, real_datetime_module.datetime]
-        ] = []
+        self.calls: List[Tuple[torch.Tensor, real_datetime_module.datetime]] = []
         self.last_pushed_tensor: Optional[torch.Tensor] = None
-        self.last_pushed_timestamp: Optional[real_datetime_module.datetime] = (
-            None
-        )
+        self.last_pushed_timestamp: Optional[real_datetime_module.datetime] = None
         self.call_count = 0
 
     async def on_tensor_changed(
@@ -100,10 +94,7 @@ def test_smoothed_demuxer_initialization_updated(
         name="init_test_demuxer",
     )
     assert demuxer.name == "init_test_demuxer"
-    assert (
-        getattr(demuxer, "_SmoothedTensorDemuxer__tensor_shape_internal")
-        == shape
-    )
+    assert getattr(demuxer, "_SmoothedTensorDemuxer__tensor_shape_internal") == shape
     assert demuxer.output_interval_seconds == 0.5
     expected_1d_length = 12
     assert demuxer.tensor_length == expected_1d_length
@@ -159,8 +150,7 @@ async def test_linear_interpolation_over_time(
     setattr(
         smoothed_demuxer,
         "_SmoothedTensorDemuxer__last_pushed_timestamp",
-        start_time
-        - timedelta(seconds=smoothed_demuxer.output_interval_seconds),
+        start_time - timedelta(seconds=smoothed_demuxer.output_interval_seconds),
     )
 
     empty_explicits = (
@@ -180,9 +170,7 @@ async def test_linear_interpolation_over_time(
     parent_history.clear()
     parent_history.append((kf1_t, frame1_1d.clone(), empty_explicits))
     parent_history.append((kf2_t, frame2_1d.clone(), empty_explicits))
-    smoothed_demuxer._SmoothedTensorDemuxer__processed_keyframes = (
-        parent_history
-    )
+    smoothed_demuxer._SmoothedTensorDemuxer__processed_keyframes = parent_history
 
     target_push_time1 = start_time + timedelta(seconds=0.1)
     current_time_mock[0] = target_push_time1
@@ -201,12 +189,8 @@ async def test_linear_interpolation_over_time(
     # frame1_1d was torch.tensor([10.0, 0.0, 0.0, 100.0])
     # Reshaped to (2,2): [[10.0, 0.0], [0.0, 100.0]]
     assert pushed_tensor1[0, 0].item() == pytest.approx(10.0)
-    assert pushed_tensor1[0, 1].item() == pytest.approx(
-        0.0
-    )  # Was checking isnan
-    assert pushed_tensor1[1, 0].item() == pytest.approx(
-        0.0
-    )  # Was checking isnan
+    assert pushed_tensor1[0, 1].item() == pytest.approx(0.0)  # Was checking isnan
+    assert pushed_tensor1[1, 0].item() == pytest.approx(0.0)  # Was checking isnan
     assert pushed_tensor1[1, 1].item() == pytest.approx(100.0)
 
     mock_output_client.clear_calls()
@@ -239,12 +223,8 @@ async def test_linear_interpolation_over_time(
     # (1,1): (100+200)/2 = 150.0
     # Reshaped: [[20.0, 0.0], [0.0, 150.0]]
     assert pushed_tensor2[0, 0].item() == pytest.approx(20.0)
-    assert pushed_tensor2[0, 1].item() == pytest.approx(
-        0.0
-    )  # Additional check
-    assert pushed_tensor2[1, 0].item() == pytest.approx(
-        0.0
-    )  # Additional check
+    assert pushed_tensor2[0, 1].item() == pytest.approx(0.0)  # Additional check
+    assert pushed_tensor2[1, 0].item() == pytest.approx(0.0)  # Additional check
     assert pushed_tensor2[1, 1].item() == pytest.approx(150.0)
 
 
@@ -329,9 +309,7 @@ async def test_fill_value_and_partial_interpolation(
     # At T0, the values should be exactly from frame1.
     # frame1 = torch.tensor([10.0, 500.0, 0.0], dtype=torch.float32)
 
-    assert pushed_tensor[0, 0].item() == pytest.approx(
-        10.0
-    )  # Was 20.0 (midpoint)
+    assert pushed_tensor[0, 0].item() == pytest.approx(10.0)  # Was 20.0 (midpoint)
     assert pushed_tensor[0, 1].item() == pytest.approx(
         500.0
     )  # Was complex calculation for midpoint
@@ -419,7 +397,5 @@ async def test_keyframe_history_limit_for_nd_frames_functional(
     assert len(mock_output_client.calls) >= 1
     pushed_tensor = mock_output_client.last_pushed_tensor
     assert pushed_tensor is not None
-    assert pushed_tensor[0, 0].item() == pytest.approx(
-        (val_11th + val_12th) / 2.0
-    )
+    assert pushed_tensor[0, 0].item() == pytest.approx((val_11th + val_12th) / 2.0)
     await demuxer.stop()

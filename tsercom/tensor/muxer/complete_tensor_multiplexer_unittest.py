@@ -110,9 +110,7 @@ async def test_constructor_validations(
 ):
     fake_clock = FakeSynchronizedClock()
     with pytest.raises(ValueError, match="Tensor length must be positive"):
-        CompleteTensorMultiplexer(
-            client=mock_client, tensor_length=0, clock=fake_clock
-        )
+        CompleteTensorMultiplexer(client=mock_client, tensor_length=0, clock=fake_clock)
     with pytest.raises(ValueError, match="Data timeout must be positive"):
         CompleteTensorMultiplexer(
             client=mock_client,

@@ -34,9 +34,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
         """
         self.__queue: "MpQueue[QueueTypeT]" = queue
 
-    def put_blocking(
-        self, obj: QueueTypeT, timeout: float | None = None
-    ) -> bool:
+    def put_blocking(self, obj: QueueTypeT, timeout: float | None = None) -> bool:
         """
         Puts item into queue, blocking if needed until space available.
 

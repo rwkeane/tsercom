@@ -68,9 +68,9 @@ class RemoteRuntimeFactory(
         self.__data_reader_queue = data_reader_queue
         self.__command_source_queue = command_source_queue
 
-        self.__data_reader_sink: (
-            DataReaderSink[AnnotatedInstance[DataTypeT]] | None
-        ) = None
+        self.__data_reader_sink: DataReaderSink[AnnotatedInstance[DataTypeT]] | None = (
+            None
+        )
         self.__event_source: EventSource[EventTypeT] | None = None
         self.__command_source: RuntimeCommandSource | None = None
 
@@ -153,9 +153,7 @@ class RemoteRuntimeFactory(
             # or raises. Consider logging if None/wrong type.
             pass  # Or logger.error("Event poller not EventSource post-creation")
 
-        self.__command_source = RuntimeCommandSource(
-            self.__command_source_queue
-        )
+        self.__command_source = RuntimeCommandSource(self.__command_source_queue)
         self.__command_source.start_async(thread_watcher, runtime)
         return runtime
 

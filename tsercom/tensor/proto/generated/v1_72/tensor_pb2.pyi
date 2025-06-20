@@ -72,9 +72,7 @@ class TensorUpdate(google.protobuf.message.Message):
         *,
         chunks: collections.abc.Iterable[global___TensorChunk] | None = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing.Literal["chunks", b"chunks"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["chunks", b"chunks"]) -> None: ...
 
 global___TensorUpdate = TensorUpdate
 
@@ -93,9 +91,7 @@ class TensorInitializer(google.protobuf.message.Message):
     @property
     def shape(
         self,
-    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
-        builtins.int
-    ]:
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
         """The full shape of the tensor being initialized (e.g., [10, 20])."""
 
     @property

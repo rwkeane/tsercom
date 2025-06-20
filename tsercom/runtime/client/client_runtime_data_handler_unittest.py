@@ -119,9 +119,7 @@ class TestClientRuntimeDataHandler:
             event_source=mock_event_source_poller,
         )
         # Force set the __id_tracker to our mock instance
-        handler_instance._RuntimeDataHandlerBase__id_tracker = (
-            mock_id_tracker_instance
-        )
+        handler_instance._RuntimeDataHandlerBase__id_tracker = mock_id_tracker_instance
         handler_instance._mock_time_sync_tracker_instance = (
             mock_time_sync_tracker_instance
         )
@@ -153,9 +151,7 @@ class TestClientRuntimeDataHandler:
         time_sync_tracker_instance_mock = handler_and_class_mocks[
             "time_sync_tracker_instance_mock"
         ]
-        id_tracker_instance_mock = handler_and_class_mocks[
-            "id_tracker_instance_mock"
-        ]
+        id_tracker_instance_mock = handler_and_class_mocks["id_tracker_instance_mock"]
 
         TimeSyncTracker_class_mock.assert_called_once_with(
             mock_thread_watcher, is_testing=False
@@ -179,10 +175,7 @@ class TestClientRuntimeDataHandler:
         )
 
         assert handler._RuntimeDataHandlerBase__data_reader == mock_data_reader
-        assert (
-            handler._RuntimeDataHandlerBase__event_source
-            == mock_event_source_poller
-        )
+        assert handler._RuntimeDataHandlerBase__event_source == mock_event_source_poller
 
     @pytest.mark.asyncio
     async def test_register_caller(
@@ -243,9 +236,7 @@ class TestClientRuntimeDataHandler:
         handler._mock_id_tracker_instance.try_get.assert_called_once_with(
             mock_caller_id
         )
-        handler._mock_id_tracker_instance.remove.assert_called_once_with(
-            mock_caller_id
-        )
+        handler._mock_id_tracker_instance.remove.assert_called_once_with(mock_caller_id)
         handler._mock_time_sync_tracker_instance.on_disconnect.assert_called_once_with(
             mock_address
         )
@@ -277,9 +268,7 @@ class TestClientRuntimeDataHandler:
             mock_caller_id,
         )
 
-    def test_try_get_caller_id(
-        self, handler_and_class_mocks, mocker
-    ):  # Added mocker
+    def test_try_get_caller_id(self, handler_and_class_mocks, mocker):  # Added mocker
         """Tests _try_get_caller_id for a successfully found ID."""
         handler = handler_and_class_mocks["handler"]
         mock_endpoint = "10.0.0.1"
@@ -293,9 +282,7 @@ class TestClientRuntimeDataHandler:
             mocker.MagicMock(),  # Mock for the TrackedDataT part
         )
 
-        returned_caller_id = handler._try_get_caller_id(
-            mock_endpoint, mock_port
-        )
+        returned_caller_id = handler._try_get_caller_id(mock_endpoint, mock_port)
 
         handler._mock_id_tracker_instance.try_get.assert_called_once_with(
             mock_endpoint, mock_port
@@ -310,9 +297,7 @@ class TestClientRuntimeDataHandler:
 
         handler._mock_id_tracker_instance.try_get.return_value = None
 
-        returned_caller_id = handler._try_get_caller_id(
-            mock_endpoint, mock_port
-        )
+        returned_caller_id = handler._try_get_caller_id(mock_endpoint, mock_port)
 
         handler._mock_id_tracker_instance.try_get.assert_called_once_with(
             mock_endpoint, mock_port
@@ -353,9 +338,7 @@ class TestClientRuntimeDataHandler:
         handler._mock_id_tracker_instance.try_get.assert_called_once_with(
             mock_caller_id
         )
-        handler._mock_id_tracker_instance.remove.assert_called_once_with(
-            mock_caller_id
-        )
+        handler._mock_id_tracker_instance.remove.assert_called_once_with(mock_caller_id)
         mock_logging_module.warning.assert_called_once_with(
             "Failed to remove caller_id %s from IdTracker, though it was initially found. "
             "Skipping clock_tracker.on_disconnect.",

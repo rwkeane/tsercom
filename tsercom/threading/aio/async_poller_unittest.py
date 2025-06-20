@@ -17,9 +17,7 @@ K_MAX_RESPONSES = 30
 async def mock_aio_utils(mocker):
     """Mocks aio_utils used by AsyncPoller, patching them in the SUT's import scope."""
 
-    def new_run_on_event_loop_side_effect(
-        func_or_partial, loop_param, *args, **kwargs
-    ):
+    def new_run_on_event_loop_side_effect(func_or_partial, loop_param, *args, **kwargs):
         coroutine = func_or_partial()
         if asyncio.iscoroutine(coroutine):
             asyncio.ensure_future(coroutine, loop=loop_param)
@@ -320,9 +318,7 @@ class TestAsyncPollerWaitInstanceStopped:
         with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
             await poller.wait_instance()
 
-        poller.on_available(
-            "data2"
-        )  # Item added after poller is logically stopped
+        poller.on_available("data2")  # Item added after poller is logically stopped
         # but before a wait_instance call that would consume it.
 
         # The next call to wait_instance should retrieve "data2" due to drain-on-stop logic

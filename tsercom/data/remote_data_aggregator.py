@@ -65,9 +65,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         raise NotImplementedError()  # Replaced ...
 
     @overload
-    def stop(
-        self, identifier: CallerIdentifier
-    ) -> None:  # Renamed id to identifier
+    def stop(self, identifier: CallerIdentifier) -> None:  # Renamed id to identifier
         """Stops the data organizer and data processing for a specific caller.
 
         Args:
@@ -115,9 +113,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @abstractmethod
     def has_new_data(
         self,
-        identifier: Optional[
-            CallerIdentifier
-        ] = None,  # Renamed id to identifier
+        identifier: Optional[CallerIdentifier] = None,  # Renamed id to identifier
     ) -> Dict[CallerIdentifier, bool] | bool:
         """Checks for new data.
 
@@ -176,9 +172,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @abstractmethod
     def get_new_data(
         self,
-        identifier: Optional[
-            CallerIdentifier
-        ] = None,  # Renamed id to identifier
+        identifier: Optional[CallerIdentifier] = None,  # Renamed id to identifier
     ) -> Dict[CallerIdentifier, List[DataTypeT]] | List[DataTypeT]:
         """Retrieves new data.
 
@@ -219,9 +213,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @abstractmethod
     def get_most_recent_data(
         self,
-        identifier: Optional[
-            CallerIdentifier
-        ] = None,  # Renamed id to identifier
+        identifier: Optional[CallerIdentifier] = None,  # Renamed id to identifier
     ) -> Dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieves the most recent data.
 

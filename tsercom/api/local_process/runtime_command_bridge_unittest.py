@@ -128,9 +128,7 @@ def test_set_runtime_executes_pending_stop(
 
 
 # Tests for Commands After Runtime Set
-def test_start_after_runtime_set(
-    bridge, fake_runtime, patch_rcb_run_on_event_loop
-):
+def test_start_after_runtime_set(bridge, fake_runtime, patch_rcb_run_on_event_loop):
     bridge.set_runtime(fake_runtime)
     assert not fake_runtime.start_async_called  # No pending command initially
 
@@ -140,9 +138,7 @@ def test_start_after_runtime_set(
     assert not fake_runtime.stop_called
 
 
-def test_stop_after_runtime_set(
-    bridge, fake_runtime, patch_rcb_run_on_event_loop
-):
+def test_stop_after_runtime_set(bridge, fake_runtime, patch_rcb_run_on_event_loop):
     bridge.set_runtime(fake_runtime)
     assert not fake_runtime.stop_called  # No pending command initially
 
@@ -257,9 +253,7 @@ def test_run_on_event_loop_usage_on_start(
     patch_rcb_run_on_event_loop.clear()  # Clear any previous captures
 
     bridge.start()
-    assert (
-        len(patch_rcb_run_on_event_loop) == 1
-    )  # One callable should have been passed
+    assert len(patch_rcb_run_on_event_loop) == 1  # One callable should have been passed
     # The callable itself was executed by the fake, so fake_runtime.start_async_called is True
     assert fake_runtime.start_async_called
     # Check that the returned future from fake_run_on_event_loop was used
@@ -279,9 +273,7 @@ def test_run_on_event_loop_usage_on_stop(
     # Implicitly tests that .result() was called on the future
 
 
-def test_set_runtime_pending_stop_timeout_on_result(
-    bridge, fake_runtime, mocker
-):
+def test_set_runtime_pending_stop_timeout_on_result(bridge, fake_runtime, mocker):
     """
     Tests that set_runtime with a pending STOP command handles TimeoutError
     from future.result() gracefully.
@@ -297,9 +289,7 @@ def test_set_runtime_pending_stop_timeout_on_result(
     # Temporarily patch run_on_event_loop for this specific test's scenario
     # The patch_rcb_run_on_event_loop fixture will be overridden by this more specific patch
     # within the scope of this test.
-    def run_on_event_loop_side_effect_pending_stop(
-        callable_to_run, *args, **kwargs
-    ):
+    def run_on_event_loop_side_effect_pending_stop(callable_to_run, *args, **kwargs):
         if callable(callable_to_run):
             callable_to_run()  # Execute the callable
         return mock_future_for_stop  # Return the future that will timeout
@@ -318,9 +308,7 @@ def test_set_runtime_pending_stop_timeout_on_result(
     except Exception as e:  # pragma: no cover
         pytest.fail(f"set_runtime raised an unexpected exception: {e}")
 
-    assert (
-        fake_runtime.stop_called
-    ), "Runtime's stop method should have been called."
+    assert fake_runtime.stop_called, "Runtime's stop method should have been called."
     mock_run_on_event_loop.assert_called_once()  # Ensure our mock was used
     # The callable passed to run_on_event_loop is a partial(fake_runtime.stop, None)
     # We can inspect its first argument (the partial)
@@ -331,9 +319,7 @@ def test_set_runtime_pending_stop_timeout_on_result(
     mock_future_for_stop.result.assert_called_once_with(timeout=5.0)
 
 
-def test_stop_after_runtime_set_timeout_on_result(
-    bridge, fake_runtime, mocker
-):
+def test_stop_after_runtime_set_timeout_on_result(bridge, fake_runtime, mocker):
     """
     Tests that bridge.stop() after runtime is set handles TimeoutError
     from future.result() gracefully.
@@ -346,9 +332,7 @@ def test_stop_after_runtime_set_timeout_on_result(
         "Simulated timeout"
     )
 
-    def run_on_event_loop_side_effect_direct_stop(
-        callable_to_run, *args, **kwargs
-    ):
+    def run_on_event_loop_side_effect_direct_stop(callable_to_run, *args, **kwargs):
         if callable(callable_to_run):
             callable_to_run()  # Execute the callable
         return mock_future_for_stop  # Return the future that will timeout
@@ -367,9 +351,7 @@ def test_stop_after_runtime_set_timeout_on_result(
     except Exception as e:  # pragma: no cover
         pytest.fail(f"bridge.stop() raised an unexpected exception: {e}")
 
-    assert (
-        fake_runtime.stop_called
-    ), "Runtime's stop method should have been called."
+    assert fake_runtime.stop_called, "Runtime's stop method should have been called."
     mock_run_on_event_loop.assert_called_once()
     mock_future_for_stop.result.assert_called_once_with(timeout=5.0)
 

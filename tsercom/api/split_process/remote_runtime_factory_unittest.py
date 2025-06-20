@@ -68,9 +68,7 @@ class FakeRuntimeInitializer:
         self.create_call_count = 0
         self.runtime_to_return = FakeRuntime()
         self.event_poller_received = None  # To store received event_poller
-        self.remote_data_reader_received = (
-            None  # To store received remote_data_reader
-        )
+        self.remote_data_reader_received = None  # To store received remote_data_reader
 
     def create(
         self,
@@ -247,9 +245,7 @@ def clear_fake_instances():
 @pytest.fixture
 def patch_dependencies_in_module(request):
     """Monkeypatches EventSource, DataReaderSink, RuntimeCommandSource in the remote_runtime_factory module."""
-    original_event_source = getattr(
-        remote_runtime_factory_module, "EventSource", None
-    )
+    original_event_source = getattr(remote_runtime_factory_module, "EventSource", None)
     original_data_reader_sink = getattr(
         remote_runtime_factory_module, "DataReaderSink", None
     )
@@ -258,9 +254,7 @@ def patch_dependencies_in_module(request):
     )
 
     setattr(remote_runtime_factory_module, "EventSource", FakeEventSource)
-    setattr(
-        remote_runtime_factory_module, "DataReaderSink", FakeDataReaderSink
-    )
+    setattr(remote_runtime_factory_module, "DataReaderSink", FakeDataReaderSink)
     setattr(
         remote_runtime_factory_module,
         "RuntimeCommandSource",
@@ -351,15 +345,9 @@ def test_init(
     # Compare with the actual enum value based on the string in fake_initializer
     # factory._RuntimeConfig__service_type is already the enum set by RuntimeConfig.__init__
     # fake_initializer.service_type_enum provides the enum from the fake
-    assert (
-        factory._RuntimeConfig__service_type
-        == fake_initializer.service_type_enum
-    )
+    assert factory._RuntimeConfig__service_type == fake_initializer.service_type_enum
 
-    assert (
-        factory.data_aggregator_client
-        == fake_initializer.data_aggregator_client
-    )
+    assert factory.data_aggregator_client == fake_initializer.data_aggregator_client
     assert factory.timeout_seconds == fake_initializer.timeout_seconds
 
 
@@ -375,9 +363,7 @@ def test_create_method(
     # Access properties to trigger lazy initialization of event_source and data_reader_sink
     # This ensures they exist before create() is called, if create() relies on them (e.g. event_source.start())
     event_poller_instance = factory.event_poller  # Calls _event_poller()
-    data_reader_instance = (
-        factory.remote_data_reader
-    )  # Calls _remote_data_reader()
+    data_reader_instance = factory.remote_data_reader  # Calls _remote_data_reader()
 
     returned_runtime = factory.create(
         fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
@@ -411,9 +397,7 @@ def test_create_method(
         data_reader_instance.data_reader_queue_sink
         is factory._RemoteRuntimeFactory__data_reader_queue
     )
-    assert (
-        factory._RemoteRuntimeFactory__data_reader_sink is data_reader_instance
-    )
+    assert factory._RemoteRuntimeFactory__data_reader_sink is data_reader_instance
 
     # Assert FakeRuntimeCommandSource interactions
     command_source_instance = FakeRuntimeCommandSource.get_last_instance()
@@ -429,13 +413,8 @@ def test_create_method(
         fake_initializer.runtime_to_return,
     )
     assert command_source_instance.thread_watcher is fake_thread_watcher
-    assert (
-        command_source_instance.runtime is fake_initializer.runtime_to_return
-    )
-    assert (
-        factory._RemoteRuntimeFactory__command_source
-        is command_source_instance
-    )
+    assert command_source_instance.runtime is fake_initializer.runtime_to_return
+    assert factory._RemoteRuntimeFactory__command_source is command_source_instance
 
     # Assert returned runtime
     assert returned_runtime is fake_initializer.runtime_to_return
@@ -481,19 +460,13 @@ def test_stop_method(
 ):
     """Tests the _stop method of RemoteRuntimeFactory."""
     # Call create to initialize internal sources
-    factory.create(
-        fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory
-    )
+    factory.create(fake_thread_watcher, fake_data_handler, fake_grpc_channel_factory)
 
     command_source_instance = factory._RemoteRuntimeFactory__command_source
     event_source_instance = factory._RemoteRuntimeFactory__event_source
 
-    assert (
-        command_source_instance is not None
-    ), "Command source should be initialized"
-    assert (
-        event_source_instance is not None
-    ), "Event source should be initialized"
+    assert command_source_instance is not None, "Command source should be initialized"
+    assert event_source_instance is not None, "Event source should be initialized"
 
     # Spy on the stop methods of the fake instances
     # FakeRuntimeCommandSource does not have stop_async in the provided fake,
@@ -501,9 +474,7 @@ def test_stop_method(
     # For now, we'll assume it's meant to be there or _stop handles it if not.
     # If FakeRuntimeCommandSource is intended to have stop_async:
     if not hasattr(command_source_instance, "stop_async"):
-        command_source_instance.stop_async = mocker.MagicMock(
-            name="stop_async_mock"
-        )
+        command_source_instance.stop_async = mocker.MagicMock(name="stop_async_mock")
 
     # If FakeEventSource is intended to have stop:
     if not hasattr(event_source_instance, "stop"):

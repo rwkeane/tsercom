@@ -30,16 +30,12 @@ class HelperConcreteTestProcessor(
     def setup_mocks(self, mocker):
         self._process_data_mock = mocker.AsyncMock(name="_process_data_impl")
         self.desynchronize_mock = mocker.AsyncMock(name="desynchronize_impl")
-        self.deregister_caller_mock = mocker.AsyncMock(
-            name="deregister_caller_impl"
-        )
+        self.deregister_caller_mock = mocker.AsyncMock(name="deregister_caller_impl")
         # __aiter__ returns an AsyncIterator, which then has __anext__
         # For this test, it's not directly used by process_data, so a simple mock is fine.
         # We'll make the __aiter__ return an object that has a mocked __anext__.
         mock_async_iterator = MagicMock()  # Removed spec=AsyncIterator
-        mock_async_iterator.__anext__ = AsyncMock(
-            side_effect=StopAsyncIteration()
-        )
+        mock_async_iterator.__anext__ = AsyncMock(side_effect=StopAsyncIteration())
         self.__aiter_return_value = (
             mock_async_iterator  # Store it to be returned by __aiter__
         )
@@ -116,9 +112,7 @@ async def test_process_data_server_timestamp_desync_success(
     )  # Added context explicitly for clarity
 
     processor.desynchronize_mock.assert_awaited_once_with(mock_server_ts, None)
-    processor._process_data_mock.assert_awaited_once_with(
-        test_data, desynchronized_dt
-    )
+    processor._process_data_mock.assert_awaited_once_with(test_data, desynchronized_dt)
 
 
 @pytest.mark.asyncio
@@ -131,9 +125,7 @@ async def test_process_data_server_timestamp_desync_none_no_context(
     # No logger is used directly in EndpointDataProcessor.process_data for this case
     # Logging might occur within desynchronize_mock if it were a real method that logged.
 
-    await processor.process_data(
-        test_data, timestamp=mock_server_ts, context=None
-    )
+    await processor.process_data(test_data, timestamp=mock_server_ts, context=None)
 
     processor.desynchronize_mock.assert_awaited_once_with(mock_server_ts, None)
     processor._process_data_mock.assert_not_awaited()

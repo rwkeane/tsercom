@@ -14,10 +14,7 @@ class DummyCallerIdentifier:
         return hash(self.id_str)
 
     def __eq__(self, other):
-        return (
-            isinstance(other, DummyCallerIdentifier)
-            and self.id_str == other.id_str
-        )
+        return isinstance(other, DummyCallerIdentifier) and self.id_str == other.id_str
 
     def __repr__(self):
         return f"DummyCallerIdentifier('{self.id_str}')"
@@ -43,9 +40,7 @@ from tsercom.data.remote_data_organizer import (
 
 # --- Concrete Dummy ExposedData for type checks ---
 class DummyConcreteExposedData(ExposedData):
-    def __init__(
-        self, caller_id: DummyCallerIdentifier, timestamp: datetime.datetime
-    ):
+    def __init__(self, caller_id: DummyCallerIdentifier, timestamp: datetime.datetime):
         super().__init__(caller_id, timestamp)
 
 
@@ -87,9 +82,7 @@ def mock_remote_data_organizer_class(mocker):
     mock_cls = mocker.patch(
         "tsercom.data.remote_data_aggregator_impl.RemoteDataOrganizer"
     )
-    mock_cls.return_value = mocker.MagicMock(
-        spec=RemoteDataOrganizer
-    )  # Default return
+    mock_cls.return_value = mocker.MagicMock(spec=RemoteDataOrganizer)  # Default return
     return mock_cls
 
 
@@ -117,12 +110,8 @@ def exposed_data_factory(caller_id_1):
 
 # 1. Initialization Tests
 def test_init_with_thread_pool_only(mock_thread_pool):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
-    assert (
-        aggregator._RemoteDataAggregatorImpl__thread_pool is mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
+    assert aggregator._RemoteDataAggregatorImpl__thread_pool is mock_thread_pool
     assert aggregator._RemoteDataAggregatorImpl__client is None
     assert aggregator._RemoteDataAggregatorImpl__tracker is None
     assert not aggregator._RemoteDataAggregatorImpl__organizers
@@ -142,9 +131,7 @@ def test_init_with_explicit_tracker(
     aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
         mock_thread_pool, client=mock_client, tracker=explicit_mock_tracker
     )
-    assert (
-        aggregator._RemoteDataAggregatorImpl__tracker is explicit_mock_tracker
-    )
+    assert aggregator._RemoteDataAggregatorImpl__tracker is explicit_mock_tracker
     explicit_mock_tracker.start.assert_not_called()
 
 
@@ -161,9 +148,7 @@ def test_init_with_timeout_creates_and_starts_tracker(
     assert aggregator._RemoteDataAggregatorImpl__tracker is mock_instance
 
 
-def test_init_asserts_not_timeout_and_tracker(
-    mock_thread_pool, explicit_mock_tracker
-):
+def test_init_asserts_not_timeout_and_tracker(mock_thread_pool, explicit_mock_tracker):
     with pytest.raises(AssertionError):
         RemoteDataAggregatorImpl[DummyConcreteExposedData](
             mock_thread_pool, timeout=60, tracker=explicit_mock_tracker
@@ -178,9 +163,7 @@ def test_on_data_ready_new_organizer_no_client_no_tracker(
     caller_id_1,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     new_data = exposed_data_factory(caller_id=caller_id_1)
 
     mock_organizer_instance = mocker.MagicMock(spec=RemoteDataOrganizer)
@@ -222,9 +205,7 @@ def test_on_data_ready_new_organizer_with_client_and_tracker(
 
     mock_remote_data_organizer_class.assert_called_once()
     mock_organizer_instance.start.assert_called_once()
-    explicit_mock_tracker.register.assert_called_once_with(
-        mock_organizer_instance
-    )
+    explicit_mock_tracker.register.assert_called_once_with(mock_organizer_instance)
     mock_client._on_new_endpoint_began_transmitting.assert_called_once_with(
         aggregator, caller_id_1
     )
@@ -245,9 +226,7 @@ def test_on_data_ready_existing_organizer(
     )
 
     first_data_ts = datetime.datetime(2023, 1, 1, 12, 0, 0)
-    first_data = exposed_data_factory(
-        caller_id=caller_id_1, timestamp=first_data_ts
-    )
+    first_data = exposed_data_factory(caller_id=caller_id_1, timestamp=first_data_ts)
 
     mock_organizer_instance = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_organizer_instance.caller_id = caller_id_1
@@ -255,9 +234,7 @@ def test_on_data_ready_existing_organizer(
     organizer_on_data_ready_method_mock = mocker.MagicMock(
         name="_on_data_ready_explicit_method_mock"
     )
-    mock_organizer_instance._on_data_ready = (
-        organizer_on_data_ready_method_mock
-    )
+    mock_organizer_instance._on_data_ready = organizer_on_data_ready_method_mock
 
     mock_remote_data_organizer_class.return_value = mock_organizer_instance
 
@@ -270,9 +247,7 @@ def test_on_data_ready_existing_organizer(
     mock_client._on_new_endpoint_began_transmitting.reset_mock()
 
     second_data_ts = datetime.datetime(2023, 1, 1, 12, 0, 1)
-    second_data = exposed_data_factory(
-        caller_id=caller_id_1, timestamp=second_data_ts
-    )
+    second_data = exposed_data_factory(caller_id=caller_id_1, timestamp=second_data_ts)
     aggregator._on_data_ready(second_data)
 
     mock_remote_data_organizer_class.assert_not_called()
@@ -280,14 +255,9 @@ def test_on_data_ready_existing_organizer(
     explicit_mock_tracker.register.assert_not_called()
     mock_client._on_new_endpoint_began_transmitting.assert_not_called()
 
-    retrieved_organizer = aggregator._RemoteDataAggregatorImpl__organizers[
-        caller_id_1
-    ]
+    retrieved_organizer = aggregator._RemoteDataAggregatorImpl__organizers[caller_id_1]
     assert retrieved_organizer is mock_organizer_instance
-    assert (
-        retrieved_organizer._on_data_ready
-        is organizer_on_data_ready_method_mock
-    )
+    assert retrieved_organizer._on_data_ready is organizer_on_data_ready_method_mock
 
     assert organizer_on_data_ready_method_mock.call_count == 2
     organizer_on_data_ready_method_mock.assert_called_with(second_data)
@@ -302,9 +272,7 @@ def test_stop_with_caller_id(
     caller_id_2,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
 
     mock_organizer_1 = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_organizer_1.caller_id = caller_id_1
@@ -338,9 +306,7 @@ def test_stop_all(
     caller_id_2,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     mock_organizer_1 = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_organizer_1.caller_id = caller_id_1
     mock_organizer_2 = mocker.MagicMock(spec=RemoteDataOrganizer)
@@ -365,9 +331,7 @@ def _setup_aggregator_with_organizers_for_retrieval(
     organizers_map,
 ):
     mock_organizer_instances = []
-    sorted_caller_ids = sorted(
-        organizers_map.keys(), key=lambda cid: cid.id_str
-    )
+    sorted_caller_ids = sorted(organizers_map.keys(), key=lambda cid: cid.id_str)
 
     for cid in sorted_caller_ids:
         mock_organizer_instances.append(organizers_map[cid])
@@ -389,9 +353,7 @@ def test_has_new_data_with_id(
     caller_id_1,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     mock_organizer = mocker.MagicMock(spec=RemoteDataOrganizer)
     organizers_map = {caller_id_1: mock_organizer}
     _setup_aggregator_with_organizers_for_retrieval(
@@ -414,9 +376,7 @@ def test_has_new_data_no_id(
     caller_id_2,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     mock_o1 = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_o2 = mocker.MagicMock(spec=RemoteDataOrganizer)
     organizers_map = {caller_id_1: mock_o1, caller_id_2: mock_o2}
@@ -443,9 +403,7 @@ def test_get_new_data_with_id(
     caller_id_1,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     mock_organizer = mocker.MagicMock(spec=RemoteDataOrganizer)
     organizers_map = {caller_id_1: mock_organizer}
     _setup_aggregator_with_organizers_for_retrieval(
@@ -469,9 +427,7 @@ def test_get_new_data_no_id(
     caller_id_2,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     mock_o1 = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_o2 = mocker.MagicMock(spec=RemoteDataOrganizer)
     organizers_map = {caller_id_1: mock_o1, caller_id_2: mock_o2}
@@ -498,9 +454,7 @@ def test_get_most_recent_data_with_id(
     caller_id_1,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     mock_organizer = mocker.MagicMock(spec=RemoteDataOrganizer)
     organizers_map = {caller_id_1: mock_organizer}
     _setup_aggregator_with_organizers_for_retrieval(
@@ -523,9 +477,7 @@ def test_get_most_recent_data_no_id(
     caller_id_2,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     mock_o1 = mocker.MagicMock(spec=RemoteDataOrganizer)
     mock_o2 = mocker.MagicMock(spec=RemoteDataOrganizer)
     organizers_map = {caller_id_1: mock_o1, caller_id_2: mock_o2}
@@ -551,9 +503,7 @@ def test_get_data_for_timestamp(
     caller_id_1,
     mocker,
 ):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     mock_organizer = mocker.MagicMock(spec=RemoteDataOrganizer)
     organizers_map = {caller_id_1: mock_organizer}
     _setup_aggregator_with_organizers_for_retrieval(
@@ -574,9 +524,7 @@ def test_get_data_for_timestamp(
 
 # Test data retrieval for non-existent ID
 def test_data_retrieval_non_existent_id(mock_thread_pool):
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
     non_existent_id = DummyCallerIdentifier("non_existent")
     timestamp = datetime.datetime.now()
 
@@ -584,9 +532,7 @@ def test_data_retrieval_non_existent_id(mock_thread_pool):
     assert aggregator.has_new_data(non_existent_id) is False
 
     # Other get* methods should still raise KeyError for a non-existent ID
-    with pytest.raises(
-        KeyError, match="Caller ID .* not found for get_new_data."
-    ):
+    with pytest.raises(KeyError, match="Caller ID .* not found for get_new_data."):
         aggregator.get_new_data(non_existent_id)
     with pytest.raises(
         KeyError, match="Caller ID .* not found for get_most_recent_data."
@@ -611,9 +557,7 @@ def test_on_data_available_with_client(
 
     aggregator._on_data_available(mock_calling_organizer)
 
-    mock_client._on_data_available.assert_called_once_with(
-        aggregator, caller_id_1
-    )
+    mock_client._on_data_available.assert_called_once_with(aggregator, caller_id_1)
 
 
 def test_on_data_available_no_client(mock_thread_pool, caller_id_1, mocker):
@@ -626,9 +570,7 @@ def test_on_data_available_no_client(mock_thread_pool, caller_id_1, mocker):
     try:
         aggregator._on_data_available(mock_calling_organizer)
     except Exception as e:  # pragma: no cover
-        pytest.fail(
-            f"_on_data_available raised an exception with no client: {e}"
-        )
+        pytest.fail(f"_on_data_available raised an exception with no client: {e}")
 
 
 # Test _on_data_ready with invalid data type
@@ -636,9 +578,7 @@ def test_on_data_ready_invalid_data_type(mock_thread_pool):
     """
     Tests that _on_data_ready() raises a TypeError if new_data is not ExposedData.
     """
-    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](
-        mock_thread_pool
-    )
+    aggregator = RemoteDataAggregatorImpl[DummyConcreteExposedData](mock_thread_pool)
 
     class NotExposedData:  # Simple class not inheriting from ExposedData
         pass

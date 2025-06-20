@@ -52,9 +52,7 @@ class ClientIdFetcher:
             async with self.__lock:
                 # If the ID hasn't been fetched yet (lazy loading).
                 if self.__id is None:
-                    id_response: GetIdResponse = await self.__stub.GetId(
-                        GetIdRequest()
-                    )
+                    id_response: GetIdResponse = await self.__stub.GetId(GetIdRequest())
 
                     # Ensure the response is of the expected type.
                     assert isinstance(

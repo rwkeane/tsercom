@@ -36,9 +36,7 @@ class RuntimeWrapper(
     def __init__(
         self,
         event_poller: AsyncPoller[EventInstance[EventTypeT]],
-        data_aggregator: RemoteDataAggregatorImpl[
-            AnnotatedInstance[DataTypeT]
-        ],
+        data_aggregator: RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]],
         bridge: RuntimeCommandBridge,
     ) -> None:
         """Initializes the RuntimeWrapper.
@@ -48,12 +46,10 @@ class RuntimeWrapper(
             data_aggregator: A RemoteDataAggregatorImpl to manage data.
             bridge: A RuntimeCommandBridge to send commands to the runtime.
         """
-        self.__event_poller: AsyncPoller[EventInstance[EventTypeT]] = (
-            event_poller
+        self.__event_poller: AsyncPoller[EventInstance[EventTypeT]] = event_poller
+        self.__aggregator: RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]] = (
+            data_aggregator
         )
-        self.__aggregator: RemoteDataAggregatorImpl[
-            AnnotatedInstance[DataTypeT]
-        ] = data_aggregator
         self.__bridge: RuntimeCommandBridge = bridge
 
     def start(self) -> None:

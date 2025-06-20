@@ -39,9 +39,7 @@ class RuntimeCommandSource:
         self.__command_thread: threading.Thread | None = None
         self.__thread_watcher: Optional[ThreadWatcher] = None
 
-    def start_async(
-        self, thread_watcher: ThreadWatcher, runtime: Runtime
-    ) -> None:
+    def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime) -> None:
         """Starts the command watching thread and associates the runtime.
 
         Initializes running state, stores runtime, and starts a new thread
@@ -60,9 +58,7 @@ class RuntimeCommandSource:
             self.__is_running is None
         ), "RuntimeCommandSource already started or in an inconsistent state."
         self.__is_running = IsRunningTracker()
-        assert (
-            not self.__is_running.get()
-        ), "IsRunningTracker started prematurely."
+        assert not self.__is_running.get(), "IsRunningTracker started prematurely."
         # Long but readable assertion message
         assert (
             self.__runtime is None
@@ -130,24 +126,18 @@ class RuntimeCommandSource:
         Raises:
             AssertionError: If not running or internal state inconsistent.
         """
-        RuntimeCommandSource.logger.info(
-            "RuntimeCommandSource.stop_async() called"
-        )
+        RuntimeCommandSource.logger.info("RuntimeCommandSource.stop_async() called")
         # Ensure stop_async is called only when running and in a valid state.
         # Long but readable assertion message
         assert (
             self.__is_running is not None
         ), "RuntimeCommandSource not started or in an inconsistent state."
-        assert (
-            self.__is_running.get()
-        ), "RuntimeCommandSource is not marked as running."
+        assert self.__is_running.get(), "RuntimeCommandSource is not marked as running."
 
         self.__is_running.stop()
 
         if self.__command_thread:
-            self.__command_thread.join(
-                timeout=5  # Or another reasonable timeout
-            )
+            self.__command_thread.join(timeout=5)  # Or another reasonable timeout
             if self.__command_thread.is_alive():
                 # Long but readable error message
                 raise RuntimeError(

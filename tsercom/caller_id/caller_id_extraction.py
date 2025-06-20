@@ -77,9 +77,7 @@ async def extract_id_from_first_call(
     if first_response is None:
         logging.error("First call never received from iterator.")
         if context is not None:
-            await context.abort(
-                grpc.StatusCode.CANCELLED, "First call never received!"
-            )
+            await context.abort(grpc.StatusCode.CANCELLED, "First call never received!")
         return None, first_response
 
     id = await extract_id_from_call(
@@ -113,9 +111,7 @@ async def extract_id_from_call(
     if extractor(call) is None:
         logging.error("Missing CallerID in call object.")
         if context is not None:
-            await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT, "Missing CallerID"
-            )
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Missing CallerID")
         return None
 
     # If the id is malformed, return.

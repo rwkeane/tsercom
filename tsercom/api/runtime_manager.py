@@ -126,13 +126,9 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             thread_watcher if thread_watcher is not None else ThreadWatcher()
         )
         self.__process_creator: ProcessCreator = (
-            process_creator
-            if process_creator is not None
-            else ProcessCreator()
+            process_creator if process_creator is not None else ProcessCreator()
         )
-        self.__split_error_watcher_source_factory: (
-            SplitErrorWatcherSourceFactory
-        ) = (
+        self.__split_error_watcher_source_factory: SplitErrorWatcherSourceFactory = (
             split_error_watcher_source_factory
             if split_error_watcher_source_factory is not None
             else SplitErrorWatcherSourceFactory()
@@ -166,9 +162,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
                 default_split_factory_thread_pool, self.__thread_watcher
             )
 
-        self.__initializers: List[
-            InitializationPair[DataTypeT, EventTypeT]
-        ] = []
+        self.__initializers: List[InitializationPair[DataTypeT, EventTypeT]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
         self.__process: Optional[Process] = None
@@ -266,18 +260,14 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         Raises:
             RuntimeError: If the manager has already been started.
         """
-        assert (
-            runtime_event_loop is not None
-        ), "runtime_event_loop cannot be None"
+        assert runtime_event_loop is not None, "runtime_event_loop cannot be None"
         if self.has_started:
             raise RuntimeError("RuntimeManager has already been started.")
         self.__has_started.start()
 
         set_tsercom_event_loop(runtime_event_loop)
 
-        factories = self.__create_factories(
-            self.__local_runtime_factory_factory
-        )
+        factories = self.__create_factories(self.__local_runtime_factory_factory)
 
         # Import is deferred to method scope to avoid circular dependencies at module load time.
         from tsercom.runtime.runtime_main import (
@@ -324,16 +314,12 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         factory = DefaultMultiprocessQueueFactory[Exception]()
         error_sink, error_source = factory.create_queues()
 
-        self.__error_watcher = (
-            self.__split_error_watcher_source_factory.create(
-                self.__thread_watcher, error_source
-            )
+        self.__error_watcher = self.__split_error_watcher_source_factory.create(
+            self.__thread_watcher, error_source
         )
         self.__error_watcher.start()
 
-        factories = self.__create_factories(
-            self.__split_runtime_factory_factory
-        )
+        factories = self.__create_factories(self.__split_runtime_factory_factory)
 
         # Import is deferred to method scope to avoid circular dependencies at module load time.
         from tsercom.runtime.runtime_main import (
@@ -357,9 +343,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         if self.__process:
             self.__process.start()
         else:
-            logger.warning(
-                "Failed to create process for out-of-process runtime."
-            )
+            logger.warning("Failed to create process for out-of-process runtime.")
 
     def run_until_exception(self) -> None:
         """Blocks the calling thread until an exception is reported from any managed runtime.
@@ -500,9 +484,7 @@ class RuntimeFuturePopulator(
     to synchronously or asynchronously await the availability of the handle.
     """
 
-    def __init__(
-        self, future: Future[RuntimeHandle[DataTypeT, EventTypeT]]
-    ) -> None:
+    def __init__(self, future: Future[RuntimeHandle[DataTypeT, EventTypeT]]) -> None:
         """Initializes the RuntimeFuturePopulator.
 
         Args:

@@ -25,9 +25,7 @@ class CallerIdentifier:
             TypeError: If `id_value` is not an instance of `uuid.UUID`.
         """
         if not isinstance(id_value, uuid.UUID):
-            raise TypeError(
-                f"id_value must be a UUID instance, got {type(id_value)}"
-            )
+            raise TypeError(f"id_value must be a UUID instance, got {type(id_value)}")
         self.__id: uuid.UUID = id_value
 
     @staticmethod
@@ -43,9 +41,7 @@ class CallerIdentifier:
     @classmethod
     def try_parse(
         cls,
-        value: Union[
-            str, CallerId
-        ],  # Using typing.Union for broader compatibility
+        value: Union[str, CallerId],  # Using typing.Union for broader compatibility
     ) -> Optional["CallerIdentifier"]:
         """Tries to parse a string or gRPC CallerId object into a CallerIdentifier.
 
@@ -58,9 +54,7 @@ class CallerIdentifier:
             otherwise `None`.
         """
         parsed_id_str: Optional[str] = None
-        if isinstance(
-            value, CallerId
-        ):  # Check against the specific imported type
+        if isinstance(value, CallerId):  # Check against the specific imported type
             parsed_id_str = value.id
 
         elif isinstance(value, str):
@@ -109,7 +103,9 @@ class CallerIdentifier:
             NotImplemented if `other` is not a `CallerIdentifier`.
         """
         if not isinstance(other, CallerIdentifier):
-            return NotImplemented  # Use NotImplemented for type mismatches in comparison
+            return (
+                NotImplemented  # Use NotImplemented for type mismatches in comparison
+            )
         return self.__id == other.__id
 
     def __ne__(self, other: object) -> bool:

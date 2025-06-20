@@ -32,9 +32,7 @@ class TestReadFileContent:
 
     def test_read_file_content_success(self, mocker):
         selector = ChannelFactorySelector()
-        mocker.patch(
-            "builtins.open", mocker.mock_open(read_data=b"test_content")
-        )
+        mocker.patch("builtins.open", mocker.mock_open(read_data=b"test_content"))
         content = selector._read_file_content("dummy_path.pem")
         assert content == b"test_content"
 
@@ -180,9 +178,7 @@ class TestCreateFactory:
             server_hostname_override="override.host",
         )
 
-    def test_create_factory_client_auth_cert_read_fails(
-        self, selector, mocker
-    ):
+    def test_create_factory_client_auth_cert_read_fails(self, selector, mocker):
         def read_side_effect(path):
             if path == "c.pem":
                 return None

@@ -220,9 +220,7 @@ def test_init(
 
     # thread_watcher is not stored directly on ShimRuntimeHandle, its usage is verified via DataReaderSource init
     assert handle._ShimRuntimeHandle__event_queue is fake_event_q_sink
-    assert (
-        handle._ShimRuntimeHandle__runtime_command_queue is fake_command_q_sink
-    )
+    assert handle._ShimRuntimeHandle__runtime_command_queue is fake_command_q_sink
     assert (
         handle._ShimRuntimeHandle__data_aggregator is fake_aggregator
     )  # Corrected attribute name (with typo)
@@ -260,9 +258,7 @@ def test_start(
     assert fake_command_q_sink.put_blocking_called_with == RuntimeCommand.START
 
 
-def test_on_event_block_true(
-    handle_block_true, fake_event_q_sink, test_event_data
-):
+def test_on_event_block_true(handle_block_true, fake_event_q_sink, test_event_data):
     """Test on_event() when block is True."""
     handle_block_true.on_event(test_event_data)
 
@@ -280,9 +276,7 @@ def test_on_event_block_true(
     assert fake_event_q_sink.put_nowait_call_count == 0
 
 
-def test_on_event_block_false(
-    handle_block_false, fake_event_q_sink, test_event_data
-):
+def test_on_event_block_false(handle_block_false, fake_event_q_sink, test_event_data):
     """Test on_event() when block is False."""
     fake_event_q_sink.set_put_nowait_return_value(True)  # Simulate success
     handle_block_false.on_event(test_event_data)
@@ -365,9 +359,9 @@ def test_on_event_with_caller_id_and_timestamp(
     """
     mock_caller_id = CallerIdentifier.random()
     # Ensure timezone-aware datetime for consistency, as EventInstance might create one
-    mock_timestamp = datetime.datetime.now(
-        datetime.timezone.utc
-    ) - datetime.timedelta(seconds=30)
+    mock_timestamp = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+        seconds=30
+    )
 
     handle_block_false.on_event(
         test_event_data, caller_id=mock_caller_id, timestamp=mock_timestamp

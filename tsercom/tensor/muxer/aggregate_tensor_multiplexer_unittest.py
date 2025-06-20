@@ -165,15 +165,13 @@ async def test_publisher_registration_and_publish(
     aggregator._notify_update_from_publisher = AsyncMock()  # type: ignore
     publisher1._add_aggregator(aggregator)
     await publisher1.publish(TENSOR_L3_A, T1)
-    cast(
-        AsyncMock, aggregator._notify_update_from_publisher
-    ).assert_called_once_with(publisher1, TENSOR_L3_A, T1)
+    cast(AsyncMock, aggregator._notify_update_from_publisher).assert_called_once_with(
+        publisher1, TENSOR_L3_A, T1
+    )
     publisher1._remove_aggregator(aggregator)
     cast(AsyncMock, aggregator._notify_update_from_publisher).reset_mock()
     await publisher1.publish(TENSOR_L3_A, T1)
-    cast(
-        AsyncMock, aggregator._notify_update_from_publisher
-    ).assert_not_called()
+    cast(AsyncMock, aggregator._notify_update_from_publisher).assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -195,9 +193,7 @@ async def test_add_first_publisher_append_sparse(
     # Sparse update (only one value changes)
     mock_main_client.clear_calls()
     tensor_b_sparse_update = TENSOR_L3_A.clone()
-    tensor_b_sparse_update[1] = TENSOR_L3_B_VAL[
-        1
-    ]  # Change index 1 (value 2.1)
+    tensor_b_sparse_update[1] = TENSOR_L3_B_VAL[1]  # Change index 1 (value 2.1)
 
     await publisher1.publish(tensor_b_sparse_update, T2)
 
@@ -218,12 +214,8 @@ async def test_add_second_publisher_append_complete(
     publisher1: Publisher,
     publisher2: Publisher,
 ):
-    await aggregator.add_to_aggregation(
-        publisher1, 3, sparse=True
-    )  # Indices 0-2
-    await aggregator.add_to_aggregation(
-        publisher2, 2, sparse=False
-    )  # Indices 3-4
+    await aggregator.add_to_aggregation(publisher1, 3, sparse=True)  # Indices 0-2
+    await aggregator.add_to_aggregation(publisher2, 2, sparse=False)  # Indices 3-4
     assert aggregator.actual_aggregate_length == 5
 
     mock_main_client.clear_calls()
@@ -267,9 +259,7 @@ async def test_add_publisher_range_overlap_error(
     publisher2: Publisher,
 ):
     await aggregator.add_to_aggregation(publisher1, range(0, 3), 3)
-    with pytest.raises(
-        ValueError, match="overlaps with existing publisher range"
-    ):
+    with pytest.raises(ValueError, match="overlaps with existing publisher range"):
         await aggregator.add_to_aggregation(publisher2, range(2, 5), 3)
 
 
@@ -294,9 +284,7 @@ async def test_data_flow_multiple_publishers_mixed_modes(
     publisher3: Publisher,  # Sparse, len 4, indices 7-10 (appended)
 ):
     await aggregator.add_to_aggregation(publisher1, 3, sparse=True)
-    await aggregator.add_to_aggregation(
-        publisher2, range(5, 7), 2, sparse=False
-    )
+    await aggregator.add_to_aggregation(publisher2, range(5, 7), 2, sparse=False)
     await aggregator.add_to_aggregation(
         publisher3, 4, sparse=True
     )  # Appends after current max index (7)
@@ -327,9 +315,7 @@ async def test_data_flow_multiple_publishers_mixed_modes(
 
     # P1 republishes with a sparse change at T2
     # First, get the chunks already there for T2 (from P3)
-    existing_t2_chunks_from_p3 = (
-        mock_main_client.get_chunks_for_timestamp_sorted(T2)
-    )
+    existing_t2_chunks_from_p3 = mock_main_client.get_chunks_for_timestamp_sorted(T2)
     # expected_p3_t2 should already be validated, but this ensures we have what P3 sent at T2.
 
     mock_main_client.clear_calls()  # Clear before P1's new publish at T2
@@ -342,9 +328,7 @@ async def test_data_flow_multiple_publishers_mixed_modes(
     await publisher1.publish(p1_changed_val_tensor, T2)
     # We need to combine all chunks for T2.
     # Chunks from P1's new update at T2:
-    new_t2_chunks_from_p1 = mock_main_client.get_chunks_for_timestamp_sorted(
-        T2
-    )
+    new_t2_chunks_from_p1 = mock_main_client.get_chunks_for_timestamp_sorted(T2)
 
     # Combine existing (P3's) and new (P1's) chunks for T2
     all_t2_chunks_received = sorted(
@@ -356,9 +340,7 @@ async def test_data_flow_multiple_publishers_mixed_modes(
     combined_expected_t2_for_assertion = sorted(
         expected_p1_t2_change + expected_p3_t2, key=lambda c: c.starting_index
     )
-    assert_chunks_equal_list(
-        all_t2_chunks_received, combined_expected_t2_for_assertion
-    )
+    assert_chunks_equal_list(all_t2_chunks_received, combined_expected_t2_for_assertion)
 
 
 @pytest.mark.asyncio
@@ -367,12 +349,8 @@ async def test_get_aggregated_tensor_at_timestamp(
     publisher1: Publisher,
     publisher2: Publisher,
 ):
-    await aggregator.add_to_aggregation(
-        publisher1, 3, sparse=True
-    )  # Indices 0-2
-    await aggregator.add_to_aggregation(
-        publisher2, 2, sparse=False
-    )  # Indices 3-4
+    await aggregator.add_to_aggregation(publisher1, 3, sparse=True)  # Indices 0-2
+    await aggregator.add_to_aggregation(publisher2, 2, sparse=False)  # Indices 3-4
     assert aggregator.actual_aggregate_length == 5
 
     await publisher1.publish(TENSOR_L3_A, T1)
@@ -385,9 +363,7 @@ async def test_get_aggregated_tensor_at_timestamp(
     p1_t2_val = TENSOR_L3_B.clone()
     await publisher1.publish(p1_t2_val, T2)  # P1 updates at T2
     # P2 has not published at T2, so its part should be zeros in aggregate history for T2 initially
-    expected_partial_t2_tensor = torch.cat(
-        (p1_t2_val, torch.zeros_like(TENSOR_L2_A))
-    )
+    expected_partial_t2_tensor = torch.cat((p1_t2_val, torch.zeros_like(TENSOR_L2_A)))
     retrieved_partial_t2 = await aggregator.get_tensor_at_timestamp(T2)
     assert retrieved_partial_t2 is not None
     assert torch.equal(retrieved_partial_t2, expected_partial_t2_tensor)

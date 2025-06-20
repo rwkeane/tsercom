@@ -79,9 +79,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
 
         with self.__time_offset_lock:
             count = len(self.__time_offsets)
-            assert (
-                count > 0
-            ), "Time offsets deque should not be empty after start."
+            assert count > 0, "Time offsets deque should not be empty after start."
             return sum(self.__time_offsets) / count
 
     def is_running(self) -> bool:

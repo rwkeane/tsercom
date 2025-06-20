@@ -101,17 +101,11 @@ class RuntimeDataHandlerBase(
                 polling frequency of `AsyncPoller` is used.
         """
         super().__init__()
-        self.__data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]] = (
-            data_reader
-        )
-        self.__event_source: AsyncPoller[EventInstance[EventTypeT]] = (
-            event_source
-        )
+        self.__data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]] = data_reader
+        self.__event_source: AsyncPoller[EventInstance[EventTypeT]] = event_source
 
         def _poller_factory() -> AsyncPoller[EventInstance[EventTypeT]]:
-            return AsyncPoller(
-                min_poll_frequency_seconds=min_send_frequency_seconds
-            )
+            return AsyncPoller(min_poll_frequency_seconds=min_send_frequency_seconds)
 
         self.__id_tracker = IdTracker[AsyncPoller[EventInstance[EventTypeT]]](
             _poller_factory
@@ -128,9 +122,7 @@ class RuntimeDataHandlerBase(
             None  # Added type hint
         )
         if is_global_event_loop_set():
-            self._loop_on_init = (
-                get_global_event_loop()
-            )  # Store loop used at init
+            self._loop_on_init = get_global_event_loop()  # Store loop used at init
             self.__dispatch_task = self._loop_on_init.create_task(
                 self.__dispatch_poller_data_loop()
             )
@@ -163,9 +155,7 @@ class RuntimeDataHandlerBase(
             task_loop = None
             try:
                 task_loop = task.get_loop()
-            except (
-                RuntimeError
-            ):  # Can happen if task is done and loop is closed
+            except RuntimeError:  # Can happen if task is done and loop is closed
                 _logger.warning(
                     "Could not get loop for task %s during async_close, it might be done and its loop closed.",
                     task,
@@ -183,10 +173,7 @@ class RuntimeDataHandlerBase(
                 # It's crucial that task.cancel() and await task happen on the loop the task is running on.
                 # If self._loop_on_init is different from current_loop, this might be an issue.
                 # However, pytest-asyncio and conftest should ensure fixture teardown runs on the same loop as test.
-                if (
-                    self._loop_on_init
-                    and self._loop_on_init is not current_loop
-                ):
+                if self._loop_on_init and self._loop_on_init is not current_loop:
                     _logger.warning(
                         "Potential loop mismatch in async_close: task loop %s (init_loop %s) vs current_loop %s. This might cause issues.",
                         task_loop_id,
@@ -218,9 +205,7 @@ class RuntimeDataHandlerBase(
                 _logger.debug("Dispatch_task %s was already done.", task)
             self.__dispatch_task = None
         else:
-            _logger.debug(
-                "No __dispatch_task found or already cleared in async_close."
-            )
+            _logger.debug("No __dispatch_task found or already cleared in async_close.")
 
     @property
     def _id_tracker(
@@ -287,11 +272,7 @@ class RuntimeDataHandlerBase(
 
         if len(args) == 1 and isinstance(args[0], grpc.aio.ServicerContext):
             _context = args[0]
-        elif (
-            len(args) == 2
-            and isinstance(args[0], str)
-            and isinstance(args[1], int)
-        ):
+        elif len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], int):
             _endpoint = args[0]
             _port = args[1]
         elif args:
@@ -313,20 +294,14 @@ class RuntimeDataHandlerBase(
                 )
             _port = kwargs.pop("port")
         if "context" in kwargs:
-            if (
-                _context is not None
-                or _endpoint is not None
-                or _port is not None
-            ):
+            if _context is not None or _endpoint is not None or _port is not None:
                 raise ValueError(
                     "Cannot use context via args & kwargs, or with endpoint/port."
                 )
             _context = kwargs.pop("context")
 
         if kwargs:
-            raise ValueError(
-                f"Unexpected keyword arguments: {list(kwargs.keys())}"
-            )
+            raise ValueError(f"Unexpected keyword arguments: {list(kwargs.keys())}")
 
         if (_endpoint is None and _port is None) == (
             _context is None
@@ -334,9 +309,7 @@ class RuntimeDataHandlerBase(
             raise ValueError(
                 "Provide (endpoint and port) or context, but not both or neither."
             )
-        if (_port is None) != (
-            _endpoint is None
-        ):  # One provided without the other
+        if (_port is None) != (_endpoint is None):  # One provided without the other
             raise ValueError(
                 "If 'endpoint' is provided, 'port' must also be, and vice-versa."
             )
@@ -374,9 +347,7 @@ class RuntimeDataHandlerBase(
                 "Internal error: Inconsistent endpoint/port/context state after validation."
             )
 
-        return await self._register_caller(
-            caller_id, actual_endpoint, actual_port
-        )
+        return await self._register_caller(caller_id, actual_endpoint, actual_port)
 
     def check_for_caller_id(
         self, endpoint: str, port: int
@@ -502,9 +473,7 @@ class RuntimeDataHandlerBase(
         # The IdTracker is configured to store AsyncPoller instances as TrackedDataT.
         _address, _port, data_poller = self.__id_tracker.get(caller_id)
         if data_poller is None:
-            raise ValueError(
-                f"No data poller found in IdTracker for {caller_id}"
-            )
+            raise ValueError(f"No data poller found in IdTracker for {caller_id}")
 
         return RuntimeDataHandlerBase._DataProcessorImpl(
             self, caller_id, clock, data_poller
@@ -561,9 +530,7 @@ class RuntimeDataHandlerBase(
                         # else: Potentially log if poller is None but entry existed?
                 await asyncio.sleep(0)  # Yield control occasionally
         except asyncio.CancelledError:
-            _logger.info(
-                "__dispatch_poller_data_loop received CancelledError."
-            )
+            _logger.info("__dispatch_poller_data_loop received CancelledError.")
             raise  # Important to propagate for the awaiter
         except Exception as e:
             # This logging was originally just print(), changed to _logger.critical
@@ -609,13 +576,11 @@ class RuntimeDataHandlerBase(
                     processor will source events for the specific caller.
             """
             super().__init__(caller_id)
-            self.__data_handler: (
-                "RuntimeDataHandlerBase[DataTypeT, EventTypeT]"
-            ) = data_handler
-            self.__clock: SynchronizedClock = clock
-            self.__data_poller: AsyncPoller[EventInstance[EventTypeT]] = (
-                data_poller
+            self.__data_handler: "RuntimeDataHandlerBase[DataTypeT, EventTypeT]" = (
+                data_handler
             )
+            self.__clock: SynchronizedClock = clock
+            self.__data_poller: AsyncPoller[EventInstance[EventTypeT]] = data_poller
 
         async def desynchronize(
             self,
@@ -660,9 +625,7 @@ class RuntimeDataHandlerBase(
             # The return value (bool) of _unregister_caller is ignored here,
             # as EndpointDataProcessor.deregister_caller returns None.
 
-        async def _process_data(
-            self, data: DataTypeT, timestamp: datetime
-        ) -> None:
+        async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
             """Processes data by creating an `AnnotatedInstance` and passing it to the parent.
 
             The data is wrapped with its `CallerIdentifier` and the provided
@@ -684,13 +647,9 @@ class RuntimeDataHandlerBase(
         ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
             """Returns an asynchronous iterator for events from the dedicated per-caller poller."""
             async for event_instance_batch in self.__data_poller:
-                processed_batch: List[
-                    SerializableAnnotatedInstance[EventTypeT]
-                ] = []
+                processed_batch: List[SerializableAnnotatedInstance[EventTypeT]] = []
                 for event_instance in event_instance_batch:
-                    synchronized_ts = self.__clock.sync(
-                        event_instance.timestamp
-                    )
+                    synchronized_ts = self.__clock.sync(event_instance.timestamp)
                     serializable_event = SerializableAnnotatedInstance(
                         data=event_instance.data,
                         caller_id=event_instance.caller_id,

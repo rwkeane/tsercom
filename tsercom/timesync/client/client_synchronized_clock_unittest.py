@@ -41,9 +41,7 @@ def test_good_client_impl_instantiation():
         client = GoodClientImpl()
         assert isinstance(client, ClientSynchronizedClock.Client)
     except TypeError:
-        pytest.fail(
-            "GoodClientImpl instantiation raised TypeError unexpectedly."
-        )
+        pytest.fail("GoodClientImpl instantiation raised TypeError unexpectedly.")
 
 
 def test_bad_client_impl_instantiation():
@@ -168,10 +166,6 @@ def test_now_property(
     # Note: datetime.now() is naive, and ClientSynchronizedClock produces naive UTC-equivalent
     # if the input to sync() is naive (which datetime.now() is).
     # The comparison should be between naive datetimes.
-    assert synced_dt >= time_before_sync - datetime.timedelta(
-        microseconds=10000
-    )
-    assert synced_dt <= time_after_sync + datetime.timedelta(
-        microseconds=10000
-    )
+    assert synced_dt >= time_before_sync - datetime.timedelta(microseconds=10000)
+    assert synced_dt <= time_after_sync + datetime.timedelta(microseconds=10000)
     assert synced_dt.tzinfo is None

@@ -70,9 +70,7 @@ def test_stop(client: FakeTimeSyncClient):
     try:
         client.stop()
     except Exception as e:
-        pytest.fail(
-            f"Calling stop() on an already stopped client raised an error: {e}"
-        )
+        pytest.fail(f"Calling stop() on an already stopped client raised an error: {e}")
 
 
 def test_is_running(client: FakeTimeSyncClient):

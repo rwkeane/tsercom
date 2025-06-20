@@ -48,9 +48,7 @@ class TestInitializeRuntimes:
 
         mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
 
-        mock_channel_factory_selector_instance = (
-            MockChannelFactorySelector.return_value
-        )
+        mock_channel_factory_selector_instance = MockChannelFactorySelector.return_value
         mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
         mock_channel_factory_selector_instance.create_factory.return_value = (
             mock_grpc_channel_factory
@@ -74,24 +72,18 @@ class TestInitializeRuntimes:
         )
 
         mock_runtime_instance = mocker.Mock(spec=Runtime)
-        mock_runtime_instance.start_async = mocker.AsyncMock(
-            name="start_async_method"
-        )
+        mock_runtime_instance.start_async = mocker.AsyncMock(name="start_async_method")
         mock_client_factory.create.return_value = mock_runtime_instance
 
         initializers = [mock_client_factory]
 
-        mock_event_loop_instance = mocker.MagicMock(
-            spec=asyncio.AbstractEventLoop
-        )
+        mock_event_loop_instance = mocker.MagicMock(spec=asyncio.AbstractEventLoop)
         mock_get_global_event_loop = mocker.patch(
             "tsercom.runtime.runtime_main.get_global_event_loop",
             return_value=mock_event_loop_instance,
         )
 
-        created_runtimes = initialize_runtimes(
-            mock_thread_watcher, initializers
-        )
+        created_runtimes = initialize_runtimes(mock_thread_watcher, initializers)
 
         mock_is_global_event_loop_set.assert_called_once()
         mock_get_global_event_loop.assert_called_once()
@@ -105,13 +97,9 @@ class TestInitializeRuntimes:
         _pos_args, kw_args = MockClientRuntimeDataHandler.call_args
         assert not _pos_args, "Expected no positional arguments"
         assert kw_args["thread_watcher"] is mock_thread_watcher
-        assert (
-            kw_args["data_reader"] is mock_client_data_reader_actual_instance
-        )
+        assert kw_args["data_reader"] is mock_client_data_reader_actual_instance
         # Check that event_source is the direct poller instance
-        assert (
-            kw_args["event_source"] is mock_client_event_poller_actual_instance
-        )
+        assert kw_args["event_source"] is mock_client_event_poller_actual_instance
         assert (
             kw_args["min_send_frequency_seconds"]
             == mock_client_factory.min_send_frequency_seconds
@@ -152,9 +140,7 @@ class TestInitializeRuntimes:
         )
 
         mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
-        mock_channel_factory_selector_instance = (
-            MockChannelFactorySelector.return_value
-        )
+        mock_channel_factory_selector_instance = MockChannelFactorySelector.return_value
         mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
         # Changed from get_instance to create_factory
         mock_channel_factory_selector_instance.create_factory.return_value = (
@@ -179,24 +165,18 @@ class TestInitializeRuntimes:
         )
 
         mock_runtime_instance = mocker.Mock(spec=Runtime)
-        mock_runtime_instance.start_async = mocker.AsyncMock(
-            name="start_async_method"
-        )
+        mock_runtime_instance.start_async = mocker.AsyncMock(name="start_async_method")
         mock_server_factory.create.return_value = mock_runtime_instance
 
         initializers = [mock_server_factory]
 
-        mock_event_loop_instance = mocker.MagicMock(
-            spec=asyncio.AbstractEventLoop
-        )
+        mock_event_loop_instance = mocker.MagicMock(spec=asyncio.AbstractEventLoop)
         mock_get_global_event_loop = mocker.patch(
             "tsercom.runtime.runtime_main.get_global_event_loop",
             return_value=mock_event_loop_instance,
         )
 
-        created_runtimes = initialize_runtimes(
-            mock_thread_watcher, initializers
-        )
+        created_runtimes = initialize_runtimes(mock_thread_watcher, initializers)
 
         mock_is_global_event_loop_set.assert_called_once()
         mock_get_global_event_loop.assert_called_once()
@@ -209,13 +189,9 @@ class TestInitializeRuntimes:
         MockServerRuntimeDataHandler.assert_called_once()
         _pos_args, kw_args = MockServerRuntimeDataHandler.call_args
         assert not _pos_args, "Expected no positional arguments"
-        assert (
-            kw_args["data_reader"] is mock_server_data_reader_actual_instance
-        )
+        assert kw_args["data_reader"] is mock_server_data_reader_actual_instance
         # Check that event_source is the direct poller instance
-        assert (
-            kw_args["event_source"] is mock_server_event_poller_actual_instance
-        )
+        assert kw_args["event_source"] is mock_server_event_poller_actual_instance
         assert (
             kw_args["min_send_frequency_seconds"]
             == mock_server_factory.min_send_frequency_seconds
@@ -256,9 +232,7 @@ class TestInitializeRuntimes:
         )
 
         mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
-        mock_channel_factory_selector_instance = (
-            MockChannelFactorySelector.return_value
-        )
+        mock_channel_factory_selector_instance = MockChannelFactorySelector.return_value
         mock_grpc_channel_factory = mocker.Mock(spec=GrpcChannelFactory)
         # Changed from get_instance to create_factory
         mock_channel_factory_selector_instance.create_factory.return_value = (
@@ -282,9 +256,7 @@ class TestInitializeRuntimes:
             mock_client_event_poller_actual_instance_multi
         )
         mock_client_runtime = mocker.Mock(spec=Runtime, name="client_runtime")
-        mock_client_runtime.start_async = mocker.AsyncMock(
-            name="client_start_async"
-        )
+        mock_client_runtime.start_async = mocker.AsyncMock(name="client_start_async")
         mock_client_factory.create.return_value = mock_client_runtime
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
@@ -304,24 +276,18 @@ class TestInitializeRuntimes:
             mock_server_event_poller_actual_instance_multi
         )
         mock_server_runtime = mocker.Mock(spec=Runtime, name="server_runtime")
-        mock_server_runtime.start_async = mocker.AsyncMock(
-            name="server_start_async"
-        )
+        mock_server_runtime.start_async = mocker.AsyncMock(name="server_start_async")
         mock_server_factory.create.return_value = mock_server_runtime
 
         initializers = [mock_client_factory, mock_server_factory]
 
-        mock_event_loop_instance = mocker.MagicMock(
-            spec=asyncio.AbstractEventLoop
-        )
+        mock_event_loop_instance = mocker.MagicMock(spec=asyncio.AbstractEventLoop)
         mock_get_global_event_loop = mocker.patch(
             "tsercom.runtime.runtime_main.get_global_event_loop",
             return_value=mock_event_loop_instance,
         )
 
-        created_runtimes = initialize_runtimes(
-            mock_thread_watcher, initializers
-        )
+        created_runtimes = initialize_runtimes(mock_thread_watcher, initializers)
 
         mock_get_global_event_loop.assert_called()
         MockChannelFactorySelector.assert_called_once_with()
@@ -332,10 +298,7 @@ class TestInitializeRuntimes:
         mock_channel_factory_selector_instance.create_factory.assert_any_call(
             mock_server_factory.auth_config
         )
-        assert (
-            mock_channel_factory_selector_instance.create_factory.call_count
-            == 2
-        )
+        assert mock_channel_factory_selector_instance.create_factory.call_count == 2
 
         assert MockClientRuntimeDataHandler.call_count == 1
         (
@@ -417,16 +380,12 @@ class TestInitializeRuntimes:
         mock_invalid_factory = mocker.Mock(spec=RuntimeFactory)
         mock_invalid_factory.is_client.return_value = False
         mock_invalid_factory.is_server.return_value = False
-        mock_invalid_factory.auth_config = (
-            None  # Required by ChannelFactorySelector
-        )
+        mock_invalid_factory.auth_config = None  # Required by ChannelFactorySelector
         # Mock protected access methods called before the type check
         mock_invalid_factory._remote_data_reader.return_value = mocker.Mock(
             spec=RemoteDataReader
         )
-        mock_invalid_factory._event_poller.return_value = mocker.Mock(
-            spec=AsyncPoller
-        )
+        mock_invalid_factory._event_poller.return_value = mocker.Mock(spec=AsyncPoller)
 
         initializers = [mock_invalid_factory]
 
@@ -443,9 +402,7 @@ class TestInitializeRuntimes:
             "tsercom.runtime.runtime_main.is_global_event_loop_set",
             return_value=True,
         )
-        mock_event_loop_instance = mocker.MagicMock(
-            spec=asyncio.AbstractEventLoop
-        )
+        mock_event_loop_instance = mocker.MagicMock(spec=asyncio.AbstractEventLoop)
         mocker.patch(
             "tsercom.runtime.runtime_main.get_global_event_loop",
             return_value=mock_event_loop_instance,
@@ -475,9 +432,7 @@ class TestInitializeRuntimes:
         mock_client_factory._remote_data_reader.return_value = mocker.Mock(
             spec=RemoteDataReader
         )
-        mock_client_factory._event_poller.return_value = mocker.Mock(
-            spec=AsyncPoller
-        )
+        mock_client_factory._event_poller.return_value = mocker.Mock(spec=AsyncPoller)
 
         mock_runtime_instance = mocker.Mock(spec=Runtime)
         test_exception = RuntimeError("start_async failed")
@@ -512,9 +467,7 @@ class TestInitializeRuntimes:
         callback(future_mock)
         # --- End of Future simulation ---
 
-        mock_thread_watcher.on_exception_seen.assert_called_once_with(
-            test_exception
-        )
+        mock_thread_watcher.on_exception_seen.assert_called_once_with(test_exception)
 
 
 class TestRemoteProcessMain:
@@ -554,9 +507,7 @@ class TestRemoteProcessMain:
             mock_factories = [mocker.Mock(spec=RuntimeFactory)]
             mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
 
-            mock_runtime1 = mocker.AsyncMock(
-                spec=Runtime
-            )  # Use AsyncMock for stop
+            mock_runtime1 = mocker.AsyncMock(spec=Runtime)  # Use AsyncMock for stop
             mock_runtime1.stop = mocker.AsyncMock()  # Make stop an AsyncMock
             mock_initialize_runtimes.return_value = [mock_runtime1]
 
@@ -599,16 +550,12 @@ class TestRemoteProcessMain:
         """Tests error handling when error_queue.put_nowait fails."""
         # Rely on conftest.py:manage_tsercom_loop to set/clear the event loop
         try:
-            mocker.patch(
-                "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
-            )
+            mocker.patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
             mocker.patch("tsercom.runtime.runtime_main.ThreadWatcher")
             mocker.patch(
                 "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
             )
-            mocker.patch(
-                "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
-            )
+            mocker.patch("tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink")
             mock_initialize_runtimes = mocker.patch(
                 "tsercom.runtime.runtime_main.initialize_runtimes"
             )
@@ -621,12 +568,8 @@ class TestRemoteProcessMain:
             ).return_value
             # asyncs_task is an asyncio.Task, not an AsyncMock
             mock_task_error_queue = mocker.MagicMock(spec=asyncio.Task)
-            mock_loop_error_queue.create_task.return_value = (
-                mock_task_error_queue
-            )
-            mock_task_error_queue.result.return_value = (
-                None  # Simulate task completion
-            )
+            mock_loop_error_queue.create_task.return_value = mock_task_error_queue
+            mock_task_error_queue.result.return_value = None  # Simulate task completion
 
             mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
             queue_exception = Exception("Queue put failed")
@@ -653,9 +596,7 @@ class TestRemoteProcessMain:
         """Tests error handling when a factory's _stop method fails."""
         # Rely on conftest.py:manage_tsercom_loop to set/clear the event loop
         try:
-            mocker.patch(
-                "tsercom.runtime.runtime_main.clear_tsercom_event_loop"
-            )
+            mocker.patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
             _MockThreadWatcher_factory_stop = mocker.patch(
                 "tsercom.runtime.runtime_main.ThreadWatcher"
             )
@@ -679,9 +620,7 @@ class TestRemoteProcessMain:
             mock_factory1._stop.side_effect = stop_exception
 
             mock_factory2 = mocker.Mock(spec=RuntimeFactory)
-            mock_factory2._stop = (
-                mocker.Mock()
-            )  # No side effect for the second factory
+            mock_factory2._stop = mocker.Mock()  # No side effect for the second factory
 
             mock_factories = [mock_factory1, mock_factory2]
 
@@ -696,9 +635,7 @@ class TestRemoteProcessMain:
             ).return_value
             # asyncs_task is an asyncio.Task, not an AsyncMock
             mock_task_factory_stop = mocker.MagicMock(spec=asyncio.Task)
-            mock_loop_factory_stop.create_task.return_value = (
-                mock_task_factory_stop
-            )
+            mock_loop_factory_stop.create_task.return_value = mock_task_factory_stop
             mock_task_factory_stop.result.return_value = (
                 None  # Simulate task completion
             )
@@ -715,9 +652,7 @@ class TestRemoteProcessMain:
                 remote_process_main(mock_factories, mock_error_queue)
             except Exception as e:
                 # We don't expect exceptions from factory._stop to propagate out of remote_process_main
-                pytest.fail(
-                    f"remote_process_main raised unexpected exception: {e}"
-                )
+                pytest.fail(f"remote_process_main raised unexpected exception: {e}")
 
             mock_factory1._stop.assert_called_once()
             mock_logger.error.assert_any_call(  # Use assert_any_call if other errors might be logged
@@ -775,9 +710,7 @@ class TestRemoteProcessMain:
             # asyncs_task is an asyncio.Task, not an AsyncMock
             mock_task_run_exc = mocker.MagicMock(spec=asyncio.Task)
             mock_loop_run_exc.create_task.return_value = mock_task_run_exc
-            mock_task_run_exc.result.return_value = (
-                None  # Simulate task completion
-            )
+            mock_task_run_exc.result.return_value = None  # Simulate task completion
 
             mock_factories = [mocker.Mock(spec=RuntimeFactory)]
             mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)

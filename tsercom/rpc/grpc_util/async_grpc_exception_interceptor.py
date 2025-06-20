@@ -40,9 +40,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         Intercepts the RPC call, catching exceptions and invoking the callback.
         """
 
-        handler: grpc.RpcMethodHandler = await continuation(
-            handler_call_details
-        )
+        handler: grpc.RpcMethodHandler = await continuation(handler_call_details)
 
         # If there's no handler, it means this RPC is not implemented.
         # Let gRPC handle it.
@@ -78,9 +76,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
 
     def _wrap_unary_unary(
         self,
-        method: Callable[
-            [object, grpc.aio.ServicerContext], Awaitable[object]
-        ],
+        method: Callable[[object, grpc.aio.ServicerContext], Awaitable[object]],
         method_name: grpc.HandlerCallDetails,
     ) -> Callable[[object, grpc.aio.ServicerContext], Awaitable[object]]:
         """Wraps a unary-unary RPC method to provide exception handling."""
@@ -158,9 +154,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         self,
         method: Callable[
             [object, grpc.aio.ServicerContext],
-            Awaitable[
-                object
-            ],  # Actual handler is an async gen taking async iter
+            Awaitable[object],  # Actual handler is an async gen taking async iter
         ],
         method_name: grpc.HandlerCallDetails,
     ) -> Callable[

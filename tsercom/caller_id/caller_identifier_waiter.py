@@ -63,9 +63,7 @@ class CallerIdentifierWaiter:
         """
         # Ensure the caller ID can only be set once.
         if self.__caller_id is not None:
-            raise RuntimeError(
-                "Caller ID has already been set and cannot be changed."
-            )
+            raise RuntimeError("Caller ID has already been set and cannot be changed.")
 
         self.__caller_id = caller_id
         self.__barrier.set()

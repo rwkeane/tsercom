@@ -118,19 +118,12 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                             break
 
         # Declare data_event_queue_factory with the base type for mypy
-        event_queue_factory: MultiprocessQueueFactory[
-            EventInstance[EventTypeT]
-        ]
-        data_queue_factory: MultiprocessQueueFactory[
-            AnnotatedInstance[DataTypeT]
-        ]
+        event_queue_factory: MultiprocessQueueFactory[EventInstance[EventTypeT]]
+        data_queue_factory: MultiprocessQueueFactory[AnnotatedInstance[DataTypeT]]
         command_queue_factory: MultiprocessQueueFactory[RuntimeCommand]
 
         uses_torch_tensor = False
-        if (
-            resolved_data_type is torch.Tensor
-            or resolved_event_type is torch.Tensor
-        ):
+        if resolved_data_type is torch.Tensor or resolved_event_type is torch.Tensor:
             uses_torch_tensor = True
 
         if uses_torch_tensor:
@@ -150,9 +143,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             ]()
 
         # Command queues always use the default factory
-        command_queue_factory = DefaultMultiprocessQueueFactory[
-            RuntimeCommand
-        ]()
+        command_queue_factory = DefaultMultiprocessQueueFactory[RuntimeCommand]()
         # --- End dynamic queue factory selection ---
 
         event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]
@@ -174,17 +165,13 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         )
 
         if initializer.timeout_seconds is not None:
-            aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[DataTypeT]
-            ](
+            aggregator = RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]](
                 self.__thread_pool,
                 client=initializer.data_aggregator_client,
                 timeout=initializer.timeout_seconds,
             )
         else:
-            aggregator = RemoteDataAggregatorImpl[
-                AnnotatedInstance[DataTypeT]
-            ](
+            aggregator = RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]](
                 self.__thread_pool,
                 client=initializer.data_aggregator_client,
             )

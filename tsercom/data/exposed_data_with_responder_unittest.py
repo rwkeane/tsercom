@@ -55,9 +55,7 @@ def test_exposed_data_with_responder_initialization_success(
     assert exposed_data.caller_id is mock_caller_id
     assert exposed_data.timestamp is mock_timestamp
     # Accessing private __responder attribute for verification is common in testing
-    assert (
-        exposed_data._ExposedDataWithResponder__responder is responder_instance
-    )
+    assert exposed_data._ExposedDataWithResponder__responder is responder_instance
 
 
 def test_exposed_data_with_responder_init_raises_assertion_error_if_responder_is_none(
@@ -111,9 +109,7 @@ def test_exposed_data_with_responder_respond_method_calls_responder_on_response_
     exposed_data._respond(response_payload)
 
     # Assert that the mock method on our concrete responder instance was called
-    responder_instance._on_response_ready_mock.assert_called_once_with(
-        response_payload
-    )
+    responder_instance._on_response_ready_mock.assert_called_once_with(response_payload)
 
 
 # Test with a direct mock that uses create_autospec for more robust type checking if needed

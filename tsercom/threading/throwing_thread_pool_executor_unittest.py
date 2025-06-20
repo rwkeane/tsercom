@@ -86,9 +86,7 @@ class TestThrowingThreadPoolExecutor:
         with ThrowingThreadPoolExecutor(
             error_cb=self.error_callback, max_workers=1
         ) as executor:
-            future: Future[Any] = executor.submit(
-                successful_task, expected_result
-            )
+            future: Future[Any] = executor.submit(successful_task, expected_result)
 
             assert (
                 future.result(timeout=1.0) == expected_result
@@ -119,9 +117,7 @@ class TestThrowingThreadPoolExecutor:
                 timeout=1.0
             ), "Error callback was not triggered in time."
 
-        assert (
-            len(self.errors_received) == 1
-        ), "error_cb should be called once."
+        assert len(self.errors_received) == 1, "error_cb should be called once."
         assert isinstance(
             self.errors_received[0], ValueError
         ), "Exception type in callback is incorrect."
@@ -176,9 +172,7 @@ class TestThrowingThreadPoolExecutor:
                 result == expected_return
             ), "Arguments or keyword arguments not passed correctly."
 
-        assert (
-            not self.errors_received
-        ), "error_cb should not be called for this task."
+        assert not self.errors_received, "error_cb should not be called for this task."
 
     def test_multiple_tasks_mixed_success_and_failure(self) -> None:
         """Test multiple tasks, some succeeding and some failing."""
@@ -187,18 +181,14 @@ class TestThrowingThreadPoolExecutor:
         num_fail_custom_error = 2
 
         success_results = [f"success_{i}" for i in range(num_success)]
-        fail_value_messages = [
-            f"ValueError_{i}" for i in range(num_fail_value_error)
-        ]
+        fail_value_messages = [f"ValueError_{i}" for i in range(num_fail_value_error)]
         fail_custom_messages = [
             f"CustomError_{i}" for i in range(num_fail_custom_error)
         ]
 
         # Prepare events for each expected error message
         all_error_messages = fail_value_messages + fail_custom_messages
-        error_events = {
-            msg: self.get_error_event(msg) for msg in all_error_messages
-        }
+        error_events = {msg: self.get_error_event(msg) for msg in all_error_messages}
 
         futures: List[Future[Any]] = []
 
@@ -207,9 +197,7 @@ class TestThrowingThreadPoolExecutor:
         ) as executor:
             # Submit successful tasks
             for res in success_results:
-                futures.append(
-                    executor.submit(successful_task, res, delay=0.01)
-                )
+                futures.append(executor.submit(successful_task, res, delay=0.01))
 
             # Submit tasks that raise ValueError
             for msg in fail_value_messages:
@@ -220,9 +208,7 @@ class TestThrowingThreadPoolExecutor:
             # Submit tasks that raise CustomException
             for msg in fail_custom_messages:
                 futures.append(
-                    executor.submit(
-                        failing_task_custom_exception, msg, delay=0.01
-                    )
+                    executor.submit(failing_task_custom_exception, msg, delay=0.01)
                 )
 
             # Check results and exceptions
@@ -256,11 +242,7 @@ class TestThrowingThreadPoolExecutor:
             [str(e) for e in self.errors_received if isinstance(e, ValueError)]
         )
         received_custom_errors = sorted(
-            [
-                str(e)
-                for e in self.errors_received
-                if isinstance(e, CustomException)
-            ]
+            [str(e) for e in self.errors_received if isinstance(e, CustomException)]
         )
 
         assert received_value_errors == sorted(fail_value_messages)
@@ -275,9 +257,7 @@ class TestThrowingThreadPoolExecutor:
         future1 = executor.submit(successful_task, "task1", delay=0.1)
         executor.shutdown(wait=True)  # Wait for task1 to complete
 
-        assert (
-            future1.done()
-        ), "Task submitted before shutdown should complete."
+        assert future1.done(), "Task submitted before shutdown should complete."
         assert future1.result() == "task1"
 
         with pytest.raises(

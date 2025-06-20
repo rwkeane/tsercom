@@ -114,17 +114,13 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         for current_address in address_list:
             target = f"{current_address}:{port}"
             try:
-                logger.info(
-                    f"Attempting secure connection to {target} ({auth_type})."
-                )
+                logger.info(f"Attempting secure connection to {target} ({auth_type}).")
                 active_channel = grpc.aio.secure_channel(
                     target, credentials, options=options if options else None
                 )
 
                 # Wait for the channel to be ready, with a timeout.
-                await asyncio.wait_for(
-                    active_channel.channel_ready(), timeout=5.0
-                )
+                await asyncio.wait_for(active_channel.channel_ready(), timeout=5.0)
 
                 logger.info(
                     f"Successfully connected securely to {target} ({auth_type})."

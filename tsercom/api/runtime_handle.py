@@ -70,9 +70,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         ...
 
     @overload
-    def on_event(
-        self, event: EventTypeT, *, timestamp: datetime.datetime
-    ) -> None:
+    def on_event(self, event: EventTypeT, *, timestamp: datetime.datetime) -> None:
         """Sends an event to the runtime with event data and a specific timestamp.
 
         Args:

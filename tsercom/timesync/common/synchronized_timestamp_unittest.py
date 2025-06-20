@@ -15,14 +15,10 @@ from tsercom.timesync.common.synchronized_timestamp import (
 )
 
 # A fixed datetime object for consistent tests
-NOW_DATETIME = datetime.datetime.now(
-    datetime.timezone.utc
-)  # Naive UTC datetime
+NOW_DATETIME = datetime.datetime.now(datetime.timezone.utc)  # Naive UTC datetime
 # Per SynchronizedTimestamp docstring, it expects naive datetimes.
 # Let's assume these naive datetimes are implicitly UTC.
-FIXED_DATETIME = datetime.datetime(
-    2023, 10, 26, 12, 0, 0
-)  # Naive, assumed UTC
+FIXED_DATETIME = datetime.datetime(2023, 10, 26, 12, 0, 0)  # Naive, assumed UTC
 
 
 def test_init_valid():
@@ -141,9 +137,7 @@ def test_try_parse_invalid_type_raises_assertion_error():
         TypeError,
         match="Input must be a gRPC Timestamp or resolve to one.",
     ):
-        SynchronizedTimestamp.try_parse(
-            12345
-        )  # pytype: disable=wrong-arg-types
+        SynchronizedTimestamp.try_parse(12345)  # pytype: disable=wrong-arg-types
 
 
 # --- Tests for comparison methods ---

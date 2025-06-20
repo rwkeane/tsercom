@@ -67,8 +67,7 @@ def test_init(error_watcher_sink, fake_thread_watcher, fake_exception_queue):
         is fake_thread_watcher
     )  # Corrected name
     assert (
-        error_watcher_sink._SplitProcessErrorWatcherSink__queue
-        is fake_exception_queue
+        error_watcher_sink._SplitProcessErrorWatcherSink__queue is fake_exception_queue
     )  # Corrected name
 
 
@@ -83,9 +82,7 @@ def test_run_until_exception_no_exception_scenario(
 
     assert fake_thread_watcher.run_until_exception_called
     assert fake_thread_watcher.run_until_exception_call_count == 1
-    assert (
-        fake_exception_queue.put_nowait_call_count == 0
-    )  # Should NOT be called
+    assert fake_exception_queue.put_nowait_call_count == 0  # Should NOT be called
 
 
 def test_run_until_exception_with_exception_scenario(
@@ -122,14 +119,10 @@ def test_run_until_exception_queue_put_fails(
 
     queue_exception = ValueError("Queue put failed")
     # Patch the put_nowait method on the specific instance of FakeMultiprocessQueueSink
-    fake_exception_queue.put_nowait = mocker.MagicMock(
-        side_effect=queue_exception
-    )
+    fake_exception_queue.put_nowait = mocker.MagicMock(side_effect=queue_exception)
 
     # Expect the original_exception to be re-raised
-    with pytest.raises(
-        SystemError, match="Original error from watcher"
-    ) as excinfo:
+    with pytest.raises(SystemError, match="Original error from watcher") as excinfo:
         error_watcher_sink.run_until_exception()
 
     assert excinfo.value is original_exception

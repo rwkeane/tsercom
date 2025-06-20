@@ -32,9 +32,7 @@ class TensorMultiplexer(abc.ABC):
         """
 
         @abc.abstractmethod
-        async def on_chunk_update(
-            self, chunk: "SerializableTensorChunk"
-        ) -> None:
+        async def on_chunk_update(self, chunk: "SerializableTensorChunk") -> None:
             """
             Called when a new tensor chunk is available.
 
@@ -67,9 +65,7 @@ class TensorMultiplexer(abc.ABC):
         self.__client = client
         self.__tensor_length = tensor_length
         self.__clock = clock
-        self.__data_timeout_seconds = (
-            data_timeout_seconds  # For subclasses to use
-        )
+        self.__data_timeout_seconds = data_timeout_seconds  # For subclasses to use
         self.__lock = asyncio.Lock()
         # Placeholder for type hinting and get_tensor_at_timestamp.
         # Subclasses are responsible for managing the actual history.
@@ -133,9 +129,7 @@ class TensorMultiplexer(abc.ABC):
         """
         async with self.__lock:
             # Assumes self.__history is sorted by timestamp for efficient lookup using bisect.
-            i = bisect.bisect_left(
-                self.__history, timestamp, key=lambda x: x[0]
-            )
+            i = bisect.bisect_left(self.__history, timestamp, key=lambda x: x[0])
             if i != len(self.__history) and self.__history[i][0] == timestamp:
                 return self.__history[i][1].clone()
             return None

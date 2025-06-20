@@ -21,9 +21,7 @@ async def simple_coro(value: Any, delay: float = 0) -> Any:
     return value
 
 
-async def failing_coro(
-    message: str = "Coroutine failed", delay: float = 0
-) -> None:
+async def failing_coro(message: str = "Coroutine failed", delay: float = 0) -> None:
     """A coroutine that raises an exception after a delay."""
     if delay > 0:
         await asyncio.sleep(delay)
@@ -73,9 +71,7 @@ def new_event_loop() -> asyncio.AbstractEventLoop:
 @pytest.fixture
 def managed_global_loop():
     """Sets up and tears down the tsercom global event loop for a test."""
-    watcher = (
-        ThreadWatcher()
-    )  # Required by create_tsercom_event_loop_from_watcher
+    watcher = ThreadWatcher()  # Required by create_tsercom_event_loop_from_watcher
     try:
         # In case a previous test left a global loop uncleared (should not happen with good tests)
         if global_event_loop.is_global_event_loop_set():
@@ -169,9 +165,7 @@ def await_future_in_thread(
 ) -> Any:
     event = threading.Event()
     result_holder: List[Any] = []  # Use list to allow assignment in inner func
-    exception_holder: List[Optional[BaseException]] = [
-        None
-    ]  # Use list for inner func
+    exception_holder: List[Optional[BaseException]] = [None]  # Use list for inner func
 
     def callback(fut):
         try:
@@ -218,9 +212,7 @@ def await_future_in_thread(
 def test_run_on_event_loop_with_global_loop_success(managed_global_loop):
     """Test run_on_event_loop with a global loop: successful coroutine."""
     expected_value = "global_success"
-    future = aio_utils.run_on_event_loop(
-        simple_coro, value=expected_value, delay=0.01
-    )
+    future = aio_utils.run_on_event_loop(simple_coro, value=expected_value, delay=0.01)
 
     result = await_future_in_thread(managed_global_loop, future, timeout=0.5)
     assert result == expected_value
@@ -265,9 +257,7 @@ def test_run_on_event_loop_with_global_loop_exception(managed_global_loop):
 # 2. With Specified Loop
 def test_run_on_event_loop_with_specified_loop(new_event_loop):
     """Test run_on_event_loop with an explicitly specified event loop."""
-    loop_thread = threading.Thread(
-        target=new_event_loop.run_forever, daemon=True
-    )
+    loop_thread = threading.Thread(target=new_event_loop.run_forever, daemon=True)
     loop_thread.start()
 
     start_time = time.time()
@@ -299,9 +289,7 @@ def test_run_on_event_loop_with_specified_loop(new_event_loop):
 
 def test_run_on_event_loop_with_specified_loop_exception(new_event_loop):
     """Test run_on_event_loop with specified loop: exception propagation."""
-    loop_thread = threading.Thread(
-        target=new_event_loop.run_forever, daemon=True
-    )
+    loop_thread = threading.Thread(target=new_event_loop.run_forever, daemon=True)
     loop_thread.start()
     start_time = time.time()
     while not new_event_loop.is_running():
@@ -327,9 +315,7 @@ def test_run_on_event_loop_no_global_or_specified_loop():
     if global_event_loop.is_global_event_loop_set():  # pragma: no cover
         global_event_loop.clear_tsercom_event_loop()
 
-    with pytest.raises(
-        RuntimeError, match="ERROR: tsercom global event loop not set!"
-    ):
+    with pytest.raises(RuntimeError, match="ERROR: tsercom global event loop not set!"):
         aio_utils.run_on_event_loop(simple_coro, value="test")
 
 
@@ -353,17 +339,13 @@ def test_run_on_event_loop_global_loop_set_then_cleared_then_error():
     # This might require access to the factory or thread, which clear_tsercom_event_loop handles.
     # If watcher has a joinable thread, it should be joined. For now, assume clear handles it.
 
-    with pytest.raises(
-        RuntimeError, match="ERROR: tsercom global event loop not set!"
-    ):
+    with pytest.raises(RuntimeError, match="ERROR: tsercom global event loop not set!"):
         aio_utils.run_on_event_loop(simple_coro, value="test")
 
 
 def test_set_tsercom_event_loop_manually(new_event_loop):
     """Test run_on_event_loop when global loop is set manually via set_tsercom_event_loop."""
-    loop_thread = threading.Thread(
-        target=new_event_loop.run_forever, daemon=True
-    )
+    loop_thread = threading.Thread(target=new_event_loop.run_forever, daemon=True)
     loop_thread.start()
     start_time = time.time()
     while not new_event_loop.is_running():

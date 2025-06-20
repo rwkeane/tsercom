@@ -11,9 +11,7 @@ from tsercom.data.exposed_data import ExposedData
 from tsercom.data.remote_data_organizer import RemoteDataOrganizer
 from tsercom.util.is_running_tracker import IsRunningTracker
 
-BASE_TIME_UTC = datetime.datetime(
-    2023, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
-)
+BASE_TIME_UTC = datetime.datetime(2023, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc)
 
 
 # Assuming CallerIdentifier.py is missing, define a functional dummy for tests.
@@ -25,10 +23,7 @@ class DummyCallerIdentifier:
         return hash(self.id_str)
 
     def __eq__(self, other):
-        return (
-            isinstance(other, DummyCallerIdentifier)
-            and self.id_str == other.id_str
-        )
+        return isinstance(other, DummyCallerIdentifier) and self.id_str == other.id_str
 
     def __repr__(self):
         return f"DummyCallerIdentifier('{self.id_str}')"
@@ -84,9 +79,7 @@ def mock_is_running_tracker(mocker):
 
 
 @pytest.fixture
-def organizer(
-    mock_thread_pool, mock_caller_id, mock_client, mock_is_running_tracker
-):
+def organizer(mock_thread_pool, mock_caller_id, mock_client, mock_is_running_tracker):
     org = RemoteDataOrganizer[DummyExposedDataForOrganizerTests](
         thread_pool=mock_thread_pool,
         caller_id=mock_caller_id,
@@ -96,9 +89,7 @@ def organizer(
 
 
 @pytest.fixture
-def organizer_no_client(
-    mock_thread_pool, mock_caller_id, mock_is_running_tracker
-):
+def organizer_no_client(mock_thread_pool, mock_caller_id, mock_is_running_tracker):
     org = RemoteDataOrganizer[DummyExposedDataForOrganizerTests](
         thread_pool=mock_thread_pool, caller_id=mock_caller_id, client=None
     )
@@ -124,39 +115,31 @@ def create_data(caller_id, timestamp_input, data_val=0.0):
 def test_initialization(
     mock_thread_pool, mock_caller_id, mock_client, mock_is_running_tracker
 ):
-    organizer_instance = RemoteDataOrganizer[
-        DummyExposedDataForOrganizerTests
-    ](
+    organizer_instance = RemoteDataOrganizer[DummyExposedDataForOrganizerTests](
         thread_pool=mock_thread_pool,
         caller_id=mock_caller_id,
         client=mock_client,
     )
-    assert (
-        organizer_instance._RemoteDataOrganizer__thread_pool
-        is mock_thread_pool
-    )
+    assert organizer_instance._RemoteDataOrganizer__thread_pool is mock_thread_pool
     assert organizer_instance.caller_id is mock_caller_id
     assert organizer_instance._RemoteDataOrganizer__client is mock_client
-    assert isinstance(
-        organizer_instance._RemoteDataOrganizer__data, SortedList
-    )
+    assert isinstance(organizer_instance._RemoteDataOrganizer__data, SortedList)
     assert len(organizer_instance._RemoteDataOrganizer__data) == 0
     assert (
         organizer_instance._RemoteDataOrganizer__last_access
         == datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
     )
     assert (
-        organizer_instance._RemoteDataOrganizer__is_running
-        is mock_is_running_tracker
+        organizer_instance._RemoteDataOrganizer__is_running is mock_is_running_tracker
     )
 
 
 def test_initialization_no_client(
     mock_thread_pool, mock_caller_id, mock_is_running_tracker
 ):
-    organizer_instance = RemoteDataOrganizer[
-        DummyExposedDataForOrganizerTests
-    ](thread_pool=mock_thread_pool, caller_id=mock_caller_id, client=None)
+    organizer_instance = RemoteDataOrganizer[DummyExposedDataForOrganizerTests](
+        thread_pool=mock_thread_pool, caller_id=mock_caller_id, client=None
+    )
     assert organizer_instance._RemoteDataOrganizer__client is None
 
 
@@ -170,9 +153,7 @@ def test_start_asserts_if_already_running(organizer, mock_is_running_tracker):
     mock_is_running_tracker.start.side_effect = RuntimeError(
         "IsRunningTracker already started."
     )
-    with pytest.raises(
-        RuntimeError, match="IsRunningTracker already started."
-    ):
+    with pytest.raises(RuntimeError, match="IsRunningTracker already started."):
         organizer.start()
 
 
@@ -304,18 +285,14 @@ def test_has_new_data_empty_deque(organizer):  # Name can be updated
 def test_has_new_data_all_accessed(organizer, mock_caller_id):
     ts_now = datetime.datetime.now()
     organizer._RemoteDataOrganizer__last_access = ts_now
-    data_old = create_data(
-        mock_caller_id, ts_now - datetime.timedelta(seconds=1)
-    )
+    data_old = create_data(mock_caller_id, ts_now - datetime.timedelta(seconds=1))
     organizer._RemoteDataOrganizer__data.add(data_old)
     assert organizer.has_new_data() is False
 
 
 def test_has_new_data_new_available(organizer, mock_caller_id):
     ts_now = datetime.datetime.now()
-    organizer._RemoteDataOrganizer__last_access = ts_now - datetime.timedelta(
-        seconds=1
-    )
+    organizer._RemoteDataOrganizer__last_access = ts_now - datetime.timedelta(seconds=1)
     data_new = create_data(mock_caller_id, ts_now)
     organizer._RemoteDataOrganizer__data.add(data_new)
     assert organizer.has_new_data() is True
@@ -326,9 +303,7 @@ def test_get_new_data_empty_deque(organizer):  # Name can be updated
     assert organizer.get_new_data() == []
 
 
-def test_get_new_data_retrieves_newer_than_last_access(
-    organizer, mock_caller_id
-):
+def test_get_new_data_retrieves_newer_than_last_access(organizer, mock_caller_id):
     data1_ts = datetime.datetime(2023, 1, 1, 10, 0, 0)
     data2_ts = datetime.datetime(2023, 1, 1, 10, 0, 1)
     data0_ts = datetime.datetime(2023, 1, 1, 9, 59, 59)
@@ -364,9 +339,7 @@ def test_get_most_recent_data_returns_first_item(
     )
     organizer._RemoteDataOrganizer__data.add(data1)
     organizer._RemoteDataOrganizer__data.add(data2)
-    assert (
-        organizer.get_most_recent_data() == data2
-    )  # SortedList[-1] is newest
+    assert organizer.get_most_recent_data() == data2  # SortedList[-1] is newest
 
 
 # 7. get_data_for_timestamp()
@@ -404,9 +377,7 @@ def test_get_data_for_timestamp_finds_correct_item(organizer, mock_caller_id):
 
 
 # 8. _on_triggered()
-def test_on_triggered_submits_to_thread_pool(
-    organizer, mock_thread_pool, mocker
-):
+def test_on_triggered_submits_to_thread_pool(organizer, mock_thread_pool, mocker):
     timeout_val = 30
     mock_thread_pool.submit = mocker.MagicMock()  # Re-mock
     organizer._on_triggered(timeout_val)
@@ -415,10 +386,7 @@ def test_on_triggered_submits_to_thread_pool(
     )  # functools.partial makes direct comparison hard
     submitted_callable = mock_thread_pool.submit.call_args[0][0]
     assert isinstance(submitted_callable, functools.partial)
-    assert (
-        submitted_callable.func
-        == organizer._RemoteDataOrganizer__timeout_old_data
-    )
+    assert submitted_callable.func == organizer._RemoteDataOrganizer__timeout_old_data
     assert submitted_callable.args == (timeout_val,)
 
 
@@ -511,9 +479,7 @@ def test_on_data_ready_raises_assertion_error_for_caller_id_mismatch(
 ):
     mismatched_caller_id = DummyCallerIdentifier("mismatched_id")
     assert mismatched_caller_id != mock_caller_id
-    data_with_wrong_id = create_data(
-        mismatched_caller_id, datetime.datetime.now()
-    )
+    data_with_wrong_id = create_data(mismatched_caller_id, datetime.datetime.now())
     with pytest.raises(
         AssertionError,
         match=re.escape(
@@ -524,12 +490,8 @@ def test_on_data_ready_raises_assertion_error_for_caller_id_mismatch(
     mock_thread_pool.submit.assert_not_called()
 
 
-def test_timeout_old_data_does_nothing_if_not_running(
-    organizer, mock_caller_id
-):
-    internal_mock_is_running_tracker = (
-        organizer._RemoteDataOrganizer__is_running
-    )
+def test_timeout_old_data_does_nothing_if_not_running(organizer, mock_caller_id):
+    internal_mock_is_running_tracker = organizer._RemoteDataOrganizer__is_running
     internal_mock_is_running_tracker.get.return_value = False
     old_ts = datetime.datetime.now() - datetime.timedelta(days=1)
     data_old = create_data(mock_caller_id, old_ts)
@@ -630,9 +592,7 @@ def test_batch_old_then_newer_then_oldest(
     organizer, mock_client, mock_caller_id, mock_is_running_tracker
 ):
     mock_is_running_tracker.get.return_value = True
-    base_ts = datetime.datetime(
-        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    base_ts = datetime.datetime(2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
     data_t0 = create_data(mock_caller_id, base_ts, data_val=0)
     data_t1 = create_data(
         mock_caller_id, base_ts + datetime.timedelta(seconds=1), data_val=1
@@ -703,9 +663,7 @@ def test_interspersed_new_and_out_of_order_data(
     organizer, mock_client, mock_caller_id, mock_is_running_tracker
 ):
     mock_is_running_tracker.get.return_value = True
-    base_ts = datetime.datetime(
-        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    base_ts = datetime.datetime(2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
     data_t3 = create_data(
         mock_caller_id, base_ts + datetime.timedelta(seconds=3), data_val=3
     )
@@ -776,9 +734,7 @@ def test_out_of_order_data_with_duplicate_timestamps_inserted_among_existing(
     organizer, mock_client, mock_caller_id, mock_is_running_tracker
 ):
     mock_is_running_tracker.get.return_value = True
-    base_ts = datetime.datetime(
-        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    base_ts = datetime.datetime(2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
     t10 = base_ts + datetime.timedelta(seconds=10)
     t30 = base_ts + datetime.timedelta(seconds=30)
     t50 = base_ts + datetime.timedelta(seconds=50)
@@ -833,9 +789,7 @@ def test_adding_data_becomes_new_oldest_item_repeatedly(
     organizer, mock_client, mock_caller_id, mock_is_running_tracker
 ):
     mock_is_running_tracker.get.return_value = True
-    base_ts = datetime.datetime(
-        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    base_ts = datetime.datetime(2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
     data_t2 = create_data(
         mock_caller_id, base_ts + datetime.timedelta(seconds=2), data_val=2
     )
@@ -937,13 +891,9 @@ def test_interpolate_before_first_keyframe_new(
     ],
 ) -> None:
     query_ts = BASE_TIME_UTC + datetime.timedelta(seconds=5)
-    interpolated = organizer_for_interpolation_tests.get_interpolated_at(
-        query_ts
-    )
+    interpolated = organizer_for_interpolation_tests.get_interpolated_at(query_ts)
     assert interpolated is not None
-    expected_item = (
-        organizer_for_interpolation_tests._RemoteDataOrganizer__data[0]
-    )
+    expected_item = organizer_for_interpolation_tests._RemoteDataOrganizer__data[0]
     assert interpolated.timestamp == expected_item.timestamp
     assert interpolated.data == expected_item.data
     assert interpolated is not expected_item
@@ -955,13 +905,9 @@ def test_interpolate_after_last_keyframe_new(
     ],
 ) -> None:
     query_ts = BASE_TIME_UTC + datetime.timedelta(seconds=35)
-    interpolated = organizer_for_interpolation_tests.get_interpolated_at(
-        query_ts
-    )
+    interpolated = organizer_for_interpolation_tests.get_interpolated_at(query_ts)
     assert interpolated is not None
-    expected_item = (
-        organizer_for_interpolation_tests._RemoteDataOrganizer__data[-1]
-    )
+    expected_item = organizer_for_interpolation_tests._RemoteDataOrganizer__data[-1]
     assert interpolated.timestamp == expected_item.timestamp
     assert interpolated.data == expected_item.data
     assert interpolated is not expected_item
@@ -973,13 +919,9 @@ def test_interpolate_exact_match_keyframe_new(
     ],
 ) -> None:
     query_ts = BASE_TIME_UTC + datetime.timedelta(seconds=20)
-    interpolated = organizer_for_interpolation_tests.get_interpolated_at(
-        query_ts
-    )
+    interpolated = organizer_for_interpolation_tests.get_interpolated_at(query_ts)
     assert interpolated is not None
-    expected_item = (
-        organizer_for_interpolation_tests._RemoteDataOrganizer__data[1]
-    )
+    expected_item = organizer_for_interpolation_tests._RemoteDataOrganizer__data[1]
     assert (
         interpolated.timestamp == expected_item.timestamp
     )  # RDO returns original item's timestamp for exact match
@@ -994,18 +936,14 @@ def test_interpolate_successful_between_two_points_new(
     mock_caller_id: DummyCallerIdentifier,
 ) -> None:
     query_ts_1 = BASE_TIME_UTC + datetime.timedelta(seconds=15)
-    interpolated_1 = organizer_for_interpolation_tests.get_interpolated_at(
-        query_ts_1
-    )
+    interpolated_1 = organizer_for_interpolation_tests.get_interpolated_at(query_ts_1)
     assert interpolated_1 is not None
     assert interpolated_1.timestamp == query_ts_1
     assert interpolated_1.caller_id == mock_caller_id
     assert pytest.approx(interpolated_1.data) == 150.0
 
     query_ts_2 = BASE_TIME_UTC + datetime.timedelta(seconds=27)
-    interpolated_2 = organizer_for_interpolation_tests.get_interpolated_at(
-        query_ts_2
-    )
+    interpolated_2 = organizer_for_interpolation_tests.get_interpolated_at(query_ts_2)
     assert interpolated_2 is not None
     assert interpolated_2.timestamp == query_ts_2
     assert pytest.approx(interpolated_2.data) == 270.0
@@ -1042,9 +980,7 @@ def test_interpolate_data_type_not_supporting_arithmetic_new(
     ],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    item_to_corrupt = (
-        organizer_for_interpolation_tests._RemoteDataOrganizer__data[0]
-    )
+    item_to_corrupt = organizer_for_interpolation_tests._RemoteDataOrganizer__data[0]
     original_data_attr = item_to_corrupt.data
 
     try:
@@ -1053,8 +989,8 @@ def test_interpolate_data_type_not_supporting_arithmetic_new(
         query_ts = BASE_TIME_UTC + datetime.timedelta(seconds=15)
         caplog.clear()
         with caplog.at_level(logging.ERROR):
-            interpolated = (
-                organizer_for_interpolation_tests.get_interpolated_at(query_ts)
+            interpolated = organizer_for_interpolation_tests.get_interpolated_at(
+                query_ts
             )
 
         assert interpolated is None

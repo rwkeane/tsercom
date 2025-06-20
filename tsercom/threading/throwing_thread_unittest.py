@@ -23,14 +23,10 @@ class TestThrowingThread:
     ) -> None:
         shared_list.append(f"arg: {an_arg}, kwarg: {a_kwarg}")
 
-    def target_function_raises_value_error(
-        self, *args: Any, **kwargs: Any
-    ) -> None:
+    def target_function_raises_value_error(self, *args: Any, **kwargs: Any) -> None:
         raise ValueError("Test ValueError from target")
 
-    def target_function_raises_runtime_error(
-        self, *args: Any, **kwargs: Any
-    ) -> None:
+    def target_function_raises_runtime_error(self, *args: Any, **kwargs: Any) -> None:
         raise RuntimeError("Test RuntimeError from target")
 
     def test_target_execution_and_args_kwargs_passing(self) -> None:
@@ -104,9 +100,7 @@ class TestThrowingThread:
             # This block will likely be hit with the current ThrowingThread implementation
             # because the exception in the target is not caught by start().
             # We can assert that the thread is no longer alive (it died due to unhandled exception)
-            thread.join(
-                timeout=0.1
-            )  # Give it a moment to die if it hasn't already
+            thread.join(timeout=0.1)  # Give it a moment to die if it hasn't already
             assert (
                 not thread.is_alive()
             ), "Thread should have died due to unhandled exception."
@@ -217,10 +211,7 @@ class TestThrowingThread:
             ), "Callback should have been triggered."
             assert len(self.error_info) == 1
             assert isinstance(self.error_info[0], RuntimeError)
-            assert (
-                str(self.error_info[0])
-                == "Simulated error during thread starting"
-            )
+            assert str(self.error_info[0]) == "Simulated error during thread starting"
 
         finally:
             # Restore original start method

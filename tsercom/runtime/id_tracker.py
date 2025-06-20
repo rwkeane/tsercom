@@ -61,9 +61,7 @@ class IdTracker(Generic[TrackedDataT]):
                 `CallerIdentifier` added to the tracker. If `None`, no custom
                 data is stored besides the ID-address mapping.
         """
-        self.__data_factory: Optional[Callable[[], TrackedDataT]] = (
-            data_factory
-        )
+        self.__data_factory: Optional[Callable[[], TrackedDataT]] = data_factory
         self.__lock: threading.Lock = threading.Lock()
         self.__address_to_id: Dict[tuple[str, int], CallerIdentifier] = {}
         self.__id_to_address: Dict[CallerIdentifier, tuple[str, int]] = {}
@@ -144,9 +142,7 @@ class IdTracker(Generic[TrackedDataT]):
             if len(args) == 1 and isinstance(args[0], CallerIdentifier):
                 _id = args[0]
             elif (
-                len(args) == 2
-                and isinstance(args[0], str)
-                and isinstance(args[1], int)
+                len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], int)
             ):
                 _address = args[0]
                 _port = args[1]
@@ -179,23 +175,17 @@ class IdTracker(Generic[TrackedDataT]):
                 )
             kw_address = kwargs.pop("address")
             if not isinstance(kw_address, str):
-                raise ValueError(
-                    f"'address' kwarg must be str. Got {type(kw_address)}"
-                )
+                raise ValueError(f"'address' kwarg must be str. Got {type(kw_address)}")
             _address = kw_address
 
         if "port" in kwargs:
-            if (
-                _id is not None or _port is not None
-            ):  # Check against already set _port
+            if _id is not None or _port is not None:  # Check against already set _port
                 raise ValueError(
                     "Cannot mix 'port' kwarg with 'id' or positional port."
                 )
             kw_port = kwargs.pop("port")
             if not isinstance(kw_port, int):
-                raise ValueError(
-                    f"'port' kwarg must be int. Got {type(kw_port)}"
-                )
+                raise ValueError(f"'port' kwarg must be int. Got {type(kw_port)}")
             _port = kw_port
 
         if kwargs:  # Any remaining kwargs are unexpected
@@ -216,18 +206,14 @@ class IdTracker(Generic[TrackedDataT]):
                 address_port_tuple = self.__id_to_address.get(_id)
                 if address_port_tuple is None:
                     return None
-                tracked_data = self.__data_map.get(
-                    _id
-                )  # Will be None if not present
+                tracked_data = self.__data_map.get(_id)  # Will be None if not present
                 return (
                     address_port_tuple[0],
                     address_port_tuple[1],
                     tracked_data,
                 )
 
-            if (
-                _address is not None and _port is not None
-            ):  # Lookup by address/port
+            if _address is not None and _port is not None:  # Lookup by address/port
                 caller_id_obj = self.__address_to_id.get((_address, _port))
                 if caller_id_obj is None:
                     return None
@@ -312,9 +298,7 @@ class IdTracker(Generic[TrackedDataT]):
             raise KeyError(f"Key not found for query: {query_repr}")
         return resolved_result
 
-    def add(
-        self, caller_id_obj: CallerIdentifier, address: str, port: int
-    ) -> None:
+    def add(self, caller_id_obj: CallerIdentifier, address: str, port: int) -> None:
         """Adds or updates a bidirectional mapping.
 
         If the `caller_id_obj` already exists, its associated address/port

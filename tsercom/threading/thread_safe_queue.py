@@ -23,13 +23,9 @@ class ThreadSafeQueue(Generic[T]):
     def __init__(self) -> None:
         """Initializes a new thread-safe queue."""
         self._queue: queue.Queue[T] = queue.Queue()
-        self._lock = (
-            threading.Lock()
-        )  # Lock for thread safety in queue operations
+        self._lock = threading.Lock()  # Lock for thread safety in queue operations
 
-    def push(
-        self, item: T, block: bool = True, timeout: float | None = None
-    ) -> None:
+    def push(self, item: T, block: bool = True, timeout: float | None = None) -> None:
         """Puts an item into the queue.
 
         Args:

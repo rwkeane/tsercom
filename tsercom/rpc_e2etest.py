@@ -84,22 +84,15 @@ def generate_ca_certificate(
 
     builder = (
         x509.CertificateBuilder()
-        .subject_name(
-            x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
-        )
-        .issuer_name(
-            x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
-        )
+        .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)]))
+        .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)]))
         .public_key(public_key)
         .serial_number(x509.random_serial_number())
         .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
         .not_valid_after(
-            datetime.datetime.now(datetime.timezone.utc)
-            + datetime.timedelta(days=30)
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
         )
-        .add_extension(
-            x509.BasicConstraints(ca=True, path_length=None), critical=True
-        )
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
         .add_extension(
             x509.KeyUsage(
                 digital_signature=True,
@@ -154,29 +147,22 @@ def generate_signed_certificate(
         A tuple of (cert_pem, key_pem), both bytes.
     """
     ca_cert = x509.load_pem_x509_certificate(ca_cert_pem)
-    ca_private_key = serialization.load_pem_private_key(
-        ca_key_pem, password=None
-    )
+    ca_private_key = serialization.load_pem_private_key(ca_key_pem, password=None)
 
     private_key = generate_private_key(key_size)
     public_key = private_key.public_key()
 
     builder = (
         x509.CertificateBuilder()
-        .subject_name(
-            x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
-        )
+        .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)]))
         .issuer_name(ca_cert.subject)
         .public_key(public_key)
         .serial_number(x509.random_serial_number())
         .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
         .not_valid_after(
-            datetime.datetime.now(datetime.timezone.utc)
-            + datetime.timedelta(days=30)
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
         )
-        .add_extension(
-            x509.BasicConstraints(ca=False, path_length=None), critical=True
-        )
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         .add_extension(
             x509.KeyUsage(
                 digital_signature=True,
@@ -192,9 +178,7 @@ def generate_signed_certificate(
             critical=True,
         )
         .add_extension(
-            x509.AuthorityKeyIdentifier.from_issuer_public_key(
-                ca_cert.public_key()
-            ),
+            x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_cert.public_key()),
             critical=False,
         )
         .add_extension(
@@ -271,10 +255,8 @@ class CustomServicePublisherRpcE2E(GrpcServicePublisher):
 
         for address in addresses_to_bind:
             try:
-                port_out = (
-                    self._GrpcServicePublisher__server.add_insecure_port(
-                        f"{address}:{self._GrpcServicePublisher__port}"
-                    )
+                port_out = self._GrpcServicePublisher__server.add_insecure_port(
+                    f"{address}:{self._GrpcServicePublisher__port}"
                 )
                 if self._chosen_port is None:
                     self._chosen_port = port_out
@@ -345,9 +327,7 @@ async def async_test_server():
             port = service_publisher.chosen_port
 
         if port is None:
-            pytest.fail(
-                "Server started but failed to capture the chosen port."
-            )
+            pytest.fail("Server started but failed to capture the chosen port.")
 
         logger.info(f"AsyncTestConnectionServer started on 127.0.0.1:{port}")
         yield "127.0.0.1", port
@@ -364,9 +344,7 @@ async def async_test_server():
                 await actual_server_obj.stop(grace=1)
                 logger.info("Async server stop completed.")
             else:
-                logger.info(
-                    "Using GrpcServicePublisher's default stop method."
-                )
+                logger.info("Using GrpcServicePublisher's default stop method.")
                 service_publisher.stop()
         else:
             logger.info(
@@ -473,9 +451,7 @@ class ErrorAndTimeoutTestServiceServer:
             f"{ERROR_TIMEOUT_SERVICE_NAME}: DelayedResponse called. Delaying for {delay_duration_seconds}s."
         )
         await asyncio.sleep(delay_duration_seconds)
-        logger.info(
-            f"{ERROR_TIMEOUT_SERVICE_NAME}: Delay complete. Sending response."
-        )
+        logger.info(f"{ERROR_TIMEOUT_SERVICE_NAME}: Delay complete. Sending response.")
         return TestConnectionResponse()
 
 
@@ -514,9 +490,7 @@ async def error_timeout_test_server():
             },
         )
         server.add_generic_rpc_handlers((generic_handler,))
-        logger.info(
-            f"gRPC handlers added for service '{ERROR_TIMEOUT_SERVICE_NAME}'."
-        )
+        logger.info(f"gRPC handlers added for service '{ERROR_TIMEOUT_SERVICE_NAME}'.")
 
     original_loop = asyncio.get_event_loop_policy().get_event_loop()
     is_tsercom_loop_managed = False
@@ -545,9 +519,7 @@ async def error_timeout_test_server():
                 f"{ERROR_TIMEOUT_SERVICE_NAME} server started but failed to capture the chosen port."
             )
 
-        logger.info(
-            f"{ERROR_TIMEOUT_SERVICE_NAME} server started on 127.0.0.1:{port}"
-        )
+        logger.info(f"{ERROR_TIMEOUT_SERVICE_NAME} server started on 127.0.0.1:{port}")
         yield "127.0.0.1", port
 
     finally:
@@ -579,9 +551,7 @@ async def error_timeout_test_server():
             except RuntimeError as e:
                 logger.warning(f"Issue clearing tsercom event loop: {e}")
 
-        logger.info(
-            f"{ERROR_TIMEOUT_SERVICE_NAME} server fixture cleanup complete."
-        )
+        logger.info(f"{ERROR_TIMEOUT_SERVICE_NAME} server fixture cleanup complete.")
 
 
 @pytest.mark.asyncio
@@ -664,9 +634,7 @@ async def test_client_handles_timeout(error_timeout_test_server):
             grpc_channel is not None
         ), "Failed to create client channel for timeout test"
 
-        logger.info(
-            f"Client channel created to {host}:{port} for timeout test."
-        )
+        logger.info(f"Client channel created to {host}:{port} for timeout test.")
 
         request = TestConnectionCall()
 
@@ -694,9 +662,7 @@ async def test_client_handles_timeout(error_timeout_test_server):
         logger.error(
             f"An unexpected error occurred during the timeout test: {type(e).__name__} - {e}"
         )
-        pytest.fail(
-            f"An unexpected error occurred in test_client_handles_timeout: {e}"
-        )
+        pytest.fail(f"An unexpected error occurred in test_client_handles_timeout: {e}")
     finally:
         if grpc_channel:
             logger.info("Closing client channel in timeout test.")
@@ -747,9 +713,7 @@ async def retrier_server_controller():
         new_server = grpc.aio.server()
         _add_servicer_to_server(new_server)
         try:
-            new_server.add_insecure_port(
-                f"127.0.0.1:{RETRIER_TEST_FIXED_PORT}"
-            )
+            new_server.add_insecure_port(f"127.0.0.1:{RETRIER_TEST_FIXED_PORT}")
         except Exception as e:
             logger.error(
                 f"Failed to bind retrier test server to port {RETRIER_TEST_FIXED_PORT}: {e}"
@@ -786,9 +750,7 @@ async def retrier_server_controller():
                 f"Retrier test server stopped on port {RETRIER_TEST_FIXED_PORT}."
             )
         else:
-            logger.info(
-                "Retrier test server stop called but no instance was running."
-            )
+            logger.info("Retrier test server stop called but no instance was running.")
 
     await _start_new_server_instance()
 
@@ -869,9 +831,7 @@ class CustomDisconnectionRetrierRpcE2E(
         self._get_server_port = server_controller_fixture_data["get_port"]
         self._channel_factory = InsecureGrpcChannelFactory()
 
-        effective_delay_func = delay_before_retry_func or (
-            lambda: asyncio.sleep(0.2)
-        )
+        effective_delay_func = delay_before_retry_func or (lambda: asyncio.sleep(0.2))
 
         super().__init__(
             watcher=watcher,
@@ -985,9 +945,7 @@ async def test_client_retrier_reconnects(retrier_server_controller):
         ), f"Expected UNAVAILABLE during outage, got {e.code()}"
 
         logger.info("Notifying retrier._on_disconnect()...")
-        on_disconnect_task = current_event_loop.create_task(
-            retrier._on_disconnect(e)
-        )
+        on_disconnect_task = current_event_loop.create_task(retrier._on_disconnect(e))
 
         logger.info("Restarting server while retrier is in its retry loop...")
         await asyncio.sleep(0.1)
@@ -1013,9 +971,7 @@ async def test_client_retrier_reconnects(retrier_server_controller):
             "Retrier is using the exact same channel object. This might be okay if the channel object itself can recover, or if _connect re-established its internal state."
         )
     else:
-        logger.info(
-            "Retrier provided a new channel object after reconnection."
-        )
+        logger.info("Retrier provided a new channel object after reconnection.")
 
     try:
         response_after_reconnect = await reconnected_channel.unary_unary(
@@ -1026,9 +982,7 @@ async def test_client_retrier_reconnects(retrier_server_controller):
         assert isinstance(response_after_reconnect, TestConnectionResponse)
         logger.info("gRPC call after reconnection successful.")
     except grpc.aio.AioRpcError as e:
-        pytest.fail(
-            f"gRPC call after reconnection failed: {e.code()} - {e.details()}"
-        )
+        pytest.fail(f"gRPC call after reconnection failed: {e.code()} - {e.details()}")
 
     logger.info("Stopping retrier...")
     await retrier.stop()
@@ -1068,9 +1022,7 @@ async def secure_async_test_server_factory():
         created_servers.append(server)
 
         server_credentials = grpc.ssl_server_credentials(
-            private_key_certificate_chain_pairs=[
-                (server_key_pem, server_cert_pem)
-            ],
+            private_key_certificate_chain_pairs=[(server_key_pem, server_cert_pem)],
             root_certificates=client_ca_cert_pem,
             require_client_auth=require_client_auth,
         )
@@ -1089,9 +1041,7 @@ async def secure_async_test_server_factory():
         host = "127.0.0.1"
         actual_port = 0
         try:
-            actual_port = server.add_secure_port(
-                f"{host}:0", server_credentials
-            )
+            actual_port = server.add_secure_port(f"{host}:0", server_credentials)
             if actual_port == 0:
                 created_servers.pop()
                 pytest.fail(
@@ -1127,9 +1077,7 @@ async def secure_async_test_server_factory():
             )
             try:
                 await server_instance.stop(None)
-                logger.info(
-                    f"Secure server instance {i+1} (CN: {log_cn}) stopped."
-                )
+                logger.info(f"Secure server instance {i+1} (CN: {log_cn}) stopped.")
             except Exception as e:
                 logger.error(
                     f"Error stopping secure server instance {i+1} (CN: {log_cn}): {e}"
@@ -1327,14 +1275,12 @@ async def test_pinned_server_auth_incorrect_pinned_cert_fails(
     )
     server_cn = "localhost"
 
-    server_actual_cert_pem, server_actual_key_pem = (
-        generate_signed_certificate(
-            ca_cert_pem,
-            ca_key_pem,
-            common_name=server_cn,
-            sans=["DNS:localhost", "IP:127.0.0.1"],
-            is_server=True,
-        )
+    server_actual_cert_pem, server_actual_key_pem = generate_signed_certificate(
+        ca_cert_pem,
+        ca_key_pem,
+        common_name=server_cn,
+        sans=["DNS:localhost", "IP:127.0.0.1"],
+        is_server=True,
     )
 
     pinned_by_client_cert_pem, _ = generate_signed_certificate(
@@ -1556,9 +1502,7 @@ async def test_client_auth_with_server_validation_mtls(
     grpc_channel: Optional[grpc.Channel] = None
     try:
         grpc_channel = await factory.find_async_channel(host, port)
-        assert (
-            grpc_channel is not None
-        ), "Client failed to connect (ClientAuth, mTLS)"
+        assert grpc_channel is not None, "Client failed to connect (ClientAuth, mTLS)"
 
         request = TestConnectionCall()
         response = await grpc_channel.unary_unary(

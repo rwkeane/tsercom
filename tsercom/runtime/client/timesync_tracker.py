@@ -23,9 +23,7 @@ class TimeSyncTracker:
     `FakeTimeSyncClient`.
     """
 
-    def __init__(
-        self, thread_watcher: ThreadWatcher, *, is_testing: bool = False
-    ):
+    def __init__(self, thread_watcher: ThreadWatcher, *, is_testing: bool = False):
         """Initializes the TimeSyncTracker.
 
         Args:

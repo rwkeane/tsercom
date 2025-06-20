@@ -59,20 +59,14 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
 
         # Determine effective cleanup reference timestamp (outside lock for this part)
         current_max_timestamp_for_cleanup = timestamp
-        if (
-            self.history
-            and self.history[-1][0] > current_max_timestamp_for_cleanup
-        ):
+        if self.history and self.history[-1][0] > current_max_timestamp_for_cleanup:
             current_max_timestamp_for_cleanup = self.history[-1][0]
 
         if (
             self.__latest_processed_timestamp
-            and self.__latest_processed_timestamp
-            > current_max_timestamp_for_cleanup
+            and self.__latest_processed_timestamp > current_max_timestamp_for_cleanup
         ):
-            current_max_timestamp_for_cleanup = (
-                self.__latest_processed_timestamp
-            )
+            current_max_timestamp_for_cleanup = self.__latest_processed_timestamp
 
         # Lock acquisition should happen before _cleanup_old_data if it modifies history
         # and also before other history modifications and client calls.
@@ -89,9 +83,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
                     return  # No change, no need to re-send
                 self.history[insertion_point] = (timestamp, tensor.clone())
             else:
-                self.history.insert(
-                    insertion_point, (timestamp, tensor.clone())
-                )
+                self.history.insert(insertion_point, (timestamp, tensor.clone()))
 
             if self.history:
                 current_max_ts_in_history = self.history[-1][0]
@@ -116,9 +108,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             )
             await self.client.on_chunk_update(chunk)
 
-    def _cleanup_old_data(
-        self, current_max_timestamp: datetime.datetime
-    ) -> None:
+    def _cleanup_old_data(self, current_max_timestamp: datetime.datetime) -> None:
         """
         Removes tensor snapshots from history that are older than the data_timeout_seconds
         relative to the current_max_timestamp.

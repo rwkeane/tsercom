@@ -27,9 +27,7 @@ _logger = logging.getLogger(__name__)
 class DiscoveryTestClient(InstanceListener.Client):
     __test__ = False
 
-    def __init__(
-        self, discovery_event: asyncio.Event, discovered_services: list
-    ):
+    def __init__(self, discovery_event: asyncio.Event, discovered_services: list):
         super().__init__()
         self._discovery_event = discovery_event
         self._discovered_services = discovered_services
@@ -40,9 +38,7 @@ class DiscoveryTestClient(InstanceListener.Client):
 
     async def _on_service_removed(self, service_name: str):
         # Basic implementation for existing tests, can be expanded if needed
-        print(
-            f"Service removed (not actively handled in this client): {service_name}"
-        )
+        print(f"Service removed (not actively handled in this client): {service_name}")
         pass
 
 
@@ -71,15 +67,11 @@ async def test_successful_registration_and_discovery():
 
     # Listener needs to be started before publisher to catch the announcement
     # Assign to specific variable names to manage lifecycle explicitly in finally block
-    listener_obj: InstanceListener | None = (
-        None  # Initialize for finally block
-    )
+    listener_obj: InstanceListener | None = None  # Initialize for finally block
     publisher_obj = None  # Initialize to None for the finally block
 
     try:
-        listener_obj = InstanceListener(
-            client=client, service_type=service_type
-        )
+        listener_obj = InstanceListener(client=client, service_type=service_type)
         await listener_obj.start()  # Start the listener
 
         publisher_obj = InstancePublisher(
@@ -107,17 +99,11 @@ async def test_successful_registration_and_discovery():
         gc.collect()  # Encourage faster cleanup
 
     assert discovery_event.is_set(), "Discovery event was not set"
-    assert (
-        len(discovered_services) == 1
-    ), "Incorrect number of services discovered"
+    assert len(discovered_services) == 1, "Incorrect number of services discovered"
 
     service_info = discovered_services[0]
-    assert (
-        service_info.name == readable_name
-    ), "Discovered service name does not match"
-    assert (
-        service_info.port == service_port
-    ), "Discovered service port does not match"
+    assert service_info.name == readable_name, "Discovered service name does not match"
+    assert service_info.port == service_port, "Discovered service port does not match"
     # mDNS instance name can have ".local." or similar suffixes, so we check startswith
     assert service_info.mdns_name.startswith(
         instance_name
@@ -126,9 +112,7 @@ async def test_successful_registration_and_discovery():
     assert service_info.addresses, "Discovered service addresses list is empty"
     for addr_str in service_info.addresses:
         try:
-            ipaddress.ip_address(
-                addr_str
-            )  # Validate if it's a valid IP address string
+            ipaddress.ip_address(addr_str)  # Validate if it's a valid IP address string
         except ValueError:
             pytest.fail(f"Invalid IP address string found: {addr_str}")
 
@@ -159,16 +143,12 @@ class SelectiveDiscoveryClient(InstanceListener.Client):
             self.service_added_event.set()
 
     async def _on_service_removed(self, service_name: str):
-        _logger.info(
-            "[E2E_CLIENT] _on_service_removed called for: %s", service_name
-        )
+        _logger.info("[E2E_CLIENT] _on_service_removed called for: %s", service_name)
         async with self._lock:
             self.removed_service_names.append(service_name)
             # Remove from discovered_services if present
             self.discovered_services = [
-                s
-                for s in self.discovered_services
-                if s.mdns_name != service_name
+                s for s in self.discovered_services if s.mdns_name != service_name
             ]
             _logger.info(
                 "[E2E_CLIENT] _on_service_removed: About to set service_removed_event for %s",
@@ -262,9 +242,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
                 len(client.discovered_services) == 2
             ), f"Both services were not discovered. Found {len(client.discovered_services)}"
             # Ensure mdns_names are unique, as readable_name might not be if not set carefully for test
-            discovered_mdns_names = {
-                s.mdns_name for s in client.discovered_services
-            }
+            discovered_mdns_names = {s.mdns_name for s in client.discovered_services}
             # Check that the instance names are prefixes of the discovered mDNS names
             assert any(
                 name.startswith(publisher1_instance_name)
@@ -275,9 +253,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
                 for name in discovered_mdns_names
             ), f"Publisher 2 (instance: {publisher2_instance_name}) not discovered in {discovered_mdns_names}"
             # Also check readable names for completeness
-            discovered_readable_names = {
-                s.name for s in client.discovered_services
-            }
+            discovered_readable_names = {s.name for s in client.discovered_services}
             assert (
                 publisher1_readable_name in discovered_readable_names
             ), "Publisher 1 not discovered by readable name"
@@ -291,9 +267,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
 
         # Verify first service is removed, second is still present
         try:
-            await asyncio.wait_for(
-                client.service_removed_event.wait(), timeout=10.0
-            )
+            await asyncio.wait_for(client.service_removed_event.wait(), timeout=10.0)
         except asyncio.TimeoutError:
             pytest.fail(
                 f"Timeout waiting for service {publisher1_instance_name} to be removed."
@@ -342,9 +316,7 @@ async def test_concurrent_publishing_with_selective_unpublish():
 class UpdateTestClient(InstanceListener.Client):
     __test__ = False
 
-    def __init__(
-        self, events: list[asyncio.Event], services_list: list[ServiceInfo]
-    ):
+    def __init__(self, events: list[asyncio.Event], services_list: list[ServiceInfo]):
         super().__init__()
         self.events = events
         self.services_list = services_list
@@ -364,9 +336,7 @@ class UpdateTestClient(InstanceListener.Client):
 
     async def _on_service_removed(self, service_name: str):
         # Basic implementation for existing tests, can be expanded if needed
-        print(
-            f"Service removed (not actively handled in this client): {service_name}"
-        )
+        print(f"Service removed (not actively handled in this client): {service_name}")
         pass
 
 
@@ -374,9 +344,7 @@ class UpdateTestClient(InstanceListener.Client):
 async def test_instance_update_reflects_changes():
     service_type_suffix = uuid.uuid4().hex[:8]
     service_type = f"_upd-{service_type_suffix}._tcp.local."
-    instance_name_base = (
-        f"UpdateInstance_{service_type_suffix}"  # Renamed for clarity
-    )
+    instance_name_base = f"UpdateInstance_{service_type_suffix}"  # Renamed for clarity
     instance_name_v1 = instance_name_base
     instance_name_v2 = f"{instance_name_base}_v2"
 
@@ -387,12 +355,8 @@ async def test_instance_update_reflects_changes():
     discovery_event2 = asyncio.Event()  # For the updated service
     discovered_services = []
 
-    client = UpdateTestClient(
-        [discovery_event1, discovery_event2], discovered_services
-    )
-    listener_obj: InstanceListener | None = (
-        None  # Initialize for finally block
-    )
+    client = UpdateTestClient([discovery_event1, discovery_event2], discovered_services)
+    listener_obj: InstanceListener | None = None  # Initialize for finally block
     publisher1_obj: Optional[InstancePublisher] = None  # Type hint for clarity
     publisher2_obj: Optional[InstancePublisher] = None  # Type hint for clarity
     shared_zc1: Optional[AsyncZeroconf] = None
@@ -449,13 +413,9 @@ async def test_instance_update_reflects_changes():
             await shared_zc1.async_close()  # Close the first ZC instance
 
         # Allow a brief moment for the unregistration to propagate.
-        _logger.info(
-            "Waiting for unregistration of publisher1 to propagate..."
-        )
+        _logger.info("Waiting for unregistration of publisher1 to propagate...")
         await asyncio.sleep(0.5)  # Increased sleep
-        _logger.info(
-            "Proceeding to publish publisher2 with new ZC and Listener."
-        )
+        _logger.info("Proceeding to publish publisher2 with new ZC and Listener.")
 
         _logger.info("Creating shared_zc2 for updated phase.")
         shared_zc2 = AsyncZeroconf()
@@ -512,9 +472,7 @@ async def test_instance_update_reflects_changes():
 
         gc.collect()  # Encourage faster cleanup
 
-    assert (
-        discovery_event2.is_set()
-    ), "Second discovery event (for update) was not set"
+    assert discovery_event2.is_set(), "Second discovery event (for update) was not set"
     # We expect at least two events now: one for the initial, one for the update.
     # mDNS might send multiple add events, so we check that the count increased.
     # And more importantly, that the new service details are present.
@@ -667,8 +625,7 @@ class MultiDiscoveryTestClient(InstanceListener.Client):
         async with self.lock:
             # Avoid duplicates if mDNS sends multiple add notifications for the same service instance
             if not any(
-                s.mdns_name == connection_info.mdns_name
-                for s in self.services_list
+                s.mdns_name == connection_info.mdns_name for s in self.services_list
             ):
                 self.services_list.append(connection_info)
                 if len(self.services_list) >= self.expected_discoveries:
@@ -677,9 +634,7 @@ class MultiDiscoveryTestClient(InstanceListener.Client):
 
     async def _on_service_removed(self, service_name: str):
         # Basic implementation for existing tests, can be expanded if needed
-        print(
-            f"Service removed (not actively handled in this client): {service_name}"
-        )
+        print(f"Service removed (not actively handled in this client): {service_name}")
         # Potentially remove from self.services_list if necessary for test logic
         # For now, keeping it simple as these tests focus on additions.
         pass
@@ -730,7 +685,9 @@ async def test_multiple_publishers_one_listener():
         # Publisher 2
         p2_port = 50006
         p2_readable_name = f"MultiPubService2_{service_type_suffix}"
-        p2_instance_name = f"MultiPubInstance2_{service_type_suffix}"  # Different instance name
+        p2_instance_name = (
+            f"MultiPubInstance2_{service_type_suffix}"  # Different instance name
+        )
         publisher2 = InstancePublisher(
             port=p2_port,
             service_type=service_type,
@@ -763,9 +720,7 @@ async def test_multiple_publishers_one_listener():
         # import gc # gc is now imported at top level
         gc.collect()
 
-    assert (
-        all_discovered_event.is_set()
-    ), "Event for all discoveries was not set."
+    assert all_discovered_event.is_set(), "Event for all discoveries was not set."
     assert (
         len(discovered_services) == 2
     ), f"Expected 2 services, discovered {len(discovered_services)}"
@@ -782,8 +737,7 @@ async def test_multiple_publishers_one_listener():
             expected["port"] in ports_found
         ), f"Expected port {expected['port']} not found."
         assert any(
-            mname.startswith(expected["instance_prefix"])
-            for mname in mdns_names_found
+            mname.startswith(expected["instance_prefix"]) for mname in mdns_names_found
         ), f"No mDNS name starting with {expected['instance_prefix']} found."
 
     await asyncio.sleep(0.1)

@@ -45,9 +45,7 @@ def create_dummy_update(
     num_chunks: int, dtype: torch.dtype = torch.float32
 ) -> SerializableTensorUpdate:
     # Ensure unique starting_index for chunks in the dummy update.
-    chunks = [
-        create_dummy_chunk(i, i * 2, dtype=dtype) for i in range(num_chunks)
-    ]
+    chunks = [create_dummy_chunk(i, i * 2, dtype=dtype) for i in range(num_chunks)]
     return SerializableTensorUpdate(chunks=chunks)
 
 
@@ -112,9 +110,7 @@ def test_sti_try_parse_basic(dtype_and_str_fixture):
     shape_list = [30, 40]
     fill_val = 7.0
 
-    grpc_msg = TensorInitializer(
-        shape=shape_list, dtype=dtype_str, fill_value=fill_val
-    )
+    grpc_msg = TensorInitializer(shape=shape_list, dtype=dtype_str, fill_value=fill_val)
     parsed_sti = SerializableTensorInitializer.try_parse(grpc_msg)
 
     assert parsed_sti is not None
@@ -144,9 +140,7 @@ def test_sti_try_parse_with_initial_state(dtype_and_str_fixture):
     assert parsed_sti.shape == shape_list
     assert parsed_sti.dtype_str == dtype_str
     assert parsed_sti.initial_state is not None
-    assert len(parsed_sti.initial_state.chunks) == len(
-        original_update_obj.chunks
-    )
+    assert len(parsed_sti.initial_state.chunks) == len(original_update_obj.chunks)
     # Deep comparison of chunks relies on SerializableTensorUpdate.try_parse tests.
     # Here, just check one chunk's starting_index for basic correspondence.
     if original_update_obj.chunks:

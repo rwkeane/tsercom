@@ -50,9 +50,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         super().__init__(client, tensor_length, clock, data_timeout_seconds)
         self.__latest_processed_timestamp: Optional[datetime.datetime] = None
 
-    def _cleanup_old_data(
-        self, current_max_timestamp: datetime.datetime
-    ) -> None:
+    def _cleanup_old_data(self, current_max_timestamp: datetime.datetime) -> None:
         # This is an internal method, assumes lock is held by caller (process_tensor)
         if not self.history:
             return
@@ -160,13 +158,10 @@ class SparseTensorMultiplexer(TensorMultiplexer):
             effective_cleanup_ref_ts = timestamp
             if self.history:
                 max_history_ts = self.history[-1][0]
-                effective_cleanup_ref_ts = max(
-                    effective_cleanup_ref_ts, max_history_ts
-                )
+                effective_cleanup_ref_ts = max(effective_cleanup_ref_ts, max_history_ts)
             if (
                 self.__latest_processed_timestamp
-                and self.__latest_processed_timestamp
-                > effective_cleanup_ref_ts
+                and self.__latest_processed_timestamp > effective_cleanup_ref_ts
             ):
                 effective_cleanup_ref_ts = self.__latest_processed_timestamp
 
@@ -193,9 +188,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
                 needs_full_cascade_re_emission = True
                 idx_of_change = insertion_point
             else:
-                self.history.insert(
-                    insertion_point, (timestamp, tensor.clone())
-                )
+                self.history.insert(insertion_point, (timestamp, tensor.clone()))
                 base_tensor_for_diff = self._get_tensor_state_before(
                     timestamp, current_insertion_point=insertion_point
                 )
@@ -219,9 +212,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
 
             if needs_full_cascade_re_emission and idx_of_change >= 0:
                 for i in range(idx_of_change + 1, len(self.history)):
-                    ts_current_in_cascade, tensor_current_in_cascade = (
-                        self.history[i]
-                    )
+                    ts_current_in_cascade, tensor_current_in_cascade = self.history[i]
                     _, tensor_predecessor_for_cascade = self.history[i - 1]
                     await self._emit_tensor_diff_as_chunks(
                         tensor_predecessor_for_cascade,

@@ -47,9 +47,7 @@ class RecordListener(MdnsListener):
             )
         # mDNS service types usually start with an underscore.
         if not service_type.startswith("_"):
-            raise ValueError(
-                f"service_type must start with '_', got '{service_type}'."
-            )
+            raise ValueError(f"service_type must start with '_', got '{service_type}'.")
         super().__init__()
 
         self.__client: MdnsListener.Client = client
@@ -123,9 +121,7 @@ class RecordListener(MdnsListener):
             return
 
         if info.port is None:
-            logging.error(
-                "No port for updated service '%s' type '%s'.", name, type_
-            )
+            logging.error("No port for updated service '%s' type '%s'.", name, type_)
             return
 
         if not info.addresses:
@@ -159,14 +155,10 @@ class RecordListener(MdnsListener):
         )
         asyncio.create_task(self._handle_remove_service_wrapper(type_, name))
 
-    async def _handle_remove_service_wrapper(
-        self, type_: str, name: str
-    ) -> None:
+    async def _handle_remove_service_wrapper(self, type_: str, name: str) -> None:
         """Wrapper to ensure a small sleep after task creation from sync context."""
         await self._handle_remove_service(type_, name)
-        await asyncio.sleep(
-            0
-        )  # Yield control to allow the task to potentially start
+        await asyncio.sleep(0)  # Yield control to allow the task to potentially start
 
     async def _handle_remove_service(self, type_: str, name: str) -> None:
         """Async handler for service removal."""
@@ -226,9 +218,7 @@ class RecordListener(MdnsListener):
             return
 
         if info.port is None:
-            logging.error(
-                "No port for added service '%s' type '%s'.", name, type_
-            )
+            logging.error("No port for added service '%s' type '%s'.", name, type_)
             return
 
         if not info.addresses:
@@ -259,9 +249,7 @@ class RecordListener(MdnsListener):
             # the AsyncZeroconf instance it's tied to is closed via async_close().
             # AsyncServiceBrowser itself does not have a cancel() or async_cancel() method.
             # We just set it to None here as its tasks will be cancelled by AsyncZeroconf.
-            self.__browser = (
-                None  # Browser is cancelled by closing AsyncZeroconf
-            )
+            self.__browser = None  # Browser is cancelled by closing AsyncZeroconf
 
         if not self.__is_shared_zc and self.__mdns:
             logging.info(

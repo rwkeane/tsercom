@@ -93,15 +93,11 @@ async def run_server(stop_event: asyncio.Event) -> None:
         # Create a generic handler that maps service and method names to the actual method handler.
         generic_handler = grpc.method_handlers_generic_handler(
             _SERVICE_NAME,  # The name of our service
-            {
-                _METHOD_NAME: rpc_method_handler
-            },  # Maps method name to its handler
+            {_METHOD_NAME: rpc_method_handler},  # Maps method name to its handler
         )
         # Add this generic handler to the server.
         server.add_generic_rpc_handlers((generic_handler,))
-        logger.info(
-            f"Server: RPC handlers added for service '{_SERVICE_NAME}'."
-        )
+        logger.info(f"Server: RPC handlers added for service '{_SERVICE_NAME}'.")
 
     try:
         # Start the server asynchronously.
@@ -184,9 +180,7 @@ async def run_client() -> None:
             assert isinstance(response, TestConnectionResponse)
             logger.info("Client: Communication successful!")
         except grpc.aio.AioRpcError as e:
-            logger.error(
-                f"Client: gRPC call failed: {e.code()} - {e.details()}"
-            )
+            logger.error(f"Client: gRPC call failed: {e.code()} - {e.details()}")
         except Exception as e:
             logger.error(f"Client: An unexpected error occurred: {e!r}")
 

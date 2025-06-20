@@ -70,9 +70,7 @@ class ServerRuntimeDataHandler(
         super().__init__(data_reader, event_source, min_send_frequency_seconds)
 
         self.__clock: SynchronizedClock
-        self.__server: Optional[TimeSyncServer] = (
-            None  # Store server if created
-        )
+        self.__server: Optional[TimeSyncServer] = None  # Store server if created
 
         if is_testing:
             self.__clock = FakeSynchronizedClock()

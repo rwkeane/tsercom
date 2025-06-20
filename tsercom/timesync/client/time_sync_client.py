@@ -119,7 +119,5 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
                 with self.__time_offset_lock:
                     if len(self.__time_offsets) > 0:
                         self.__start_barrier.set()
-                        logging.info(
-                            "TimeSyncClient: First valid NTP offset received."
-                        )
+                        logging.info("TimeSyncClient: First valid NTP offset received.")
             time.sleep(offset_frequency_seconds)

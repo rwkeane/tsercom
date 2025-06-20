@@ -86,9 +86,7 @@ def run_on_event_loop(
     if event_loop is None:
         try:
             event_loop = get_global_event_loop()
-        except (
-            AssertionError
-        ):  # Catches "Global event loop accessed before being set."
+        except AssertionError:  # Catches "Global event loop accessed before being set."
             pass
 
         if event_loop is None:

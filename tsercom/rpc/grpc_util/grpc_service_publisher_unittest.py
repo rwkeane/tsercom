@@ -27,9 +27,7 @@ def test_grpc_service_publisher_does_not_hang_in_threaded_loop():
     # For now, assuming direct instantiation is fine as per the test code provided.
     # If ThreadWatcher's __init__ is problematic, replace with MagicMock:
     # watcher = MagicMock(spec=ThreadWatcher)
-    watcher = (
-        ThreadWatcher()
-    )  # A dummy watcher is sufficient for this test's purpose.
+    watcher = ThreadWatcher()  # A dummy watcher is sufficient for this test's purpose.
 
     def run_loop_in_thread():
         asyncio.set_event_loop(new_loop)
@@ -51,9 +49,7 @@ def test_grpc_service_publisher_does_not_hang_in_threaded_loop():
     thread = threading.Thread(target=run_loop_in_thread, daemon=True)
     thread.start()
 
-    publisher = GrpcServicePublisher(
-        watcher, port=50051
-    )  # Use a test-specific port
+    publisher = GrpcServicePublisher(watcher, port=50051)  # Use a test-specific port
 
     async def start_and_stop_publisher():
         try:
@@ -63,9 +59,7 @@ def test_grpc_service_publisher_does_not_hang_in_threaded_loop():
             )
 
             # This is where the hang occurs. We wait for a reasonable time.
-            await asyncio.wait_for(
-                asyncio.wrap_future(start_future), timeout=7.0
-            )
+            await asyncio.wait_for(asyncio.wrap_future(start_future), timeout=7.0)
 
             # If start_async completes, now test the shutdown
             # The stop() method in GrpcServicePublisher should ideally be async
@@ -78,9 +72,7 @@ def test_grpc_service_publisher_does_not_hang_in_threaded_loop():
                 publisher.stop_async(),  # Assume/create an async stop for graceful shutdown
                 new_loop,
             )
-            await asyncio.wait_for(
-                asyncio.wrap_future(stop_future), timeout=2.0
-            )
+            await asyncio.wait_for(asyncio.wrap_future(stop_future), timeout=2.0)
 
         except asyncio.TimeoutError:
             pytest.fail(

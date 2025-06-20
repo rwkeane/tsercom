@@ -394,16 +394,12 @@ class TestIdTracker:
             ValueError,
             match="Cannot mix 'address' kwarg with 'id' or positional address.",
         ):
-            tracker.get(
-                caller_id, address="ip"
-            )  # Positional id and keyword address
+            tracker.get(caller_id, address="ip")  # Positional id and keyword address
         with pytest.raises(
             ValueError,
             match="Cannot mix 'address' kwarg with 'id' or positional address.",
         ):
-            tracker.get(
-                id=caller_id, address="ip"
-            )  # Both id and address by keyword
+            tracker.get(id=caller_id, address="ip")  # Both id and address by keyword
         with pytest.raises(
             ValueError,
             match="If 'address' is provided, 'port' must also be, and vice-versa.",

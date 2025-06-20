@@ -55,12 +55,12 @@ if multiprocessing.get_start_method(allow_none=True) != "spawn":
 started = "STARTED"
 stopped = "STOPPED"
 
-start_timestamp = datetime.datetime.now(
-    datetime.timezone.utc
-) - datetime.timedelta(hours=10)
-stop_timestamp = datetime.datetime.now(
-    datetime.timezone.utc
-) + datetime.timedelta(minutes=20)
+start_timestamp = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+    hours=10
+)
+stop_timestamp = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+    minutes=20
+)
 
 test_id = (
     CallerIdentifier.random()
@@ -117,9 +117,7 @@ class FakeRuntime(Runtime):
             fresh_data_object = FakeData(fresh_data_value)
             fresh_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
-            await self.__responder.process_data(
-                fresh_data_object, fresh_timestamp
-            )
+            await self.__responder.process_data(fresh_data_object, fresh_timestamp)
             self._data_sent = True
 
     async def stop(self, exception) -> None:
@@ -179,9 +177,7 @@ class TorchTensorRuntime(Runtime):
         await self.__responder.process_data(self.stopped_tensor, fixed_stop_ts)
 
 
-class TorchTensorRuntimeInitializer(
-    RuntimeInitializer[torch.Tensor, FakeEvent]
-):
+class TorchTensorRuntimeInitializer(RuntimeInitializer[torch.Tensor, FakeEvent]):
     def __init__(self, test_id: CallerIdentifier, service_type="Client"):
         super().__init__(service_type=service_type)
         self._test_id = test_id
@@ -216,9 +212,7 @@ class StrDataTorchEventRuntime(Runtime):
         self.__data_handler = data_handler
         self.__grpc_channel_factory = grpc_channel_factory
         self.__test_id = test_id
-        self.__responder: EndpointDataProcessor[str, torch.Tensor] | None = (
-            None
-        )
+        self.__responder: EndpointDataProcessor[str, torch.Tensor] | None = None
         self._listener_task: asyncio.Task | None = None
         self.expected_event_tensor_sum_str: str | None = None
 
@@ -240,7 +234,9 @@ class StrDataTorchEventRuntime(Runtime):
                     )
                     if isinstance(annotated_event.data, torch.Tensor):
                         event_tensor = annotated_event.data
-                        self.expected_event_tensor_sum_str = f"processed_tensor_event_{event_tensor.sum().item()}"
+                        self.expected_event_tensor_sum_str = (
+                            f"processed_tensor_event_{event_tensor.sum().item()}"
+                        )
                         print(
                             f"DEBUG: {self.__class__.__name__} processing tensor event, sum str: {self.expected_event_tensor_sum_str}"
                         )
@@ -293,9 +289,7 @@ class StrDataTorchEventRuntime(Runtime):
         print(f"DEBUG: {self.__class__.__name__} stopped for {self.__test_id}")
 
 
-class StrDataTorchEventRuntimeInitializer(
-    RuntimeInitializer[str, torch.Tensor]
-):
+class StrDataTorchEventRuntimeInitializer(RuntimeInitializer[str, torch.Tensor]):
     def __init__(self, test_id: CallerIdentifier, service_type="Server"):
         super().__init__(service_type=service_type)
         self._test_id = test_id
@@ -330,9 +324,9 @@ class TorchDataTorchEventRuntime(Runtime):
         self.__grpc_channel_factory = grpc_channel_factory
         self.__test_id = test_id
         self.initializer = initializer
-        self.__responder: (
-            EndpointDataProcessor[torch.Tensor, torch.Tensor] | None
-        ) = None
+        self.__responder: EndpointDataProcessor[torch.Tensor, torch.Tensor] | None = (
+            None
+        )
         self._listener_task: asyncio.Task | None = None
 
     async def _event_listener_loop(self):
@@ -557,15 +551,11 @@ class BroadcastTestFakeRuntime(Runtime):
                     print(f"Warning: Responder for {cid} is None.")
                     continue
                 self._responders[cid] = responder
-                task = asyncio.create_task(
-                    self._event_listener_loop(cid, responder)
-                )
+                task = asyncio.create_task(self._event_listener_loop(cid, responder))
                 self._listener_tasks.append(task)
             except Exception as e:
                 # Log or handle registration errors
-                print(
-                    f"Error registering caller {cid} or starting listener: {e}"
-                )
+                print(f"Error registering caller {cid} or starting listener: {e}")
 
     async def _event_listener_loop(
         self,
@@ -583,9 +573,7 @@ class BroadcastTestFakeRuntime(Runtime):
                         print(
                             f"Listener for {caller_id}: Received FakeEvent. Processing..."
                         )
-                        processed_data = FakeData(
-                            f"event_for_{str(caller_id)[:8]}"
-                        )
+                        processed_data = FakeData(f"event_for_{str(caller_id)[:8]}")
                         await responder.process_data(
                             processed_data,
                             datetime.datetime.now(datetime.timezone.utc),
@@ -620,9 +608,7 @@ class BroadcastTestFakeRuntime(Runtime):
                 print(f"Error processing stop data for {cid}: {e}")
 
 
-class BroadcastTestFakeRuntimeInitializer(
-    RuntimeInitializer[FakeData, FakeEvent]
-):
+class BroadcastTestFakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
     __test__ = False  # Tell pytest this is not a test class
 
     def __init__(
@@ -654,9 +640,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         initializer = FakeRuntimeInitializer(
             test_id=current_test_id, service_type="Server"
         )
-        runtime_future = runtime_manager.register_runtime_initializer(
-            initializer
-        )
+        runtime_future = runtime_manager.register_runtime_initializer(initializer)
 
         assert not runtime_future.done()
         assert not runtime_manager.has_started
@@ -767,9 +751,7 @@ def test_in_process_init(clear_loop_fixture):
                 loop.call_soon_threadsafe(loop.stop)
             loop.close()
 
-    event_thread = Thread(
-        target=_thread_loop_runner, args=(loop_future,), daemon=True
-    )
+    event_thread = Thread(target=_thread_loop_runner, args=(loop_future,), daemon=True)
     event_thread.start()
 
     worker_event_loop = loop_future.result(timeout=5)
@@ -795,9 +777,7 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
 
     try:
         runtime_manager.check_for_exception()
-        runtime_future = runtime_manager.register_runtime_initializer(
-            initializer
-        )
+        runtime_future = runtime_manager.register_runtime_initializer(initializer)
 
         assert not runtime_future.done()
         assert not runtime_manager.has_started
@@ -841,9 +821,7 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
         assert torch.equal(
             received_annotated_instance.data, initializer.expected_sent_tensor
         ), f"Received tensor {received_annotated_instance.data} does not match expected {initializer.expected_sent_tensor}"
-        assert isinstance(
-            received_annotated_instance.timestamp, datetime.datetime
-        )
+        assert isinstance(received_annotated_instance.timestamp, datetime.datetime)
         assert received_annotated_instance.caller_id == current_test_id
         assert not data_aggregator.has_new_data(current_test_id)
 
@@ -855,9 +833,7 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
         received_stopped_annotated_instance = None
         while waited_time < max_wait_time:
             if data_aggregator.has_new_data(current_test_id):
-                all_stopped_data = data_aggregator.get_new_data(
-                    current_test_id
-                )
+                all_stopped_data = data_aggregator.get_new_data(current_test_id)
                 if all_stopped_data:
                     received_stopped_annotated_instance = all_stopped_data[0]
                     stopped_data_arrived = True
@@ -870,9 +846,7 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
         ), f"Aggregator did not receive 'stopped' tensor data for test_id ({current_test_id}) within {max_wait_time}s"
 
         assert received_stopped_annotated_instance is not None
-        assert isinstance(
-            received_stopped_annotated_instance, AnnotatedInstance
-        )
+        assert isinstance(received_stopped_annotated_instance, AnnotatedInstance)
         assert isinstance(
             received_stopped_annotated_instance.data, torch.Tensor
         ), f"Received 'stopped' data is not a torch.Tensor, type: {type(received_stopped_annotated_instance.data)}"
@@ -911,9 +885,7 @@ def test_out_of_process_torch_event_transport(clear_loop_fixture):
 
     try:
         runtime_manager.check_for_exception()
-        runtime_future = runtime_manager.register_runtime_initializer(
-            initializer
-        )
+        runtime_future = runtime_manager.register_runtime_initializer(initializer)
 
         assert not runtime_future.done()
         runtime_manager.start_out_of_process()
@@ -967,9 +939,7 @@ def test_out_of_process_torch_event_transport(clear_loop_fixture):
         assert isinstance(received_annotated_instance, AnnotatedInstance)
         assert isinstance(received_annotated_instance.data, str)
         assert received_annotated_instance.data == expected_response_str
-        assert isinstance(
-            received_annotated_instance.timestamp, datetime.datetime
-        )
+        assert isinstance(received_annotated_instance.timestamp, datetime.datetime)
         assert received_annotated_instance.caller_id == current_test_id
 
     finally:
@@ -994,9 +964,7 @@ def test_out_of_process_torch_data_torch_event_transport(clear_loop_fixture):
 
     try:
         runtime_manager.check_for_exception()
-        runtime_future = runtime_manager.register_runtime_initializer(
-            initializer
-        )
+        runtime_future = runtime_manager.register_runtime_initializer(initializer)
 
         assert not runtime_future.done()
         runtime_manager.start_out_of_process()
@@ -1021,9 +989,7 @@ def test_out_of_process_torch_data_torch_event_transport(clear_loop_fixture):
                 all_data = data_aggregator.get_new_data(current_test_id)
                 if all_data:
                     for item in all_data:
-                        if torch.equal(
-                            item.data, initializer.initial_data_tensor
-                        ):
+                        if torch.equal(item.data, initializer.initial_data_tensor):
                             received_initial_data_instance = item
                             initial_data_arrived = True
                             break
@@ -1053,8 +1019,7 @@ def test_out_of_process_torch_data_torch_event_transport(clear_loop_fixture):
         waited_time = 0.0
         received_event_response_instance = None
         expected_event_response = (
-            initializer.event_response_tensor_base
-            + event_tensor_to_send.sum().item()
+            initializer.event_response_tensor_base + event_tensor_to_send.sum().item()
         )
 
         while waited_time < max_wait_time:
@@ -1139,9 +1104,7 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
 
     try:
         runtime_manager.check_for_exception()
-        runtime_future = runtime_manager.register_runtime_initializer(
-            initializer
-        )
+        runtime_future = runtime_manager.register_runtime_initializer(initializer)
 
         assert not runtime_future.done()
         runtime_manager.start_out_of_process()
@@ -1216,9 +1179,7 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
                 for item in new_data_list:
                     if torch.equal(item.data, initializer.initial_data_tensor):
                         continue
-                    if torch.equal(
-                        item.data, initializer.stopped_tensor_indicator
-                    ):
+                    if torch.equal(item.data, initializer.stopped_tensor_indicator):
                         continue
 
                     assert isinstance(
@@ -1234,9 +1195,7 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
                             if (
                                 es not in received_event_responses_map
                             ):  # Store only first match for this sum
-                                received_event_responses_map[es] = (
-                                    response_tensor
-                                )
+                                received_event_responses_map[es] = response_tensor
                                 found_match = True
                             break
                     # If not found by direct match, try deriving sum (less robust if base is complex)
@@ -1245,8 +1204,7 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
                         # and response_tensor - initializer.event_response_tensor_base results in a scalar or tensor that sums to event_sum
                         try:
                             sum_tensor_candidate = (
-                                response_tensor
-                                - initializer.event_response_tensor_base
+                                response_tensor - initializer.event_response_tensor_base
                             )
                             if (
                                 sum_tensor_candidate.numel() == 1
@@ -1272,9 +1230,7 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
                                     received_event_responses_map[
                                         event_sum_from_response
                                     ] = response_tensor
-                        except (
-                            Exception
-                        ):  # Broad exception if tensor math fails
+                        except Exception:  # Broad exception if tensor math fails
                             pass  # Could not derive sum, might be an unexpected tensor
 
             if len(received_event_responses_map) < num_events_to_send:
@@ -1402,18 +1358,14 @@ def test_in_process_error_check_for_exception(clear_loop_fixture):
                     loop.call_soon_threadsafe(loop.stop)
             loop.close()
 
-    event_thread = Thread(
-        target=_thread_loop_runner, args=(loop_future,), daemon=True
-    )
+    event_thread = Thread(target=_thread_loop_runner, args=(loop_future,), daemon=True)
     event_thread.start()
     worker_event_loop = loop_future.result(timeout=5)
 
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "InProcessFailureOops"
     runtime_manager.register_runtime_initializer(
-        ErrorThrowingRuntimeInitializer(
-            error_message=error_msg, error_type=ValueError
-        )
+        ErrorThrowingRuntimeInitializer(error_message=error_msg, error_type=ValueError)
     )
     runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
 
@@ -1431,9 +1383,7 @@ def test_out_of_process_initializer_create_error(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "CreateOops"
     runtime_manager.register_runtime_initializer(
-        FaultyCreateRuntimeInitializer(
-            error_message=error_msg, error_type=TypeError
-        )
+        FaultyCreateRuntimeInitializer(error_message=error_msg, error_type=TypeError)
     )
     runtime_manager.start_out_of_process()
     time.sleep(1.0)
@@ -1475,9 +1425,7 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
 
         runtime_handle_1 = runtime_future_1.result(timeout=1)
         runtime_handle_2 = runtime_future_2.result(timeout=1)
-        runtime_handles_for_cleanup.extend(
-            [runtime_handle_1, runtime_handle_2]
-        )
+        runtime_handles_for_cleanup.extend([runtime_handle_1, runtime_handle_2])
 
         data_aggregator_1 = runtime_handle_1.data_aggregator
         data_aggregator_2 = runtime_handle_2.data_aggregator
@@ -1624,9 +1572,7 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
                 loop.call_soon_threadsafe(loop.stop)
             loop.close()
 
-    event_thread = Thread(
-        target=_thread_loop_runner, args=(loop_future,), daemon=True
-    )
+    event_thread = Thread(target=_thread_loop_runner, args=(loop_future,), daemon=True)
     event_thread.start()
     worker_event_loop = loop_future.result(timeout=5)
 
@@ -1637,9 +1583,7 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
         runtime_manager.check_for_exception()
 
         runtime_future = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(
-                test_id=current_test_id, service_type="Client"
-            )
+            FakeRuntimeInitializer(test_id=current_test_id, service_type="Client")
         )
 
         assert not runtime_future.done()
@@ -1677,9 +1621,7 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
         values = data_aggregator.get_new_data(current_test_id)
         assert isinstance(values, list) and len(values) == 1
         first = values[0]
-        assert isinstance(first, AnnotatedInstance) and isinstance(
-            first.data, FakeData
-        )
+        assert isinstance(first, AnnotatedInstance) and isinstance(first.data, FakeData)
         assert first.data.value == "FRESH_SIMPLE_DATA_V2"
         assert isinstance(first.timestamp, datetime.datetime)
         assert first.caller_id == current_test_id
@@ -1744,9 +1686,7 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
                     loop.call_soon_threadsafe(loop.stop)
             loop.close()
 
-    event_thread = Thread(
-        target=_thread_loop_runner, args=(loop_future,), daemon=True
-    )
+    event_thread = Thread(target=_thread_loop_runner, args=(loop_future,), daemon=True)
     event_thread.start()
     worker_event_loop = loop_future.result(timeout=5)
 
@@ -1810,9 +1750,7 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
             error_type=error_type,
             service_type="Server",
         )
-        handle_future = runtime_manager.register_runtime_initializer(
-            initializer
-        )
+        handle_future = runtime_manager.register_runtime_initializer(initializer)
         runtime_manager.start_out_of_process()
         runtime_handle = handle_future.result(timeout=2)
         runtime_handle_for_cleanup = runtime_handle
@@ -1844,9 +1782,7 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
                 pass
         runtime_manager.shutdown()
         if test_thread and test_thread.is_alive():
-            print(
-                "Warning: Test thread for run_until_exception did not exit cleanly."
-            )
+            print("Warning: Test thread for run_until_exception did not exit cleanly.")
             pass
         elif test_thread:
             test_thread.join(timeout=1)
@@ -1875,9 +1811,7 @@ def test_event_broadcast_e2e(clear_loop_fixture):
                 loop.call_soon_threadsafe(loop.stop)
             loop.close()
 
-    event_thread = Thread(
-        target=_thread_loop_runner, args=(loop_future,), daemon=True
-    )
+    event_thread = Thread(target=_thread_loop_runner, args=(loop_future,), daemon=True)
     event_thread.start()
     worker_event_loop = loop_future.result(timeout=5)
 
@@ -1893,9 +1827,7 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         initializer = BroadcastTestFakeRuntimeInitializer(
             all_caller_ids, service_type="Server"
         )
-        handle_future = runtime_manager.register_runtime_initializer(
-            initializer
-        )
+        handle_future = runtime_manager.register_runtime_initializer(initializer)
         runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
         runtime_handle = handle_future.result(timeout=10)
         runtime_handles_for_cleanup.append(runtime_handle)

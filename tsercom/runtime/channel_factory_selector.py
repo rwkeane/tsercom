@@ -59,21 +59,13 @@ class ChannelFactorySelector:
             ValueError: If a BaseChannelAuthConfig subclass is provided but
                         is not recognized, or files not accessible.
         """
-        if auth_config is None or isinstance(
-            auth_config, InsecureChannelConfig
-        ):
-            logger.info(
-                "Creating GrpcChannelFactory for insecure configuration."
-            )
+        if auth_config is None or isinstance(auth_config, InsecureChannelConfig):
+            logger.info("Creating GrpcChannelFactory for insecure configuration.")
             return InsecureGrpcChannelFactory()
 
         if isinstance(auth_config, ServerCAChannelConfig):
-            logger.info(
-                "Creating GrpcChannelFactory for Server CA configuration."
-            )
-            ca_cert_pem = self._read_file_content(
-                auth_config.server_ca_cert_path
-            )
+            logger.info("Creating GrpcChannelFactory for Server CA configuration.")
+            ca_cert_pem = self._read_file_content(auth_config.server_ca_cert_path)
             if not ca_cert_pem:
 
                 raise ValueError(
@@ -86,9 +78,7 @@ class ChannelFactorySelector:
             )
 
         if isinstance(auth_config, PinnedServerChannelConfig):
-            logger.info(
-                "Creating GrpcChannelFactory for Pinned Server configuration."
-            )
+            logger.info("Creating GrpcChannelFactory for Pinned Server configuration.")
             pinned_cert_pem = self._read_file_content(
                 auth_config.pinned_server_cert_path
             )
@@ -104,15 +94,9 @@ class ChannelFactorySelector:
             )
 
         if isinstance(auth_config, ClientAuthChannelConfig):
-            logger.info(
-                "Creating GrpcChannelFactory for Client Auth configuration."
-            )
-            client_cert_pem = self._read_file_content(
-                auth_config.client_cert_path
-            )
-            client_key_pem = self._read_file_content(
-                auth_config.client_key_path
-            )
+            logger.info("Creating GrpcChannelFactory for Client Auth configuration.")
+            client_cert_pem = self._read_file_content(auth_config.client_cert_path)
+            client_key_pem = self._read_file_content(auth_config.client_key_path)
             if not client_cert_pem or not client_key_pem:
                 # This ValueError does not use string formatting, so no C0209
                 raise ValueError(
@@ -132,6 +116,5 @@ class ChannelFactorySelector:
         # (implicit else after all returns from ifs)
 
         raise ValueError(
-            "Unknown or unsupported ChannelAuthConfig type: %s"
-            % type(auth_config)
+            "Unknown or unsupported ChannelAuthConfig type: %s" % type(auth_config)
         )

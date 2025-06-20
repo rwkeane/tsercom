@@ -134,9 +134,7 @@ def patch_run_on_event_loop(request):
         # If the module itself doesn't exist, there's nothing to patch.
         # This might happen if the codebase structure changes.
         # Allow tests to proceed; they might fail for other reasons if this patch was critical.
-        print(
-            f"Warning: Module {module_path} not found for patching {func_name}."
-        )
+        print(f"Warning: Module {module_path} not found for patching {func_name}.")
         pass
 
 
@@ -175,8 +173,7 @@ def test_create_pair_remote_data_aggregator_wiring(
     # For now, we check it got the thread_pool.
     # Accessing private attributes like _thread_pool is for testing purposes.
     assert (
-        aggregator_in_factory._RemoteDataAggregatorImpl__thread_pool
-        is fake_executor
+        aggregator_in_factory._RemoteDataAggregatorImpl__thread_pool is fake_executor
     )  # Corrected attribute
     assert (
         aggregator_in_factory._RemoteDataAggregatorImpl__client
@@ -215,9 +212,7 @@ def test_create_pair_runtime_command_bridge_wiring(
     wrapper, factory = factory_factory._create_pair(fake_initializer)
 
     # Check LocalRuntimeFactory's bridge
-    assert isinstance(
-        factory._LocalRuntimeFactory__bridge, RuntimeCommandBridge
-    )
+    assert isinstance(factory._LocalRuntimeFactory__bridge, RuntimeCommandBridge)
     bridge_in_factory = factory._LocalRuntimeFactory__bridge
 
     # Check RuntimeWrapper's bridge
@@ -246,10 +241,7 @@ def test_local_runtime_factory_factory_init():
 
     real_exec = ThreadPoolExecutor(max_workers=1)
     factory_fac_real_exec = LocalRuntimeFactoryFactory(thread_pool=real_exec)
-    assert (
-        factory_fac_real_exec._LocalRuntimeFactoryFactory__thread_pool
-        is real_exec
-    )
+    assert factory_fac_real_exec._LocalRuntimeFactoryFactory__thread_pool is real_exec
     real_exec.shutdown()
 
 
@@ -282,16 +274,13 @@ def test_create_factory_calls_create_pair(
     assert isinstance(factory, LocalRuntimeFactory)
     assert factory._LocalRuntimeFactory__initializer is fake_initializer
     assert (
-        handle._RuntimeWrapper__aggregator
-        is factory._LocalRuntimeFactory__data_reader
+        handle._RuntimeWrapper__aggregator is factory._LocalRuntimeFactory__data_reader
     )  # Corrected attribute
     assert (
         handle._RuntimeWrapper__event_poller
         is factory._LocalRuntimeFactory__event_poller
     )
-    assert (
-        handle._RuntimeWrapper__bridge is factory._LocalRuntimeFactory__bridge
-    )
+    assert handle._RuntimeWrapper__bridge is factory._LocalRuntimeFactory__bridge
 
     # Check that the initializer passed to LocalRuntimeFactory has the correct RuntimeConfig attributes
     # based on the fake_initializer passed to _create_pair.
@@ -300,13 +289,9 @@ def test_create_factory_calls_create_pair(
     # Compare with the actual enum value
     # factory._RuntimeConfig__service_type is already the enum set by RuntimeConfig.__init__
     # fake_initializer.service_type_enum provides the enum from the fake
+    assert factory._RuntimeConfig__service_type == fake_initializer.service_type_enum
     assert (
-        factory._RuntimeConfig__service_type
-        == fake_initializer.service_type_enum
-    )
-    assert (
-        factory.data_aggregator_client
-        == fake_initializer.data_aggregator_client
+        factory.data_aggregator_client == fake_initializer.data_aggregator_client
     )  # property access
     assert (
         factory.timeout_seconds == fake_initializer.timeout_seconds
@@ -360,10 +345,7 @@ def test_create_pair_aggregator_no_timeout(
     # Check positional arguments (self, thread_pool, client)
     # args[0] is self (the RemoteDataAggregatorImpl instance)
     # args[1] should be the thread_pool from factory_factory
-    assert (
-        call_args.args[1]
-        is factory_factory._LocalRuntimeFactoryFactory__thread_pool
-    )
+    assert call_args.args[1] is factory_factory._LocalRuntimeFactoryFactory__thread_pool
 
     # Check client argument (it's initializer_no_timeout.data_aggregator_client, which is None by default for FakeRuntimeInitializer)
     client_arg_from_call = None
@@ -372,9 +354,7 @@ def test_create_pair_aggregator_no_timeout(
     elif "client" in call_args.kwargs:  # Check if passed as keyword
         client_arg_from_call = call_args.kwargs["client"]
 
-    assert (
-        client_arg_from_call is initializer_no_timeout.data_aggregator_client
-    )
+    assert client_arg_from_call is initializer_no_timeout.data_aggregator_client
 
     # Check keyword arguments
     # When timeout is None in initializer, _create_pair does not pass 'timeout' or 'tracker' kwargs.

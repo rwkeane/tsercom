@@ -63,6 +63,4 @@ class TestDefaultMultiprocessQueueFactory:
                 data_to_send == received_data
             ), "Data sent and received via Sink/Source are not equal."
         except Exception as e:
-            pytest.fail(
-                f"Data transfer via Sink/Source failed with exception: {e}"
-            )
+            pytest.fail(f"Data transfer via Sink/Source failed with exception: {e}")

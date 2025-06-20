@@ -44,9 +44,7 @@ class MockThreadWatcher(ThreadWatcher):
 
         # We must use the *actual* `on_exception_seen` from the watcher instance that EventLoopFactory holds,
         # which is `self` in this mocked context when `EventLoopFactory(mock_watcher)` is used.
-        thread = ThrowingThread(
-            target=target, on_error_cb=self.on_exception_seen
-        )
+        thread = ThrowingThread(target=target, on_error_cb=self.on_exception_seen)
         self.tracked_threads_created.append(thread)
         return thread
 
@@ -109,9 +107,7 @@ class TestEventLoopFactory:
 
     def test_constructor_watcher_validation(self, mocker) -> None:
         """Test watcher validation in EventLoopFactory constructor."""
-        with pytest.raises(
-            ValueError, match="Watcher argument cannot be None"
-        ):
+        with pytest.raises(ValueError, match="Watcher argument cannot be None"):
             EventLoopFactory(watcher=None)  # type: ignore
 
         # mocker.MagicMock(spec=ThreadWatcher) will fail issubclass check because type is MagicMock
@@ -143,9 +139,7 @@ class TestEventLoopFactory:
         try:
             EventLoopFactory(watcher=real_watcher)
         except AssertionError:
-            pytest.fail(
-                "EventLoopFactory init failed with a real ThreadWatcher."
-            )
+            pytest.fail("EventLoopFactory init failed with a real ThreadWatcher.")
 
         mocked_watcher = MockThreadWatcher()
         try:

@@ -34,9 +34,7 @@ class EventLoopFactory:
             TypeError: If watcher is not a subclass of ThreadWatcher.
         """
         if watcher is None:
-            raise ValueError(
-                "Watcher argument cannot be None for EventLoopFactory."
-            )
+            raise ValueError("Watcher argument cannot be None for EventLoopFactory.")
         if not issubclass(type(watcher), ThreadWatcher):
 
             raise TypeError(

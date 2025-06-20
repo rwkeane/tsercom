@@ -78,9 +78,7 @@ class TestThreadWatcher:
 
         watcher_thread.join(timeout=0.5)  # Should unblock and finish quickly
 
-        assert (
-            not watcher_thread.is_alive()
-        ), "Watcher thread should have exited."
+        assert not watcher_thread.is_alive(), "Watcher thread should have exited."
         assert len(thread_exceptions) == 1
         assert isinstance(thread_exceptions[0], ExcTwo)
         assert str(thread_exceptions[0]) == "Test error 2"
@@ -139,17 +137,13 @@ class TestThreadWatcher:
         time.sleep(
             0.1
         )  # Give thread time to start and block on self.watcher._ThreadWatcher__barrier.wait()
-        assert (
-            watcher_thread.is_alive()
-        ), "Watcher thread should be alive and blocking."
+        assert watcher_thread.is_alive(), "Watcher thread should be alive and blocking."
         assert not self.watcher._ThreadWatcher__barrier.is_set()  # type: ignore
 
         # Now, trigger the exception
         self.watcher.on_exception_seen(test_exception)
 
-        watcher_thread.join(
-            timeout=0.5
-        )  # Thread should now unblock and terminate
+        watcher_thread.join(timeout=0.5)  # Thread should now unblock and terminate
 
         assert (
             not watcher_thread.is_alive()
@@ -176,9 +170,7 @@ class TestThreadWatcher:
         )  # Wait for the thread to complete (it will die due to unhandled exc)
 
         # Assert that ThreadWatcher DID see the exception from the target
-        with pytest.raises(
-            ExcFromTarget, match="Error from ThrowingThread target"
-        ):
+        with pytest.raises(ExcFromTarget, match="Error from ThrowingThread target"):
             self.watcher.check_for_exception()
 
         # Verify the barrier WAS set
@@ -229,18 +221,14 @@ class TestThreadWatcher:
     def test_create_tracked_thread_pool_executor_task_exception(self) -> None:
         """Test ThreadPoolExecutor integration where a task raises an exception."""
         error_message = "Error from pooled task"
-        executor = self.watcher.create_tracked_thread_pool_executor(
-            max_workers=1
-        )
+        executor = self.watcher.create_tracked_thread_pool_executor(max_workers=1)
 
         future: Future[None] = executor.submit(
             lambda: self.target_that_raises(ExcFromTarget, error_message)
         )
 
         with pytest.raises(ExcFromTarget, match=error_message):
-            future.result(
-                timeout=0.5
-            )  # Task exception should propagate to future
+            future.result(timeout=0.5)  # Task exception should propagate to future
 
         # Wait for the callback to be processed by ThreadWatcher
         # This requires the callback to have set the barrier.
@@ -298,9 +286,7 @@ class TestThreadWatcher:
         except Exception as e:
             raised_exception = e
 
-        assert (
-            raised_exception is not None
-        ), "An exception should have been raised."
+        assert raised_exception is not None, "An exception should have been raised."
         # Check if the raised exception is one of the ones we sent
         assert any(
             str(raised_exception) == str(exp_exc)
@@ -339,9 +325,7 @@ class TestThreadWatcher:
         watcher_thread.start()
 
         time.sleep(0.1)  # Let it run and block
-        assert (
-            watcher_thread.is_alive()
-        ), "Watcher thread should be alive and blocking."
+        assert watcher_thread.is_alive(), "Watcher thread should be alive and blocking."
         assert not self.watcher._ThreadWatcher__barrier.is_set()  # type: ignore
 
         # To make the test terminate cleanly without relying on daemon thread being killed abruptly:

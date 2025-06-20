@@ -172,9 +172,7 @@ def initialize_runtimes(
 
             except Exception as e_callback:
                 # Log errors within the callback itself to prevent ThreadWatcher issues.
-                logger.error(
-                    "Error in _runtime_start_done_callback: %s", e_callback
-                )
+                logger.error("Error in _runtime_start_done_callback: %s", e_callback)
 
         future.add_done_callback(
             partial(_runtime_start_done_callback, watcher=thread_watcher)
@@ -248,9 +246,7 @@ def remote_process_main(
             factory._stop()
 
         except Exception as e_factory_stop:
-            logger.error(
-                "Error stopping factory %s: %s", factory, e_factory_stop
-            )
+            logger.error("Error stopping factory %s: %s", factory, e_factory_stop)
 
     logger.info("Remote process cleanup complete.")
 
@@ -269,7 +265,5 @@ def remote_process_main(
                 error_queue.put_nowait(captured_exception)
 
             except Exception as q_e:
-                logger.error(
-                    "Failed to put exception onto error_queue: %s", q_e
-                )
+                logger.error("Failed to put exception onto error_queue: %s", q_e)
         raise captured_exception

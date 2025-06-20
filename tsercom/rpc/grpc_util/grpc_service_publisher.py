@@ -93,9 +93,7 @@ class GrpcServicePublisher:
         worked = 0
         for address in self.__addresses:
             try:
-                port_out = self.__server.add_insecure_port(
-                    f"{address}:{self.__port}"
-                )
+                port_out = self.__server.add_insecure_port(f"{address}:{self.__port}")
                 logging.info(
                     "Running gRPC Server on %s:%s (expected: %s)",
                     address,
@@ -103,9 +101,7 @@ class GrpcServicePublisher:
                     self.__port,
                 )
                 worked += 1
-            except (
-                RuntimeError
-            ) as e:  # More specific for port binding/setup issues
+            except RuntimeError as e:  # More specific for port binding/setup issues
                 if isinstance(
                     e, AssertionError
                 ):  # AssertionError is a RuntimeError subtype

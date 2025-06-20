@@ -19,9 +19,7 @@ async def test_set_then_get_id():
     # Get the ID
     retrieved_cid = await waiter.get_caller_id_async()
 
-    assert (
-        retrieved_cid is cid
-    ), "Retrieved CID should be the same as the one set."
+    assert retrieved_cid is cid, "Retrieved CID should be the same as the one set."
 
 
 @pytest.mark.asyncio

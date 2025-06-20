@@ -47,36 +47,28 @@ class Publisher:
             weakref.WeakSet()
         )
 
-    def _add_aggregator(
-        self, aggregator: "AggregateTensorMultiplexer"
-    ) -> None:
+    def _add_aggregator(self, aggregator: "AggregateTensorMultiplexer") -> None:
         """
         Registers an AggregateTensorMultiplexer to receive updates from this publisher.
         Typically called by AggregateTensorMultiplexer.register_publisher.
         """
         self._aggregators.add(aggregator)
 
-    def _remove_aggregator(
-        self, aggregator: "AggregateTensorMultiplexer"
-    ) -> None:
+    def _remove_aggregator(self, aggregator: "AggregateTensorMultiplexer") -> None:
         """
         Unregisters an AggregateTensorMultiplexer from this publisher.
         Typically called by AggregateTensorMultiplexer.unregister_publisher or its cleanup.
         """
         self._aggregators.discard(aggregator)
 
-    async def publish(
-        self, tensor: torch.Tensor, timestamp: datetime.datetime
-    ) -> None:
+    async def publish(self, tensor: torch.Tensor, timestamp: datetime.datetime) -> None:
         """
         Publishes a new tensor snapshot to all registered AggregateTensorMultiplexer instances.
         """
         # Iterate over a copy of the set in case of modifications during iteration
         # (though _notify_update_from_publisher is not expected to modify _aggregators directly)
         for aggregator in list(self._aggregators):
-            await aggregator._notify_update_from_publisher(
-                self, tensor, timestamp
-            )
+            await aggregator._notify_update_from_publisher(self, tensor, timestamp)
 
 
 class AggregateTensorMultiplexer(TensorMultiplexer):
@@ -102,18 +94,12 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             self.__aggregator_ref = aggregator_ref
             self.__publisher_start_index = publisher_start_index
 
-        async def on_chunk_update(
-            self, chunk: "SerializableTensorChunk"
-        ) -> None:
-            aggregator: "Optional[AggregateTensorMultiplexer]" = (
-                self.__aggregator_ref()
-            )
+        async def on_chunk_update(self, chunk: "SerializableTensorChunk") -> None:
+            aggregator: "Optional[AggregateTensorMultiplexer]" = self.__aggregator_ref()
             if not aggregator:
                 return
 
-            global_start_index = (
-                self.__publisher_start_index + chunk.starting_index
-            )
+            global_start_index = self.__publisher_start_index + chunk.starting_index
             main_client_chunk = SerializableTensorChunk(
                 tensor=chunk.tensor,
                 timestamp=chunk.timestamp,
@@ -142,18 +128,14 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                     current_max_ts_for_cleanup
                 )  # Internal method call
 
-                history_idx = aggregator._find_insertion_point(
-                    agg_timestamp_dt
-                )
+                history_idx = aggregator._find_insertion_point(agg_timestamp_dt)
                 current_tensor_state: Optional[torch.Tensor] = None
 
                 if (
                     0 <= history_idx < len(aggregator.history)
                     and aggregator.history[history_idx][0] == agg_timestamp_dt
                 ):
-                    current_tensor_state = aggregator.history[history_idx][
-                        1
-                    ].clone()
+                    current_tensor_state = aggregator.history[history_idx][1].clone()
                 else:
                     if aggregator.actual_aggregate_length > 0:  # Use property
                         current_tensor_state = torch.zeros(
@@ -169,14 +151,10 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 if current_tensor_state is not None:
                     for i, value_item in enumerate(chunk.tensor.tolist()):
                         global_idx_for_history = (
-                            self.__publisher_start_index
-                            + chunk.starting_index
-                            + i
+                            self.__publisher_start_index + chunk.starting_index + i
                         )
                         if global_idx_for_history < len(current_tensor_state):
-                            current_tensor_state[global_idx_for_history] = (
-                                value_item
-                            )
+                            current_tensor_state[global_idx_for_history] = value_item
                         else:
                             print(
                                 f"Error (ATM.on_chunk_update): global_idx {global_idx_for_history} out of bounds for agg tensor len {len(current_tensor_state)}."
@@ -185,8 +163,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
 
                     if (
                         0 <= history_idx < len(aggregator.history)
-                        and aggregator.history[history_idx][0]
-                        == agg_timestamp_dt
+                        and aggregator.history[history_idx][0] == agg_timestamp_dt
                     ):
                         aggregator.history[history_idx] = (
                             agg_timestamp_dt,
@@ -214,9 +191,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                     # For now, assuming it will be handled by a setter or directly if property allows write.
                     # This will be self.__latest_processed_timestamp = potential_latest_ts
                     # Use the private setter method instead of direct mangled access
-                    aggregator._set_latest_processed_timestamp(
-                        potential_latest_ts
-                    )
+                    aggregator._set_latest_processed_timestamp(potential_latest_ts)
 
     def __init__(
         self,
@@ -320,9 +295,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                     kwargs.get("tensor_length") is not None
                     or kwargs.get("index_range") is not None
                 ):
-                    raise TypeError(
-                        "Invalid keyword arguments for append mode."
-                    )
+                    raise TypeError("Invalid keyword arguments for append mode.")
             elif (
                 len(args) == 2
                 and isinstance(args[0], range)
@@ -338,9 +311,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                         "Invalid keyword arguments for specific range mode."
                     )
             else:
-                raise TypeError(
-                    f"Invalid arguments to add_to_aggregation: {args}"
-                )
+                raise TypeError(f"Invalid arguments to add_to_aggregation: {args}")
 
             if isinstance(arg1, int):  # Append mode (from Overload 1)
                 # arg2 should be None here from parsing logic above
@@ -355,9 +326,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 self.__actual_aggregate_length = (
                     self.__current_max_index
                 )  # Update new name
-            elif isinstance(
-                arg1, range
-            ):  # Specific range mode (from Overload 2)
+            elif isinstance(arg1, range):  # Specific range mode (from Overload 2)
                 # arg2 should be an int (tensor_length) here
                 if arg2 is None:
                     # This case should ideally not be reached
@@ -400,16 +369,12 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 )
 
             if current_tensor_len <= 0:
-                raise ValueError(
-                    "Tensor length for publisher must be positive."
-                )
+                raise ValueError("Tensor length for publisher must be positive.")
 
             # Check if this publisher instance is already registered
             for info in self.__publishers_info:
                 if info["publisher_instance"] == publisher:
-                    raise ValueError(
-                        f"Publisher {publisher} is already registered."
-                    )
+                    raise ValueError(f"Publisher {publisher} is already registered.")
 
             typed_self: AggregateTensorMultiplexer = self
             internal_client = self._InternalClient(
@@ -500,9 +465,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 f"Warning: Received update from unregistered or unknown publisher {id(publisher)}."
             )
 
-    def _cleanup_old_data(
-        self, current_max_timestamp: datetime.datetime
-    ) -> None:
+    def _cleanup_old_data(self, current_max_timestamp: datetime.datetime) -> None:
         """
         Removes tensor snapshots from the aggregate history that are older
         than data_timeout_seconds relative to the current_max_timestamp.
@@ -545,9 +508,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
     @property
     def latest_processed_timestamp_property(
         self,
-    ) -> Optional[
-        datetime.datetime
-    ]:  # Renamed to avoid clash with base if any
+    ) -> Optional[datetime.datetime]:  # Renamed to avoid clash with base if any
         """Gets the latest timestamp processed by the aggregator, for internal client use."""
         return self.__latest_processed_timestamp
 
@@ -563,8 +524,6 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         """Gets the list of publisher information dictionaries for testing."""
         return self.__publishers_info
 
-    def _set_latest_processed_timestamp(
-        self, timestamp: datetime.datetime
-    ) -> None:
+    def _set_latest_processed_timestamp(self, timestamp: datetime.datetime) -> None:
         """Internal method to set the latest processed timestamp."""
         self.__latest_processed_timestamp = timestamp

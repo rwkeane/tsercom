@@ -54,9 +54,7 @@ class SplitProcessErrorWatcherSource:
                 remote_exception = self.__queue.get_blocking(timeout=1)
                 if remote_exception is not None:
                     try:
-                        self.__thread_watcher.on_exception_seen(
-                            remote_exception
-                        )
+                        self.__thread_watcher.on_exception_seen(remote_exception)
 
                     except Exception as e_seen:
                         # Long but readable error log

@@ -35,9 +35,7 @@ async def mock_aio_utils_fixture(monkeypatch, mocker):
         name="mock_run_on_event_loop_sync_exec_in_connector"
     )
 
-    def simplified_run_on_loop_side_effect(
-        partial_func, loop=None, *args, **kwargs
-    ):
+    def simplified_run_on_loop_side_effect(partial_func, loop=None, *args, **kwargs):
         target_func_name = getattr(partial_func.func, "__name__", "N/A")
         effective_loop = loop if loop else asyncio.get_running_loop()
 
@@ -61,9 +59,7 @@ async def mock_aio_utils_fixture(monkeypatch, mocker):
         f.set_result(None)
         return f
 
-    mock_run_on_event_loop_sync_exec.side_effect = (
-        simplified_run_on_loop_side_effect
-    )
+    mock_run_on_event_loop_sync_exec.side_effect = simplified_run_on_loop_side_effect
     mock_get_running_loop = mocker.MagicMock(
         name="mock_get_running_loop_or_none_in_connector"
     )
@@ -115,9 +111,7 @@ class TestServiceConnector:
     @pytest.fixture
     def mock_service_source(self, mocker):
         source = mocker.MagicMock(spec=ServiceSource)
-        source.start_discovery = mocker.AsyncMock(
-            name="service_source_start_discovery"
-        )
+        source.start_discovery = mocker.AsyncMock(name="service_source_start_discovery")
         return source
 
     @pytest.fixture
@@ -143,9 +137,9 @@ class TestServiceConnector:
         mock_connection_factory,
         mock_service_source,
     ):
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             client=mock_client,
             connection_factory=mock_connection_factory,
             service_source=mock_service_source,
@@ -155,9 +149,7 @@ class TestServiceConnector:
             connector._ServiceConnector__connection_factory  # Updated attribute
             is mock_connection_factory
         )
-        assert (
-            connector._ServiceConnector__service_source is mock_service_source
-        )
+        assert connector._ServiceConnector__service_source is mock_service_source
         assert connector._ServiceConnector__callers == set()
         assert connector._ServiceConnector__event_loop is None
 
@@ -167,9 +159,9 @@ class TestServiceConnector:
         mock_connection_factory,
         mock_service_source,
     ):
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             mock_client,
             mock_connection_factory,
             mock_service_source,
@@ -186,9 +178,9 @@ class TestServiceConnector:
         test_caller_id,
         mock_grpc_channel,
     ):
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             mock_client,
             mock_connection_factory,
             mock_service_source,
@@ -219,9 +211,9 @@ class TestServiceConnector:
         test_service_info,  # Fixture for a ServiceInfo (to get a name)
     ):
         """Tests that _on_service_removed removes the caller_id and logs appropriately."""
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             mock_client,
             mock_connection_factory,
             mock_service_source,
@@ -235,9 +227,7 @@ class TestServiceConnector:
         test_service_name = test_service_info.mdns_name
 
         # Patch the logger for this specific test to check log messages
-        mock_logger = mocker.patch(
-            "tsercom.discovery.service_connector._logger"
-        )
+        mock_logger = mocker.patch("tsercom.discovery.service_connector._logger")
 
         await connector._on_service_removed(test_service_name, test_caller_id)
 
@@ -254,9 +244,7 @@ class TestServiceConnector:
         # Test case: Caller ID not found (should log a warning)
         mock_logger.reset_mock()
         non_existent_caller_id = CallerIdentifier.random()
-        await connector._on_service_removed(
-            test_service_name, non_existent_caller_id
-        )
+        await connector._on_service_removed(test_service_name, non_existent_caller_id)
 
         mock_logger.warning.assert_called_once_with(
             f"CallerID {non_existent_caller_id} for removed service {test_service_name} "
@@ -266,9 +254,7 @@ class TestServiceConnector:
 
         # Test case: Event loop not running (should log a warning)
         mock_logger.reset_mock()
-        connector._ServiceConnector__event_loop = (
-            None  # Simulate no event loop
-        )
+        connector._ServiceConnector__event_loop = None  # Simulate no event loop
         connector._ServiceConnector__callers.add(
             test_caller_id
         )  # Re-add for this test part
@@ -291,9 +277,9 @@ class TestServiceConnector:
         test_service_info,
         test_caller_id,
     ):
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             mock_client,
             mock_connection_factory,
             mock_service_source,
@@ -315,9 +301,9 @@ class TestServiceConnector:
         test_service_info,
         test_caller_id,
     ):
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             mock_client,
             mock_connection_factory,
             mock_service_source,
@@ -337,9 +323,9 @@ class TestServiceConnector:
         test_caller_id,
     ):
         self.mocked_aio_utils = mock_aio_utils_fixture
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             mock_client,
             mock_connection_factory,
             mock_service_source,
@@ -362,9 +348,9 @@ class TestServiceConnector:
         test_caller_id,
     ):
         self.mocked_aio_utils = mock_aio_utils_fixture
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             mock_client,
             mock_connection_factory,
             mock_service_source,
@@ -379,9 +365,7 @@ class TestServiceConnector:
         await connector.mark_client_failed(test_caller_id)
         await asyncio.sleep(0)
         self.mocked_aio_utils["run_on_event_loop"].assert_called_once()
-        call_args_list = self.mocked_aio_utils[
-            "run_on_event_loop"
-        ].call_args_list
+        call_args_list = self.mocked_aio_utils["run_on_event_loop"].call_args_list
         assert len(call_args_list) == 1
         partial_arg = call_args_list[0][0][0]
         loop_arg = call_args_list[0][0][1]
@@ -403,9 +387,9 @@ class TestServiceConnector:
     ):
         """Tests that after mark_client_failed, a service can be re-added and reconnected."""
         self.mocked_aio_utils = mock_aio_utils_fixture
-        connector: ServiceConnector[
+        connector: ServiceConnector[ServiceInfo, grpc.Channel] = ServiceConnector[
             ServiceInfo, grpc.Channel
-        ] = ServiceConnector[ServiceInfo, grpc.Channel](
+        ](
             mock_client,
             mock_connection_factory,
             mock_service_source,

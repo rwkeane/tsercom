@@ -45,9 +45,7 @@ class TorchMemcpyQueueFactory(
     def __init__(
         self,
         ctx_method: str = "spawn",
-        context: Optional[
-            std_mp.context.BaseContext
-        ] = None,  # Corrected type hint
+        context: Optional[std_mp.context.BaseContext] = None,  # Corrected type hint
         tensor_accessor: Optional[
             Callable[[Any], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
@@ -113,21 +111,15 @@ class TorchMemcpyQueueSource(
         self,
         queue: "mp.Queue[QueueElementT]",
         tensor_accessor: Optional[
-            Callable[
-                [QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]
-            ]
+            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
     ) -> None:
         super().__init__(queue)
         self._tensor_accessor: Optional[
-            Callable[
-                [QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]
-            ]
+            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = tensor_accessor
 
-    def get_blocking(
-        self, timeout: float | None = None
-    ) -> QueueElementT | None:
+    def get_blocking(self, timeout: float | None = None) -> QueueElementT | None:
         """
         Gets an item from the queue. If a tensor_accessor is provided, it's used
         to find and call share_memory_() on any torch.Tensor objects within the item.
@@ -151,9 +143,7 @@ class TorchMemcpyQueueSource(
                     else:  # Assuming it's an Iterable of Tensors
                         # Filter to ensure only tensors are processed if accessor returns mixed iterable
                         tensors_to_share = [
-                            t
-                            for t in tensors_or_tensor
-                            if isinstance(t, torch.Tensor)
+                            t for t in tensors_or_tensor if isinstance(t, torch.Tensor)
                         ]
 
                     for tensor_item in tensors_to_share:
@@ -186,21 +176,15 @@ class TorchMemcpyQueueSink(
         self,
         queue: "mp.Queue[QueueElementT]",
         tensor_accessor: Optional[
-            Callable[
-                [QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]
-            ]
+            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
     ) -> None:
         super().__init__(queue)
         self._tensor_accessor: Optional[
-            Callable[
-                [QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]
-            ]
+            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = tensor_accessor
 
-    def put_blocking(
-        self, obj: QueueElementT, timeout: float | None = None
-    ) -> bool:
+    def put_blocking(self, obj: QueueElementT, timeout: float | None = None) -> bool:
         """
         Puts an item into the queue. If a tensor_accessor is provided, it's used
         to find and call share_memory_() on any torch.Tensor objects.
@@ -223,9 +207,7 @@ class TorchMemcpyQueueSink(
                     # We need to be careful if the iterable could be empty or contain non-tensors by mistake
                     # For now, assume it's an iterable of tensors if not a single tensor or None
                     tensors_to_share = [
-                        t
-                        for t in tensors_or_tensor
-                        if isinstance(t, torch.Tensor)
+                        t for t in tensors_or_tensor if isinstance(t, torch.Tensor)
                     ]
 
                 for tensor_item in tensors_to_share:

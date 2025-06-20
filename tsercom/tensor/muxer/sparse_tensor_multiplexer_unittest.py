@@ -95,9 +95,7 @@ def create_expected_chunks_for_diff(
     if len(old_tensor) != len(new_tensor):
         # This should not happen in normal operation of SparseTensorMultiplexer's _emit_diff
         # but good for robustness of the helper.
-        if (
-            len(new_tensor) == tensor_length
-        ):  # Assume new_tensor is correct length
+        if len(new_tensor) == tensor_length:  # Assume new_tensor is correct length
             old_tensor = torch.zeros(
                 tensor_length, dtype=new_tensor.dtype
             )  # Diff against zeros
@@ -136,9 +134,7 @@ def create_expected_chunks_for_diff(
             current_chunk_start_index = index
             current_chunk_end_index = index
 
-    chunk_data = new_tensor[
-        current_chunk_start_index : current_chunk_end_index + 1
-    ]
+    chunk_data = new_tensor[current_chunk_start_index : current_chunk_end_index + 1]
     chunk = SerializableTensorChunk(
         tensor=chunk_data,
         timestamp=sync_timestamp,
@@ -160,12 +156,8 @@ def assert_chunks_equal(
         assert (
             r_chunk.starting_index == e_chunk.starting_index
         ), "Chunk start_index mismatch"
-        assert torch.equal(
-            r_chunk.tensor, e_chunk.tensor
-        ), "Chunk tensor data mismatch"
-        assert (
-            r_chunk.timestamp == e_chunk.timestamp
-        ), "Chunk timestamp mismatch"
+        assert torch.equal(r_chunk.tensor, e_chunk.tensor), "Chunk tensor data mismatch"
+        assert r_chunk.timestamp == e_chunk.timestamp, "Chunk timestamp mismatch"
 
 
 # --- Test Cases ---
@@ -177,9 +169,7 @@ async def test_constructor_validations(
 ):
     fake_clock = FakeSynchronizedClock()
     with pytest.raises(ValueError, match="Tensor length must be positive"):
-        SparseTensorMultiplexer(
-            client=mock_client, tensor_length=0, clock=fake_clock
-        )
+        SparseTensorMultiplexer(client=mock_client, tensor_length=0, clock=fake_clock)
     with pytest.raises(ValueError, match="Data timeout must be positive"):
         SparseTensorMultiplexer(
             client=mock_client,
@@ -218,9 +208,7 @@ async def test_simple_update_scenario1(
     await mpx.process_tensor(tensor1, T1)
     mock_client.clear_calls()
 
-    tensor2 = torch.tensor(
-        [1.0, 2.0, 99.0, 4.0, 88.0]
-    )  # Changes at index 2 and 4
+    tensor2 = torch.tensor([1.0, 2.0, 99.0, 4.0, 88.0])  # Changes at index 2 and 4
     await mpx.process_tensor(tensor2, T2)
 
     expected_chunks = create_expected_chunks_for_diff(
@@ -275,9 +263,7 @@ async def test_update_at_same_timestamp_different_data(
     await mpx.process_tensor(tensor1_at_T1, T1)
     mock_client.clear_calls()
 
-    tensor2_at_T1 = torch.tensor(
-        [1.0, 9.0, 0.0, 8.0, 0.0]
-    )  # Updated state for T1
+    tensor2_at_T1 = torch.tensor([1.0, 9.0, 0.0, 8.0, 0.0])  # Updated state for T1
     await mpx.process_tensor(tensor2_at_T1, T1)
 
     # When updating an existing timestamp, diff is against state *before* that timestamp.
@@ -432,6 +418,4 @@ async def test_contiguous_and_non_contiguous_changes(
         assert received_chunks[0].starting_index == 0
         assert torch.equal(received_chunks[0].tensor, torch.tensor([10.0]))
         assert received_chunks[1].starting_index == 2
-        assert torch.equal(
-            received_chunks[1].tensor, torch.tensor([30.0, 40.0])
-        )
+        assert torch.equal(received_chunks[1].tensor, torch.tensor([30.0, 40.0]))

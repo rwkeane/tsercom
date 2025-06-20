@@ -50,9 +50,7 @@ class SerializableTensorUpdate:
             for chunk_msg in grpc_msg.chunks
         ]
         parsed_chunks = [
-            chunk
-            for chunk in parsed_chunks_potentially_none
-            if chunk is not None
+            chunk for chunk in parsed_chunks_potentially_none if chunk is not None
         ]
 
         if len(parsed_chunks) != len(grpc_msg.chunks):

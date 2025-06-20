@@ -84,9 +84,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
         """
 
         if client is None:
-            raise ValueError(
-                "Client argument cannot be None for create_factory."
-            )
+            raise ValueError("Client argument cannot be None for create_factory.")
         if not isinstance(client, RuntimeFactoryFactory.Client):
             # Long but readable error message string
             raise TypeError(

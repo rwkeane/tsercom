@@ -61,9 +61,7 @@ class FakeMdnsListener(MdnsListener):
         if not (
             hasattr(self._actual_zc_to_potentially_close, "async_close")
             and isinstance(
-                getattr(
-                    self._actual_zc_to_potentially_close, "async_close", None
-                ),
+                getattr(self._actual_zc_to_potentially_close, "async_close", None),
                 AsyncMock,
             )
         ):
@@ -84,23 +82,17 @@ class FakeMdnsListener(MdnsListener):
         """Performs conditional close of the underlying zeroconf instance."""
         if not self._is_shared_zc:
             # Only await if it's an AsyncMock, otherwise, it might be a real instance not for this test path
-            if isinstance(
-                self._actual_zc_to_potentially_close.async_close, AsyncMock
-            ):
+            if isinstance(self._actual_zc_to_potentially_close.async_close, AsyncMock):
                 await self._actual_zc_to_potentially_close.async_close()
             else:  # Should not happen in correctly set up tests
                 pass
         # else: the shared instance's async_close should not be called by this listener
 
     async def update_service(self, zc: Any, type_: str, name: str) -> None:
-        self.update_service_calls.append(
-            {"zc": zc, "type_": type_, "name": name}
-        )
+        self.update_service_calls.append({"zc": zc, "type_": type_, "name": name})
 
     async def remove_service(self, zc: Any, type_: str, name: str) -> None:
-        self.remove_service_calls.append(
-            {"zc": zc, "type_": type_, "name": name}
-        )
+        self.remove_service_calls.append({"zc": zc, "type_": type_, "name": name})
         # Simulate calling the client's _on_service_removed if it exists
         if hasattr(self.client, "_on_service_removed") and callable(
             getattr(self.client, "_on_service_removed")
@@ -120,9 +112,7 @@ class FakeMdnsListener(MdnsListener):
         txt_record: Dict[bytes, bytes | None],
     ) -> None:
         if self.client:
-            await self.client._on_service_added(
-                name, port, addresses, txt_record
-            )
+            await self.client._on_service_added(name, port, addresses, txt_record)
         else:
             raise RuntimeError("FakeMdnsListener.client is not set.")
 
@@ -138,37 +128,23 @@ FClientServiceInfo = TypeVar("FClientServiceInfo", bound=ServiceInfo)
 
 # InstanceListener.Client is now Generic[TServiceInfo], so FakeInstanceListenerClient
 # just needs to inherit from it with its specific type var.
-class FakeInstanceListenerClient(
-    InstanceListener.Client, Generic[FClientServiceInfo]
-):
+class FakeInstanceListenerClient(InstanceListener.Client, Generic[FClientServiceInfo]):
     def __init__(self):
         # _on_service_added_mock is an AsyncMock to spy on the _on_service_added method.
         self._on_service_added_mock: AsyncMock = AsyncMock()
-        self._on_service_removed_mock: AsyncMock = (
-            AsyncMock()
-        )  # Mock for removal
+        self._on_service_removed_mock: AsyncMock = AsyncMock()  # Mock for removal
         # For manual tracking if preferred.
         self.received_services: List[FClientServiceInfo] = []
-        self.removed_service_names: List[str] = (
-            []
-        )  # To store names of removed services
-        self.added_event: Optional[asyncio.Event] = (
-            None  # Event for added services
-        )
-        self.removed_event: Optional[asyncio.Event] = (
-            None  # Event for removed services
-        )
+        self.removed_service_names: List[str] = []  # To store names of removed services
+        self.added_event: Optional[asyncio.Event] = None  # Event for added services
+        self.removed_event: Optional[asyncio.Event] = None  # Event for removed services
 
     # This is the concrete implementation of the abstract method.
-    async def _on_service_added(
-        self, connection_info: FClientServiceInfo
-    ) -> None:
+    async def _on_service_added(self, connection_info: FClientServiceInfo) -> None:
         """Concrete implementation of the abstract method.
         It calls the AsyncMock to record the call and allow assertions.
         """
-        self.received_services.append(
-            connection_info
-        )  # Optional: direct recording
+        self.received_services.append(connection_info)  # Optional: direct recording
         await self._on_service_added_mock(connection_info)
         if self.added_event:
             self.added_event.set()
@@ -269,16 +245,13 @@ class TestInstanceListener:
         ), "Factory was not called or did not capture listener"
         # Check that the client of the FakeMdnsListener is the InstanceListener instance
         assert (
-            TestInstanceListener.captured_fake_mdns_listener.client
-            == instance_listener
+            TestInstanceListener.captured_fake_mdns_listener.client == instance_listener
         )
         assert (
             TestInstanceListener.captured_fake_mdns_listener.service_type
             == self.SERVICE_TYPE
         )
-        assert (
-            instance_listener._InstanceListener__client == self.mock_il_client
-        )
+        assert instance_listener._InstanceListener__client == self.mock_il_client
         assert (
             instance_listener._InstanceListener__listener
             == TestInstanceListener.captured_fake_mdns_listener
@@ -294,9 +267,7 @@ class TestInstanceListener:
             service_type=self.SERVICE_TYPE,
             # No mdns_listener_factory provided
         )
-        assert isinstance(
-            instance_listener._InstanceListener__listener, RecordListener
-        )
+        assert isinstance(instance_listener._InstanceListener__listener, RecordListener)
 
     def test_init_invalid_client_none(self):
         """Test __init__ with client=None raises ValueError."""
@@ -347,9 +318,7 @@ class TestInstanceListener:
         TestInstanceListener.captured_fake_mdns_listener.start.assert_awaited_once()  # Changed to assert_awaited_once
 
     @pytest.mark.asyncio
-    async def test_async_stop_calls_underlying_listener_close(
-        self, mocker: MagicMock
-    ):
+    async def test_async_stop_calls_underlying_listener_close(self, mocker: MagicMock):
         """Test that InstanceListener.async_stop() calls the underlying listener's close method for an owned ZC."""
         # This test ensures the default InstanceListener (no zc_instance passed)
         # will result in its FakeMdnsListener closing its "owned" ZC.
@@ -381,9 +350,7 @@ class TestInstanceListener:
         self, mocker: MagicMock
     ):
         """Test async_stop with a shared ZC does not close the shared ZC instance via the listener."""
-        mock_shared_zc = mocker.AsyncMock(
-            spec=AsyncZeroconf, name="MockSharedZeroconf"
-        )
+        mock_shared_zc = mocker.AsyncMock(spec=AsyncZeroconf, name="MockSharedZeroconf")
         # Explicitly mock async_close on the shared instance for assertion
         mock_shared_zc.async_close = mocker.AsyncMock(
             name="shared_zc_async_close_method"
@@ -403,9 +370,7 @@ class TestInstanceListener:
                 zc_instance=zc_instance_from_listener,  # This should be mock_shared_zc
                 # mocker_fixture=mocker # No longer needed
             )
-            TestInstanceListener.captured_fake_mdns_listener = (
-                created_fake_listener
-            )
+            TestInstanceListener.captured_fake_mdns_listener = created_fake_listener
             return created_fake_listener
 
         instance_listener = InstanceListener[ServiceInfo](
@@ -489,9 +454,7 @@ class TestInstanceListener:
         await instance_listener.start()  # Start the listener
         assert TestInstanceListener.captured_fake_mdns_listener is not None
         invalid_ip_bytes = b"this is not an ip"
-        with patch(
-            "socket.inet_ntoa", side_effect=socket.error("Invalid IP format")
-        ):
+        with patch("socket.inet_ntoa", side_effect=socket.error("Invalid IP format")):
             await TestInstanceListener.captured_fake_mdns_listener.simulate_service_added(
                 "InvalidIPService",
                 8080,

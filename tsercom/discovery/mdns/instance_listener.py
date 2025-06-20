@@ -35,9 +35,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         """
 
         @abstractmethod
-        async def _on_service_added(
-            self, connection_info: ServiceInfoT
-        ) -> None:
+        async def _on_service_added(self, connection_info: ServiceInfoT) -> None:
             """Callback invoked when a new service instance is discovered.
 
             Args:
@@ -115,9 +113,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             )
         else:
             # User-provided factory now needs to handle zc_instance
-            self.__listener = mdns_listener_factory(
-                self, service_type, zc_instance
-            )
+            self.__listener = mdns_listener_factory(self, service_type, zc_instance)
         assert isinstance(self.__listener, MdnsListener), type(self.__listener)
 
     async def start(self) -> None:
@@ -253,9 +249,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             return
 
         # This step allows subclasses to create more specialized info objects.
-        typed_service_info = self._convert_service_info(
-            base_service_info, txt_record
-        )
+        typed_service_info = self._convert_service_info(base_service_info, txt_record)
 
         # Client's _on_service_added is expected to be a coroutine.
 

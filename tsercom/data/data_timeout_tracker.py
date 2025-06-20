@@ -97,9 +97,7 @@ class DataTimeoutTracker:
             self.__is_running.stop()
             logger.info("DataTimeoutTracker stop signaled.")
         else:
-            logger.info(
-                "DataTimeoutTracker already stopped or stop signal processed."
-            )
+            logger.info("DataTimeoutTracker already stopped or stop signal processed.")
 
     async def __execute_periodically(self) -> None:
         """Periodically triggers timeout callback on all registered objects.
@@ -132,9 +130,7 @@ class DataTimeoutTracker:
 
     async def __unregister_impl(self, tracked: Tracked) -> None:
         """Internal implementation to unregister a 'Tracked' object."""
-        assert (
-            is_running_on_event_loop()
-        ), "Unregistration must be on event loop."
+        assert is_running_on_event_loop(), "Unregistration must be on event loop."
         try:
             self.__tracked_list.remove(tracked)
             logger.info("Unregistered item: %s", tracked)

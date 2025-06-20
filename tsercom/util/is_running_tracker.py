@@ -85,9 +85,7 @@ class IsRunningTracker(Atomic[bool]):
                 return
 
         # Block to ensure the state internally matches the stored value.
-        task = run_on_event_loop(
-            partial(self.__set_impl, value), self.__event_loop
-        )
+        task = run_on_event_loop(partial(self.__set_impl, value), self.__event_loop)
 
         # To clear the event loop and similar.
         def clear(_future: Any) -> None:
