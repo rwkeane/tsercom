@@ -1,9 +1,12 @@
 """Provides GrpcServicePublisher for hosting gRPC services."""
 
+import asyncio  # Added import
 import logging
 from typing import Callable, Iterable
 
 import grpc
+from grpc_health.v1 import health_pb2, health_pb2_grpc  # type: ignore
+from grpc_health.v1._async import HealthServicer  # type: ignore[import-untyped]
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings
@@ -32,6 +35,7 @@ class GrpcServicePublisher:
             addresses = [addresses]
         self.__addresses = list(addresses)
 
+        self._health_servicer = HealthServicer()
         self.__port = port
         self.__server: grpc.Server = None
         self.__watcher = watcher
@@ -77,6 +81,14 @@ class GrpcServicePublisher:
             maximum_concurrent_rpcs=None,
         )
         connect_call(self.__server)
+        health_pb2_grpc.add_HealthServicer_to_server(
+            self._health_servicer, self.__server
+        )
+        # Set the overall server health to SERVING. Empty string for service_name sets the status for the whole server.
+        await self._health_servicer.set(
+            "", health_pb2.HealthCheckResponse.SERVING
+        )  # Must be awaited
+        await asyncio.sleep(0)  # Allow gRPC to process the status update internally
         self._connect()
         await self.__server.start()
 
@@ -187,3 +199,47 @@ class GrpcServicePublisher:
                 "GrpcServicePublisher: Exception during async server stop: %r",
                 e,
             )
+
+
+async def check_grpc_channel_health(channel: grpc.aio.Channel) -> bool:
+    """Checks the health of a given gRPC channel.
+
+    Args:
+        channel: The gRPC channel to check.
+
+    Returns:
+        True if the channel is serving, False otherwise (including errors).
+    """
+    if not channel:
+        logging.debug("Health check: Channel is None or empty.")
+        return False
+
+    logging.debug(f"Health check: Creating HealthStub for channel: {channel}")
+    health_stub = health_pb2_grpc.HealthStub(channel)
+    request = health_pb2.HealthCheckRequest()
+    logging.debug(f"Health check: Sending HealthCheckRequest: {request}")
+
+    try:
+        response = await health_stub.Check(request, timeout=1.0)
+        logging.info(f"Health check: Received response status: {response.status}")
+        if response.status == health_pb2.HealthCheckResponse.SERVING:
+            logging.debug("Health check: Status is SERVING, returning True.")
+            return True
+        else:
+            service_status_name = health_pb2.HealthCheckResponse.ServingStatus.Name(
+                response.status
+            )
+            logging.warning(
+                f"Health check: Status is {service_status_name}, expected SERVING. Returning False."
+            )
+            return False
+    except grpc.aio.AioRpcError as e:
+        logging.error(
+            f"Health check: AioRpcError for channel {channel}: {e.details()} (code: {e.code()})"
+        )
+        return False
+    except Exception as e:
+        logging.error(
+            f"Health check: Unexpected error for channel {channel}: {e}", exc_info=True
+        )
+        return False
