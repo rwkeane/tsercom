@@ -35,8 +35,20 @@ class TensorChunk(google.protobuf.message.Message):
         starting_index: builtins.int = ...,
         data_bytes: builtins.bytes = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["data_bytes", b"data_bytes", "starting_index", b"starting_index", "timestamp", b"timestamp"]) -> None: ...
+    def HasField(
+        self, field_name: typing.Literal["timestamp", b"timestamp"]
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "data_bytes",
+            b"data_bytes",
+            "starting_index",
+            b"starting_index",
+            "timestamp",
+            b"timestamp",
+        ],
+    ) -> None: ...
 
 global___TensorChunk = TensorChunk
 
@@ -48,7 +60,11 @@ class TensorUpdate(google.protobuf.message.Message):
 
     CHUNKS_FIELD_NUMBER: builtins.int
     @property
-    def chunks(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___TensorChunk]:
+    def chunks(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[
+        global___TensorChunk
+    ]:
         """A list of one or more chunks representing updates to the tensor."""
 
     def __init__(
@@ -73,7 +89,9 @@ class TensorInitializer(google.protobuf.message.Message):
     fill_value: builtins.float
     """The default value to fill the tensor with upon creation."""
     @property
-    def shape(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
+    def shape(
+        self,
+    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]:
         """The full shape of the tensor being initialized (e.g., [10, 20])."""
 
     @property
@@ -88,7 +106,21 @@ class TensorInitializer(google.protobuf.message.Message):
         fill_value: builtins.float = ...,
         initial_state: global___TensorUpdate | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["initial_state", b"initial_state"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["dtype", b"dtype", "fill_value", b"fill_value", "initial_state", b"initial_state", "shape", b"shape"]) -> None: ...
+    def HasField(
+        self, field_name: typing.Literal["initial_state", b"initial_state"]
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "dtype",
+            b"dtype",
+            "fill_value",
+            b"fill_value",
+            "initial_state",
+            b"initial_state",
+            "shape",
+            b"shape",
+        ],
+    ) -> None: ...
 
 global___TensorInitializer = TensorInitializer

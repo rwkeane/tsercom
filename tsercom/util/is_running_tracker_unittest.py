@@ -3,10 +3,14 @@
 import asyncio
 from functools import partial
 from unittest.mock import MagicMock
-from typing import Coroutine, Any, AsyncGenerator # Added Coroutine, Any, AsyncGenerator
+from typing import (
+    Coroutine,
+    Any,
+    AsyncGenerator,
+)  # Added Coroutine, Any, AsyncGenerator
 
 import pytest
-from pytest_mock import MockerFixture # Added MockerFixture
+from pytest_mock import MockerFixture  # Added MockerFixture
 
 from tsercom.util.is_running_tracker import IsRunningTracker
 
@@ -62,7 +66,9 @@ def test_basic_sequence(tracker: IsRunningTracker) -> None:
 
 
 @pytest.fixture
-async def running_tracker(event_loop: asyncio.AbstractEventLoop) -> AsyncGenerator[IsRunningTracker, None]:
+async def running_tracker(
+    event_loop: asyncio.AbstractEventLoop,
+) -> AsyncGenerator[IsRunningTracker, None]:
     """
     Fixture to create an IsRunningTracker instance associated with the
     current event_loop.
@@ -104,9 +110,7 @@ def test_methods_fail_without_proper_event_loop_setup(mocker: MockerFixture) -> 
         run_async(
             tracker._IsRunningTracker__ensure_event_loop_initialized()  # type: ignore[attr-defined]
         )
-    assert (
-        tracker._IsRunningTracker__event_loop is None  # type: ignore[attr-defined]
-    )
+    assert tracker._IsRunningTracker__event_loop is None  # type: ignore[attr-defined]
 
     # Sub-test for wait_until_started() when tracker is stopped (initial state)
     tracker = IsRunningTracker(
@@ -115,9 +119,7 @@ def test_methods_fail_without_proper_event_loop_setup(mocker: MockerFixture) -> 
     # It will call __ensure_event_loop_initialized because it's not running
     with pytest.raises(RuntimeError, match=err_msg_ensure_loop):
         run_async(tracker.wait_until_started())
-    assert (
-        tracker._IsRunningTracker__event_loop is None  # type: ignore[attr-defined]
-    )
+    assert tracker._IsRunningTracker__event_loop is None  # type: ignore[attr-defined]
 
     # Sub-test for wait_until_stopped() when tracker is running
     # This requires the tracker to be "running" and its __event_loop to be None initially
@@ -157,7 +159,9 @@ def test_methods_fail_without_proper_event_loop_setup(mocker: MockerFixture) -> 
     # returns None.
 
 
-def test_set_method_interaction_with_run_on_event_loop_and_clear(mocker: MockerFixture) -> None:
+def test_set_method_interaction_with_run_on_event_loop_and_clear(
+    mocker: MockerFixture,
+) -> None:
     """
     Tests the set() method's interaction with run_on_event_loop
     and the clear() callback.
@@ -223,7 +227,9 @@ def test_set_method_interaction_with_run_on_event_loop_and_clear(mocker: MockerF
     mock_is_running_on_event_loop.assert_called_once_with(mock_loop)
 
 
-def test_set_when_loop_is_closed(mocker: MockerFixture, tracker: IsRunningTracker) -> None:
+def test_set_when_loop_is_closed(
+    mocker: MockerFixture, tracker: IsRunningTracker
+) -> None:
     """Tests that set() behaves synchronously if the event loop is closed."""
     mock_event_loop = MagicMock(spec=asyncio.AbstractEventLoop)
     mock_event_loop.is_closed.return_value = True

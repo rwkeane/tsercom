@@ -42,7 +42,9 @@ class EchoResponse(google.protobuf.message.Message):
         *,
         response: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["response", b"response"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["response", b"response"]
+    ) -> None: ...
 
 global___EchoResponse = EchoResponse
 
@@ -75,6 +77,11 @@ class StreamDataResponse(google.protobuf.message.Message):
         data_chunk: builtins.str = ...,
         sequence_number: builtins.int = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data_chunk", b"data_chunk", "sequence_number", b"sequence_number"]) -> None: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "data_chunk", b"data_chunk", "sequence_number", b"sequence_number"
+        ],
+    ) -> None: ...
 
 global___StreamDataResponse = StreamDataResponse

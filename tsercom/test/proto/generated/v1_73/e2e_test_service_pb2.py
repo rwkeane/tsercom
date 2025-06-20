@@ -9,36 +9,32 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC,
-    6,
-    31,
-    0,
-    '',
-    'e2e_test_service.proto'
+    _runtime_version.Domain.PUBLIC, 6, 31, 0, "", "e2e_test_service.proto"
 )
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16\x65\x32\x65_test_service.proto\x12\x07tsercom\"\x1e\n\x0b\x45\x63hoRequest\x12\x0f\n\x07message\x18\x01 \x01(\t\" \n\x0c\x45\x63hoResponse\x12\x10\n\x08response\x18\x01 \x01(\t\"$\n\x11StreamDataRequest\x12\x0f\n\x07\x64\x61ta_id\x18\x01 \x01(\x05\"A\n\x12StreamDataResponse\x12\x12\n\ndata_chunk\x18\x01 \x01(\t\x12\x17\n\x0fsequence_number\x18\x02 \x01(\x05\x32\xb5\x02\n\x0e\x45\x32\x45TestService\x12\x33\n\x04\x45\x63ho\x12\x14.tsercom.EchoRequest\x1a\x15.tsercom.EchoResponse\x12M\n\x10ServerStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x1b.tsercom.StreamDataResponse0\x01\x12G\n\x10\x43lientStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x15.tsercom.EchoResponse(\x01\x12V\n\x17\x42idirectionalStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x1b.tsercom.StreamDataResponse(\x01\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x16\x65\x32\x65_test_service.proto\x12\x07tsercom"\x1e\n\x0b\x45\x63hoRequest\x12\x0f\n\x07message\x18\x01 \x01(\t" \n\x0c\x45\x63hoResponse\x12\x10\n\x08response\x18\x01 \x01(\t"$\n\x11StreamDataRequest\x12\x0f\n\x07\x64\x61ta_id\x18\x01 \x01(\x05"A\n\x12StreamDataResponse\x12\x12\n\ndata_chunk\x18\x01 \x01(\t\x12\x17\n\x0fsequence_number\x18\x02 \x01(\x05\x32\xb5\x02\n\x0e\x45\x32\x45TestService\x12\x33\n\x04\x45\x63ho\x12\x14.tsercom.EchoRequest\x1a\x15.tsercom.EchoResponse\x12M\n\x10ServerStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x1b.tsercom.StreamDataResponse0\x01\x12G\n\x10\x43lientStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x15.tsercom.EchoResponse(\x01\x12V\n\x17\x42idirectionalStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x1b.tsercom.StreamDataResponse(\x01\x30\x01\x62\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'e2e_test_service_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "e2e_test_service_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
-  _globals['_ECHOREQUEST']._serialized_start=35
-  _globals['_ECHOREQUEST']._serialized_end=65
-  _globals['_ECHORESPONSE']._serialized_start=67
-  _globals['_ECHORESPONSE']._serialized_end=99
-  _globals['_STREAMDATAREQUEST']._serialized_start=101
-  _globals['_STREAMDATAREQUEST']._serialized_end=137
-  _globals['_STREAMDATARESPONSE']._serialized_start=139
-  _globals['_STREAMDATARESPONSE']._serialized_end=204
-  _globals['_E2ETESTSERVICE']._serialized_start=207
-  _globals['_E2ETESTSERVICE']._serialized_end=516
+    DESCRIPTOR._loaded_options = None
+    _globals["_ECHOREQUEST"]._serialized_start = 35
+    _globals["_ECHOREQUEST"]._serialized_end = 65
+    _globals["_ECHORESPONSE"]._serialized_start = 67
+    _globals["_ECHORESPONSE"]._serialized_end = 99
+    _globals["_STREAMDATAREQUEST"]._serialized_start = 101
+    _globals["_STREAMDATAREQUEST"]._serialized_end = 137
+    _globals["_STREAMDATARESPONSE"]._serialized_start = 139
+    _globals["_STREAMDATARESPONSE"]._serialized_end = 204
+    _globals["_E2ETESTSERVICE"]._serialized_start = 207
+    _globals["_E2ETESTSERVICE"]._serialized_end = 516
 # @@protoc_insertion_point(module_scope)

@@ -1,6 +1,5 @@
-import asyncio
 import datetime
-from typing import Optional, List # Modified import
+from typing import Optional, List  # Modified import
 
 import torch
 
@@ -66,7 +65,9 @@ class TensorStreamSource(TensorMultiplexer.Client):
 
         if self.__initial_tensor.numel() > 0:
             # Determine the most frequent value as the fill_value
-            unique_values, counts = torch.unique(self.__initial_tensor, return_counts=True)
+            unique_values, counts = torch.unique(
+                self.__initial_tensor, return_counts=True
+            )
             # Ensure unique_values is not empty before proceeding
             if unique_values.numel() > 0:
                 most_frequent_idx = torch.argmax(counts)
@@ -79,13 +80,17 @@ class TensorStreamSource(TensorMultiplexer.Client):
             # However, torch.unique on a tensor with actual numbers should always return unique_values.
 
             creation_timestamp = self.__clock.now
-            current_chunk_values_list: List[torch.Tensor] = [] # Stores tensor elements for current chunk
+            current_chunk_values_list: List[torch.Tensor] = (
+                []
+            )  # Stores tensor elements for current chunk
             current_chunk_start_index: int = -1
 
             for i, value_tensor_element in enumerate(self.__initial_tensor):
                 value_float_element = float(value_tensor_element.item())
 
-                if abs(value_float_element - fill_value_float) > 1e-9: # Compare floats with tolerance
+                if (
+                    abs(value_float_element - fill_value_float) > 1e-9
+                ):  # Compare floats with tolerance
                     if current_chunk_start_index == -1:
                         current_chunk_start_index = i
                     current_chunk_values_list.append(value_tensor_element)
@@ -99,19 +104,19 @@ class TensorStreamSource(TensorMultiplexer.Client):
                         initial_chunks.append(
                             SerializableTensorChunk(
                                 starting_index=current_chunk_start_index,
-                                tensor=chunk_tensor_data, # Pass the torch.Tensor directly
+                                tensor=chunk_tensor_data,  # Pass the torch.Tensor directly
                                 timestamp=creation_timestamp,
                             )
                         )
                         current_chunk_values_list = []
                         current_chunk_start_index = -1
 
-            if current_chunk_start_index != -1: # After loop, handle any trailing chunk
+            if current_chunk_start_index != -1:  # After loop, handle any trailing chunk
                 chunk_tensor_data = torch.stack(current_chunk_values_list)
                 initial_chunks.append(
                     SerializableTensorChunk(
                         starting_index=current_chunk_start_index,
-                        tensor=chunk_tensor_data, # Pass the torch.Tensor directly
+                        tensor=chunk_tensor_data,  # Pass the torch.Tensor directly
                         timestamp=creation_timestamp,
                     )
                 )
