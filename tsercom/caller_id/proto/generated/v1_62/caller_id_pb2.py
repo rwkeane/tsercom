@@ -7,24 +7,25 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x63\x61ller_id.proto\x12\x07tsercom\"\x16\n\x08\x43\x61llerId\x12\n\n\x02id\x18\x01 \x01(\t\"\x0e\n\x0cGetIdRequest\".\n\rGetIdResponse\x12\x1d\n\x02id\x18\x01 \x01(\x0b\x32\x11.tsercom.CallerIdb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x0f\x63\x61ller_id.proto\x12\x07tsercom"\x16\n\x08\x43\x61llerId\x12\n\n\x02id\x18\x01 \x01(\t"\x0e\n\x0cGetIdRequest".\n\rGetIdResponse\x12\x1d\n\x02id\x18\x01 \x01(\x0b\x32\x11.tsercom.CallerIdb\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'caller_id_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "caller_id_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
-  DESCRIPTOR._options = None
-  _globals['_CALLERID']._serialized_start=28
-  _globals['_CALLERID']._serialized_end=50
-  _globals['_GETIDREQUEST']._serialized_start=52
-  _globals['_GETIDREQUEST']._serialized_end=66
-  _globals['_GETIDRESPONSE']._serialized_start=68
-  _globals['_GETIDRESPONSE']._serialized_end=114
+    DESCRIPTOR._options = None
+    _globals["_CALLERID"]._serialized_start = 28
+    _globals["_CALLERID"]._serialized_end = 50
+    _globals["_GETIDREQUEST"]._serialized_start = 52
+    _globals["_GETIDREQUEST"]._serialized_end = 66
+    _globals["_GETIDRESPONSE"]._serialized_start = 68
+    _globals["_GETIDRESPONSE"]._serialized_end = 114
 # @@protoc_insertion_point(module_scope)

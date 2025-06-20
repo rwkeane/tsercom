@@ -1,4 +1,3 @@
-
 import grpc
 import subprocess
 from typing import TYPE_CHECKING
@@ -7,9 +6,15 @@ if not TYPE_CHECKING:
     try:
         version = grpc.__version__
         major_minor_version = ".".join(version.split(".")[:2])
-    except (AttributeError, subprocess.CalledProcessError, FileNotFoundError) as e:
-        print(f"Warning: Failed to get grpc.__version__ ({e}), defaulting to a common version for proto loading.")
-        major_minor_version = "1.62" # Fallback version
+    except (
+        AttributeError,
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+    ) as e:
+        print(
+            f"Warning: Failed to get grpc.__version__ ({e}), defaulting to a common version for proto loading."
+        )
+        major_minor_version = "1.62"  # Fallback version
 
     version_string = f"v{major_minor_version.replace('.', '_')}"
 
@@ -17,29 +22,65 @@ if not TYPE_CHECKING:
         pass
 
     elif version_string == "v1_73":
-        from tsercom.rpc.proto.generated.v1_73.common_pb2 import TestConnectionCall, TestConnectionResponse
+        from tsercom.rpc.proto.generated.v1_73.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_72":
-        from tsercom.rpc.proto.generated.v1_72.common_pb2 import TestConnectionCall, TestConnectionResponse, Tensor
+        from tsercom.rpc.proto.generated.v1_72.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_71":
-        from tsercom.rpc.proto.generated.v1_71.common_pb2 import TestConnectionCall, TestConnectionResponse, Tensor
+        from tsercom.rpc.proto.generated.v1_71.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_70":
-        from tsercom.rpc.proto.generated.v1_70.common_pb2 import TestConnectionCall, TestConnectionResponse
+        from tsercom.rpc.proto.generated.v1_70.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_69":
-        from tsercom.rpc.proto.generated.v1_69.common_pb2 import TestConnectionCall, TestConnectionResponse, Tensor
+        from tsercom.rpc.proto.generated.v1_69.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_68":
-        from tsercom.rpc.proto.generated.v1_68.common_pb2 import TestConnectionCall, TestConnectionResponse
+        from tsercom.rpc.proto.generated.v1_68.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_67":
-        from tsercom.rpc.proto.generated.v1_67.common_pb2 import TestConnectionCall, TestConnectionResponse, Tensor
+        from tsercom.rpc.proto.generated.v1_67.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_66":
-        from tsercom.rpc.proto.generated.v1_66.common_pb2 import TestConnectionCall, TestConnectionResponse
+        from tsercom.rpc.proto.generated.v1_66.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_65":
-        from tsercom.rpc.proto.generated.v1_65.common_pb2 import TestConnectionCall, TestConnectionResponse
+        from tsercom.rpc.proto.generated.v1_65.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_64":
-        from tsercom.rpc.proto.generated.v1_64.common_pb2 import TestConnectionCall, TestConnectionResponse
+        from tsercom.rpc.proto.generated.v1_64.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_63":
-        from tsercom.rpc.proto.generated.v1_63.common_pb2 import TestConnectionCall, TestConnectionResponse
+        from tsercom.rpc.proto.generated.v1_63.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     elif version_string == "v1_62":
-        from tsercom.rpc.proto.generated.v1_62.common_pb2 import TestConnectionCall, TestConnectionResponse
+        from tsercom.rpc.proto.generated.v1_62.common_pb2 import (
+            TestConnectionCall,
+            TestConnectionResponse,
+        )
     else:
         # The 'name' variable for the error message is 'common'
         # The 'available_versions' for the error message is ['v1_62', 'v1_63', 'v1_64', 'v1_65', 'v1_66', 'v1_67', 'v1_68', 'v1_69', 'v1_70', 'v1_71', 'v1_72', 'v1_73']
@@ -47,6 +88,10 @@ if not TYPE_CHECKING:
             f"Error: No code for version {version}, name 'common', available_versions ['v1_62', 'v1_63', 'v1_64', 'v1_65', 'v1_66', 'v1_67', 'v1_68', 'v1_69', 'v1_70', 'v1_71', 'v1_72', 'v1_73'], version_string {version_string}."
         )
 
-else: # When TYPE_CHECKING
-    from tsercom.rpc.proto.generated.v1_73.common_pb2 import TestConnectionCall as TestConnectionCall
-    from tsercom.rpc.proto.generated.v1_73.common_pb2 import TestConnectionResponse as TestConnectionResponse
+else:  # When TYPE_CHECKING
+    from tsercom.rpc.proto.generated.v1_73.common_pb2 import (
+        TestConnectionCall as TestConnectionCall,
+    )
+    from tsercom.rpc.proto.generated.v1_73.common_pb2 import (
+        TestConnectionResponse as TestConnectionResponse,
+    )
