@@ -11,8 +11,11 @@ from typing import (
     Tuple,
     Optional,
 )
-
 import torch
+
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
 
 
 class TensorDemuxer:
@@ -59,7 +62,9 @@ class TensorDemuxer:
         self.__lock: asyncio.Lock = asyncio.Lock()
 
     @property
-    def _processed_keyframes(self) -> List[
+    def _processed_keyframes(
+        self,
+    ) -> List[
         Tuple[
             datetime.datetime,
             torch.Tensor,
@@ -100,12 +105,9 @@ class TensorDemuxer:
                 keep_from_index:
             ]
 
-    async def on_update_received(
-        self, tensor_index: int, value: float, timestamp: datetime.datetime
-    ) -> None:
+    async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
         async with self.__lock:
-            if not 0 <= tensor_index < self.__tensor_length:
-                return
+            timestamp = chunk.timestamp.as_datetime()
 
             if (
                 self.__latest_update_timestamp is None
@@ -132,7 +134,10 @@ class TensorDemuxer:
             explicit_values: torch.Tensor
             is_new_timestamp_entry = False
             idx_of_processed_ts = -1
-            value_actually_changed_tensor = False
+
+            # Store the state of the tensor *before* this chunk's updates for this TS
+            # This is used to determine if _on_keyframe_updated needs to be called.
+            pre_chunk_calculated_tensor_for_ts: Optional[torch.Tensor] = None
 
             if (
                 insertion_point < len(self.__processed_keyframes)
@@ -146,6 +151,9 @@ class TensorDemuxer:
                     (explicit_indices, explicit_values),
                 ) = self.__processed_keyframes[idx_of_processed_ts]
 
+                pre_chunk_calculated_tensor_for_ts = (
+                    current_calculated_tensor.clone()
+                )
                 current_calculated_tensor = current_calculated_tensor.clone()
                 explicit_indices = explicit_indices.clone()
                 explicit_values = explicit_values.clone()
@@ -160,107 +168,111 @@ class TensorDemuxer:
                         insertion_point - 1
                     ][1].clone()
 
+                pre_chunk_calculated_tensor_for_ts = (
+                    current_calculated_tensor.clone()
+                )
                 explicit_indices = torch.empty(0, dtype=torch.int64)
                 explicit_values = torch.empty(0, dtype=torch.float32)
 
-            current_update_idx_tensor = torch.tensor(
-                [tensor_index], dtype=torch.int64
-            )
-            current_update_val_tensor = torch.tensor(
-                [value], dtype=torch.float32
-            )
+            for i, value_from_chunk_tensor in enumerate(chunk.tensor):
+                tensor_index = chunk.starting_index + i
+                # Ensure value is float; chunk.tensor should be float, but defensive cast
+                value = float(value_from_chunk_tensor.item())
 
-            match_mask = explicit_indices == current_update_idx_tensor
-            existing_explicit_entry_indices = match_mask.nonzero(
-                as_tuple=True
-            )[0]
+                if not 0 <= tensor_index < self.__tensor_length:
+                    continue
 
-            if existing_explicit_entry_indices.numel() > 0:
-                entry_pos = existing_explicit_entry_indices[0]
-                if explicit_values[entry_pos].item() != value:
-                    explicit_values[entry_pos] = current_update_val_tensor
-            else:
-                explicit_indices = torch.cat(
-                    (explicit_indices, current_update_idx_tensor)
+                current_update_idx_tensor = torch.tensor(
+                    [tensor_index], dtype=torch.int64
                 )
-                explicit_values = torch.cat(
-                    (explicit_values, current_update_val_tensor)
+                current_update_val_tensor = torch.tensor(
+                    [value], dtype=torch.float32
                 )
 
-            base_for_current_calc: torch.Tensor
-            if is_new_timestamp_entry:
-                if insertion_point == 0:
-                    base_for_current_calc = torch.zeros(
-                        self.__tensor_length, dtype=torch.float32
-                    )
-                else:
-                    base_for_current_calc = self.__processed_keyframes[
-                        insertion_point - 1
-                    ][1].clone()
-            else:
-                if insertion_point == 0:
-                    base_for_current_calc = torch.zeros(
-                        self.__tensor_length, dtype=torch.float32
-                    )
-                else:
-                    base_for_current_calc = self.__processed_keyframes[
-                        insertion_point - 1
-                    ][1].clone()
+                match_mask = explicit_indices == current_update_idx_tensor
+                existing_explicit_entry_indices = match_mask.nonzero(
+                    as_tuple=True
+                )[0]
 
-            new_calculated_tensor_for_current_ts = (
-                base_for_current_calc.clone()
-            )
+                if existing_explicit_entry_indices.numel() > 0:
+                    entry_pos = existing_explicit_entry_indices[0]
+                    # Only update if value actually changed to avoid unnecessary marking of keyframe as changed
+                    if explicit_values[entry_pos].item() != value:
+                        explicit_values[entry_pos] = current_update_val_tensor
+                else:
+                    explicit_indices = torch.cat(
+                        (explicit_indices, current_update_idx_tensor)
+                    )
+                    explicit_values = torch.cat(
+                        (explicit_values, current_update_val_tensor)
+                    )
+
+            base_for_final_calc: torch.Tensor
+            if insertion_point == 0:
+                base_for_final_calc = torch.zeros(
+                    self.__tensor_length, dtype=torch.float32
+                )
+            else:
+                base_for_final_calc = self.__processed_keyframes[
+                    insertion_point - 1
+                ][1].clone()
+
+            final_calculated_tensor_for_ts = base_for_final_calc.clone()
             if explicit_indices.numel() > 0:
-                new_calculated_tensor_for_current_ts = (
-                    new_calculated_tensor_for_current_ts.index_put_(
+                final_calculated_tensor_for_ts = (
+                    final_calculated_tensor_for_ts.index_put_(
                         (explicit_indices,), explicit_values
                     )
                 )
 
-            if not torch.equal(
-                new_calculated_tensor_for_current_ts, current_calculated_tensor
-            ):
-                value_actually_changed_tensor = True
-
+            # Keyframe considered changed if it's new and contains data, or if its calculated tensor differs.
+            keyframe_content_changed = False
             if is_new_timestamp_entry and explicit_indices.numel() > 0:
-                value_actually_changed_tensor = True
+                keyframe_content_changed = True
+            elif not is_new_timestamp_entry and not torch.equal(
+                final_calculated_tensor_for_ts,
+                pre_chunk_calculated_tensor_for_ts,
+            ):
+                keyframe_content_changed = True
 
-            current_calculated_tensor = new_calculated_tensor_for_current_ts
             new_state_tuple = (
                 timestamp,
-                current_calculated_tensor,
+                final_calculated_tensor_for_ts,
                 (explicit_indices, explicit_values),
             )
+
             if is_new_timestamp_entry:
-                self.__processed_keyframes.insert(
-                    insertion_point, new_state_tuple
-                )
-                idx_of_processed_ts = insertion_point
-                if value_actually_changed_tensor:
-                    await self._on_keyframe_updated(
-                        timestamp, current_calculated_tensor
+                if (
+                    explicit_indices.numel() > 0
+                ):  # Only add new timestamp if it has some valid data
+                    self.__processed_keyframes.insert(
+                        insertion_point, new_state_tuple
                     )
+                    idx_of_processed_ts = insertion_point
+                # else: if new and no valid data, effectively ignore this chunk for keyframe creation
             else:
+                # Always update existing timestamp, as its content might have changed
                 self.__processed_keyframes[idx_of_processed_ts] = (
                     new_state_tuple
                 )
-                if value_actually_changed_tensor:
-                    await self._on_keyframe_updated(
-                        timestamp, current_calculated_tensor
-                    )
 
-            needs_cascade = value_actually_changed_tensor
+            if keyframe_content_changed:
+                await self._on_keyframe_updated(
+                    timestamp, final_calculated_tensor_for_ts
+                )
 
-            if needs_cascade:
-                for i in range(
+            # Ensure idx_of_processed_ts is valid before attempting cascade,
+            # which means a keyframe was actually processed (added or updated).
+            if keyframe_content_changed and idx_of_processed_ts != -1:
+                for i_cascade in range(
                     idx_of_processed_ts + 1, len(self.__processed_keyframes)
                 ):
                     ts_next, old_tensor_next, (next_indices, next_values) = (
-                        self.__processed_keyframes[i]
+                        self.__processed_keyframes[i_cascade]
                     )
 
                     predecessor_tensor_for_ts_next = (
-                        self.__processed_keyframes[i - 1][1]
+                        self.__processed_keyframes[i_cascade - 1][1]
                     )
 
                     new_calculated_tensor_next = (
@@ -276,7 +288,7 @@ class TensorDemuxer:
                     if not torch.equal(
                         new_calculated_tensor_next, old_tensor_next
                     ):
-                        self.__processed_keyframes[i] = (
+                        self.__processed_keyframes[i_cascade] = (
                             ts_next,
                             new_calculated_tensor_next,
                             (next_indices, next_values),
@@ -285,6 +297,7 @@ class TensorDemuxer:
                             ts_next, new_calculated_tensor_next
                         )
                     else:
+                        # If a cascaded tensor doesn't change, subsequent ones won't either from this cascade path
                         break
 
     async def get_tensor_at_timestamp(

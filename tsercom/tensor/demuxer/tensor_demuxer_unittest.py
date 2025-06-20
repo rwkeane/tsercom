@@ -4,6 +4,12 @@ import pytest
 import pytest_asyncio
 from typing import List, Tuple, Any, Optional
 
+from tsercom.tensor.serialization.serializable_tensor import (
+    SerializableTensorChunk,
+)
+from tsercom.timesync.common.synchronized_timestamp import (
+    SynchronizedTimestamp,
+)
 from tsercom.tensor.demuxer.tensor_demuxer import (
     TensorDemuxer,
 )
@@ -94,7 +100,14 @@ async def test_first_update(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
     assert mc.call_count == 1
     last_call = mc.get_last_call()
     assert last_call is not None
@@ -109,8 +122,22 @@ async def test_sequential_updates_same_timestamp(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(tensor_index=1, value=10.0, timestamp=T1_std)
-    await d.on_update_received(tensor_index=3, value=40.0, timestamp=T1_std)
+    chunk_tensor_T1_std_1 = torch.tensor([10.0], dtype=torch.float32)
+    sync_ts_T1_std_1 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_1,
+        timestamp=sync_ts_T1_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T1_std_1)
+    chunk_tensor_T1_std_3 = torch.tensor([40.0], dtype=torch.float32)
+    sync_ts_T1_std_3 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_3 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_3,
+        timestamp=sync_ts_T1_std_3,
+        starting_index=3,
+    )
+    await d.on_chunk_received(chunk_T1_std_3)
     assert mc.call_count == 2
     last_call = mc.get_last_call()
     assert last_call is not None
@@ -128,9 +155,23 @@ async def test_updates_different_timestamps(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
     mc.clear_calls()
-    await d.on_update_received(tensor_index=0, value=15.0, timestamp=T2_std)
+    chunk_tensor_T2_std_0 = torch.tensor([15.0], dtype=torch.float32)
+    sync_ts_T2_std_0 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_0,
+        timestamp=sync_ts_T2_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T2_std_0)
     assert mc.call_count == 1
     last_call_t2 = mc.get_last_call()
     assert last_call_t2 is not None
@@ -149,12 +190,14 @@ async def test_updates_different_timestamps(
         return None
 
     internal_t1_state = _get_tensor(
-        getattr(d, "_processed_keyframes"), T1_std  # Changed
+        getattr(d, "_processed_keyframes"),
+        T1_std,  # Changed
     )
     assert internal_t1_state is not None
     assert torch.equal(internal_t1_state, torch.tensor([5.0, 0.0, 0.0, 0.0]))
     internal_t2_state = _get_tensor(
-        getattr(d, "_processed_keyframes"), T2_std  # Changed
+        getattr(d, "_processed_keyframes"),
+        T2_std,  # Changed
     )
     assert internal_t2_state is not None
     assert torch.equal(internal_t2_state, expected_tensor_t2)
@@ -165,9 +208,23 @@ async def test_state_propagation_on_new_sequential_timestamp(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(tensor_index=1, value=50.0, timestamp=T1_std)
+    chunk_tensor_T1_std_1 = torch.tensor([50.0], dtype=torch.float32)
+    sync_ts_T1_std_1 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_1,
+        timestamp=sync_ts_T1_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T1_std_1)
     mc.clear_calls()
-    await d.on_update_received(tensor_index=3, value=99.0, timestamp=T1_std)
+    chunk_tensor_T1_std_3 = torch.tensor([99.0], dtype=torch.float32)
+    sync_ts_T1_std_3 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_3 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_3,
+        timestamp=sync_ts_T1_std_3,
+        starting_index=3,
+    )
+    await d.on_chunk_received(chunk_T1_std_3)
     assert mc.call_count == 1
     last_call_t1 = mc.get_last_call()
     assert last_call_t1 is not None
@@ -176,7 +233,14 @@ async def test_state_propagation_on_new_sequential_timestamp(
     assert torch.equal(t1_final_tensor, expected_t1_tensor)
     assert t1_final_ts == T1_std
     mc.clear_calls()
-    await d.on_update_received(tensor_index=0, value=11.0, timestamp=T2_std)
+    chunk_tensor_T2_std_0 = torch.tensor([11.0], dtype=torch.float32)
+    sync_ts_T2_std_0 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_0,
+        timestamp=sync_ts_T2_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T2_std_0)
     assert mc.call_count == 1
     last_call_t2 = mc.get_last_call()
     assert last_call_t2 is not None
@@ -195,10 +259,12 @@ async def test_state_propagation_on_new_sequential_timestamp(
         return None
 
     internal_t1 = _get_tensor(
-        getattr(d, "_processed_keyframes"), T1_std  # Changed
+        getattr(d, "_processed_keyframes"),
+        T1_std,  # Changed
     )
     internal_t2 = _get_tensor(
-        getattr(d, "_processed_keyframes"), T2_std  # Changed
+        getattr(d, "_processed_keyframes"),
+        T2_std,  # Changed
     )
     assert internal_t1 is not None
     assert torch.equal(internal_t1, expected_t1_tensor)
@@ -227,29 +293,58 @@ async def test_out_of_order_scenario_from_prompt(
                 return tensor
         return None
 
-    await d.on_update_received(tensor_index=1, value=10.0, timestamp=T2_std)
+    chunk_tensor_T2_std_1 = torch.tensor([10.0], dtype=torch.float32)
+    sync_ts_T2_std_1 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_1,
+        timestamp=sync_ts_T2_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T2_std_1)
     assert mc.call_count == 1
     call1_tensor, call1_ts = mc.calls[0]
     assert torch.equal(call1_tensor, torch.tensor([0.0, 10.0, 0.0, 0.0]))
     assert call1_ts == T2_std
-    await d.on_update_received(tensor_index=3, value=40.0, timestamp=T2_std)
+    chunk_tensor_T2_std_3 = torch.tensor([40.0], dtype=torch.float32)
+    sync_ts_T2_std_3 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_3 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_3,
+        timestamp=sync_ts_T2_std_3,
+        starting_index=3,
+    )
+    await d.on_chunk_received(chunk_T2_std_3)
     assert mc.call_count == 2
     call2_tensor, call2_ts = mc.calls[1]
     assert torch.equal(call2_tensor, torch.tensor([0.0, 10.0, 0.0, 40.0]))
     assert call2_ts == T2_std
-    await d.on_update_received(tensor_index=1, value=99.0, timestamp=T1_std)
+    chunk_tensor_T1_std_1 = torch.tensor([99.0], dtype=torch.float32)
+    sync_ts_T1_std_1 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_1,
+        timestamp=sync_ts_T1_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T1_std_1)
     assert mc.call_count == 3
     call3_tensor, call3_ts = mc.calls[2]
     assert torch.equal(call3_tensor, torch.tensor([0.0, 99.0, 0.0, 0.0]))
     assert call3_ts == T1_std
     t2_tensor_internal = _get_tensor(
-        getattr(d, "_processed_keyframes"), T2_std  # Changed
+        getattr(d, "_processed_keyframes"),
+        T2_std,  # Changed
     )
     assert t2_tensor_internal is not None
     assert torch.equal(
         t2_tensor_internal, torch.tensor([0.0, 10.0, 0.0, 40.0])
     )
-    await d.on_update_received(tensor_index=2, value=88.0, timestamp=T1_std)
+    chunk_tensor_T1_std_2 = torch.tensor([88.0], dtype=torch.float32)
+    sync_ts_T1_std_2 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_2 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_2,
+        timestamp=sync_ts_T1_std_2,
+        starting_index=2,
+    )
+    await d.on_chunk_received(chunk_T1_std_2)
     assert mc.call_count == 5
     call4_tensor, call4_ts = mc.calls[3]
     assert torch.equal(call4_tensor, torch.tensor([0.0, 99.0, 88.0, 0.0]))
@@ -270,25 +365,65 @@ async def test_complex_out_of_order_state_inheritance(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(0, 1.0, TS1)
+    chunk_tensor_TS1_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_TS1_0 = SynchronizedTimestamp(TS1)
+    chunk_TS1_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS1_0, timestamp=sync_ts_TS1_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_TS1_0)
     assert mc.call_count == 1
-    await d.on_update_received(1, 2.0, TS1)
+    chunk_tensor_TS1_1 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_TS1_1 = SynchronizedTimestamp(TS1)
+    chunk_TS1_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS1_1, timestamp=sync_ts_TS1_1, starting_index=1
+    )
+    await d.on_chunk_received(chunk_TS1_1)
     assert mc.call_count == 2
-    await d.on_update_received(2, 3.0, TS1)
+    chunk_tensor_TS1_2 = torch.tensor([3.0], dtype=torch.float32)
+    sync_ts_TS1_2 = SynchronizedTimestamp(TS1)
+    chunk_TS1_2 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS1_2, timestamp=sync_ts_TS1_2, starting_index=2
+    )
+    await d.on_chunk_received(chunk_TS1_2)
     assert mc.call_count == 3
-    await d.on_update_received(3, 4.0, TS1)
+    chunk_tensor_TS1_3 = torch.tensor([4.0], dtype=torch.float32)
+    sync_ts_TS1_3 = SynchronizedTimestamp(TS1)
+    chunk_TS1_3 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS1_3, timestamp=sync_ts_TS1_3, starting_index=3
+    )
+    await d.on_chunk_received(chunk_TS1_3)
     assert mc.call_count == 4
     latest_t1 = mc.get_latest_tensor_for_ts(TS1)
     assert latest_t1 is not None
     assert torch.equal(latest_t1, torch.tensor([1.0, 2.0, 3.0, 4.0]))
 
-    await d.on_update_received(0, 2.0, TS4)
+    chunk_tensor_TS4_0 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_TS4_0 = SynchronizedTimestamp(TS4)
+    chunk_TS4_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS4_0, timestamp=sync_ts_TS4_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_TS4_0)
     assert mc.call_count == 5
-    await d.on_update_received(1, 3.0, TS4)
+    chunk_tensor_TS4_1 = torch.tensor([3.0], dtype=torch.float32)
+    sync_ts_TS4_1 = SynchronizedTimestamp(TS4)
+    chunk_TS4_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS4_1, timestamp=sync_ts_TS4_1, starting_index=1
+    )
+    await d.on_chunk_received(chunk_TS4_1)
     assert mc.call_count == 6
-    await d.on_update_received(2, 4.0, TS4)
+    chunk_tensor_TS4_2 = torch.tensor([4.0], dtype=torch.float32)
+    sync_ts_TS4_2 = SynchronizedTimestamp(TS4)
+    chunk_TS4_2 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS4_2, timestamp=sync_ts_TS4_2, starting_index=2
+    )
+    await d.on_chunk_received(chunk_TS4_2)
     assert mc.call_count == 7
-    await d.on_update_received(3, 5.0, TS4)
+    chunk_tensor_TS4_3 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_TS4_3 = SynchronizedTimestamp(TS4)
+    chunk_TS4_3 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS4_3, timestamp=sync_ts_TS4_3, starting_index=3
+    )
+    await d.on_chunk_received(chunk_TS4_3)
     assert mc.call_count == 8
     latest_t4 = mc.get_latest_tensor_for_ts(TS4)
     assert latest_t4 is not None
@@ -296,9 +431,19 @@ async def test_complex_out_of_order_state_inheritance(
 
     mc.clear_calls()
 
-    await d.on_update_received(2, 7.0, TS3)
+    chunk_tensor_TS3_2 = torch.tensor([7.0], dtype=torch.float32)
+    sync_ts_TS3_2 = SynchronizedTimestamp(TS3)
+    chunk_TS3_2 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS3_2, timestamp=sync_ts_TS3_2, starting_index=2
+    )
+    await d.on_chunk_received(chunk_TS3_2)
     assert mc.call_count == 1
-    await d.on_update_received(3, 8.0, TS3)
+    chunk_tensor_TS3_3 = torch.tensor([8.0], dtype=torch.float32)
+    sync_ts_TS3_3 = SynchronizedTimestamp(TS3)
+    chunk_TS3_3 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS3_3, timestamp=sync_ts_TS3_3, starting_index=3
+    )
+    await d.on_chunk_received(chunk_TS3_3)
     assert mc.call_count == 2
     expected_correct_t3 = torch.tensor([1.0, 2.0, 7.0, 8.0])
     latest_tensor_for_t3_after_direct_updates = mc.get_latest_tensor_for_ts(
@@ -309,9 +454,19 @@ async def test_complex_out_of_order_state_inheritance(
         latest_tensor_for_t3_after_direct_updates, expected_correct_t3
     )
 
-    await d.on_update_received(0, 0.0, TS2)
+    chunk_tensor_TS2_0 = torch.tensor([0.0], dtype=torch.float32)
+    sync_ts_TS2_0 = SynchronizedTimestamp(TS2)
+    chunk_TS2_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS2_0, timestamp=sync_ts_TS2_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_TS2_0)
     assert mc.call_count == 4
-    await d.on_update_received(1, 5.0, TS2)
+    chunk_tensor_TS2_1 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_TS2_1 = SynchronizedTimestamp(TS2)
+    chunk_TS2_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_TS2_1, timestamp=sync_ts_TS2_1, starting_index=1
+    )
+    await d.on_chunk_received(chunk_TS2_1)
     assert mc.call_count == 6
     expected_correct_t2 = torch.tensor([0.0, 5.0, 3.0, 4.0])
     latest_tensor_for_t2 = mc.get_latest_tensor_for_ts(TS2)
@@ -339,9 +494,14 @@ async def test_data_timeout(
     demuxer_short_timeout: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     dmx_instance, mc = demuxer_short_timeout
-    await dmx_instance.on_update_received(
-        tensor_index=0, value=1.0, timestamp=T0_std
+    chunk_tensor_T0_std_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T0_std_0 = SynchronizedTimestamp(T0_std)
+    chunk_T0_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T0_std_0,
+        timestamp=sync_ts_T0_std_0,
+        starting_index=0,
     )
+    await dmx_instance.on_chunk_received(chunk_T0_std_0)
 
     def _is_ts_present(
         states_list: List[Tuple[datetime.datetime, torch.Tensor, Any]],
@@ -350,17 +510,25 @@ async def test_data_timeout(
         return any(ts == target_ts for ts, _, _ in states_list)
 
     assert _is_ts_present(
-        getattr(dmx_instance, "_processed_keyframes"), T0_std  # Changed
+        getattr(dmx_instance, "_processed_keyframes"),
+        T0_std,  # Changed
     )
     mc.clear_calls()
-    await dmx_instance.on_update_received(
-        tensor_index=0, value=2.0, timestamp=T2_std
+    chunk_tensor_T2_std_0 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_T2_std_0 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_0,
+        timestamp=sync_ts_T2_std_0,
+        starting_index=0,
     )
+    await dmx_instance.on_chunk_received(chunk_T2_std_0)
     assert not _is_ts_present(
-        getattr(dmx_instance, "_processed_keyframes"), T0_std  # Changed
+        getattr(dmx_instance, "_processed_keyframes"),
+        T0_std,  # Changed
     )
     assert _is_ts_present(
-        getattr(dmx_instance, "_processed_keyframes"), T2_std  # Changed
+        getattr(dmx_instance, "_processed_keyframes"),
+        T2_std,  # Changed
     )
     assert mc.call_count == 1
     last_call_t2 = mc.get_last_call()
@@ -368,12 +536,18 @@ async def test_data_timeout(
     tensor_t2, ts_t2 = last_call_t2
     assert torch.equal(tensor_t2, torch.tensor([2.0, 0.0, 0.0, 0.0]))
     assert ts_t2 == T2_std
-    await dmx_instance.on_update_received(
-        tensor_index=0, value=3.0, timestamp=T1_std
+    chunk_tensor_T1_std_0 = torch.tensor([3.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
     )
+    await dmx_instance.on_chunk_received(chunk_T1_std_0)
     assert mc.call_count == 1
     assert not _is_ts_present(
-        getattr(dmx_instance, "_processed_keyframes"), T1_std  # Changed
+        getattr(dmx_instance, "_processed_keyframes"),
+        T1_std,  # Changed
     )
 
 
@@ -389,12 +563,27 @@ async def test_index_out_of_bounds(
     ) -> bool:
         return any(s[0] == target_ts for s in states_list)
 
-    await d.on_update_received(tensor_index=4, value=1.0, timestamp=T1_std)
+    chunk_tensor_T1_std_4 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T1_std_4 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_4 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_4,
+        timestamp=sync_ts_T1_std_4,
+        starting_index=4,
+    )
+    await d.on_chunk_received(chunk_T1_std_4)
     assert mc.call_count == 0
-    await d.on_update_received(tensor_index=-1, value=1.0, timestamp=T1_std)
+    chunk_tensor_T1_std_ = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T1_std_ = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_ = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_,
+        timestamp=sync_ts_T1_std_,
+        starting_index=-1,
+    )
+    await d.on_chunk_received(chunk_T1_std_)
     assert mc.call_count == 0
     assert not _is_ts_present(
-        getattr(d, "_processed_keyframes"), T1_std  # Changed
+        getattr(d, "_processed_keyframes"),
+        T1_std,  # Changed
     )
 
 
@@ -403,11 +592,32 @@ async def test_update_no_value_change(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
     assert mc.call_count == 1
-    await d.on_update_received(tensor_index=0, value=5.0, timestamp=T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
     assert mc.call_count == 1
-    await d.on_update_received(tensor_index=0, value=6.0, timestamp=T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([6.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
     assert mc.call_count == 2
     last_call_update = mc.get_last_call()
     assert last_call_update is not None
@@ -420,7 +630,14 @@ async def test_timeout_behavior_cleanup_order(
     demuxer_short_timeout: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     dmx_instance, mc = demuxer_short_timeout
-    await dmx_instance.on_update_received(0, 1.0, T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await dmx_instance.on_chunk_received(chunk_T1_std_0)
 
     def _is_ts_present(
         states_list: List[Tuple[datetime.datetime, torch.Tensor, Any]],
@@ -429,24 +646,42 @@ async def test_timeout_behavior_cleanup_order(
         return any(ts == target_ts for ts, _, _ in states_list)
 
     assert _is_ts_present(
-        getattr(dmx_instance, "_processed_keyframes"), T1_std  # Changed
+        getattr(dmx_instance, "_processed_keyframes"),
+        T1_std,  # Changed
     )
     assert (
         getattr(dmx_instance, "_TensorDemuxer__latest_update_timestamp")
         == T1_std
     )
     mc.clear_calls()
-    await dmx_instance.on_update_received(0, 2.0, T0_std)
+    chunk_tensor_T0_std_0 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_T0_std_0 = SynchronizedTimestamp(T0_std)
+    chunk_T0_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T0_std_0,
+        timestamp=sync_ts_T0_std_0,
+        starting_index=0,
+    )
+    await dmx_instance.on_chunk_received(chunk_T0_std_0)
     assert not _is_ts_present(
-        getattr(dmx_instance, "_processed_keyframes"), T0_std  # Changed
+        getattr(dmx_instance, "_processed_keyframes"),
+        T0_std,  # Changed
     )
     assert mc.call_count == 0
-    await dmx_instance.on_update_received(0, 3.0, T2_std)
+    chunk_tensor_T2_std_0 = torch.tensor([3.0], dtype=torch.float32)
+    sync_ts_T2_std_0 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_0,
+        timestamp=sync_ts_T2_std_0,
+        starting_index=0,
+    )
+    await dmx_instance.on_chunk_received(chunk_T2_std_0)
     assert not _is_ts_present(
-        getattr(dmx_instance, "_processed_keyframes"), T1_std  # Changed
+        getattr(dmx_instance, "_processed_keyframes"),
+        T1_std,  # Changed
     )
     assert _is_ts_present(
-        getattr(dmx_instance, "_processed_keyframes"), T2_std  # Changed
+        getattr(dmx_instance, "_processed_keyframes"),
+        T2_std,  # Changed
     )
     assert mc.call_count == 1
     last_call_t2 = mc.get_last_call()
@@ -462,12 +697,54 @@ async def test_get_tensor_at_timestamp(
 ) -> None:
     d, mc = demuxer
     tensor_t1_data = torch.tensor([1.0, 2.0, 3.0, 4.0])
-    await d.on_update_received(0, 1.0, T1_std)
-    await d.on_update_received(1, 2.0, T1_std)
-    await d.on_update_received(2, 3.0, T1_std)
-    await d.on_update_received(3, 4.0, T1_std)
-    await d.on_update_received(0, 5.0, T2_std)
-    await d.on_update_received(1, 6.0, T2_std)
+    chunk_tensor_T1_std_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
+    chunk_tensor_T1_std_1 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_T1_std_1 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_1,
+        timestamp=sync_ts_T1_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T1_std_1)
+    chunk_tensor_T1_std_2 = torch.tensor([3.0], dtype=torch.float32)
+    sync_ts_T1_std_2 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_2 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_2,
+        timestamp=sync_ts_T1_std_2,
+        starting_index=2,
+    )
+    await d.on_chunk_received(chunk_T1_std_2)
+    chunk_tensor_T1_std_3 = torch.tensor([4.0], dtype=torch.float32)
+    sync_ts_T1_std_3 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_3 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_3,
+        timestamp=sync_ts_T1_std_3,
+        starting_index=3,
+    )
+    await d.on_chunk_received(chunk_T1_std_3)
+    chunk_tensor_T2_std_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_T2_std_0 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_0,
+        timestamp=sync_ts_T2_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T2_std_0)
+    chunk_tensor_T2_std_1 = torch.tensor([6.0], dtype=torch.float32)
+    sync_ts_T2_std_1 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_1,
+        timestamp=sync_ts_T2_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T2_std_1)
     mc.clear_calls()
     retrieved_t1 = await d.get_tensor_at_timestamp(T1_std)
     assert retrieved_t1 is not None
@@ -486,11 +763,39 @@ async def test_timestamp_with_no_explicit_updates_inherits_state(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(0, 1.0, T1_std)
-    await d.on_update_received(1, 2.0, T1_std)
-    await d.on_update_received(0, 3.0, T2_std)
+    chunk_tensor_T1_std_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
+    chunk_tensor_T1_std_1 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_T1_std_1 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_1,
+        timestamp=sync_ts_T1_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T1_std_1)
+    chunk_tensor_T2_std_0 = torch.tensor([3.0], dtype=torch.float32)
+    sync_ts_T2_std_0 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_0,
+        timestamp=sync_ts_T2_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T2_std_0)
     mc.clear_calls()
-    await d.on_update_received(0, 4.0, T4_std)
+    chunk_tensor_T4_std_0 = torch.tensor([4.0], dtype=torch.float32)
+    sync_ts_T4_std_0 = SynchronizedTimestamp(T4_std)
+    chunk_T4_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T4_std_0,
+        timestamp=sync_ts_T4_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T4_std_0)
     assert mc.call_count == 1
     t4_tensor_notified, t4_ts_notified = None, None
     last_call = mc.get_last_call()
@@ -502,7 +807,8 @@ async def test_timestamp_with_no_explicit_updates_inherits_state(
     assert torch.equal(t4_tensor_notified, torch.tensor([4.0, 2.0, 0.0, 0.0]))
     t4_internal_tensor = None
     for ts_loop, tensor_val_loop, _ in getattr(
-        d, "_processed_keyframes"  # Changed
+        d,
+        "_processed_keyframes",  # Changed
     ):
         if ts_loop == T4_std:
             t4_internal_tensor = tensor_val_loop
@@ -519,9 +825,16 @@ async def test_many_explicit_updates_single_timestamp(
     tensor_len = d.tensor_length
     expected_values = [float(i * 10) for i in range(tensor_len)]
     for i in range(tensor_len):
-        await d.on_update_received(
-            tensor_index=i, value=expected_values[i], timestamp=T1_std
+        chunk_tensor_T1_std_i = torch.tensor(
+            [expected_values[i]], dtype=torch.float32
         )
+        sync_ts_T1_std_i = SynchronizedTimestamp(T1_std)
+        chunk_T1_std_i = SerializableTensorChunk(
+            tensor=chunk_tensor_T1_std_i,
+            timestamp=sync_ts_T1_std_i,
+            starting_index=i,
+        )
+        await d.on_chunk_received(chunk_T1_std_i)
     assert mc.call_count == tensor_len
     last_call_final = mc.get_last_call()
     assert last_call_final is not None
@@ -553,11 +866,39 @@ async def test_explicit_updates_overwrite_and_add_to_inherited_state(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(0, 1.0, T1_std)
-    await d.on_update_received(1, 2.0, T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
+    chunk_tensor_T1_std_1 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_T1_std_1 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_1,
+        timestamp=sync_ts_T1_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T1_std_1)
     mc.clear_calls()
-    await d.on_update_received(1, 20.0, T2_std)
-    await d.on_update_received(2, 30.0, T2_std)
+    chunk_tensor_T2_std_1 = torch.tensor([20.0], dtype=torch.float32)
+    sync_ts_T2_std_1 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_1,
+        timestamp=sync_ts_T2_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T2_std_1)
+    chunk_tensor_T2_std_2 = torch.tensor([30.0], dtype=torch.float32)
+    sync_ts_T2_std_2 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_2 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_2,
+        timestamp=sync_ts_T2_std_2,
+        starting_index=2,
+    )
+    await d.on_chunk_received(chunk_T2_std_2)
     assert mc.call_count == 2
     last_call_final_t2 = mc.get_last_call()
     assert last_call_final_t2 is not None
@@ -587,11 +928,39 @@ async def test_cascade_with_tensor_explicit_updates(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(0, 1.0, T1_std)
-    await d.on_update_received(1, 10.0, T2_std)
-    await d.on_update_received(2, 20.0, T3_std)
+    chunk_tensor_T1_std_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
+    chunk_tensor_T2_std_1 = torch.tensor([10.0], dtype=torch.float32)
+    sync_ts_T2_std_1 = SynchronizedTimestamp(T2_std)
+    chunk_T2_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T2_std_1,
+        timestamp=sync_ts_T2_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T2_std_1)
+    chunk_tensor_T3_std_2 = torch.tensor([20.0], dtype=torch.float32)
+    sync_ts_T3_std_2 = SynchronizedTimestamp(T3_std)
+    chunk_T3_std_2 = SerializableTensorChunk(
+        tensor=chunk_tensor_T3_std_2,
+        timestamp=sync_ts_T3_std_2,
+        starting_index=2,
+    )
+    await d.on_chunk_received(chunk_T3_std_2)
     mc.clear_calls()
-    await d.on_update_received(0, 5.0, T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
     assert mc.call_count == 3
     t1_call_kf = mc.calls[0]
     assert t1_call_kf[1] == T1_std
@@ -609,12 +978,34 @@ async def test_explicit_tensors_build_correctly(
     demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
 ) -> None:
     d, mc = demuxer
-    await d.on_update_received(0, 1.0, T1_std)
-    await d.on_update_received(1, 2.0, T1_std)
-    await d.on_update_received(0, 1.5, T1_std)
+    chunk_tensor_T1_std_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
+    chunk_tensor_T1_std_1 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_T1_std_1 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_1,
+        timestamp=sync_ts_T1_std_1,
+        starting_index=1,
+    )
+    await d.on_chunk_received(chunk_T1_std_1)
+    chunk_tensor_T1_std_0 = torch.tensor([1.5], dtype=torch.float32)
+    sync_ts_T1_std_0 = SynchronizedTimestamp(T1_std)
+    chunk_T1_std_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_T1_std_0,
+        timestamp=sync_ts_T1_std_0,
+        starting_index=0,
+    )
+    await d.on_chunk_received(chunk_T1_std_0)
     t1_explicit_indices, t1_explicit_values = None, None
     for s_ts, _, (indices, values) in getattr(
-        d, "_processed_keyframes"  # Changed
+        d,
+        "_processed_keyframes",  # Changed
     ):
         if s_ts == T1_std:
             t1_explicit_indices = indices
@@ -650,7 +1041,12 @@ async def test_on_keyframe_updated_hook_called_on_new_timestamp(  # type: ignore
     # _on_newest_timestamp_updated has been removed
     ts1 = datetime.datetime(2023, 1, 1, 12, 0, 0)
     expected_tensor = torch.tensor([5.0, 0.0, 0.0, 0.0])
-    await d.on_update_received(tensor_index=0, value=5.0, timestamp=ts1)
+    chunk_tensor_ts1_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_ts1_0 = SynchronizedTimestamp(ts1)
+    chunk_ts1_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts1_0, timestamp=sync_ts_ts1_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_ts1_0)
     spy_on_keyframe_updated.assert_called_once()
     call_args_keyframe = spy_on_keyframe_updated.call_args_list[0]
     assert call_args_keyframe[0][0] == ts1
@@ -665,12 +1061,22 @@ async def test_on_keyframe_updated_hook_called_on_existing_timestamp_update(  # 
 ) -> None:
     d, mc = demuxer
     ts1 = datetime.datetime(2023, 1, 1, 12, 0, 0)
-    await d.on_update_received(tensor_index=0, value=5.0, timestamp=ts1)
+    chunk_tensor_ts1_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_ts1_0 = SynchronizedTimestamp(ts1)
+    chunk_ts1_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts1_0, timestamp=sync_ts_ts1_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_ts1_0)
     mc.clear_calls()
     spy_on_keyframe_updated = mocker.spy(d, "_on_keyframe_updated")
     # _on_newest_timestamp_updated has been removed
     expected_tensor = torch.tensor([5.0, 10.0, 0.0, 0.0])
-    await d.on_update_received(tensor_index=1, value=10.0, timestamp=ts1)
+    chunk_tensor_ts1_1 = torch.tensor([10.0], dtype=torch.float32)
+    sync_ts_ts1_1 = SynchronizedTimestamp(ts1)
+    chunk_ts1_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts1_1, timestamp=sync_ts_ts1_1, starting_index=1
+    )
+    await d.on_chunk_received(chunk_ts1_1)
     spy_on_keyframe_updated.assert_called_once()
     call_args_keyframe = spy_on_keyframe_updated.call_args_list[0]
     assert call_args_keyframe[0][0] == ts1
@@ -686,12 +1092,27 @@ async def test_hooks_called_during_cascade(  # type: ignore[no-untyped-def]
     d, mc = demuxer
     ts1 = datetime.datetime(2023, 1, 1, 12, 0, 0)
     ts2 = datetime.datetime(2023, 1, 1, 12, 0, 10)
-    await d.on_update_received(tensor_index=0, value=1.0, timestamp=ts1)
-    await d.on_update_received(tensor_index=1, value=2.0, timestamp=ts2)
+    chunk_tensor_ts1_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_ts1_0 = SynchronizedTimestamp(ts1)
+    chunk_ts1_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts1_0, timestamp=sync_ts_ts1_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_ts1_0)
+    chunk_tensor_ts2_1 = torch.tensor([2.0], dtype=torch.float32)
+    sync_ts_ts2_1 = SynchronizedTimestamp(ts2)
+    chunk_ts2_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts2_1, timestamp=sync_ts_ts2_1, starting_index=1
+    )
+    await d.on_chunk_received(chunk_ts2_1)
     mc.clear_calls()
     spy_on_keyframe_updated = mocker.spy(d, "_on_keyframe_updated")
     # _on_newest_timestamp_updated has been removed
-    await d.on_update_received(tensor_index=0, value=5.0, timestamp=ts1)
+    chunk_tensor_ts1_0 = torch.tensor([5.0], dtype=torch.float32)
+    sync_ts_ts1_0 = SynchronizedTimestamp(ts1)
+    chunk_ts1_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts1_0, timestamp=sync_ts_ts1_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_ts1_0)
     assert spy_on_keyframe_updated.call_count == 2
     call_t1_args = spy_on_keyframe_updated.call_args_list[0]
     assert call_t1_args[0][0] == ts1
@@ -710,13 +1131,21 @@ async def test_on_newest_timestamp_hook_only_for_latest_direct_update(  # type: 
     d, mc = demuxer
     ts1 = datetime.datetime(2023, 1, 1, 12, 0, 0)  # Older
     ts2 = datetime.datetime(2023, 1, 1, 12, 0, 10)  # Newest
-    await d.on_update_received(tensor_index=0, value=10.0, timestamp=ts2)
+    chunk_tensor_ts2_0 = torch.tensor([10.0], dtype=torch.float32)
+    sync_ts_ts2_0 = SynchronizedTimestamp(ts2)
+    chunk_ts2_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts2_0, timestamp=sync_ts_ts2_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_ts2_0)
     mc.clear_calls()
     spy_on_keyframe_updated = mocker.spy(d, "_on_keyframe_updated")
     # _on_newest_timestamp_updated has been removed
-    await d.on_update_received(
-        tensor_index=0, value=1.0, timestamp=ts1
-    )  # Update older, T2 is latest
+    chunk_tensor_ts1_0 = torch.tensor([1.0], dtype=torch.float32)
+    sync_ts_ts1_0 = SynchronizedTimestamp(ts1)
+    chunk_ts1_0 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts1_0, timestamp=sync_ts_ts1_0, starting_index=0
+    )
+    await d.on_chunk_received(chunk_ts1_0)  # Update older, T2 is latest
     spy_on_keyframe_updated.assert_called_once()
     call_args_keyframe = spy_on_keyframe_updated.call_args_list[0]
     assert call_args_keyframe[0][0] == ts1
@@ -729,12 +1158,203 @@ async def test_on_newest_timestamp_hook_only_for_latest_direct_update(  # type: 
     spy_on_keyframe_updated.reset_mock()
     # No spy_on_newest_timestamp_updated to reset
     expected_ts2_tensor = torch.tensor([10.0, 20.0, 0.0, 0.0])
-    await d.on_update_received(
-        tensor_index=1, value=20.0, timestamp=ts2
-    )  # Update newest
+    chunk_tensor_ts2_1 = torch.tensor([20.0], dtype=torch.float32)
+    sync_ts_ts2_1 = SynchronizedTimestamp(ts2)
+    chunk_ts2_1 = SerializableTensorChunk(
+        tensor=chunk_tensor_ts2_1, timestamp=sync_ts_ts2_1, starting_index=1
+    )
+    await d.on_chunk_received(chunk_ts2_1)  # Update newest
     spy_on_keyframe_updated.assert_called_once()
     call_args_keyframe_ts2 = spy_on_keyframe_updated.call_args_list[0]
     assert call_args_keyframe_ts2[0][0] == ts2
     assert torch.equal(call_args_keyframe_ts2[0][1], expected_ts2_tensor)
     # No assertions for spy_on_newest_timestamp_updated
     assert mc.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_multi_element_chunk_new_timestamp(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+) -> None:
+    d, mc = demuxer
+
+    # Chunk with 3 elements for T1_std, starting at index 0
+    chunk_data = torch.tensor([10.0, 20.0, 30.0], dtype=torch.float32)
+    sync_ts_t1 = SynchronizedTimestamp(T1_std)
+    chunk = SerializableTensorChunk(
+        tensor=chunk_data, timestamp=sync_ts_t1, starting_index=0
+    )
+
+    await d.on_chunk_received(chunk)
+
+    assert mc.call_count == 1, "Client should be notified once for the chunk"
+    last_call = mc.get_last_call()
+    assert last_call is not None
+    tensor, ts = last_call
+
+    expected_tensor = torch.tensor(
+        [10.0, 20.0, 30.0, 0.0]
+    )  # tensor_length is 4
+    assert torch.equal(tensor, expected_tensor)
+    assert ts == T1_std
+
+    # Verify internal keyframe
+    kf_state = await d.get_tensor_at_timestamp(T1_std)
+    assert kf_state is not None
+    assert torch.equal(kf_state, expected_tensor)
+
+    processed_kf = getattr(d, "_processed_keyframes")
+    assert len(processed_kf) == 1
+    _, _, (explicit_indices, explicit_values) = processed_kf[0]
+
+    # Check explicit values store all elements from the chunk
+    expected_indices = {0, 1, 2}
+    actual_indices = set(explicit_indices.tolist())
+    assert actual_indices == expected_indices
+
+    expected_values_map = {0: 10.0, 1: 20.0, 2: 30.0}
+    for i_val, idx in enumerate(explicit_indices.tolist()):
+        assert explicit_values[i_val].item() == pytest.approx(
+            expected_values_map[idx]
+        )
+
+
+@pytest.mark.asyncio
+async def test_multi_element_chunk_updates_existing_timestamp(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+) -> None:
+    d, mc = demuxer
+
+    # Initial state at T1_std
+    initial_chunk_data = torch.tensor([1.0, 2.0], dtype=torch.float32)
+    sync_ts_t1 = SynchronizedTimestamp(T1_std)
+    initial_chunk = SerializableTensorChunk(
+        tensor=initial_chunk_data, timestamp=sync_ts_t1, starting_index=0
+    )
+    await d.on_chunk_received(initial_chunk)
+    assert mc.call_count == 1
+    mc.clear_calls()  # Clear calls after setup
+
+    # New multi-element chunk for T1_std, overwriting and adding
+    # Updates index 1 (overwrite) and index 2 (new)
+    update_chunk_data = torch.tensor([22.0, 33.0], dtype=torch.float32)
+    # sync_ts_t1 is same
+    update_chunk = SerializableTensorChunk(
+        tensor=update_chunk_data, timestamp=sync_ts_t1, starting_index=1
+    )
+
+    await d.on_chunk_received(update_chunk)
+
+    assert mc.call_count == 1, (
+        "Client should be notified once for the updating chunk"
+    )
+    last_call = mc.get_last_call()
+    assert last_call is not None
+    tensor, ts = last_call
+
+    # Initial: [1.0, 2.0, 0.0, 0.0]
+    # Update chunk: starting_index=1, data=[22.0, 33.0] -> updates index 1 to 22.0, index 2 to 33.0
+    # Expected: [1.0, 22.0, 33.0, 0.0]
+    expected_tensor = torch.tensor([1.0, 22.0, 33.0, 0.0])
+    assert torch.equal(tensor, expected_tensor)
+    assert ts == T1_std
+
+    # Verify internal keyframe
+    kf_state = await d.get_tensor_at_timestamp(T1_std)
+    assert kf_state is not None
+    assert torch.equal(kf_state, expected_tensor)
+
+    processed_kf = getattr(d, "_processed_keyframes")
+    assert len(processed_kf) == 1
+    _, _, (explicit_indices, explicit_values) = processed_kf[0]
+
+    # Explicit values should reflect all updates for T1: original 0, then chunk updates for 1, 2
+    # Original: (0, 1.0), (1, 2.0)
+    # Update chunk: (1, 22.0), (2, 33.0)
+    # Final explicits for T1 should be: (0, 1.0), (1, 22.0), (2, 33.0)
+    expected_indices_set = {0, 1, 2}
+    actual_indices_set = set(explicit_indices.tolist())
+    assert actual_indices_set == expected_indices_set
+
+    expected_values_map = {0: 1.0, 1: 22.0, 2: 33.0}
+    for i_val, idx in enumerate(explicit_indices.tolist()):
+        assert explicit_values[i_val].item() == pytest.approx(
+            expected_values_map[idx]
+        )
+
+
+@pytest.mark.asyncio
+async def test_multi_element_chunk_triggers_cascade(
+    demuxer: Tuple[TensorDemuxer, MockTensorDemuxerClient],
+) -> None:
+    d, mc = demuxer
+
+    # Setup: T2 has some data, T3 inherits from T2 and adds its own
+    # T2: [0, 10, 0, 0]
+    chunk_t2_data = torch.tensor([10.0], dtype=torch.float32)
+    sync_ts_t2 = SynchronizedTimestamp(T2_std)
+    chunk_t2 = SerializableTensorChunk(
+        tensor=chunk_t2_data, timestamp=sync_ts_t2, starting_index=1
+    )
+    await d.on_chunk_received(chunk_t2)  # Call 1 (T2)
+
+    # T3: [0, 10, 20, 0] (inherits T2, adds 20 at index 2)
+    chunk_t3_data = torch.tensor([20.0], dtype=torch.float32)
+    sync_ts_t3 = SynchronizedTimestamp(T3_std)
+    chunk_t3 = SerializableTensorChunk(
+        tensor=chunk_t3_data, timestamp=sync_ts_t3, starting_index=2
+    )
+    await d.on_chunk_received(chunk_t3)  # Call 2 (T3)
+
+    mc.clear_calls()
+
+    # Now, send a multi-element chunk to T1 that will affect T2 and T3 by cascade
+    # T1: [100, 200, 0, 0]
+    chunk_t1_data = torch.tensor([100.0, 200.0], dtype=torch.float32)
+    sync_ts_t1 = SynchronizedTimestamp(T1_std)
+    chunk_t1 = SerializableTensorChunk(
+        tensor=chunk_t1_data, timestamp=sync_ts_t1, starting_index=0
+    )
+
+    await d.on_chunk_received(chunk_t1)
+
+    # Expected calls:
+    # 1. For T1 update: [100, 200, 0, 0]
+    # 2. For T2 cascade: T1's state + T2's explicit [100, 200 (from T1) but T2 has explicit 10 at index 1 -> 100, 10, 0, 0] -> [100,10,0,0]
+    #    Wait, T2's explicit was (1,10). So T2 becomes [100, 10, 0, 0]
+    # 3. For T3 cascade: T2's new state + T3's explicit [100, 10 (from T2) + T3 has explicit 20 at index 2] -> [100, 10, 20, 0]
+    assert mc.call_count == 3, (
+        "Should be 3 calls: T1 direct, T2 cascade, T3 cascade"
+    )
+
+    # Call 1: T1
+    t1_tensor, t1_ts = mc.calls[0]
+    assert t1_ts == T1_std
+    assert torch.equal(t1_tensor, torch.tensor([100.0, 200.0, 0.0, 0.0]))
+
+    # Call 2: T2 (cascaded)
+    t2_tensor, t2_ts = mc.calls[1]
+    assert t2_ts == T2_std
+    assert torch.equal(
+        t2_tensor, torch.tensor([100.0, 10.0, 0.0, 0.0])
+    )  # T2 had explicit (1,10)
+
+    # Call 3: T3 (cascaded)
+    t3_tensor, t3_ts = mc.calls[2]
+    assert t3_ts == T3_std
+    assert torch.equal(
+        t3_tensor, torch.tensor([100.0, 10.0, 20.0, 0.0])
+    )  # T3 had explicit (2,20)
+
+    # Verify internal states
+    kf_t1 = await d.get_tensor_at_timestamp(T1_std)
+    assert kf_t1 is not None
+    assert torch.equal(kf_t1, torch.tensor([100.0, 200.0, 0.0, 0.0]))
+
+    kf_t2 = await d.get_tensor_at_timestamp(T2_std)
+    assert kf_t2 is not None
+    assert torch.equal(kf_t2, torch.tensor([100.0, 10.0, 0.0, 0.0]))
+
+    kf_t3 = await d.get_tensor_at_timestamp(T3_std)
+    assert kf_t3 is not None
+    assert torch.equal(kf_t3, torch.tensor([100.0, 10.0, 20.0, 0.0]))
