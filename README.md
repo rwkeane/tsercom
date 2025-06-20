@@ -1,123 +1,228 @@
-# TSERCOM
-## Time SERies COMmunication
+# Tsercom: A Toolkit for Robust Time-Series Communication
 
 [![CI Tests](https://github.com/rwkeane/tsercom/actions/workflows/python-tests.yml/badge.svg)](https://github.com/rwkeane/tsercom/actions/workflows/python-tests.yml)
 [![codecov](https://codecov.io/gh/rwkeane/tsercom/branch/main/graph/badge.svg)](https://codecov.io/gh/rwkeane/tsercom)
 
-Tsercom is a Python library designed to simplify the transmission and management of time-series data across networks using gRPC. It provides tools for establishing communication between clients and servers, handling data serialization, managing persistent client identities, and synchronizing timestamps, making it suitable for distributed data science and machine learning applications.
+**Tsercom** (Time SERies COMmunication) is a high-performance Python toolkit for building robust, distributed applications that stream and synchronize time-series data. It provides composable modules and a powerful, integrated runtime system to handle complex networking challenges like service discovery, out-of-order data, and efficient serialization, allowing you to focus on your core application logic.
+
+While its most advanced features are purpose-built for `torch.Tensor` data, the library is designed to be modular and is fully functional for any data type in environments without PyTorch.
+
+## Core Philosophy
+
+  * **Composable Toolkit:** Use what you need. Each major capability is a self-contained module. Need dynamic service discovery? Use `tsercom.discovery`. Need to handle out-of-order tensor streams? Use `tsercom.tensor`. The modules can be used independently.
+  * **Powerful Integration:** While modules are independent, the optional `RuntimeManager` provides a powerful, out-of-process execution environment. When used, it **automatically handles difficult distributed systems problems** like inter-process communication, multi-node time synchronization, and resilient connections "for free".
+  * **Empower with Utilities:** Tsercom provides **gRPC utilities**, not a restrictive framework. You define your own `.proto` services and implement your own logic; Tsercom provides the tools to host, connect, and manage those services robustly.
 
 ## Key Features
 
-*   **Simplified gRPC Management:** Abstracts away much of the boilerplate for setting up and managing gRPC services and clients.
-*   **ZeroConf Client/Server Discovery:** Automatically discover and connect clients and servers on the network using mDNS (optional, via `discovery` module).
-*   **Automatic Reconnection:** Includes utilities to help build resilient clients that can handle network disruptions and attempt reconnection (e.g., `ClientDisconnectionRetrier`).
-*   **Persistent Client Identity:** Provides mechanisms for managing a consistent `CallerId` for clients.
-*   **Timestamp Synchronization:** Offers tools for synchronizing timestamps between server and client instances.
-*   **Serialization Utilities:** Includes helpers for serializing common data types to and from protobufs for gRPC transmission.
-*   **Process/Thread Isolation:** Supports running communication logic in separate processes or threads, isolating it from the main application, particularly when using the `RuntimeManager` system.
+  * **Optimized Tensor Transport:** When `torch` is installed, Tsercom uses `torch.multiprocessing` for near-zero-copy tensor transfer between local processes and an efficient "chunk-based" serialization to minimize network traffic.
+  * **Causal Consistency Engine:** The `TensorDemuxer` acts as a state reconstruction engine, correctly rebuilding a historical timeline from sporadic or out-of-order data streams via a cascading update mechanism.
+  * **Online Data Augmentation:** Provides utilities for creating smoothed, high-frequency data streams from sparse updates. Includes options from simple linear interpolation (`RuntimeDataAggregator`) to the fully causally-consistent `SmoothedTensorDemuxer`.
+  * **Dynamic Service Discovery:** Built-in mDNS (`zeroconf`) support for automatically discovering and connecting to services on a local network.
+  * **Stateful Bidirectional Streaming:** Built on gRPC, Tsercom establishes resilient connections with a formal handshake to exchange identity (`CallerId`). This allows for persistent, stateful relationships between components, even across network failures.
 
 ## Installation
 
-You can install Tsercom using pip:
 ```bash
+# For general-purpose use
 pip install tsercom
+
+# To enable all tensor-specific features, install PyTorch
+pip install tsercom torch
 ```
 
-For development, clone the repository and install in editable mode with development dependencies:
+For development, clone the repository and run the setup script, which will install all dependencies and `pre-commit` hooks:
+
 ```bash
 git clone https://github.com/rwkeane/tsercom.git
 cd tsercom
-pip install -e .[dev]
+./setup_dev.sh
 ```
-This will also install tools like `pytest`, `black`, `ruff`, `mypy`, and `pylint`.
 
-## How It Works / The Idea
+## Anatomy of a Tsercom Connection
+When using the discovery and connection modules, the components interact in a clear sequence to establish a robust data stream:
+1.  **Publish:** A data source `Runtime` uses an `InstancePublisher` to advertise its service (e.g., `_my-service._tcp.local`) on the network via mDNS.
+2.  **Discover:** A data aggregator `Runtime` uses a `DiscoveryHost` to listen for services of that type.
+3.  **Connect:** When a service is discovered, the `ServiceConnector` automatically initiates a gRPC connection, creating a communication channel.
+4.  **Handshake:** The `_on_channel_connected` callback is triggered. In this step, the components perform a handshake, typically sending a `CallerId` to establish a persistent, stateful session.
+5.  **Stream:** With the connection established and identified, both sides can now use their gRPC stubs and servicers to engage in bidirectional streaming of time-series data.
 
-Tsercom simplifies building systems that exchange time-series data by providing a framework and tools for common networking tasks. The core philosophy is to:
+## Quick Start
 
-*   **Abstract Complexity:** Hide the intricacies of network programming (gRPC setup, service discovery, reconnection logic) behind more straightforward APIs. This allows developers to focus on their application-specific data handling and business logic.
-*   **Promote Modularity:** Encourage separation of concerns. Communication logic can be developed and managed independently of the core application (e.g., a machine learning model or data processing pipeline). Tsercom's `RuntimeManager` system (shown in older examples, and used internally for more complex scenarios) particularly facilitates running communication components in separate threads or processes, isolating them and improving robustness.
-*   **Ensure Robustness:** Incorporate features like persistent client identifiers (`CallerId`) and utilities for automatic reconnections to help build more resilient distributed systems.
-*   **Facilitate Integration:** Offer utilities for data serialization (especially for `torch.Tensor` if PyTorch is installed) and timestamp synchronization, which are common needs in time-series applications.
+The best way to understand `Tsercom` is to see how its modules work together. This example demonstrates the powerful "client-advertises, server-discovers" pattern. We will create:
 
-**Typical Use Cases:**
-*   **Distributed Machine Learning:** Streaming inference requests to model servers or aggregating training data from multiple sources.
-*   **Sensor Networks:** Collecting and processing data from many distributed sensors.
-*   **Real-time Data Pipelines:** Building systems where components need to exchange data with low latency.
+1.  A "Data Source" runtime that hosts a gRPC service and advertises it on the network.
+2.  A "Data Aggregator" runtime that discovers the Data Source, connects to it as a gRPC client, and calls an RPC.
+3.  A `RuntimeManager` to run both in separate processes.
 
-## Basic Usage
+**1. Define the gRPC Service (`echo.proto`)**
 
-The basic steps for using Tsercom for a gRPC backed client-server architecture are as follows:
-1. Define a simple gRPC service.
-2. Host this service using `GrpcServicePublisher`.
-3. Create a client that connects to the service.
-4. Send a request and receive a response.
-5. Manage Tsercom's global event loop.
+```protobuf
+syntax = "proto3";
+package tsercom_example;
 
-For example useage, see the [Quick Start Script](https://github.com/rwkeane/tsercom/blob/main/quick_start_test.py) in this repo.
+service Echoer {
+  rpc Echo (EchoRequest) returns (EchoReply);
+}
+message EchoRequest { string message = 1; }
+message EchoReply { string response = 1; }
+```
 
-To run this example, save it as `quick_start_test.py` and execute `python quick_start_test.py`.
+**2. Implement the Runtimes**
 
-**Architectural Flexibility:**
-While Tsercom provides components like `GrpcServicePublisher` for straightforward client-server setups (as shown in the Quick Start), it also supports more advanced architectures. For instance, the `discovery` module (using mDNS via `zeroconf`) allows for dynamic discovery of services. A common pattern in some Tsercom applications involves "client" processes (data sources) advertising themselves, and "server" processes (data aggregators) discovering and connecting to them. This can be useful for systems where data sources may join or leave the network dynamically. The library provides building blocks that can be composed to fit various distributed system designs.
+```python
+# quick_start.py
+import asyncio
+import grpc
+import time
+from typing import Optional
 
-That being said, there is a suggested architedture 
+# Assume generated files exist
+import echo_service_pb2
+import echo_service_pb2_grpc
 
-## Suggested Architecture: Maximizing Tsercom's Potential
+# --- Tsercom Imports ---
+from tsercom.api import RuntimeManager
+from tsercom.discovery import DiscoveryHost, ServiceConnector, ServiceInfo
+from tsercom.discovery.mdns import InstancePublisher
+from tsercom.rpc.connection import ChannelInfo
+from tsercom.rpc.grpc_util import GrpcChannelFactoryImpl, GrpcServicePublisher
+from tsercom.runtime import Runtime, RuntimeInitializer
+from tsercom.threading import NullThreadWatcher
 
-While Tsercom supports straightforward client-server setups (as demonstrated in the Quick Start guide), its design truly shines in more dynamic, distributed environments. A powerful and recommended architecture involves a "client-advertises, server-discovers" model. This approach flips the traditional roles, offering significant flexibility and resilience. This "client-advertises, server-discovers" approach offers several advantages:
 
-*   **Dynamic Discovery:** Data sources can join (or leave) the network, and the aggregator will automatically discover and connect to them (or handle their disappearance) without manual reconfiguration. This is ideal for environments with ephemeral or mobile nodes.
-*   **Resilience to Network Changes:** Data sources can change IP addresses or ports (e.g., due to DHCP or dynamic port assignment). As long as they can re-advertise via mDNS, the aggregator can re-discover and reconnect to them.
-*   **Decoupling:** Data producers (Tsercom "Clients") and consumers (Tsercom "Servers") are highly decoupled. They only need to agree on the service definition and the discovery mechanism, not on static network locations.
-*   **Scalability:** New data sources can be easily added to the system. They simply start advertising themselves, and the aggregator(s) can discover and integrate them. Similarly, multiple aggregators can discover the same set of data sources.
+# --- Data Source (Acts as gRPC Server) ---
+class EchoServicer(echo_service_pb2_grpc.EchoerServicer):
+    async def Echo(self, request, context):
+        return echo_service_pb2.EchoReply(response=f"Echoing: {request.message}")
 
-For more details about this approach, see [Suggested Architecture](https://github.com/rwkeane/tsercom/blob/main/suggested_architecture.md) in this repo.
+class DataSourceRuntime(Runtime, echo_service_pb2_grpc.EchoerServicer):
+    def __init__(self, thread_watcher: ThreadWatcher):
+        super().__init__()
+        self._port = 50051
+        self._publisher = GrpcServicePublisher(thread_watcher, self._port)
+        self._mdns_advertiser = InstancePublisher(self._port, "_echo._tcp.local.", "MyEchoService")
 
-### Simpler Models Still Viable:
+    async def start_async(self):
+        print("Data Source: Starting gRPC server and advertising via mDNS...")
+        await self._publisher.start_async(
+            lambda server: echo_service_pb2_grpc.add_EchoerServicer_to_server(self, server)
+        )
+        await self._mdns_advertiser.publish()
+        print("Data Source: Service is live.")
 
-It's important to note that Tsercom still fully supports traditional client-server models where the client initiates a connection to a well-known server address, as shown in the Quick Start. This is perfectly suitable for simpler applications or when dynamic discovery is not a requirement.
+    async def stop(self, exception: Optional[Exception] = None):
+        await self._mdns_advertiser.close()
+        await self._publisher.stop_async()
+        print("Data Source: Stopped.")
 
-However, adopting the "client-advertises, server-discovers" architecture with `RuntimeManager`, `InstancePublisher`, and `InstanceListener` unlocks Tsercom's more advanced capabilities for building robust, scalable, and adaptive distributed systems for time-series data communication.
+    async def Echo(self, request, context):
+        # This is the gRPC service logic
+        return echo_service_pb2.EchoReply(response=f"Echoing: {request.message}")
 
-### Real-World Examples:
+class DataSourceInitializer(RuntimeInitializer):
+    def create(self,
+               thread_watcher: ThreadWatcher,
+               data_handler: RuntimeDataHandler,
+               grpc_channel_factory: GrpcChannelFactory,) -> Runtime:
+        # data_handler is for sending data to / from the Runtime instance.
+        return DataSourceRuntime(thread_watcher)
 
-Coming soon! These repos have not yet been made public!
 
-But if you use this library, pleae submit a PR to add a link to your library here!
+# --- Data Aggregator (Acts as gRPC Client) ---
+class DataAggregatorRuntime(Runtime, ServiceConnector.Client):
+    def __init__(self, grpc_channel_factory: GrpcChannelFactory):
+        super().__init__()
+        self._discoverer = DiscoveryHost(service_type="_echo._tcp.local.")
+        self._connector = ServiceConnector(self, grpc_channel_factory, self._discoverer)
+
+    async def start_async(self):
+        print("Aggregator: Discovering services...")
+        await self._connector.start()
+        await self._discoverer.start_discovery()
+
+    async def stop(self, exception: Optional[Exception] = None):
+        await self._discoverer.stop_discovery()
+        await self._connector.stop()
+        print("Aggregator: Stopped.")
+
+    async def _on_channel_connected(self, conn_info: ServiceInfo, _, channel_info: ChannelInfo):
+        print(f"Aggregator: Connected to {conn_info.name}. Sending RPC...")
+        try:
+            stub = echo_service_pb2_grpc.EchoerStub(channel_info.channel)
+            response = await stub.Echo(echo_service_pb2.EchoRequest(message="Hello from Aggregator"))
+            print(f"Aggregator: Got response: '{response.response}'")
+            self.response_future.set_result(response.response)
+        except grpc.aio.AioRpcError as e:
+            print(f"Aggregator: RPC failed: {e}")
+            self.response_future.set_exception(e)
+
+class DataAggregatorInitializer(RuntimeInitializer):
+    def create(self,
+               thread_watcher: ThreadWatcher,
+               data_handler: RuntimeDataHandler,
+               grpc_channel_factory: GrpcChannelFactory) -> Runtime:
+        # data_handler is for sending data to / from the Runtime instance.
+        return DataAggregatorRuntime(grpc_channel_factory)
+
+
+# --- Orchestrate with RuntimeManager --- 
+async def main():
+    manager = RuntimeManager()
+    aggregator_init = DataAggregatorInitializer()
+    aggregator_handle_f = manager.register_runtime_initializer(aggregator_init)
+    manager.register_runtime_initializer(DataSourceInitializer())
+
+    # Also supports manager.start_in_process_async()
+    manager.start_out_of_process_async()
+    
+    # Used to send data to / from the aggregator. But that's not needed in this example.
+    aggregator_handle = aggregator_handle_f.result()
+
+    # Wait for gRPC to do its thing off-process / off-thread
+    time.sleep(5)
+    
+    manager.shutdown()
+
+if __name__ == "__main__":
+    main()
+
+```
+
+For a more comprehensive example that demonstrates a full client-server interaction with gRPC and a fake discovery mechanism, see the end-to-end test located at [`tsercom/full_app_e2etest.py`](https://www.google.com/search?q=%5Bhttps://github.com/rwkeane/tsercom/blob/main/tsercom/full_app_e2etest.py%5D\(https://github.com/rwkeane/tsercom/blob/main/tsercom/full_app_e2etest.py\)).
+
+## Advanced Usage & Architectures
+
+#### Suggested Architecture: Client-Advertises, Server-Discovers
+
+While Tsercom supports traditional client-server models, its design truly shines in more dynamic, distributed environments. A powerful and recommended architecture involves a "client-advertises, server-discovers" model. This approach flips the traditional roles, offering significant flexibility and resilience, which is ideal for environments with ephemeral or mobile nodes like sensor networks or robotics.
+
+This architecture offers several advantages:
+
+  * **Dynamic Discovery:** Data sources can join or leave the network, and aggregators will automatically discover and connect to them.
+  * **Resilience to Network Changes:** Data sources can change IP addresses without manual reconfiguration.
+  * **Decoupling:** Data producers and consumers are highly decoupled.
+
+For more details about this approach, see the full [Suggested Architecture documentation](https://github.com/rwkeane/tsercom/blob/main/suggested_architecture.md).
 
 ## Dependencies
 
-- `sortedcontainers`: Used for its `SortedList` data structure, which provides efficient (`O(log n)`) insertions, deletions, and lookups while maintaining sort order. This is crucial for performance in organizing time-series data and enabling features like interpolation.
 Tsercom relies on several key libraries:
 
-*   `sortedcontainers`
-*   `grpcio`, `grpcio-status`, `grpcio-tools`: For the core gRPC communication framework.
-*   `protobuf`: For working with Protocol Buffers, the data serialization format used by gRPC.
-*   `zeroconf`: For mDNS-based service discovery (used by the `tsercom.discovery` module).
-*   `ntplib`: Used by the `tsercom.timesync` module for network time synchronization.
-*   `psutil`: For system utilities, which can be used internally for process management or monitoring.
-*   `grpcio-health-checking`: For gRPC health checking services.
-*   `typing-extensions`: Provides access to newer typing features for older Python versions.
+  * `grpcio`, `grpcio-status`, `grpcio-tools`, `protobuf`
+  * `sortedcontainers`
+  * `zeroconf`
+  * `ntplib`
+  * `psutil`
+  * `typing-extensions`
 
 **Optional Dependencies:**
 
-*   `pytorch`: If PyTorch is installed, Tsercom provides utilities for serializing and deserializing `torch.Tensor` objects.
-
-If you encounter issues with gRPC versions, you might need to regenerate the protobuf-generated Python files. If you have the Tsercom repository cloned, you can do this by running the `scripts/generate_protos.py` script. This may require installing `mypy-protobuf` (`pip install mypy-protobuf`) and ensuring `protoc-gen-mypy` is in your PATH.
+  * `pytorch`: Required to unlock all tensor-specific features, including optimized inter-process communication and advanced serialization/reconstruction (`TensorMultiplexer`/`TensorDemuxer`).
 
 ## Contributing
 
-Contributions are welcome! Whether it's bug reports, feature requests, documentation improvements, or code contributions, please feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/rwkeane/tsercom).
-
-When contributing code, please ensure that:
-*   Your changes pass all existing tests.
-*   You add new tests for any new functionality.
-*   The code adheres to our style guidelines. We use `black` for formatting, `ruff` for linting, `mypy` for type checking, and `pylint` for further static analysis. Please run these tools locally before submitting your changes.
-    *   `black .`
-    *   `ruff check . --fix`
-    *   `mypy .`
-    *   `pylint tsercom quick_start_test.py` (or specify relevant modules/files)
+Contributions are welcome\! When contributing code, please ensure your changes pass our quality gates. We use `black` for formatting and `ruff` for linting. Setting up the local `pre-commit` hooks (`./setup_dev.sh`) is the easiest way to ensure compliance.
 
 ## License
 
