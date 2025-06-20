@@ -1,3 +1,4 @@
+import logging
 import pytest
 
 import socket  # For AF_INET, AF_INET6 constants
@@ -21,19 +22,21 @@ class TestIpUtils:
     # --- Tests for get_all_address_strings ---
 
     def test_get_all_address_strings_no_interfaces(self, mocker):
-        print("\n--- Test: test_get_all_address_strings_no_interfaces ---")
+        logging.debug("\n--- Test: test_get_all_address_strings_no_interfaces ---")
         mock_net_if_addrs = mocker.patch("psutil.net_if_addrs")
         mock_net_if_addrs.return_value = {}
 
         result = ip_util.get_all_address_strings()
-        print(f"  Result: {result}")
+        logging.debug(f"  Result: {result}")
 
         assert result == []
         mock_net_if_addrs.assert_called_once()
-        print("--- Test: test_get_all_address_strings_no_interfaces finished ---")
+        logging.debug(
+            "--- Test: test_get_all_address_strings_no_interfaces finished ---"
+        )
 
     def test_get_all_address_strings_interface_no_ipv4(self, mocker):
-        print("\n--- Test: test_get_all_address_strings_interface_no_ipv4 ---")
+        logging.debug("\n--- Test: test_get_all_address_strings_interface_no_ipv4 ---")
         mock_net_if_addrs = mocker.patch("psutil.net_if_addrs")
         mock_net_if_addrs.return_value = {
             "eth0": [
@@ -43,14 +46,16 @@ class TestIpUtils:
         }
 
         result = ip_util.get_all_address_strings()
-        print(f"  Result: {result}")
+        logging.debug(f"  Result: {result}")
 
         assert result == []
         mock_net_if_addrs.assert_called_once()
-        print("--- Test: test_get_all_address_strings_interface_no_ipv4 finished ---")
+        logging.debug(
+            "--- Test: test_get_all_address_strings_interface_no_ipv4 finished ---"
+        )
 
     def test_get_all_address_strings_single_interface_single_ipv4(self, mocker):
-        print(
+        logging.debug(
             "\n--- Test: test_get_all_address_strings_single_interface_single_ipv4 ---"
         )
         mock_net_if_addrs = mocker.patch("psutil.net_if_addrs")
@@ -63,16 +68,16 @@ class TestIpUtils:
         }
 
         result = ip_util.get_all_address_strings()
-        print(f"  Result: {result}")
+        logging.debug(f"  Result: {result}")
 
         assert result == [ipv4_address]
         mock_net_if_addrs.assert_called_once()
-        print(
+        logging.debug(
             "--- Test: test_get_all_address_strings_single_interface_single_ipv4 finished ---"
         )
 
     def test_get_all_address_strings_single_interface_multiple_ipv4(self, mocker):
-        print(
+        logging.debug(
             "\n--- Test: test_get_all_address_strings_single_interface_multiple_ipv4 ---"
         )
         mock_net_if_addrs = mocker.patch("psutil.net_if_addrs")
@@ -87,16 +92,16 @@ class TestIpUtils:
         }
 
         result = ip_util.get_all_address_strings()
-        print(f"  Result: {result}")
+        logging.debug(f"  Result: {result}")
 
         assert sorted(result) == sorted([ipv4_address1, ipv4_address2])
         mock_net_if_addrs.assert_called_once()
-        print(
+        logging.debug(
             "--- Test: test_get_all_address_strings_single_interface_multiple_ipv4 finished ---"
         )
 
     def test_get_all_address_strings_multiple_interfaces_varied_ipv4(self, mocker):
-        print(
+        logging.debug(
             "\n--- Test: test_get_all_address_strings_multiple_interfaces_varied_ipv4 ---"
         )
         mock_net_if_addrs = mocker.patch("psutil.net_if_addrs")
@@ -121,17 +126,19 @@ class TestIpUtils:
         }
 
         result = ip_util.get_all_address_strings()
-        print(f"  Result: {result}")
+        logging.debug(f"  Result: {result}")
 
         expected_ips = [ipv4_eth0_1, ipv4_eth1_1, ipv4_eth1_2]
         assert sorted(result) == sorted(expected_ips)
         mock_net_if_addrs.assert_called_once()
-        print(
+        logging.debug(
             "--- Test: test_get_all_address_strings_multiple_interfaces_varied_ipv4 finished ---"
         )
 
     def test_get_all_address_strings_loopback_and_regular_ipv4(self, mocker):
-        print("\n--- Test: test_get_all_address_strings_loopback_and_regular_ipv4 ---")
+        logging.debug(
+            "\n--- Test: test_get_all_address_strings_loopback_and_regular_ipv4 ---"
+        )
         mock_net_if_addrs = mocker.patch("psutil.net_if_addrs")
         loopback_ipv4 = "127.0.0.1"
         regular_ipv4 = "172.16.0.10"
@@ -148,46 +155,46 @@ class TestIpUtils:
         }
 
         result = ip_util.get_all_address_strings()
-        print(f"  Result: {result}")
+        logging.debug(f"  Result: {result}")
 
         expected_ips = [loopback_ipv4, regular_ipv4]
         assert sorted(result) == sorted(expected_ips)
         mock_net_if_addrs.assert_called_once()
-        print(
+        logging.debug(
             "--- Test: test_get_all_address_strings_loopback_and_regular_ipv4 finished ---"
         )
 
     # --- Tests for get_all_addresses ---
 
     def test_get_all_addresses_no_ip_strings(self, mocker):
-        print("\n--- Test: test_get_all_addresses_no_ip_strings ---")
+        logging.debug("\n--- Test: test_get_all_addresses_no_ip_strings ---")
         mock_get_strings = mocker.patch("tsercom.util.ip.get_all_address_strings")
         mock_inet_aton = mocker.patch("socket.inet_aton")
         mock_get_strings.return_value = []
 
         result = ip_util.get_all_addresses()
-        print(f"  Result: {result}")
+        logging.debug(f"  Result: {result}")
 
         assert result == []
         mock_get_strings.assert_called_once()
         mock_inet_aton.assert_not_called()
-        print("--- Test: test_get_all_addresses_no_ip_strings finished ---")
+        logging.debug("--- Test: test_get_all_addresses_no_ip_strings finished ---")
 
     def test_get_all_addresses_with_ip_strings(self, mocker):
-        print("\n--- Test: test_get_all_addresses_with_ip_strings ---")
+        logging.debug("\n--- Test: test_get_all_addresses_with_ip_strings ---")
         mock_get_strings = mocker.patch("tsercom.util.ip.get_all_address_strings")
         mock_inet_aton = mocker.patch("socket.inet_aton")
         ip_strings = ["192.168.1.1", "10.0.0.1", "127.0.0.1"]
         mock_get_strings.return_value = ip_strings
 
         def inet_aton_side_effect(ip_str):
-            print(f"  mock_inet_aton called with: {ip_str}")
+            logging.debug(f"  mock_inet_aton called with: {ip_str}")
             return f"packed_{ip_str}".encode("utf-8")
 
         mock_inet_aton.side_effect = inet_aton_side_effect
 
         result = ip_util.get_all_addresses()
-        print(f"  Result: {result}")
+        logging.debug(f"  Result: {result}")
 
         expected_packed_results = [f"packed_{s}".encode("utf-8") for s in ip_strings]
         assert result == expected_packed_results
@@ -196,4 +203,4 @@ class TestIpUtils:
         expected_calls = [mocker.call(s) for s in ip_strings]
         mock_inet_aton.assert_has_calls(expected_calls, any_order=False)
         assert mock_inet_aton.call_count == len(ip_strings)
-        print("--- Test: test_get_all_addresses_with_ip_strings finished ---")
+        logging.debug("--- Test: test_get_all_addresses_with_ip_strings finished ---")

@@ -1,5 +1,6 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
+import logging
 import multiprocessing as std_mp  # Standard library, aliased
 from collections.abc import Callable, Iterable  # Updated imports
 from typing import (
@@ -158,8 +159,8 @@ class TorchMemcpyQueueSource(
                             tensor_item.share_memory_()  # type: ignore[no-untyped-call]
                 except Exception as e:
                     # Log warning if accessor fails, but return the item as is.
-                    print(
-                        f"Warning: Tensor accessor failed for received object of type "
+                    logging.warning(
+                        f"Tensor accessor failed for received object of type "
                         f"{type(item)} during get: {e}"
                     )
             elif isinstance(item, torch.Tensor):
@@ -227,8 +228,8 @@ class TorchMemcpyQueueSink(
                 # Log a warning if the accessor fails, but still try to put the
                 # original object. The user of the queue might intend for
                 # non-tensor data or non-shareable tensors to pass.
-                print(
-                    f"Warning: Tensor accessor failed for object of type {type(obj)} "
+                logging.warning(
+                    f"Tensor accessor failed for object of type {type(obj)} "
                     f"during put: {e}"
                 )
         elif isinstance(obj, torch.Tensor):
