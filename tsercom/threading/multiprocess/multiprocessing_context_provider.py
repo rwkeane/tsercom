@@ -1,4 +1,9 @@
-from typing import Tuple, TYPE_CHECKING, Optional
+from typing import Optional
+from multiprocessing.context import BaseContext as StdBaseContext
+
+from tsercom.threading.multiprocess.multiprocess_queue_factory import (
+    MultiprocessQueueFactory,
+)
 
 # Keep _TORCH_AVAILABLE at module level as it's a global check
 try:
@@ -7,24 +12,6 @@ try:
     _TORCH_AVAILABLE = True
 except ImportError:
     _TORCH_AVAILABLE = False
-
-if TYPE_CHECKING:
-    # Using 'BaseContext' as it's a common parent for context objects from get_context()
-    from multiprocessing.context import BaseContext as StdBaseContext
-
-    try:
-        from torch.multiprocessing.context import BaseContext as TorchBaseContext  # type: ignore[attr-defined]
-
-        MPContextType = TorchBaseContext | StdBaseContext
-    except ImportError:  # If torch is not installed at all
-        MPContextType = StdBaseContext  # type: ignore[misc]
-
-    # Forward-declare factory types for the property hint
-    from tsercom.threading.multiprocess.multiprocess_queue_factory import (
-        MultiprocessQueueFactory,
-    )
-else:
-    MPContextType = object  # Define more loosely at runtime
 
 
 class MultiprocessingContextProvider:
@@ -46,11 +33,11 @@ class MultiprocessingContextProvider:
                             Defaults to "spawn".
         """
         self._context_method: str = context_method
-        self.__lazy_context: Optional[MPContextType] = None
+        self.__lazy_context: Optional[StdBaseContext] = None
         self.__lazy_queue_factory: Optional["MultiprocessQueueFactory"] = None
 
     @property
-    def context(self) -> MPContextType:
+    def context(self) -> StdBaseContext:
         """
         The multiprocessing context.
         Initialized lazily on first access.
@@ -103,12 +90,3 @@ class MultiprocessingContextProvider:
             # This case should ideally not happen if factory instantiation is successful
             raise RuntimeError("Failed to initialize multiprocessing queue factory.")
         return self.__lazy_queue_factory
-
-    def get_context_and_factory(
-        self,
-    ) -> Tuple[MPContextType, "MultiprocessQueueFactory"]:
-        """
-        Returns the selected multiprocessing context and queue factory instance.
-        These are obtained via their respective lazy-initialized properties.
-        """
-        return self.context, self.queue_factory

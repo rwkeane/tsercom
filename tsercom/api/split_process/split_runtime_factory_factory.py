@@ -1,6 +1,7 @@
 """Factory for creating split-process runtime factories and handles."""
 
 from concurrent.futures import ThreadPoolExecutor
+from multiprocessing.context import BaseContext
 from typing import Tuple, TypeVar
 
 from tsercom.api.runtime_command import RuntimeCommand
@@ -62,6 +63,10 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             context_method="spawn"
         )
 
+    @property
+    def multiprocessing_context(self) -> BaseContext:
+        return self.__mp_context_provider.context
+
     def _create_pair(
         self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
     ) -> Tuple[
@@ -102,7 +107,6 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             event_source,
             data_sink,
             runtime_command_source,
-            mp_context,
         )
 
         if initializer.timeout_seconds is not None:
@@ -126,6 +130,3 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         )
 
         return runtime_handle, factory
-
-
-EOL
