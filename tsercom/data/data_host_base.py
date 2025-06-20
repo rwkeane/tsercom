@@ -51,7 +51,8 @@ class DataHostBase(
             tracker = DataTimeoutTracker(timeout_seconds)
             tracker.start()
 
-        # Assign to a local variable first, then to self.__aggregator to avoid redefinition error.
+        # Assign to a local variable first, then to self.__aggregator
+        # to avoid redefinition error.
         aggregator_instance: RemoteDataAggregatorImpl[DataTypeT]
         if tracker is not None:
             aggregator_instance = RemoteDataAggregatorImpl[DataTypeT](

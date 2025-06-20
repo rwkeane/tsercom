@@ -265,14 +265,14 @@ async def test_add_publisher_range_overlap_error(
 
 @pytest.mark.asyncio
 async def test_publish_tensor_wrong_length(
-    aggregator: AggregateTensorMultiplexer, publisher1: Publisher, capsys
+    aggregator: AggregateTensorMultiplexer, publisher1: Publisher, caplog
 ):
     await aggregator.add_to_aggregation(publisher1, 3, sparse=True)
     wrong_len_tensor = torch.tensor([1.0, 2.0])
     await publisher1.publish(wrong_len_tensor, T1)
-    captured = capsys.readouterr()
-    assert "Warning: Tensor from publisher" in captured.out
-    assert "has length 2, expected 3" in captured.out
+    # captured = capsys.readouterr() # Not needed with caplog
+    assert "Warning: Tensor from publisher" in caplog.text
+    assert "has length 2, expected 3" in caplog.text
 
 
 @pytest.mark.asyncio

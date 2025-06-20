@@ -98,7 +98,8 @@ class RemoteRuntimeFactory(
         Returns:
             A `DataReaderSink` instance.
         """
-        # Note: Base `RuntimeFactory` expects RemoteDataReader[AnnotatedInstance[DataTypeT]].
+        # Note: Base `RuntimeFactory` expects
+        # RemoteDataReader[AnnotatedInstance[DataTypeT]].
         # DataReaderSink is compatible.
         if self.__data_reader_sink is None:
             self.__data_reader_sink = DataReaderSink(self.__data_reader_queue)

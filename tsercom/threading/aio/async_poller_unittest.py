@@ -8,6 +8,7 @@ from collections import deque
 
 from tsercom.threading.atomic import Atomic
 from tsercom.threading.aio.async_poller import AsyncPoller
+from tsercom.util.is_running_tracker import IsRunningTracker  # Import IsRunningTracker
 import tsercom.threading.aio.aio_utils as aio_utils_to_patch
 
 K_MAX_RESPONSES = 30
@@ -59,7 +60,9 @@ class TestAsyncPoller:
         pass
 
     async def test_on_available_and_wait_instance_single_item(self):
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[str](is_running_tracker=tracker)
         item1 = "item_one"
 
         poller.on_available(item1)
@@ -69,7 +72,9 @@ class TestAsyncPoller:
         assert len(poller) == 0
 
     async def test_wait_instance_blocks_until_on_available(self):
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[str](is_running_tracker=tracker)
         item1 = "item_blocker"
 
         wait_task = asyncio.create_task(poller.wait_instance())
@@ -83,7 +88,9 @@ class TestAsyncPoller:
         assert len(poller) == 0
 
     async def test_multiple_items_retrieved_in_order(self):
-        poller = AsyncPoller[int]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[int](is_running_tracker=tracker)
         item1, item2, item3 = 1, 2, 3
 
         poller.on_available(item1)
@@ -97,7 +104,9 @@ class TestAsyncPoller:
         assert len(poller) == 0
 
     async def test_queue_limit_kMaxResponses(self):
-        poller = AsyncPoller[int]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[int](is_running_tracker=tracker)
         num_items_to_add = K_MAX_RESPONSES + 5
         items_added = list(range(num_items_to_add))
         for i in items_added:
@@ -112,7 +121,9 @@ class TestAsyncPoller:
         assert len(poller) == 0
 
     async def test_flush_clears_queue(self):
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[str](is_running_tracker=tracker)
         poller.on_available("item_a")
         poller.on_available("item_b")
         assert len(poller) == 2
@@ -131,7 +142,9 @@ class TestAsyncPoller:
             pass
 
     async def test_len_accurate(self):
-        poller = AsyncPoller[float]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[float](is_running_tracker=tracker)
         assert len(poller) == 0
 
         poller.on_available(1.0)
@@ -144,7 +157,9 @@ class TestAsyncPoller:
         assert len(poller) == 0
 
     async def test_async_iterator(self):
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[str](is_running_tracker=tracker)
         item_x = "item_x"
         item_y = "item_y"
 
@@ -179,7 +194,9 @@ class TestAsyncPoller:
         assert collected_via_iter == expected_full_collection
 
     async def test_event_loop_property_set(self, mock_aio_utils):
-        poller = AsyncPoller[int]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[int](is_running_tracker=tracker)
         assert poller.event_loop is None
 
         poller.on_available(100)
@@ -193,7 +210,9 @@ class TestAsyncPoller:
     async def test_run_on_event_loop_called_for_set_results_available(
         self, mock_aio_utils
     ):
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[str](is_running_tracker=tracker)
         item_signal = "signal_item"
 
         poller.on_available("initial_item_for_setup")
@@ -215,22 +234,30 @@ class TestAsyncPollerWaitInstanceStopped:
         self,
     ):
         """Test wait_instance raises RuntimeError if poller is already stopped."""
-        poller = AsyncPoller[str]()
-        poller._AsyncPoller__event_loop = asyncio.get_running_loop()
+        tracker = IsRunningTracker()
+        # Do not start tracker, poller should be "stopped"
+        poller = AsyncPoller[str](is_running_tracker=tracker)
+        poller._AsyncPoller__event_loop = (
+            asyncio.get_running_loop()
+        )  # Test needs loop for barrier
         # Simulate stop AFTER on_available but BEFORE first wait_instance
-        poller._AsyncPoller__is_loop_running.set(False)
+        # tracker.set(False) # Already not started, effectively stopped.
         # Ensure barrier is also set as stop() would do if loop was known
         poller._AsyncPoller__barrier.set()  # stop() would set this if loop known
 
         # Poller is stopped and presumed empty, should raise RuntimeError immediately
-        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+        with pytest.raises(
+            RuntimeError, match="AsyncPoller is stopped or was not started"
+        ):
             await poller.wait_instance()
 
     async def test_wait_instance_raises_runtime_error_if_stopped_during_wait(
         self,
     ):
         """Test wait_instance raises RuntimeError if poller is stopped while waiting."""
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[str](is_running_tracker=tracker)
         wait_task = asyncio.create_task(poller.wait_instance())
         await asyncio.sleep(0.01)
 
@@ -250,11 +277,13 @@ class TestAsyncPollerWaitInstanceStopped:
         self,
     ):
         """Test wait_instance raises RuntimeError if stopped, even if data was previously queued."""
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()  # Start then stop
+        poller = AsyncPoller[str](is_running_tracker=tracker)
         poller.on_available("test_data_should_not_be_retrieved")
 
         poller._AsyncPoller__event_loop = asyncio.get_running_loop()
-        poller._AsyncPoller__is_loop_running.set(False)  # Poller is stopped
+        tracker.set(False)  # Poller is stopped
         # Ensure barrier is also set as stop() would do if loop was known
         poller._AsyncPoller__barrier.set()
 
@@ -264,17 +293,21 @@ class TestAsyncPollerWaitInstanceStopped:
         assert len(poller) == 0
 
         # Subsequent calls should raise RuntimeError
-        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+        with pytest.raises(
+            RuntimeError, match="AsyncPoller is stopped or was not started"
+        ):
             await poller.wait_instance()
 
     async def test_wait_instance_after_on_available_and_stop_then_wait(self):
         """Test behavior when on_available is called, then poller is stopped, then wait_instance."""
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[str](is_running_tracker=tracker)
         poller._AsyncPoller__event_loop = asyncio.get_running_loop()
-        poller._AsyncPoller__is_loop_running.set(True)
+        # poller._AsyncPoller__is_loop_running.set(True) # Already started via tracker
         poller.on_available("some_data")
 
-        poller._AsyncPoller__is_loop_running.set(False)
+        tracker.set(False)  # Stop the poller
         # Ensure barrier is also set as stop() would do
         poller._AsyncPoller__barrier.set()
 
@@ -284,38 +317,51 @@ class TestAsyncPollerWaitInstanceStopped:
         assert len(poller) == 0  # Item should be consumed
 
         # Subsequent calls should raise RuntimeError
-        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+        with pytest.raises(
+            RuntimeError, match="AsyncPoller is stopped or was not started"
+        ):
             await poller.wait_instance()
 
     async def test_multiple_wait_calls_on_stopped_poller(self):
         """Ensure subsequent calls to wait_instance on a stopped poller also raise."""
-        poller = AsyncPoller[str]()
-        poller._AsyncPoller__event_loop = asyncio.get_running_loop()
-        poller._AsyncPoller__is_loop_running.set(False)
+        tracker = IsRunningTracker()
+        # Not starting tracker, so poller is stopped
+        poller = AsyncPoller[str](is_running_tracker=tracker)
+        poller._AsyncPoller__event_loop = (
+            asyncio.get_running_loop()
+        )  # Test needs loop for barrier
 
-        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+        with pytest.raises(
+            RuntimeError, match="AsyncPoller is stopped or was not started"
+        ):
             await poller.wait_instance()
 
-        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+        with pytest.raises(
+            RuntimeError, match="AsyncPoller is stopped or was not started"
+        ):
             await poller.wait_instance()
 
     async def test_stop_poller_after_wait_instance_already_returned_data(self):
         """Test stopping poller after wait_instance successfully returned data."""
-        poller = AsyncPoller[str]()
+        tracker = IsRunningTracker()
+        tracker.start()
+        poller = AsyncPoller[str](is_running_tracker=tracker)
 
         poller.on_available("data1")
         results = await poller.wait_instance()
         assert results == ["data1"]
 
         assert poller._AsyncPoller__event_loop is not None
-        poller._AsyncPoller__is_loop_running.set(False)
+        tracker.set(False)  # Stop the poller
         poller._AsyncPoller__barrier.set()  # Simulate stop() setting the barrier
 
         # This call should still raise RuntimeError as no new data was added before stop
         # and the previous data was consumed. Or, if the barrier being set by stop
         # could be misconstrued as new data if responses is empty, this might need thought.
         # The current drain logic: if stopped and responses empty, it raises.
-        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+        with pytest.raises(
+            RuntimeError, match="AsyncPoller is stopped or was not started"
+        ):
             await poller.wait_instance()
 
         poller.on_available("data2")  # Item added after poller is logically stopped
@@ -327,5 +373,7 @@ class TestAsyncPollerWaitInstanceStopped:
         assert len(poller) == 0
 
         # And now, subsequent calls should fail as it's stopped and empty.
-        with pytest.raises(RuntimeError, match="AsyncPoller is stopped"):
+        with pytest.raises(
+            RuntimeError, match="AsyncPoller is stopped or was not started"
+        ):
             await poller.wait_instance()

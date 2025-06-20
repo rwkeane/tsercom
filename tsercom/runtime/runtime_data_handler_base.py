@@ -42,6 +42,7 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
+from tsercom.util.is_running_tracker import IsRunningTracker  # Added import
 
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT")
@@ -103,7 +104,14 @@ class RuntimeDataHandlerBase(
         self.__event_source: AsyncPoller[EventInstance[EventTypeT]] = event_source
 
         def _poller_factory() -> AsyncPoller[EventInstance[EventTypeT]]:
-            return AsyncPoller(min_poll_frequency_seconds=min_send_frequency_seconds)
+            # Each poller created by the factory needs its own IsRunningTracker.
+            # This tracker should be started as these pollers are expected to be active.
+            tracker = IsRunningTracker()
+            tracker.start()
+            return AsyncPoller(
+                is_running_tracker=tracker,
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+            )
 
         self.__id_tracker = IdTracker[AsyncPoller[EventInstance[EventTypeT]]](
             _poller_factory
@@ -116,9 +124,7 @@ class RuntimeDataHandlerBase(
             is_global_event_loop_set,
         )
 
-        self._loop_on_init: asyncio.AbstractEventLoop | None = (
-            None  # Added type hint
-        )
+        self._loop_on_init: asyncio.AbstractEventLoop | None = None  # Added type hint
         if is_global_event_loop_set():
             self._loop_on_init = get_global_event_loop()  # Store loop used at init
             self.__dispatch_task = self._loop_on_init.create_task(
@@ -225,7 +231,9 @@ class RuntimeDataHandlerBase(
     @overload
     async def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:  # Can return None if context parsing fails
+    ) -> (
+        EndpointDataProcessor[DataTypeT, EventTypeT] | None
+    ):  # Can return None if context parsing fails
         ...
 
     async def register_caller(
@@ -345,9 +353,7 @@ class RuntimeDataHandlerBase(
 
         return await self._register_caller(caller_id, actual_endpoint, actual_port)
 
-    def check_for_caller_id(
-        self, endpoint: str, port: int
-    ) -> CallerIdentifier | None:
+    def check_for_caller_id(self, endpoint: str, port: int) -> CallerIdentifier | None:
         """Checks if a `CallerIdentifier` exists for the given network address.
 
         Args:
@@ -475,9 +481,7 @@ class RuntimeDataHandlerBase(
             self, caller_id, clock, data_poller
         )
 
-    def _try_get_caller_id(
-        self, endpoint: str, port: int
-    ) -> CallerIdentifier | None:
+    def _try_get_caller_id(self, endpoint: str, port: int) -> CallerIdentifier | None:
         """Tries to retrieve a `CallerIdentifier` for a given network address.
 
         Args:

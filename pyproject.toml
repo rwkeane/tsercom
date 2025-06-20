@@ -121,6 +121,8 @@ exclude = [
     "**/*_tests.py",
     "**/*_e2etest.py",
     "**/*_e2etests.py",
+    "*/proto/*",
+    "scripts/*",
 ]
 
 # Allow ruff's auto-fix for all enabled rules.

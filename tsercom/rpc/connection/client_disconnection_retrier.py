@@ -90,9 +90,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         self.__max_retries = max_retries
 
         # Event loop on which this instance's async methods should primarily run.
-        self.__event_loop: asyncio.AbstractEventLoop | None = (
-            self.__provided_event_loop
-        )
+        self.__event_loop: asyncio.AbstractEventLoop | None = self.__provided_event_loop
 
     @abstractmethod
     async def _connect(self) -> TInstanceType:

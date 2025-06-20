@@ -75,9 +75,9 @@ class TimeSyncTracker:
         if ip not in self.__map:
 
             msg = (
-                "IP address '%s' not found in timesync tracker during "
+                f"IP address '{ip}' not found in timesync tracker during "
                 "disconnect. May have already been disconnected or "
-                "never tracked." % ip
+                "never tracked."
             )
             raise KeyError(msg)
 

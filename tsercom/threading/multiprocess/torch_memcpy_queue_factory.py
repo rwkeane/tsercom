@@ -1,5 +1,6 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
+import logging
 import multiprocessing as std_mp  # Standard library, aliased
 from collections.abc import Callable, Iterable  # Updated imports
 from typing import (
@@ -43,7 +44,9 @@ class TorchMemcpyQueueFactory(
         self,
         ctx_method: str = "spawn",
         context: std_mp.context.BaseContext | None = None,  # Corrected type hint
-        tensor_accessor: Callable[[Any], torch.Tensor | Iterable[torch.Tensor]] | None = None,
+        tensor_accessor: (
+            Callable[[Any], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = None,
     ) -> None:
         """Initializes the TorchMultiprocessQueueFactory.
 
@@ -105,10 +108,14 @@ class TorchMemcpyQueueSource(
     def __init__(
         self,
         queue: "mp.Queue[QueueElementT]",
-        tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = None,
+        tensor_accessor: (
+            Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = None,
     ) -> None:
         super().__init__(queue)
-        self._tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = tensor_accessor
+        self._tensor_accessor: (
+            Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = tensor_accessor
 
     def get_blocking(self, timeout: float | None = None) -> QueueElementT | None:
         """
@@ -144,7 +151,7 @@ class TorchMemcpyQueueSource(
                             tensor_item.share_memory_()  # type: ignore[no-untyped-call]
                 except Exception as e:
                     # Log warning if accessor fails, but return the item as is.
-                    print(
+                    logging.warning(
                         f"Warning: Tensor accessor failed for received object of type {type(item)} during get: {e}"
                     )
             elif isinstance(item, torch.Tensor):
@@ -166,10 +173,14 @@ class TorchMemcpyQueueSink(
     def __init__(
         self,
         queue: "mp.Queue[QueueElementT]",
-        tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = None,
+        tensor_accessor: (
+            Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = None,
     ) -> None:
         super().__init__(queue)
-        self._tensor_accessor: Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None = tensor_accessor
+        self._tensor_accessor: (
+            Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = tensor_accessor
 
     def put_blocking(self, obj: QueueElementT, timeout: float | None = None) -> bool:
         """
@@ -206,7 +217,7 @@ class TorchMemcpyQueueSink(
             except Exception as e:
                 # Log a warning if the accessor fails, but still try to put the original object.
                 # The user of the queue might intend for non-tensor data or non-shareable tensors to pass.
-                print(
+                logging.warning(
                     f"Warning: Tensor accessor failed for object of type {type(obj)} during put: {e}"
                 )
         elif isinstance(obj, torch.Tensor):

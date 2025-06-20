@@ -1,0 +1,2938 @@
+tsercom/api/split_process/runtime_command_source.py:146:89: E501 Line too long (89 > 88)
+    |
+144 |                 raise RuntimeError(
+145 |                     f"ERROR: RuntimeCommandSource thread for queue "
+146 |                     f"{self.__runtime_command_queue} did not terminate within 5 seconds."
+    |                                                                                         ^ E501
+147 |                 )
+    |
+
+tsercom/api/split_process/split_process_error_watcher_source.py:62:89: E501 Line too long (90 > 88)
+   |
+60 |                         # Long but readable error log
+61 |                         logger.error(
+62 |                             "Exception occurred within ThreadWatcher.on_exception_seen() "
+   |                                                                                         ^^ E501
+63 |                             "while handling %s: %s",  # type: ignore[str-format]
+64 |                             type(remote_exception).__name__,
+   |
+
+tsercom/caller_id/caller_id_extraction.py:1:89: E501 Line too long (91 > 88)
+  |
+1 | """Utilities for extracting CallerIdentifier from gRPC calls, especially from iterators."""
+  |                                                                                         ^^^ E501
+2 |
+3 | import logging
+  |
+
+tsercom/caller_id/caller_id_extraction.py:59:89: E501 Line too long (102 > 88)
+   |
+57 |             break
+58 |     except Exception as e:
+59 |         # TODO(developer): Consider checking specific gRPC exception codes for more granular behavior.
+   |                                                                                         ^^^^^^^^^^^^^^ E501
+60 |         if isinstance(e, grpc.RpcError):
+61 |             logging.error(
+   |
+
+tsercom/caller_id/caller_id_extraction.py:62:89: E501 Line too long (126 > 88)
+   |
+60 |         if isinstance(e, grpc.RpcError):
+61 |             logging.error(
+62 |                 f"RpcError while iterating for first call: code={e.code()}, details='{e.details()}'. Original exception: {e}",
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+63 |                 exc_info=True,
+64 |             )
+   |
+
+tsercom/caller_id/caller_id_extraction.py:133:89: E501 Line too long (118 > 88)
+    |
+131 |     if len(extracted.id) > MAX_CALLER_ID_STRING_LENGTH:
+132 |         logging.error(
+133 |             f"CallerID string exceeds maximum length. Length: {len(extracted.id)}, Max: {MAX_CALLER_ID_STRING_LENGTH}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+134 |         )
+135 |         if context is not None:
+    |
+
+tsercom/caller_id/caller_id_extraction.py:138:89: E501 Line too long (92 > 88)
+    |
+136 |             await context.abort(
+137 |                 grpc.StatusCode.INVALID_ARGUMENT,
+138 |                 f"CallerID string exceeds maximum length of {MAX_CALLER_ID_STRING_LENGTH}.",
+    |                                                                                         ^^^^ E501
+139 |             )
+140 |         return None
+    |
+
+tsercom/data/data_host_base.py:54:89: E501 Line too long (98 > 88)
+   |
+52 |             tracker.start()
+53 |
+54 |         # Assign to a local variable first, then to self.__aggregator to avoid redefinition error.
+   |                                                                                         ^^^^^^^^^^ E501
+55 |         aggregator_instance: RemoteDataAggregatorImpl[DataTypeT]
+56 |         if tracker is not None:
+   |
+
+tsercom/data/data_timeout_tracker.py:138:89: E501 Line too long (92 > 88)
+    |
+136 |         except ValueError:
+137 |             logger.warning(
+138 |                 "Attempted to unregister a non-registered or already unregistered item: %s",
+    |                                                                                         ^^^^ E501
+139 |                 tracked,
+140 |             )
+    |
+
+tsercom/data/exposed_data_with_responder.py:50:89: E501 Line too long (98 > 88)
+   |
+48 |             # Long error message
+49 |             raise TypeError(
+50 |                 f"Responder must be RemoteDataResponder subclass, got {type(responder).__name__}."
+   |                                                                                         ^^^^^^^^^^ E501
+51 |             )
+   |
+
+tsercom/data/remote_data_aggregator.py:1:89: E501 Line too long (128 > 88)
+  |
+1 | """Defines the RemoteDataAggregator abstract base class, an interface for aggregating and accessing data from remote sources."""
+  |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+2 |
+3 | import datetime
+  |
+
+tsercom/data/remote_data_aggregator.py:27:89: E501 Line too long (90 > 88)
+   |
+26 |     class Client(ABC):
+27 |         """Interface for clients wishing to receive callbacks from a RemoteDataAggregator.
+   |                                                                                         ^^ E501
+28 |
+29 |         Implementers of this interface can register with a `RemoteDataAggregator`
+   |
+
+tsercom/data/remote_data_aggregator.py:54:89: E501 Line too long (105 > 88)
+   |
+52 |             caller_id: CallerIdentifier,
+53 |         ) -> None:
+54 |             """Callback invoked when a new endpoint associated with a caller_id starts transmitting data.
+   |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+55 |
+56 |             Args:
+   |
+
+tsercom/data/remote_data_aggregator.py:135:89: E501 Line too long (92 > 88)
+    |
+133 |         """
+134 |         all_data_status = self.has_new_data()
+135 |         # If the result is a dictionary (meaning no specific ID was passed to has_new_data),
+    |                                                                                         ^^^^ E501
+136 |         # check if any value in the dictionary is True.
+137 |         if isinstance(all_data_status, dict):
+    |
+
+tsercom/data/remote_data_aggregator.py:145:89: E501 Line too long (97 > 88)
+    |
+143 |         # and its result (bool) was somehow used to call this, we just return it.
+144 |         # This case suggests a potential misuse or misunderstanding of the API.
+145 |         # For robustness, we handle it, but typical usage implies all_data_status will be a dict.
+    |                                                                                         ^^^^^^^^^ E501
+146 |         return bool(all_data_status)
+    |
+
+tsercom/data/remote_data_aggregator.py:203:89: E501 Line too long (91 > 88)
+    |
+201 |         """Retrieves the most recently received data item for a specific caller.
+202 |
+203 |         Returns `None` if no data has been received for this caller or if it has timed out.
+    |                                                                                         ^^^ E501
+204 |
+205 |         Args:
+    |
+
+tsercom/data/remote_data_aggregator.py:206:89: E501 Line too long (90 > 88)
+    |
+205 |         Args:
+206 |             identifier: The `CallerIdentifier` for which to retrieve the most recent data.
+    |                                                                                         ^^ E501
+207 |
+208 |         Returns:
+    |
+
+tsercom/data/remote_data_aggregator.py:231:89: E501 Line too long (106 > 88)
+    |
+229 |         self, timestamp: datetime.datetime
+230 |     ) -> dict[CallerIdentifier, DataTypeT | None]:
+231 |         """Retrieves the most recent data item received before or at a specific timestamp for all callers.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+232 |
+233 |         Returns `None` for a caller if no suitable data exists or if it has timed out.
+    |
+
+tsercom/data/remote_data_aggregator.py:250:89: E501 Line too long (112 > 88)
+    |
+248 |         identifier: CallerIdentifier,  # Renamed id to identifier
+249 |     ) -> DataTypeT | None:
+250 |         """Retrieves the most recent data item received before or at a specific timestamp for a specific caller.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^ E501
+251 |
+252 |         Returns `None` if no suitable data exists for this caller or if it has timed out.
+    |
+
+tsercom/data/remote_data_aggregator.py:252:89: E501 Line too long (89 > 88)
+    |
+250 |         """Retrieves the most recent data item received before or at a specific timestamp for a specific caller.
+251 |
+252 |         Returns `None` if no suitable data exists for this caller or if it has timed out.
+    |                                                                                         ^ E501
+253 |
+254 |         Args:
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:1:89: E501 Line too long (102 > 88)
+  |
+1 | """Provides RemoteDataAggregatorImpl, a concrete implementation of the RemoteDataAggregator interface.
+  |                                                                                         ^^^^^^^^^^^^^^ E501
+2 |
+3 | This class manages RemoteDataOrganizer instances for each data source (identified by
+  |
+
+tsercom/data/remote_data_aggregator_impl.py:138:89: E501 Line too long (89 > 88)
+    |
+136 |         """Stops data processing for one or all callers.
+137 |
+138 |         If an `identifier` is provided, stops the `RemoteDataOrganizer` for that specific
+    |                                                                                         ^ E501
+139 |         caller. Otherwise, stops all organizers managed by this aggregator.
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:152:89: E501 Line too long (95 > 88)
+    |
+150 |                 if organizer is None:
+151 |                     raise KeyError(
+152 |                         f"Caller ID '{identifier}' not found in active organizers during stop."
+    |                                                                                         ^^^^^^^ E501
+153 |                     )
+154 |                 organizer.stop()
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:187:89: E501 Line too long (90 > 88)
+    |
+186 |         Args:
+187 |             identifier: Optional `CallerIdentifier`. If provided, checks for this specific
+    |                                                                                         ^^ E501
+188 |                 caller. Otherwise, checks for all callers.
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:191:89: E501 Line too long (160 > 88)
+    |
+190 | …
+191 | …dicating if new data is available for that caller (returns False if the `identifier` is not found).
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+192 | …ping each `CallerIdentifier`
+193 | …
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:192:89: E501 Line too long (89 > 88)
+    |
+190 | …     Returns:
+191 | …         If `identifier` is provided, returns a boolean indicating if new data is available for that caller (returns False if the `i…
+192 | …         If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
+    |                                                                                       ^ E501
+193 | …         to a boolean.
+194 | …     """
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:234:89: E501 Line too long (89 > 88)
+    |
+233 |         Args:
+234 |             identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
+    |                                                                                         ^ E501
+235 |                 specific caller. Otherwise, retrieves data for all callers.
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:238:89: E501 Line too long (90 > 88)
+    |
+237 |         Returns:
+238 |             If `identifier` is provided, returns a list of new data items for that caller.
+    |                                                                                         ^^ E501
+239 |             If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
+240 |             to a list of its new data items.
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:239:89: E501 Line too long (89 > 88)
+    |
+237 |         Returns:
+238 |             If `identifier` is provided, returns a list of new data items for that caller.
+239 |             If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
+    |                                                                                         ^ E501
+240 |             to a list of its new data items.
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:292:89: E501 Line too long (89 > 88)
+    |
+291 |         Args:
+292 |             identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
+    |                                                                                         ^ E501
+293 |                 specific caller. Otherwise, retrieves data for all callers.
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:298:89: E501 Line too long (89 > 88)
+    |
+296 |             If `identifier` is provided, returns the most recent data item (or None) for
+297 |             that caller.
+298 |             If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
+    |                                                                                         ^ E501
+299 |             to its most recent data item (or None).
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:360:89: E501 Line too long (89 > 88)
+    |
+358 |         Args:
+359 |             timestamp: The `datetime` to compare data against.
+360 |             identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
+    |                                                                                         ^ E501
+361 |                 specific caller. Otherwise, retrieves data for all callers.
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:366:89: E501 Line too long (89 > 88)
+    |
+364 |             If `identifier` is provided, returns the data item (or None) for that caller
+365 |             at the given timestamp.
+366 |             If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
+    |                                                                                         ^ E501
+367 |             to its data item (or None) at the given timestamp.
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:377:89: E501 Line too long (89 > 88)
+    |
+375 |                 if organizer is None:
+376 |                     raise KeyError(
+377 |                         f"Caller ID '{identifier}' not found for get_data_for_timestamp."
+    |                                                                                         ^ E501
+378 |                     )
+379 |                 return organizer.get_data_for_timestamp(timestamp)
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:405:89: E501 Line too long (90 > 88)
+    |
+404 |     def _on_data_ready(self, new_data: DataTypeT) -> None:
+405 |         """Handles incoming raw data, routing it to the appropriate `RemoteDataOrganizer`.
+    |                                                                                         ^^ E501
+406 |
+407 |         This method is part of the `RemoteDataReader` interface. If an organizer
+    |
+
+tsercom/data/remote_data_aggregator_impl.py:421:89: E501 Line too long (105 > 88)
+    |
+419 |         if not isinstance(new_data, ExposedData):
+420 |             raise TypeError(
+421 |                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+    |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+422 |             )
+    |
+
+tsercom/data/remote_data_organizer.py:41:89: E501 Line too long (90 > 88)
+   |
+39 |             self, data_organizer: "RemoteDataOrganizer[DataTypeT]"
+40 |         ) -> None:
+41 |             """Callback invoked when new data is processed and available in the organizer.
+   |                                                                                         ^^ E501
+42 |
+43 |             Args:
+   |
+
+tsercom/data/remote_data_organizer.py:86:89: E501 Line too long (104 > 88)
+   |
+85 |         Raises:
+86 |             RuntimeError: If the organizer is already running (typically by `IsRunningTracker.start()`).
+   |                                                                                         ^^^^^^^^^^^^^^^^ E501
+87 |         """
+88 |         self.__is_running.start()
+   |
+
+tsercom/data/remote_data_organizer.py:98:89: E501 Line too long (127 > 88)
+    |
+ 97 |         Raises:
+ 98 |             RuntimeError: If the organizer is not running or has already been stopped (typically by `IsRunningTracker.stop()`).
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+ 99 |         """
+100 |         self.__is_running.stop()
+    |
+
+tsercom/data/remote_data_organizer.py:176:89: E501 Line too long (92 > 88)
+    |
+174 |                         caller_id: The `CallerIdentifier` for the remote endpoint whose
+175 |                                    data this organizer will manage.
+176 |                         client: An optional client implementing `RemoteDataOrganizer.Client`
+    |                                                                                         ^^^^ E501
+177 |                                 to receive callbacks when new data is available.
+178 |                     """
+    |
+
+tsercom/data/remote_data_organizer.py:201:89: E501 Line too long (105 > 88)
+    |
+199 |         if not isinstance(new_data, ExposedData):
+200 |             raise TypeError(
+201 |                 f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+    |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+202 |             )
+203 |         assert (
+    |
+
+tsercom/data/remote_data_organizer.py:205:89: E501 Line too long (99 > 88)
+    |
+203 |         assert (
+204 |             new_data.caller_id == self.caller_id
+205 |         ), f"Data's caller_id '{new_data.caller_id}' does not match organizer's '{self.caller_id}'"
+    |                                                                                         ^^^^^^^^^^^ E501
+206 |         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
+    |
+
+tsercom/data/remote_data_organizer.py:240:89: E501 Line too long (92 > 88)
+    |
+238 |                         caller_id: The `CallerIdentifier` for the remote endpoint whose
+239 |                                    data this organizer will manage.
+240 |                         client: An optional client implementing `RemoteDataOrganizer.Client`
+    |                                                                                         ^^^^ E501
+241 |                                 to receive callbacks when new data is available.
+242 |                     """
+    |
+
+tsercom/data/remote_data_organizer.py:298:89: E501 Line too long (715 > 88)
+    |
+297 | …:
+298 | …gs:\\n    timestamp: The timestamp for which to get an interpolated value.\\n\\nReturns:\\n    An optional `DataTypeT` instance. This instance is newly created,\\n    with its `timestamp` attribute set to the query `timestamp` and its `data`\\n    attribute (or equivalent payload) holding the linearly interpolated value.\\n    Returns the nearest keyframe if the timestamp is outside the known range,\\n    or an exact keyframe if the timestamp matches one. Returns `None` if\\n    the internal data store is empty or if interpolation fails (e.g., due\\n    to non-numeric data types that do not support arithmetic operations)."""
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+299 | …
+300 | …
+    |
+
+tsercom/data/remote_data_organizer.py:307:89: E501 Line too long (91 > 88)
+    |
+305 |             elif ref_tz is None and timestamp.tzinfo is not None:
+306 |                 logger.warning(
+307 |                     "Query timestamp timezone awareness mismatch with stored data (naive)."
+    |                                                                                         ^^^ E501
+308 |                 )
+309 |                 timestamp = timestamp.replace(tzinfo=None)
+    |
+
+tsercom/data/remote_data_organizer.py:325:89: E501 Line too long (92 > 88)
+    |
+323 |                         caller_id: The `CallerIdentifier` for the remote endpoint whose
+324 |                                    data this organizer will manage.
+325 |                         client: An optional client implementing `RemoteDataOrganizer.Client`
+    |                                                                                         ^^^^ E501
+326 |                                 to receive callbacks when new data is available.
+327 |                     """
+    |
+
+tsercom/data/remote_data_organizer.py:357:89: E501 Line too long (120 > 88)
+    |
+355 |                 ):
+356 |                     logger.error(
+357 |                         "Data payloads for interpolation are not numeric after deepcopy. Left: %s (%s), Right: %s (%s)",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+358 |                         data_left,
+359 |                         type(data_left).__name__,
+    |
+
+tsercom/data/remote_data_organizer.py:367:89: E501 Line too long (91 > 88)
+    |
+365 |             except TypeError as e:
+366 |                 logger.error(
+367 |                     "Type error during arithmetic operations for interpolation. Error: %s",
+    |                                                                                         ^^^ E501
+368 |                     e,
+369 |                 )
+    |
+
+tsercom/data/remote_data_organizer.py:378:89: E501 Line too long (100 > 88)
+    |
+376 |             except AttributeError as e:
+377 |                 logger.error(
+378 |                     "Failed to set attributes on new instance of type %s for interpolated data: %s",
+    |                                                                                         ^^^^^^^^^^^^ E501
+379 |                     type(item_left).__name__,
+380 |                     e,
+    |
+
+tsercom/discovery/discovery_host.py:119:89: E501 Line too long (107 > 88)
+    |
+117 |                 client: InstanceListener.Client,
+118 |             ) -> InstanceListener[ServiceInfoT]:
+119 |                 # If service_type was not provided during __init__ (e.g. using mdns_listener_factory mode),
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^ E501
+120 |                 # provide a default service_type for the InstanceListener, as it requires a string.
+121 |                 effective_service_type = (
+    |
+
+tsercom/discovery/discovery_host.py:120:89: E501 Line too long (99 > 88)
+    |
+118 |             ) -> InstanceListener[ServiceInfoT]:
+119 |                 # If service_type was not provided during __init__ (e.g. using mdns_listener_factory mode),
+120 |                 # provide a default service_type for the InstanceListener, as it requires a string.
+    |                                                                                         ^^^^^^^^^^^ E501
+121 |                 effective_service_type = (
+122 |                     service_type
+    |
+
+tsercom/discovery/discovery_host.py:188:89: E501 Line too long (108 > 88)
+    |
+186 |             if self.__discoverer:
+187 |                 try:
+188 |                     # Assuming async_stop is idempotent and safe to call even if start didn't fully complete
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+189 |                     await self.__discoverer.async_stop()
+190 |                 except Exception as stop_e:
+    |
+
+tsercom/discovery/discovery_host.py:216:89: E501 Line too long (94 > 88)
+    |
+214 |             # Programming error: discovery should have been started with a client.
+215 |             raise RuntimeError(
+216 |                 "DiscoveryHost client not set; discovery may not have been started correctly."
+    |                                                                                         ^^^^^^ E501
+217 |             )
+    |
+
+tsercom/discovery/discovery_host.py:246:89: E501 Line too long (94 > 88)
+    |
+244 |         if self.__client is None:
+245 |             logging.warning(
+246 |                 "No client configured in DiscoveryHost; cannot notify of service removal: %s",
+    |                                                                                         ^^^^^^ E501
+247 |                 service_name,
+248 |             )
+    |
+
+tsercom/discovery/discovery_host.py:259:89: E501 Line too long (94 > 88)
+    |
+257 |             else:
+258 |                 logging.warning(
+259 |                     "Client %s does not implement _on_service_removed, cannot notify for %s.",
+    |                                                                                         ^^^^^^ E501
+260 |                     type(self.__client).__name__,
+261 |                     service_name,
+    |
+
+tsercom/discovery/discovery_host.py:265:89: E501 Line too long (90 > 88)
+    |
+263 |         else:
+264 |             logging.warning(
+265 |                 "Service %s removed, but was not found in DiscoveryHost's caller_id_map.",
+    |                                                                                         ^^ E501
+266 |                 service_name,
+267 |             )
+    |
+
+tsercom/discovery/mdns/instance_listener.py:92:89: E501 Line too long (90 > 88)
+   |
+90 |             # as that's what the user would code against.
+91 |             raise TypeError(
+92 |                 f"Client must be an InstanceListener.Client, got {type(client).__name__}."
+   |                                                                                         ^^ E501
+93 |             )
+94 |         if not isinstance(service_type, str):
+   |
+
+tsercom/discovery/mdns/instance_listener.py:125:89: E501 Line too long (92 > 88)
+    |
+123 |             await self.__listener.start()  # Changed to await
+124 |         else:
+125 |             # This case should ideally not be reached if __init__ ensures __listener is set.
+    |                                                                                         ^^^^ E501
+126 |             logging.error(
+127 |                 "InstanceListener cannot start: __listener is not initialized."
+    |
+
+tsercom/discovery/mdns/instance_listener.py:131:89: E501 Line too long (91 > 88)
+    |
+130 |     def __populate_service_info(
+131 |         # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
+    |                                                                                         ^^^ E501
+132 |         # to build a cohesive ServiceInfo object representing a discovered service.
+133 |         self,
+    |
+
+tsercom/discovery/mdns/instance_publisher.py:73:89: E501 Line too long (89 > 88)
+   |
+71 |         if readable_name is not None and not isinstance(readable_name, str):
+72 |             raise TypeError(
+73 |                 f"readable_name must be str or None, got {type(readable_name).__name__}."
+   |                                                                                         ^ E501
+74 |             )
+   |
+
+tsercom/discovery/mdns/instance_publisher.py:78:89: E501 Line too long (89 > 88)
+   |
+76 |         if instance_name is not None and not isinstance(instance_name, str):
+77 |             raise TypeError(
+78 |                 f"instance_name must be str or None, got {type(instance_name).__name__}."
+   |                                                                                         ^ E501
+79 |             )
+   |
+
+tsercom/discovery/mdns/mdns_listener.py:77:89: E501 Line too long (90 > 88)
+   |
+75 |             # This method must be implemented by concrete client classes.
+76 |             raise NotImplementedError(
+77 |                 "MdnsListener.Client._on_service_added must be implemented by subclasses."
+   |                                                                                         ^^ E501
+78 |             )
+   |
+
+tsercom/discovery/mdns/record_listener.py:77:89: E501 Line too long (118 > 88)
+   |
+75 |             self.__mdns = AsyncZeroconf()
+76 |             logging.info(
+77 |                 "Created new AsyncZeroconf for RecordListener, type: %s (AsyncServiceBrowser with default IPVersion)",
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+78 |                 self.__expected_type,
+79 |             )
+   |
+
+tsercom/discovery/mdns/record_listener.py:93:89: E501 Line too long (90 > 88)
+   |
+91 |         """Called by `zeroconf` when a service's info (e.g., TXT) is updated."""
+92 |         logging.info(
+93 |             "Sync update_service called: type='%s', name='%s'. Scheduling async handler.",
+   |                                                                                         ^^ E501
+94 |             type_,
+95 |             name,
+   |
+
+tsercom/discovery/mdns/record_listener.py:148:89: E501 Line too long (90 > 88)
+    |
+146 |         """Called by `zeroconf` when a service is removed from the network."""
+147 |         logging.info(
+148 |             "Sync remove_service called: type='%s', name='%s'. Scheduling async handler.",
+    |                                                                                         ^^ E501
+149 |             type_,
+150 |             name,
+    |
+
+tsercom/discovery/mdns/record_listener.py:167:89: E501 Line too long (91 > 88)
+    |
+165 |         """Async handler for service removal."""
+166 |         logging.info(
+167 |             "[REC_LISTENER] _handle_remove_service (async) started for name: %s, type: %s",
+    |                                                                                         ^^^ E501
+168 |             name,
+169 |             type_,
+    |
+
+tsercom/discovery/mdns/record_listener.py:173:89: E501 Line too long (101 > 88)
+    |
+172 |         logging.info(
+173 |             "[REC_LISTENER] _handle_remove_service: About to call client._on_service_removed for %s",
+    |                                                                                         ^^^^^^^^^^^^^ E501
+174 |             name,
+175 |         )
+    |
+
+tsercom/discovery/mdns/record_listener.py:178:89: E501 Line too long (101 > 88)
+    |
+176 |         await self.__client._on_service_removed(name, type_, self._uuid_str)
+177 |         logging.info(
+178 |             "[REC_LISTENER] _handle_remove_service: Returned from client._on_service_removed for %s",
+    |                                                                                         ^^^^^^^^^^^^^ E501
+179 |             name,
+180 |         )
+    |
+
+tsercom/discovery/mdns/record_listener.py:251:89: E501 Line too long (91 > 88)
+    |
+249 |             # For AsyncServiceBrowser, cancellation is typically handled when
+250 |             # the AsyncZeroconf instance it's tied to is closed via async_close().
+251 |             # AsyncServiceBrowser itself does not have a cancel() or async_cancel() method.
+    |                                                                                         ^^^ E501
+252 |             # We just set it to None here as its tasks will be cancelled by AsyncZeroconf.
+253 |             self.__browser = None  # Browser is cancelled by closing AsyncZeroconf
+    |
+
+tsercom/discovery/mdns/record_listener.py:252:89: E501 Line too long (90 > 88)
+    |
+250 |             # the AsyncZeroconf instance it's tied to is closed via async_close().
+251 |             # AsyncServiceBrowser itself does not have a cancel() or async_cancel() method.
+252 |             # We just set it to None here as its tasks will be cancelled by AsyncZeroconf.
+    |                                                                                         ^^ E501
+253 |             self.__browser = None  # Browser is cancelled by closing AsyncZeroconf
+    |
+
+tsercom/discovery/mdns/record_listener.py:271:89: E501 Line too long (89 > 88)
+    |
+269 |         elif self.__is_shared_zc:
+270 |             logging.info(
+271 |                 "Not closing shared AsyncZeroconf instance for RecordListener, type: %s",
+    |                                                                                         ^ E501
+272 |                 self.__expected_type,
+273 |             )
+    |
+
+tsercom/discovery/mdns/record_publisher.py:57:89: E501 Line too long (99 > 88)
+   |
+55 |             # Long error message
+56 |             raise ValueError(
+57 |                 f"Service type_ must start with an underscore (e.g., '_myservice'), got '{type_}'."
+   |                                                                                         ^^^^^^^^^^^ E501
+58 |             )
+   |
+
+tsercom/discovery/mdns/record_publisher.py:75:89: E501 Line too long (100 > 88)
+   |
+74 |         # Logging the service being published for traceability.
+75 |         # Replacing print with logging for better practice, assuming logger is configured elsewhere.
+   |                                                                                         ^^^^^^^^^^^^ E501
+76 |
+77 |     async def publish(self) -> None:
+   |
+
+tsercom/discovery/mdns/record_publisher.py:118:89: E501 Line too long (99 > 88)
+    |
+116 |                 if service_info_at_start_of_close:
+117 |                     _logger.info(
+118 |                         "Attempting to unregister service %s using service_info: %s (ZC type: %s)",
+    |                                                                                         ^^^^^^^^^^^ E501
+119 |                         self.__srv,
+120 |                         service_info_at_start_of_close,
+    |
+
+tsercom/discovery/mdns/record_publisher.py:131:89: E501 Line too long (117 > 88)
+    |
+129 |                 else:
+130 |                     _logger.warning(
+131 |                         "No self._service_info found for %s at start of close method. Skipping unregistration call.",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+132 |                         self.__srv,
+133 |                     )
+    |
+
+tsercom/discovery/mdns/record_publisher.py:134:89: E501 Line too long (128 > 88)
+    |
+132 |                         self.__srv,
+133 |                     )
+134 |                     # If there's no service_info, unregistration wasn't needed for this object's state from publish perspective.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+135 |                     unregistration_succeeded = True  # Considered successful as no action was pending for this _service_info
+136 |             else:
+    |
+
+tsercom/discovery/mdns/record_publisher.py:135:89: E501 Line too long (124 > 88)
+    |
+133 |                     )
+134 |                     # If there's no service_info, unregistration wasn't needed for this object's state from publish perspective.
+135 |                     unregistration_succeeded = True  # Considered successful as no action was pending for this _service_info
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+136 |             else:
+137 |                 _logger.warning(
+    |
+
+tsercom/discovery/mdns/record_publisher.py:141:89: E501 Line too long (102 > 88)
+    |
+139 |                     self.__srv,
+140 |                 )
+141 |                 # If _zc is None, we can't unregister, so treat as "nothing to do" for unregistration.
+    |                                                                                         ^^^^^^^^^^^^^^ E501
+142 |                 unregistration_succeeded = True
+    |
+
+tsercom/discovery/mdns/record_publisher.py:154:89: E501 Line too long (125 > 88)
+    |
+152 |             if unregistration_attempted and not unregistration_succeeded:
+153 |                 _logger.error(
+154 |                     "CRITICAL: Exception during async_unregister_service for %s. Service may still be registered. Error: %s",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+155 |                     self.__srv,
+156 |                     e,
+    |
+
+tsercom/discovery/mdns/record_publisher.py:159:89: E501 Line too long (102 > 88)
+    |
+157 |                     exc_info=True,
+158 |                 )
+159 |             else:  # Error during closing owned_zc or other unexpected error if _zc was None initially
+    |                                                                                         ^^^^^^^^^^^^^^ E501
+160 |                 _logger.error(
+161 |                     "Exception during close operation for %s. Error: %s",
+    |
+
+tsercom/discovery/mdns/record_publisher.py:167:89: E501 Line too long (91 > 88)
+    |
+165 |                 )
+166 |         finally:
+167 |             # Only nullify _service_info if unregistration was successful or wasn't needed.
+    |                                                                                         ^^^ E501
+168 |             if unregistration_succeeded:
+169 |                 self._service_info = None
+    |
+
+tsercom/discovery/mdns/record_publisher.py:172:89: E501 Line too long (116 > 88)
+    |
+170 |             else:
+171 |                 _logger.warning(
+172 |                     "self._service_info for %s was NOT cleared because unregistration failed or was not confirmed.",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+173 |                     self.__srv,
+174 |                 )
+    |
+
+tsercom/discovery/mdns/record_publisher.py:183:89: E501 Line too long (103 > 88)
+    |
+181 |             if not self._service_info and not self._zc and not self.__owned_zc:
+182 |                 _logger.debug(
+183 |                     "RecordPublisher for %s fully cleaned up (service_info, _zc, _owned_zc are None).",
+    |                                                                                         ^^^^^^^^^^^^^^^ E501
+184 |                     self.__srv,
+185 |                 )
+    |
+
+tsercom/discovery/mdns/record_publisher.py:188:89: E501 Line too long (111 > 88)
+    |
+186 |             else:
+187 |                 _logger.debug(
+188 |                     "RecordPublisher for %s post-close state: _service_info is %s, _zc is %s, _owned_zc is %s",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^ E501
+189 |                     self.__srv,
+190 |                     ("None" if not self._service_info else "Present"),
+    |
+
+tsercom/discovery/mdns/record_publisher.py:197:89: E501 Line too long (102 > 88)
+    |
+196 | # === Developer Note: mDNS Name Reuse with python-zeroconf ===
+197 | # Observations during testing (e.g., in `discovery_e2etest.py::test_instance_update_reflects_changes`)
+    |                                                                                         ^^^^^^^^^^^^^^ E501
+198 | # suggest that when using a shared `AsyncZeroconf` instance, or even with separate
+199 | # instances in rapid succession, `python-zeroconf` can exhibit sensitivities
+    |
+
+tsercom/discovery/mdns/record_publisher.py:212:89: E501 Line too long (97 > 88)
+    |
+210 | #      is completely closed, and a new `AsyncZeroconf` instance is used for
+211 | #      the listener and the "updated" service publisher, if strict name reuse
+212 | #      is attempted. This was the pattern adopted to fix `test_instance_update_reflects_changes`.
+    |                                                                                         ^^^^^^^^^ E501
+213 | #   3. Introducing significant delays between unregistration and re-registration,
+214 | #      though the necessary duration can be unreliable.
+    |
+
+tsercom/discovery/service_connector.py:131:89: E501 Line too long (102 > 88)
+    |
+130 |     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
+131 |         """Marks a connected service instance (client from ServiceConnector\'s perspective) as failed.
+    |                                                                                         ^^^^^^^^^^^^^^ E501
+132 |
+133 |         This removes the `caller_id` from the set of tracked active connections,
+    |
+
+tsercom/discovery/service_connector.py:154:89: E501 Line too long (92 > 88)
+    |
+152 |         """
+153 |         if self.__event_loop is None:
+154 |             # Attempt to capture loop if not already. This might occur if mark_client_failed
+    |                                                                                         ^^^^ E501
+155 |             # is called before any service discovery callback has set the loop.
+156 |             logging.warning(
+    |
+
+tsercom/discovery/service_connector.py:157:89: E501 Line too long (96 > 88)
+    |
+155 |             # is called before any service discovery callback has set the loop.
+156 |             logging.warning(
+157 |                 "mark_client_failed called before event loop was captured by a discovery event."
+    |                                                                                         ^^^^^^^^ E501
+158 |             )
+159 |             self.__event_loop = get_running_loop_or_none()
+    |
+
+tsercom/discovery/service_connector.py:162:89: E501 Line too long (93 > 88)
+    |
+160 |             if self.__event_loop is None:
+161 |                 logging.error(
+162 |                     "Failed to get current event loop in mark_client_failed. Cannot proceed."
+    |                                                                                         ^^^^^ E501
+163 |                 )
+164 |                 # Or raise RuntimeError if this is considered a critical failure path.
+    |
+
+tsercom/discovery/service_connector.py:238:89: E501 Line too long (122 > 88)
+    |
+236 |         if caller_id in self.__callers:
+237 |             logging.debug(
+238 |                 "Service with CallerIdentifier %s (Name: %s) already connected or connect attempt in progress. Skipping.",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+239 |                 caller_id,
+240 |                 connection_info.name,
+    |
+
+tsercom/discovery/service_connector.py:245:89: E501 Line too long (92 > 88)
+    |
+244 |         logging.info(
+245 |             "Service %s (CallerIdentifier: %s) discovered at %s:%s. Attempting connection.",
+    |                                                                                         ^^^^ E501
+246 |             connection_info.name,
+247 |             caller_id,
+    |
+
+tsercom/discovery/service_connector.py:258:89: E501 Line too long (99 > 88)
+    |
+256 |         if channel is None:
+257 |             logging.warning(
+258 |                 "Could not establish gRPC channel for service %s (CallerIdentifier: %s) at %s:%s.",
+    |                                                                                         ^^^^^^^^^^^ E501
+259 |                 connection_info.name,
+260 |                 caller_id,
+    |
+
+tsercom/discovery/service_connector.py:267:89: E501 Line too long (91 > 88)
+    |
+266 |         logging.info(
+267 |             "Successfully established gRPC channel for service %s (CallerIdentifier: %s).",
+    |                                                                                         ^^^ E501
+268 |             connection_info.name,
+269 |             caller_id,
+    |
+
+tsercom/discovery/service_connector.py:299:89: E501 Line too long (98 > 88)
+    |
+297 |         self.__callers.clear()
+298 |
+299 |         # Note: Channel closing logic would go here if ServiceConnector directly managed channels.
+    |                                                                                         ^^^^^^^^^^ E501
+300 |         # In the current structure, the client of ServiceConnector receives the channel
+301 |         # and is responsible for its lifecycle.
+    |
+
+tsercom/discovery/service_source.py:31:89: E501 Line too long (91 > 88)
+   |
+29 |             """
+30 |             raise NotImplementedError(
+31 |                 "ServiceSource.Client._on_service_added must be implemented by subclasses."
+   |                                                                                         ^^^ E501
+32 |             )
+   |
+
+tsercom/discovery/service_source.py:48:89: E501 Line too long (93 > 88)
+   |
+46 |             """
+47 |             raise NotImplementedError(
+48 |                 "ServiceSource.Client._on_service_removed must be implemented by subclasses."
+   |                                                                                         ^^^^^ E501
+49 |             )
+   |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:73:89: E501 Line too long (94 > 88)
+   |
+71 |         if not isinstance(watcher, ThreadWatcher):
+72 |             raise TypeError(
+73 |                 f"Watcher must be an instance of ThreadWatcher, got {type(watcher).__name__}."
+   |                                                                                         ^^^^^^ E501
+74 |             )
+   |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:138:89: E501 Line too long (92 > 88)
+    |
+136 |             if self.__event_loop is None:
+137 |                 raise RuntimeError(
+138 |                     "Event loop not initialized before starting ClientDisconnectionRetrier."
+    |                                                                                         ^^^^ E501
+139 |                 )
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:150:89: E501 Line too long (112 > 88)
+    |
+148 |                 self.__instance = None  # Clear instance before raising
+149 |                 raise TypeError(
+150 |                     f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^ E501
+151 |                 )
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:158:89: E501 Line too long (89 > 88)
+    |
+156 |             return True
+157 |         except Exception as error:
+158 |             # If it's a server unavailable error, don't raise, just log and return False.
+    |                                                                                         ^ E501
+159 |             if self.__is_server_unavailable_error_func(error):
+160 |                 logging.warning(
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:161:89: E501 Line too long (97 > 88)
+    |
+159 |             if self.__is_server_unavailable_error_func(error):
+160 |                 logging.warning(
+161 |                     f"Initial connection to server FAILED with server unavailable error: {error}"
+    |                                                                                         ^^^^^^^^^ E501
+162 |                 )
+163 |                 return False
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:171:89: E501 Line too long (91 > 88)
+    |
+170 |     async def stop(self) -> None:
+171 |         """Stops the managed instance and ensures operations run on the correct event loop.
+    |                                                                                         ^^^ E501
+172 |
+173 |         If called from a different event loop than the one `start` was called on,
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:179:89: E501 Line too long (100 > 88)
+    |
+177 |         if self.__event_loop is None:
+178 |             logging.warning(
+179 |                 "ClientDisconnectionRetrier.stop called before start or without a valid event loop."
+    |                                                                                         ^^^^^^^^^^^^ E501
+180 |             )
+181 |             # Set the event even if the loop is not available, as other parts might check it.
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:181:89: E501 Line too long (93 > 88)
+    |
+179 |                 "ClientDisconnectionRetrier.stop called before start or without a valid event loop."
+180 |             )
+181 |             # Set the event even if the loop is not available, as other parts might check it.
+    |                                                                                         ^^^^^ E501
+182 |             self.__stop_retrying_event.set()
+183 |             return
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:214:89: E501 Line too long (98 > 88)
+    |
+212 |         if self.__event_loop is None:  # Should not happen if start() was called.
+213 |             logging.error(
+214 |                 "_on_disconnect called without a valid event loop. Ensure start() was successful."
+    |                                                                                         ^^^^^^^^^^ E501
+215 |             )
+216 |             # If error is None, it might mean a clean disconnect signal without an error.
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:216:89: E501 Line too long (89 > 88)
+    |
+214 |                 "_on_disconnect called without a valid event loop. Ensure start() was successful."
+215 |             )
+216 |             # If error is None, it might mean a clean disconnect signal without an error.
+    |                                                                                         ^ E501
+217 |             # However, the original logic implies error is usually an Exception.
+218 |             # We'll proceed assuming if error is None, it's a no-op for error reporting/handling.
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:218:89: E501 Line too long (97 > 88)
+    |
+216 |             # If error is None, it might mean a clean disconnect signal without an error.
+217 |             # However, the original logic implies error is usually an Exception.
+218 |             # We'll proceed assuming if error is None, it's a no-op for error reporting/handling.
+    |                                                                                         ^^^^^^^^^ E501
+219 |             if error is not None:  # Ensure error is an exception before reporting
+220 |                 self.__watcher.on_exception_seen(error)
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:229:89: E501 Line too long (93 > 88)
+    |
+227 |         # If error is None, we might not proceed with the rest of the logic
+228 |         # or handle it as a non-error disconnect.
+229 |         # For now, let's assume if error is None, we don't proceed with error-specific logic.
+    |                                                                                         ^^^^^ E501
+230 |         if error is None:
+231 |             logging.info(
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:232:89: E501 Line too long (94 > 88)
+    |
+230 |         if error is None:
+231 |             logging.info(
+232 |                 "_on_disconnect called with error=None. No action taken for error processing."
+    |                                                                                         ^^^^^^ E501
+233 |             )
+234 |             return
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:241:89: E501 Line too long (114 > 88)
+    |
+239 |             self.__watcher.on_exception_seen(error)
+240 |             # Depending on policy, might re-raise or stop retrying.
+241 |             # For now, it will be caught by the general "not server unavailable" case later if not re-raised here.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+242 |             # Re-raising immediately for critical assertion failures.
+243 |             raise error  # Re-raise to ensure it's handled as critical
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:245:89: E501 Line too long (100 > 88)
+    |
+243 |             raise error  # Re-raise to ensure it's handled as critical
+244 |
+245 |         # If the instance was already stopped/cleared (e.g., by a concurrent stop call), do nothing.
+    |                                                                                         ^^^^^^^^^^^^ E501
+246 |         if self.__instance is None:
+247 |             logging.info("_on_disconnect called but instance is already None.")
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:251:89: E501 Line too long (101 > 88)
+    |
+250 |         logging.warning(
+251 |             f"Disconnect detected for instance. Error: {error}. Attempting to stop current instance."
+    |                                                                                         ^^^^^^^^^^^^^ E501
+252 |         )
+253 |         await self.__instance.stop()  # Ensure self.__instance is not None before calling stop
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:253:89: E501 Line too long (94 > 88)
+    |
+251 |             f"Disconnect detected for instance. Error: {error}. Attempting to stop current instance."
+252 |         )
+253 |         await self.__instance.stop()  # Ensure self.__instance is not None before calling stop
+    |                                                                                         ^^^^^^ E501
+254 |         self.__instance = None
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:260:89: E501 Line too long (107 > 88)
+    |
+258 |         ) and not self.__is_server_unavailable_error_func(error):
+259 |             logging.warning(
+260 |                 f"Non-retriable gRPC session error: {error}. Notifying disconnection handler if available."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^ E501
+261 |             )
+262 |             if self.__safe_disconnection_handler is not None:
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:267:89: E501 Line too long (89 > 88)
+    |
+265 |                     await self.__safe_disconnection_handler()
+266 |                 else:
+267 |                     self.__safe_disconnection_handler()  # mypy issue with callable check
+    |                                                                                         ^ E501
+268 |             return
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:272:89: E501 Line too long (105 > 88)
+    |
+270 |         if not self.__is_server_unavailable_error_func(error):  # error is not None here
+271 |             logging.error(
+272 |                 f"Local error or non-server-unavailable gRPC error: {error}. Reporting to ThreadWatcher."
+    |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+273 |             )
+274 |             self.__watcher.on_exception_seen(error)
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:280:89: E501 Line too long (109 > 88)
+    |
+278 |         # If it IS a server unavailable error, attempt to reconnect.
+279 |         logging.info(
+280 |             f"Server unavailable error: {error}. Initiating reconnection attempts."  # error is not None here
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^ E501
+281 |         )
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:287:89: E501 Line too long (98 > 88)
+    |
+285 |             if self.__max_retries is not None and retry_count >= self.__max_retries:
+286 |                 logging.warning(
+287 |                     f"Max retries ({self.__max_retries}) reached. Stopping reconnection attempts."
+    |                                                                                         ^^^^^^^^^^ E501
+288 |                 )
+289 |                 break
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:293:89: E501 Line too long (117 > 88)
+    |
+291 |             if self.__stop_retrying_event.is_set():
+292 |                 logging.info(
+293 |                     "ClientDisconnectionRetrier: Stop retrying event was set before delay. Breaking from retry loop."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+294 |                 )
+295 |                 break
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:298:89: E501 Line too long (91 > 88)
+    |
+297 |             # Create tasks for the delay and for waiting on the stop event
+298 |             # Ensure self.__delay_before_retry_func is awaited as it's a coroutine function
+    |                                                                                         ^^^ E501
+299 |             delay_coro: Coroutine[Any, Any, None] = self.__delay_before_retry_func()
+300 |             delay_task: asyncio.Task[None] = self.__event_loop.create_task(delay_coro)
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:312:89: E501 Line too long (124 > 88)
+    |
+310 |             if stop_event_wait_task in done:
+311 |                 logging.info(
+312 |                     "ClientDisconnectionRetrier: Stop retrying event was set during delay period. Breaking from retry loop."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+313 |                 )
+314 |                 if not delay_task.done():
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:333:89: E501 Line too long (98 > 88)
+    |
+331 |                 if self.__instance is None:
+332 |                     logging.error("_connect() returned None during retry. Will retry.")
+333 |                     # This state indicates an issue with _connect not raising an error on failure.
+    |                                                                                         ^^^^^^^^^^ E501
+334 |                     # Continue loop to retry after delay.
+335 |                     continue
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:338:89: E501 Line too long (117 > 88)
+    |
+336 |                 if not isinstance(self.__instance, Stopable):
+337 |                     logging.error(
+338 |                         f"Reconnected instance is not Stopable ({type(self.__instance).__name__}). Stopping retries."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+339 |                     )
+340 |                     # This is a critical type error, stop retrying.
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:343:89: E501 Line too long (116 > 88)
+    |
+341 |                     self.__instance = None  # Clear instance before raising
+342 |                     raise TypeError(
+343 |                         f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+344 |                     )
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:353:89: E501 Line too long (117 > 88)
+    |
+351 |                     # it's a more serious issue. Report it and stop retrying.
+352 |                     logging.error(
+353 |                         f"Non-server-unavailable error during reconnection attempt: {retry_error}. Stopping retries."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+354 |                     )
+355 |                     self.__watcher.on_exception_seen(retry_error)
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:358:89: E501 Line too long (93 > 88)
+    |
+356 |                     raise  # Re-raise the error to stop the retry loop.
+357 |                 else:
+358 |                     # If it's still a server unavailable error, log it and continue the loop.
+    |                                                                                         ^^^^^ E501
+359 |                     logging.warning(
+360 |                         f"Still server unavailable during retry: {retry_error}"
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:363:89: E501 Line too long (100 > 88)
+    |
+361 |                     )
+362 |                 retry_count += 1
+363 |             # Ensure the loop continues if a server unavailable error occurred inside the try block.
+    |                                                                                         ^^^^^^^^^^^^ E501
+364 |             # No explicit 'continue' needed here as the loop naturally continues if no 'break' or 'raise'.
+    |
+
+tsercom/rpc/connection/client_disconnection_retrier.py:364:89: E501 Line too long (106 > 88)
+    |
+362 |                 retry_count += 1
+363 |             # Ensure the loop continues if a server unavailable error occurred inside the try block.
+364 |             # No explicit 'continue' needed here as the loop naturally continues if no 'break' or 'raise'.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+    |
+
+tsercom/rpc/endpoints/get_id_server.py:73:89: E501 Line too long (109 > 88)
+   |
+71 |                 raise
+72 |             logging.error(
+73 |                 f"Error during GetId processing for context {context.peer() if context else 'Unknown'}: {e}",
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^ E501
+74 |                 exc_info=True,
+75 |             )
+   |
+
+tsercom/rpc/endpoints/test_connection_server.py:14:89: E501 Line too long (95 > 88)
+   |
+12 |         self, request: TestConnectionCall, context: grpc.aio.ServicerContext
+13 |     ) -> TestConnectionResponse:
+14 |         """Handles an asynchronous TestConnection request. Simply returns an empty response."""
+   |                                                                                         ^^^^^^^ E501
+15 |         return TestConnectionResponse()
+   |
+
+tsercom/rpc/endpoints/test_connection_server.py:24:89: E501 Line too long (93 > 88)
+   |
+22 |         self, request: TestConnectionCall, context: grpc.ServicerContext
+23 |     ) -> TestConnectionResponse:
+24 |         """Handles a synchronous TestConnection request. Simply returns an empty response."""
+   |                                                                                         ^^^^^ E501
+25 |         return TestConnectionResponse()
+   |
+
+tsercom/rpc/grpc_util/async_grpc_exception_interceptor.py:1:89: E501 Line too long (90 > 88)
+  |
+1 | """Provides an asynchronous gRPC server interceptor for centralized exception handling."""
+  |                                                                                         ^^ E501
+2 |
+3 | from collections.abc import Awaitable, Callable
+  |
+
+tsercom/rpc/grpc_util/async_grpc_exception_interceptor.py:94:89: E501 Line too long (91 > 88)
+   |
+92 |             except (
+93 |                 Warning
+94 |             ) as e:  # PEP 8: E722 do not use bare 'except' -> but this is 'except Warning'
+   |                                                                                         ^^^ E501
+95 |                 await self._handle_exception(e, method_name, context)
+96 |                 raise  # Make it clear this path does not return normally
+   |
+
+tsercom/rpc/grpc_util/async_grpc_exception_interceptor.py:112:89: E501 Line too long (99 > 88)
+    |
+110 |         """Wraps a unary-stream RPC method to provide exception handling."""
+111 |
+112 |         async def wrapper(request: object, context: grpc.aio.ServicerContext) -> Awaitable[object]:  # type: ignore
+    |                                                                                         ^^^^^^^^^^^ E501
+113 |             try:
+114 |                 # The original method for unary-stream is expected to be an async generator.
+    |
+
+tsercom/rpc/grpc_util/async_grpc_exception_interceptor.py:114:89: E501 Line too long (92 > 88)
+    |
+112 |         async def wrapper(request: object, context: grpc.aio.ServicerContext) -> Awaitable[object]:  # type: ignore
+113 |             try:
+114 |                 # The original method for unary-stream is expected to be an async generator.
+    |                                                                                         ^^^^ E501
+115 |                 # However, the type hint from grpc.RpcMethodHandler is Awaitable[object].
+116 |                 # We iterate over it as if it's an async generator.
+    |
+
+tsercom/rpc/grpc_util/async_grpc_exception_interceptor.py:115:89: E501 Line too long (89 > 88)
+    |
+113 |             try:
+114 |                 # The original method for unary-stream is expected to be an async generator.
+115 |                 # However, the type hint from grpc.RpcMethodHandler is Awaitable[object].
+    |                                                                                         ^ E501
+116 |                 # We iterate over it as if it's an async generator.
+117 |                 async for response in method(request, context):  # type: ignore[attr-defined]
+    |
+
+tsercom/rpc/grpc_util/async_grpc_exception_interceptor.py:165:89: E501 Line too long (108 > 88)
+    |
+163 |         """Wraps a stream-stream RPC method to provide exception handling."""
+164 |
+165 |         async def wrapper(request_iterator: object, context: grpc.aio.ServicerContext) -> Awaitable[object]:  # type: ignore
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+166 |             try:
+167 |                 # The original method for stream-stream is an async generator
+    |
+
+tsercom/rpc/grpc_util/grpc_caller.py:1:89: E501 Line too long (89 > 88)
+  |
+1 | """Provides utility functions for handling gRPC errors, status codes, and retry logic."""
+  |                                                                                         ^ E501
+2 |
+3 | from __future__ import annotations
+  |
+
+tsercom/rpc/grpc_util/grpc_service_publisher.py:90:89: E501 Line too long (91 > 88)
+   |
+89 |         Returns:
+90 |             True if the server successfully bound to at least one address, False otherwise.
+   |                                                                                         ^^^ E501
+91 |         """
+92 |         # Connect to a port.
+   |
+
+tsercom/rpc/grpc_util/grpc_service_publisher.py:132:89: E501 Line too long (98 > 88)
+    |
+130 |         if self.__server is None:
+131 |             logging.warning(
+132 |                 "GrpcServicePublisher: Server not started or already stopped when calling stop()."
+    |                                                                                         ^^^^^^^^^^ E501
+133 |             )
+134 |             return
+    |
+
+tsercom/rpc/grpc_util/grpc_service_publisher.py:138:89: E501 Line too long (89 > 88)
+    |
+136 |         if isinstance(self.__server, grpc.aio.Server):
+137 |             logging.error(
+138 |                 "GrpcServicePublisher: Synchronous stop() called on an grpc.aio.Server. "
+    |                                                                                         ^ E501
+139 |                 "This is incorrect and will not stop the server gracefully. "
+140 |                 "Use stop_async() instead."
+    |
+
+tsercom/rpc/grpc_util/grpc_service_publisher.py:161:89: E501 Line too long (104 > 88)
+    |
+159 |         if self.__server is None:
+160 |             logging.warning(
+161 |                 "GrpcServicePublisher: Server not started or already stopped when calling stop_async()."
+    |                                                                                         ^^^^^^^^^^^^^^^^ E501
+162 |             )
+163 |             return
+    |
+
+tsercom/rpc/grpc_util/transport/client_auth_grpc_channel_factory.py:30:89: E501 Line too long (94 > 88)
+   |
+28 |     ):
+29 |         """
+30 |         Initializes the factory with client credentials and optional CA for server validation.
+   |                                                                                         ^^^^^^ E501
+31 |
+32 |         Args:
+   |
+
+tsercom/rpc/grpc_util/transport/client_auth_grpc_channel_factory.py:35:89: E501 Line too long (93 > 88)
+   |
+33 |             client_cert_pem: PEM-encoded client certificate (bytes or string).
+34 |             client_key_pem: PEM-encoded client private key (bytes or string).
+35 |             root_ca_cert_pem: Optional PEM-encoded root CA certificate for server validation.
+   |                                                                                         ^^^^^ E501
+36 |                               If None, server certificate is not validated by the client.
+37 |             server_hostname_override: If provided, this hostname will be used
+   |
+
+tsercom/rpc/grpc_util/transport/client_auth_grpc_channel_factory.py:36:89: E501 Line too long (89 > 88)
+   |
+34 |             client_key_pem: PEM-encoded client private key (bytes or string).
+35 |             root_ca_cert_pem: Optional PEM-encoded root CA certificate for server validation.
+36 |                               If None, server certificate is not validated by the client.
+   |                                                                                         ^ E501
+37 |             server_hostname_override: If provided, this hostname will be used
+38 |                                       for SSL target name override.
+   |
+
+tsercom/rpc/grpc_util/transport/client_auth_grpc_channel_factory.py:91:89: E501 Line too long (101 > 88)
+   |
+90 |         logger.info(
+91 |             f"Attempting secure connection ({auth_type}) to addresses: {address_list} on port {port}"
+   |                                                                                         ^^^^^^^^^^^^^ E501
+92 |         )
+   |
+
+tsercom/rpc/grpc_util/transport/client_auth_grpc_channel_factory.py:133:89: E501 Line too long (112 > 88)
+    |
+131 |             except grpc.aio.AioRpcError as e:
+132 |                 logger.warning(
+133 |                     f"Secure connection to {target} ({auth_type}) failed: gRPC Error {e.code()} - {e.details()}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^ E501
+134 |                 )
+135 |             except asyncio.TimeoutError:
+    |
+
+tsercom/rpc/grpc_util/transport/client_auth_grpc_channel_factory.py:141:89: E501 Line too long (106 > 88)
+    |
+139 |             except Exception as e:
+140 |                 logger.error(
+141 |                     f"An unexpected error occurred while trying to connect to {target} ({auth_type}): {e}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+142 |                 )
+143 |                 if isinstance(e, AssertionError):  # Re-raise assertion errors
+    |
+
+tsercom/rpc/grpc_util/transport/client_auth_grpc_channel_factory.py:153:89: E501 Line too long (130 > 88)
+    |
+152 |         logger.warning(
+153 |             f"Failed to establish secure connection ({auth_type}) to any of the provided addresses: {address_list} on port {port}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+154 |         )
+155 |         return None
+    |
+
+tsercom/rpc/grpc_util/transport/insecure_grpc_channel_factory.py:68:89: E501 Line too long (96 > 88)
+   |
+67 |         logging.warning(
+68 |             f"Failed to connect to any of the provided addresses: {address_list} on port {port}"
+   |                                                                                         ^^^^^^^^ E501
+69 |         )
+70 |         return None
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:29:89: E501 Line too long (102 > 88)
+   |
+28 |         Args:
+29 |             expected_server_cert_pem: PEM-encoded server certificate to pin against (bytes or string).
+   |                                                                                         ^^^^^^^^^^^^^^ E501
+30 |             server_hostname_override: If provided, this hostname will be used
+31 |                                       for SSL target name override. This is crucial
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:32:89: E501 Line too long (91 > 88)
+   |
+30 |             server_hostname_override: If provided, this hostname will be used
+31 |                                       for SSL target name override. This is crucial
+32 |                                       if the target address (e.g. IP address) doesn't match
+   |                                                                                         ^^^ E501
+33 |                                       any name in the server certificate's SANs or CN,
+34 |                                       but you still want to validate the certificate content.
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:34:89: E501 Line too long (93 > 88)
+   |
+32 |                                       if the target address (e.g. IP address) doesn't match
+33 |                                       any name in the server certificate's SANs or CN,
+34 |                                       but you still want to validate the certificate content.
+   |                                                                                         ^^^^^ E501
+35 |         """
+36 |         self.expected_server_cert_pem: bytes
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:67:89: E501 Line too long (108 > 88)
+   |
+66 |         logger.info(
+67 |             f"Attempting secure connection (Pinned Server Auth) to addresses: {address_list} on port {port}"
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+68 |         )
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:70:89: E501 Line too long (101 > 88)
+   |
+68 |         )
+69 |
+70 |         # For pinning, the expected server certificate itself is provided as the 'root_certificates'.
+   |                                                                                         ^^^^^^^^^^^^^ E501
+71 |         # gRPC will then ensure that the certificate presented by the server matches this one.
+72 |         credentials = grpc.ssl_channel_credentials(
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:71:89: E501 Line too long (94 > 88)
+   |
+70 |         # For pinning, the expected server certificate itself is provided as the 'root_certificates'.
+71 |         # gRPC will then ensure that the certificate presented by the server matches this one.
+   |                                                                                         ^^^^^^ E501
+72 |         credentials = grpc.ssl_channel_credentials(
+73 |             root_certificates=self.expected_server_cert_pem
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:84:89: E501 Line too long (121 > 88)
+   |
+82 | …             )
+83 | …         )
+84 | …     # Without hostname override, gRPC would also try to validate the hostname in the cert against the target address.
+   |                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+85 | …     # If target is an IP, this usually fails unless IP is in SANs.
+86 | …     # For pinning, you might primarily care about the cert content, and override ensures hostname validation doesn't fail separately
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:86:89: E501 Line too long (136 > 88)
+   |
+84 | …also try to validate the hostname in the cert against the target address.
+85 | … unless IP is in SANs.
+86 | …about the cert content, and override ensures hostname validation doesn't fail separately
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+87 | …
+   |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:108:89: E501 Line too long (109 > 88)
+    |
+106 |                     f"Successfully connected securely to {target} (Pinned Server Auth)."
+107 |                 )
+108 |                 # Detach active_channel from the variable so it's not closed in a finally block if successful
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^ E501
+109 |                 channel_to_return = active_channel
+110 |                 active_channel = None
+    |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:115:89: E501 Line too long (119 > 88)
+    |
+113 |             except grpc.aio.AioRpcError as e:
+114 |                 logger.warning(
+115 |                     f"Secure connection to {target} (Pinned Server Auth) failed: gRPC Error {e.code()} - {e.details()}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+116 |                 )
+117 |             except asyncio.TimeoutError:
+    |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:123:89: E501 Line too long (113 > 88)
+    |
+121 |             except Exception as e:
+122 |                 logger.error(
+123 |                     f"An unexpected error occurred while trying to connect to {target} (Pinned Server Auth): {e}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+124 |                 )
+125 |                 if isinstance(e, AssertionError):
+    |
+
+tsercom/rpc/grpc_util/transport/pinned_server_auth_grpc_channel_factory.py:133:89: E501 Line too long (137 > 88)
+    |
+132 | …
+133 | …on (Pinned Server Auth) to any of the provided addresses: {address_list} on port {port}"
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+134 | …
+135 | …
+    |
+
+tsercom/rpc/grpc_util/transport/server_auth_grpc_channel_factory.py:34:89: E501 Line too long (95 > 88)
+   |
+32 |                                       for SSL target name override, which is
+33 |                                       useful if the server's certificate CN
+34 |                                       does not match the target address (e.g., for IP addresses
+   |                                                                                         ^^^^^^^ E501
+35 |                                       or localhost testing).
+36 |         """
+   |
+
+tsercom/rpc/grpc_util/transport/server_auth_grpc_channel_factory.py:68:89: E501 Line too long (101 > 88)
+   |
+67 |         logger.info(
+68 |             f"Attempting secure connection (Server Auth) to addresses: {address_list} on port {port}"
+   |                                                                                         ^^^^^^^^^^^^^ E501
+69 |         )
+   |
+
+tsercom/rpc/grpc_util/transport/server_auth_grpc_channel_factory.py:106:89: E501 Line too long (100 > 88)
+    |
+105 |             except grpc.aio.AioRpcError as e:
+106 |                 # This specifically catches gRPC errors, e.g., connection failure, handshake failure
+    |                                                                                         ^^^^^^^^^^^^ E501
+107 |                 logger.warning(
+108 |                     f"Secure connection to {target} (Server Auth) failed: gRPC Error {e.code()} - {e.details()}"
+    |
+
+tsercom/rpc/grpc_util/transport/server_auth_grpc_channel_factory.py:108:89: E501 Line too long (112 > 88)
+    |
+106 |                 # This specifically catches gRPC errors, e.g., connection failure, handshake failure
+107 |                 logger.warning(
+108 |                     f"Secure connection to {target} (Server Auth) failed: gRPC Error {e.code()} - {e.details()}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^ E501
+109 |                 )
+110 |                 if channel:
+    |
+
+tsercom/rpc/grpc_util/transport/server_auth_grpc_channel_factory.py:120:89: E501 Line too long (106 > 88)
+    |
+118 |             except Exception as e:
+119 |                 logger.error(
+120 |                     f"An unexpected error occurred while trying to connect to {target} (Server Auth): {e}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+121 |                 )
+122 |                 if channel:  # Ensure channel is closed
+    |
+
+tsercom/rpc/grpc_util/transport/server_auth_grpc_channel_factory.py:128:89: E501 Line too long (130 > 88)
+    |
+127 |         logger.warning(
+128 |             f"Failed to establish secure connection (Server Auth) to any of the provided addresses: {address_list} on port {port}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+129 |         )
+130 |         return None
+    |
+
+tsercom/runtime/channel_factory_selector.py:71:89: E501 Line too long (92 > 88)
+   |
+70 |                 raise ValueError(
+71 |                     f"Failed to read server_ca_cert_path: {auth_config.server_ca_cert_path}"
+   |                                                                                         ^^^^ E501
+72 |                 )
+73 |             return ServerAuthGrpcChannelFactory(
+   |
+
+tsercom/runtime/channel_factory_selector.py:86:89: E501 Line too long (100 > 88)
+   |
+85 |                 raise ValueError(
+86 |                     f"Failed to read pinned_server_cert_path: {auth_config.pinned_server_cert_path}"
+   |                                                                                         ^^^^^^^^^^^^ E501
+87 |                 )
+88 |             return PinnedServerAuthGrpcChannelFactory(
+   |
+
+tsercom/runtime/client/client_runtime_data_handler.py:149:89: E501 Line too long (95 > 88)
+    |
+147 |         if not was_removed_from_id_tracker:
+148 |             logging.warning(
+149 |                 "Failed to remove caller_id %s from IdTracker, though it was initially found. "
+    |                                                                                         ^^^^^^^ E501
+150 |                 "Skipping clock_tracker.on_disconnect.",
+151 |                 caller_id,
+    |
+
+tsercom/runtime/endpoint_data_processor.py:86:89: E501 Line too long (92 > 88)
+   |
+84 |     @abstractmethod
+85 |     async def deregister_caller(self) -> None:
+86 |         """Performs cleanup and resource release when the associated caller is deregistered.
+   |                                                                                         ^^^^ E501
+87 |
+88 |         Subclasses should implement this to handle any necessary cleanup
+   |
+
+tsercom/runtime/endpoint_data_processor.py:134:89: E501 Line too long (92 > 88)
+    |
+132 |             timestamp: The `ServerTimestamp` associated with the data.
+133 |             context: Optional. The `grpc.aio.ServicerContext` for a gRPC call,
+134 |                 used for potentially aborting the call if timestamp desynchronization fails.
+    |                                                                                         ^^^^ E501
+135 |         """
+    |
+
+tsercom/runtime/endpoint_data_processor.py:188:89: E501 Line too long (89 > 88)
+    |
+186 |     @abstractmethod
+187 |     async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
+188 |         """Processes the data item with its fully synchronized and normalized `datetime`.
+    |                                                                                         ^ E501
+189 |
+190 |         Subclasses must implement this method to define the specific business logic
+    |
+
+tsercom/runtime/id_tracker.py:24:89: E501 Line too long (91 > 88)
+   |
+23 | class IdTracker(Generic[TrackedDataT]):
+24 |     """Tracks associations between CallerIdentifiers, network addresses, and optional data.
+   |                                                                                         ^^^ E501
+25 |
+26 |     This class provides a thread-safe, bidirectional dictionary-like structure
+   |
+
+tsercom/runtime/id_tracker.py:104:89: E501 Line too long (89 > 88)
+    |
+102 |         | None
+103 |     ):
+104 |         """Attempts to retrieve associated information for a given identifier or address.
+    |                                                                                         ^ E501
+105 |
+106 |         This method provides a way to look up mappings without raising an
+    |
+
+tsercom/runtime/id_tracker.py:110:89: E501 Line too long (95 > 88)
+    |
+109 |         If looking up by `CallerIdentifier` (`caller_id_obj`):
+110 |             Returns a 3-tuple `(address: str, port: int, tracked_data: Optional[TrackedDataT])`
+    |                                                                                         ^^^^^^^ E501
+111 |             if the `CallerIdentifier` is found. `tracked_data` is the result of
+112 |             the `data_factory` if one was provided and the ID was added with it,
+    |
+
+tsercom/runtime/id_tracker.py:116:89: E501 Line too long (107 > 88)
+    |
+115 |         If looking up by network address (`address`, `port`):
+116 |             Returns a 2-tuple `(caller_identifier: CallerIdentifier, tracked_data: Optional[TrackedDataT])`
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^ E501
+117 |             if the address/port combination is found. `tracked_data` is determined
+118 |             as above.
+    |
+
+tsercom/runtime/id_tracker.py:189:89: E501 Line too long (90 > 88)
+    |
+187 |             raise ValueError(f"Unexpected kwargs: {list(kwargs.keys())}")
+188 |
+189 |         # Validate that either ID or (address and port) is provided, but not both/neither.
+    |                                                                                         ^^ E501
+190 |         if (_id is None) == (_address is None and _port is None):
+191 |             raise ValueError(
+    |
+
+tsercom/runtime/id_tracker.py:305:89: E501 Line too long (95 > 88)
+    |
+304 |         If a `data_factory` was provided during `IdTracker` initialization,
+305 |         it is called (only if `caller_id_obj` is new to `__data_map` or was previously removed)
+    |                                                                                         ^^^^^^^ E501
+306 |         and its result is stored with the `caller_id_obj`.
+    |
+
+tsercom/runtime/id_tracker.py:341:89: E501 Line too long (92 > 88)
+    |
+339 |             # Add/update data from data_factory only if factory exists
+340 |             # and if the id is new to the data_map or was previously cleared.
+341 |             # The current logic effectively re-calls factory on every add if factory exists.
+    |                                                                                         ^^^^ E501
+342 |             # To call factory only once per ID: check `if caller_id_obj not in self.__data_map:`
+343 |             if self.__data_factory is not None:
+    |
+
+tsercom/runtime/id_tracker.py:342:89: E501 Line too long (96 > 88)
+    |
+340 |             # and if the id is new to the data_map or was previously cleared.
+341 |             # The current logic effectively re-calls factory on every add if factory exists.
+342 |             # To call factory only once per ID: check `if caller_id_obj not in self.__data_map:`
+    |                                                                                         ^^^^^^^^ E501
+343 |             if self.__data_factory is not None:
+344 |                 self.__data_map[caller_id_obj] = self.__data_factory()
+    |
+
+tsercom/runtime/id_tracker.py:382:89: E501 Line too long (97 > 88)
+    |
+380 |         with self.__lock:
+381 |             # Returns an iterator over a copy of the keys to allow safe iteration
+382 |             # if modifications occur in another thread (though individual operations are locked).
+    |                                                                                         ^^^^^^^^^ E501
+383 |             return iter(list(self.__id_to_address.keys()))
+    |
+
+tsercom/runtime/runtime_config.py:161:89: E501 Line too long (97 > 88)
+    |
+159 |             RuntimeConfig.__init__(
+160 |                 self,
+161 |                 service_type=other_config.service_type_enum,  # Use enum for internal consistency
+    |                                                                                         ^^^^^^^^^ E501
+162 |                 data_aggregator_client=other_config.data_aggregator_client,
+163 |                 timeout_seconds=other_config.timeout_seconds,
+    |
+
+tsercom/runtime/runtime_config.py:169:89: E501 Line too long (93 > 88)
+    |
+167 |             return
+168 |
+169 |         # Ensure service_type is not None due to the initial check, then validate and assign.
+    |                                                                                         ^^^^^ E501
+170 |         assert service_type is not None
+171 |         if isinstance(service_type, str):
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:113:89: E501 Line too long (127 > 88)
+    |
+112 |         self.__dispatch_task: asyncio.Task[None] | None = None
+113 |         # Import get_global_event_loop and is_global_event_loop_set locally to avoid circular dependency issues at module level
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+114 |         from tsercom.threading.aio.global_event_loop import (
+115 |             get_global_event_loop,
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:131:89: E501 Line too long (96 > 88)
+    |
+129 |             )
+130 |         else:
+131 |             # self._loop_on_init is already None due to the type hint and default initialization
+    |                                                                                         ^^^^^^^^ E501
+132 |             _logger.warning(
+133 |                 "No global event loop set during RuntimeDataHandlerBase init. "
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:156:89: E501 Line too long (111 > 88)
+    |
+154 |             except RuntimeError:  # Can happen if task is done and loop is closed
+155 |                 _logger.warning(
+156 |                     "Could not get loop for task %s during async_close, it might be done and its loop closed.",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^ E501
+157 |                     task,
+158 |                 )
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:162:89: E501 Line too long (103 > 88)
+    |
+160 |             task_loop_id = id(task_loop) if task_loop else "N/A"
+161 |             _logger.debug(
+162 |                 "Attempting to close __dispatch_task: %s (created on loop: %s, current task loop: %s)",
+    |                                                                                         ^^^^^^^^^^^^^^^ E501
+163 |                 task,
+164 |                 (id(self._loop_on_init) if self._loop_on_init else "N/A"),
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:169:89: E501 Line too long (107 > 88)
+    |
+168 |             if not task.done():
+169 |                 # It's crucial that task.cancel() and await task happen on the loop the task is running on.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^ E501
+170 |                 # If self._loop_on_init is different from current_loop, this might be an issue.
+171 |                 # However, pytest-asyncio and conftest should ensure fixture teardown runs on the same loop as test.
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:170:89: E501 Line too long (95 > 88)
+    |
+168 |             if not task.done():
+169 |                 # It's crucial that task.cancel() and await task happen on the loop the task is running on.
+170 |                 # If self._loop_on_init is different from current_loop, this might be an issue.
+    |                                                                                         ^^^^^^^ E501
+171 |                 # However, pytest-asyncio and conftest should ensure fixture teardown runs on the same loop as test.
+172 |                 if self._loop_on_init and self._loop_on_init is not current_loop:
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:171:89: E501 Line too long (116 > 88)
+    |
+169 |                 # It's crucial that task.cancel() and await task happen on the loop the task is running on.
+170 |                 # If self._loop_on_init is different from current_loop, this might be an issue.
+171 |                 # However, pytest-asyncio and conftest should ensure fixture teardown runs on the same loop as test.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+172 |                 if self._loop_on_init and self._loop_on_init is not current_loop:
+173 |                     _logger.warning(
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:174:89: E501 Line too long (139 > 88)
+    |
+172 | …op_on_init is not current_loop:
+173 | …
+174 | …n async_close: task loop %s (init_loop %s) vs current_loop %s. This might cause issues.",
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+175 | …
+176 | …
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:185:89: E501 Line too long (98 > 88)
+    |
+183 |                     await task
+184 |                     _logger.debug(
+185 |                         "Dispatch_task %s awaited after cancellation (processed CancelledError).",
+    |                                                                                         ^^^^^^^^^^ E501
+186 |                         task,
+187 |                     )
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:190:89: E501 Line too long (94 > 88)
+    |
+188 |                 except asyncio.CancelledError:
+189 |                     _logger.info(
+190 |                         "Dispatch_task %s successfully cancelled and handled CancelledError.",
+    |                                                                                         ^^^^^^ E501
+191 |                         task,
+192 |                     )
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:331:89: E501 Line too long (97 > 88)
+    |
+329 |             if extracted_port is None:
+330 |                 raise ValueError(
+331 |                     f"Could not get client port from context for endpoint: {extracted_endpoint}."
+    |                                                                                         ^^^^^^^^^ E501
+332 |                 )
+333 |             actual_endpoint = extracted_endpoint
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:343:89: E501 Line too long (92 > 88)
+    |
+341 |             # This state should be unreachable due to prior validation.
+342 |             raise ValueError(
+343 |                 "Internal error: Inconsistent endpoint/port/context state after validation."
+    |                                                                                         ^^^^ E501
+344 |             )
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:511:89: E501 Line too long (91 > 88)
+    |
+509 |                                 poller.on_available(event_item)
+510 |                     else:
+511 |                         # try_get by caller_id returns (address, port, data_poller) or None
+    |                                                                                         ^^^ E501
+512 |                         id_tracker_entry = self._id_tracker.try_get(
+513 |                             event_item.caller_id
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:621:89: E501 Line too long (94 > 88)
+    |
+620 |         async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
+621 |             """Processes data by creating an `AnnotatedInstance` and passing it to the parent.
+    |                                                                                         ^^^^^^ E501
+622 |
+623 |             The data is wrapped with its `CallerIdentifier` and the provided
+    |
+
+tsercom/runtime/runtime_data_handler_base.py:640:89: E501 Line too long (99 > 88)
+    |
+638 |             self,
+639 |         ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
+640 |             """Returns an asynchronous iterator for events from the dedicated per-caller poller."""
+    |                                                                                         ^^^^^^^^^^^ E501
+641 |             async for event_instance_batch in self.__data_poller:
+642 |                 processed_batch: list[SerializableAnnotatedInstance[EventTypeT]] = []
+    |
+
+tsercom/runtime/runtime_main.py:108:89: E501 Line too long (92 > 88)
+    |
+107 |         # The event poller from the factory should now be directly compatible
+108 |         # with RuntimeDataHandlerBase, which expects AsyncPoller[EventInstance[EventTypeT]].
+    |                                                                                         ^^^^ E501
+109 |         # The conversion to SerializableAnnotatedInstance is handled within _DataProcessorImpl.
+110 |         #     event_poller
+    |
+
+tsercom/runtime/runtime_main.py:109:89: E501 Line too long (95 > 88)
+    |
+107 |         # The event poller from the factory should now be directly compatible
+108 |         # with RuntimeDataHandlerBase, which expects AsyncPoller[EventInstance[EventTypeT]].
+109 |         # The conversion to SerializableAnnotatedInstance is handled within _DataProcessorImpl.
+    |                                                                                         ^^^^^^^ E501
+110 |         #     event_poller
+111 |         # )
+    |
+
+tsercom/runtime/runtime_main.py:152:89: E501 Line too long (92 > 88)
+    |
+150 |         )
+151 |
+152 |         # Add a callback to propagate exceptions from runtime startup to the thread_watcher.
+    |                                                                                         ^^^^ E501
+153 |         def _runtime_start_done_callback(
+154 |             f: concurrent.futures.Future[Any],
+    |
+
+tsercom/runtime/runtime_main.py:166:89: E501 Line too long (94 > 88)
+    |
+164 |                         logger.warning(
+165 |                             "Runtime start_async future completed with a non-Exception "
+166 |                             "BaseException: %s. This will not be reported via ThreadWatcher.",
+    |                                                                                         ^^^^^^ E501
+167 |                             type(exc).__name__,
+168 |                         )
+    |
+
+tsercom/runtime/server/server_runtime_data_handler.py:80:89: E501 Line too long (109 > 88)
+   |
+78 |             # In a real server scenario, TimeSyncServer provides the clock.
+79 |             self.__server = TimeSyncServer()
+80 |             self.__server.start_async()  # Assuming start_async is a non-blocking call that schedules startup
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^ E501
+81 |             self.__clock = self.__server.get_synchronized_clock()
+   |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:55:89: E501 Line too long (105 > 88)
+   |
+54 |         # Find insertion points for required_timestamps in the keyframe timestamps
+55 |         # 'right=True' means if required_ts == key_ts, idx will be such that key_ts[idx-1] == required_ts
+   |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+56 |         # We want to find key_times[idx-1] <= required_ts < key_times[idx]
+57 |         # searchsorted returns idx where element would be inserted to maintain order.
+   |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:58:89: E501 Line too long (97 > 88)
+   |
+56 |         # We want to find key_times[idx-1] <= required_ts < key_times[idx]
+57 |         # searchsorted returns idx where element would be inserted to maintain order.
+58 |         # So, for a value req_ts, key_times[idx-1] is the largest key_time <= req_ts (if idx > 0)
+   |                                                                                         ^^^^^^^^^ E501
+59 |         # and key_times[idx] is the smallest key_time > req_ts (if idx < len(key_times))
+   |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:61:89: E501 Line too long (91 > 88)
+   |
+59 |         # and key_times[idx] is the smallest key_time > req_ts (if idx < len(key_times))
+60 |
+61 |         # Clamp required_timestamps to the range of keyframe timestamps for easier indexing
+   |                                                                                         ^^^ E501
+62 |         # This simplifies extrapolation logic by mapping out-of-bound points to the boundary indices
+   |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:62:89: E501 Line too long (100 > 88)
+   |
+61 |         # Clamp required_timestamps to the range of keyframe timestamps for easier indexing
+62 |         # This simplifies extrapolation logic by mapping out-of-bound points to the boundary indices
+   |                                                                                         ^^^^^^^^^^^^ E501
+63 |
+64 |         # Find indices of the keyframes that are to the right of each required_timestamp
+   |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:66:89: E501 Line too long (91 > 88)
+   |
+64 |         # Find indices of the keyframes that are to the right of each required_timestamp
+65 |         # `right=False` (default) means `timestamps[i-1] < v <= timestamps[i]`
+66 |         # `right=True` means `timestamps[i-1] <= v < timestamps[i]` (if v is in timestamps)
+   |                                                                                         ^^^ E501
+67 |         # For `idx = torch.searchsorted(timestamps, clamped_required_timestamps)`:
+68 |         # if `clamped_required_timestamps[k] == timestamps[j]`, then `idx[k] == j`.
+   |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:71:89: E501 Line too long (90 > 88)
+   |
+69 |         # We need `idx_right` to point to the *upper* bound of the interval.
+70 |
+71 |         # Ensure idx_right is at least 1 for safety, so idx_left (idx_right - 1) is valid.
+   |                                                                                         ^^ E501
+72 |         # For values exactly matching timestamps[0], idx_right could be 0.
+73 |         # For values matching timestamps[j], idx_right becomes j.
+   |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:76:89: E501 Line too long (95 > 88)
+   |
+74 |         # We want values between timestamps[idx_left] and timestamps[idx_right_actual].
+75 |         # So, if required_ts is timestamps[0], idx_right is 0. We want values[0].
+76 |         # If required_ts is timestamps[-1], idx_right is len(timestamps)-1. We want values[-1].
+   |                                                                                         ^^^^^^^ E501
+77 |
+78 |         # Initialize result tensor
+   |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:100:89: E501 Line too long (90 > 88)
+    |
+ 98 |             # `torch.searchsorted` returns the index where an element should be inserted
+ 99 |             # to maintain order.
+100 |             # `idx_right_interp` will be the index of the first timestamp > current_req_ts
+    |                                                                                         ^^ E501
+101 |             # or len(timestamps) if all timestamps are <= current_req_ts
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:107:89: E501 Line too long (96 > 88)
+    |
+106 |             # Clamp indices to be valid for 'timestamps' and 'values'
+107 |             # This is important for required_timestamps that exactly match a keyframe timestamp.
+    |                                                                                         ^^^^^^^^ E501
+108 |             # If current_req_ts = timestamps[0], idx_right_interp might be 0 (if right=False) or 1 (if right=True).
+109 |             # If right=True, idx_right_interp=0 if current_req_ts < timestamps[0] (already handled by before_mask)
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:108:89: E501 Line too long (115 > 88)
+    |
+106 |             # Clamp indices to be valid for 'timestamps' and 'values'
+107 |             # This is important for required_timestamps that exactly match a keyframe timestamp.
+108 |             # If current_req_ts = timestamps[0], idx_right_interp might be 0 (if right=False) or 1 (if right=True).
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+109 |             # If right=True, idx_right_interp=0 if current_req_ts < timestamps[0] (already handled by before_mask)
+110 |             # or if current_req_ts == timestamps[0] and timestamps[0] is the only element.
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:109:89: E501 Line too long (114 > 88)
+    |
+107 |             # This is important for required_timestamps that exactly match a keyframe timestamp.
+108 |             # If current_req_ts = timestamps[0], idx_right_interp might be 0 (if right=False) or 1 (if right=True).
+109 |             # If right=True, idx_right_interp=0 if current_req_ts < timestamps[0] (already handled by before_mask)
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+110 |             # or if current_req_ts == timestamps[0] and timestamps[0] is the only element.
+111 |             # We need to be careful.
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:110:89: E501 Line too long (90 > 88)
+    |
+108 |             # If current_req_ts = timestamps[0], idx_right_interp might be 0 (if right=False) or 1 (if right=True).
+109 |             # If right=True, idx_right_interp=0 if current_req_ts < timestamps[0] (already handled by before_mask)
+110 |             # or if current_req_ts == timestamps[0] and timestamps[0] is the only element.
+    |                                                                                         ^^ E501
+111 |             # We need to be careful.
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:119:89: E501 Line too long (101 > 88)
+    |
+117 |             #   t2 = timestamps[i+1], v2 = values[i+1]
+118 |
+119 |             # `torch.searchsorted(timestamps, current_req_ts, right=True)` gives insert position `k`.
+    |                                                                                         ^^^^^^^^^^^^^ E501
+120 |             # So, `timestamps[k-1]` is the largest timestamp <= `current_req_ts`. This is `t1`.
+121 |             # And `timestamps[k]` is the smallest timestamp > `current_req_ts` (or `timestamps[k-1]` if it's an exact match and `k` p…
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:120:89: E501 Line too long (95 > 88)
+    |
+119 | …     # `torch.searchsorted(timestamps, current_req_ts, right=True)` gives insert position `k`.
+120 | …     # So, `timestamps[k-1]` is the largest timestamp <= `current_req_ts`. This is `t1`.
+    |                                                                                   ^^^^^^^ E501
+121 | …     # And `timestamps[k]` is the smallest timestamp > `current_req_ts` (or `timestamps[k-1]` if it's an exact match and `k` points …
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:121:89: E501 Line too long (160 > 88)
+    |
+119 | … right=True)` gives insert position `k`.
+120 | …<= `current_req_ts`. This is `t1`.
+121 | … `current_req_ts` (or `timestamps[k-1]` if it's an exact match and `k` points to it). This is `t2`.
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+122 | …
+123 | …eq_ts, right=True)
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:124:89: E501 Line too long (116 > 88)
+    |
+123 |             t2_idx = torch.searchsorted(timestamps, current_req_ts, right=True)
+124 |             # Ensure t2_idx is not 0 for current_req_ts = timestamps[0] unless it's the only point (already handled)
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+125 |             # Ensure t2_idx is not len(timestamps) for current_req_ts = timestamps[-1]
+126 |             t2_idx = torch.clamp(t2_idx, 1, timestamps.numel() - 1)
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:129:89: E501 Line too long (91 > 88)
+    |
+127 |             t1_idx = t2_idx - 1
+128 |
+129 |             # Handle cases where current_req_ts is an exact match with a keyframe timestamp
+    |                                                                                         ^^^ E501
+130 |             # In this scenario, t1_idx points to the keyframe, and t2_idx might point to the same or next.
+131 |             # If timestamps[t1_idx] == current_req_ts, then proportion is 0.
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:130:89: E501 Line too long (106 > 88)
+    |
+129 |             # Handle cases where current_req_ts is an exact match with a keyframe timestamp
+130 |             # In this scenario, t1_idx points to the keyframe, and t2_idx might point to the same or next.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+131 |             # If timestamps[t1_idx] == current_req_ts, then proportion is 0.
+132 |             # If timestamps[t2_idx] == current_req_ts, then proportion is 1 (if t1_idx != t2_idx).
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:132:89: E501 Line too long (98 > 88)
+    |
+130 |             # In this scenario, t1_idx points to the keyframe, and t2_idx might point to the same or next.
+131 |             # If timestamps[t1_idx] == current_req_ts, then proportion is 0.
+132 |             # If timestamps[t2_idx] == current_req_ts, then proportion is 1 (if t1_idx != t2_idx).
+    |                                                                                         ^^^^^^^^^^ E501
+133 |
+134 |             t1 = timestamps[t1_idx]
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:139:89: E501 Line too long (107 > 88)
+    |
+137 |             v2 = values[t2_idx]
+138 |
+139 |             # Avoid division by zero if t1 == t2 (e.g. duplicate timestamps in keyframes, or at boundaries)
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^ E501
+140 |             # If t1 == t2, implies v1 should be used (or v2, they should be same if data is consistent)
+141 |             denominator = t2 - t1
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:140:89: E501 Line too long (103 > 88)
+    |
+139 |             # Avoid division by zero if t1 == t2 (e.g. duplicate timestamps in keyframes, or at boundaries)
+140 |             # If t1 == t2, implies v1 should be used (or v2, they should be same if data is consistent)
+    |                                                                                         ^^^^^^^^^^^^^^^ E501
+141 |             denominator = t2 - t1
+142 |             # Create a mask for where denominator is zero
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:153:89: E501 Line too long (97 > 88)
+    |
+151 |             proportion[~zero_denom_mask] = calculated_proportion.to(proportion.dtype)
+152 |
+153 |             # Handle cases where proportion might be slightly out of [0,1] due to float precision
+    |                                                                                         ^^^^^^^^^ E501
+154 |             proportion = torch.clamp(proportion, 0.0, 1.0)
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:160:89: E501 Line too long (105 > 88)
+    |
+159 |             # Special handling for exact matches:
+160 |             # If current_req_ts is an exact match with timestamps[t1_idx], value should be values[t1_idx]
+    |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+161 |             # If current_req_ts is an exact match with timestamps[t2_idx], value should be values[t2_idx]
+162 |             # The interpolation formula `v1 + proportion * (v2 - v1)` handles this naturally:
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:161:89: E501 Line too long (105 > 88)
+    |
+159 |             # Special handling for exact matches:
+160 |             # If current_req_ts is an exact match with timestamps[t1_idx], value should be values[t1_idx]
+161 |             # If current_req_ts is an exact match with timestamps[t2_idx], value should be values[t2_idx]
+    |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+162 |             # The interpolation formula `v1 + proportion * (v2 - v1)` handles this naturally:
+163 |             # If current_req_ts == t1, proportion = 0, result = v1.
+    |
+
+tsercom/tensor/demuxer/linear_interpolation_strategy.py:162:89: E501 Line too long (93 > 88)
+    |
+160 |             # If current_req_ts is an exact match with timestamps[t1_idx], value should be values[t1_idx]
+161 |             # If current_req_ts is an exact match with timestamps[t2_idx], value should be values[t2_idx]
+162 |             # The interpolation formula `v1 + proportion * (v2 - v1)` handles this naturally:
+    |                                                                                         ^^^^^ E501
+163 |             # If current_req_ts == t1, proportion = 0, result = v1.
+164 |             # If current_req_ts == t2, proportion = 1, result = v2.
+    |
+
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:65:89: E501 Line too long (89 > 88)
+   |
+64 |         logger.info(
+65 |             "Initialized SmoothedTensorDemuxer '%s' with shape %s, output interval %ss.",
+   |                                                                                         ^ E501
+66 |             self.__name,
+67 |             self.__tensor_shape_internal,
+   |
+
+tsercom/tensor/demuxer/smoothed_tensor_demuxer.py:203:89: E501 Line too long (107 > 88)
+    |
+201 |                         except (RuntimeError, ValueError) as e_reshape:
+202 |                             logger.warning(
+203 |                                 "[%s] Error reshaping parent tensor or accessing element %s for ts %s: %s",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^ E501
+204 |                                 self.__name,
+205 |                                 index_tuple,
+    |
+
+tsercom/tensor/demuxer/tensor_demuxer.py:20:89: E501 Line too long (90 > 88)
+   |
+18 |     """
+19 |     Aggregates granular tensor index updates back into complete tensor objects.
+20 |     Internal storage for explicit updates per timestamp uses torch.Tensors for efficiency.
+   |                                                                                         ^^ E501
+21 |     """
+   |
+
+tsercom/tensor/demuxer/tensor_demuxer.py:163:89: E501 Line too long (89 > 88)
+    |
+161 |             for i, value_from_chunk_tensor in enumerate(chunk.tensor):
+162 |                 tensor_index = chunk.starting_index + i
+163 |                 # Ensure value is float; chunk.tensor should be float, but defensive cast
+    |                                                                                         ^ E501
+164 |                 value = float(value_from_chunk_tensor.item())
+    |
+
+tsercom/tensor/demuxer/tensor_demuxer.py:179:89: E501 Line too long (111 > 88)
+    |
+177 |                 if existing_explicit_entry_indices.numel() > 0:
+178 |                     entry_pos = existing_explicit_entry_indices[0]
+179 |                     # Only update if value actually changed to avoid unnecessary marking of keyframe as changed
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^ E501
+180 |                     if explicit_values[entry_pos].item() != value:
+181 |                         explicit_values[entry_pos] = current_update_val_tensor
+    |
+
+tsercom/tensor/demuxer/tensor_demuxer.py:208:89: E501 Line too long (109 > 88)
+    |
+206 |                 )
+207 |
+208 |             # Keyframe considered changed if it's new and contains data, or if its calculated tensor differs.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^ E501
+209 |             keyframe_content_changed = False
+210 |             if is_new_timestamp_entry and explicit_indices.numel() > 0:
+    |
+
+tsercom/tensor/demuxer/tensor_demuxer.py:230:89: E501 Line too long (101 > 88)
+    |
+228 |                     self.__processed_keyframes.insert(insertion_point, new_state_tuple)
+229 |                     idx_of_processed_ts = insertion_point
+230 |                 # else: if new and no valid data, effectively ignore this chunk for keyframe creation
+    |                                                                                         ^^^^^^^^^^^^^ E501
+231 |             else:
+232 |                 # Always update existing timestamp, as its content might have changed
+    |
+
+tsercom/tensor/demuxer/tensor_demuxer.py:272:89: E501 Line too long (114 > 88)
+    |
+270 |                         )
+271 |                     else:
+272 |                         # If a cascaded tensor doesn't change, subsequent ones won't either from this cascade path
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+273 |                         break
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:25:89: E501 Line too long (97 > 88)
+   |
+23 | from tsercom.timesync.common.synchronized_clock import SynchronizedClock
+24 |
+25 | # Forward declaration for type hinting if Publisher were defined after AggregateTensorMultiplexer
+   |                                                                                         ^^^^^^^^^ E501
+26 | # or if AggregateTensorMultiplexer is defined after _InternalClient which needs it.
+27 | # class AggregateTensorMultiplexer(TensorMultiplexer): ...
+   |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:39:89: E501 Line too long (95 > 88)
+   |
+37 |     def __init__(self) -> None:
+38 |         """Initializes the Publisher."""
+39 |         # Using a WeakSet to allow AggregateTensorMultiplexer instances to be garbage collected
+   |                                                                                         ^^^^^^^ E501
+40 |         # if they are no longer referenced elsewhere, even if registered with a Publisher.
+41 |         self._aggregators: weakref.WeakSet[AggregateTensorMultiplexer] = (
+   |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:40:89: E501 Line too long (90 > 88)
+   |
+38 |         """Initializes the Publisher."""
+39 |         # Using a WeakSet to allow AggregateTensorMultiplexer instances to be garbage collected
+40 |         # if they are no longer referenced elsewhere, even if registered with a Publisher.
+   |                                                                                         ^^ E501
+41 |         self._aggregators: weakref.WeakSet[AggregateTensorMultiplexer] = (
+42 |             weakref.WeakSet()
+   |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:55:89: E501 Line too long (91 > 88)
+   |
+53 |         """
+54 |         Unregisters an AggregateTensorMultiplexer from this publisher.
+55 |         Typically called by AggregateTensorMultiplexer.unregister_publisher or its cleanup.
+   |                                                                                         ^^^ E501
+56 |         """
+57 |         self._aggregators.discard(aggregator)
+   |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:61:89: E501 Line too long (95 > 88)
+   |
+59 |     async def publish(self, tensor: torch.Tensor, timestamp: datetime.datetime) -> None:
+60 |         """
+61 |         Publishes a new tensor snapshot to all registered AggregateTensorMultiplexer instances.
+   |                                                                                         ^^^^^^^ E501
+62 |         """
+63 |         # Iterate over a copy of the set in case of modifications during iteration
+   |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:64:89: E501 Line too long (96 > 88)
+   |
+62 |         """
+63 |         # Iterate over a copy of the set in case of modifications during iteration
+64 |         # (though _notify_update_from_publisher is not expected to modify _aggregators directly)
+   |                                                                                         ^^^^^^^^ E501
+65 |         for aggregator in list(self._aggregators):
+66 |             await aggregator._notify_update_from_publisher(self, tensor, timestamp)
+   |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:85:89: E501 Line too long (100 > 88)
+   |
+83 |         def __init__(
+84 |             self,
+85 |             # main_aggregator_client: TensorMultiplexer.Client, # This is self._client of the parent
+   |                                                                                         ^^^^^^^^^^^^ E501
+86 |             aggregator_ref: weakref.ref["AggregateTensorMultiplexer"],
+87 |             publisher_start_index: int,
+   |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:142:89: E501 Line too long (150 > 88)
+    |
+140 | …
+141 | …
+142 | …te): Aggregator tensor_length is {aggregator.actual_aggregate_length}. Cannot update history."
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+143 | …
+144 | …
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:155:89: E501 Line too long (161 > 88)
+    |
+153 | …
+154 | …
+155 | …: global_idx {global_idx_for_history} out of bounds for agg tensor len {len(current_tensor_state)}."
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+156 | …
+157 | …
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:185:89: E501 Line too long (121 > 88)
+    |
+183 |                     > aggregator.latest_processed_timestamp_property
+184 |                 ):
+185 |                     # This assignment should be to the private member if latest_processed_timestamp_property is read-only
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+186 |                     # For now, assuming it will be handled by a setter or directly if property allows write.
+187 |                     # This will be self.__latest_processed_timestamp = potential_latest_ts
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:186:89: E501 Line too long (108 > 88)
+    |
+184 |                 ):
+185 |                     # This assignment should be to the private member if latest_processed_timestamp_property is read-only
+186 |                     # For now, assuming it will be handled by a setter or directly if property allows write.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+187 |                     # This will be self.__latest_processed_timestamp = potential_latest_ts
+188 |                     # Use the private setter method instead of direct mangled access
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:187:89: E501 Line too long (90 > 88)
+    |
+185 |                     # This assignment should be to the private member if latest_processed_timestamp_property is read-only
+186 |                     # For now, assuming it will be handled by a setter or directly if property allows write.
+187 |                     # This will be self.__latest_processed_timestamp = potential_latest_ts
+    |                                                                                         ^^ E501
+188 |                     # Use the private setter method instead of direct mangled access
+189 |                     aggregator._set_latest_processed_timestamp(potential_latest_ts)
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:218:89: E501 Line too long (91 > 88)
+    |
+216 |         )
+217 |         self.__actual_aggregate_length = initial_length_for_super  # Renamed
+218 |         # self.__clock = clock # Base class __init__ handles self.__clock via the property.
+    |                                                                                         ^^^ E501
+219 |         self.__publishers_info: list[dict[str, Any]] = []
+220 |         # Each dict in _publishers_info stores info about a registered publisher,
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:233:89: E501 Line too long (90 > 88)
+    |
+231 |     ) -> None:
+232 |         """
+233 |         Adds a publisher whose tensor will be appended to the end of the aggregate tensor.
+    |                                                                                         ^^ E501
+234 |
+235 |         Args:
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:314:89: E501 Line too long (90 > 88)
+    |
+312 |                 # arg2 should be None here from parsing logic above
+313 |                 if arg2 is not None:
+314 |                     # This case should ideally not be reached if overload logic is correct
+    |                                                                                         ^^ E501
+315 |                     raise ValueError(
+316 |                         "Internal error: arg2 should be None for append mode."
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:329:89: E501 Line too long (98 > 88)
+    |
+327 |                     # This case should ideally not be reached
+328 |                     raise ValueError(
+329 |                         "Internal error: arg2 (tensor_length) is missing for specific range mode."
+    |                                                                                         ^^^^^^^^^^ E501
+330 |                     )
+331 |                 current_tensor_len = arg2
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:336:89: E501 Line too long (109 > 88)
+    |
+334 |                 if len(index_range) != current_tensor_len:
+335 |                     raise ValueError(
+336 |                         f"Range length ({len(index_range)}) must match tensor_length ({current_tensor_len})."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^ E501
+337 |                     )
+338 |                 start_index = index_range.start
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:351:89: E501 Line too long (122 > 88)
+    |
+349 |                     ):
+350 |                         raise ValueError(
+351 |                             f"Provided index_range {index_range} overlaps with existing publisher range {existing_range}."
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+352 |                         )
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:363:89: E501 Line too long (94 > 88)
+    |
+361 |             else:
+362 |                 raise TypeError(
+363 |                     "Argument 'arg1' must be an int (tensor_length) or a range (index_range)."
+    |                                                                                         ^^^^^^ E501
+364 |                 )
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:415:89: E501 Line too long (89 > 88)
+    |
+413 |         """
+414 |         This method is not used directly for AggregateTensorMultiplexer.
+415 |         Data is received via registered Publishers through _notify_update_from_publisher.
+    |                                                                                         ^ E501
+416 |         """
+417 |         raise NotImplementedError(
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:437:89: E501 Line too long (92 > 88)
+    |
+435 |         # could call this concurrently. However, each publisher.publish() is async,
+436 |         # and this method itself is async. The actual history modification
+437 |         # for the AggregateTensorMultiplexer happens inside _InternalClient.on_chunk_update,
+    |                                                                                         ^^^^ E501
+438 |         # which uses aggregator.lock.
+439 |         # The internal_multiplexer.process_tensor will also use its own lock.
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:444:89: E501 Line too long (115 > 88)
+    |
+442 |             if info["publisher_instance"] == publisher:
+443 |                 internal_multiplexer = info["internal_multiplexer"]
+444 |                 # The tensor provided by the publisher should match the length expected by its internal_multiplexer
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+445 |                 if len(tensor) != info["tensor_length"]:
+446 |                     print(
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:447:89: E501 Line too long (100 > 88)
+    |
+445 |                 if len(tensor) != info["tensor_length"]:
+446 |                     print(
+447 |                         f"Warning: Tensor from publisher {id(publisher)} has length {len(tensor)}, "
+    |                                                                                         ^^^^^^^^^^^^ E501
+448 |                         f"expected {info['tensor_length']}. Skipping update."
+449 |                     )
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:460:89: E501 Line too long (99 > 88)
+    |
+458 |             # or if registration failed silently.
+459 |             print(
+460 |                 f"Warning: Received update from unregistered or unknown publisher {id(publisher)}."
+    |                                                                                         ^^^^^^^^^^^ E501
+461 |             )
+    |
+
+tsercom/tensor/muxer/aggregate_tensor_multiplexer.py:507:89: E501 Line too long (93 > 88)
+    |
+505 |         self,
+506 |     ) -> datetime.datetime | None:  # Renamed to avoid clash with base if any
+507 |         """Gets the latest timestamp processed by the aggregator, for internal client use."""
+    |                                                                                         ^^^^^ E501
+508 |         return self.__latest_processed_timestamp
+    |
+
+tsercom/tensor/muxer/complete_tensor_multiplexer.py:39:89: E501 Line too long (92 > 88)
+   |
+37 |             tensor_length: The expected length of the tensors.
+38 |             clock: The synchronized clock instance.
+39 |             data_timeout_seconds: How long to keep tensor data before it's considered stale.
+   |                                                                                         ^^^^ E501
+40 |         """
+41 |         super().__init__(client, tensor_length, clock, data_timeout_seconds)
+   |
+
+tsercom/tensor/muxer/complete_tensor_multiplexer.py:56:89: E501 Line too long (104 > 88)
+   |
+54 |         if len(tensor) != self.tensor_length:
+55 |             raise ValueError(
+56 |                 f"Input tensor length {len(tensor)} does not match expected length {self.tensor_length}"
+   |                                                                                         ^^^^^^^^^^^^^^^^ E501
+57 |             )
+   |
+
+tsercom/tensor/muxer/complete_tensor_multiplexer.py:89:89: E501 Line too long (95 > 88)
+   |
+87 |             if self.history:
+88 |                 current_max_ts_in_history = self.history[-1][0]
+89 |                 # The potential_latest_ts should consider the current timestamp being processed
+   |                                                                                         ^^^^^^^ E501
+90 |                 # especially if it's inserted at the end or history was empty.
+91 |                 potential_latest_ts = max(current_max_ts_in_history, timestamp)
+   |
+
+tsercom/tensor/muxer/complete_tensor_multiplexer.py:112:89: E501 Line too long (90 > 88)
+    |
+110 |     def _cleanup_old_data(self, current_max_timestamp: datetime.datetime) -> None:
+111 |         """
+112 |         Removes tensor snapshots from history that are older than the data_timeout_seconds
+    |                                                                                         ^^ E501
+113 |         relative to the current_max_timestamp.
+114 |         Assumes lock is held by the caller.
+    |
+
+tsercom/tensor/muxer/complete_tensor_multiplexer.py:127:89: E501 Line too long (90 > 88)
+    |
+125 |                 break
+126 |         else:
+127 |             # This means all items are older than cutoff_timestamp if history is not empty
+    |                                                                                         ^^ E501
+128 |             if self.history and self.history[-1][0] < cutoff_timestamp:
+129 |                 self.history[:] = []
+    |
+
+tsercom/tensor/muxer/sparse_tensor_multiplexer.py:46:89: E501 Line too long (92 > 88)
+   |
+44 |             tensor_length: The expected length of the tensors.
+45 |             clock: The synchronized clock instance.
+46 |             data_timeout_seconds: How long to keep tensor data before it's considered stale.
+   |                                                                                         ^^^^ E501
+47 |         """
+48 |         super().__init__(client, tensor_length, clock, data_timeout_seconds)
+   |
+
+tsercom/tensor/muxer/sparse_tensor_multiplexer.py:145:89: E501 Line too long (94 > 88)
+    |
+143 |     ) -> None:
+144 |         """
+145 |         Processes a new tensor snapshot, handling out-of-order updates and history management.
+    |                                                                                         ^^^^^^ E501
+146 |
+147 |         This method calculates differences against the previous relevant tensor state,
+    |
+
+tsercom/tensor/muxer/sparse_tensor_multiplexer.py:154:89: E501 Line too long (108 > 88)
+    |
+152 |             if len(tensor) != self.tensor_length:
+153 |                 raise ValueError(
+154 |                     f"Input tensor length {len(tensor)} does not match expected length {self.tensor_length}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+155 |                 )
+156 |             effective_cleanup_ref_ts = timestamp
+    |
+
+tsercom/tensor/muxer/tensor_multiplexer.py:54:89: E501 Line too long (89 > 88)
+   |
+52 |             tensor_length: The expected length of the tensors.
+53 |             clock: The synchronized clock instance.
+54 |             data_timeout_seconds: How long to keep tensor data (subclass responsibility).
+   |                                                                                         ^ E501
+55 |         """
+56 |         if tensor_length <= 0:
+   |
+
+tsercom/tensor/muxer/tensor_multiplexer.py:127:89: E501 Line too long (94 > 88)
+    |
+125 |         """
+126 |         async with self.__lock:
+127 |             # Assumes self.__history is sorted by timestamp for efficient lookup using bisect.
+    |                                                                                         ^^^^^^ E501
+128 |             i = bisect.bisect_left(self.__history, timestamp, key=lambda x: x[0])
+129 |             if i != len(self.__history) and self.__history[i][0] == timestamp:
+    |
+
+tsercom/tensor/serialization/serializable_tensor.py:104:89: E501 Line too long (92 > 88)
+    |
+103 |         Returns:
+104 |             A `SerializableTensorChunk` instance if parsing is successful, otherwise `None`.
+    |                                                                                         ^^^^ E501
+105 |         """
+106 |         if grpc_msg is None:
+    |
+
+tsercom/tensor/serialization/serializable_tensor.py:113:89: E501 Line too long (91 > 88)
+    |
+111 |         parsed_timestamp = SynchronizedTimestamp.try_parse(grpc_msg.timestamp)
+112 |         if parsed_timestamp is None:
+113 |             # Timestamp is critical metadata; failure to parse it makes the chunk unusable.
+    |                                                                                         ^^^ E501
+114 |             logging.warning(
+115 |                 "Failed to parse timestamp from TensorChunk, cannot create SerializableTensorChunk."
+    |
+
+tsercom/tensor/serialization/serializable_tensor.py:115:89: E501 Line too long (100 > 88)
+    |
+113 |             # Timestamp is critical metadata; failure to parse it makes the chunk unusable.
+114 |             logging.warning(
+115 |                 "Failed to parse timestamp from TensorChunk, cannot create SerializableTensorChunk."
+    |                                                                                         ^^^^^^^^^^^^ E501
+116 |             )
+117 |             return None
+    |
+
+tsercom/tensor/serialization/serializable_tensor_initializer.py:34:89: E501 Line too long (89 > 88)
+   |
+32 |             dtype: The data type of the tensor as a string (e.g., "float32", "int64").
+33 |             fill_value: The default value to fill the tensor with upon creation.
+34 |             initial_state: An optional SerializableTensorUpdate with initial data chunks.
+   |                                                                                         ^ E501
+35 |         """
+36 |         self._shape: list[int] = shape
+   |
+
+tsercom/tensor/serialization/serializable_tensor_initializer.py:84:89: E501 Line too long (92 > 88)
+   |
+82 |             An instance of SerializableTensorInitializer if successful.
+83 |             Returns None if:
+84 |             - The `dtype` string is unknown/unsupported and `initial_state` contains chunks.
+   |                                                                                         ^^^^ E501
+85 |             - Parsing of `initial_state` (when present and containing chunks) fails.
+86 |         """
+   |
+
+tsercom/test/conftest.py:28:89: E501 Line too long (92 > 88)
+   |
+26 |         loop = asyncio.get_running_loop()
+27 |     except RuntimeError:
+28 |         # If no loop is running (e.g. test is not marked with @pytest.mark.asyncio properly,
+   |                                                                                         ^^^^ E501
+29 |         # or it's a synchronous test that shouldn't use this part of the fixture)
+30 |         # then this fixture should not attempt to set the tsercom global loop.
+   |
+
+tsercom/threading/aio/async_poller.py:130:89: E501 Line too long (91 > 88)
+    |
+129 |     async def __set_results_available(self) -> None:
+130 |         """Internal coroutine to set the barrier event, run on the poller\'s event loop."""
+    |                                                                                         ^^^ E501
+131 |         with self.__lock:
+132 |             if self.__responses:
+    |
+
+tsercom/threading/aio/async_poller.py:173:89: E501 Line too long (104 > 88)
+    |
+171 |             if current_loop is None:
+172 |                 raise RuntimeError(
+173 |                     "AsyncPoller.wait_instance must be called from within a running asyncio event loop."
+    |                                                                                         ^^^^^^^^^^^^^^^^ E501
+174 |                 )
+175 |             self.__event_loop = current_loop
+    |
+
+tsercom/threading/aio/async_poller.py:176:89: E501 Line too long (99 > 88)
+    |
+174 |                 )
+175 |             self.__event_loop = current_loop
+176 |             # self.__is_loop_running.set(True) # Removed: __is_loop_running now started in __init__
+    |                                                                                         ^^^^^^^^^^^ E501
+177 |             # and IsRunningTracker manages its own loop sync.
+178 |         # elif not self.__is_loop_running.get(): # This check is now effectively done below
+    |
+
+tsercom/threading/aio/async_poller.py:178:89: E501 Line too long (91 > 88)
+    |
+176 |             # self.__is_loop_running.set(True) # Removed: __is_loop_running now started in __init__
+177 |             # and IsRunningTracker manages its own loop sync.
+178 |         # elif not self.__is_loop_running.get(): # This check is now effectively done below
+    |                                                                                         ^^^ E501
+179 |
+180 |         if (
+    |
+
+tsercom/threading/aio/async_poller.py:214:89: E501 Line too long (96 > 88)
+    |
+213 |             if not self.__is_loop_running.get():
+214 |                 # This handles a race condition where stop() is called after the while condition
+    |                                                                                         ^^^^^^^^ E501
+215 |                 # but before or during asyncio.wait_for, and on_available adds items just before stop.
+216 |                 with self.__lock:
+    |
+
+tsercom/threading/aio/async_poller.py:215:89: E501 Line too long (102 > 88)
+    |
+213 |             if not self.__is_loop_running.get():
+214 |                 # This handles a race condition where stop() is called after the while condition
+215 |                 # but before or during asyncio.wait_for, and on_available adds items just before stop.
+    |                                                                                         ^^^^^^^^^^^^^^ E501
+216 |                 with self.__lock:
+217 |                     if self.__responses:
+    |
+
+tsercom/threading/aio/async_poller.py:280:89: E501 Line too long (90 > 88)
+    |
+279 |         if was_running:  # Only process if it was running
+280 |             # self.__is_loop_running.set(False) was already called if was_running is true.
+    |                                                                                         ^^ E501
+281 |             # This ensures the IsRunningTracker's __stopped_barrier is scheduled.
+    |
+
+tsercom/threading/aio/async_poller.py:285:89: E501 Line too long (89 > 88)
+    |
+283 |             if self.__event_loop is not None:
+284 |                 # Unconditionally set the main barrier to ensure wait_instance unblocks.
+285 |                 # Use call_soon_threadsafe as stop() might be called from another thread.
+    |                                                                                         ^ E501
+286 |                 self.__event_loop.call_soon_threadsafe(self.__barrier.set)
+287 |             # If self.__event_loop is None, wait_instance() hasn't run yet.
+    |
+
+tsercom/threading/aio/async_poller.py:288:89: E501 Line too long (90 > 88)
+    |
+286 |                 self.__event_loop.call_soon_threadsafe(self.__barrier.set)
+287 |             # If self.__event_loop is None, wait_instance() hasn't run yet.
+288 |             # When it does, it will check self.__is_loop_running.get() which is now False,
+    |                                                                                         ^^ E501
+289 |             # and it should raise RuntimeError("AsyncPoller is stopped.") before waiting on __barrier.
+    |
+
+tsercom/threading/aio/async_poller.py:289:89: E501 Line too long (102 > 88)
+    |
+287 |             # If self.__event_loop is None, wait_instance() hasn't run yet.
+288 |             # When it does, it will check self.__is_loop_running.get() which is now False,
+289 |             # and it should raise RuntimeError("AsyncPoller is stopped.") before waiting on __barrier.
+    |                                                                                         ^^^^^^^^^^^^^^ E501
+    |
+
+tsercom/threading/aio/event_loop_factory.py:40:89: E501 Line too long (93 > 88)
+   |
+39 |             raise TypeError(
+40 |                 f"Watcher must be a subclass of ThreadWatcher, got {type(watcher).__name__}."
+   |                                                                                         ^^^^^ E501
+41 |             )
+42 |         self.__watcher = watcher
+   |
+
+tsercom/threading/multiprocess/multiprocess_queue_factory.py:1:89: E501 Line too long (102 > 88)
+  |
+1 | """Defines the abstract base class for multiprocess queue factories and a deprecated factory function.
+  |                                                                                         ^^^^^^^^^^^^^^ E501
+2 |
+3 | This module provides the `MultiprocessQueueFactory` ABC, which defines the interface
+  |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:59:89: E501 Line too long (112 > 88)
+   |
+57 |             context: An optional existing multiprocessing context to use.
+58 |                      If None, a new context is created using ctx_method.
+59 |             tensor_accessor: An optional function that, given an object of type T (or Any for flexibility here),
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^ E501
+60 |                              returns a torch.Tensor or an Iterable of torch.Tensors found within it.
+61 |         """
+   |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:60:89: E501 Line too long (100 > 88)
+   |
+58 |                      If None, a new context is created using ctx_method.
+59 |             tensor_accessor: An optional function that, given an object of type T (or Any for flexibility here),
+60 |                              returns a torch.Tensor or an Iterable of torch.Tensors found within it.
+   |                                                                                         ^^^^^^^^^^^^ E501
+61 |         """
+62 |         # super().__init__() # Assuming MultiprocessQueueFactory has no __init__ or parameterless one
+   |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:62:89: E501 Line too long (101 > 88)
+   |
+60 |                              returns a torch.Tensor or an Iterable of torch.Tensors found within it.
+61 |         """
+62 |         # super().__init__() # Assuming MultiprocessQueueFactory has no __init__ or parameterless one
+   |                                                                                         ^^^^^^^^^^^^^ E501
+63 |         if context:
+64 |             self._mp_context = context
+   |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:75:89: E501 Line too long (100 > 88)
+   |
+73 |         "TorchMemcpyQueueSource[QueueElementT]",
+74 |     ]:  # Return specialized generic sink/source
+75 |         """Creates a pair of torch.multiprocessing queues wrapped in specialized Tensor Sink/Source.
+   |                                                                                         ^^^^^^^^^^^^ E501
+76 |
+77 |         These queues are suitable for inter-process communication. If a tensor_accessor
+   |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:105:89: E501 Line too long (89 > 88)
+    |
+103 |     (single, or an iterable of tensors) for shared memory transfer using a
+104 |     provided tensor_accessor function after an item is retrieved from the queue.
+105 |     If no accessor is provided, it defaults to checking if the object itself is a tensor.
+    |                                                                                         ^ E501
+106 |     """
+    |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:142:89: E501 Line too long (104 > 88)
+    |
+140 |                         tensors_to_share = []
+141 |                     else:  # Assuming it's an Iterable of Tensors
+142 |                         # Filter to ensure only tensors are processed if accessor returns mixed iterable
+    |                                                                                         ^^^^^^^^^^^^^^^^ E501
+143 |                         tensors_to_share = [
+144 |                             t for t in tensors_or_tensor if isinstance(t, torch.Tensor)
+    |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:155:89: E501 Line too long (115 > 88)
+    |
+153 |                     # Log warning if accessor fails, but return the item as is.
+154 |                     logging.warning(
+155 |                         f"Warning: Tensor accessor failed for received object of type {type(item)} during get: {e}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+156 |                     )
+157 |             elif isinstance(item, torch.Tensor):
+    |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:205:89: E501 Line too long (108 > 88)
+    |
+203 |                     tensors_to_share = []
+204 |                 else:  # Assuming it's an Iterable of Tensors
+205 |                     # We need to be careful if the iterable could be empty or contain non-tensors by mistake
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+206 |                     # For now, assume it's an iterable of tensors if not a single tensor or None
+207 |                     tensors_to_share = [
+    |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:206:89: E501 Line too long (96 > 88)
+    |
+204 |                 else:  # Assuming it's an Iterable of Tensors
+205 |                     # We need to be careful if the iterable could be empty or contain non-tensors by mistake
+206 |                     # For now, assume it's an iterable of tensors if not a single tensor or None
+    |                                                                                         ^^^^^^^^ E501
+207 |                     tensors_to_share = [
+208 |                         t for t in tensors_or_tensor if isinstance(t, torch.Tensor)
+    |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:212:89: E501 Line too long (93 > 88)
+    |
+211 |                 for tensor_item in tensors_to_share:
+212 |                     # isinstance check here is redundant if accessor guarantees tensor types,
+    |                                                                                         ^^^^^ E501
+213 |                     # but good for safety if accessor's contract is loose.
+214 |                     # The provided snippet has it, so keeping it.
+    |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:218:89: E501 Line too long (96 > 88)
+    |
+216 |                         tensor_item.share_memory_()  # type: ignore[no-untyped-call]
+217 |             except Exception as e:
+218 |                 # Log a warning if the accessor fails, but still try to put the original object.
+    |                                                                                         ^^^^^^^^ E501
+219 |                 # The user of the queue might intend for non-tensor data or non-shareable tensors to pass.
+220 |                 logging.warning(
+    |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:219:89: E501 Line too long (106 > 88)
+    |
+217 |             except Exception as e:
+218 |                 # Log a warning if the accessor fails, but still try to put the original object.
+219 |                 # The user of the queue might intend for non-tensor data or non-shareable tensors to pass.
+    |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+220 |                 logging.warning(
+221 |                     f"Warning: Tensor accessor failed for object of type {type(obj)} during put: {e}"
+    |
+
+tsercom/threading/multiprocess/torch_memcpy_queue_factory.py:221:89: E501 Line too long (101 > 88)
+    |
+219 |                 # The user of the queue might intend for non-tensor data or non-shareable tensors to pass.
+220 |                 logging.warning(
+221 |                     f"Warning: Tensor accessor failed for object of type {type(obj)} during put: {e}"
+    |                                                                                         ^^^^^^^^^^^^^ E501
+222 |                 )
+223 |         elif isinstance(obj, torch.Tensor):
+    |
+
+tsercom/timesync/common/constants.py:1:89: E501 Line too long (139 > 88)
+  |
+1 | … Protocol) settings used within Tsercom, such as the protocol version and default port."""
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+2 | …
+3 | …
+  |
+
+tsercom/util/is_running_tracker.py:220:89: E501 Line too long (96 > 88)
+    |
+218 |                 raise RuntimeError(
+219 |                     "Event loop not found by _get_loop_func. "
+220 |                     "Must be called from within a running event loop or have an event loop set."
+    |                                                                                         ^^^^^^^^ E501
+221 |                 )
+222 |             value = self.get()
+    |
+
+Found 307 errors.

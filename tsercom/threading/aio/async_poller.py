@@ -38,7 +38,9 @@ from tsercom.threading.aio.rate_limiter import (
 )
 
 if TYPE_CHECKING:
-    pass
+    from tsercom.util.is_running_tracker import (
+        IsRunningTracker,
+    )  # Moved import to top-level
 
 # Maximum number of items to keep in the internal queue.
 # If more items are added via on_available() when the queue is full,
@@ -67,10 +69,16 @@ class AsyncPoller(Generic[ResultTypeT]):
             `__anext__` if not explicitly set during initialization.
     """
 
-    def __init__(self, min_poll_frequency_seconds: float | None = None) -> None:
+    def __init__(
+        self,
+        is_running_tracker: "IsRunningTracker",
+        min_poll_frequency_seconds: float | None = None,
+    ) -> None:
         """Initializes the AsyncPoller.
 
         Args:
+            is_running_tracker: An IsRunningTracker instance to control the poller's
+                running state.
             min_poll_frequency_seconds: Optional. If provided and positive,
                 this value is used to initialize an internal `RateLimiterImpl`.
                 This rate limiter ensures that the `wait_instance` (and thus
@@ -89,10 +97,11 @@ class AsyncPoller(Generic[ResultTypeT]):
         self.__barrier: asyncio.Event = asyncio.Event()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
-        if not TYPE_CHECKING:
-            from tsercom.util.is_running_tracker import IsRunningTracker
-        self.__is_loop_running: IsRunningTracker = IsRunningTracker()
-        self.__is_loop_running.start()  # Start the poller as running by default
+        self.__is_loop_running: "IsRunningTracker" = is_running_tracker
+        # Ensure the passed tracker is started by the caller if poller should start immediately.
+        # For example, the creator of AsyncPoller might call:
+        # is_running_tracker.start()
+        # poller = AsyncPoller(is_running_tracker)
         self.__event_loop: asyncio.AbstractEventLoop | None = None
 
     @property
@@ -188,7 +197,10 @@ class AsyncPoller(Generic[ResultTypeT]):
                         current_batch_on_stop.append(self.__responses.popleft())
             if current_batch_on_stop:
                 return current_batch_on_stop
-            raise RuntimeError("AsyncPoller is stopped.")
+            # Ensure poller is started before use, or this will be raised.
+            raise RuntimeError(
+                "AsyncPoller is stopped or was not started before first use."
+            )
 
         assert self.__event_loop is not None  # Loop must be set if running
         if not is_running_on_event_loop(self.__event_loop):
@@ -208,6 +220,10 @@ class AsyncPoller(Generic[ResultTypeT]):
             if current_batch:
                 return current_batch
 
+            # Check if stopped before awaiting on barrier.
+            if not self.__is_loop_running.get():
+                raise RuntimeError("AsyncPoller stopped while waiting for items.")
+
             await self.__is_loop_running.task_or_stopped(self.__barrier.wait())
 
             if not self.__is_loop_running.get():
@@ -215,15 +231,17 @@ class AsyncPoller(Generic[ResultTypeT]):
                 # but before or during asyncio.wait_for, and on_available adds items just before stop.
                 with self.__lock:
                     if self.__responses:
-                        while self.__responses:
+                        while (
+                            self.__responses
+                        ):  # Drain again if items arrived during stop
                             current_batch.append(self.__responses.popleft())
                 if current_batch:
                     return current_batch
                 raise RuntimeError("AsyncPoller stopped while waiting for instance.")
-
+        # Should be hit if loop_running was false initially or set to false by stop()
         raise RuntimeError(
-            "AsyncPoller is stopped."
-        )  # Should be hit if loop_running was false initially
+            "AsyncPoller is stopped or was not started before first use."
+        )
 
     def __aiter__(self) -> AsyncIterator[list[ResultTypeT]]:
         """Returns self, as `AsyncPoller` is an asynchronous iterator."""

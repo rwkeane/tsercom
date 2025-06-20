@@ -60,7 +60,8 @@ logger = logging.getLogger(__name__)
 
 
 class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
-    """Manages the lifecycle of Tsercom runtimes, supporting in-process and out-of-process execution.
+    """Manages the lifecycle of Tsercom runtimes, supporting in-process
+    and out-of-process execution.
 
     This class serves as a central coordinator for initializing, starting, and
     monitoring Tsercom runtimes. Users register `RuntimeInitializer` instances,
@@ -78,8 +79,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
     - Handling shutdown of created processes and error watchers.
 
     Type Args:
-        DataTypeT: The type of data objects (bound by `ExposedData`) that the
-            managed runtimes will handle.
+        DataTypeT: The type of data objects (bound by `ExposedData`)
+            that the managed runtimes will handle.
         EventTypeT: The type of event objects that the managed runtimes will process.
     """
 
@@ -88,10 +89,16 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         *,
         is_testing: bool = False,
         thread_watcher: ThreadWatcher | None = None,
-        local_runtime_factory_factory: LocalRuntimeFactoryFactory[DataTypeT, EventTypeT] | None = None,
-        split_runtime_factory_factory: SplitRuntimeFactoryFactory[DataTypeT, EventTypeT] | None = None,
+        local_runtime_factory_factory: (
+            LocalRuntimeFactoryFactory[DataTypeT, EventTypeT] | None
+        ) = None,
+        split_runtime_factory_factory: (
+            SplitRuntimeFactoryFactory[DataTypeT, EventTypeT] | None
+        ) = None,
         process_creator: ProcessCreator | None = None,
-        split_error_watcher_source_factory: SplitErrorWatcherSourceFactory | None = None,
+        split_error_watcher_source_factory: (
+            SplitErrorWatcherSourceFactory | None
+        ) = None,
     ) -> None:
         """Initializes the RuntimeManager.
 
@@ -211,7 +218,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         return handle_future
 
     async def start_in_process_async(self) -> None:
-        """Asynchronously creates and starts all registered runtimes in the current process.
+        """Asynchronously creates and starts all registered runtimes
+        in the current process.
 
         This is a convenience method that calls `start_in_process`, using the
         currently running asyncio event loop. Tsercom operations for these
@@ -222,13 +230,14 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             `Future` objects returned by `register_runtime_initializer`.
 
         Raises:
-            RuntimeError: If no asyncio event loop is currently running in the
-                calling context.
+            RuntimeError: If no asyncio event loop is currently running
+                in the calling context.
         """
         running_loop = get_running_loop_or_none()
         if running_loop is None:
             raise RuntimeError(
-                "Could not determine the current running event loop for start_in_process_async."
+                "Could not determine the current running event loop "
+                "for start_in_process_async."
             )
         self.start_in_process(running_loop)
 
@@ -244,8 +253,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         runtime factories.
 
         Note:
-            `RuntimeHandle`s for the started runtimes should be obtained from the
-            `Future` objects returned by `register_runtime_initializer`.
+            `RuntimeHandle`s for the started runtimes should be obtained
+            from the `Future` objects returned by `register_runtime_initializer`.
 
         Args:
             runtime_event_loop: The asyncio event loop on which Tsercom
@@ -263,7 +272,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
         factories = self.__create_factories(self.__local_runtime_factory_factory)
 
-        # Import is deferred to method scope to avoid circular dependencies at module load time.
+        # Import is deferred to method scope to avoid circular dependencies
+        # at module load time.
         from tsercom.runtime.runtime_main import (
             initialize_runtimes,
         )
@@ -279,20 +289,20 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
         This method uses the `SplitRuntimeFactoryFactory` to prepare runtime
         factories suitable for inter-process communication. A new process is
-        spawned, and the `remote_process_main` function from `tsercom.runtime.runtime_main`
-        is executed in that process to initialize and run the runtimes.
-        Error monitoring for the remote process is set up using a
-        `SplitProcessErrorWatcherSource`.
+        spawned, and the `remote_process_main` function from
+        `tsercom.runtime.runtime_main` is executed in that process to initialize
+        and run the runtimes. Error monitoring for the remote process is set up
+        using a `SplitProcessErrorWatcherSource`.
 
         Note:
             `RuntimeHandle`s for the started runtimes should be obtained from the
             `Future` objects returned by `register_runtime_initializer`.
 
         Args:
-            start_as_daemon: If True, the new process will be a daemon process. Defaults to `True`.
-                Daemonic processes are typically used for background tasks and
-                are automatically terminated when the main program exits.
-                When `is_testing` is also True, it remains `True`.
+            start_as_daemon: If True, the new process will be a daemon process.
+                Defaults to `True`. Daemonic processes are typically used for
+                background tasks and are automatically terminated when the main
+                program exits. When `is_testing` is also True, it remains `True`.
 
         Raises:
             RuntimeError: If the manager has already been started.
@@ -315,7 +325,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
         factories = self.__create_factories(self.__split_runtime_factory_factory)
 
-        # Import is deferred to method scope to avoid circular dependencies at module load time.
+        # Import is deferred to method scope to avoid circular dependencies
+        # at module load time.
         from tsercom.runtime.runtime_main import (
             remote_process_main,
         )
@@ -340,7 +351,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             logger.warning("Failed to create process for out-of-process runtime.")
 
     def run_until_exception(self) -> None:
-        """Blocks the calling thread until an exception is reported from any managed runtime.
+        """Blocks the calling thread until an exception is reported
+        from any managed runtime.
 
         This method relies on the internal `ThreadWatcher` (for in-process runtimes)
         or the `SplitProcessErrorWatcherSource` (for out-of-process runtimes via
@@ -356,9 +368,11 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             raise RuntimeError("RuntimeManager has not been started.")
         if self.__thread_watcher is None:
             raise RuntimeError(
-                "Internal ThreadWatcher is None when checking for exceptions after start."
+                "Internal ThreadWatcher is None "
+                "when checking for exceptions after start."
             )
-        # The __thread_watcher is initialized in __init__, so it should always be present.
+        # The __thread_watcher is initialized in __init__,
+        # so it should always be present.
         self.__thread_watcher.run_until_exception()
 
     def check_for_exception(self) -> None:
@@ -379,7 +393,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             return
         if self.__thread_watcher is None:
             raise RuntimeError(
-                "Internal ThreadWatcher is None when checking for exceptions after start."
+                "Internal ThreadWatcher is None "
+                "when checking for exceptions after start."
             )
         # The __thread_watcher is initialized in __init__.
         self.__thread_watcher.check_for_exception()
@@ -403,7 +418,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             self.__process.join(timeout=5)  # Wait for kill
             if self.__process.is_alive():
                 logger.warning(
-                    "Out-of-process runtime process did not terminate cleanly after kill()."
+                    "Out-of-process runtime process "
+                    "did not terminate cleanly after kill()."
                 )
             self.__process = None
 
@@ -418,14 +434,16 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         clear_tsercom_event_loop()
 
         # Note: ThreadWatcher itself doesn't usually need explicit shutdown unless
-        # it started its own threads that need joining, which is not typical for its role here.
+        # it started its own threads that need joining, which is not typical
+        # for its role here.
         # Thread pools created via thread_watcher.create_tracked_thread_pool_executor
         # should be shut down by whoever created them if they are not daemonic.
         # If this RuntimeManager created default factories with new thread pools,
         # those pools should ideally be shut down.
-        # LocalRuntimeFactoryFactory and SplitRuntimeFactoryFactory might need shutdown methods
-        # if they own non-daemonic thread pools. For now, assuming they manage their own resources
-        # or use daemonic threads/pools that exit with the main process.
+        # LocalRuntimeFactoryFactory and SplitRuntimeFactoryFactory might need
+        # shutdown methods if they own non-daemonic thread pools. For now,
+        # assuming they manage their own resources or use daemonic threads/pools
+        # that exit with the main process.
 
         logger.info("RuntimeManager.shutdown: Sequence complete.")
 

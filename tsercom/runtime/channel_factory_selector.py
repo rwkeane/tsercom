@@ -68,8 +68,7 @@ class ChannelFactorySelector:
             if not ca_cert_pem:
 
                 raise ValueError(
-                    "Failed to read server_ca_cert_path: %s"
-                    % auth_config.server_ca_cert_path
+                    f"Failed to read server_ca_cert_path: {auth_config.server_ca_cert_path}"
                 )
             return ServerAuthGrpcChannelFactory(
                 root_ca_cert_pem=ca_cert_pem,
@@ -84,8 +83,7 @@ class ChannelFactorySelector:
             if not pinned_cert_pem:
 
                 raise ValueError(
-                    "Failed to read pinned_server_cert_path: %s"
-                    % auth_config.pinned_server_cert_path
+                    f"Failed to read pinned_server_cert_path: {auth_config.pinned_server_cert_path}"
                 )
             return PinnedServerAuthGrpcChannelFactory(
                 expected_server_cert_pem=pinned_cert_pem,
@@ -115,5 +113,5 @@ class ChannelFactorySelector:
         # (implicit else after all returns from ifs)
 
         raise ValueError(
-            "Unknown or unsupported ChannelAuthConfig type: %s" % type(auth_config)
+            f"Unknown or unsupported ChannelAuthConfig type: {type(auth_config)}"
         )

@@ -278,12 +278,8 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
     async def async_stop(self) -> None:
         # Stops the listener and cleans up resources.
-        if hasattr(self.__listener, "close") and callable(
-            self.__listener.close
-        ):
+        if hasattr(self.__listener, "close") and callable(self.__listener.close):
             await self.__listener.close()
-        elif hasattr(self.__listener, "stop") and callable(
-            self.__listener.stop
-        ):
+        elif hasattr(self.__listener, "stop") and callable(self.__listener.stop):
             self.__listener.stop()
         logging.info("InstanceListener stopped.")

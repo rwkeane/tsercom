@@ -19,6 +19,7 @@ from tsercom.data.remote_data_aggregator_impl import RemoteDataAggregatorImpl
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.async_poller import AsyncPoller
+from tsercom.util.is_running_tracker import IsRunningTracker
 
 DataTypeT = TypeVar("DataTypeT", bound=ExposedData)
 EventTypeT = TypeVar("EventTypeT")
@@ -66,7 +67,12 @@ class LocalRuntimeFactoryFactory(
                 self.__thread_pool,
                 client=initializer.data_aggregator_client,
             )
-        event_poller = AsyncPoller[EventInstance[EventTypeT]]()
+        # Create and manage IsRunningTracker for the AsyncPoller
+        poller_is_running_tracker = IsRunningTracker()
+        poller_is_running_tracker.start()  # AsyncPoller used to start its own by default
+        event_poller = AsyncPoller[EventInstance[EventTypeT]](
+            is_running_tracker=poller_is_running_tracker
+        )
         bridge = RuntimeCommandBridge()
         factory = LocalRuntimeFactory[DataTypeT, EventTypeT](
             initializer, data_aggregator, event_poller, bridge

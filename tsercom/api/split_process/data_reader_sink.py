@@ -47,6 +47,7 @@ class DataReaderSink(Generic[DataTypeT], RemoteDataReader[DataTypeT]):
             RuntimeError: If `is_lossy` is False and the queue is full.
         """
         success = self.__queue.put_nowait(new_data)
-        # If putting to queue failed (e.g., full) and this sink is not lossy, raise an error.
+        # If putting to queue failed (e.g., full) and this sink is not lossy,
+        # raise an error.
         if not success and not self.__is_lossy:
             raise RuntimeError("Queue full; data would be lost on non-lossy sink.")

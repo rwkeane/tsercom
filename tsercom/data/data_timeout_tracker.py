@@ -135,6 +135,7 @@ class DataTimeoutTracker:
             logger.info("Unregistered item: %s", tracked)
         except ValueError:
             logger.warning(
-                "Attempted to unregister a non-registered or already unregistered item: %s",
+                "Attempted to unregister a non-registered or "
+                "already unregistered item: %s",
                 tracked,
             )

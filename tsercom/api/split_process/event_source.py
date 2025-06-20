@@ -36,7 +36,7 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
         self.__thread_watcher: ThreadWatcher | None = None
         self.__thread: threading.Thread | None = None
 
-        super().__init__()
+        super().__init__(is_running_tracker=self.__is_running)
 
     @property
     def is_running(self) -> bool:

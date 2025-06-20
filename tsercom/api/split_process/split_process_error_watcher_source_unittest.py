@@ -396,7 +396,9 @@ def test_loop_watcher_on_exception_seen_fails(
     log_call_args = mock_logger.error.call_args
 
     # Expected format string from SUT
-    expected_format_string = "Exception occurred within ThreadWatcher.on_exception_seen() while handling %s: %s"
+    expected_format_string = (
+        "Exception in ThreadWatcher.on_exception_seen() while handling %s: %s"
+    )
 
     assert log_call_args[0][0] == expected_format_string
     assert log_call_args[0][1] == type(test_exception_from_queue).__name__

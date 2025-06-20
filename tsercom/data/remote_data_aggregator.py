@@ -1,4 +1,5 @@
-"""Defines the RemoteDataAggregator abstract base class, an interface for aggregating and accessing data from remote sources."""
+"""Defines the RemoteDataAggregator abstract base class, an interface
+for aggregating and accessing data from remote sources."""
 
 import datetime
 from abc import ABC, abstractmethod
@@ -24,7 +25,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     """
 
     class Client(ABC):
-        """Interface for clients wishing to receive callbacks from a RemoteDataAggregator.
+        """Interface for clients wishing to receive callbacks
+        from a RemoteDataAggregator.
 
         Implementers of this interface can register with a `RemoteDataAggregator`
         to be notified about changes in data state or endpoint connectivity.
@@ -51,7 +53,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
             aggregator: "RemoteDataAggregator[DataTypeT]",
             caller_id: CallerIdentifier,
         ) -> None:
-            """Callback invoked when a new endpoint associated with a caller_id starts transmitting data.
+            """Callback invoked when a new endpoint associated with a caller_id
+            starts transmitting data.
 
             Args:
                 aggregator: The `RemoteDataAggregator` instance reporting the event.
@@ -132,8 +135,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
             True if at least one caller has new data, False otherwise.
         """
         all_data_status = self.has_new_data()
-        # If the result is a dictionary (meaning no specific ID was passed to has_new_data),
-        # check if any value in the dictionary is True.
+        # If the result is a dictionary (meaning no specific ID was
+        # passed to has_new_data), check if any value in the dictionary is True.
         if isinstance(all_data_status, dict):
             return any(all_data_status.values())
         # If all_data_status is a bool (meaning a specific ID was passed),
@@ -142,7 +145,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         # However, if has_new_data() was called with an ID before this,
         # and its result (bool) was somehow used to call this, we just return it.
         # This case suggests a potential misuse or misunderstanding of the API.
-        # For robustness, we handle it, but typical usage implies all_data_status will be a dict.
+        # For robustness, we handle it, but typical usage implies all_data_status
+        # will be a dict.
         return bool(all_data_status)
 
     @overload
@@ -186,7 +190,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     def get_most_recent_data(self) -> dict[CallerIdentifier, DataTypeT | None]:
         """Retrieves the most recently received data item for all callers.
 
-        Returns `None` for a caller if no data has been received or if it has timed out.
+        Returns `None` for a caller if no data has been received or
+        if it has timed out.
 
         Returns:
             A dictionary mapping each `CallerIdentifier` to its most recent
@@ -200,10 +205,12 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     ) -> DataTypeT | None:  # Renamed id to identifier
         """Retrieves the most recently received data item for a specific caller.
 
-        Returns `None` if no data has been received for this caller or if it has timed out.
+        Returns `None` if no data has been received for this caller or
+        if it has timed out.
 
         Args:
-            identifier: The `CallerIdentifier` for which to retrieve the most recent data.
+            identifier: The `CallerIdentifier` for which to retrieve the
+                most recent data.
 
         Returns:
             The most recent data item (`DataTypeT`) or `None`.
@@ -228,7 +235,8 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
     ) -> dict[CallerIdentifier, DataTypeT | None]:
-        """Retrieves the most recent data item received before or at a specific timestamp for all callers.
+        """Retrieves the most recent data item received before or at
+        a specific timestamp for all callers.
 
         Returns `None` for a caller if no suitable data exists or if it has timed out.
 
@@ -247,9 +255,11 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         timestamp: datetime.datetime,
         identifier: CallerIdentifier,  # Renamed id to identifier
     ) -> DataTypeT | None:
-        """Retrieves the most recent data item received before or at a specific timestamp for a specific caller.
+        """Retrieves the most recent data item received before or at
+        a specific timestamp for a specific caller.
 
-        Returns `None` if no suitable data exists for this caller or if it has timed out.
+        Returns `None` if no suitable data exists for this caller or
+        if it has timed out.
 
         Args:
             timestamp: The `datetime` object to compare against data timestamps.

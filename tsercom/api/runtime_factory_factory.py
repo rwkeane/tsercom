@@ -87,9 +87,11 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
             raise ValueError("Client argument cannot be None for create_factory.")
         if not isinstance(client, RuntimeFactoryFactory.Client):
             # Long but readable error message string
-            raise TypeError(
-                f"Client must be an instance of RuntimeFactoryFactory.Client, got {type(client).__name__}."
+            error_msg = (
+                "Client must be an instance of RuntimeFactoryFactory.Client, "
+                f"got {type(client).__name__}."
             )
+            raise TypeError(error_msg)
 
         handle, factory = self._create_pair(initializer)
 

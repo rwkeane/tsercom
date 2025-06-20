@@ -1,0 +1,5 @@
+tsercom/data/remote_data_organizer.py:402: error: "DataTypeT" has no attribute
+"data"  [attr-defined]
+                    interpolated_item.data = interpolated_inner_data  # no...
+                    ^~~~~~~~~~~~~~~~~~~~~~
+Found 1 error in 1 file (checked 149 source files)

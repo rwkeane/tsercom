@@ -2,6 +2,7 @@
 
 import bisect
 import datetime
+import logging  # Added import
 import weakref
 from typing import (
     Any,
@@ -138,7 +139,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                             dtype=torch.float32,
                         )
                     else:
-                        print(
+                        logging.warning(  # Replaced print
                             f"Warning (ATM.on_chunk_update): Aggregator tensor_length is {aggregator.actual_aggregate_length}. Cannot update history."
                         )
                         return
@@ -151,7 +152,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                         if global_idx_for_history < len(current_tensor_state):
                             current_tensor_state[global_idx_for_history] = value_item
                         else:
-                            print(
+                            logging.warning(  # Replaced print
                                 f"Error (ATM.on_chunk_update): global_idx {global_idx_for_history} out of bounds for agg tensor len {len(current_tensor_state)}."
                             )
                             continue
@@ -443,7 +444,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                 internal_multiplexer = info["internal_multiplexer"]
                 # The tensor provided by the publisher should match the length expected by its internal_multiplexer
                 if len(tensor) != info["tensor_length"]:
-                    print(
+                    logging.warning(  # Replaced print
                         f"Warning: Tensor from publisher {id(publisher)} has length {len(tensor)}, "
                         f"expected {info['tensor_length']}. Skipping update."
                     )
@@ -456,7 +457,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         if not found_publisher:
             # This might happen if a publisher calls this after being unregistered,
             # or if registration failed silently.
-            print(
+            logging.warning(  # Replaced print
                 f"Warning: Received update from unregistered or unknown publisher {id(publisher)}."
             )
 

@@ -1,7 +1,9 @@
-"""Provides RemoteDataAggregatorImpl, a concrete implementation of the RemoteDataAggregator interface.
+"""Provides RemoteDataAggregatorImpl, a concrete implementation
+of the RemoteDataAggregator interface.
 
-This class manages RemoteDataOrganizer instances for each data source (identified by
-CallerIdentifier) and handles data timeout tracking. It acts as a central point
+This class manages RemoteDataOrganizer instances for each data source
+(identified by CallerIdentifier) and handles data timeout tracking.
+It acts as a central point
 for collecting and accessing data from multiple remote endpoints.
 """
 
@@ -135,8 +137,9 @@ class RemoteDataAggregatorImpl(
     ) -> None:  # Renamed id to identifier
         """Stops data processing for one or all callers.
 
-        If an `identifier` is provided, stops the `RemoteDataOrganizer` for that specific
-        caller. Otherwise, stops all organizers managed by this aggregator.
+        If an `identifier` is provided, stops the `RemoteDataOrganizer`
+        for that specific caller. Otherwise, stops all organizers managed by
+        this aggregator.
 
         Args:
             identifier: Optional `CallerIdentifier` of the caller to stop.
@@ -149,7 +152,8 @@ class RemoteDataAggregatorImpl(
                 organizer = self.__organizers.get(identifier)
                 if organizer is None:
                     raise KeyError(
-                        f"Caller ID '{identifier}' not found in active organizers during stop."
+                        f"Caller ID '{identifier}' not found in active "
+                        f"organizers during stop."
                     )
                 organizer.stop()
                 return
@@ -184,13 +188,15 @@ class RemoteDataAggregatorImpl(
         """Checks for new data for one or all callers.
 
         Args:
-            identifier: Optional `CallerIdentifier`. If provided, checks for this specific
-                caller. Otherwise, checks for all callers.
+            identifier: Optional `CallerIdentifier`. If provided, checks for
+                this specific caller. Otherwise, checks for all callers.
 
         Returns:
-            If `identifier` is provided, returns a boolean indicating if new data is available for that caller (returns False if the `identifier` is not found).
-            If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
-            to a boolean.
+            If `identifier` is provided, returns a boolean indicating if new
+            data is available for that caller (returns False if the
+            `identifier` is not found).
+            If `identifier` is None, returns a dictionary mapping each
+            `CallerIdentifier` to a boolean.
         """
         with self.__lock:
             if identifier is not None:
@@ -231,13 +237,14 @@ class RemoteDataAggregatorImpl(
         """Retrieves new data for one or all callers.
 
         Args:
-            identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
-                specific caller. Otherwise, retrieves data for all callers.
+            identifier: Optional `CallerIdentifier`. If provided, retrieves data
+                for this specific caller. Otherwise, retrieves data for all callers.
 
         Returns:
-            If `identifier` is provided, returns a list of new data items for that caller.
-            If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
-            to a list of its new data items.
+            If `identifier` is provided, returns a list of new data items for
+            that caller.
+            If `identifier` is None, returns a dictionary mapping each
+            `CallerIdentifier` to a list of its new data items.
 
         Raises:
             KeyError: If `identifier` is provided but not found.
@@ -289,14 +296,14 @@ class RemoteDataAggregatorImpl(
         """Retrieves the most recent data for one or all callers.
 
         Args:
-            identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
-                specific caller. Otherwise, retrieves data for all callers.
+            identifier: Optional `CallerIdentifier`. If provided, retrieves data
+                for this specific caller. Otherwise, retrieves data for all callers.
 
         Returns:
-            If `identifier` is provided, returns the most recent data item (or None) for
-            that caller.
-            If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
-            to its most recent data item (or None).
+            If `identifier` is provided, returns the most recent data item
+            (or None) for that caller.
+            If `identifier` is None, returns a dictionary mapping each
+            `CallerIdentifier` to its most recent data item (or None).
 
         Raises:
             KeyError: If `identifier` is provided but not found.
@@ -357,14 +364,14 @@ class RemoteDataAggregatorImpl(
 
         Args:
             timestamp: The `datetime` to compare data against.
-            identifier: Optional `CallerIdentifier`. If provided, retrieves data for this
-                specific caller. Otherwise, retrieves data for all callers.
+            identifier: Optional `CallerIdentifier`. If provided, retrieves data
+                for this specific caller. Otherwise, retrieves data for all callers.
 
         Returns:
-            If `identifier` is provided, returns the data item (or None) for that caller
-            at the given timestamp.
-            If `identifier` is None, returns a dictionary mapping each `CallerIdentifier`
-            to its data item (or None) at the given timestamp.
+            If `identifier` is provided, returns the data item (or None) for
+            that caller at the given timestamp.
+            If `identifier` is None, returns a dictionary mapping each
+            `CallerIdentifier` to its data item (or None) at the given timestamp.
 
         Raises:
             KeyError: If `identifier` is provided but not found.
@@ -374,7 +381,8 @@ class RemoteDataAggregatorImpl(
                 organizer = self.__organizers.get(identifier)
                 if organizer is None:
                     raise KeyError(
-                        f"Caller ID '{identifier}' not found for get_data_for_timestamp."
+                        f"Caller ID '{identifier}' not found for "
+                        f"get_data_for_timestamp."
                     )
                 return organizer.get_data_for_timestamp(timestamp)
 
@@ -402,7 +410,8 @@ class RemoteDataAggregatorImpl(
             self.__client._on_data_available(self, data_organizer.caller_id)
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
-        """Handles incoming raw data, routing it to the appropriate `RemoteDataOrganizer`.
+        """Handles incoming raw data, routing it to the appropriate
+        `RemoteDataOrganizer`.
 
         This method is part of the `RemoteDataReader` interface. If an organizer
         for the data's `caller_id` doesn't exist, one is created and started.
@@ -418,7 +427,8 @@ class RemoteDataAggregatorImpl(
 
         if not isinstance(new_data, ExposedData):
             raise TypeError(
-                f"Expected new_data to be an instance of ExposedData, but got {type(new_data).__name__}."
+                f"Expected new_data to be an instance of ExposedData, "
+                f"but got {type(new_data).__name__}."
             )
 
         data_organizer: RemoteDataOrganizer[DataTypeT]

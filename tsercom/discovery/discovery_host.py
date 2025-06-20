@@ -75,7 +75,9 @@ class DiscoveryHost(
         self,
         *,
         service_type: str | None = None,
-        instance_listener_factory: Callable[[InstanceListener.Client], InstanceListener[ServiceInfoT]] | None = None,
+        instance_listener_factory: (
+            Callable[[InstanceListener.Client], InstanceListener[ServiceInfoT]] | None
+        ) = None,
         mdns_listener_factory: MdnsListenerFactory | None = None,
     ) -> None:
         """Initializes DiscoveryHost. Overloaded: use one keyword arg.

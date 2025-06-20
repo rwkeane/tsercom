@@ -190,7 +190,9 @@ class RuntimeConfig(Generic[DataTypeT]):
                 "Must be ServiceType enum or string ('Client'/'Server')."
             )
 
-        self.__data_aggregator_client: RemoteDataAggregator.Client | None = data_aggregator_client
+        self.__data_aggregator_client: RemoteDataAggregator.Client | None = (
+            data_aggregator_client
+        )
         self.__timeout_seconds: int | None = timeout_seconds
         self.__auth_config: BaseChannelAuthConfig | None = auth_config
         self.__min_send_frequency_seconds: float | None = min_send_frequency_seconds

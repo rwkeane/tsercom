@@ -51,6 +51,7 @@ from tsercom.data.event_instance import EventInstance  # Added
 from tsercom.timesync.common.fake_synchronized_clock import (
     FakeSynchronizedClock,
 )  # Added
+from tsercom.util.is_running_tracker import IsRunningTracker  # Added Import
 
 # SerializableAnnotatedInstance, CallerIdentifier, AsyncPoller, SynchronizedTimestamp, RuntimeDataHandlerBase
 # were already imported or their modules were. Let's ensure specific classes are available.
@@ -803,7 +804,12 @@ async def test_data_processor_impl_produces_serializable_with_synchronized_times
     mock_sync = MagicMock(wraps=original_sync_method)
     fake_clock.sync = mock_sync
 
-    mock_data_poller = AsyncPoller[EventInstance[str]]()  # Using str as EventTypeT
+    # Create and start IsRunningTracker for the AsyncPoller
+    poller_tracker = IsRunningTracker()
+    poller_tracker.start()
+    mock_data_poller = AsyncPoller[EventInstance[str]](
+        is_running_tracker=poller_tracker
+    )  # Using str as EventTypeT
 
     processor_instance = RuntimeDataHandlerBase._DataProcessorImpl[str, str](
         data_handler=mock_parent_data_handler,

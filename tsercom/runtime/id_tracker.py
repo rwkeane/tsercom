@@ -45,9 +45,7 @@ class IdTracker(Generic[TrackedDataT]):
             `CallerIdentifier` if a `data_factory` is provided.
     """
 
-    def __init__(
-        self, data_factory: Callable[[], TrackedDataT] | None = None
-    ) -> None:
+    def __init__(self, data_factory: Callable[[], TrackedDataT] | None = None) -> None:
         """Initializes the IdTracker.
 
         Args:
@@ -98,7 +96,11 @@ class IdTracker(Generic[TrackedDataT]):
 
     def try_get(
         self, *args: Any, **kwargs: Any
-    ) -> tuple[str, int, TrackedDataT | None] | tuple[CallerIdentifier, TrackedDataT | None] | None:
+    ) -> (
+        tuple[str, int, TrackedDataT | None]
+        | tuple[CallerIdentifier, TrackedDataT | None]
+        | None
+    ):
         """Attempts to retrieve associated information for a given identifier or address.
 
         This method provides a way to look up mappings without raising an

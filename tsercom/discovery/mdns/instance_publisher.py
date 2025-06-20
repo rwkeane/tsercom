@@ -27,7 +27,13 @@ class InstancePublisher:
         readable_name: str | None = None,
         instance_name: str | None = None,
         *,
-        mdns_publisher_factory: Callable[[str, str, int, dict[bytes, bytes | None] | None, AsyncZeroconf | None], MdnsPublisher] | None = None,
+        mdns_publisher_factory: (
+            Callable[
+                [str, str, int, dict[bytes, bytes | None] | None, AsyncZeroconf | None],
+                MdnsPublisher,
+            ]
+            | None
+        ) = None,
         zc_instance: AsyncZeroconf | None = None,
     ) -> None:
         """Initializes the InstancePublisher.
