@@ -6,11 +6,7 @@ if not TYPE_CHECKING:
     try:
         version = grpc.__version__
         major_minor_version = ".".join(version.split(".")[:2])
-    except (
-        AttributeError,
-        subprocess.CalledProcessError,
-        FileNotFoundError,
-    ) as e:
+    except (AttributeError, subprocess.CalledProcessError, FileNotFoundError) as e:
         print(
             f"Warning: Failed to get grpc.__version__ ({e}), defaulting to a common version for proto loading."
         )

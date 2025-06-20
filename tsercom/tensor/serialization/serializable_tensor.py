@@ -5,8 +5,9 @@ from typing import Optional, Any
 
 import torch
 import numpy as np
+import lz4.frame  # type: ignore[import-untyped]
+from tsercom.tensor.proto import TensorChunk as GrpcTensor
 
-from tsercom.tensor.proto import TensorChunk
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
@@ -27,10 +28,12 @@ class SerializableTensorChunk:
         tensor: torch.Tensor,
         timestamp: SynchronizedTimestamp,
         starting_index: int = 0,
+        compression: GrpcTensor.CompressionType.ValueType = GrpcTensor.CompressionType.NONE,
     ):
         self.__tensor: torch.Tensor = tensor
         self.__timestamp: SynchronizedTimestamp = timestamp
         self.__starting_index: int = starting_index
+        self.__compression: GrpcTensor.CompressionType.ValueType = compression
 
     @property
     def tensor(self) -> torch.Tensor:
@@ -47,7 +50,12 @@ class SerializableTensorChunk:
         """The starting index of this chunk in a larger conceptual 1D tensor."""
         return self.__starting_index
 
-    def to_grpc_type(self) -> TensorChunk:
+    @property
+    def compression(self) -> GrpcTensor.CompressionType.ValueType:
+        """The compression type used for the tensor data."""
+        return self.__compression
+
+    def to_grpc_type(self) -> GrpcTensor:
         """Converts this instance into a `TensorChunk` gRPC message.
 
         The tensor data is flattened to 1D, then its numerical data is
@@ -60,7 +68,7 @@ class SerializableTensorChunk:
         Raises:
             ValueError: If the tensor's dtype cannot be converted to bytes.
         """
-        grpc_chunk = TensorChunk()
+        grpc_chunk = GrpcTensor()
         grpc_chunk.timestamp.CopyFrom(self.__timestamp.to_grpc_type())
         grpc_chunk.starting_index = self.__starting_index
 
@@ -80,13 +88,20 @@ class SerializableTensorChunk:
                 f"Failed to convert tensor of dtype {self.__tensor.dtype} to bytes: {e}"
             ) from e
 
+        grpc_chunk.compression = self.__compression
+        if self.__compression == GrpcTensor.CompressionType.LZ4:
+            try:
+                grpc_chunk.data_bytes = lz4.frame.compress(grpc_chunk.data_bytes)
+            except Exception as e:
+                logging.error("Error compressing tensor data with LZ4: %s", e)
+                raise ValueError(f"Failed to compress tensor data with LZ4: {e}") from e
         return grpc_chunk
 
     @classmethod
     # The large number of dtype checks is inherent to supporting multiple tensor types.
 
     def try_parse(
-        cls, grpc_msg: Optional[TensorChunk], dtype: torch.dtype
+        cls, grpc_msg: Optional[GrpcTensor], dtype: torch.dtype
     ) -> Optional["SerializableTensorChunk"]:
         """Attempts to parse a `TensorChunk` message into a `SerializableTensorChunk`.
 
@@ -105,7 +120,7 @@ class SerializableTensorChunk:
         """
         if grpc_msg is None:
             # Logging this helps identify issues where an expected message is missing.
-            logging.warning("Attempted to parse None TensorChunk.")
+            logging.warning("Attempted to parse None GrpcTensor (TensorChunk).")
             return None
 
         parsed_timestamp = SynchronizedTimestamp.try_parse(grpc_msg.timestamp)
@@ -117,7 +132,21 @@ class SerializableTensorChunk:
             return None
 
         parsed_starting_index = grpc_msg.starting_index
-        data_bytes = grpc_msg.data_bytes
+
+        # Decompress data if necessary
+        actual_data_bytes = grpc_msg.data_bytes
+        if grpc_msg.compression == GrpcTensor.CompressionType.LZ4:
+            try:
+                actual_data_bytes = lz4.frame.decompress(grpc_msg.data_bytes)
+            except Exception as e:
+                logging.error("Failed to decompress LZ4 data: %s", e)
+                return None
+        elif grpc_msg.compression != GrpcTensor.CompressionType.NONE:
+            logging.warning(
+                "Unknown compression type %s encountered in TensorChunk.",
+                grpc_msg.compression,
+            )
+            return None
 
         # This try-except block handles errors during byte-to-tensor conversion,
         # which can occur due to mismatched data types, corrupted byte streams,
@@ -152,7 +181,7 @@ class SerializableTensorChunk:
                     f"Unsupported torch.dtype for numpy conversion: {dtype}"
                 )
 
-            np_array = np.frombuffer(data_bytes, dtype=numpy_dtype)
+            np_array = np.frombuffer(actual_data_bytes, dtype=numpy_dtype)
 
             # .copy() ensures the resulting PyTorch tensor owns its memory,
             # which is safer and avoids potential issues with read-only NumPy arrays
@@ -171,4 +200,5 @@ class SerializableTensorChunk:
             tensor=reconstructed_tensor,
             timestamp=parsed_timestamp,
             starting_index=parsed_starting_index,
+            compression=grpc_msg.compression,  # Pass compression type
         )
