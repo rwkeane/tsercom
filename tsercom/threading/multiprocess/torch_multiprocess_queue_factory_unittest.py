@@ -69,10 +69,10 @@ class TestTorchMultiprocessQueueFactory:
         can handle torch.Tensors, and respects IPC queue parameters.
         """
         # Case 1: Sized, non-blocking queue
-        factory_sized = TorchMultiprocessQueueFactory[torch.Tensor](
+        factory = TorchMultiprocessQueueFactory[torch.Tensor]()
+        sink_sized, source_sized = factory.create_queues(
             max_ipc_queue_size=1, is_ipc_blocking=False
         )
-        sink_sized, source_sized = factory_sized.create_queues()
         assert isinstance(sink_sized, MultiprocessQueueSink)
         assert isinstance(source_sized, MultiprocessQueueSource)
         assert (
@@ -91,10 +91,10 @@ class TestTorchMultiprocessQueueFactory:
         )  # Attempt to get another item
 
         # Case 2: Unbounded (None), blocking queue
-        factory_unbounded = TorchMultiprocessQueueFactory[torch.Tensor](
+        # factory instance can be reused
+        sink_unbounded, source_unbounded = factory.create_queues(
             max_ipc_queue_size=None, is_ipc_blocking=True
         )
-        sink_unbounded, source_unbounded = factory_unbounded.create_queues()
         assert isinstance(sink_unbounded, MultiprocessQueueSink)
         assert isinstance(source_unbounded, MultiprocessQueueSource)
         assert (

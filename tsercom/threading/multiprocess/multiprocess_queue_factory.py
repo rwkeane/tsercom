@@ -6,7 +6,7 @@ which is considered for deprecation in favor of concrete factory implementations
 """
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Tuple, Generic
+from typing import TypeVar, Tuple, Generic, Optional
 
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -29,9 +29,17 @@ class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
     @abstractmethod
     def create_queues(
         self,
+        max_ipc_queue_size: Optional[int] = None,
+        is_ipc_blocking: bool = True,
     ) -> Tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
         """
         Creates a pair of queues for inter-process communication.
+
+        Args:
+            max_ipc_queue_size: The maximum size for the created IPC queues.
+                                None or non-positive means unbounded.
+            is_ipc_blocking: Determines if `put` operations on the created IPC
+                             queues should block.
 
         Returns:
             A tuple containing two queue instances. The exact type of these
