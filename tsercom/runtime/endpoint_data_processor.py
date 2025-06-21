@@ -93,17 +93,6 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         """
 
     @overload
-    async def process_data(self, data: DataTypeT) -> None:
-        """Processes incoming data, assigning the current UTC time as its timestamp.
-
-        This is a convenience overload for `process_data` where the timestamp
-        is implicitly the time of processing.
-
-        Args:
-            data: The data item of type `DataTypeT` to process.
-        """
-
-    @overload
     async def process_data(self, data: DataTypeT, timestamp: datetime) -> None:
         """Processes incoming data with an explicit `datetime` timestamp.
 
@@ -137,7 +126,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     async def process_data(
         self,
         data: DataTypeT,
-        timestamp: datetime | ServerTimestamp | None = None,
+        timestamp: datetime | ServerTimestamp,
         context: Optional[grpc.aio.ServicerContext] = None,
     ) -> None:
         """Processes incoming data, handling timestamp normalization and delegation.

@@ -449,3 +449,20 @@ class RemoteDataAggregatorImpl(
             self.__client._on_new_endpoint_began_transmitting(
                 self, data_organizer.caller_id
             )
+
+    def get_interpolated_at(
+        self, timestamp: datetime.datetime, identifier: CallerIdentifier | None = None
+    ) -> DataTypeT | None:
+        with self.__lock:
+            if identifier is not None:
+                organizer = self.__organizers.get(identifier)
+                if organizer is None:
+                    raise KeyError(
+                        f"Caller ID '{identifier}' not found for get_data_for_timestamp."
+                    )
+                return organizer.get_interpolated_at(timestamp)
+
+            results = {}
+            for key, organizer_item in self.__organizers.items():
+                results[key] = organizer_item.get_interpolated_at(timestamp=timestamp)
+            return results

@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio
 from typing import List, Tuple, Any, Optional
 
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 from tsercom.timesync.common.synchronized_timestamp import (

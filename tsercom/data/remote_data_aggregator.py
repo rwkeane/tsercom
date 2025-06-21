@@ -274,3 +274,17 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         unavailable or timed out.
         """
         raise NotImplementedError()
+
+    @overload
+    def get_interpolated_at(self, timestamp: datetime.datetime) -> DataTypeT | None: ...
+
+    @overload
+    def get_interpolated_at(
+        self, timestamp: datetime.datetime, identifier: CallerIdentifier
+    ) -> DataTypeT | None: ...
+
+    @abstractmethod
+    def get_interpolated_at(
+        self, timestamp: datetime.datetime, identifier: CallerIdentifier | None = None
+    ) -> DataTypeT | None:
+        raise NotImplementedError()

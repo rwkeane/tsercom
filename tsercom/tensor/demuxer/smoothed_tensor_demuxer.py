@@ -16,7 +16,7 @@ import torch
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 

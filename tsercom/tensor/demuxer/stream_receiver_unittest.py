@@ -15,7 +15,7 @@ from tsercom.tensor.proto import (
 from tsercom.tensor.serialization.serializable_tensor_initializer import (
     SerializableTensorInitializer,
 )
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy

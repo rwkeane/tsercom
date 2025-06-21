@@ -9,7 +9,9 @@ from tsercom.tensor.muxer.complete_tensor_multiplexer import CompleteTensorMulti
 from tsercom.tensor.serialization.serializable_tensor_initializer import (
     SerializableTensorInitializer,
 )
-from tsercom.tensor.serialization.serializable_tensor import SerializableTensorChunk
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
+    SerializableTensorChunk,
+)
 from tsercom.tensor.serialization.serializable_tensor_update import (
     SerializableTensorUpdate,
 )
