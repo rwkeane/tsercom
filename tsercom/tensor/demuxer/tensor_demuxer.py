@@ -9,7 +9,7 @@ import datetime
 
 import torch
 
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 

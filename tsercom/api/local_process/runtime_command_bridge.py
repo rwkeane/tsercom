@@ -59,7 +59,7 @@ class RuntimeCommandBridge:
                 # Execute stop and wait for it to complete.
                 future = run_on_event_loop(partial(runtime.stop, None))
                 try:
-                    future.result(timeout=5.0)
+                    future.result(timeout=20.0)  # Increased from 10.0
                 except concurrent.futures.TimeoutError:
                     # Log or handle timeout if needed
                     pass  # Or raise an error, log, etc.
@@ -98,7 +98,7 @@ class RuntimeCommandBridge:
                 # Execute stop and wait for it to complete.
                 future = run_on_event_loop(partial(self.__runtime.stop, None))
                 try:
-                    future.result(timeout=5.0)
+                    future.result(timeout=20.0)  # Increased from 10.0
                 except concurrent.futures.TimeoutError:
                     # Log or handle timeout if needed
                     pass  # Or raise an error, log, etc.

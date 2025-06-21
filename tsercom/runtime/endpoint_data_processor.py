@@ -8,7 +8,7 @@ runtimes manage incoming data and events for individual clients or connections.
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Generic, TypeVar, overload
 
 import grpc
@@ -96,17 +96,6 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         """
 
     @overload
-    async def process_data(self, data: DataTypeT) -> None:
-        """Processes incoming data, assigning the current UTC time as its timestamp.
-
-        This is a convenience overload for `process_data` where the timestamp
-        is implicitly the time of processing.
-
-        Args:
-            data: The data item of type `DataTypeT` to process.
-        """
-
-    @overload
     async def process_data(self, data: DataTypeT, timestamp: datetime) -> None:
         """Processes incoming data with an explicit `datetime` timestamp.
 
@@ -141,15 +130,13 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     async def process_data(
         self,
         data: DataTypeT,
-        timestamp: datetime | ServerTimestamp | None = None,
+        timestamp: datetime | ServerTimestamp,
         context: grpc.aio.ServicerContext | None = None,
     ) -> None:
         """Processes incoming data, handling timestamp normalization and delegation.
 
         This method serves as the primary entry point for data. It normalizes
         the provided timestamp:
-        - If `timestamp` is `None`, the current UTC time (`datetime.now(timezone.utc)`)
-          is used.
         - If `timestamp` is a `ServerTimestamp`, it is desynchronized to a local
           UTC `datetime` object using the `desynchronize` method. If
           desynchronization fails (returns `None`) and a `grpc.aio.ServicerContext`
@@ -169,10 +156,10 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
                 gRPC call. If provided and timestamp desynchronization from a
                 `ServerTimestamp` fails, the gRPC call will be aborted.
         """
+        assert timestamp is not None
+
         actual_timestamp: datetime
-        if timestamp is None:
-            actual_timestamp = datetime.now(timezone.utc)
-        elif isinstance(timestamp, ServerTimestamp):
+        if isinstance(timestamp, ServerTimestamp):
             maybe_timestamp = await self.desynchronize(timestamp, context)
             if maybe_timestamp is None:
                 if context:

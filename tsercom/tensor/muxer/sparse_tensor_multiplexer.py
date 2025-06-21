@@ -8,7 +8,7 @@ import torch
 from tsercom.tensor.muxer.tensor_multiplexer import (
     TensorMultiplexer,
 )
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock

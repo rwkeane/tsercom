@@ -1,25 +1,23 @@
 import asyncio
 import datetime
-import logging
-from collections.abc import AsyncIterator
-from typing import overload
+from typing import Optional, Tuple, Union, AsyncIterator, overload
 
-import numpy
 import torch
+import numpy
 
+from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
 from tsercom.tensor.demuxer.smoothed_tensor_demuxer import SmoothedTensorDemuxer
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
-from tsercom.tensor.demuxer.tensor_demuxer import TensorDemuxer
-
-# Updated import path for GrpcTensorInitializer
-from tsercom.tensor.proto import TensorInitializer as GrpcTensorInitializer
-from tsercom.tensor.serialization.serializable_tensor import (
-    SerializableTensorChunk,
-)
 from tsercom.tensor.serialization.serializable_tensor_initializer import (
     SerializableTensorInitializer,
 )
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
+    SerializableTensorChunk,
+)
 from tsercom.util.is_running_tracker import IsRunningTracker
+
+# Updated import path for GrpcTensorInitializer
+from tsercom.tensor.proto import TensorInitializer as GrpcTensorInitializer
 
 
 class TensorStreamReceiver(TensorDemuxer.Client):
@@ -34,14 +32,13 @@ class TensorStreamReceiver(TensorDemuxer.Client):
     @overload
     def __init__(
         self,
-        initializer: SerializableTensorInitializer | GrpcTensorInitializer,
+        initializer: Union[SerializableTensorInitializer, GrpcTensorInitializer],
         *,
         data_timeout_seconds: float = 60.0,
     ) -> None:
         """
         Initializes a TensorStreamReceiver with a standard TensorDemuxer.
-        This configuration is used for receiving raw tensor keyframes without
-        interpolation.
+        This configuration is used for receiving raw tensor keyframes without interpolation.
 
         Args:
             initializer: The tensor initializer (Serializable or gRPC).
@@ -52,7 +49,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
     @overload
     def __init__(
         self,
-        initializer: SerializableTensorInitializer | GrpcTensorInitializer,
+        initializer: Union[SerializableTensorInitializer, GrpcTensorInitializer],
         *,
         smoothing_strategy: SmoothingStrategy,
         output_interval_seconds: float = 0.1,
@@ -74,8 +71,8 @@ class TensorStreamReceiver(TensorDemuxer.Client):
 
     def __init__(
         self,
-        initializer: SerializableTensorInitializer | GrpcTensorInitializer,
-        smoothing_strategy: SmoothingStrategy | None = None,
+        initializer: Union[SerializableTensorInitializer, GrpcTensorInitializer],
+        smoothing_strategy: Optional[SmoothingStrategy] = None,
         data_timeout_seconds: float = 60.0,
         output_interval_seconds: float = 0.1,
         align_output_timestamps: bool = False,
@@ -90,14 +87,13 @@ class TensorStreamReceiver(TensorDemuxer.Client):
 
         Args:
             initializer: The tensor initializer (Serializable or gRPC object).
-            smoothing_strategy: If provided, uses SmoothedTensorDemuxer with this
-                strategy.
+            smoothing_strategy: If provided, uses SmoothedTensorDemuxer with this strategy.
             data_timeout_seconds: Timeout for data chunks (applies to both demuxers).
             output_interval_seconds: Interval for SmoothedTensorDemuxer output.
             align_output_timestamps: Alignment for SmoothedTensorDemuxer timestamps.
         """
         self.__is_running_tracker: IsRunningTracker = IsRunningTracker()
-        self.__queue: asyncio.Queue[tuple[torch.Tensor, datetime.datetime]] = (
+        self.__queue: asyncio.Queue[Tuple[torch.Tensor, datetime.datetime]] = (
             asyncio.Queue()
         )
 
@@ -115,8 +111,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
             )
         else:
             raise TypeError(
-                "Initializer must be SerializableTensorInitializer or "
-                "GrpcTensorInitializer"
+                "Initializer must be SerializableTensorInitializer or GrpcTensorInitializer"
             )
 
         self.__initializer = sti
@@ -143,7 +138,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
         self.__dtype: torch.dtype = torch_dtype
 
         if smoothing_strategy:
-            self.__demuxer: SmoothedTensorDemuxer | TensorDemuxer = (
+            self.__demuxer: Union[SmoothedTensorDemuxer, TensorDemuxer] = (
                 SmoothedTensorDemuxer(
                     tensor_shape=self.__shape,  # Use self.__shape
                     output_client=self,
@@ -198,28 +193,25 @@ class TensorStreamReceiver(TensorDemuxer.Client):
                     # Handle potential reshape error (e.g. tensor_length mismatch)
                     # or if the tensor from demuxer is not compatible.
                     # This case should ideally not happen if tensor_length is correct.
-                    logging.error(
+                    print(
                         f"Error reshaping tensor: {e}. Passing original tensor."
-                    )
+                    )  # Replace with proper logging
             elif not self.__shape and tensor.numel() == 1:
                 pass  # Scalar tensor, no reshape needed.
-            # else: If shape is empty but tensor is not scalar, it's ambiguous.
-            # Pass as is.
+            # else: If shape is empty but tensor is not scalar, it's ambiguous. Pass as is.
 
         await self.__queue.put((tensor_to_put, timestamp))
 
     async def __internal_queue_iterator(
         self,
-    ) -> AsyncIterator[tuple[torch.Tensor, datetime.datetime]]:
-        # This iterator is managed and stopped by
-        # IsRunningTracker.create_stoppable_iterator.
+    ) -> AsyncIterator[Tuple[torch.Tensor, datetime.datetime]]:
+        # This iterator is managed and stopped by IsRunningTracker.create_stoppable_iterator.
         while True:
             yield await self.__queue.get()
             # No task_done() here; the stoppable_iterator is the direct consumer.
-            # The ultimate consuming loop (outside this class) handles
-            # items/task_done if needed.
+            # The ultimate consuming loop (outside this class) handles items/task_done if needed.
 
-    async def __aiter__(self) -> AsyncIterator[tuple[torch.Tensor, datetime.datetime]]:
+    async def __aiter__(self) -> AsyncIterator[Tuple[torch.Tensor, datetime.datetime]]:
         """Returns an asynchronous iterator managed by IsRunningTracker."""
         return await self.__is_running_tracker.create_stoppable_iterator(
             self.__internal_queue_iterator()

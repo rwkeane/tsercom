@@ -1,9 +1,9 @@
 """Helper classes for RuntimeManager: process creation, factories."""
 
 import logging
-from collections.abc import Callable
-from multiprocessing import Process
-from typing import Any
+import multiprocessing  # Ensure multiprocessing is imported fully
+from multiprocessing.context import BaseContext  # For type hinting context
+from typing import Any, Callable, Tuple, cast
 
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
@@ -20,12 +20,27 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessCreator:
-    """Wraps `multiprocessing.Process` for centralized creation and testing."""
+    """Wraps `multiprocessing.Process` for centralized creation and testing,
+    using a pre-configured multiprocessing context.
+    """
+
+    def __init__(self, context: BaseContext):
+        """Initializes the ProcessCreator with a specific multiprocessing context.
+
+        Args:
+            context: The multiprocessing context (e.g., from
+                     `multiprocessing.get_context()` or a Torch context)
+                     to be used for creating new processes.
+        """
+        self._context: BaseContext = context
 
     def create_process(
-        self, target: Callable[..., Any], args: tuple[Any, ...], daemon: bool
-    ) -> Process | None:
-        """Creates and returns a multiprocessing.Process.
+        self,
+        target: Callable[..., Any],
+        args: Tuple[Any, ...],
+        daemon: bool,
+    ) -> multiprocessing.Process | None:
+        """Creates and returns a multiprocessing.Process using the stored context.
 
         Args:
             target: Callable for the new process's run() method.
@@ -39,7 +54,13 @@ class ProcessCreator:
             Exception: Catches any `Process` instantiation errors.
         """
         try:
-            return Process(target=target, args=args, daemon=daemon)
+            # BaseContext does not define .Process, but concrete contexts do.
+            # Use getattr and cast to satisfy mypy, assuming self._context has it.
+            process_constructor = cast(
+                Callable[..., multiprocessing.Process],
+                getattr(self._context, "Process"),
+            )
+            return process_constructor(target=target, args=args, daemon=daemon)
 
         except Exception as e:
             target_name = (

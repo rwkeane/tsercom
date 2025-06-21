@@ -462,3 +462,52 @@ class RemoteDataAggregatorImpl(
             self.__client._on_new_endpoint_began_transmitting(
                 self, data_organizer.caller_id
             )
+
+    def get_interpolated_at(  # type: ignore[override] # Matches new abstract signature
+        self, timestamp: datetime.datetime, identifier: CallerIdentifier | None = None
+    ) -> DataTypeT | None | Dict[CallerIdentifier, DataTypeT]:
+        """Performs linear interpolation to estimate data at a specific time.
+
+        This method estimates the data value at the given `timestamp` by
+        delegating to the `get_interpolated_at` method of the relevant
+        `RemoteDataOrganizer`(s).
+
+        - If `identifier` is specified, interpolation is performed for that
+          single caller by its `RemoteDataOrganizer`. Returns `DataTypeT` or `None`.
+        - If `identifier` is `None`, interpolation is performed for all known
+          callers. Returns a `Dict[CallerIdentifier, DataTypeT]`, omitting
+          callers for whom interpolation was not successful.
+
+        Args:
+            timestamp: The specific time (as a `datetime.datetime` object)
+                for which to estimate the data.
+            identifier: Optional `CallerIdentifier`. If provided, interpolates
+                data for this specific caller. Otherwise, interpolates for all.
+
+        Returns:
+            If `identifier` is provided: An instance of `DataTypeT` representing
+            the interpolated data from the specific organizer, or `None`.
+            If `identifier` is `None`: A dictionary mapping each `CallerIdentifier`
+            to its successfully interpolated data (`DataTypeT`). Callers for whom
+            interpolation failed (resulted in `None`) are omitted.
+
+        Raises:
+            KeyError: If `identifier` is provided but no organizer is found for it.
+        """
+        with self.__lock:
+            if identifier is not None:
+                organizer = self.__organizers.get(identifier)
+                if organizer is None:
+                    raise KeyError(
+                        f"Caller ID '{identifier}' not found for get_interpolated_at."
+                    )
+                return organizer.get_interpolated_at(timestamp)
+
+            results: Dict[CallerIdentifier, DataTypeT] = {}
+            for key, organizer_item in self.__organizers.items():
+                interpolated_value = organizer_item.get_interpolated_at(
+                    timestamp=timestamp
+                )
+                if interpolated_value is not None:
+                    results[key] = interpolated_value
+            return results

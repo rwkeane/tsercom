@@ -1,11 +1,11 @@
-from typing import TypeVar
+from typing import Iterator, List, TypeVar
 
 import torch
 
 from tsercom.tensor.proto import (
     TensorUpdate,
 )  # TensorChunk from proto is not directly used here.
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 
@@ -18,12 +18,12 @@ class SerializableTensorUpdate:
     or as part of a tensor initialization state.
     """
 
-    def __init__(self, chunks: list[SerializableTensorChunk]):
-        self._chunks = chunks
+    def __init__(self, chunks: List[SerializableTensorChunk]):
+        self.__chunks = chunks
 
     def to_grpc_type(self) -> TensorUpdate:
         """Converts this object to its gRPC protobuf representation."""
-        grpc_chunks = [chunk.to_grpc_type() for chunk in self._chunks]
+        grpc_chunks = [chunk.to_grpc_type() for chunk in self.__chunks]
         return TensorUpdate(chunks=grpc_chunks)
 
     @classmethod
@@ -59,6 +59,9 @@ class SerializableTensorUpdate:
 
         return cls(chunks=parsed_chunks)
 
+    def __iter__(self) -> Iterator[SerializableTensorChunk]:
+        return iter(self.__chunks)
+
     @property
-    def chunks(self) -> list[SerializableTensorChunk]:
-        return self._chunks
+    def chunks(self) -> List[SerializableTensorChunk]:
+        return self.__chunks
