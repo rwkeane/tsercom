@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import Iterator, Any
+from typing import Any
 from unittest import mock
-import multiprocessing
 import queue  # For queue.Full exception
 
 import pytest
@@ -18,12 +17,6 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 # Note: DefaultMultiprocessQueueFactory and TorchMultiprocessQueueFactory are not
 # directly mocked in most tests here anymore; instead, the queue_factory property is mocked.
 # However, they are needed for spec in mocks and for the "real" test.
-from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
-    DefaultMultiprocessQueueFactory,
-)
-from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
-    TorchMultiprocessQueueFactory,
-)
 from multiprocessing.context import BaseContext as MPContextType
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,  # For spec
@@ -121,7 +114,7 @@ def test_create_pair_interaction_with_provider_and_factory(
     # context_prop_mock.assert_called() # .context is not directly called by _create_pair
     queue_factory_prop_mock.assert_called()
 
-    assert mock_queue_factory_instance.create_queues.call_count == 3
+    assert mock_queue_factory_instance.create_queues.call_count == 2
     calls = mock_queue_factory_instance.create_queues.call_args_list
 
     # Event queue call with initializer's params
@@ -132,8 +125,7 @@ def test_create_pair_interaction_with_provider_and_factory(
     assert calls[1] == mock.call(
         max_ipc_queue_size=ipc_q_size, is_ipc_blocking=ipc_blocking
     )
-    # Command queue call with default params (None, True implied by empty call())
-    assert calls[2] == mock.call()
+    # Command queue is no longer created by this mocked factory.
 
     assert isinstance(runtime_handle, ShimRuntimeHandle)
     assert isinstance(runtime_factory, RemoteRuntimeFactory)
