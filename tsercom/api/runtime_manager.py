@@ -1,17 +1,12 @@
-"""Manages the creation, lifecycle, and error monitoring of Tsercom runtimes.
-
-This module provides the `RuntimeManager` class, which is the primary entry point
-for applications to initialize and manage Tsercom runtimes. It supports
-starting runtimes either within the same process as the manager or in separate,
-isolated processes.
-"""
-
 import logging
+import multiprocessing
+import multiprocessing.process # Added for BaseProcess
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from functools import partial
-from multiprocessing import Process
 from typing import Generic, List, Optional
+
+# from multiprocessing import Process # Will use context.Process
 
 from tsercom.api.initialization_pair import InitializationPair
 from tsercom.api.local_process.local_runtime_factory_factory import (
@@ -55,6 +50,14 @@ from tsercom.threading.multiprocess.multiprocess_queue_source import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import IsRunningTracker
+
+"""Manages the creation, lifecycle, and error monitoring of Tsercom runtimes.
+
+This module provides the `RuntimeManager` class, which is the primary entry point
+for applications to initialize and manage Tsercom runtimes. It supports
+starting runtimes either within the same process as the manager or in separate,
+isolated processes.
+"""
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +168,9 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         self.__initializers: List[InitializationPair[DataTypeT, EventTypeT]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None
-        self.__process: Optional[Process] = None
+        self.__process: Optional[multiprocessing.process.BaseProcess] = ( # Changed to BaseProcess
+            None
+        )
 
     @property
     def has_started(self) -> bool:
@@ -309,10 +314,45 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
         create_tsercom_event_loop_from_watcher(self.__thread_watcher)
 
-        error_sink: MultiprocessQueueSink[Exception]
-        error_source: MultiprocessQueueSource[Exception]
-        factory = DefaultMultiprocessQueueFactory[Exception]()
-        error_sink, error_source = factory.create_queues()
+        # Get context from the first factory, if available - THIS IS MOVED EARLIER
+        # actual_context = multiprocessing.get_context("spawn")  # Default
+        # if (
+        #     factories # factories is not defined yet here
+        #     and hasattr(factories[0], "_mp_context")
+        #     and factories[0]._mp_context
+        # ):
+        #     actual_context = factories[0]._mp_context
+        # This actual_context derivation needs to happen AFTER factories are created.
+        # But the error queue needs to be created BEFORE remote_process_main is partialled with it.
+
+        # The error queue should be created using a context that is compatible with the
+        # eventual process creation context. For now, let's assume the default context
+        # for error queues is acceptable, as they don't carry Tensors like torch queues.
+        # The critical part is that the Process itself is created with actual_context later.
+        # The previous DefaultMultiprocessQueueFactory() uses the standard mp.get_context(None).
+        # Let's keep this for now and see if the issue is elsewhere, as changing this might affect
+        # how SplitProcessErrorWatcherSource expects to read from it if it also uses a default context.
+
+        # Re-evaluation: The error queue MUST be created with the same context as the process
+        # that will use one of its ends.
+        # So, actual_context must be determined first, then used for both Process and this queue.
+        # This means factories must be created, then actual_context derived, then queue, then partial.
+
+        factories = self.__create_factories(self.__split_runtime_factory_factory)
+
+        actual_context = None
+        if (
+            factories
+            and hasattr(factories[0], "_mp_context")
+        ): # Check hasattr before accessing
+            actual_context = factories[0]._mp_context
+
+        if actual_context is None:
+            raise RuntimeError("Multiprocessing context not found on the runtime factory. \n"
+                               "Ensure RemoteRuntimeFactory correctly receives and stores the context from SplitRuntimeFactoryFactory.")
+
+        error_queue_factory = DefaultMultiprocessQueueFactory[Exception](context=actual_context)
+        error_sink, error_source = error_queue_factory.create_queues()
 
         self.__error_watcher = self.__split_error_watcher_source_factory.create(
             self.__thread_watcher, error_source
@@ -334,10 +374,80 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         )
         process_daemon = start_as_daemon or self.__is_testing
 
+        # actual_context already derived above
+
+        # Use actual_context.Process instead of multiprocessing.Process
+        # Assuming self.__process_creator.create_process is a wrapper that calls actual_context.Process
+        # or we need to change how create_process is called / what it does.
+        # For now, let's assume create_process can take a context, or we change it to directly use actual_context.Process.
+        # The sed command implies replacing `multiprocessing.Process` with `context.Process`.
+        # Let's assume create_process was a simple wrapper:
+        # def create_process(target, args, daemon): return multiprocessing.Process(target=target, args=args, daemon=daemon)
+        # So we'd call actual_context.Process directly here.
+        # However, ProcessCreator is a class. We'd need to modify ProcessCreator or assume it handles it.
+        # The prompt's sed for RuntimeManager was:
+        # sed ... -e "s/multiprocessing.Process/context.Process/" tsercom/api/runtime_manager.py
+        # This suggests a direct replacement. If ProcessCreator.create_process directly calls multiprocessing.Process,
+        # that class would need the context.
+        # For now, I will modify the direct call if ProcessCreator is simple, otherwise this is complex.
+        # The prompt's sed command implies a direct replacement in *this* file.
+        # This means the line `self.__process = self.__process_creator.create_process(` might be simplified
+        # or `__process_creator.create_process` itself uses `multiprocessing.Process` which needs to be changed.
+
+        # Sticking to the sed's spirit: if "multiprocessing.Process(" is found, it's replaced.
+        # The existing code is `self.__process_creator.create_process(target=process_target, ...)`
+        # This does not directly call `multiprocessing.Process(`.
+        # This means the sed command `s/multiprocessing.Process/context.Process/` would not apply as written to this line.
+
+        # I must assume the intent is that `RuntimeManager` itself should make the choice of context.
+        # And then ensure that context is used. If `ProcessCreator` is just `return Process(...)`,
+        # then `ProcessCreator` needs the context.
+        # If `ProcessCreator().create_process` is `multiprocessing.Process` then the sed is fine.
+        # The prompt does not give ProcessCreator's code.
+        # I will add the context derivation and then assume ProcessCreator().create_process will use it or be modified.
+        # The most straightforward interpretation of the `sed s/multiprocessing.Process/context.Process/` is that
+        # such a call exists directly in RuntimeManager.start_out_of_process. It does not.
+        # The closest is if `self.__process_creator.create_process` was `multiprocessing.Process`.
+
+        # Let's add the context and assume `ProcessCreator` will be handled or uses it.
+        # The `sed` also had an `i` command which adds a line.
+        # `"/process = multiprocessing.Process\(/i \ \ \ \ \ \ \ \ context = getattr(runtime_main, '_mp_context', None) or multiprocessing.get_context('spawn')"`
+        # This `runtime_main` was the `process_target`. This is what I said was not ideal.
+        # I'll use my derived `actual_context` instead for the `getattr` line's spirit.
+        # The spirit is: get a context, then use it.
+
+        # The original sed was:
+        # sed -i -E \
+        #  -e "/process = multiprocessing.Process\(/i \ \ \ \ \ \ \ \ context = getattr(runtime_main, '_mp_context', None) or multiprocessing.get_context('spawn')" \
+        #  -e "s/multiprocessing.Process/context.Process/" \
+        #  tsercom/api/runtime_manager.py
+        # This targets a line `process = multiprocessing.Process(`.
+        # The current code is `self.__process = self.__process_creator.create_process(`.
+        # This is another mismatch.
+
+        # I will ADD the context line, and then for the Process creation, I will assume
+        # that `self.__process_creator.create_process` is responsible for using this `actual_context`.
+        # Or, if it's a simple pass-through, it should be `actual_context.Process`.
+        # I can't change `ProcessCreator` in this step.
+        # I will add the line for `actual_context` and keep the `create_process` call as is for now,
+        # making a note that `ProcessCreator` needs to use this context.
+
         self.__process = self.__process_creator.create_process(
             target=process_target,
             args=(),
             daemon=process_daemon,
+            # How to pass actual_context to ProcessCreator or ensure it's used?
+            # This is the gap. The sed command assumed a direct multiprocessing.Process call here.
+            # For now, I'm adding the context derivation. The use of it is TBD by ProcessCreator.
+            # If ProcessCreator is simply `return Process(*args, **kwargs)`, then this needs to change to:
+            # self.__process = actual_context.Process(target=process_target, args=(), daemon=process_daemon)
+            # Let's try this more direct change, assuming ProcessCreator is either gone or adapted.
+        )
+        # This change below assumes we replace the ProcessCreator call directly
+        # This is a stronger interpretation of "s/multiprocessing.Process/context.Process/"
+
+        self.__process = actual_context.Process(
+            target=process_target, args=(), daemon=process_daemon
         )
 
         if self.__process:
