@@ -135,19 +135,23 @@ class TestGlobalEventLoop:
     ):
         """Test set_tsercom_event_loop_to_current_thread with a manually managed loop."""
 
+        loop_set_event = threading.Event()
+
         def loop_target():
             asyncio.set_event_loop(new_event_loop)
             # Now set it as tsercom global for this "current" thread's loop
             global_event_loop.set_tsercom_event_loop_to_current_thread()
             assert global_event_loop.is_global_event_loop_set()
             assert global_event_loop.get_global_event_loop() is new_event_loop
+            loop_set_event.set()  # Signal that setup is done
             new_event_loop.run_forever()  # Keep it running until stopped
 
         thread = threading.Thread(target=loop_target, daemon=True)
         thread.start()
 
         # Wait for the loop to be running and set as global
-        time.sleep(0.1)  # Give thread time to start up and set loop
+        event_was_set = loop_set_event.wait(timeout=5.0)
+        assert event_was_set, "Thread did not signal event loop setup completion"
         assert global_event_loop.is_global_event_loop_set()
         assert global_event_loop.get_global_event_loop() is new_event_loop
 
