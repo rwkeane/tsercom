@@ -26,6 +26,7 @@ class FakeRuntimeInitializer:
         max_queued_responses_per_endpoint: int = 1000,
         max_ipc_queue_size: int = -1,
         is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):  # Added params
         """Initializes a fake runtime initializer.
 
@@ -38,6 +39,7 @@ class FakeRuntimeInitializer:
             max_queued_responses_per_endpoint: Fake max queued responses.
             max_ipc_queue_size: Fake max IPC queue size.
             is_ipc_blocking: Fake IPC blocking flag.
+            data_reader_sink_is_lossy: Fake lossy flag for data reader sink.
         """
         if service_type_str == "Server":
             self.__service_type_enum_val_prop = ServiceType.SERVER
@@ -56,6 +58,8 @@ class FakeRuntimeInitializer:
         )
         self._RuntimeConfig__max_ipc_queue_size = max_ipc_queue_size
         self._RuntimeConfig__is_ipc_blocking = is_ipc_blocking
+        self._RuntimeConfig__data_reader_sink_is_lossy = data_reader_sink_is_lossy
+
 
         self.create_called = False
         self.create_args = None
@@ -92,6 +96,10 @@ class FakeRuntimeInitializer:
     @property
     def is_ipc_blocking(self):
         return self._RuntimeConfig__is_ipc_blocking
+
+    @property
+    def data_reader_sink_is_lossy(self):
+        return self._RuntimeConfig__data_reader_sink_is_lossy
 
     def create(self, thread_watcher, data_handler, grpc_channel_factory):
         self.create_called = True

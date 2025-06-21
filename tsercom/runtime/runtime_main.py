@@ -106,9 +106,7 @@ def initialize_runtimes(
 
         # Access RuntimeConfig values through direct properties on the factory
         auth_config = initializer_factory.auth_config
-        max_queued_responses = (
-            initializer_factory.max_queued_responses_per_endpoint
-        )
+        max_queued_responses = initializer_factory.max_queued_responses_per_endpoint
         min_send_freq = initializer_factory.min_send_frequency_seconds
 
         channel_factory = channel_factory_selector.create_factory(auth_config)

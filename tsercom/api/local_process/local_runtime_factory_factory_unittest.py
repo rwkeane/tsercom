@@ -48,6 +48,7 @@ class FakeRuntimeInitializer:
         max_queued_responses_per_endpoint: int = 1000,
         max_ipc_queue_size: int = -1,
         is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):
         """Initializes a fake runtime initializer.
 
@@ -60,6 +61,7 @@ class FakeRuntimeInitializer:
             max_queued_responses_per_endpoint: Fake max queued responses.
             max_ipc_queue_size: Fake max IPC queue size.
             is_ipc_blocking: Fake IPC blocking flag.
+            data_reader_sink_is_lossy: Fake lossy flag for data reader sink.
         """
         # Store the string, but also prepare the enum
         if service_type_str == "Server":
@@ -81,6 +83,8 @@ class FakeRuntimeInitializer:
         )
         self._RuntimeConfig__max_ipc_queue_size = max_ipc_queue_size
         self._RuntimeConfig__is_ipc_blocking = is_ipc_blocking
+        self._RuntimeConfig__data_reader_sink_is_lossy = data_reader_sink_is_lossy
+
 
         # Attributes/methods that might be called by the class under test or its collaborators
         self.create_called = False
@@ -123,6 +127,10 @@ class FakeRuntimeInitializer:
     @property
     def is_ipc_blocking(self):
         return self._RuntimeConfig__is_ipc_blocking
+
+    @property
+    def data_reader_sink_is_lossy(self):
+        return self._RuntimeConfig__data_reader_sink_is_lossy
 
 
 @pytest.fixture

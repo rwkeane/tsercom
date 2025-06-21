@@ -60,6 +60,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         max_queued_responses_per_endpoint: int = 1000,
         max_ipc_queue_size: int = -1,
         is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):
         """Initializes with ServiceType enum and optional configurations.
 
@@ -76,6 +77,8 @@ class RuntimeConfig(Generic[DataTypeT]):
             is_ipc_blocking: Whether IPC queue `put` operations should block if the
                 queue is full. Defaults to True (blocking). If False, operations
                 may be lossy if the queue is full.
+            data_reader_sink_is_lossy: Controls if the `DataReaderSink` used by
+                `RemoteRuntimeFactory` is lossy. Defaults to True.
         """
         ...
 
@@ -91,6 +94,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         max_queued_responses_per_endpoint: int = 1000,
         max_ipc_queue_size: int = -1,
         is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):
         """Initializes with service type as string and optional configurations.
 
@@ -107,6 +111,8 @@ class RuntimeConfig(Generic[DataTypeT]):
             is_ipc_blocking: Whether IPC queue `put` operations should block if the
                 queue is full. Defaults to True (blocking). If False, operations
                 may be lossy if the queue is full.
+            data_reader_sink_is_lossy: Controls if the `DataReaderSink` used by
+                `RemoteRuntimeFactory` is lossy. Defaults to True.
         """
         ...
 
@@ -132,6 +138,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         max_queued_responses_per_endpoint: int = 1000,
         max_ipc_queue_size: int = -1,
         is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):
         """Initializes the RuntimeConfig.
 
@@ -172,6 +179,10 @@ class RuntimeConfig(Generic[DataTypeT]):
             is_ipc_blocking: Determines if `put` operations on core IPC queues
                 should block when the queue is full (`True`) or be non-blocking
                 and potentially lossy (`False`). Defaults to `True`.
+            data_reader_sink_is_lossy: Controls whether the `DataReaderSink`
+                (typically used in split-process scenarios by `RemoteRuntimeFactory`)
+                should drop data if its internal queue is full (True, lossy),
+                or raise an error (False, non-lossy). Defaults to `True`.
 
         Raises:
             ValueError: If `service_type` and `other_config` are not mutually
@@ -201,6 +212,7 @@ class RuntimeConfig(Generic[DataTypeT]):
                 max_queued_responses_per_endpoint=other_config.max_queued_responses_per_endpoint,
                 max_ipc_queue_size=other_config.max_ipc_queue_size,
                 is_ipc_blocking=other_config.is_ipc_blocking,
+                data_reader_sink_is_lossy=other_config.data_reader_sink_is_lossy,
             )
             return
 
@@ -239,6 +251,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         )
         self.__max_ipc_queue_size: int = max_ipc_queue_size
         self.__is_ipc_blocking: bool = is_ipc_blocking
+        self.__data_reader_sink_is_lossy: bool = data_reader_sink_is_lossy
 
     def is_client(self) -> bool:
         """Checks if the runtime is configured to operate as a client.
@@ -357,3 +370,16 @@ class RuntimeConfig(Generic[DataTypeT]):
             True if IPC queue puts are blocking, False otherwise.
         """
         return self.__is_ipc_blocking
+
+    @property
+    def data_reader_sink_is_lossy(self) -> bool:
+        """Controls if the `DataReaderSink` is lossy.
+
+        This affects `DataReaderSink` instances, typically used in split-process
+        runtimes (via `RemoteRuntimeFactory`), determining their behavior when
+        their internal queue is full.
+
+        Returns:
+            True if the sink should be lossy, False otherwise.
+        """
+        return self.__data_reader_sink_is_lossy

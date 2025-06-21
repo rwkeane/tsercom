@@ -157,7 +157,7 @@ class TestInitializeRuntimes:
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
         # Set properties directly on the factory mock
-        mock_server_factory.auth_config = None # For this test, assume None
+        mock_server_factory.auth_config = None  # For this test, assume None
         mock_server_factory.min_send_frequency_seconds = 0.2
         mock_server_factory.max_queued_responses_per_endpoint = 200
 

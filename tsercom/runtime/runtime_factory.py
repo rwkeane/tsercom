@@ -99,3 +99,9 @@ class RuntimeFactory(
         """Delegates to RuntimeConfig.is_ipc_blocking."""
         # self is a RuntimeConfig instance due to inheritance
         return super().is_ipc_blocking
+
+    @property
+    def data_reader_sink_is_lossy(self) -> bool:
+        """Delegates to RuntimeConfig.data_reader_sink_is_lossy."""
+        # self is a RuntimeConfig instance due to inheritance
+        return super().data_reader_sink_is_lossy

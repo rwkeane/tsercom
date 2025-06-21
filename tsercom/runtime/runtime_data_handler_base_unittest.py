@@ -935,33 +935,31 @@ async def test_poller_factory_respects_max_queued_responses(mocker):
         # associate the poller with that loop so on_available can schedule barrier.set().
         # This is a bit of a test-specific setup to ensure on_available works as expected
         # without fully running the poller's async iteration.
-        created_poller._AsyncPoller__event_loop = handler._loop_on_init # type: ignore
+        created_poller._AsyncPoller__event_loop = handler._loop_on_init  # type: ignore
 
     created_poller.on_available(item1)
     assert len(created_poller) == 1
 
     created_poller.on_available(item2)
-    assert len(created_poller) == queue_max_size # Should be 2 if queue_max_size is 2
+    assert len(created_poller) == queue_max_size  # Should be 2 if queue_max_size is 2
 
     # Add another item, this should cause the oldest (item1) to be dropped
     created_poller.on_available(item3)
-    assert len(created_poller) == queue_max_size # Still 2
+    assert len(created_poller) == queue_max_size  # Still 2
 
     # Add one more
     created_poller.on_available(item4)
-    assert len(created_poller) == queue_max_size # Still 2
-
+    assert len(created_poller) == queue_max_size  # Still 2
 
     # Verify the contents of the poller's internal deque (__responses)
     # This requires accessing the name-mangled attribute.
     internal_deque = created_poller._AsyncPoller__responses
     assert len(internal_deque) == queue_max_size
-    if queue_max_size == 2: # Specific check if we used 2
+    if queue_max_size == 2:  # Specific check if we used 2
         assert item3 in internal_deque
         assert item4 in internal_deque
         assert item1 not in internal_deque
         assert item2 not in internal_deque
-
 
     # Clean up the handler
     await handler.async_close()

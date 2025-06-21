@@ -172,7 +172,7 @@ class TestMultiprocessQueueSink:
         )  # Should fail as queue is full and sink is non-blocking
         # qsize can be flaky.
         # assert q_instance.qsize() == 1 # Still one item
-        assert q_instance.get(timeout=0.1) == "item1" # Verify item1 is there
+        assert q_instance.get(timeout=0.1) == "item1"  # Verify item1 is there
 
     def test_behavior_with_real_queue_blocking_put_times_out(self):
         """

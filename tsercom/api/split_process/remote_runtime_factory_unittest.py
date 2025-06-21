@@ -41,6 +41,7 @@ class FakeRuntimeInitializer:
         max_queued_responses_per_endpoint: int = 1000,
         max_ipc_queue_size: int = -1,
         is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):
         """Initializes a fake runtime initializer.
 
@@ -53,6 +54,7 @@ class FakeRuntimeInitializer:
             max_queued_responses_per_endpoint: Fake max queued responses.
             max_ipc_queue_size: Fake max IPC queue size.
             is_ipc_blocking: Fake IPC blocking flag.
+            data_reader_sink_is_lossy: Fake lossy flag for data reader sink.
         """
         # Store the string, but also prepare the enum
         if service_type_str == "Server":
@@ -73,6 +75,7 @@ class FakeRuntimeInitializer:
         )
         self._RuntimeConfig__max_ipc_queue_size = max_ipc_queue_size
         self._RuntimeConfig__is_ipc_blocking = is_ipc_blocking
+        self._RuntimeConfig__data_reader_sink_is_lossy = data_reader_sink_is_lossy
 
         self.create_called_with = None
         self.create_call_count = 0
@@ -131,6 +134,10 @@ class FakeRuntimeInitializer:
     @property
     def is_ipc_blocking(self):
         return self._RuntimeConfig__is_ipc_blocking
+
+    @property
+    def data_reader_sink_is_lossy(self):
+        return self._RuntimeConfig__data_reader_sink_is_lossy
 
 
 class FakeMultiprocessQueueSource:
@@ -193,8 +200,10 @@ class FakeEventSource:
 class FakeDataReaderSink:
     _instances = []
 
-    def __init__(self, data_reader_queue_sink):
+    # Updated to accept is_lossy
+    def __init__(self, data_reader_queue_sink, is_lossy=True):
         self.data_reader_queue_sink = data_reader_queue_sink
+        self.is_lossy_param = is_lossy  # Store for assertion
         FakeDataReaderSink._instances.append(self)
 
     @classmethod
@@ -435,6 +444,8 @@ def test_create_method(
         data_reader_instance.data_reader_queue_sink
         is factory._RemoteRuntimeFactory__data_reader_queue
     )
+    # Check the is_lossy flag passed to DataReaderSink
+    assert data_reader_instance.is_lossy_param == factory.data_reader_sink_is_lossy
     assert factory._RemoteRuntimeFactory__data_reader_sink is data_reader_instance
 
     # Assert FakeRuntimeCommandSource interactions
