@@ -2,7 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import BaseContext
-from typing import Tuple, TypeVar
+from typing import Tuple, TypeVar, Any
 
 from tsercom.api.runtime_command import RuntimeCommand
 from tsercom.api.runtime_factory_factory import RuntimeFactoryFactory
@@ -46,7 +46,9 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
     """
 
     def __init__(
-        self, thread_pool: ThreadPoolExecutor, thread_watcher: ThreadWatcher
+        self,
+        thread_pool: ThreadPoolExecutor,
+        thread_watcher: ThreadWatcher,
     ) -> None:
         """Initializes the SplitRuntimeFactoryFactory.
 
@@ -59,8 +61,11 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__thread_watcher: ThreadWatcher = thread_watcher
         # Default to "spawn" context method as it is generally safer and widely compatible.
-        self.__mp_context_provider = MultiprocessingContextProvider(
-            context_method="spawn"
+        # MultiprocessingContextProvider will determine internally whether to use torch or standard context.
+        # Since this provider instance's factory is used for different queue types (events, data),
+        # we use Any here.
+        self.__mp_context_provider: MultiprocessingContextProvider[Any] = (
+            MultiprocessingContextProvider[Any](context_method="spawn")
         )
 
     @property

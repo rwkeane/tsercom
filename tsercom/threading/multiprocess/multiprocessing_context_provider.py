@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any, TypeVar, Generic
 from multiprocessing.context import BaseContext as StdBaseContext
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -13,8 +13,10 @@ try:
 except ImportError:
     _TORCH_AVAILABLE = False
 
+QueueTypeT = TypeVar("QueueTypeT")
 
-class MultiprocessingContextProvider:
+
+class MultiprocessingContextProvider(Generic[QueueTypeT]):
     """
     Provides the appropriate multiprocessing context and queue factory.
 
@@ -34,7 +36,7 @@ class MultiprocessingContextProvider:
         """
         self._context_method: str = context_method
         self.__lazy_context: Optional[StdBaseContext] = None
-        self.__lazy_queue_factory: Optional["MultiprocessQueueFactory"] = None
+        self.__lazy_queue_factory: Optional[MultiprocessQueueFactory[QueueTypeT]] = None
 
     @property
     def context(self) -> StdBaseContext:
@@ -60,7 +62,7 @@ class MultiprocessingContextProvider:
         return self.__lazy_context
 
     @property
-    def queue_factory(self) -> "MultiprocessQueueFactory":
+    def queue_factory(self) -> MultiprocessQueueFactory[QueueTypeT]:
         """
         The queue factory instance.
         Initialized lazily on first access, using the lazily initialized context.
@@ -73,16 +75,16 @@ class MultiprocessingContextProvider:
                 from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
                     TorchMultiprocessQueueFactory,
                 )
-
-                self.__lazy_queue_factory = TorchMultiprocessQueueFactory(
+                # If QueueTypeT is Any, this effectively becomes TorchMultiprocessQueueFactory[Any]
+                self.__lazy_queue_factory = TorchMultiprocessQueueFactory[QueueTypeT](
                     context=current_context
                 )
             else:
                 from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
                     DefaultMultiprocessQueueFactory,
                 )
-
-                self.__lazy_queue_factory = DefaultMultiprocessQueueFactory(
+                # If QueueTypeT is Any, this effectively becomes DefaultMultiprocessQueueFactory[Any]
+                self.__lazy_queue_factory = DefaultMultiprocessQueueFactory[QueueTypeT](
                     context=current_context
                 )
 
