@@ -65,37 +65,52 @@ class TestTorchMultiprocessQueueFactory:
     ) -> None:
         """
         Tests that create_queues returns MultiprocessQueueSink and
-        MultiprocessQueueSource instances, internally using torch.multiprocessing.Queue
-        and can handle torch.Tensors.
+        MultiprocessQueueSource instances, internally using torch.multiprocessing.Queue,
+        can handle torch.Tensors, and respects IPC queue parameters.
         """
+        # Case 1: Sized, non-blocking queue
         factory = TorchMultiprocessQueueFactory[torch.Tensor]()
-        sink: MultiprocessQueueSink[torch.Tensor]
-        source: MultiprocessQueueSource[torch.Tensor]
-        sink, source = factory.create_queues()
+        sink_sized, source_sized = factory.create_queues(
+            max_ipc_queue_size=1, is_ipc_blocking=False
+        )
+        assert isinstance(sink_sized, MultiprocessQueueSink)
+        assert isinstance(source_sized, MultiprocessQueueSource)
+        assert (
+            not sink_sized._MultiprocessQueueSink__is_blocking
+        )  # Check private attribute
 
-        assert isinstance(
-            sink, MultiprocessQueueSink
-        ), "First item is not a MultiprocessQueueSink"
-        assert isinstance(
-            source, MultiprocessQueueSource
-        ), "Second item is not a MultiprocessQueueSource"
+        tensor1_s = torch.randn(2, 3)
+        tensor2_s = torch.randn(2, 3)
+        assert sink_sized.put_blocking(tensor1_s) is True
+        assert sink_sized.put_blocking(tensor2_s) is False  # Full, non-blocking
+        received1_s = source_sized.get_blocking(timeout=0.1)
+        assert torch.equal(received1_s, tensor1_s)
+        # get_blocking returns None on timeout/Empty from underlying queue
+        assert (
+            source_sized.get_blocking(timeout=0.01) is None
+        )  # Attempt to get another item
 
-        # Internal queue type checks were removed due to fragility and MyPy errors with generics.
-        # Correct functioning is tested by putting and getting data.
+        # Case 2: Unbounded (None), blocking queue
+        # factory instance can be reused
+        sink_unbounded, source_unbounded = factory.create_queues(
+            max_ipc_queue_size=None, is_ipc_blocking=True
+        )
+        assert isinstance(sink_unbounded, MultiprocessQueueSink)
+        assert isinstance(source_unbounded, MultiprocessQueueSource)
+        assert (
+            sink_unbounded._MultiprocessQueueSink__is_blocking
+        )  # Check private attribute
 
-        tensor_to_send = torch.randn(2, 3)
-        try:
-            put_successful = sink.put_blocking(tensor_to_send, timeout=1)
-            assert put_successful, "sink.put_blocking failed"
-            received_tensor = source.get_blocking(timeout=1)
-            assert (
-                received_tensor is not None
-            ), "source.get_blocking returned None (timeout)"
-            assert torch.equal(
-                tensor_to_send, received_tensor
-            ), "Tensor sent and received via Sink/Source are not equal."
-        except Exception as e:
-            pytest.fail(f"Tensor transfer via Sink/Source failed with exception: {e}")
+        tensor1_u = torch.randn(2, 3)
+        tensor2_u = torch.randn(2, 3)
+        assert sink_unbounded.put_blocking(tensor1_u) is True
+        assert (
+            sink_unbounded.put_blocking(tensor2_u) is True
+        )  # Unbounded, should succeed
+        received1_u = source_unbounded.get_blocking(timeout=0.1)
+        received2_u = source_unbounded.get_blocking(timeout=0.1)
+        assert torch.equal(received1_u, tensor1_u)
+        assert torch.equal(received2_u, tensor2_u)
 
     @pytest.mark.timeout(20)
     @pytest.mark.parametrize("start_method", ["fork", "spawn", "forkserver"])

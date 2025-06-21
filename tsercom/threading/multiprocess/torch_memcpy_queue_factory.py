@@ -10,11 +10,11 @@ from typing import (
     Union,
     Iterable,
     Optional,
-)  # Updated imports
+)
 import torch  # Keep torch for type hints if needed, or for tensor_accessor context
-import torch.multiprocessing as mp  # Third-party
+import torch.multiprocessing as mp
 
-from tsercom.threading.multiprocess.multiprocess_queue_factory import (  # First-party
+from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
 )
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
@@ -29,7 +29,7 @@ QueueElementT = TypeVar("QueueElementT")
 
 class TorchMemcpyQueueFactory(
     MultiprocessQueueFactory[QueueElementT], Generic[QueueElementT]
-):  # Now generic
+):
     """
     Provides an implementation of `MultiprocessQueueFactory` specialized for
     `torch.Tensor` objects.
@@ -45,12 +45,12 @@ class TorchMemcpyQueueFactory(
     def __init__(
         self,
         ctx_method: str = "spawn",
-        context: Optional[std_mp.context.BaseContext] = None,  # Corrected type hint
+        context: Optional[std_mp.context.BaseContext] = None,
         tensor_accessor: Optional[
             Callable[[Any], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
     ) -> None:
-        """Initializes the TorchMultiprocessQueueFactory.
+        """Initializes the TorchMemcpyQueueFactory.
 
         Args:
             ctx_method: The multiprocessing context method to use if no
@@ -61,15 +61,16 @@ class TorchMemcpyQueueFactory(
             tensor_accessor: An optional function that, given an object of type T (or Any for flexibility here),
                              returns a torch.Tensor or an Iterable of torch.Tensors found within it.
         """
-        # super().__init__() # Assuming MultiprocessQueueFactory has no __init__ or parameterless one
         if context:
-            self._mp_context = context
+            self.__mp_context = context
         else:
-            self._mp_context = mp.get_context(ctx_method)
-        self._tensor_accessor = tensor_accessor
+            self.__mp_context = mp.get_context(ctx_method)
+        self.__tensor_accessor = tensor_accessor
 
     def create_queues(
         self,
+        max_ipc_queue_size: Optional[int] = None,
+        is_ipc_blocking: bool = True,
     ) -> Tuple[
         "TorchMemcpyQueueSink[QueueElementT]",
         "TorchMemcpyQueueSource[QueueElementT]",
@@ -80,19 +81,32 @@ class TorchMemcpyQueueFactory(
         is provided, it will be used by the sink/source to handle tensors within items.
         The underlying queue is a torch.multiprocessing.Queue.
 
+        Args:
+            max_ipc_queue_size: The maximum size for the created IPC queues.
+                                `None` or a non-positive value means unbounded
+                                (platform-dependent large size). Defaults to `None`.
+            is_ipc_blocking: Determines if `put` operations on the created IPC
+                             queues should block when full. Defaults to True.
+
         Returns:
-            A tuple containing TorchTensorQueueSink and TorchTensorQueueSource
+            A tuple containing TorchMemcpyQueueSink and TorchMemcpyQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
         """
-        torch_queue: mp.Queue[QueueElementT] = (
-            self._mp_context.Queue()
-        )  # Type T for queue items
+        effective_maxsize = 0
+        if max_ipc_queue_size is not None and max_ipc_queue_size > 0:
+            effective_maxsize = max_ipc_queue_size
+
+        torch_queue: mp.Queue[QueueElementT] = self.__mp_context.Queue(
+            maxsize=effective_maxsize
+        )
 
         sink = TorchMemcpyQueueSink[QueueElementT](
-            torch_queue, tensor_accessor=self._tensor_accessor
+            torch_queue,
+            tensor_accessor=self.__tensor_accessor,
+            is_blocking=is_ipc_blocking,  # Use passed-in is_ipc_blocking
         )
         source = TorchMemcpyQueueSource[QueueElementT](
-            torch_queue, tensor_accessor=self._tensor_accessor
+            torch_queue, tensor_accessor=self.__tensor_accessor
         )
         return sink, source
 
@@ -113,9 +127,13 @@ class TorchMemcpyQueueSource(
         tensor_accessor: Optional[
             Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
+        # is_blocking is not used by Source, but Sink needs it.
+        # For consistency, MultiprocessQueueSource could accept it but ignore it.
+        # Or, we only add it to the Sink. The factories pass it to Sink.
+        # Let's assume it's not needed for Source for now.
     ) -> None:
         super().__init__(queue)
-        self._tensor_accessor: Optional[
+        self.__tensor_accessor: Optional[
             Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = tensor_accessor
 
@@ -133,9 +151,9 @@ class TorchMemcpyQueueSource(
         """
         item = super().get_blocking(timeout=timeout)
         if item is not None:
-            if self._tensor_accessor:
+            if self.__tensor_accessor:
                 try:
-                    tensors_or_tensor = self._tensor_accessor(item)
+                    tensors_or_tensor = self.__tensor_accessor(item)
                     if isinstance(tensors_or_tensor, torch.Tensor):
                         tensors_to_share = [tensors_or_tensor]
                     elif tensors_or_tensor is None:
@@ -178,9 +196,10 @@ class TorchMemcpyQueueSink(
         tensor_accessor: Optional[
             Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
+        is_blocking: bool = True,
     ) -> None:
-        super().__init__(queue)
-        self._tensor_accessor: Optional[
+        super().__init__(queue, is_blocking=is_blocking)
+        self.__tensor_accessor: Optional[
             Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = tensor_accessor
 
@@ -196,9 +215,9 @@ class TorchMemcpyQueueSink(
         Returns:
             True if successful, False on timeout.
         """
-        if self._tensor_accessor:
+        if self.__tensor_accessor:
             try:
-                tensors_or_tensor = self._tensor_accessor(obj)
+                tensors_or_tensor = self.__tensor_accessor(obj)
                 if isinstance(tensors_or_tensor, torch.Tensor):
                     tensors_to_share = [tensors_or_tensor]
                 elif tensors_or_tensor is None:  # Accessor might return None

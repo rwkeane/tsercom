@@ -93,8 +93,16 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         mp_context = self.__mp_context_provider.context
         queue_factory_instance = self.__mp_context_provider.queue_factory
 
-        event_sink, event_source = queue_factory_instance.create_queues()
-        data_sink, data_source = queue_factory_instance.create_queues()
+        max_ipc_q_size = initializer.max_ipc_queue_size
+        is_ipc_block = initializer.is_ipc_blocking
+        event_sink, event_source = queue_factory_instance.create_queues(
+            max_ipc_queue_size=max_ipc_q_size,
+            is_ipc_blocking=is_ipc_block,
+        )
+        data_sink, data_source = queue_factory_instance.create_queues(
+            max_ipc_queue_size=max_ipc_q_size,
+            is_ipc_blocking=is_ipc_block,
+        )
 
         # Command queues use a Default factory but with the context derived from the provider,
         # ensuring consistency if the main context is, for example, PyTorch-specific.

@@ -201,7 +201,8 @@ def test_properties_return_correct_types_with_torch() -> None:
         )
 
         assert isinstance(factory, ActualTorchFactory)
-        assert factory._mp_context is context
+        # Accessing name-mangled attribute for testing purposes.
+        assert factory._TorchMultiprocessQueueFactory__mp_context is context  # type: ignore[attr-defined]
 
 
 def test_properties_return_correct_types_without_torch() -> None:
@@ -218,7 +219,8 @@ def test_properties_return_correct_types_without_torch() -> None:
         )
 
         assert isinstance(factory, ActualDefaultFactory)
-        assert factory._mp_context is context
+        # Accessing name-mangled attribute for testing purposes.
+        assert factory._DefaultMultiprocessQueueFactory__mp_context is context  # type: ignore[attr-defined]
 
 
 def test_different_context_methods() -> None:
@@ -251,3 +253,10 @@ def test_different_context_methods() -> None:
             ctx_std_fork = provider_std_fork.context
             assert "fork" in ctx_std_fork.__class__.__name__.lower()
             assert hasattr(ctx_std_fork, "Process")
+
+
+# Add a type ignore for the problematic line in the original file, if it was there.
+# The issue was that the original file had a line:
+# assert factory._TorchMultiprocessQueueFactory__mp_context is context # type: ignore[attr-defined]
+# in the test_properties_return_correct_types_without_torch test, which was incorrect.
+# The corrected version above fixes this.Tool output for `overwrite_file_with_block`:

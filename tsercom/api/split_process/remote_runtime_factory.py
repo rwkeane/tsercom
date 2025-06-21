@@ -101,7 +101,9 @@ class RemoteRuntimeFactory(
         # Note: Base `RuntimeFactory` expects RemoteDataReader[AnnotatedInstance[DataTypeT]].
         # DataReaderSink is compatible.
         if self.__data_reader_sink is None:
-            self.__data_reader_sink = DataReaderSink(self.__data_reader_queue)
+            self.__data_reader_sink = DataReaderSink(
+                self.__data_reader_queue, is_lossy=self.data_reader_sink_is_lossy
+            )
         return self.__data_reader_sink
 
     def _event_poller(

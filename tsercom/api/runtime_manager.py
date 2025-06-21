@@ -111,7 +111,8 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
                 in-process runtimes. If `None`, a default instance is created.
             split_runtime_factory_factory: An optional factory for creating
                 out-of-process (split) runtimes. If `None`, a default instance
-                is created.
+                is created, which will use IPC settings from the RuntimeConfig
+                of the initializers it processes.
             process_creator: An optional helper for creating new processes,
                 primarily for testing. If `None`, a default `ProcessCreator`
                 is used.
@@ -157,7 +158,9 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
                 )
             )
             self.__split_runtime_factory_factory = SplitRuntimeFactoryFactory(
-                default_split_factory_thread_pool, self.__thread_watcher
+                thread_pool=default_split_factory_thread_pool,
+                thread_watcher=self.__thread_watcher,
+                # IPC settings will be derived from RuntimeInitializer by SRFF
             )
 
         # Initialize ProcessCreator with the context from split_runtime_factory_factory

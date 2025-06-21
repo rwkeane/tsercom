@@ -104,7 +104,11 @@ def initialize_runtimes(
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
 
+        # Access RuntimeConfig values through direct properties on the factory
         auth_config = initializer_factory.auth_config
+        max_queued_responses = initializer_factory.max_queued_responses_per_endpoint
+        min_send_freq = initializer_factory.min_send_frequency_seconds
+
         channel_factory = channel_factory_selector.create_factory(auth_config)
 
         # The event poller from the factory should now be directly compatible
@@ -118,19 +122,17 @@ def initialize_runtimes(
             data_handler = ClientRuntimeDataHandler(
                 thread_watcher=thread_watcher,
                 data_reader=data_reader,
-                event_source=event_poller,  # Use the original event_poller
-                min_send_frequency_seconds=(
-                    initializer_factory.min_send_frequency_seconds
-                ),
+                event_source=event_poller,
+                min_send_frequency_seconds=min_send_freq,
+                max_queued_responses_per_endpoint=max_queued_responses,
                 is_testing=is_testing,
             )
         elif initializer_factory.is_server():
             data_handler = ServerRuntimeDataHandler(
                 data_reader=data_reader,
-                event_source=event_poller,  # Use the original event_poller
-                min_send_frequency_seconds=(
-                    initializer_factory.min_send_frequency_seconds
-                ),
+                event_source=event_poller,
+                min_send_frequency_seconds=min_send_freq,
+                max_queued_responses_per_endpoint=max_queued_responses,
                 is_testing=is_testing,
             )
         else:
