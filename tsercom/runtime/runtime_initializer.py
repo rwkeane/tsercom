@@ -40,8 +40,7 @@ class RuntimeInitializer(
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        """
-        Creates a new Runtime instance. This method will only be called once
+        """Creates a new Runtime instance. This method will only be called once
         per instance.
 
         |thread_watcher| provides APIs for error handling, and is required for

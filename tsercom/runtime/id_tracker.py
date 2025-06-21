@@ -21,8 +21,7 @@ TrackedDataT = TypeVar("TrackedDataT")
 
 
 class IdTracker(Generic[TrackedDataT]):
-    """
-    Tracks associations between CallerIdentifiers, network addresses, and
+    """Tracks associations between CallerIdentifiers, network addresses, and
     optional data.
 
     This class provides a thread-safe, bidirectional dictionary-like structure
@@ -56,6 +55,7 @@ class IdTracker(Generic[TrackedDataT]):
                 is used to generate and store data associated with each new
                 `CallerIdentifier` added to the tracker. If `None`, no custom
                 data is stored besides the ID-address mapping.
+
         """
         self.__data_factory: Callable[[], TrackedDataT] | None = data_factory
         self.__lock: threading.Lock = threading.Lock()
@@ -76,6 +76,7 @@ class IdTracker(Generic[TrackedDataT]):
             Optional[tuple[str, int, Optional[TrackedDataT]]]:
                 A tuple (address, port, tracked_data) if found, else None.
                 `tracked_data` is None if no data_factory was used.
+
         """
         ...
 
@@ -93,6 +94,7 @@ class IdTracker(Generic[TrackedDataT]):
             Optional[tuple[CallerIdentifier, Optional[TrackedDataT]]]:
                 A tuple (caller_identifier, tracked_data) if found, else None.
                 `tracked_data` is None if no data_factory was used.
+
         """
         ...
 
@@ -103,8 +105,7 @@ class IdTracker(Generic[TrackedDataT]):
         | tuple[CallerIdentifier, TrackedDataT | None]
         | None
     ):
-        """
-        Attempts to retrieve associated information for a given identifier or
+        """Attempts to retrieve associated information for a given identifier or
         address.
 
         This method provides a way to look up mappings without raising an
@@ -132,6 +133,7 @@ class IdTracker(Generic[TrackedDataT]):
         Raises:
             ValueError: If incorrect arguments are provided (e.g., mixing
                 ID and address lookups, or providing partial address information).
+
         """
         _id: CallerIdentifier | None = None
         _address: str | None = None
@@ -240,6 +242,7 @@ class IdTracker(Generic[TrackedDataT]):
 
         Raises:
             KeyError: If the `caller_id_obj` is not found.
+
         """
         ...
 
@@ -260,6 +263,7 @@ class IdTracker(Generic[TrackedDataT]):
 
         Raises:
             KeyError: If the address/port combination is not found.
+
         """
         ...
 
@@ -286,6 +290,7 @@ class IdTracker(Generic[TrackedDataT]):
         Raises:
             ValueError: If incorrect arguments are provided.
             KeyError: If the lookup key is not found.
+
         """
         resolved_result = self.try_get(*args, **kwargs)
         if resolved_result is None:
@@ -318,6 +323,7 @@ class IdTracker(Generic[TrackedDataT]):
         Raises:
             KeyError: If the `address` and `port` combination is already mapped
                 to a different `CallerIdentifier`.
+
         """
         with self.__lock:
             # If the ID already exists, remove its old address mapping to allow update
@@ -357,6 +363,7 @@ class IdTracker(Generic[TrackedDataT]):
 
         Returns:
             True if the `CallerIdentifier` is present, False otherwise.
+
         """
         with self.__lock:
             return caller_id_obj in self.__id_to_address
@@ -370,6 +377,7 @@ class IdTracker(Generic[TrackedDataT]):
 
         Returns:
             True if the address/port combination is present, False otherwise.
+
         """
         with self.__lock:
             return (address, port) in self.__address_to_id
@@ -400,6 +408,7 @@ class IdTracker(Generic[TrackedDataT]):
 
         Returns:
             True if the `CallerIdentifier` was found and removed, False otherwise.
+
         """
         with self.__lock:
             if caller_id_obj not in self.__id_to_address:
@@ -425,6 +434,7 @@ class IdTracker(Generic[TrackedDataT]):
         Returns:
             A list of all TrackedDataT items. Returns an empty list
             if no data is tracked or if no data_factory was used.
+
         """
         with self.__lock:
             return list(self.__data_map.values())

@@ -16,8 +16,7 @@ TimestampedTensor = tuple[datetime.datetime, torch.Tensor]
 
 
 class CompleteTensorMultiplexer(TensorMultiplexer):
-    """
-    Multiplexes complete tensor snapshots. It stores the full tensor at each
+    """Multiplexes complete tensor snapshots. It stores the full tensor at each
     timestamp and emits the full tensor when a new one is processed or when
     out-of-order updates trigger re-evaluation of subsequent states.
     """
@@ -29,8 +28,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
         clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
-        """
-        Initializes the CompleteTensorMultiplexer.
+        """Initializes the CompleteTensorMultiplexer.
 
         Args:
             client: The client to notify of index updates (will receive full tensor).
@@ -38,6 +36,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             clock: The synchronized clock instance.
             data_timeout_seconds: How long to keep tensor data before it's
                                   considered stale.
+
         """
         super().__init__(client, tensor_length, clock, data_timeout_seconds)
         # self.history is provided by the base class.
@@ -47,8 +46,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """
-        Processes a new tensor snapshot at a given timestamp.
+        """Processes a new tensor snapshot at a given timestamp.
         It stores the full tensor and notifies the client of all its values.
         Handles out-of-order updates by replacing existing data if necessary.
         """
@@ -111,8 +109,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             await self.client.on_chunk_update(chunk)
 
     def _cleanup_old_data(self, current_max_timestamp: datetime.datetime) -> None:
-        """
-        Removes tensor snapshots from history that are older than the
+        """Removes tensor snapshots from history that are older than the
         data_timeout_seconds relative to the current_max_timestamp.
         Assumes lock is held by the caller.
         """
@@ -138,8 +135,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
             self.history[:] = self.history[keep_from_index:]
 
     def _find_insertion_point(self, timestamp: datetime.datetime) -> int:
-        """
-        Finds the insertion point for a new timestamp in the sorted self.history list.
+        """Finds the insertion point for a new timestamp in the sorted self.history list.
         Assumes lock is held by the caller or method is otherwise protected.
         """
         # Assumes self.history is sorted by timestamp for efficient lookup using bisect.

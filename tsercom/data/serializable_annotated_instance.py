@@ -33,6 +33,7 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
                 if not specific to a caller (e.g., broadcast event).
             timestamp: The `SynchronizedTimestamp` representing when this data
                        was created or received, ensuring time consistency.
+
         """
         self.__data: DataTypeT = data
         self.__caller_id: CallerIdentifier | None = caller_id
@@ -44,6 +45,7 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
 
         Returns:
             The underlying data of type `DataTypeT`.
+
         """
         return self.__data
 
@@ -53,6 +55,7 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
 
         Returns:
             The `CallerIdentifier` instance, or `None` if not specific to a caller.
+
         """
         return self.__caller_id
 
@@ -62,5 +65,6 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
 
         Returns:
             A `SynchronizedTimestamp` object.
+
         """
         return self.__timestamp

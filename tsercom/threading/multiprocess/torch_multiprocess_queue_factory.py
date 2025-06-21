@@ -19,8 +19,7 @@ T = TypeVar("T")
 
 
 class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
-    """
-    Provides an implementation of `MultiprocessQueueFactory` specialized for
+    """Provides an implementation of `MultiprocessQueueFactory` specialized for
     `torch.Tensor` objects.
 
     It utilizes `torch.multiprocessing.Queue` instances, which are chosen
@@ -44,6 +43,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
                         include 'fork' and 'forkserver'.
             context: An optional existing multiprocessing context to use.
                      If None, a new context is created using ctx_method.
+
         """
         if context is not None:
             self.__mp_context = context
@@ -72,6 +72,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         Returns:
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
+
         """
         # For torch.multiprocessing.Queue, maxsize=0 means platform default
         # (usually large).

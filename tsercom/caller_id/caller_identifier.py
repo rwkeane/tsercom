@@ -23,6 +23,7 @@ class CallerIdentifier:
 
         Raises:
             TypeError: If `id_value` is not an instance of `uuid.UUID`.
+
         """
         if not isinstance(id_value, uuid.UUID):
             raise TypeError(f"id_value must be a UUID instance, got {type(id_value)}")
@@ -34,6 +35,7 @@ class CallerIdentifier:
 
         Returns:
             A new `CallerIdentifier` instance.
+
         """
         random_id = uuid.uuid4()
         return CallerIdentifier(random_id)
@@ -52,6 +54,7 @@ class CallerIdentifier:
         Returns:
             A `CallerIdentifier` instance if parsing is successful,
             otherwise `None`.
+
         """
         parsed_id_str: str | None = None
         if isinstance(value, CallerId):  # Check against the specific imported type
@@ -78,6 +81,7 @@ class CallerIdentifier:
 
         Returns:
             A gRPC `CallerId` protobuf message.
+
         """
         return CallerId(id=str(self.__id))
 
@@ -86,6 +90,7 @@ class CallerIdentifier:
 
         Returns:
             An integer hash value.
+
         """
         return hash(self.__id)
 
@@ -101,6 +106,7 @@ class CallerIdentifier:
             True if `other` is a `CallerIdentifier` and their UUIDs are equal.
             False if `other` is a `CallerIdentifier` but their UUIDs differ.
             NotImplemented if `other` is not a `CallerIdentifier`.
+
         """
         if not isinstance(other, CallerIdentifier):
             return (
@@ -119,6 +125,7 @@ class CallerIdentifier:
             False if the objects are considered equal.
             NotImplemented if the comparison is not implemented for the other type
             (i.e., if `__eq__` returns `NotImplemented`).
+
         """
         equal_result = self.__eq__(other)
         if equal_result is NotImplemented:
@@ -130,6 +137,7 @@ class CallerIdentifier:
 
         Returns:
             A string representation of the UUID.
+
         """
         return str(self.__id)
 
@@ -138,6 +146,7 @@ class CallerIdentifier:
 
         Returns:
             A string in the format `CallerIdentifier('uuid_string')`.
+
         """
         return f"CallerIdentifier('{self.__id}')"
 
@@ -149,5 +158,6 @@ class CallerIdentifier:
 
         Returns:
             The formatted string representation of the UUID.
+
         """
         return format(self.__id, format_spec)

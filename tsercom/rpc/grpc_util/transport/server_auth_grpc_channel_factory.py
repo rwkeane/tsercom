@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
-    """
-    Creates a gRPC channel where the client authenticates the server
+    """Creates a gRPC channel where the client authenticates the server
     using a provided root CA certificate.
     """
 
@@ -23,8 +22,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
         root_ca_cert_pem: bytes | str,
         server_hostname_override: str | None = None,
     ):
-        """
-        Initializes the factory with the root CA certificate.
+        """Initializes the factory with the root CA certificate.
 
         Args:
             root_ca_cert_pem: PEM-encoded root CA certificate (bytes or string).
@@ -33,6 +31,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
                                       useful if the server's certificate CN does
                                       not match the target address (e.g., for IP
                                       addresses or localhost testing).
+
         """
         self.root_ca_cert_pem: bytes
         if isinstance(root_ca_cert_pem, str):
@@ -46,8 +45,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """
-        Attempts to establish a secure gRPC channel to the specified address(es)
+        """Attempts to establish a secure gRPC channel to the specified address(es)
         and port, authenticating the server using the root CA.
 
         Args:
@@ -57,6 +55,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
         Returns:
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
+
         """
         address_list: list[str]
         if isinstance(addresses, str):

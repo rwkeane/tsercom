@@ -43,6 +43,7 @@ class LocalRuntimeFactory(
             data_reader: Reader for incoming data.
             event_poller: Poller for incoming events.
             bridge: Bridge for command communication.
+
         """
         self.__initializer = initializer
         self.__data_reader = data_reader
@@ -69,6 +70,7 @@ class LocalRuntimeFactory(
 
         Returns:
             The newly created and configured Runtime instance.
+
         """
         runtime = self.__initializer.create(
             thread_watcher, data_handler, grpc_channel_factory
@@ -85,6 +87,7 @@ class LocalRuntimeFactory(
 
         Returns:
             The `RemoteDataReader` for this factory.
+
         """
         return self.__data_reader
 
@@ -97,6 +100,7 @@ class LocalRuntimeFactory(
 
         Returns:
             The `AsyncPoller` for events, configured for this factory.
+
         """
         return self.__event_poller
 

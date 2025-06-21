@@ -29,6 +29,7 @@ class DataReaderSink(Generic[DataTypeT], RemoteDataReader[DataTypeT]):
             is_lossy: If True (default), data is dropped if the queue is full.
                       If False, a RuntimeError is raised if the queue is full,
                       to prevent data loss.
+
         """
         self.__queue = queue
         self.__is_lossy = is_lossy
@@ -45,6 +46,7 @@ class DataReaderSink(Generic[DataTypeT], RemoteDataReader[DataTypeT]):
 
         Raises:
             RuntimeError: If `is_lossy` is False and the queue is full.
+
         """
         success = self.__queue.put_nowait(new_data)
         # If putting to queue failed (e.g., full) and this sink is not lossy,

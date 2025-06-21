@@ -121,7 +121,7 @@ select = [
     # "SIM",# flake8-simplify (suggests simpler code)
     "T20",# flake8-print (finds leftover print statements)
     "TID",# flake8-tidy-imports (enforce import styles)
-    # "D",  # pydocstyle (docstring conventions)
+    "D",  # pydocstyle (docstring conventions)
 ]
 ignore = ["S101", "S104"]
 

@@ -1,5 +1,4 @@
-"""
-Defines the `MultiprocessQueueSink[QueueTypeT]` class.
+"""Defines the `MultiprocessQueueSink[QueueTypeT]` class.
 
 This module provides `MultiprocessQueueSink`, a generic, write-only (sink)
 wrapper around `multiprocessing.Queue`. It offers a clear, type-safe
@@ -19,15 +18,13 @@ QueueTypeT = TypeVar("QueueTypeT")
 
 # Provides a sink (write-only) interface for a multiprocessing queue.
 class MultiprocessQueueSink(Generic[QueueTypeT]):
-    """
-    Wrapper around `multiprocessing.Queue` for a sink-only interface.
+    """Wrapper around `multiprocessing.Queue` for a sink-only interface.
 
     Handles putting items; generic for queues of any specific type.
     """
 
     def __init__(self, queue: "MpQueue[QueueTypeT]", is_blocking: bool = True) -> None:
-        """
-        Initializes with a given multiprocessing queue.
+        """Initializes with a given multiprocessing queue.
 
         Args:
             queue: The multiprocessing queue to be used as the sink.
@@ -35,13 +32,13 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
                          If False, `put_blocking` will behave like `put_nowait`
                          (i.e., non-blocking and potentially lossy if full).
                          Defaults to True.
+
         """
         self.__queue: MpQueue[QueueTypeT] = queue
         self.__is_blocking: bool = is_blocking
 
     def put_blocking(self, obj: QueueTypeT, timeout: float | None = None) -> bool:
-        """
-        Puts item into queue. Behavior depends on `self.__is_blocking`.
+        """Puts item into queue. Behavior depends on `self.__is_blocking`.
 
         If `self.__is_blocking` is True (default), this method blocks if necessary
         until space is available in the queue or the timeout expires.
@@ -60,6 +57,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
             True if item put successfully.
             If blocking: False if timeout occurred (queue remained full).
             If non-blocking: False if queue was full at the time of call.
+
         """
         if not self.__is_blocking:
             # Non-blocking behavior: attempt to put, return status.
@@ -77,8 +75,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
                 return False
 
     def put_nowait(self, obj: QueueTypeT) -> bool:
-        """
-        Puts an item into the queue without blocking.
+        """Puts an item into the queue without blocking.
 
         If the queue is full, this method returns immediately.
 
@@ -87,6 +84,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
 
         Returns:
             True if item put successfully, False if queue currently full.
+
         """
         try:
             self.__queue.put_nowait(obj)

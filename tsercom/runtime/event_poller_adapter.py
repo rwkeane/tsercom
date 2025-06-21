@@ -19,8 +19,7 @@ class EventToSerializableAnnInstancePollerAdapter(
     Generic[EventTypeT],
     AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
 ):
-    """
-    Adapts an AsyncPoller[EventInstance[EventTypeT]] to an
+    """Adapts an AsyncPoller[EventInstance[EventTypeT]] to an
     AsyncPoller[SerializableAnnotatedInstance[EventTypeT]].
     """
 
@@ -31,8 +30,7 @@ class EventToSerializableAnnInstancePollerAdapter(
     def _convert_event_instance(
         self, event_inst: EventInstance[EventTypeT]
     ) -> SerializableAnnotatedInstance[EventTypeT]:
-        """
-        Placeholder: EventInstance to SerializableAnnotatedInstance conversion.
+        """Placeholder: EventInstance to SerializableAnnotatedInstance conversion.
         Actual implementation would require proper serialization.
         """
         # For broadcast events, caller_id can be None.

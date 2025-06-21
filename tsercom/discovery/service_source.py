@@ -26,6 +26,7 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
             Args:
                 connection_info: Info about the discovered service.
                 caller_id: Unique ID for the discovered service instance.
+
             """
             raise NotImplementedError(
                 "ServiceSource.Client._on_service_added must be implemented "
@@ -44,6 +45,7 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
                 service_name: The mDNS instance name of the removed service.
                 caller_id: The unique ID that was associated with the service
                            when it was added.
+
             """
             raise NotImplementedError(
                 "ServiceSource.Client._on_service_removed must be implemented "
@@ -58,4 +60,5 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
 
         Args:
             client: Client to be notified of discovered services.
+
         """

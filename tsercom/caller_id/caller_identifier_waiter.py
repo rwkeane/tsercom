@@ -30,6 +30,7 @@ class CallerIdentifierWaiter:
         Raises:
             RuntimeError: If `set_caller_id` not called before wait, or event set
                           without `__caller_id` (should not happen).
+
         """
         await self.__barrier.wait()
         # At this point, __caller_id is guaranteed to be set by set_caller_id.
@@ -46,6 +47,7 @@ class CallerIdentifierWaiter:
         Returns:
             True if `__caller_id` has been set (is not `None`),
             False otherwise (ID has not been set yet).
+
         """
         return self.__caller_id is not None
 
@@ -59,6 +61,7 @@ class CallerIdentifierWaiter:
 
         Raises:
             RuntimeError: If the caller ID has already been set.
+
         """
         # Ensure the caller ID can only be set once.
         if self.__caller_id is not None:

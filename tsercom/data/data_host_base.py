@@ -42,6 +42,7 @@ class DataHostBase(
                              timeout tracking disabled.
             *args: Variable length arguments for superclass.
             **kwargs: Keyword arguments for superclass.
+
         """
         # This ensures sequential processing of data aggregation tasks.
         thread_pool = watcher.create_tracked_thread_pool_executor(max_workers=1)
@@ -74,8 +75,8 @@ class DataHostBase(
 
         Args:
             new_data: The new data item that has become available.
-        """
 
+        """
         self.__aggregator._on_data_ready(new_data)
 
     def _remote_data_aggregator(self) -> RemoteDataAggregator[DataTypeT]:
@@ -85,5 +86,6 @@ class DataHostBase(
 
         Returns:
             The `RemoteDataAggregator[DataTypeT]` instance used by this host.
+
         """
         return self.__aggregator

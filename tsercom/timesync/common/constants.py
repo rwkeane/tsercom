@@ -1,5 +1,4 @@
-"""
-Defines common constants for NTP (Network Time Protocol) settings used within
+"""Defines common constants for NTP (Network Time Protocol) settings used within
 Tsercom, such as the protocol version and default port.
 """
 

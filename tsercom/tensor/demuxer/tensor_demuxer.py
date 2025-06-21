@@ -1,5 +1,4 @@
-"""
-Provides the TensorDemuxer class for aggregating granular tensor updates.
+"""Provides the TensorDemuxer class for aggregating granular tensor updates.
 """
 
 import abc
@@ -15,23 +14,20 @@ from tsercom.tensor.serialization.serializable_tensor_chunk import (
 
 
 class TensorDemuxer:
-    """
-    Aggregates granular tensor index updates back into complete tensor objects.
+    """Aggregates granular tensor index updates back into complete tensor objects.
     Internal storage for explicit updates per timestamp uses torch.Tensors for
     efficiency.
     """
 
     class Client(abc.ABC):
-        """
-        Client interface for TensorDemuxer to report reconstructed tensors.
+        """Client interface for TensorDemuxer to report reconstructed tensors.
         """
 
         @abc.abstractmethod
         async def on_tensor_changed(
             self, tensor: torch.Tensor, timestamp: datetime.datetime
         ) -> None:
-            """
-            Called when a tensor for a given timestamp is created or modified.
+            """Called when a tensor for a given timestamp is created or modified.
             """
 
     def __init__(

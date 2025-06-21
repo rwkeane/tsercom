@@ -33,6 +33,7 @@ class DiscoveryHost(
         Args:
             service_type: The mDNS service type string to discover
                           (e.g., "_my_service._tcp.local.").
+
         """
         ...
 
@@ -53,6 +54,7 @@ class DiscoveryHost(
             instance_listener_factory: A callable that takes an
                 `InstanceListener.Client` (which will be this DiscoveryHost instance)
                 and returns an `InstanceListener[ServiceInfoT]` instance.
+
         """
         ...
 
@@ -68,6 +70,7 @@ class DiscoveryHost(
 
         Args:
             mdns_listener_factory: A callable to create a new MdnsListener.
+
         """
         ...
 
@@ -90,6 +93,7 @@ class DiscoveryHost(
 
         Raises:
             ValueError: If neither or both args provided.
+
         """
         # Ensure exclusive provision of service_type or factory
         num_modes_selected = sum(
@@ -144,6 +148,7 @@ class DiscoveryHost(
 
         Args:
             client: `ServiceSource.Client` for discovery notifications.
+
         """
         await self.__start_discovery_impl(client)
 
@@ -162,6 +167,7 @@ class DiscoveryHost(
         Raises:
             ValueError: If the provided `client` is None.
             RuntimeError: If discovery has already been started.
+
         """
         if client is None:
             raise ValueError("Client argument cannot be None for start_discovery.")
@@ -211,6 +217,7 @@ class DiscoveryHost(
 
         Raises:
             RuntimeError: If `DiscoveryHost` client not set (start_discovery issue).
+
         """
         if self.__client is None:
             # Programming error: discovery should have been started with a client.
@@ -240,6 +247,7 @@ class DiscoveryHost(
 
         Args:
             service_name: The mDNS instance name of the service that was removed.
+
         """
         logging.info("Service removed by DiscoveryHost: %s", service_name)
         caller_id = self.__caller_id_map.pop(service_name, None)

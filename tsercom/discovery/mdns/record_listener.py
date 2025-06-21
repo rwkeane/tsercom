@@ -36,6 +36,7 @@ class RecordListener(MdnsListener):
         Raises:
             ValueError: If args invalid or service_type missing leading '_'.
             TypeError: If args are not of expected types.
+
         """
         if client is None:
             raise ValueError("Client cannot be None for RecordListener.")

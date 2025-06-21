@@ -31,6 +31,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
 
         Returns:
             A RemoteDataAggregator for this handle.
+
         """
         # This property relies on _get_remote_data_aggregator being implemented.
         # For an ABC, it's better to make the property itself abstract
@@ -56,6 +57,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
 
         Args:
             event: The event data to send.
+
         """
         ...
 
@@ -66,6 +68,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         Args:
             event: The event data to send.
             caller_id: ID of the caller originating the event.
+
         """
         ...
 
@@ -76,6 +79,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         Args:
             event: The event data to send.
             timestamp: Timestamp for the event.
+
         """
         ...
 
@@ -93,6 +97,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
             event: The event data to send.
             caller_id: ID of the caller originating the event.
             timestamp: Timestamp for the event.
+
         """
         ...
 
@@ -118,6 +123,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
                        If specified, event might be targeted or filtered.
             timestamp: Optional. Timestamp for the event.
                        If None, implementations default to `datetime.now()`.
+
         """
         raise NotImplementedError()
 
@@ -129,5 +135,6 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
 
         Returns:
             The RemoteDataAggregator instance for this runtime.
+
         """
         raise NotImplementedError()

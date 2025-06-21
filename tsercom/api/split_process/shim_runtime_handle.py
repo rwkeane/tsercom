@@ -54,6 +54,7 @@ class ShimRuntimeHandle(
             data_aggregator: Aggregator for data from remote via data_queue.
             block: If True, `on_event` blocks until event is queued.
                    If False, it's non-blocking.
+
         """
         super().__init__()
 
@@ -106,6 +107,7 @@ class ShimRuntimeHandle(
             event: The event to send.
             caller_id: Optional caller ID (ignored).
             timestamp: Optional event timestamp (ignored).
+
         """
         # `caller_id` and `timestamp` are part of RuntimeHandle interface,
         # but shim doesn't use them when sending to queue.
@@ -143,6 +145,7 @@ class ShimRuntimeHandle(
 
         Args:
             new_data: New data item from remote runtime.
+
         """
         # This handle (as RemoteDataReader) gets data from DataReaderSource
         # and forwards to the __data_aggregator from init.
@@ -156,6 +159,7 @@ class ShimRuntimeHandle(
 
         Returns:
             The `RemoteDataAggregator` that processes data from remote.
+
         """
         return self.__data_aggregator
 

@@ -32,6 +32,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
         Returns:
             A `grpc.Channel` instance if a connection is successful,
             otherwise `None`.
+
         """
         assert addresses is not None
         address_list: list[str]

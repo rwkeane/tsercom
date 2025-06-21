@@ -24,8 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class TimeSyncServer:
-    """
-    This class defines a simple NTP server, to allow for cross-device time
+    """This class defines a simple NTP server, to allow for cross-device time
     synchronization.
 
     NOTE: Use of this class requires administrator access on many file systems
@@ -33,12 +32,12 @@ class TimeSyncServer:
     """
 
     def __init__(self, address: str = "0.0.0.0", ntp_port: int = kNtpPort) -> None:
-        """
-        Initializes the TimeSyncServer.
+        """Initializes the TimeSyncServer.
 
         Args:
             address: IP address to bind NTP server to. Defaults to "0.0.0.0".
             ntp_port: Port for NTP server. Defaults to `kNtpPort` (123).
+
         """
         self.__address = address
         self.__port = ntp_port

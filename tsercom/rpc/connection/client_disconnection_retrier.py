@@ -65,8 +65,10 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             is_server_unavailable_error_func: Optional custom function to check
                                               for server unavailable errors.
             max_retries: Maximum number of reconnection attempts. None for infinite.
+
         Raises:
             TypeError: If `watcher` is not an instance of `ThreadWatcher`.
+
         """
         if not isinstance(watcher, ThreadWatcher):
             raise TypeError(
@@ -108,6 +110,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             Exception: Any exception that occurs during the connection attempt.
                        `is_server_unavailable_error` will be used to determine
                        if reconnection should be attempted.
+
         """
         pass
 
@@ -126,6 +129,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             RuntimeError: If the event loop cannot be determined or if `_connect`
                           returns None or an instance not conforming to `Stopable`.
             Exception: Any non-server-unavailable error raised by `_connect`.
+
         """
         try:
             self.__stop_retrying_event.clear()
@@ -173,8 +177,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             raise
 
     async def stop(self) -> None:
-        """
-        Stops the managed instance and ensures operations run on the correct
+        """Stops the managed instance and ensures operations run on the correct
         event loop.
 
         If called from a different event loop than the one `start` was called on,
@@ -216,6 +219,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             ValueError: If `error` argument is None (though type hint now enforces it).
             Exception: Re-raises critical errors (AssertionError) or non-gRPC,
                        non-server-unavailable errors after reporting them.
+
         """
         # This method must run on the captured event loop.
         if self.__event_loop is None:  # Should not happen if start() was called.

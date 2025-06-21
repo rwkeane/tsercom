@@ -1,5 +1,4 @@
-"""
-Provides RemoteDataAggregatorImpl, a concrete implementation of the
+"""Provides RemoteDataAggregatorImpl, a concrete implementation of the
 RemoteDataAggregator interface.
 
 This class manages RemoteDataOrganizer instances for each data source
@@ -49,6 +48,7 @@ class RemoteDataAggregatorImpl(
         Args:
             thread_pool: Executor for asynchronous tasks.
             client: Optional client for data event callbacks.
+
         """
         ...
 
@@ -66,6 +66,7 @@ class RemoteDataAggregatorImpl(
             thread_pool: Executor for asynchronous tasks.
             client: Optional client for data event callbacks.
             tracker: Custom `DataTimeoutTracker` instance.
+
         """
         ...
 
@@ -85,6 +86,7 @@ class RemoteDataAggregatorImpl(
             thread_pool: Executor for asynchronous tasks.
             client: Optional client for data event callbacks.
             timeout: Timeout duration in seconds for data tracking.
+
         """
         ...
 
@@ -116,6 +118,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             AssertionError: If both `tracker` and `timeout` are provided.
+
         """
         assert not (
             timeout is not None and tracker is not None
@@ -146,6 +149,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but not found among active organizers.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -167,6 +171,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Dict[CallerIdentifier, bool]: True if new data for a caller.
+
         """
         ...
 
@@ -179,6 +184,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             bool: True if new data is available, False otherwise.
+
         """
         ...
 
@@ -197,6 +203,7 @@ class RemoteDataAggregatorImpl(
             not found).
             If `identifier` is None, returns a dictionary mapping each
             `CallerIdentifier` to a boolean.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -216,6 +223,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Dict[CallerIdentifier, List[DataTypeT]]: New data from each caller.
+
         """
         ...
 
@@ -228,6 +236,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             List[DataTypeT]: New data items from the specified caller.
+
         """
         ...
 
@@ -249,6 +258,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but not found.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -274,6 +284,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Dict[CallerIdentifier, Optional[DataTypeT]]: Most recent data or None.
+
         """
         ...
 
@@ -288,6 +299,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Optional[DataTypeT]: The most recent data item or `None`.
+
         """
         ...
 
@@ -309,6 +321,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but not found.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -337,6 +350,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Dict[CallerIdentifier, Optional[DataTypeT]]: Relevant data or None.
+
         """
         ...
 
@@ -354,6 +368,7 @@ class RemoteDataAggregatorImpl(
 
         Returns:
             Optional[DataTypeT]: Relevant data item or `None`.
+
         """
         ...
 
@@ -379,6 +394,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but not found.
+
         """
         with self.__lock:
             if identifier is not None:
@@ -408,13 +424,13 @@ class RemoteDataAggregatorImpl(
 
         Args:
             data_organizer: The `RemoteDataOrganizer` instance that has new data.
+
         """
         if self.__client is not None:
             self.__client._on_data_available(self, data_organizer.caller_id)
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
-        """
-        Handles incoming raw data, routing it to the appropriate
+        """Handles incoming raw data, routing it to the appropriate
         `RemoteDataOrganizer`.
 
         This method is part of the `RemoteDataReader` interface. If an organizer
@@ -427,8 +443,8 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             TypeError: If `new_data` is not a subclass of `ExposedData`.
-        """
 
+        """
         if not isinstance(new_data, ExposedData):
             raise TypeError(
                 f"Expected new_data to be an instance of ExposedData, "
@@ -493,6 +509,7 @@ class RemoteDataAggregatorImpl(
 
         Raises:
             KeyError: If `identifier` is provided but no organizer is found for it.
+
         """
         with self.__lock:
             if identifier is not None:

@@ -50,6 +50,7 @@ class RecordPublisher(MdnsPublisher):
         Raises:
             ValueError: If `type_` is None or not `startswith("_")`.
             TypeError: If args are not of expected types (implicit check).
+
         """
         if type_ is None or not type_.startswith("_"):
             # Long error message

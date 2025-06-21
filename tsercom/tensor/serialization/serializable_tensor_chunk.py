@@ -69,6 +69,7 @@ class SerializableTensorChunk:
 
         Raises:
             ValueError: If the tensor's dtype cannot be converted to bytes.
+
         """
         grpc_chunk = GrpcTensor()
         grpc_chunk.timestamp.CopyFrom(self.__timestamp.to_grpc_type())
@@ -124,6 +125,7 @@ class SerializableTensorChunk:
         Returns:
             A `SerializableTensorChunk` instance if parsing is successful,
             otherwise `None`.
+
         """
         if grpc_msg is None:
             logging.warning("Attempted to parse None TensorChunk.")

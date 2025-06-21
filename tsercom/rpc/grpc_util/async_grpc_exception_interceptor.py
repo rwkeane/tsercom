@@ -1,5 +1,4 @@
-"""
-Provides an asynchronous gRPC server interceptor for centralized exception
+"""Provides an asynchronous gRPC server interceptor for centralized exception
 handling.
 """
 
@@ -13,8 +12,7 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore[misc]
-    """
-    A gRPC interceptor that handles exceptions in async server methods and
+    """A gRPC interceptor that handles exceptions in async server methods and
     forwards them to a provided callback.
 
     NOTE: This class is _REALLY_ reaching into the internals of GRPC's
@@ -28,6 +26,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
 
         Args:
             watcher: A ThreadWatcher instance to report exceptions to.
+
         """
         self.__error_cb = watcher.on_exception_seen
 
@@ -40,10 +39,8 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         ],
         handler_call_details: grpc.HandlerCallDetails,
     ) -> grpc.RpcMethodHandler:
+        """Intercepts the RPC call, catching exceptions and invoking the callback.
         """
-        Intercepts the RPC call, catching exceptions and invoking the callback.
-        """
-
         handler: grpc.RpcMethodHandler = await continuation(handler_call_details)
 
         # If there's no handler, it means this RPC is not implemented.

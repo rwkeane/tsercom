@@ -25,4 +25,5 @@ class RemoteDataResponder(ABC, Generic[ResponseTypeT]):
 
         Args:
             response: Response data (`ResponseTypeT`) ready to be sent.
+
         """

@@ -4,8 +4,7 @@ from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 
 
 class LinearInterpolationStrategy(SmoothingStrategy):
-    """
-    Implements linear interpolation for a series of data points using torch.Tensor.
+    """Implements linear interpolation for a series of data points using torch.Tensor.
     """
 
     def __init__(
@@ -23,8 +22,7 @@ class LinearInterpolationStrategy(SmoothingStrategy):
         values: torch.Tensor,  # float tensor
         required_timestamps: torch.Tensor,  # float tensor
     ) -> torch.Tensor:
-        """
-        Performs linear interpolation using torch.Tensor operations.
+        """Performs linear interpolation using torch.Tensor operations.
 
         Timestamps are expected to be numerical (e.g., Unix timestamps as float).
 
@@ -49,6 +47,7 @@ class LinearInterpolationStrategy(SmoothingStrategy):
             A 1D torch.Tensor of interpolated values (float), corresponding to each
             `required_timestamp`. Values for which interpolation is not possible
             (e.g., no keyframes) will be NaN.
+
         """
         if timestamps.numel() == 0:
             return torch.full_like(

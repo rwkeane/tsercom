@@ -69,6 +69,7 @@ class ServerRuntimeDataHandler(
             is_testing: If True, a `FakeSynchronizedClock` is used as the time
                 source. Otherwise, a `TimeSyncServer` is started to provide
                 time synchronization to clients.
+
         """
         super().__init__(
             data_reader,
@@ -109,6 +110,7 @@ class ServerRuntimeDataHandler(
         Returns:
             An `EndpointDataProcessor` instance configured for communication
             with the registered client caller, using the server\'s authoritative clock.
+
         """
         self._id_tracker.add(caller_id, endpoint, port)
         return self._create_data_processor(caller_id, self.__clock)
@@ -127,6 +129,7 @@ class ServerRuntimeDataHandler(
 
         Returns:
             False, indicating the caller is not actively removed by this method.
+
         """
         # To fully remove, one might call:
         return False

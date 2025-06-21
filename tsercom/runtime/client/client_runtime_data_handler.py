@@ -78,6 +78,7 @@ class ClientRuntimeDataHandler(
             is_testing: If True, configures certain components like
                 `TimeSyncTracker` to use test-specific behaviors (e.g.,
                 a fake time synchronization mechanism).
+
         """
         super().__init__(
             data_reader,
@@ -113,6 +114,7 @@ class ClientRuntimeDataHandler(
             An `EndpointDataProcessor` instance configured for communication
             with the registered remote caller, using a synchronized clock for
             that endpoint.
+
         """
         # Add to IdTracker (from base class) to associate caller_id with address
         self._id_tracker.add(caller_id, endpoint, port)
@@ -136,6 +138,7 @@ class ClientRuntimeDataHandler(
             True if the caller was found in the `IdTracker` and successfully
             unregistered (including from the clock tracker), False otherwise
             (e.g., if the `caller_id` was not found).
+
         """
         # Retrieve address details before removing from IdTracker
         # try_get by ID returns (address, port, data_poller)

@@ -83,6 +83,7 @@ class ServiceConnector(
                     instance of the discovered service.
                 channel: The established communication channel (of type `ChannelTypeT`,
                     e.g., `grpc.aio.Channel`) to the service.
+
             """
 
     def __init__(
@@ -103,6 +104,7 @@ class ServiceConnector(
             service_source: A `ServiceSource` instance that will provide
                 information about discovered services (of type `SourceServiceInfoT`).
                 The `ServiceConnector` registers itself as a client to this source.
+
         """
         self.__client: ServiceConnector.Client = client
         self.__service_source: ServiceSource[SourceServiceInfoT] = service_source
@@ -128,8 +130,7 @@ class ServiceConnector(
         await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
-        """
-        Marks a connected service instance (client from ServiceConnector's
+        """Marks a connected service instance (client from ServiceConnector's
         perspective) as failed.
 
         This removes the `caller_id` from the set of tracked active connections,
@@ -151,6 +152,7 @@ class ServiceConnector(
             RuntimeError: If an event loop cannot be determined when attempting
                 to schedule the operation (should not happen if `start` has been
                 called and discovery is active).
+
         """
         if self.__event_loop is None:
             # Attempt to capture loop if not already. This might occur if
@@ -189,6 +191,7 @@ class ServiceConnector(
 
         Args:
             caller_id: The `CallerIdentifier` of the client to remove.
+
         """
         assert caller_id in self.__callers, (
             f"Attempted to mark unknown caller {caller_id} as failed. "
@@ -219,6 +222,7 @@ class ServiceConnector(
             connection_info: The `ServiceInfoT` object containing details about
                 the newly discovered service.
             caller_id: The `CallerIdentifier` for the specific service instance.
+
         """
         if self.__event_loop is None:
             self.__event_loop = get_running_loop_or_none()
@@ -323,6 +327,7 @@ class ServiceConnector(
         Args:
             service_name: The mDNS instance name of the service that was removed.
             caller_id: The CallerIdentifier associated with the removed service.
+
         """
         _logger.info(
             f"Service {service_name} (CallerID: {caller_id}) removed. "

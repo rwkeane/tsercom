@@ -32,6 +32,7 @@ class ProcessCreator:
             context: The multiprocessing context (e.g., from
                      `multiprocessing.get_context()` or a Torch context)
                      to be used for creating new processes.
+
         """
         self._context: BaseContext = context
 
@@ -53,6 +54,7 @@ class ProcessCreator:
 
         Catches:
             Exception: Catches any `Process` instantiation errors.
+
         """
         try:
             # BaseContext does not define .Process, but concrete contexts do.
@@ -101,5 +103,6 @@ class SplitErrorWatcherSourceFactory:
 
         Returns:
             A new instance of `SplitProcessErrorWatcherSource`.
+
         """
         return SplitProcessErrorWatcherSource(thread_watcher, error_source_queue)

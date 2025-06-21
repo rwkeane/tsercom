@@ -18,5 +18,6 @@ class ChannelInfo:
 
         Returns:
             True if the channel is healthy (serving), False otherwise.
+
         """
         return await check_grpc_channel_health(self.channel)

@@ -1,5 +1,4 @@
-"""
-Defines the abstract base class for multiprocess queue factories and a
+"""Defines the abstract base class for multiprocess queue factories and a
 deprecated factory function.
 
 This module provides the `MultiprocessQueueFactory` ABC, which defines the interface
@@ -21,8 +20,7 @@ QueueTypeT = TypeVar("QueueTypeT")
 
 
 class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
-    """
-    Abstract base class for multiprocess queue factories.
+    """Abstract base class for multiprocess queue factories.
 
     This class defines the interface that all multiprocess queue factories
     should implement.
@@ -34,8 +32,7 @@ class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
         max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
-        """
-        Creates a pair of queues for inter-process communication.
+        """Creates a pair of queues for inter-process communication.
 
         Args:
             max_ipc_queue_size: The maximum size for the created IPC queues.
@@ -46,5 +43,6 @@ class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
         Returns:
             A tuple containing two queue instances. The exact type of these
             queues will depend on the specific implementation.
+
         """
         ...

@@ -16,8 +16,7 @@ TimestampType: TypeAlias = Union["SynchronizedTimestamp", datetime.datetime]
     eq=False, order=False, unsafe_hash=False
 )  # Retaining custom eq/order
 class SynchronizedTimestamp:
-    """
-    A wrapper around a `datetime.datetime` object to represent a timestamp
+    """A wrapper around a `datetime.datetime` object to represent a timestamp
     within a synchronized time context.
 
     This class ensures timestamps are explicitly handled as part of a

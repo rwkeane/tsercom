@@ -37,6 +37,7 @@ class ThreadSafeQueue(Generic[T]):
 
         Raises:
             queue.Full: If queue full and `block` is False or timeout.
+
         """
         with self._lock:
             self._queue.put(item, block, timeout)
@@ -54,6 +55,7 @@ class ThreadSafeQueue(Generic[T]):
 
         Raises:
             queue.Empty: If queue empty and `block` is False or timeout.
+
         """
         with self._lock:
             return self._queue.get(block, timeout)
@@ -67,6 +69,7 @@ class ThreadSafeQueue(Generic[T]):
 
         Returns:
             Approximate number of items in queue.
+
         """
         with self._lock:
             return self._queue.qsize()
@@ -79,6 +82,7 @@ class ThreadSafeQueue(Generic[T]):
 
         Returns:
             True if the queue is empty, False otherwise.
+
         """
         with self._lock:
             return self._queue.empty()
