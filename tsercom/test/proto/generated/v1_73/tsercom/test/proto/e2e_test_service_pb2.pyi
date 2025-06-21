@@ -4,10 +4,10 @@ isort:skip_file
 """
 
 import builtins
-import tsercom.caller_id.proto as caller_id_pb2
 import google.protobuf.descriptor
 import google.protobuf.message
-import tensor_pb2
+import tsercom.caller_id.proto.caller_id_pb2
+import tsercom.tensor.proto.tensor_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -88,18 +88,18 @@ class E2EStreamRequest(google.protobuf.message.Message):
     CALLER_ID_FIELD_NUMBER: builtins.int
     DATA_CHUNK_FIELD_NUMBER: builtins.int
     @property
-    def caller_id(self) -> caller_id_pb2.CallerId:
+    def caller_id(self) -> tsercom.caller_id.proto.caller_id_pb2.CallerId:
         """For the initial handshake. Resolved from imported caller_id.proto (package tsercom)"""
 
     @property
-    def data_chunk(self) -> tensor_pb2.TensorChunk:
+    def data_chunk(self) -> tsercom.tensor.proto.tensor_pb2.TensorChunk:
         """For subsequent data. Resolved from imported tensor.proto (package tsercom)"""
 
     def __init__(
         self,
         *,
-        caller_id: caller_id_pb2.CallerId | None = ...,
-        data_chunk: tensor_pb2.TensorChunk | None = ...,
+        caller_id: tsercom.caller_id.proto.caller_id_pb2.CallerId | None = ...,
+        data_chunk: tsercom.tensor.proto.tensor_pb2.TensorChunk | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["caller_id", b"caller_id", "data_chunk", b"data_chunk", "payload", b"payload"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing.Literal["caller_id", b"caller_id", "data_chunk", b"data_chunk", "payload", b"payload"]) -> None: ...
@@ -116,14 +116,14 @@ class E2EStreamResponse(google.protobuf.message.Message):
     ack_message: builtins.str
     """For simple acknowledgements"""
     @property
-    def data_chunk(self) -> tensor_pb2.TensorChunk:
+    def data_chunk(self) -> tsercom.tensor.proto.tensor_pb2.TensorChunk:
         """For server sending data. Resolved from imported tensor.proto (package tsercom)"""
 
     def __init__(
         self,
         *,
         ack_message: builtins.str = ...,
-        data_chunk: tensor_pb2.TensorChunk | None = ...,
+        data_chunk: tsercom.tensor.proto.tensor_pb2.TensorChunk | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["ack_message", b"ack_message", "data_chunk", b"data_chunk", "payload", b"payload"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing.Literal["ack_message", b"ack_message", "data_chunk", b"data_chunk", "payload", b"payload"]) -> None: ...

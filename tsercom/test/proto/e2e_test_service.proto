@@ -2,6 +2,10 @@ syntax = "proto3";
 
 package tsercom;
 
+// Imports changed to be relative to the include paths provided by the original generate_protos.py script
+import "caller_id.proto";
+import "tensor.proto";
+
 // Option to generate a separate file for each message, if desired.
 // option java_multiple_files = true;
 // option java_package = "com.example.tsercom.test.e2e";
@@ -36,4 +40,24 @@ service E2ETestService {
 
   // A bidirectional-streaming RPC.
   rpc BidirectionalStreamData(stream StreamDataRequest) returns (stream StreamDataResponse);
+
+  // RPC for E2E test with CallerId handshake and data transfer.
+  rpc ExchangeData(stream E2EStreamRequest) returns (stream E2EStreamResponse);
+}
+
+message E2EStreamRequest {
+  oneof payload {
+    CallerId caller_id = 1; // For the initial handshake. Resolved from imported caller_id.proto (package tsercom)
+    TensorChunk data_chunk = 2; // For subsequent data. Resolved from imported tensor.proto (package tsercom)
+  }
+}
+
+message E2EStreamResponse {
+  oneof payload {
+    string ack_message = 1; // For simple acknowledgements
+    TensorChunk data_chunk = 2; // For server sending data. Resolved from imported tensor.proto (package tsercom)
+    // Optionally, server could also send its CallerId if needed for some protocols,
+    // but typically response streams focus on data/status after initial handshake.
+    // CallerId server_caller_id = 3; // If CallerId from server is also needed.
+  }
 }

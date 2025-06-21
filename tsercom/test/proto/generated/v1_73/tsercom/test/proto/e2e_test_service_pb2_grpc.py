@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from tsercom.test.proto.generated.v1_73 import e2e_test_service_pb2 as e2e__test__service__pb2
+from tsercom.test.proto import e2e_test_service_pb2 as tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2
 
 GRPC_GENERATED_VERSION = '1.73.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in e2e_test_service_pb2_grpc.py depends on'
+        + f' but the generated code in tsercom/test/proto/e2e_test_service_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,28 +36,28 @@ class E2ETestServiceStub(object):
         """
         self.Echo = channel.unary_unary(
                 '/tsercom.E2ETestService/Echo',
-                request_serializer=e2e__test__service__pb2.EchoRequest.SerializeToString,
-                response_deserializer=e2e__test__service__pb2.EchoResponse.FromString,
+                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoRequest.SerializeToString,
+                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
                 _registered_method=True)
         self.ServerStreamData = channel.unary_stream(
                 '/tsercom.E2ETestService/ServerStreamData',
-                request_serializer=e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-                response_deserializer=e2e__test__service__pb2.StreamDataResponse.FromString,
+                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
                 _registered_method=True)
         self.ClientStreamData = channel.stream_unary(
                 '/tsercom.E2ETestService/ClientStreamData',
-                request_serializer=e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-                response_deserializer=e2e__test__service__pb2.EchoResponse.FromString,
+                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
                 _registered_method=True)
         self.BidirectionalStreamData = channel.stream_stream(
                 '/tsercom.E2ETestService/BidirectionalStreamData',
-                request_serializer=e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-                response_deserializer=e2e__test__service__pb2.StreamDataResponse.FromString,
+                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
                 _registered_method=True)
         self.ExchangeData = channel.stream_stream(
                 '/tsercom.E2ETestService/ExchangeData',
-                request_serializer=e2e__test__service__pb2.E2EStreamRequest.SerializeToString,
-                response_deserializer=e2e__test__service__pb2.E2EStreamResponse.FromString,
+                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamRequest.SerializeToString,
+                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamResponse.FromString,
                 _registered_method=True)
 
 
@@ -104,28 +104,28 @@ def add_E2ETestServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Echo': grpc.unary_unary_rpc_method_handler(
                     servicer.Echo,
-                    request_deserializer=e2e__test__service__pb2.EchoRequest.FromString,
-                    response_serializer=e2e__test__service__pb2.EchoResponse.SerializeToString,
+                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoRequest.FromString,
+                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.SerializeToString,
             ),
             'ServerStreamData': grpc.unary_stream_rpc_method_handler(
                     servicer.ServerStreamData,
-                    request_deserializer=e2e__test__service__pb2.StreamDataRequest.FromString,
-                    response_serializer=e2e__test__service__pb2.StreamDataResponse.SerializeToString,
+                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
+                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.SerializeToString,
             ),
             'ClientStreamData': grpc.stream_unary_rpc_method_handler(
                     servicer.ClientStreamData,
-                    request_deserializer=e2e__test__service__pb2.StreamDataRequest.FromString,
-                    response_serializer=e2e__test__service__pb2.EchoResponse.SerializeToString,
+                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
+                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.SerializeToString,
             ),
             'BidirectionalStreamData': grpc.stream_stream_rpc_method_handler(
                     servicer.BidirectionalStreamData,
-                    request_deserializer=e2e__test__service__pb2.StreamDataRequest.FromString,
-                    response_serializer=e2e__test__service__pb2.StreamDataResponse.SerializeToString,
+                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
+                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.SerializeToString,
             ),
             'ExchangeData': grpc.stream_stream_rpc_method_handler(
                     servicer.ExchangeData,
-                    request_deserializer=e2e__test__service__pb2.E2EStreamRequest.FromString,
-                    response_serializer=e2e__test__service__pb2.E2EStreamResponse.SerializeToString,
+                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamRequest.FromString,
+                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -153,8 +153,8 @@ class E2ETestService(object):
             request,
             target,
             '/tsercom.E2ETestService/Echo',
-            e2e__test__service__pb2.EchoRequest.SerializeToString,
-            e2e__test__service__pb2.EchoResponse.FromString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoRequest.SerializeToString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -180,8 +180,8 @@ class E2ETestService(object):
             request,
             target,
             '/tsercom.E2ETestService/ServerStreamData',
-            e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-            e2e__test__service__pb2.StreamDataResponse.FromString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -207,8 +207,8 @@ class E2ETestService(object):
             request_iterator,
             target,
             '/tsercom.E2ETestService/ClientStreamData',
-            e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-            e2e__test__service__pb2.EchoResponse.FromString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -234,8 +234,8 @@ class E2ETestService(object):
             request_iterator,
             target,
             '/tsercom.E2ETestService/BidirectionalStreamData',
-            e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-            e2e__test__service__pb2.StreamDataResponse.FromString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -261,8 +261,8 @@ class E2ETestService(object):
             request_iterator,
             target,
             '/tsercom.E2ETestService/ExchangeData',
-            e2e__test__service__pb2.E2EStreamRequest.SerializeToString,
-            e2e__test__service__pb2.E2EStreamResponse.FromString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamRequest.SerializeToString,
+            tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamResponse.FromString,
             options,
             channel_credentials,
             insecure,
