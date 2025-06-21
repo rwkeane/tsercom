@@ -1,5 +1,4 @@
-"""
-Provides the SmoothedTensorDemuxer class for interpolating tensor data over time.
+"""Provides the SmoothedTensorDemuxer class for interpolating tensor data over time.
 """
 
 import asyncio
@@ -19,8 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class SmoothedTensorDemuxer(TensorDemuxer):
-    """
-    Manages per-index keyframe data using torch.Tensors and provides smoothed,
+    """Manages per-index keyframe data using torch.Tensors and provides smoothed,
     interpolated tensor updates.
     Uses a specified smoothing strategy for per-index "cascading forward" interpolation.
     """
@@ -90,8 +88,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         return self.__align_output_timestamps
 
     async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
-        """
-        Handles an incoming tensor data chunk.
+        """Handles an incoming tensor data chunk.
         This method delegates the core processing to the parent TensorDemuxer's
         on_chunk_received method, which manages keyframe storage and cascading updates.
         The parent will then call `_on_keyframe_updated` (overridden by this class)
@@ -104,8 +101,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         timestamp: datetime.datetime,
         new_tensor_state: torch.Tensor,
     ) -> None:
-        """
-        Callback triggered when the parent TensorDemuxer detects a full keyframe update.
+        """Callback triggered when the parent TensorDemuxer detects a full keyframe update.
         This method then triggers the interpolation and output push.
         """
         logger.debug(
@@ -120,8 +116,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         return datetime.datetime.now(datetime.timezone.utc)
 
     async def __try_interpolate_and_push(self) -> None:
-        """
-        Attempts to interpolate the tensor to the next output timestamp and push it.
+        """Attempts to interpolate the tensor to the next output timestamp and push it.
         This is the core logic for generating smoothed tensor outputs.
         """
         if self.__stop_event.is_set():

@@ -15,8 +15,7 @@ STI = TypeVar("STI", bound="SerializableTensorInitializer")
 
 
 class SerializableTensorInitializer:
-    """
-    Represents the complete initialization information for a tensor,
+    """Represents the complete initialization information for a tensor,
     including its shape, data type, a default fill value, and an
     optional initial set of data chunks.
     """
@@ -28,8 +27,7 @@ class SerializableTensorInitializer:
         fill_value: float,
         initial_state: SerializableTensorUpdate | None = None,
     ):
-        """
-        Initializes the tensor configuration.
+        """Initializes the tensor configuration.
 
         Args:
             shape: The full shape of the tensor (e.g., [10, 20]).
@@ -38,6 +36,7 @@ class SerializableTensorInitializer:
             fill_value: The default value to fill the tensor with upon creation.
             initial_state: An optional SerializableTensorUpdate with initial
                 data chunks.
+
         """
         self.__shape: list[int] = shape
         self.__dtype_str: str = dtype
@@ -77,8 +76,7 @@ class SerializableTensorInitializer:
     def try_parse(
         cls: type[STI], grpc_msg: TensorInitializer  # Changed type hint
     ) -> STI | None:
-        """
-        Attempts to parse a TensorInitializer protobuf message.
+        """Attempts to parse a TensorInitializer protobuf message.
 
         The method maps the `dtype` string from the protobuf message to a
         `torch.dtype`. This torch dtype is crucial for parsing any tensor
@@ -91,6 +89,7 @@ class SerializableTensorInitializer:
               contains chunks.
             - Parsing of `initial_state` (when present and containing chunks)
               fails.
+
         """
         if not grpc_msg:
             return None

@@ -21,4 +21,5 @@ class ConnectionFactory(Generic[ConnectionTypeT], ABC):
 
         Returns:
             An instance of ConnectionTypeT if successful, otherwise None.
+
         """

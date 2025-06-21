@@ -27,8 +27,7 @@ class _InternalMuxerClient(TensorMultiplexer.Client):
 
 
 class TensorStreamSource(TensorMultiplexer.Client):
-    """
-    A high-level helper class to create and publish a tsercom tensor stream.
+    """A high-level helper class to create and publish a tsercom tensor stream.
 
     This class encapsulates the setup of a TensorMultiplexer,
     taking an initial tensor and automatically creating the necessary backend
@@ -156,8 +155,7 @@ class TensorStreamSource(TensorMultiplexer.Client):
         await self.__multiplexer.process_tensor(new_tensor, timestamp)
 
     async def on_chunk_update(self, chunk: SerializableTensorChunk) -> None:
-        """
-        Implementation of TensorMultiplexer.Client interface.
+        """Implementation of TensorMultiplexer.Client interface.
         Called by the _InternalMuxerClient when the multiplexer produces a chunk.
         This pushes the chunk into an AsyncPoller for async iteration.
         """

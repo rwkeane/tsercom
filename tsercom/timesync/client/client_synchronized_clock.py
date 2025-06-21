@@ -10,22 +10,19 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 class ClientSynchronizedClock(SynchronizedClock):
-    """
-    This class defines a clock that is synchronized with the server-side clock
+    """This class defines a clock that is synchronized with the server-side clock
     as defined by |client|.
     """
 
     class Client(ABC):
-        """
-        An abstract interface for a client that can provide the time offset
+        """An abstract interface for a client that can provide the time offset
         between this client and a server. This offset is used by the
         ClientSynchronizedClock to adjust timestamps.
         """
 
         @abstractmethod
         def get_offset_seconds(self) -> float:
-            """
-            Retrieves the time offset in seconds between this client and the
+            """Retrieves the time offset in seconds between this client and the
             server.
 
             A positive value indicates that the client's clock is ahead of the
@@ -34,32 +31,30 @@ class ClientSynchronizedClock(SynchronizedClock):
 
             Returns:
                 The time offset in seconds as a float.
+
             """
 
         @abstractmethod
         def get_synchronized_clock(self) -> SynchronizedClock:
-            """
-            Returns a SynchronizedClock instance using this client for offsets.
+            """Returns a SynchronizedClock instance using this client for offsets.
             """
 
         @abstractmethod
         def start_async(self) -> None:
-            """
-            Starts the time synchronization client asynchronously.
+            """Starts the time synchronization client asynchronously.
             """
 
         @abstractmethod
         def stop(self) -> None:
-            """
-            Stops the time synchronization client.
+            """Stops the time synchronization client.
             """
 
     def __init__(self, client: "ClientSynchronizedClock.Client") -> None:
-        """
-        Initializes the ClientSynchronizedClock.
+        """Initializes the ClientSynchronizedClock.
 
         Args:
             client: ClientSynchronizedClock.Client instance for time offset.
+
         """  # Shortened line
         self.__client = client
         super().__init__()

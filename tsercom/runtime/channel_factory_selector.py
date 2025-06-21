@@ -43,8 +43,7 @@ class ChannelFactorySelector:
     def create_factory(
         self, auth_config: BaseChannelAuthConfig | None
     ) -> GrpcChannelFactory:
-        """
-        Creates an instance of a GrpcChannelFactory based on the provided
+        """Creates an instance of a GrpcChannelFactory based on the provided
         ChannelAuthConfig.
 
         Args:
@@ -57,6 +56,7 @@ class ChannelFactorySelector:
         Raises:
             ValueError: If a BaseChannelAuthConfig subclass is provided but
                         is not recognized, or files not accessible.
+
         """
         if auth_config is None or isinstance(auth_config, InsecureChannelConfig):
             logger.info("Creating GrpcChannelFactory for insecure configuration.")

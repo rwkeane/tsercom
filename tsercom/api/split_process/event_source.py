@@ -30,6 +30,7 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
 
         Args:
             event_source: Multiprocess queue source for polling events.
+
         """
         self.__event_source = event_source
         self.__is_running = IsRunningTracker()
@@ -51,6 +52,7 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
 
         Args:
             thread_watcher: ThreadWatcher to monitor the polling thread.
+
         """
         self.__is_running.start()
         self.__thread_watcher = thread_watcher

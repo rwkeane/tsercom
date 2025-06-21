@@ -28,6 +28,7 @@ class TimeSyncTracker:
         Args:
             thread_watcher: For monitoring threads by TimeSyncClient.
             is_testing: If True, uses `FakeTimeSyncClient`.
+
         """
         self.__thread_watcher = thread_watcher
         self.__map: dict[str, tuple[int, ClientSynchronizedClock.Client]] = {}
@@ -44,6 +45,7 @@ class TimeSyncTracker:
 
         Returns:
             A `SynchronizedClock` instance associated with the endpoint.
+
         """
         new_client: ClientSynchronizedClock.Client
         if ip not in self.__map:
@@ -71,6 +73,7 @@ class TimeSyncTracker:
 
         Raises:
             KeyError: If the IP was not previously tracked.
+
         """
         if ip not in self.__map:
             msg = (

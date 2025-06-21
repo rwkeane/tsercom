@@ -67,4 +67,5 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
             An `EndpointDataProcessor` instance configured for the registered
             caller if successful. Returns `None` if registration fails (e.g.,
             if IP address cannot be extracted from the gRPC context).
+
         """

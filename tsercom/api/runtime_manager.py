@@ -119,6 +119,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             split_error_watcher_source_factory: An optional factory for creating
                 `SplitProcessErrorWatcherSource` instances, used for monitoring
                 out-of-process runtimes. If `None`, a default factory is used.
+
         """
         super().__init__()
 
@@ -200,6 +201,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
         Returns:
             True if the manager has been started, False otherwise.
+
         """
         return self.__has_started.get()
 
@@ -226,6 +228,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         Raises:
             RuntimeError: If this method is called after the manager has already
                 been started.
+
         """
         if self.has_started:
             raise RuntimeError(
@@ -254,6 +257,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         Raises:
             RuntimeError: If no asyncio event loop is currently running in the
                 calling context.
+
         """
         running_loop = get_running_loop_or_none()
         if running_loop is None:
@@ -284,6 +288,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
         Raises:
             RuntimeError: If the manager has already been started.
+
         """
         assert runtime_event_loop is not None, "runtime_event_loop cannot be None"
         if self.has_started:
@@ -328,6 +333,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
 
         Raises:
             RuntimeError: If the manager has already been started.
+
         """
         if self.has_started:
             raise RuntimeError("RuntimeManager has already been started.")
@@ -385,6 +391,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             Exception: The first exception propagated from any managed runtime.
             RuntimeError: If the manager has not been started or if the
                 necessary error watching components are not available.
+
         """
         if not self.has_started:
             raise RuntimeError("RuntimeManager has not been started.")
@@ -410,6 +417,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             RuntimeError: If the manager has been started but the internal
                 `ThreadWatcher` is somehow not available (should not happen
                 with proper initialization).
+
         """
         if not self.has_started:
             return
@@ -494,6 +502,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         Returns:
             A list of created `RuntimeFactory` instances, one for each
             registered `RuntimeInitializer`.
+
         """
         results: list[RuntimeFactory[DataTypeT, EventTypeT]] = []
         for pair in self.__initializers:
@@ -526,6 +535,7 @@ class RuntimeFuturePopulator(
         Args:
             future: The `Future` object that will be populated with the
                 `RuntimeHandle` when `_on_handle_ready` is called.
+
         """
         self.__future: Future[RuntimeHandle[DataTypeT, EventTypeT]] = future
 
@@ -541,5 +551,6 @@ class RuntimeFuturePopulator(
         Args:
             handle: The `RuntimeHandle` that has been successfully created and
                 is ready for use.
+
         """
         self.__future.set_result(handle)

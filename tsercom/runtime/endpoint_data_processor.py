@@ -36,6 +36,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     Attributes:
         caller_id: The `CallerIdentifier` for the endpoint this processor handles.
+
     """
 
     def __init__(self, caller_id: CallerIdentifier):
@@ -44,6 +45,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         Args:
             caller_id: The unique identifier of the caller endpoint this
                 processor is associated with.
+
         """
         self.__caller_id = caller_id
 
@@ -80,12 +82,12 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             Returns `None` if desynchronization is not possible. If `context` was
             provided and desynchronization failed, the gRPC call would have been
             aborted before returning `None`.
+
         """
 
     @abstractmethod
     async def deregister_caller(self) -> None:
-        """
-        Performs cleanup and resource release when the associated caller is
+        """Performs cleanup and resource release when the associated caller is
         deregistered.
 
         Subclasses should implement this to handle any necessary cleanup
@@ -103,6 +105,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             data: The data item of type `DataTypeT` to process.
             timestamp: The `datetime` object associated with the data. It is
                 assumed to be an aware datetime object (e.g., in UTC).
+
         """
 
     @overload
@@ -125,6 +128,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             context: Optional. The `grpc.aio.ServicerContext` for a gRPC call, used
                 for potentially aborting the call if timestamp desynchronization
                 fails.
+
         """
 
     async def process_data(
@@ -155,6 +159,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             context: Optional. The `grpc.aio.ServicerContext` for the current
                 gRPC call. If provided and timestamp desynchronization from a
                 `ServerTimestamp` fails, the gRPC call will be aborted.
+
         """
         assert timestamp is not None
 
@@ -176,8 +181,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-        """
-        Processes the data item with its fully synchronized and normalized
+        """Processes the data item with its fully synchronized and normalized
         `datetime`.
 
         Subclasses must implement this method to define the specific business logic
@@ -188,6 +192,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             data: The data item of type `DataTypeT` to be processed.
             timestamp: The synchronized and normalized `datetime` object (UTC)
                 associated with the data.
+
         """
 
     @abstractmethod

@@ -26,4 +26,5 @@ class RemoteDataReader(ABC, Generic[DataTypeT]):
 
         Args:
             new_data: The new data item of type `DataTypeT` received.
+
         """

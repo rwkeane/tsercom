@@ -24,6 +24,7 @@ class ClientIdFetcher:
 
         Args:
             stub: The gRPC stub with `GetId(GetIdRequest) -> GetIdResponse` method.
+
         """
         self.__stub: Any = stub
         self.__id: CallerIdentifier | None = None
@@ -46,6 +47,7 @@ class ClientIdFetcher:
                        or subsequent processing if not caught by the broad
                        exception handler within the method. The method attempts
                        to catch common issues and return None.
+
         """
         try:
             # Ensure only one coroutine attempts to fetch the ID at a time.

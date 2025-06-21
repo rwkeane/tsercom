@@ -27,6 +27,7 @@ class ServiceType(Enum):
         SERVER: Indicates the runtime operates as a server, typically accepting
             connections, assigning `CallerIdentifier`s to clients, and acting as
             the authoritative time source.
+
     """
 
     CLIENT = 0
@@ -79,6 +80,7 @@ class RuntimeConfig(Generic[DataTypeT]):
                 may be lossy if the queue is full.
             data_reader_sink_is_lossy: Controls if the `DataReaderSink` used by
                 `RemoteRuntimeFactory` is lossy. Defaults to True.
+
         """
         ...
 
@@ -113,6 +115,7 @@ class RuntimeConfig(Generic[DataTypeT]):
                 may be lossy if the queue is full.
             data_reader_sink_is_lossy: Controls if the `DataReaderSink` used by
                 `RemoteRuntimeFactory` is lossy. Defaults to True.
+
         """
         ...
 
@@ -123,6 +126,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         Args:
             other_config: An existing `RuntimeConfig` instance to clone.
                 All other parameters will be ignored if this is provided.
+
         """
         ...
 
@@ -191,6 +195,7 @@ class RuntimeConfig(Generic[DataTypeT]):
                 or "Server".
             TypeError: If `service_type` is provided but is not a `ServiceType`
                 enum member or a valid string literal.
+
         """
         if (service_type is None) == (other_config is None):
             other_config_str = "<Provided>" if other_config is not None else None
@@ -262,6 +267,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             True if the `service_type` is `ServiceType.CLIENT`, False otherwise.
+
         """
         return self.__service_type == ServiceType.CLIENT
 
@@ -279,6 +285,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             True if the `service_type` is `ServiceType.SERVER`, False otherwise.
+
         """
         return self.__service_type == ServiceType.SERVER
 
@@ -297,6 +304,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         Returns:
             The `RemoteDataAggregator.Client` instance, or `None` if no data
             aggregator client is configured.
+
         """
         return self.__data_aggregator_client
 
@@ -306,6 +314,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             The timeout in seconds, or `None` if data items should not time out.
+
         """
         return self.__timeout_seconds
 
@@ -316,6 +325,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         Returns:
             The minimum send frequency in seconds, or `None` if no such
             minimum is set at this configuration level.
+
         """
         return self.__min_send_frequency_seconds
 
@@ -327,6 +337,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             A `BaseChannelAuthConfig` instance defining security settings for
             gRPC channels, or `None` if insecure channels are to be used or
             no specific auth configuration is provided.
+
         """
         return self.__auth_config
 
@@ -342,6 +353,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             The maximum number of responses that can be queued per endpoint.
+
         """
         return self.__max_queued_responses_per_endpoint
 
@@ -356,6 +368,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             The configured maximum size for IPC queues, or `None` for unbounded.
+
         """
         return self.__max_ipc_queue_size
 
@@ -369,6 +382,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             True if IPC queue puts are blocking, False otherwise.
+
         """
         return self.__is_ipc_blocking
 
@@ -382,5 +396,6 @@ class RuntimeConfig(Generic[DataTypeT]):
 
         Returns:
             True if the sink should be lossy, False otherwise.
+
         """
         return self.__data_reader_sink_is_lossy

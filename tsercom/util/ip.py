@@ -13,6 +13,7 @@ def get_all_address_strings() -> list[str]:
 
     Returns:
         A list of IPv4 address strings. Empty if no IPv4 addresses found.
+
     """
     addresses: list[str] = []
     for _, interface_addresses in psutil.net_if_addrs().items():
@@ -33,5 +34,6 @@ def get_all_addresses() -> list[bytes]:
         A list of bytes, where each bytes object is an IPv4 address
         packed in network byte order. Returns an empty list if no
         IPv4 addresses are found.
+
     """
     return [socket.inet_aton(a) for a in get_all_address_strings()]

@@ -49,6 +49,7 @@ class InstancePublisher:
             ValueError: If port/service_type is None or invalid.
             TypeError: If arguments have unexpected types.
             RuntimeError: If _make_txt_record fails.
+
         """
         if port is None:
             raise ValueError("port cannot be None for InstancePublisher.")
@@ -135,6 +136,7 @@ class InstancePublisher:
 
         Returns:
             Dict (bytes: bytes/None) for mDNS TXT record.
+
         """
         properties: dict[bytes, bytes | None] = {
             b"published_on": self.__get_current_date_time_bytes()
@@ -178,6 +180,7 @@ class InstancePublisher:
 
         Returns:
             Timestamp as bytes (e.g., "YYYY-MM-DD HH:MM:SS.ffffff").
+
         """
         now = datetime.datetime.now()
         # Format includes microseconds for precision.

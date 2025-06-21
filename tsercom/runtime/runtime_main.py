@@ -90,6 +90,7 @@ def initialize_runtimes(
             type (neither client nor server).
         AssertionError: If the global Tsercom event loop has not been set
             prior to calling this function.
+
     """
     assert is_global_event_loop_set(), "Global Tsercom event loop must be set."
 
@@ -211,6 +212,7 @@ def remote_process_main(
             exceptions encountered in this process back to the parent process.
         is_testing: If True, configures components (passed to
             `initialize_runtimes`) for testing-specific behaviors.
+
     """
     clear_tsercom_event_loop(
         try_stop_loop=False

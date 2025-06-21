@@ -14,8 +14,7 @@ STU = TypeVar("STU", bound="SerializableTensorUpdate")
 
 
 class SerializableTensorUpdate:
-    """
-    Represents a collection of tensor chunks, typically for an update operation
+    """Represents a collection of tensor chunks, typically for an update operation
     or as part of a tensor initialization state.
     """
 
@@ -33,8 +32,7 @@ class SerializableTensorUpdate:
         grpc_msg: TensorUpdate,
         dtype: torch.dtype,
     ) -> STU | None:
-        """
-        Attempts to parse a TensorUpdate protobuf message.
+        """Attempts to parse a TensorUpdate protobuf message.
 
         Args:
             grpc_msg: The protobuf message to parse.
@@ -45,6 +43,7 @@ class SerializableTensorUpdate:
             any constituent chunk fails to parse and the original message had chunks.
             Returns an instance with an empty list of chunks if the input message
             had no chunks.
+
         """
         parsed_chunks_potentially_none = [
             SerializableTensorChunk.try_parse(chunk_msg, dtype=dtype)

@@ -45,6 +45,7 @@ class RuntimeWrapper(
             event_poller: An AsyncPoller to handle incoming events.
             data_aggregator: A RemoteDataAggregatorImpl to manage data.
             bridge: A RuntimeCommandBridge to send commands to the runtime.
+
         """
         self.__event_poller: AsyncPoller[EventInstance[EventTypeT]] = event_poller
         self.__aggregator: RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]] = (
@@ -73,6 +74,7 @@ class RuntimeWrapper(
             event: The event data to process.
             caller_id: Optional ID of the caller generating the event.
             timestamp: Optional event timestamp. Defaults to `datetime.now()`.
+
         """
         if timestamp is None:
             timestamp = datetime.now()
@@ -87,8 +89,8 @@ class RuntimeWrapper(
 
         Args:
             new_data: The new data instance that has become available.
-        """
 
+        """
         self.__aggregator._on_data_ready(new_data)
 
     def _get_remote_data_aggregator(
@@ -100,6 +102,7 @@ class RuntimeWrapper(
 
         Returns:
             The `RemoteDataAggregator` instance used by this wrapper.
+
         """
         return self.__aggregator
 

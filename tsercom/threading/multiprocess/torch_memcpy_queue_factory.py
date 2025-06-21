@@ -28,8 +28,7 @@ QueueElementT = TypeVar("QueueElementT")
 class TorchMemcpyQueueFactory(
     MultiprocessQueueFactory[QueueElementT], Generic[QueueElementT]
 ):
-    """
-    Provides an implementation of `MultiprocessQueueFactory` specialized for
+    """Provides an implementation of `MultiprocessQueueFactory` specialized for
     `torch.Tensor` objects.
 
     It utilizes `torch.multiprocessing.Queue` instances, which are chosen
@@ -60,8 +59,8 @@ class TorchMemcpyQueueFactory(
                              (or Any for flexibility here), returns a
                              torch.Tensor or an Iterable of torch.Tensors found
                              within it.
-        """
 
+        """
         if context:
             self.__mp_context = context
         else:
@@ -76,8 +75,7 @@ class TorchMemcpyQueueFactory(
         "TorchMemcpyQueueSink[QueueElementT]",
         "TorchMemcpyQueueSource[QueueElementT]",
     ]:  # Return specialized generic sink/source
-        """
-        Creates a pair of torch.multiprocessing queues wrapped in specialized
+        """Creates a pair of torch.multiprocessing queues wrapped in specialized
         Tensor Sink/Source.
 
         These queues are suitable for inter-process communication. If a
@@ -95,6 +93,7 @@ class TorchMemcpyQueueFactory(
         Returns:
             A tuple containing TorchMemcpyQueueSink and TorchMemcpyQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
+
         """
         effective_maxsize = 0
         if max_ipc_queue_size is not None and max_ipc_queue_size > 0:
@@ -118,8 +117,7 @@ class TorchMemcpyQueueFactory(
 class TorchMemcpyQueueSource(
     Generic[QueueElementT], MultiprocessQueueSource[QueueElementT]
 ):
-    """
-    A MultiprocessQueueSource that can find and prepare torch.Tensor objects
+    """A MultiprocessQueueSource that can find and prepare torch.Tensor objects
     (single, or an iterable of tensors) for shared memory transfer using a
     provided tensor_accessor function after an item is retrieved from the
     queue. If no accessor is provided, it defaults to checking if the object
@@ -139,16 +137,17 @@ class TorchMemcpyQueueSource(
         ) = tensor_accessor
 
     def get_blocking(self, timeout: float | None = None) -> QueueElementT | None:
-        """
-        Gets an item from the queue. If a tensor_accessor is provided, it's used
+        """Gets an item from the queue. If a tensor_accessor is provided, it's used
         to find and call share_memory_() on any torch.Tensor objects within the item.
         If no accessor, it checks if the item itself is a tensor.
 
         Args:
             timeout: Max time (secs) to wait. None means block indefinitely.
+
         Returns:
             The item from queue, or None on timeout. Tensors within (if found)
             will have share_memory_() called.
+
         """
         item = super().get_blocking(timeout=timeout)
         if item is not None:
@@ -186,8 +185,7 @@ class TorchMemcpyQueueSource(
 class TorchMemcpyQueueSink(
     Generic[QueueElementT], MultiprocessQueueSink[QueueElementT]
 ):
-    """
-    A MultiprocessQueueSink that can find and prepare torch.Tensor objects
+    """A MultiprocessQueueSink that can find and prepare torch.Tensor objects
     (single, or an iterable of tensors) for shared memory transfer using a
     provided tensor_accessor function. If no accessor is provided, it defaults
     to checking if the object itself is a tensor.
@@ -207,16 +205,17 @@ class TorchMemcpyQueueSink(
         ) = tensor_accessor
 
     def put_blocking(self, obj: QueueElementT, timeout: float | None = None) -> bool:
-        """
-        Puts an item into the queue. If a tensor_accessor is provided, it's used
+        """Puts an item into the queue. If a tensor_accessor is provided, it's used
         to find and call share_memory_() on any torch.Tensor objects.
         If no accessor is provided, it checks if the object itself is a tensor.
 
         Args:
             obj: The item to put into the queue.
             timeout: Max time (secs) to wait. None means block indefinitely.
+
         Returns:
             True if successful, False on timeout.
+
         """
         if self.__tensor_accessor:
             try:

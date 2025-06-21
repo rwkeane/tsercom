@@ -35,6 +35,7 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
         Raises:
             ValueError: If `responder` is None.
             TypeError: If `responder` is not a `RemoteDataResponder` subclass.
+
         """
         if responder is None:
             # Long error message
@@ -60,6 +61,6 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
 
         Args:
             response: The response data of type `ResponseTypeT` to send.
-        """
 
+        """
         self.__responder._on_response_ready(response)

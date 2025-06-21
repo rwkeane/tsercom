@@ -39,6 +39,7 @@ class RuntimeCommandBridge:
 
         Raises:
             RuntimeError: If the runtime has already been set.
+
         """
         with self.__runtime_mutex:
             # Ensure runtime is set only once.

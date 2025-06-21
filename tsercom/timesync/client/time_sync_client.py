@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class TimeSyncClient(ClientSynchronizedClock.Client):
-    """
-    Synchronizes clocks with an NTP server.
+    """Synchronizes clocks with an NTP server.
 
     Defines client-side of NTP handshake.
     NOTE: This is a real NTP client, unlike FakeTimeSyncClient.
@@ -29,13 +28,13 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
     def __init__(
         self, watcher: ThreadWatcher, server_ip: str, ntp_port: int = kNtpPort
     ) -> None:
-        """
-        Initializes the TimeSyncClient.
+        """Initializes the TimeSyncClient.
 
         Args:
             watcher: ThreadWatcher to monitor the synchronization thread.
             server_ip: IP address of the NTP server.
             ntp_port: Port of the NTP server.
+
         """
         self.__watcher = watcher
         self.__server_ip = server_ip
@@ -60,6 +59,7 @@ class TimeSyncClient(ClientSynchronizedClock.Client):
 
         Raises:
             AssertionError: If called after barrier set but offsets empty.
+
         """
         self.__start_barrier.wait()
         with self.__time_offset_lock:

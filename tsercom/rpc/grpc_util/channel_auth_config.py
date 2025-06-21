@@ -19,8 +19,7 @@ class InsecureChannelConfig(BaseChannelAuthConfig):
 
 @dataclass(frozen=True)
 class ServerCAChannelConfig(BaseChannelAuthConfig):
-    """
-    Configuration for a gRPC channel where the client authenticates the server
+    """Configuration for a gRPC channel where the client authenticates the server
     using a root CA certificate.
     """
 
@@ -30,8 +29,7 @@ class ServerCAChannelConfig(BaseChannelAuthConfig):
 
 @dataclass(frozen=True)
 class PinnedServerChannelConfig(BaseChannelAuthConfig):
-    """
-    Configuration for a gRPC channel where the client authenticates the server
+    """Configuration for a gRPC channel where the client authenticates the server
     by pinning against a specific server certificate.
     """
 
@@ -41,8 +39,7 @@ class PinnedServerChannelConfig(BaseChannelAuthConfig):
 
 @dataclass(frozen=True)
 class ClientAuthChannelConfig(BaseChannelAuthConfig):
-    """
-    Configuration for a gRPC channel where the client presents its certificate,
+    """Configuration for a gRPC channel where the client presents its certificate,
     and the client does not validate the server's certificate.
     """
 

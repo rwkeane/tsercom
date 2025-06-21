@@ -41,6 +41,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
             Args:
                 connection_info: Info about discovered service (`ServiceInfoT`).
+
             """
             # This method must be implemented by concrete client classes.
             raise NotImplementedError(
@@ -53,6 +54,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
             Args:
                 service_name: The mDNS instance name of the removed service.
+
             """
             # This method must be implemented by concrete client classes.
             raise NotImplementedError(
@@ -76,6 +78,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         Raises:
             ValueError: If `client` is None.
             TypeError: If client or service_type has an unexpected type.
+
         """
         if client is None:
             raise ValueError("Client cannot be None for InstanceListener.")
@@ -149,6 +152,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
         Returns:
             `ServiceInfo` or `None` if essential info (e.g., IPs) missing.
+
         """
         if not addresses:
             logging.warning(
@@ -219,6 +223,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         Returns:
             Instance of `ServiceInfoT`. Must be overridden if `ServiceInfoT`
             is a subclass of `ServiceInfo`.
+
         """
         # This cast is safe if ServiceInfoT is indeed ServiceInfo.
         # If ServiceInfoT is a subclass, this method MUST be overridden in the
@@ -245,6 +250,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             port: Service port number.
             addresses: List of raw binary IP addresses.
             txt_record: Dict of the service's TXT record.
+
         """
         base_service_info = self.__populate_service_info(
             name, port, addresses, txt_record
@@ -274,6 +280,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             name: mDNS instance name of the removed service.
             service_type: The type of the service removed (unused).
             record_listener_uuid: UUID of the RecordListener (unused).
+
         """
         # Client's _on_service_removed is expected to be a coroutine.
 

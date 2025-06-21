@@ -31,6 +31,7 @@ class RuntimeCommandSource:
 
         Args:
             runtime_command_queue: Queue for receiving `RuntimeCommand` objects.
+
         """
         self.__runtime_command_queue = runtime_command_queue
         self.__is_running: IsRunningTracker | None = None
@@ -50,6 +51,7 @@ class RuntimeCommandSource:
 
         Raises:
             AssertionError: If called multiple times or state is inconsistent.
+
         """
         # Ensure that start_async is called only once and in a valid state.
         # Long but readable assertion message
@@ -126,6 +128,7 @@ class RuntimeCommandSource:
 
         Raises:
             AssertionError: If not running or internal state inconsistent.
+
         """
         RuntimeCommandSource.logger.info("RuntimeCommandSource.stop_async() called")
         # Ensure stop_async is called only when running and in a valid state.

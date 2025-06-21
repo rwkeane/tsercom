@@ -32,6 +32,7 @@ class AsyncGetIdServer:
                            when it's generated.
             on_disconnect_handler: Optional ClientReconnectionManager to be
                                    notified on disconnection errors.
+
         """
         self.__callback = on_id_created
         self.__on_disconnect_handler = on_disconnect_handler
@@ -54,6 +55,7 @@ class AsyncGetIdServer:
 
         Returns:
             A GetIdResponse containing the new CallerIdentifier.
+
         """
         assert isinstance(request, GetIdRequest), "Invalid request type"
         new_id = (

@@ -34,6 +34,7 @@ class LocalRuntimeFactoryFactory(
 
         Args:
             thread_pool: ThreadPoolExecutor for managing asynchronous tasks.
+
         """
         super().__init__()
         self.__thread_pool = thread_pool
@@ -54,6 +55,7 @@ class LocalRuntimeFactoryFactory(
 
         Returns:
             A tuple (RuntimeHandle, LocalRuntimeFactory).
+
         """
         if initializer.timeout_seconds is not None:
             data_aggregator = RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]](

@@ -16,8 +16,7 @@ class MdnsListener(ServiceListener):
 
     @abstractmethod
     async def start(self) -> None:
-        """
-        Starts listening for mDNS services.
+        """Starts listening for mDNS services.
         """
         raise NotImplementedError(
             "MdnsListener.start must be implemented by subclasses."
@@ -71,6 +70,7 @@ class MdnsListener(ServiceListener):
                 addresses: List of raw binary IP addresses (A/AAAA records).
                 txt_record: Dict of service's TXT record (metadata).
                             Keys are bytes, values are bytes or None.
+
             """
             # This method must be implemented by concrete client classes.
             raise NotImplementedError(
@@ -88,4 +88,5 @@ class MdnsListener(ServiceListener):
                 name: Unique mDNS name (e.g., "MyDevice._myservice._tcp.local").
                 service_type: The type of the service that was removed.
                 record_listener_uuid: The UUID of the RecordListener instance.
+
             """

@@ -55,6 +55,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         event_loop: The asyncio event loop this poller is associated with.
             It is typically determined from the first call to `wait_instance` or
             `__anext__` if not explicitly set during initialization.
+
     """
 
     def __init__(
@@ -72,6 +73,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                 the previous batch was yielded before yielding a new batch.
                 If `None` or non-positive, a `NullRateLimiter` is used,
                 imposing no such delay.
+
         """
         self.__max_responses_queued: int | None = max_responses_queued
         self.__rate_limiter: RateLimiter
@@ -112,6 +114,7 @@ class AsyncPoller(Generic[ResultTypeT]):
 
         Args:
             new_instance: The item of `ResultTypeT` to make available.
+
         """
         with self.__lock:
             if (
@@ -125,8 +128,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             run_on_event_loop(self.__set_results_available, self.__event_loop)
 
     async def __set_results_available(self) -> None:
-        """
-        Internal coroutine to set the barrier event, run on the poller's event
+        """Internal coroutine to set the barrier event, run on the poller's event
         loop.
         """
         with self.__lock:
@@ -164,6 +166,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                 wait). Also raised if called from a different event loop than the
                 one it was first associated with, or if no event loop is running
                 when it\'s first called.
+
         """
         await self.__rate_limiter.wait_for_pass()
 
@@ -246,6 +249,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         Raises:
             StopAsyncIteration: If the poller is stopped (which causes
                 `wait_instance` to raise a `RuntimeError`).
+
         """
         try:
             return await self.wait_instance()

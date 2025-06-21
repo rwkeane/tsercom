@@ -15,8 +15,7 @@ AddServicerCB = Callable[["grpc.Server"], None]
 
 
 class GrpcServicePublisher:
-    """
-    Helper class to publish gRPC services.
+    """Helper class to publish gRPC services.
     """
 
     def __init__(
@@ -25,8 +24,7 @@ class GrpcServicePublisher:
         port: int,
         addresses: str | Iterable[str] | None = None,
     ):
-        """
-        Creates a new gRPC Service hosted on a given ``port`` and network
+        """Creates a new gRPC Service hosted on a given ``port`` and network
         interfaces assocaited with ``addresses``.
         """
         if addresses is None:
@@ -41,8 +39,7 @@ class GrpcServicePublisher:
         self.__watcher = watcher
 
     def start(self, connect_call: AddServicerCB) -> None:
-        """
-        Starts a synchronous server.
+        """Starts a synchronous server.
         """
         self.__server: grpc.Server = grpc.server(  # type: ignore
             self.__watcher.create_tracked_thread_pool_executor(max_workers=10)
@@ -52,8 +49,7 @@ class GrpcServicePublisher:
         self.__server.start()
 
     async def start_async(self, connect_call: AddServicerCB) -> None:
-        """
-        Starts an asynchronous server and waits for it to be serving.
+        """Starts an asynchronous server and waits for it to be serving.
         Runs on the event loop this coroutine is scheduled on.
         """
         # __start_async_impl is an async method, so it can be directly awaited.
@@ -67,6 +63,7 @@ class GrpcServicePublisher:
 
         Args:
             connect_call: Callback to add servicer implementations to the server.
+
         """
         # Moved import here to break potential circular dependency
 
@@ -99,6 +96,7 @@ class GrpcServicePublisher:
             service: The name of the service to set the status for.
                      An empty string sets the overall server health.
             status: The desired health status (e.g., SERVING, NOT_SERVING).
+
         """
         if self._health_servicer is None:
             logging.error(
@@ -122,6 +120,7 @@ class GrpcServicePublisher:
         Returns:
             True if the server successfully bound to at least one address,
             False otherwise.
+
         """
         worked = 0
         for address in self.__addresses:
@@ -154,8 +153,7 @@ class GrpcServicePublisher:
         return worked != 0
 
     def stop(self) -> None:
-        """
-        Stops the server.
+        """Stops the server.
         For grpc.aio.Server, use stop_async() instead.
         This method is intended for synchronous grpc.server.
         """
@@ -186,8 +184,7 @@ class GrpcServicePublisher:
         logging.info("GrpcServicePublisher: gRPC Server stopped (sync call).")
 
     async def stop_async(self) -> None:
-        """
-        Stops the asynchronous gRPC server gracefully.
+        """Stops the asynchronous gRPC server gracefully.
         """
         if self.__server is None:
             logging.warning(
@@ -235,6 +232,7 @@ async def check_grpc_channel_health(
     Returns:
         True if the channel is serving for the specified service, False otherwise
             (including errors).
+
     """
     if not channel:
         logging.debug(

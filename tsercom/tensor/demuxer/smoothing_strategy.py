@@ -4,8 +4,7 @@ import torch
 
 
 class SmoothingStrategy(abc.ABC):
-    """
-    Abstract base class for tensor data smoothing strategies.
+    """Abstract base class for tensor data smoothing strategies.
     """
 
     @abc.abstractmethod
@@ -15,8 +14,7 @@ class SmoothingStrategy(abc.ABC):
         values: torch.Tensor,
         required_timestamps: torch.Tensor,
     ) -> torch.Tensor:
-        """
-        Interpolates values for a series of required timestamps based on keyframes.
+        """Interpolates values for a series of required timestamps based on keyframes.
 
         Timestamps are expected to be numerical (e.g., Unix timestamps as float).
 
@@ -30,4 +28,5 @@ class SmoothingStrategy(abc.ABC):
         Returns:
             A 1D torch.Tensor of interpolated values, corresponding to each
             `required_timestamp`.
+
         """

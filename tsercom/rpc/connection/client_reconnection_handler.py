@@ -22,5 +22,6 @@ class ClientReconnectionManager(ABC):
             error: The exception that caused or accompanied the disconnection,
                    if any. Can be None if the disconnection was clean or the
                    cause is unknown.
+
         """
         pass
