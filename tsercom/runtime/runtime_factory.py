@@ -79,3 +79,23 @@ class RuntimeFactory(
         """
         Stops any underlying calls and executions associated with this instance.
         """
+
+    # Properties to expose RuntimeConfig values directly for convenience
+
+    @property
+    def max_queued_responses_per_endpoint(self) -> int:
+        """Delegates to RuntimeConfig.max_queued_responses_per_endpoint."""
+        # self is a RuntimeConfig instance due to inheritance
+        return super().max_queued_responses_per_endpoint
+
+    @property
+    def max_ipc_queue_size(self) -> int:
+        """Delegates to RuntimeConfig.max_ipc_queue_size."""
+        # self is a RuntimeConfig instance due to inheritance
+        return super().max_ipc_queue_size
+
+    @property
+    def is_ipc_blocking(self) -> bool:
+        """Delegates to RuntimeConfig.is_ipc_blocking."""
+        # self is a RuntimeConfig instance due to inheritance
+        return super().is_ipc_blocking

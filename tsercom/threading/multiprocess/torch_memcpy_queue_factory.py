@@ -49,8 +49,10 @@ class TorchMemcpyQueueFactory(
         tensor_accessor: Optional[
             Callable[[Any], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
+        max_ipc_queue_size: int = -1,
+        is_ipc_blocking: bool = True,
     ) -> None:
-        """Initializes the TorchMultiprocessQueueFactory.
+        """Initializes the TorchMemcpyQueueFactory.
 
         Args:
             ctx_method: The multiprocessing context method to use if no
@@ -60,6 +62,10 @@ class TorchMemcpyQueueFactory(
                      If None, a new context is created using ctx_method.
             tensor_accessor: An optional function that, given an object of type T (or Any for flexibility here),
                              returns a torch.Tensor or an Iterable of torch.Tensors found within it.
+            max_ipc_queue_size: The maximum size for the created IPC queues.
+                                Defaults to -1 (unbounded for torch.mp.Queue).
+            is_ipc_blocking: Determines if `put` operations on the created IPC
+                             queues should block. Defaults to True.
         """
         # super().__init__() # Assuming MultiprocessQueueFactory has no __init__ or parameterless one
         if context:
@@ -67,6 +73,8 @@ class TorchMemcpyQueueFactory(
         else:
             self._mp_context = mp.get_context(ctx_method)
         self._tensor_accessor = tensor_accessor
+        self._max_ipc_queue_size = max_ipc_queue_size
+        self._is_ipc_blocking = is_ipc_blocking
 
     def create_queues(
         self,
@@ -84,12 +92,17 @@ class TorchMemcpyQueueFactory(
             A tuple containing TorchTensorQueueSink and TorchTensorQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
         """
-        torch_queue: mp.Queue[QueueElementT] = (
-            self._mp_context.Queue()
+        effective_maxsize = (
+            self._max_ipc_queue_size if self._max_ipc_queue_size > 0 else 0
+        )
+        torch_queue: mp.Queue[QueueElementT] = self._mp_context.Queue(
+            maxsize=effective_maxsize
         )  # Type T for queue items
 
         sink = TorchMemcpyQueueSink[QueueElementT](
-            torch_queue, tensor_accessor=self._tensor_accessor
+            torch_queue,
+            tensor_accessor=self._tensor_accessor,
+            is_blocking=self._is_ipc_blocking,  # Pass is_blocking
         )
         source = TorchMemcpyQueueSource[QueueElementT](
             torch_queue, tensor_accessor=self._tensor_accessor
@@ -113,6 +126,10 @@ class TorchMemcpyQueueSource(
         tensor_accessor: Optional[
             Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
+        # is_blocking is not used by Source, but Sink needs it.
+        # For consistency, MultiprocessQueueSource could accept it but ignore it.
+        # Or, we only add it to the Sink. The factories pass it to Sink.
+        # Let's assume it's not needed for Source for now.
     ) -> None:
         super().__init__(queue)
         self._tensor_accessor: Optional[
@@ -178,8 +195,9 @@ class TorchMemcpyQueueSink(
         tensor_accessor: Optional[
             Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = None,
+        is_blocking: bool = True,  # Add is_blocking here
     ) -> None:
-        super().__init__(queue)
+        super().__init__(queue, is_blocking=is_blocking)  # Pass to parent
         self._tensor_accessor: Optional[
             Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
         ] = tensor_accessor

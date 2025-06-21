@@ -86,6 +86,7 @@ class RuntimeDataHandlerBase(
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
         min_send_frequency_seconds: float | None = None,
+        max_queued_responses_per_endpoint: int = 1000,  # Default from RuntimeConfig
     ):
         """Initializes the RuntimeDataHandlerBase.
 
@@ -99,13 +100,21 @@ class RuntimeDataHandlerBase(
                 by the internal `IdTracker`. This controls how frequently events
                 are polled for each registered caller. If `None`, the default
                 polling frequency of `AsyncPoller` is used.
+            max_queued_responses_per_endpoint: The maximum number of responses
+                that can be queued by the `AsyncPoller` created by `_poller_factory`
+                for each remote endpoint. Defaults to 1000.
         """
         super().__init__()
         self.__data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]] = data_reader
         self.__event_source: AsyncPoller[EventInstance[EventTypeT]] = event_source
+        self.__max_queued_responses_per_endpoint = max_queued_responses_per_endpoint
 
         def _poller_factory() -> AsyncPoller[EventInstance[EventTypeT]]:
-            return AsyncPoller(min_poll_frequency_seconds=min_send_frequency_seconds)
+            # AsyncPoller constructor takes `max_responses_queued`
+            return AsyncPoller(
+                min_poll_frequency_seconds=min_send_frequency_seconds,
+                max_responses_queued=self.__max_queued_responses_per_endpoint,
+            )
 
         self.__id_tracker = IdTracker[AsyncPoller[EventInstance[EventTypeT]]](
             _poller_factory

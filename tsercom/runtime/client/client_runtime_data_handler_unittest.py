@@ -117,6 +117,7 @@ class TestClientRuntimeDataHandler:
             thread_watcher=mock_thread_watcher,
             data_reader=mock_data_reader,
             event_source=mock_event_source_poller,
+            max_queued_responses_per_endpoint=222,  # Added test value
         )
         # Force set the __id_tracker to our mock instance
         handler_instance._RuntimeDataHandlerBase__id_tracker = mock_id_tracker_instance

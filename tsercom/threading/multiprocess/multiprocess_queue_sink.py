@@ -25,33 +25,56 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
     Handles putting items; generic for queues of any specific type.
     """
 
-    def __init__(self, queue: "MpQueue[QueueTypeT]") -> None:
+    def __init__(self, queue: "MpQueue[QueueTypeT]", is_blocking: bool = True) -> None:
         """
         Initializes with a given multiprocessing queue.
 
         Args:
             queue: The multiprocessing queue to be used as the sink.
+            is_blocking: If True, `put_blocking` will block if the queue is full.
+                         If False, `put_blocking` will behave like `put_nowait`
+                         (i.e., non-blocking and potentially lossy if full).
+                         Defaults to True.
         """
         self.__queue: "MpQueue[QueueTypeT]" = queue
+        self._is_blocking: bool = is_blocking
 
     def put_blocking(self, obj: QueueTypeT, timeout: float | None = None) -> bool:
         """
-        Puts item into queue, blocking if needed until space available.
+        Puts item into queue. Behavior depends on `self._is_blocking`.
+
+        If `self._is_blocking` is True (default), this method blocks if necessary
+        until space is available in the queue or the timeout expires.
+        If `self._is_blocking` is False, this method attempts to put the item
+        without blocking (similar to `put_nowait`) and returns immediately.
+        In this non-blocking mode, the `timeout` parameter is ignored.
 
         Args:
             obj: The item to put into the queue.
-            timeout: Max time (secs) to wait for space if queue full.
-                     None means block indefinitely. Defaults to None.
+            timeout: Max time (secs) to wait for space if queue full and
+                     `self._is_blocking` is True. None means block indefinitely.
+                     This parameter is ignored if `self._is_blocking` is False.
+                     Defaults to None.
 
         Returns:
-            True if item put successfully, False if timeout occurred
-            (queue remained full).
+            True if item put successfully.
+            If blocking: False if timeout occurred (queue remained full).
+            If non-blocking: False if queue was full at the time of call.
         """
-        try:
-            self.__queue.put(obj, block=True, timeout=timeout)
-            return True
-        except Full:  # Timeout occurred and queue is still full.
-            return False
+        if not self._is_blocking:
+            # Non-blocking behavior: attempt to put, return status.
+            try:
+                self.__queue.put(obj, block=False)  # or self.__queue.put_nowait(obj)
+                return True
+            except Full:
+                return False  # Lossy behavior if queue is full
+        else:
+            # Blocking behavior (original logic)
+            try:
+                self.__queue.put(obj, block=True, timeout=timeout)
+                return True
+            except Full:  # Timeout occurred and queue is still full.
+                return False
 
     def put_nowait(self, obj: QueueTypeT) -> bool:
         """

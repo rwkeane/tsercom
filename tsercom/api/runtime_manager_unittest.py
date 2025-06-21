@@ -108,11 +108,13 @@ class TestRuntimeManager:
             return_value=None,
             autospec=True,
         )
+        # Patch the __init__ method of the target class
         mock_sff_init = mocker.patch(
             "tsercom.api.split_process.split_runtime_factory_factory.SplitRuntimeFactoryFactory.__init__",
-            return_value=None,
-            autospec=True,
+            return_value=None,  # __init__ should return None
+            autospec=True,  # Ensures the mock has the same signature as the original __init__
         )
+
         mock_pc_constructor = mocker.patch(
             "tsercom.api.runtime_manager.ProcessCreator", autospec=True
         )
@@ -130,8 +132,13 @@ class TestRuntimeManager:
 
         mock_tw.assert_called_once()
         mock_lff_init.assert_called_once_with(mocker.ANY, mock_thread_pool)
+        # For SplitRuntimeFactoryFactory, assert it was called with the correct IPC parameters
         mock_sff_init.assert_called_once_with(
-            mocker.ANY, mock_thread_pool, mock_thread_watcher_instance
+            mocker.ANY,  # self
+            thread_pool=mock_thread_pool,
+            thread_watcher=mock_thread_watcher_instance,
+            max_ipc_queue_size=-1,  # Default value from RuntimeManager
+            is_ipc_blocking=True,  # Default value from RuntimeManager
         )
         mock_pc_constructor.assert_called_once()
         mock_sewsf_constructor.assert_called_once()

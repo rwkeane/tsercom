@@ -34,6 +34,8 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         self,
         ctx_method: str = "spawn",
         context: std_mp.context.BaseContext | None = None,
+        max_ipc_queue_size: int = -1,
+        is_ipc_blocking: bool = True,
     ):
         """Initializes the TorchMultiprocessQueueFactory.
 
@@ -43,11 +45,17 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
                         include 'fork' and 'forkserver'.
             context: An optional existing multiprocessing context to use.
                      If None, a new context is created using ctx_method.
+            max_ipc_queue_size: The maximum size for the created IPC queues.
+                                Defaults to -1 (unbounded for torch.mp.Queue).
+            is_ipc_blocking: Determines if `put` operations on the created IPC
+                             queues should block. Defaults to True.
         """
         if context is not None:
             self._mp_context = context
         else:
             self._mp_context = mp.get_context(ctx_method)
+        self._max_ipc_queue_size: int = max_ipc_queue_size
+        self._is_ipc_blocking: bool = is_ipc_blocking
 
     def create_queues(
         self,
@@ -63,9 +71,14 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
         """
-        torch_queue: mp.Queue[T] = self._mp_context.Queue()
+        # For torch.multiprocessing.Queue, maxsize=0 means platform default (usually large).
+        # If max_ipc_queue_size is -1 (our "unbounded" signal), use 0 for torch queue.
+        effective_maxsize = (
+            self._max_ipc_queue_size if self._max_ipc_queue_size > 0 else 0
+        )
+        torch_queue: mp.Queue[T] = self._mp_context.Queue(maxsize=effective_maxsize)
         # MultiprocessQueueSink and MultiprocessQueueSource are generic and compatible
         # with torch.multiprocessing.Queue, allowing consistent queue interaction.
-        sink = MultiprocessQueueSink[T](torch_queue)
+        sink = MultiprocessQueueSink[T](torch_queue, is_blocking=self._is_ipc_blocking)
         source = MultiprocessQueueSource[T](torch_queue)
         return sink, source

@@ -98,7 +98,11 @@ class TestTorchMultiprocessQueueFactory:
     def test_create_queues_returns_specialized_tensor_queues(
         self,
     ) -> None:
-        factory = TorchMemcpyQueueFactory[torch.Tensor]()
+        test_max_size = 1
+        test_is_blocking = False
+        factory = TorchMemcpyQueueFactory[torch.Tensor](
+            max_ipc_queue_size=test_max_size, is_ipc_blocking=test_is_blocking
+        )
         sink: TorchMemcpyQueueSink[torch.Tensor]
         source: TorchMemcpyQueueSource[torch.Tensor]
         sink, source = factory.create_queues()
@@ -110,17 +114,48 @@ class TestTorchMultiprocessQueueFactory:
             source, TorchMemcpyQueueSource
         ), "Source is not a TorchTensorQueueSource"
 
-        tensor_to_send = torch.randn(2, 3)
+        assert sink._is_blocking == test_is_blocking
+
+        tensor_to_send1 = torch.randn(2, 3)
+        tensor_to_send2 = torch.randn(2, 3)
         try:
-            put_successful = sink.put_blocking(tensor_to_send, timeout=1)
-            assert put_successful, "sink.put_blocking failed"
-            received_tensor = source.get_blocking(timeout=1)
+            put_successful1 = sink.put_blocking(
+                tensor_to_send1, timeout=1
+            )  # timeout ignored
             assert (
-                received_tensor is not None
-            ), "source.get_blocking returned None (timeout)"
+                put_successful1
+            ), "sink.put_blocking (non-blocking) failed for tensor1"
+
+            if test_max_size == 1 and not test_is_blocking:
+                put_successful2 = sink.put_blocking(
+                    tensor_to_send2, timeout=1
+                )  # timeout ignored
+                assert (
+                    not put_successful2
+                ), "sink.put_blocking (non-blocking) should have failed for tensor2"
+
+            received_tensor1 = source.get_blocking(timeout=1)
+            assert (
+                received_tensor1 is not None
+            ), "source.get_blocking returned None (timeout) for tensor1"
             assert torch.equal(
-                tensor_to_send, received_tensor
-            ), "Tensor sent and received are not equal."
+                tensor_to_send1, received_tensor1
+            ), "Tensor1 sent and received are not equal."
+
+            if not (test_max_size == 1 and not test_is_blocking):
+                if test_max_size != 1 or test_is_blocking:
+                    put_successful2_alt = sink.put_blocking(tensor_to_send2, timeout=1)
+                    assert (
+                        put_successful2_alt
+                    ), "sink.put_blocking failed for tensor2 (alt path)"
+                    received_tensor2 = source.get_blocking(timeout=1)
+                    assert (
+                        received_tensor2 is not None
+                    ), "source.get_blocking returned None for tensor2"
+                    assert torch.equal(
+                        tensor_to_send2, received_tensor2
+                    ), "Tensor2 not equal"
+
         except Exception as e:
             pytest.fail(f"Tensor transfer via specialized Sink/Source failed: {e}")
 

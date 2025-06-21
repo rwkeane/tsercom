@@ -55,7 +55,11 @@ class TestInitializeRuntimes:
         )
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_client_factory.auth_config = None
+        # Set properties directly on the factory mock
+        mock_client_factory.auth_config = None  # For this test, assume None
+        mock_client_factory.min_send_frequency_seconds = 0.1
+        mock_client_factory.max_queued_responses_per_endpoint = 100
+
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         mock_client_data_reader_actual_instance = mocker.Mock(
@@ -88,7 +92,7 @@ class TestInitializeRuntimes:
         mock_is_global_event_loop_set.assert_called_once()
         mock_get_global_event_loop.assert_called_once()
         MockChannelFactorySelector.assert_called_once_with()
-        # Changed to assert create_factory was called with the factory's auth_config
+        # create_factory is called with the factory's auth_config property
         mock_channel_factory_selector_instance.create_factory.assert_called_once_with(
             mock_client_factory.auth_config
         )
@@ -103,6 +107,10 @@ class TestInitializeRuntimes:
         assert (
             kw_args["min_send_frequency_seconds"]
             == mock_client_factory.min_send_frequency_seconds
+        )
+        assert (
+            kw_args["max_queued_responses_per_endpoint"]
+            == mock_client_factory.max_queued_responses_per_endpoint
         )
         assert kw_args["is_testing"] is False
         MockServerRuntimeDataHandler.assert_not_called()
@@ -148,7 +156,11 @@ class TestInitializeRuntimes:
         )
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_server_factory.auth_config = None
+        # Set properties directly on the factory mock
+        mock_server_factory.auth_config = None # For this test, assume None
+        mock_server_factory.min_send_frequency_seconds = 0.2
+        mock_server_factory.max_queued_responses_per_endpoint = 200
+
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
         mock_server_data_reader_actual_instance = mocker.Mock(
@@ -181,7 +193,7 @@ class TestInitializeRuntimes:
         mock_is_global_event_loop_set.assert_called_once()
         mock_get_global_event_loop.assert_called_once()
         MockChannelFactorySelector.assert_called_once_with()
-        # Changed to assert create_factory was called with the factory's auth_config
+        # create_factory is called with the factory's auth_config property
         mock_channel_factory_selector_instance.create_factory.assert_called_once_with(
             mock_server_factory.auth_config
         )
@@ -195,6 +207,10 @@ class TestInitializeRuntimes:
         assert (
             kw_args["min_send_frequency_seconds"]
             == mock_server_factory.min_send_frequency_seconds
+        )
+        assert (
+            kw_args["max_queued_responses_per_endpoint"]
+            == mock_server_factory.max_queued_responses_per_endpoint
         )
         assert kw_args["is_testing"] is False
         MockClientRuntimeDataHandler.assert_not_called()
@@ -240,7 +256,9 @@ class TestInitializeRuntimes:
         )
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_client_factory.auth_config = None
+        mock_client_factory.auth_config = "client_auth_mock_value"
+        mock_client_factory.min_send_frequency_seconds = 0.3
+        mock_client_factory.max_queued_responses_per_endpoint = 300
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         mock_client_data_reader_actual_instance_multi = mocker.Mock(
@@ -260,7 +278,9 @@ class TestInitializeRuntimes:
         mock_client_factory.create.return_value = mock_client_runtime
 
         mock_server_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_server_factory.auth_config = None
+        mock_server_factory.auth_config = "server_auth_mock_value"
+        mock_server_factory.min_send_frequency_seconds = 0.4
+        mock_server_factory.max_queued_responses_per_endpoint = 400
         mock_server_factory.is_client.return_value = False
         mock_server_factory.is_server.return_value = True
         mock_server_data_reader_actual_instance_multi = mocker.Mock(
@@ -291,7 +311,7 @@ class TestInitializeRuntimes:
 
         mock_get_global_event_loop.assert_called()
         MockChannelFactorySelector.assert_called_once_with()
-        # Changed to assert create_factory was called for each factory's auth_config
+        # create_factory is called with the factory's auth_config property
         mock_channel_factory_selector_instance.create_factory.assert_any_call(
             mock_client_factory.auth_config
         )
@@ -324,6 +344,10 @@ class TestInitializeRuntimes:
             kw_client_args["min_send_frequency_seconds"]
             == mock_client_factory.min_send_frequency_seconds
         )
+        assert (
+            kw_client_args["max_queued_responses_per_endpoint"]
+            == mock_client_factory.max_queued_responses_per_endpoint
+        )
         assert kw_client_args["is_testing"] is False
 
         assert MockServerRuntimeDataHandler.call_count == 1
@@ -348,6 +372,10 @@ class TestInitializeRuntimes:
         assert (
             kw_server_args["min_send_frequency_seconds"]
             == mock_server_factory.min_send_frequency_seconds
+        )
+        assert (
+            kw_server_args["max_queued_responses_per_endpoint"]
+            == mock_server_factory.max_queued_responses_per_endpoint
         )
         assert kw_server_args["is_testing"] is False
 
@@ -378,9 +406,13 @@ class TestInitializeRuntimes:
 
         mock_thread_watcher = mocker.Mock(spec=ThreadWatcher)
         mock_invalid_factory = mocker.Mock(spec=RuntimeFactory)
+        # For the invalid factory type test, auth_config should be explicitly None
+        # to isolate the failure to the factory type, not an unexpected auth_config type.
+        mock_invalid_factory.auth_config = None
+        mock_invalid_factory.min_send_frequency_seconds = None
+        mock_invalid_factory.max_queued_responses_per_endpoint = 1000
         mock_invalid_factory.is_client.return_value = False
         mock_invalid_factory.is_server.return_value = False
-        mock_invalid_factory.auth_config = None  # Required by ChannelFactorySelector
         # Mock protected access methods called before the type check
         mock_invalid_factory._remote_data_reader.return_value = mocker.Mock(
             spec=RemoteDataReader
@@ -426,7 +458,10 @@ class TestInitializeRuntimes:
         )
 
         mock_client_factory = mocker.Mock(spec=RuntimeFactory)
-        mock_client_factory.auth_config = None
+        mock_client_factory.config = mocker.Mock()
+        mock_client_factory.config.auth_config = None
+        mock_client_factory.config.min_send_frequency_seconds = None
+        mock_client_factory.config.max_queued_responses_per_endpoint = 1000
         mock_client_factory.is_client.return_value = True
         mock_client_factory.is_server.return_value = False
         mock_client_factory._remote_data_reader.return_value = mocker.Mock(

@@ -49,7 +49,11 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
     """
 
     def __init__(
-        self, thread_pool: ThreadPoolExecutor, thread_watcher: ThreadWatcher
+        self,
+        thread_pool: ThreadPoolExecutor,
+        thread_watcher: ThreadWatcher,
+        max_ipc_queue_size: int = -1,
+        is_ipc_blocking: bool = True,
     ) -> None:
         """Initializes the SplitRuntimeFactoryFactory.
 
@@ -57,11 +61,15 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             thread_pool: ThreadPoolExecutor for async tasks (e.g. data aggregator).
             thread_watcher: ThreadWatcher to monitor threads from components
                             like ShimRuntimeHandle.
+            max_ipc_queue_size: The maximum size for core IPC queues.
+            is_ipc_blocking: Whether IPC queue `put` operations should be blocking.
         """
         super().__init__()
 
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__thread_watcher: ThreadWatcher = thread_watcher
+        self._max_ipc_queue_size: int = max_ipc_queue_size
+        self._is_ipc_blocking: bool = is_ipc_blocking
 
     def _create_pair(
         self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
@@ -130,20 +138,35 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             # Assuming EventInstance and AnnotatedInstance generics are compatible with Torch queues
             event_queue_factory = TorchMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
-            ]()
+            ](
+                max_ipc_queue_size=self._max_ipc_queue_size,
+                is_ipc_blocking=self._is_ipc_blocking,
+            )
             data_queue_factory = TorchMultiprocessQueueFactory[
                 AnnotatedInstance[DataTypeT]
-            ]()
+            ](
+                max_ipc_queue_size=self._max_ipc_queue_size,
+                is_ipc_blocking=self._is_ipc_blocking,
+            )
         else:
             event_queue_factory = DefaultMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
-            ]()
+            ](
+                max_ipc_queue_size=self._max_ipc_queue_size,
+                is_ipc_blocking=self._is_ipc_blocking,
+            )
             data_queue_factory = DefaultMultiprocessQueueFactory[
                 AnnotatedInstance[DataTypeT]
-            ]()
+            ](
+                max_ipc_queue_size=self._max_ipc_queue_size,
+                is_ipc_blocking=self._is_ipc_blocking,
+            )
 
         # Command queues always use the default factory
-        command_queue_factory = DefaultMultiprocessQueueFactory[RuntimeCommand]()
+        command_queue_factory = DefaultMultiprocessQueueFactory[RuntimeCommand](
+            max_ipc_queue_size=self._max_ipc_queue_size,
+            is_ipc_blocking=self._is_ipc_blocking,
+        )
         # --- End dynamic queue factory selection ---
 
         event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]

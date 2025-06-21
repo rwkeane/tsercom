@@ -117,6 +117,7 @@ class TestServerRuntimeDataHandler:
             data_reader=mock_data_reader,
             event_source=mock_event_source_poller,
             is_testing=False,
+            max_queued_responses_per_endpoint=333,  # Added test value
         )
         # Force set the __id_tracker to our mock instance
         handler_instance._RuntimeDataHandlerBase__id_tracker = mock_id_tracker_instance
@@ -288,6 +289,7 @@ class TestServerRuntimeDataHandler:
             data_reader=mock_data_reader,
             event_source=mock_event_source_poller,
             is_testing=True,  # Key for this test
+            max_queued_responses_per_endpoint=334,  # Added test value
         )
 
         mock_FakeSynchronizedClock_class.assert_called_once_with()

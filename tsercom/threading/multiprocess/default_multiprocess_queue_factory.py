@@ -30,6 +30,8 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         self,
         ctx_method: str = "spawn",  # Defaulting to 'spawn'
         context: std_mp.context.BaseContext | None = None,
+        max_ipc_queue_size: int = -1,
+        is_ipc_blocking: bool = True,
     ):
         """Initializes the DefaultMultiprocessQueueFactory.
 
@@ -40,12 +42,21 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             context: An optional existing multiprocessing context (e.g., from
                      `multiprocessing.get_context()`). If None, a new context
                      is created using the specified `ctx_method`.
+            max_ipc_queue_size: The maximum size for the created IPC queues.
+                                A value of -1 or 0 typically means unbounded
+                                or platform-dependent large size. Defaults to -1.
+            is_ipc_blocking: Determines if `put` operations on the created IPC
+                             queues should block when full. Defaults to True.
+                             This parameter is stored but its application depends
+                             on the queue usage logic (e.g., in MultiprocessQueueSink).
         """
         if context is not None:
             self._mp_context: std_mp.context.BaseContext = context
         else:
             # Ensure std_mp is used here, not torch.multiprocessing
             self._mp_context = std_mp.get_context(ctx_method)
+        self._max_ipc_queue_size: int = max_ipc_queue_size
+        self._is_ipc_blocking: bool = is_ipc_blocking
 
     def create_queues(
         self,
@@ -61,7 +72,14 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         # The type of queue created by self._mp_context.Queue() is typically
         # multiprocessing.queues.Queue, not the alias MpQueue if it was from
         # `from multiprocessing import Queue`.
-        std_queue: std_mp.queues.Queue[T] = self._mp_context.Queue()
-        sink = MultiprocessQueueSink[T](std_queue)
+        # Use self._max_ipc_queue_size for queue creation.
+        # A maxsize of <= 0 means platform-dependent default on many systems (effectively "unbounded").
+        effective_maxsize = (
+            self._max_ipc_queue_size if self._max_ipc_queue_size > 0 else 0
+        )
+        std_queue: std_mp.queues.Queue[T] = self._mp_context.Queue(
+            maxsize=effective_maxsize
+        )
+        sink = MultiprocessQueueSink[T](std_queue, is_blocking=self._is_ipc_blocking)
         source = MultiprocessQueueSource[T](std_queue)
         return sink, source
