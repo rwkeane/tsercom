@@ -21,8 +21,8 @@ if not TYPE_CHECKING:
         from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2 import (
             EchoRequest,
             EchoResponse,
-            StreamDataRequest,
-            StreamDataResponse,
+            E2EStreamRequest,
+            E2EStreamResponse,
         )
         from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc import (
             E2ETestServiceStub,
@@ -188,10 +188,10 @@ else:  # When TYPE_CHECKING
         EchoResponse as EchoResponse,
     )
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2 import (
-        StreamDataRequest as StreamDataRequest,
+        E2EStreamRequest as E2EStreamRequest,
     )
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2 import (
-        StreamDataResponse as StreamDataResponse,
+        E2EStreamResponse as E2EStreamResponse,
     )
     from tsercom.test.proto.generated.v1_73.e2e_test_service_pb2_grpc import (
         E2ETestServiceStub as E2ETestServiceStub,

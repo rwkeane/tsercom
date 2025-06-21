@@ -1,6 +1,9 @@
 syntax = "proto3";
 
-package tsercom;
+package tsercom.test.proto;
+
+import "caller_id.proto"; // Adjusted path
+import "tensor.proto";    // Adjusted path
 
 // Option to generate a separate file for each message, if desired.
 // option java_multiple_files = true;
@@ -15,25 +18,23 @@ message EchoResponse {
   string response = 1;
 }
 
-message StreamDataRequest {
-  int32 data_id = 1;
+// New E2E Test Service messages for streaming
+message E2EStreamRequest {
+  oneof payload {
+    tsercom.CallerId caller_id = 1; // For the initial handshake
+    tsercom.TensorChunk data_chunk = 2; // For subsequent data
+  }
 }
 
-message StreamDataResponse {
-  string data_chunk = 1;
-  int32 sequence_number = 2;
+message E2EStreamResponse {
+  string ack_message = 1;
+  optional tsercom.TensorChunk data_chunk = 2; // To allow server to send data back
 }
 
 service E2ETestService {
   // A simple unary RPC for echo functionality.
   rpc Echo(EchoRequest) returns (EchoResponse);
 
-  // A server-streaming RPC.
-  rpc ServerStreamData(StreamDataRequest) returns (stream StreamDataResponse);
-
-  // A client-streaming RPC.
-  rpc ClientStreamData(stream StreamDataRequest) returns (EchoResponse);
-
-  // A bidirectional-streaming RPC.
-  rpc BidirectionalStreamData(stream StreamDataRequest) returns (stream StreamDataResponse);
+  // A bidirectional-streaming RPC for the full E2E test.
+  rpc ExchangeData(stream E2EStreamRequest) returns (stream E2EStreamResponse);
 }
