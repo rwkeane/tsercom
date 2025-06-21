@@ -10,7 +10,7 @@ import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import sys
-import tsercom.timesync.common.proto as time_pb2
+import time_pb2
 import typing
 
 if sys.version_info >= (3, 10):
