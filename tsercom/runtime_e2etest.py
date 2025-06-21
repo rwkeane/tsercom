@@ -7,6 +7,7 @@ from collections.abc import Callable
 from concurrent.futures import Future
 from functools import partial
 from threading import Thread
+from typing import Optional
 
 import pytest
 import torch
@@ -84,6 +85,8 @@ class FakeRuntime(Runtime):
         data_handler: RuntimeDataHandler[FakeData, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
         test_id: CallerIdentifier,
+        stopped_event: Optional[multiprocessing.Event] = None,
+        data_event: Optional[multiprocessing.Event] = None,
     ):
         self.__thread_watcher = thread_watcher
         self.__data_handler = data_handler
@@ -91,6 +94,8 @@ class FakeRuntime(Runtime):
         self.__test_id = test_id
         self.__responder: EndpointDataProcessor[FakeData] | None = None
         self._data_sent = False
+        self.__stopped_event = stopped_event
+        self.__data_event = data_event
 
         super().__init__()
 
@@ -116,6 +121,8 @@ class FakeRuntime(Runtime):
 
             await self.__responder.process_data(fresh_data_object, fresh_timestamp)
             self._data_sent = True
+            if self.__data_event:
+                self.__data_event.set()
 
     async def stop(self, exception) -> None:
         assert self.__responder is not None
@@ -124,12 +131,22 @@ class FakeRuntime(Runtime):
         log_message = f"FakeRuntime ({self.__test_id}) stopping. Data: {stopped}, Timestamp: {current_stop_time}"  # Kept for now, minimal
         print(log_message)  # Kept for now, minimal
         await self.__responder.process_data(FakeData(stopped), current_stop_time)
+        if self.__stopped_event:
+            self.__stopped_event.set()
 
 
 class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
-    def __init__(self, test_id: CallerIdentifier, service_type="Client"):
+    def __init__(
+        self,
+        test_id: CallerIdentifier,
+        service_type="Client",
+        stopped_event: Optional[multiprocessing.Event] = None,
+        data_event: Optional[multiprocessing.Event] = None,
+    ):
         super().__init__(service_type=service_type)
         self._test_id = test_id
+        self._stopped_event = stopped_event
+        self._data_event = data_event
 
     def create(
         self,
@@ -138,7 +155,12 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         return FakeRuntime(
-            thread_watcher, data_handler, grpc_channel_factory, self._test_id
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self._test_id,
+            self._stopped_event,
+            self._data_event,
         )
 
 
@@ -150,6 +172,8 @@ class TorchTensorRuntime(Runtime):
         data_handler: RuntimeDataHandler[torch.Tensor, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
         test_id: CallerIdentifier,
+        data_event: multiprocessing.Event,
+        stopped_event: multiprocessing.Event,
     ):
         super().__init__()
         self.__thread_watcher = thread_watcher
@@ -159,6 +183,8 @@ class TorchTensorRuntime(Runtime):
         self.__responder: EndpointDataProcessor[torch.Tensor] | None = None
         self.sent_tensor: torch.Tensor | None = None
         self.stopped_tensor: torch.Tensor | None = None
+        self.__data_event = data_event
+        self.__stopped_event = stopped_event
 
     async def start_async(self) -> None:
         await asyncio.sleep(0.01)
@@ -170,20 +196,30 @@ class TorchTensorRuntime(Runtime):
         self.sent_tensor = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         timestamp = datetime.datetime.now(datetime.timezone.utc)
         await self.__responder.process_data(self.sent_tensor, timestamp)
+        self.__data_event.set()
 
     async def stop(self, exception) -> None:
         assert self.__responder is not None
         self.stopped_tensor = torch.tensor([[-1.0, -1.0]])
         fixed_stop_ts = datetime.datetime.now(datetime.timezone.utc)
         await self.__responder.process_data(self.stopped_tensor, fixed_stop_ts)
+        self.__stopped_event.set()
 
 
 class TorchTensorRuntimeInitializer(RuntimeInitializer[torch.Tensor, FakeEvent]):
-    def __init__(self, test_id: CallerIdentifier, service_type="Client"):
+    def __init__(
+        self,
+        test_id: CallerIdentifier,
+        data_event: multiprocessing.Event,
+        stopped_event: multiprocessing.Event,
+        service_type="Client",
+    ):
         super().__init__(service_type=service_type)
         self._test_id = test_id
         self.expected_sent_tensor = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         self.expected_stopped_tensor = torch.tensor([[-1.0, -1.0]])
+        self._data_event = data_event
+        self._stopped_event = stopped_event
 
     def create(
         self,
@@ -192,7 +228,12 @@ class TorchTensorRuntimeInitializer(RuntimeInitializer[torch.Tensor, FakeEvent])
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         return TorchTensorRuntime(
-            thread_watcher, data_handler, grpc_channel_factory, self._test_id
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self._test_id,
+            self._data_event,
+            self._stopped_event,
         )
 
 
@@ -451,6 +492,7 @@ class ErrorThrowingRuntime(Runtime):
         grpc_channel_factory: GrpcChannelFactory,
         error_message="TestError",
         error_type=RuntimeError,
+        error_event: Optional[multiprocessing.Event] = None,
     ):
         super().__init__()
         self.error_message = error_message
@@ -458,8 +500,13 @@ class ErrorThrowingRuntime(Runtime):
         self._thread_watcher = thread_watcher
         self._data_handler = data_handler
         self._grpc_channel_factory = grpc_channel_factory
+        self._error_event = error_event
 
     async def start_async(self) -> None:
+        if self._error_event:
+            self._error_event.set()
+        # Add a small sleep to ensure the event is processed before the process potentially dies from the unhandled exception
+        await asyncio.sleep(0.01)
         raise self.error_type(self.error_message)
 
     async def stop(self, exception) -> None:
@@ -472,10 +519,12 @@ class ErrorThrowingRuntimeInitializer(RuntimeInitializer):
         error_message="TestError",
         error_type=RuntimeError,
         service_type="Client",
+        error_event: Optional[multiprocessing.Event] = None,
     ):
         super().__init__(service_type=service_type)
         self.error_message = error_message
         self.error_type = error_type
+        self._error_event = error_event
 
     def create(
         self,
@@ -489,6 +538,7 @@ class ErrorThrowingRuntimeInitializer(RuntimeInitializer):
             grpc_channel_factory,
             self.error_message,
             self.error_type,
+            self._error_event,
         )
 
 
@@ -638,8 +688,27 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
     try:
         current_test_id = CallerIdentifier.random()
         runtime_manager.check_for_exception()
+
+        # Create event for stopped signal, using spawn context if init_call indicates out-of-process
+        # This is a heuristic; ideally, RuntimeManager would expose its context or method.
+        # For now, assuming start_out_of_process implies spawn.
+        stopped_event = None
+        event_timeout_seconds = 20.0  # Timeout for waiting on the event
+        is_out_of_process_init = "start_out_of_process" in getattr(
+            init_call, "__name__", ""
+        ) or (
+            isinstance(init_call, partial)
+            and "start_out_of_process" in getattr(init_call.func, "__name__", "")
+        )
+
+        if is_out_of_process_init:
+            ctx = multiprocessing.get_context("spawn")
+            stopped_event = ctx.Event()
+
         initializer = FakeRuntimeInitializer(
-            test_id=current_test_id, service_type="Server"
+            test_id=current_test_id,
+            service_type="Server",
+            stopped_event=stopped_event,
         )
         runtime_future = runtime_manager.register_runtime_initializer(initializer)
 
@@ -692,51 +761,36 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        # Further increase initial sleep
-        time.sleep(5.0)
-
-        stopped_data_arrived = False
-        max_wait_stopped_data = 20.0  # Further increase polling duration
-        poll_interval_stopped = 0.1
-        waited_time_stopped = 0.0
-        print(
-            f"DEBUG: __check_initialization: Polling for 'stopped' data for test_id {current_test_id}. Max wait: {max_wait_stopped_data}s"
-        )
-        while waited_time_stopped < max_wait_stopped_data:
-            runtime_manager.check_for_exception()  # Check for errors during polling
-            has_data_now = data_aggregator.has_new_data(current_test_id)
-            print(
-                f"DEBUG: __check_initialization: Polling loop for {current_test_id}. Has data: {has_data_now}. Waited: {waited_time_stopped:.2f}s"
-            )
-            if has_data_now:
-                stopped_data_arrived = True
-                print(
-                    f"DEBUG: __check_initialization: 'stopped' data found for {current_test_id}."
-                )
-                break
-            time.sleep(poll_interval_stopped)
-            waited_time_stopped += poll_interval_stopped
-
-        if not stopped_data_arrived:
-            all_has_new = data_aggregator.has_new_data()
-            current_new_data = {}
-            for cid, has_new in all_has_new.items():
-                if has_new:
-                    current_new_data[cid] = data_aggregator.get_new_data(
-                        cid
-                    )  # Get data only if new
-            print(
-                f"DEBUG: __check_initialization: 'stopped' data NOT found for {current_test_id}. Aggregator has_new_data: {all_has_new}. Current new data: {current_new_data}"
-            )
-            failure_message_addon = f". Aggregator state: has_new_data()={all_has_new}, current_new_data()={current_new_data}"
+        if stopped_event:
+            stopped_event_was_set = stopped_event.wait(timeout=event_timeout_seconds)
+            assert (
+                stopped_event_was_set
+            ), f"Runtime did not signal stopped for test_id ({current_test_id}) within {event_timeout_seconds}s"
+            time.sleep(0.1)  # Allow time for data to be processed by the aggregator
         else:
-            failure_message_addon = ""
+            # Fallback to polling if no event (e.g. for in-process which wasn't failing)
+            # This part retains the original polling logic for the 'stopped' signal if no event is used.
+            # The failure was specifically in out-of-process, which will now use the event.
+            time.sleep(5.0)  # Original sleep
+            stopped_data_arrived_polling = False
+            max_wait_stopped_data = 20.0
+            poll_interval_stopped = 0.1
+            waited_time_stopped = 0.0
+            while waited_time_stopped < max_wait_stopped_data:
+                if data_aggregator.has_new_data(current_test_id):
+                    stopped_data_arrived_polling = True
+                    break
+                time.sleep(poll_interval_stopped)
+                waited_time_stopped += poll_interval_stopped
+            assert (
+                stopped_data_arrived_polling
+            ), f"Aggregator (polling) did not receive 'stopped' data for test_id ({current_test_id}) within {max_wait_stopped_data}s"
 
-        assert (
-            stopped_data_arrived
-        ), f"Aggregator did not receive 'stopped' data for test_id ({current_test_id}) within {max_wait_stopped_data}s{failure_message_addon}"
-        assert data_aggregator.has_new_data(current_test_id)
+        runtime_manager.check_for_exception()  # Check for errors after event/polling
 
+        assert data_aggregator.has_new_data(
+            current_test_id
+        ), "Data aggregator should have new 'stopped' data after event was set or polling."
         values = data_aggregator.get_new_data(current_test_id)
         assert isinstance(values, list)
         assert len(values) == 1
@@ -801,8 +855,18 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_handle_for_cleanup = None
     current_test_id = CallerIdentifier.random()
+
+    # Get a 'spawn' context and create events from it
+    ctx = multiprocessing.get_context("spawn")
+    data_received_event = ctx.Event()
+    stopped_event = ctx.Event()
+    event_timeout_seconds = 15.0  # Generous timeout for event waiting
+
     initializer = TorchTensorRuntimeInitializer(
-        test_id=current_test_id, service_type="Server"
+        test_id=current_test_id,
+        data_event=data_received_event,
+        stopped_event=stopped_event,
+        service_type="Server",
     )
 
     try:
@@ -823,27 +887,26 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
         assert not data_aggregator.has_new_data(current_test_id)
         runtime_handle.start()
 
-        data_arrived = False
-        max_wait_time = 5.0
-        poll_interval = 0.1
-        waited_time = 0.0
-        received_annotated_instance = None
-        while waited_time < max_wait_time:
-            if data_aggregator.has_new_data(current_test_id):
-                all_data = data_aggregator.get_new_data(current_test_id)
-                if all_data:
-                    received_annotated_instance = all_data[0]
-                    data_arrived = True
-                    break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
-
-        runtime_manager.check_for_exception()
+        # Wait for the data event from the runtime
+        data_event_was_set = data_received_event.wait(timeout=event_timeout_seconds)
         assert (
-            data_arrived
-        ), f"Aggregator did not receive tensor data for test_id ({current_test_id}) within {max_wait_time}s"
+            data_event_was_set
+        ), f"Runtime did not signal data received for test_id ({current_test_id}) within {event_timeout_seconds}s"
 
-        assert received_annotated_instance is not None
+        time.sleep(0.1)  # Allow time for data to be processed by the aggregator
+        runtime_manager.check_for_exception()  # Check for errors after event
+
+        # Retrieve and assert data
+        assert data_aggregator.has_new_data(
+            current_test_id
+        ), "Data aggregator should have new data after event was set."
+        all_data = data_aggregator.get_new_data(current_test_id)
+        assert all_data, "Received empty data list from aggregator."
+        received_annotated_instance = all_data[0]
+
+        assert (
+            received_annotated_instance is not None
+        ), "Failed to get annotated instance from aggregator."
         assert isinstance(received_annotated_instance, AnnotatedInstance)
         assert isinstance(
             received_annotated_instance.data, torch.Tensor
@@ -858,24 +921,26 @@ def test_out_of_process_torch_tensor_transport(clear_loop_fixture):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        stopped_data_arrived = False
-        waited_time = 0.0
-        received_stopped_annotated_instance = None
-        while waited_time < max_wait_time:
-            if data_aggregator.has_new_data(current_test_id):
-                all_stopped_data = data_aggregator.get_new_data(current_test_id)
-                if all_stopped_data:
-                    received_stopped_annotated_instance = all_stopped_data[0]
-                    stopped_data_arrived = True
-                    break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
+        # Wait for the stopped event from the runtime
+        stopped_event_was_set = stopped_event.wait(timeout=event_timeout_seconds)
+        assert (
+            stopped_event_was_set
+        ), f"Runtime did not signal stopped for test_id ({current_test_id}) within {event_timeout_seconds}s"
+
+        time.sleep(0.1)  # Allow time for data to be processed by the aggregator
+        runtime_manager.check_for_exception()  # Check for errors after event
+
+        # Retrieve and assert "stopped" data
+        assert data_aggregator.has_new_data(
+            current_test_id
+        ), "Data aggregator should have new 'stopped' data after event was set."
+        all_stopped_data = data_aggregator.get_new_data(current_test_id)
+        assert all_stopped_data, "Received empty 'stopped' data list from aggregator."
+        received_stopped_annotated_instance = all_stopped_data[0]
 
         assert (
-            stopped_data_arrived
-        ), f"Aggregator did not receive 'stopped' tensor data for test_id ({current_test_id}) within {max_wait_time}s"
-
-        assert received_stopped_annotated_instance is not None
+            received_stopped_annotated_instance is not None
+        ), "Failed to get 'stopped' annotated instance from aggregator."
         assert isinstance(received_stopped_annotated_instance, AnnotatedInstance)
         assert isinstance(
             received_stopped_annotated_instance.data, torch.Tensor
@@ -1431,13 +1496,30 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
     try:
         test_id_1 = CallerIdentifier.random()
         test_id_2 = CallerIdentifier.random()
+        event_timeout_seconds = 15.0
+
+        ctx = multiprocessing.get_context("spawn")
+        data_event_1 = ctx.Event()
+        stopped_event_1 = ctx.Event()
+        data_event_2 = ctx.Event()
+        stopped_event_2 = ctx.Event()
 
         # Register two FakeRuntimeInitializers
         runtime_future_1 = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(test_id=test_id_1, service_type="Server")
+            FakeRuntimeInitializer(
+                test_id=test_id_1,
+                service_type="Server",
+                data_event=data_event_1,
+                stopped_event=stopped_event_1,
+            )
         )
         runtime_future_2 = runtime_manager.register_runtime_initializer(
-            FakeRuntimeInitializer(test_id=test_id_2, service_type="Server")
+            FakeRuntimeInitializer(
+                test_id=test_id_2,
+                service_type="Server",
+                data_event=data_event_2,
+                stopped_event=stopped_event_2,
+            )
         )
 
         assert not runtime_future_1.done()
@@ -1463,21 +1545,16 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
         runtime_handle_2.start()
 
         # --- Verify Data for Runtime 1 ---
-        data_arrived_1 = False
-        max_wait_time = 5.0
-        poll_interval = 0.1
-        waited_time = 0.0
-        while waited_time < max_wait_time:
-            if data_aggregator_1.has_new_data(test_id_1):
-                data_arrived_1 = True
-                break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
-
+        data_event_1_was_set = data_event_1.wait(timeout=event_timeout_seconds)
         assert (
-            data_arrived_1
-        ), f"Aggregator 1 did not receive data for test_id_1 ({test_id_1}) within {max_wait_time}s"
-        assert data_aggregator_1.has_new_data(test_id_1)
+            data_event_1_was_set
+        ), f"Runtime 1 did not signal data event for {test_id_1} within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator to process
+        runtime_manager.check_for_exception()
+
+        assert data_aggregator_1.has_new_data(
+            test_id_1
+        ), f"Aggregator 1 should have data for {test_id_1} after event"
         assert not data_aggregator_1.has_new_data(
             test_id_2
         ), "Aggregator 1 should not have data for test_id_2 yet"
@@ -1494,22 +1571,19 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
         assert not data_aggregator_1.has_new_data(test_id_1)
 
         # --- Verify Data for Runtime 2 ---
-        data_arrived_2 = False
-        waited_time = 0.0
-        while waited_time < max_wait_time:
-            if data_aggregator_2.has_new_data(
-                test_id_2
-            ):  # Check aggregator 2 for test_id_2
-                data_arrived_2 = True
-                break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
-
+        data_event_2_was_set = data_event_2.wait(timeout=event_timeout_seconds)
         assert (
-            data_arrived_2
-        ), f"Aggregator 2 did not receive data for test_id_2 ({test_id_2}) within {max_wait_time}s"
-        assert data_aggregator_2.has_new_data(test_id_2)
-        if data_aggregator_1 is not data_aggregator_2:
+            data_event_2_was_set
+        ), f"Runtime 2 did not signal data event for {test_id_2} within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator to process
+        runtime_manager.check_for_exception()
+
+        assert data_aggregator_2.has_new_data(
+            test_id_2
+        ), f"Aggregator 2 should have data for {test_id_2} after event"
+        if (
+            data_aggregator_1 is not data_aggregator_2
+        ):  # Should be same aggregator in OOP
             assert not data_aggregator_2.has_new_data(
                 test_id_1
             ), "Aggregator 2 should not have data for test_id_1"
@@ -1530,21 +1604,17 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
         # --- Stop Runtime 1 and Verify "stopped" Data ---
         runtime_handle_1.stop()
         runtime_manager.check_for_exception()  # Check for errors after stop command
-        time.sleep(5.0)  # Add initial sleep
-        stopped_data_arrived_1 = False
-        waited_time = 0.0
-        max_wait_stop_1 = 20.0  # New variable for this wait
-        while waited_time < max_wait_stop_1:
-            runtime_manager.check_for_exception()  # Check for errors during polling
-            if data_aggregator_1.has_new_data(test_id_1):
-                stopped_data_arrived_1 = True
-                break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
 
+        stopped_event_1_was_set = stopped_event_1.wait(timeout=event_timeout_seconds)
         assert (
-            stopped_data_arrived_1
-        ), f"Aggregator 1 did not receive 'stopped' data for test_id_1 ({test_id_1}) within {max_wait_stop_1}s"
+            stopped_event_1_was_set
+        ), f"Runtime 1 did not signal stopped event for {test_id_1} within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator to process
+        runtime_manager.check_for_exception()
+
+        assert data_aggregator_1.has_new_data(
+            test_id_1
+        ), f"Aggregator 1 should have 'stopped' data for {test_id_1} after event"
         values_stop_1 = data_aggregator_1.get_new_data(test_id_1)
         assert isinstance(values_stop_1, list) and len(values_stop_1) == 1
         first_stop_1 = values_stop_1[0]
@@ -1561,23 +1631,17 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
         # --- Stop Runtime 2 and Verify "stopped" Data ---
         runtime_handle_2.stop()
         runtime_manager.check_for_exception()  # Check for errors after stop command
-        time.sleep(5.0)  # Further increase initial sleep
-        stopped_data_arrived_2 = False
-        waited_time = 0.0
-        max_wait_stop_2 = 20.0  # Ensure this is max_wait_stop_2 and correctly indented
-        while (
-            waited_time < max_wait_stop_2
-        ):  # Check loop condition uses correct variable
-            runtime_manager.check_for_exception()  # Check for errors during polling
-            if data_aggregator_2.has_new_data(test_id_2):
-                stopped_data_arrived_2 = True
-                break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
 
+        stopped_event_2_was_set = stopped_event_2.wait(timeout=event_timeout_seconds)
         assert (
-            stopped_data_arrived_2
-        ), f"Aggregator 2 did not receive 'stopped' data for test_id_2 ({test_id_2}) within {max_wait_stop_2}s"
+            stopped_event_2_was_set
+        ), f"Runtime 2 did not signal stopped event for {test_id_2} within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator to process
+        runtime_manager.check_for_exception()
+
+        assert data_aggregator_2.has_new_data(
+            test_id_2
+        ), f"Aggregator 2 should have 'stopped' data for {test_id_2} after event"
         values_stop_2 = data_aggregator_2.get_new_data(test_id_2)
         assert isinstance(values_stop_2, list) and len(values_stop_2) == 1
         first_stop_2 = values_stop_2[0]
@@ -1796,20 +1860,34 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
 
     test_thread = None
     runtime_handle_for_cleanup = None
+    event_timeout_seconds = 5.0  # Short timeout for the error event itself
 
     try:
+        ctx = multiprocessing.get_context("spawn")
+        error_event = ctx.Event()
+
         initializer = ErrorThrowingRuntimeInitializer(
             error_message=error_msg,
             error_type=error_type,
             service_type="Server",
+            error_event=error_event,
         )
         handle_future = runtime_manager.register_runtime_initializer(initializer)
         runtime_manager.start_out_of_process()
         runtime_handle = handle_future.result(timeout=2)
         runtime_handle_for_cleanup = runtime_handle
-        runtime_handle.start()
+        runtime_handle.start()  # This should trigger the error in ErrorThrowingRuntime
 
-        time.sleep(1.5)
+        # Wait for the runtime to signal it's about to raise an error
+        # This is a short wait, mainly to ensure the child process has reached the error point.
+        error_event_was_set = error_event.wait(timeout=event_timeout_seconds)
+        if not error_event_was_set:
+            print(
+                f"Warning: ErrorThrowingRuntime did not signal error_event within {event_timeout_seconds}s. Proceeding anyway."
+            )
+
+        # time.sleep(1.5) # Original sleep, possibly redundant now or can be reduced
+        time.sleep(0.2)  # Shorter sleep after event is set or timed out
 
         test_thread = Thread(target=target_for_thread, daemon=True)
         test_thread.start()
