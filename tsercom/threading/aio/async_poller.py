@@ -84,7 +84,8 @@ class AsyncPoller(Generic[ResultTypeT]):
         self.__barrier: asyncio.Event = asyncio.Event()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
-        from tsercom.util.is_running_tracker import IsRunningTracker # Runtime import
+        from tsercom.util.is_running_tracker import IsRunningTracker  # Runtime import
+
         self.__is_loop_running: IsRunningTracker = IsRunningTracker()
         self.__is_loop_running.start()  # Start the poller as running by default
         self.__event_loop: asyncio.AbstractEventLoop | None = None
