@@ -4,8 +4,10 @@ isort:skip_file
 """
 
 import builtins
+import tsercom.caller_id.proto as caller_id_pb2
 import google.protobuf.descriptor
 import google.protobuf.message
+import tensor_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -49,39 +51,91 @@ class EchoResponse(google.protobuf.message.Message):
 global___EchoResponse = EchoResponse
 
 @typing.final
-class StreamDataRequest(google.protobuf.message.Message):
+class E2EStreamRequest(google.protobuf.message.Message):
+    """New E2E Test Service messages for streaming"""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    DATA_ID_FIELD_NUMBER: builtins.int
-    data_id: builtins.int
-    def __init__(
-        self,
-        *,
-        data_id: builtins.int = ...,
-    ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data_id", b"data_id"]) -> None: ...
-
-global___StreamDataRequest = StreamDataRequest
-
-@typing.final
-class StreamDataResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
+    CALLER_ID_FIELD_NUMBER: builtins.int
     DATA_CHUNK_FIELD_NUMBER: builtins.int
-    SEQUENCE_NUMBER_FIELD_NUMBER: builtins.int
-    data_chunk: builtins.str
-    sequence_number: builtins.int
+    @property
+    def caller_id(self) -> caller_id_pb2.CallerId:
+        """For the initial handshake"""
+
+    @property
+    def data_chunk(self) -> tensor_pb2.TensorChunk:
+        """For subsequent data"""
+
     def __init__(
         self,
         *,
-        data_chunk: builtins.str = ...,
-        sequence_number: builtins.int = ...,
+        caller_id: caller_id_pb2.CallerId | None = ...,
+        data_chunk: tensor_pb2.TensorChunk | None = ...,
     ) -> None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "caller_id",
+            b"caller_id",
+            "data_chunk",
+            b"data_chunk",
+            "payload",
+            b"payload",
+        ],
+    ) -> builtins.bool: ...
     def ClearField(
         self,
         field_name: typing.Literal[
-            "data_chunk", b"data_chunk", "sequence_number", b"sequence_number"
+            "caller_id",
+            b"caller_id",
+            "data_chunk",
+            b"data_chunk",
+            "payload",
+            b"payload",
         ],
     ) -> None: ...
+    def WhichOneof(
+        self, oneof_group: typing.Literal["payload", b"payload"]
+    ) -> typing.Literal["caller_id", "data_chunk"] | None: ...
 
-global___StreamDataResponse = StreamDataResponse
+global___E2EStreamRequest = E2EStreamRequest
+
+@typing.final
+class E2EStreamResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ACK_MESSAGE_FIELD_NUMBER: builtins.int
+    DATA_CHUNK_FIELD_NUMBER: builtins.int
+    ack_message: builtins.str
+    @property
+    def data_chunk(self) -> tensor_pb2.TensorChunk:
+        """To allow server to send data back"""
+
+    def __init__(
+        self,
+        *,
+        ack_message: builtins.str = ...,
+        data_chunk: tensor_pb2.TensorChunk | None = ...,
+    ) -> None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "_data_chunk", b"_data_chunk", "data_chunk", b"data_chunk"
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "_data_chunk",
+            b"_data_chunk",
+            "ack_message",
+            b"ack_message",
+            "data_chunk",
+            b"data_chunk",
+        ],
+    ) -> None: ...
+    def WhichOneof(
+        self, oneof_group: typing.Literal["_data_chunk", b"_data_chunk"]
+    ) -> typing.Literal["data_chunk"] | None: ...
+
+global___E2EStreamResponse = E2EStreamResponse

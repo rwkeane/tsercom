@@ -18,8 +18,12 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from tsercom.caller_id.proto.generated.v1_73 import caller_id_pb2 as caller__id__pb2
+from tsercom.tensor.proto.generated.v1_73 import tensor_pb2 as tensor__pb2
+
+
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x16\x65\x32\x65_test_service.proto\x12\x07tsercom"\x1e\n\x0b\x45\x63hoRequest\x12\x0f\n\x07message\x18\x01 \x01(\t" \n\x0c\x45\x63hoResponse\x12\x10\n\x08response\x18\x01 \x01(\t"$\n\x11StreamDataRequest\x12\x0f\n\x07\x64\x61ta_id\x18\x01 \x01(\x05"A\n\x12StreamDataResponse\x12\x12\n\ndata_chunk\x18\x01 \x01(\t\x12\x17\n\x0fsequence_number\x18\x02 \x01(\x05\x32\xb5\x02\n\x0e\x45\x32\x45TestService\x12\x33\n\x04\x45\x63ho\x12\x14.tsercom.EchoRequest\x1a\x15.tsercom.EchoResponse\x12M\n\x10ServerStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x1b.tsercom.StreamDataResponse0\x01\x12G\n\x10\x43lientStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x15.tsercom.EchoResponse(\x01\x12V\n\x17\x42idirectionalStreamData\x12\x1a.tsercom.StreamDataRequest\x1a\x1b.tsercom.StreamDataResponse(\x01\x30\x01\x62\x06proto3'
+    b'\n\x16\x65\x32\x65_test_service.proto\x12\x12tsercom.test.proto\x1a\x0f\x63\x61ller_id.proto\x1a\x0ctensor.proto"\x1e\n\x0b\x45\x63hoRequest\x12\x0f\n\x07message\x18\x01 \x01(\t" \n\x0c\x45\x63hoResponse\x12\x10\n\x08response\x18\x01 \x01(\t"q\n\x10\x45\x32\x45StreamRequest\x12&\n\tcaller_id\x18\x01 \x01(\x0b\x32\x11.tsercom.CallerIdH\x00\x12*\n\ndata_chunk\x18\x02 \x01(\x0b\x32\x14.tsercom.TensorChunkH\x00\x42\t\n\x07payload"f\n\x11\x45\x32\x45StreamResponse\x12\x13\n\x0b\x61\x63k_message\x18\x01 \x01(\t\x12-\n\ndata_chunk\x18\x02 \x01(\x0b\x32\x14.tsercom.TensorChunkH\x00\x88\x01\x01\x42\r\n\x0b_data_chunk2\xbc\x01\n\x0e\x45\x32\x45TestService\x12I\n\x04\x45\x63ho\x12\x1f.tsercom.test.proto.EchoRequest\x1a .tsercom.test.proto.EchoResponse\x12_\n\x0c\x45xchangeData\x12$.tsercom.test.proto.E2EStreamRequest\x1a%.tsercom.test.proto.E2EStreamResponse(\x01\x30\x01\x62\x06proto3'
 )
 
 _globals = globals()
@@ -27,14 +31,14 @@ _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "e2e_test_service_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
     DESCRIPTOR._loaded_options = None
-    _globals["_ECHOREQUEST"]._serialized_start = 35
-    _globals["_ECHOREQUEST"]._serialized_end = 65
-    _globals["_ECHORESPONSE"]._serialized_start = 67
-    _globals["_ECHORESPONSE"]._serialized_end = 99
-    _globals["_STREAMDATAREQUEST"]._serialized_start = 101
-    _globals["_STREAMDATAREQUEST"]._serialized_end = 137
-    _globals["_STREAMDATARESPONSE"]._serialized_start = 139
-    _globals["_STREAMDATARESPONSE"]._serialized_end = 204
-    _globals["_E2ETESTSERVICE"]._serialized_start = 207
-    _globals["_E2ETESTSERVICE"]._serialized_end = 516
+    _globals["_ECHOREQUEST"]._serialized_start = 77
+    _globals["_ECHOREQUEST"]._serialized_end = 107
+    _globals["_ECHORESPONSE"]._serialized_start = 109
+    _globals["_ECHORESPONSE"]._serialized_end = 141
+    _globals["_E2ESTREAMREQUEST"]._serialized_start = 143
+    _globals["_E2ESTREAMREQUEST"]._serialized_end = 256
+    _globals["_E2ESTREAMRESPONSE"]._serialized_start = 258
+    _globals["_E2ESTREAMRESPONSE"]._serialized_end = 360
+    _globals["_E2ETESTSERVICE"]._serialized_start = 363
+    _globals["_E2ETESTSERVICE"]._serialized_end = 551
 # @@protoc_insertion_point(module_scope)
