@@ -103,7 +103,7 @@ class TorchMemcpyQueueFactory(
         sink = TorchMemcpyQueueSink[QueueElementT](
             torch_queue,
             tensor_accessor=self.__tensor_accessor,
-            is_blocking=is_ipc_blocking, # Use passed-in is_ipc_blocking
+            is_blocking=is_ipc_blocking,  # Use passed-in is_ipc_blocking
         )
         source = TorchMemcpyQueueSource[QueueElementT](
             torch_queue, tensor_accessor=self.__tensor_accessor
