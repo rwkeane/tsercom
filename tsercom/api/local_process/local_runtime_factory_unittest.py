@@ -23,6 +23,10 @@ class FakeRuntimeInitializer:
         timeout_seconds=60,
         min_send_frequency_seconds: Optional[float] = None,
         auth_config=None,
+        max_queued_responses_per_endpoint: int = 1000,
+        max_ipc_queue_size: int = -1,
+        is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):  # Added params
         """Initializes a fake runtime initializer.
 
@@ -32,26 +36,69 @@ class FakeRuntimeInitializer:
             timeout_seconds: Timeout in seconds.
             min_send_frequency_seconds: Minimum send frequency in seconds.
             auth_config: Fake auth configuration.
+            max_queued_responses_per_endpoint: Fake max queued responses.
+            max_ipc_queue_size: Fake max IPC queue size.
+            is_ipc_blocking: Fake IPC blocking flag.
+            data_reader_sink_is_lossy: Fake lossy flag for data reader sink.
         """
         if service_type_str == "Server":
-            self.__service_type_enum_val = ServiceType.SERVER
+            self.__service_type_enum_val_prop = ServiceType.SERVER
         elif service_type_str == "Client":
-            self.__service_type_enum_val = ServiceType.CLIENT
+            self.__service_type_enum_val_prop = ServiceType.CLIENT
         else:
             raise ValueError(f"Invalid service_type_str: {service_type_str}")
 
-        self._RuntimeConfig__service_type = self.__service_type_enum_val
-        self.data_aggregator_client = data_aggregator_client
-        self.timeout_seconds = timeout_seconds
-        self.auth_config = auth_config
-        self.min_send_frequency_seconds = min_send_frequency_seconds
+        self._RuntimeConfig__service_type = self.__service_type_enum_val_prop
+        self._RuntimeConfig__data_aggregator_client = data_aggregator_client
+        self._RuntimeConfig__timeout_seconds = timeout_seconds
+        self._RuntimeConfig__auth_config = auth_config
+        self._RuntimeConfig__min_send_frequency_seconds = min_send_frequency_seconds
+        self._RuntimeConfig__max_queued_responses_per_endpoint = (
+            max_queued_responses_per_endpoint
+        )
+        self._RuntimeConfig__max_ipc_queue_size = max_ipc_queue_size
+        self._RuntimeConfig__is_ipc_blocking = is_ipc_blocking
+        self._RuntimeConfig__data_reader_sink_is_lossy = data_reader_sink_is_lossy
+
         self.create_called = False
         self.create_args = None
         self.runtime_to_return = FakeRuntime()
 
     @property
     def service_type_enum(self):
-        return self.__service_type_enum_val
+        return self._RuntimeConfig__service_type
+
+    @property
+    def data_aggregator_client(self):
+        return self._RuntimeConfig__data_aggregator_client
+
+    @property
+    def timeout_seconds(self):
+        return self._RuntimeConfig__timeout_seconds
+
+    @property
+    def auth_config(self):
+        return self._RuntimeConfig__auth_config
+
+    @property
+    def min_send_frequency_seconds(self):
+        return self._RuntimeConfig__min_send_frequency_seconds
+
+    @property
+    def max_queued_responses_per_endpoint(self):
+        return self._RuntimeConfig__max_queued_responses_per_endpoint
+
+    @property
+    def max_ipc_queue_size(self):
+        return self._RuntimeConfig__max_ipc_queue_size
+
+    @property
+    def is_ipc_blocking(self):
+        return self._RuntimeConfig__is_ipc_blocking
+
+    @property
+    def data_reader_sink_is_lossy(self):
+        return self._RuntimeConfig__data_reader_sink_is_lossy
 
     def create(self, thread_watcher, data_handler, grpc_channel_factory):
         self.create_called = True

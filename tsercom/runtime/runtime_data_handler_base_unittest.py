@@ -81,8 +81,13 @@ class TestableRuntimeDataHandler(RuntimeDataHandlerBase[DataType, Any]):
         data_reader: RemoteDataReader[DataType],
         event_source: AsyncPoller[Any],
         mocker,
+        max_queued_responses_per_endpoint: int = 1000,
     ):
-        super().__init__(data_reader, event_source)
+        super().__init__(
+            data_reader,
+            event_source,
+            max_queued_responses_per_endpoint=max_queued_responses_per_endpoint,
+        )
         self.mock_register_caller = mocker.AsyncMock()
         self.mock_unregister_caller = mocker.AsyncMock(return_value=True)
         self.mock_try_get_caller_id = mocker.MagicMock(name="_try_get_caller_id_impl")
@@ -477,8 +482,18 @@ class TestRuntimeDataHandlerBaseBehavior:
 class ConcreteRuntimeDataHandler(RuntimeDataHandlerBase[str, str]):
     __test__ = False  # Not a test class itself
 
-    def __init__(self, data_reader, event_source, mocker):
-        super().__init__(data_reader, event_source)
+    def __init__(
+        self,
+        data_reader,
+        event_source,
+        mocker,
+        max_queued_responses_per_endpoint: int = 1000,
+    ):
+        super().__init__(
+            data_reader,
+            event_source,
+            max_queued_responses_per_endpoint=max_queued_responses_per_endpoint,
+        )
         self._register_caller_mock = mocker.AsyncMock(spec=self._register_caller)
         self._unregister_caller_mock = mocker.AsyncMock(spec=self._unregister_caller)
         self._try_get_caller_id_mock = mocker.MagicMock(spec=self._try_get_caller_id)
@@ -814,3 +829,110 @@ async def test_data_processor_impl_produces_serializable_with_synchronized_times
     # Default offset is 0.
     expected_synced_ts = original_sync_method(original_dt)  # Get what it should be
     assert processed_event.timestamp.as_datetime() == expected_synced_ts.as_datetime()
+
+
+@pytest.mark.asyncio
+async def test_poller_factory_respects_max_queued_responses(mocker):
+    """
+    Tests that the _poller_factory in RuntimeDataHandlerBase creates AsyncPollers
+    whose internal asyncio.Queue respects the max_queued_responses_per_endpoint limit.
+    """
+    mock_data_reader = mocker.MagicMock(spec=RemoteDataReader)
+    mock_event_source = mocker.MagicMock(spec=AsyncPoller)
+    queue_max_size = 2
+
+    # Use the actual TestableRuntimeDataHandler or ConcreteRuntimeDataHandler
+    # to ensure the real _poller_factory is used.
+    # We need access to the IdTracker which uses the _poller_factory.
+    handler = TestableRuntimeDataHandler(
+        mock_data_reader,
+        mock_event_source,
+        mocker,
+        max_queued_responses_per_endpoint=queue_max_size,
+    )
+
+    # The _poller_factory is called by IdTracker when a new ID is added.
+    # So, we add a dummy caller to trigger it.
+    dummy_caller_id = CallerIdentifier.random()
+    # The add method of IdTracker will call the _poller_factory.
+    # We need to get the poller instance created.
+    # We can mock the IdTracker's internal _factory to capture the created poller,
+    # or retrieve it after adding.
+
+    # Let's retrieve it. The IdTracker stores the poller.
+    handler._id_tracker.add(dummy_caller_id, "dummy_ip", 1234)
+    _address, _port, created_poller = handler._id_tracker.get(dummy_caller_id)
+
+    assert created_poller is not None, "Poller should have been created and stored."
+
+    # Now, test the configuration of the created_poller.
+    # AsyncPoller's max_responses_queued is self.__max_responses_queued
+    assert (
+        created_poller._AsyncPoller__max_responses_queued == queue_max_size
+    ), "AsyncPoller was not configured with the correct max_responses_queued value."
+
+    # Test the behavior of AsyncPoller's internal bounded deque
+    dummy_event_caller_id = CallerIdentifier.random()
+    item1 = EventInstance(
+        data="item1",
+        timestamp=datetime.datetime.now(timezone.utc),
+        caller_id=dummy_event_caller_id,
+    )
+    item2 = EventInstance(
+        data="item2",
+        timestamp=datetime.datetime.now(timezone.utc),
+        caller_id=dummy_event_caller_id,
+    )
+    item3 = EventInstance(
+        data="item3",
+        timestamp=datetime.datetime.now(timezone.utc),
+        caller_id=dummy_event_caller_id,
+    )
+    item4 = EventInstance(
+        data="item4",
+        timestamp=datetime.datetime.now(timezone.utc),
+        caller_id=dummy_event_caller_id,
+    )
+
+    # Put items using on_available
+    # AsyncPoller needs an event loop to be set for on_available to schedule __barrier.set()
+    # The handler fixture should ensure a loop is available for the poller.
+    # We also need to ensure the poller's event_loop attribute is set.
+    # This typically happens when wait_instance or __anext__ is first called.
+    # For this test, we can manually set it if it's not set, or rely on the handler's setup.
+    # The dispatch loop in RuntimeDataHandlerBase also sets the barrier.
+
+    if created_poller.event_loop is None and handler._loop_on_init:
+        # If the poller hasn't been associated with a loop yet (e.g. not iterated over),
+        # and the handler had a loop on init (which it should in tests),
+        # associate the poller with that loop so on_available can schedule barrier.set().
+        # This is a bit of a test-specific setup to ensure on_available works as expected
+        # without fully running the poller's async iteration.
+        created_poller._AsyncPoller__event_loop = handler._loop_on_init  # type: ignore
+
+    created_poller.on_available(item1)
+    assert len(created_poller) == 1
+
+    created_poller.on_available(item2)
+    assert len(created_poller) == queue_max_size  # Should be 2 if queue_max_size is 2
+
+    # Add another item, this should cause the oldest (item1) to be dropped
+    created_poller.on_available(item3)
+    assert len(created_poller) == queue_max_size  # Still 2
+
+    # Add one more
+    created_poller.on_available(item4)
+    assert len(created_poller) == queue_max_size  # Still 2
+
+    # Verify the contents of the poller's internal deque (__responses)
+    # This requires accessing the name-mangled attribute.
+    internal_deque = created_poller._AsyncPoller__responses
+    assert len(internal_deque) == queue_max_size
+    if queue_max_size == 2:  # Specific check if we used 2
+        assert item3 in internal_deque
+        assert item4 in internal_deque
+        assert item1 not in internal_deque
+        assert item2 not in internal_deque
+
+    # Clean up the handler
+    await handler.async_close()

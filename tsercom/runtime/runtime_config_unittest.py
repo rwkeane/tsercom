@@ -46,6 +46,10 @@ class TestRuntimeConfig:
             service_type="Client",
             timeout_seconds=30,
             data_aggregator_client=mock_aggregator,
+            max_queued_responses_per_endpoint=500,
+            max_ipc_queue_size=10,
+            is_ipc_blocking=False,
+            data_reader_sink_is_lossy=False,
         )
 
         copied_config = RuntimeConfig(
@@ -57,6 +61,10 @@ class TestRuntimeConfig:
         assert copied_config._RuntimeConfig__service_type == ServiceType.CLIENT
         assert copied_config.timeout_seconds == 30
         assert copied_config.data_aggregator_client == mock_aggregator
+        assert copied_config.max_queued_responses_per_endpoint == 500
+        assert copied_config.max_ipc_queue_size == 10
+        assert copied_config.is_ipc_blocking is False
+        assert copied_config.data_reader_sink_is_lossy is False
 
     def test_init_copy_constructor_server(self):
         """Test initialization by copying from another Server RuntimeConfig."""
@@ -65,6 +73,10 @@ class TestRuntimeConfig:
             service_type="Server",
             timeout_seconds=45,
             data_aggregator_client=mock_aggregator_server,
+            max_queued_responses_per_endpoint=501,
+            max_ipc_queue_size=11,
+            is_ipc_blocking=True,
+            data_reader_sink_is_lossy=True,
         )
 
         copied_config = RuntimeConfig(
@@ -77,16 +89,28 @@ class TestRuntimeConfig:
         assert copied_config.timeout_seconds == 45
         # Based on implementation, data_aggregator_client is copied regardless of service type
         assert copied_config.data_aggregator_client == mock_aggregator_server
+        assert copied_config.max_queued_responses_per_endpoint == 501
+        assert copied_config.max_ipc_queue_size == 11
+        assert copied_config.is_ipc_blocking is True
+        assert copied_config.data_reader_sink_is_lossy is True
 
     def test_default_values(self):
         """Test default timeout_seconds and data_aggregator_client."""
         config_client = RuntimeConfig(service_type="Client")
         assert config_client.timeout_seconds == 60
         assert config_client.data_aggregator_client is None
+        assert config_client.max_queued_responses_per_endpoint == 1000
+        assert config_client.max_ipc_queue_size is None
+        assert config_client.is_ipc_blocking is True
+        assert config_client.data_reader_sink_is_lossy is True
 
         config_server = RuntimeConfig(service_type="Server")
         assert config_server.timeout_seconds == 60
         assert config_server.data_aggregator_client is None
+        assert config_server.max_queued_responses_per_endpoint == 1000
+        assert config_server.max_ipc_queue_size is None
+        assert config_server.is_ipc_blocking is True
+        assert config_server.data_reader_sink_is_lossy is True
 
     def test_custom_timeout_seconds(self):
         """Test providing a custom timeout_seconds value."""
@@ -109,6 +133,30 @@ class TestRuntimeConfig:
             service_type="Server", data_aggregator_client=mock_aggregator
         )
         assert config.data_aggregator_client == mock_aggregator
+
+    def test_all_custom_params(self):
+        """Test setting all parameters to custom values."""
+        mock_auth = mock.Mock()
+        config = RuntimeConfig(
+            service_type="Server",
+            data_aggregator_client=mock.Mock(spec=RemoteDataAggregator),
+            timeout_seconds=15,
+            min_send_frequency_seconds=0.05,
+            auth_config=mock_auth,
+            max_queued_responses_per_endpoint=50,
+            max_ipc_queue_size=5,
+            is_ipc_blocking=False,
+            data_reader_sink_is_lossy=False,
+        )
+        assert config.is_server()
+        assert config.data_aggregator_client is not None
+        assert config.timeout_seconds == 15
+        assert config.min_send_frequency_seconds == 0.05
+        assert config.auth_config == mock_auth
+        assert config.max_queued_responses_per_endpoint == 50
+        assert config.max_ipc_queue_size == 5
+        assert config.is_ipc_blocking is False
+        assert config.data_reader_sink_is_lossy is False
 
     def test_invalid_service_type_string(self):
         """Test initialization with an invalid service_type string raises ValueError."""

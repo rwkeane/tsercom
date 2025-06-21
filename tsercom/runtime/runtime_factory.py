@@ -79,3 +79,7 @@ class RuntimeFactory(
         """
         Stops any underlying calls and executions associated with this instance.
         """
+
+    # Properties to expose RuntimeConfig values directly for convenience
+    # These are inherited from RuntimeConfig via RuntimeInitializer,
+    # so explicit delegation here is redundant and has been removed.

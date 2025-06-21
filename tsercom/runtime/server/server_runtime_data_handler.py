@@ -50,6 +50,7 @@ class ServerRuntimeDataHandler(
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
         min_send_frequency_seconds: float | None = None,
+        max_queued_responses_per_endpoint: int = 1000,
         *,
         is_testing: bool = False,
     ):
@@ -63,11 +64,18 @@ class ServerRuntimeDataHandler(
             min_send_frequency_seconds: Optional minimum time interval, in seconds,
                 for the per-caller event pollers created by the underlying
                 `IdTracker`. Passed to `RuntimeDataHandlerBase`.
+            max_queued_responses_per_endpoint: The maximum number of responses
+                that can be queued per endpoint. Passed to `RuntimeDataHandlerBase`.
             is_testing: If True, a `FakeSynchronizedClock` is used as the time
                 source. Otherwise, a `TimeSyncServer` is started to provide
                 time synchronization to clients.
         """
-        super().__init__(data_reader, event_source, min_send_frequency_seconds)
+        super().__init__(
+            data_reader,
+            event_source,
+            min_send_frequency_seconds,
+            max_queued_responses_per_endpoint=max_queued_responses_per_endpoint,
+        )
 
         self.__clock: SynchronizedClock
         self.__server: TimeSyncServer | None = None  # Store server if created

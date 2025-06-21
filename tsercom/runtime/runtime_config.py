@@ -57,6 +57,10 @@ class RuntimeConfig(Generic[DataTypeT]):
         timeout_seconds: int | None = 60,
         min_send_frequency_seconds: float | None = None,
         auth_config: BaseChannelAuthConfig | None = None,
+        max_queued_responses_per_endpoint: int = 1000,
+        max_ipc_queue_size: Optional[int] = None,
+        is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):
         """Initializes with ServiceType enum and optional configurations.
 
@@ -66,6 +70,15 @@ class RuntimeConfig(Generic[DataTypeT]):
             timeout_seconds: Data timeout in seconds. Defaults to 60.
             min_send_frequency_seconds: Minimum event send interval.
             auth_config: Optional channel authentication configuration.
+            max_queued_responses_per_endpoint: The maximum number of responses
+                that can be queued from a single remote endpoint. Defaults to 1000.
+            max_ipc_queue_size: The maximum size of core inter-process communication
+                queues. `None` or non-positive means unbounded. Defaults to `None`.
+            is_ipc_blocking: Whether IPC queue `put` operations should block if the
+                queue is full. Defaults to True (blocking). If False, operations
+                may be lossy if the queue is full.
+            data_reader_sink_is_lossy: Controls if the `DataReaderSink` used by
+                `RemoteRuntimeFactory` is lossy. Defaults to True.
         """
         ...
 
@@ -78,6 +91,10 @@ class RuntimeConfig(Generic[DataTypeT]):
         timeout_seconds: int | None = 60,
         min_send_frequency_seconds: float | None = None,
         auth_config: BaseChannelAuthConfig | None = None,
+        max_queued_responses_per_endpoint: int = 1000,
+        max_ipc_queue_size: Optional[int] = None,
+        is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):
         """Initializes with service type as string and optional configurations.
 
@@ -87,6 +104,15 @@ class RuntimeConfig(Generic[DataTypeT]):
             timeout_seconds: Data timeout in seconds. Defaults to 60.
             min_send_frequency_seconds: Minimum event send interval.
             auth_config: Optional channel authentication configuration.
+            max_queued_responses_per_endpoint: The maximum number of responses
+                that can be queued from a single remote endpoint. Defaults to 1000.
+            max_ipc_queue_size: The maximum size of core inter-process communication
+                queues. `None` or non-positive means unbounded. Defaults to `None`.
+            is_ipc_blocking: Whether IPC queue `put` operations should block if the
+                queue is full. Defaults to True (blocking). If False, operations
+                may be lossy if the queue is full.
+            data_reader_sink_is_lossy: Controls if the `DataReaderSink` used by
+                `RemoteRuntimeFactory` is lossy. Defaults to True.
         """
         ...
 
@@ -109,6 +135,10 @@ class RuntimeConfig(Generic[DataTypeT]):
         timeout_seconds: int | None = 60,
         min_send_frequency_seconds: float | None = None,
         auth_config: BaseChannelAuthConfig | None = None,
+        max_queued_responses_per_endpoint: int = 1000,
+        max_ipc_queue_size: Optional[int] = None,
+        is_ipc_blocking: bool = True,
+        data_reader_sink_is_lossy: bool = True,
     ):
         """Initializes the RuntimeConfig.
 
@@ -137,6 +167,22 @@ class RuntimeConfig(Generic[DataTypeT]):
             auth_config: Optional. A `BaseChannelAuthConfig` instance defining
                 the authentication and encryption settings for gRPC channels
                 created by the runtime. If `None`, insecure channels may be used.
+            max_queued_responses_per_endpoint: The maximum number of responses
+                that can be queued from a single remote endpoint. This helps
+                prevent a single misbehaving or very active endpoint from
+                overwhelming the system's memory by queuing too many unprocessed
+                responses. Defaults to 1000.
+            max_ipc_queue_size: The maximum size for core inter-process
+                communication (IPC) queues (e.g., `multiprocessing.Queue`).
+                If `None` or a non-positive integer, the queue size is considered
+                unbounded (platform-dependent default). Defaults to `None`.
+            is_ipc_blocking: Determines if `put` operations on core IPC queues
+                should block when the queue is full (`True`) or be non-blocking
+                and potentially lossy (`False`). Defaults to `True`.
+            data_reader_sink_is_lossy: Controls whether the `DataReaderSink`
+                (typically used in split-process scenarios by `RemoteRuntimeFactory`)
+                should drop data if its internal queue is full (True, lossy),
+                or raise an error (False, non-lossy). Defaults to `True`.
 
         Raises:
             ValueError: If `service_type` and `other_config` are not mutually
@@ -163,6 +209,10 @@ class RuntimeConfig(Generic[DataTypeT]):
                 timeout_seconds=other_config.timeout_seconds,
                 min_send_frequency_seconds=other_config.min_send_frequency_seconds,
                 auth_config=other_config.auth_config,
+                max_queued_responses_per_endpoint=other_config.max_queued_responses_per_endpoint,
+                max_ipc_queue_size=other_config.max_ipc_queue_size,
+                is_ipc_blocking=other_config.is_ipc_blocking,
+                data_reader_sink_is_lossy=other_config.data_reader_sink_is_lossy,
             )
             return
 
@@ -197,6 +247,12 @@ class RuntimeConfig(Generic[DataTypeT]):
         self.__timeout_seconds: int | None = timeout_seconds
         self.__auth_config: BaseChannelAuthConfig | None = auth_config
         self.__min_send_frequency_seconds: float | None = min_send_frequency_seconds
+        self.__max_queued_responses_per_endpoint: int = (
+            max_queued_responses_per_endpoint
+        )
+        self.__max_ipc_queue_size: Optional[int] = max_ipc_queue_size
+        self.__is_ipc_blocking: bool = is_ipc_blocking
+        self.__data_reader_sink_is_lossy: bool = data_reader_sink_is_lossy
 
     def is_client(self) -> bool:
         """Checks if the runtime is configured to operate as a client.
@@ -273,3 +329,58 @@ class RuntimeConfig(Generic[DataTypeT]):
             no specific auth configuration is provided.
         """
         return self.__auth_config
+
+    @property
+    def max_queued_responses_per_endpoint(self) -> int:
+        """The max number of responses to queue from a single remote endpoint.
+
+        This limit applies to the internal `asyncio.Queue` used by the
+        `AsyncPoller` within data handlers for each connected endpoint. It
+        controls how many data items (responses) can be buffered from a
+        specific remote source before new items might be dropped or cause
+        backpressure, depending on the queue's behavior when full.
+
+        Returns:
+            The maximum number of responses that can be queued per endpoint.
+        """
+        return self.__max_queued_responses_per_endpoint
+
+    @property
+    def max_ipc_queue_size(self) -> Optional[int]:
+        """The maximum size of core inter-process communication queues.
+
+        This value is used for the `maxsize` parameter of `multiprocessing.Queue`
+        or `torch.multiprocessing.Queue` instances used for core IPC.
+        If `None` or a non-positive integer, the queue is effectively unbounded
+        (platform-dependent default size).
+
+        Returns:
+            The configured maximum size for IPC queues, or `None` for unbounded.
+        """
+        return self.__max_ipc_queue_size
+
+    @property
+    def is_ipc_blocking(self) -> bool:
+        """Whether IPC queue `put` operations are blocking or potentially lossy.
+
+        If True (default), `put()` operations on full IPC queues will block until
+        space is available. If False, `put()` may be non-blocking (e.g., using
+        `put_nowait` or a timeout of 0) and could drop items if the queue is full.
+
+        Returns:
+            True if IPC queue puts are blocking, False otherwise.
+        """
+        return self.__is_ipc_blocking
+
+    @property
+    def data_reader_sink_is_lossy(self) -> bool:
+        """Controls if the `DataReaderSink` is lossy.
+
+        This affects `DataReaderSink` instances, typically used in split-process
+        runtimes (via `RemoteRuntimeFactory`), determining their behavior when
+        their internal queue is full.
+
+        Returns:
+            True if the sink should be lossy, False otherwise.
+        """
+        return self.__data_reader_sink_is_lossy

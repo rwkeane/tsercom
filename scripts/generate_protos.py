@@ -438,7 +438,15 @@ def generate_protos(project_root: Path) -> None:
         ["tensor/proto", "timesync/common/proto"],
     )
     generate_proto_file(
-        package_dir, "test/proto/e2e_test_service.proto", ["test/proto"]
+        package_dir,
+        "test/proto/e2e_test_service.proto",
+        [
+            "test/proto",
+            "caller_id/proto",
+            "rpc/proto",
+            "timesync/common/proto",
+            "tensor/proto",
+        ],
     )
 
 
