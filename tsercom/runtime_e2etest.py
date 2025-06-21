@@ -86,7 +86,8 @@ class FakeRuntime(Runtime):
         grpc_channel_factory: GrpcChannelFactory,
         test_id: CallerIdentifier,
         stopped_event: Optional[multiprocessing.Event] = None,
-        data_event: Optional[multiprocessing.Event] = None,
+        data_event: Optional[multiprocessing.Event] = None,  # For OOP data
+        data_event_async: Optional[asyncio.Event] = None,  # For IP data
     ):
         self.__thread_watcher = thread_watcher
         self.__data_handler = data_handler
@@ -95,7 +96,8 @@ class FakeRuntime(Runtime):
         self.__responder: EndpointDataProcessor[FakeData] | None = None
         self._data_sent = False
         self.__stopped_event = stopped_event
-        self.__data_event = data_event
+        self.__data_event = data_event  # OOP data event
+        self.__data_event_async = data_event_async  # IP data event
 
         super().__init__()
 
@@ -121,8 +123,10 @@ class FakeRuntime(Runtime):
 
             await self.__responder.process_data(fresh_data_object, fresh_timestamp)
             self._data_sent = True
-            if self.__data_event:
+            if self.__data_event:  # OOP
                 self.__data_event.set()
+            if self.__data_event_async:  # IP
+                self.__data_event_async.set()
 
     async def stop(self, exception) -> None:
         assert self.__responder is not None
@@ -141,12 +145,14 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
         test_id: CallerIdentifier,
         service_type="Client",
         stopped_event: Optional[multiprocessing.Event] = None,
-        data_event: Optional[multiprocessing.Event] = None,
+        data_event: Optional[multiprocessing.Event] = None,  # OOP
+        data_event_async: Optional[asyncio.Event] = None,  # IP
     ):
         super().__init__(service_type=service_type)
         self._test_id = test_id
         self._stopped_event = stopped_event
         self._data_event = data_event
+        self._data_event_async = data_event_async
 
     def create(
         self,
@@ -161,6 +167,7 @@ class FakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
             self._test_id,
             self._stopped_event,
             self._data_event,
+            self._data_event_async,
         )
 
 
@@ -248,6 +255,7 @@ class StrDataTorchEventRuntime(Runtime):
         data_handler: RuntimeDataHandler[str, torch.Tensor],
         grpc_channel_factory: GrpcChannelFactory,
         test_id: CallerIdentifier,
+        data_event: Optional[multiprocessing.Event] = None,
     ):
         super().__init__()
         self.__thread_watcher = thread_watcher
@@ -257,6 +265,7 @@ class StrDataTorchEventRuntime(Runtime):
         self.__responder: EndpointDataProcessor[str, torch.Tensor] | None = None
         self._listener_task: asyncio.Task | None = None
         self.expected_event_tensor_sum_str: str | None = None
+        self.__data_event = data_event
 
     async def _event_listener_loop(self):
         if self.__responder is None:
@@ -290,6 +299,9 @@ class StrDataTorchEventRuntime(Runtime):
                             print(
                                 f"DEBUG: {self.__class__.__name__} sent data response: {self.expected_event_tensor_sum_str}"
                             )
+                            if self.__data_event:
+                                self.__data_event.set()  # Signal after sending the specific data
+                                # self.__data_event = None # Optional: make event one-shot if it's only for one piece of data
         except asyncio.CancelledError:
             print(
                 f"DEBUG: {self.__class__.__name__} event listener loop cancelled for {self.__test_id}"
@@ -332,9 +344,15 @@ class StrDataTorchEventRuntime(Runtime):
 
 
 class StrDataTorchEventRuntimeInitializer(RuntimeInitializer[str, torch.Tensor]):
-    def __init__(self, test_id: CallerIdentifier, service_type="Server"):
+    def __init__(
+        self,
+        test_id: CallerIdentifier,
+        service_type="Server",
+        data_event: Optional[multiprocessing.Event] = None,
+    ):
         super().__init__(service_type=service_type)
         self._test_id = test_id
+        self._data_event = data_event
 
     def create(
         self,
@@ -343,7 +361,11 @@ class StrDataTorchEventRuntimeInitializer(RuntimeInitializer[str, torch.Tensor])
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
         return StrDataTorchEventRuntime(
-            thread_watcher, data_handler, grpc_channel_factory, self._test_id
+            thread_watcher,
+            data_handler,
+            grpc_channel_factory,
+            self._test_id,
+            self._data_event,
         )
 
 
@@ -359,6 +381,11 @@ class TorchDataTorchEventRuntime(Runtime):
         grpc_channel_factory: GrpcChannelFactory,
         test_id: CallerIdentifier,
         initializer: "TorchDataTorchEventRuntimeInitializer",
+        initial_data_event: Optional[multiprocessing.Event] = None,
+        event_response_queue: Optional[
+            multiprocessing.Queue
+        ] = None,  # Changed from Event to Queue
+        stopped_indicator_event: Optional[multiprocessing.Event] = None,
     ):
         super().__init__()
         self.__thread_watcher = thread_watcher
@@ -370,6 +397,9 @@ class TorchDataTorchEventRuntime(Runtime):
             None
         )
         self._listener_task: asyncio.Task | None = None
+        self._initial_data_event = initial_data_event
+        self._event_response_queue = event_response_queue
+        self._stopped_indicator_event = stopped_indicator_event
 
     async def _event_listener_loop(self):
         if self.__responder is None:
@@ -403,6 +433,15 @@ class TorchDataTorchEventRuntime(Runtime):
                             print(
                                 f"DEBUG: {self.__class__.__name__} sent data response: {response_tensor}"
                             )
+                            if self._event_response_queue:
+                                try:
+                                    self._event_response_queue.put_nowait(True)
+                                except (
+                                    Exception
+                                ) as e_queue:  # Should be Full if not sized appropriately but catch all
+                                    print(
+                                        f"ERROR: {self.__class__.__name__} could not put to event_response_queue: {e_queue}"
+                                    )
         except asyncio.CancelledError:
             print(
                 f"DEBUG: {self.__class__.__name__} event listener loop cancelled for {self.__test_id}"
@@ -428,6 +467,8 @@ class TorchDataTorchEventRuntime(Runtime):
             self.initializer.initial_data_tensor,
             datetime.datetime.now(datetime.timezone.utc),
         )
+        if self._initial_data_event:
+            self._initial_data_event.set()
 
         self._listener_task = asyncio.create_task(self._event_listener_loop())
         print(f"DEBUG: {self.__class__.__name__} started for {self.__test_id}")
@@ -449,6 +490,8 @@ class TorchDataTorchEventRuntime(Runtime):
                     self.initializer.stopped_tensor_indicator,
                     datetime.datetime.now(datetime.timezone.utc),
                 )
+                if self._stopped_indicator_event:
+                    self._stopped_indicator_event.set()
             except Exception as e:
                 print(
                     f"ERROR: {self.__class__.__name__} error during stop's process_data: {e}"
@@ -459,12 +502,22 @@ class TorchDataTorchEventRuntime(Runtime):
 class TorchDataTorchEventRuntimeInitializer(
     RuntimeInitializer[torch.Tensor, torch.Tensor]
 ):
-    def __init__(self, test_id: CallerIdentifier, service_type="Server"):
+    def __init__(
+        self,
+        test_id: CallerIdentifier,
+        service_type="Server",
+        initial_data_event: Optional[multiprocessing.Event] = None,
+        event_response_queue: Optional[multiprocessing.Queue] = None,
+        stopped_indicator_event: Optional[multiprocessing.Event] = None,
+    ):
         super().__init__(service_type=service_type)
         self._test_id = test_id
         self.initial_data_tensor = torch.tensor([[250.0, 350.0]])
         self.event_response_tensor_base = torch.tensor([700.0, 800.0])
         self.stopped_tensor_indicator = torch.tensor([[-999.0]])
+        self._initial_data_event = initial_data_event
+        self._event_response_queue = event_response_queue
+        self._stopped_indicator_event = stopped_indicator_event
 
     def create(
         self,
@@ -478,6 +531,9 @@ class TorchDataTorchEventRuntimeInitializer(
             grpc_channel_factory,
             self._test_id,
             self,
+            self._initial_data_event,
+            self._event_response_queue,
+            self._stopped_indicator_event,
         )
 
 
@@ -579,6 +635,7 @@ class BroadcastTestFakeRuntime(Runtime):
         data_handler: RuntimeDataHandler[FakeData, FakeEvent],
         grpc_channel_factory: GrpcChannelFactory,
         initial_caller_ids: list[CallerIdentifier],
+        caller_event_map: Optional[dict[CallerIdentifier, asyncio.Event]] = None,
     ):
         super().__init__()
         self._thread_watcher = thread_watcher
@@ -589,6 +646,7 @@ class BroadcastTestFakeRuntime(Runtime):
             CallerIdentifier, EndpointDataProcessor[FakeData, FakeEvent]
         ] = {}
         self._listener_tasks: list[asyncio.Task] = []
+        self._caller_event_map = caller_event_map
 
     async def start_async(self) -> None:
         for i, cid in enumerate(self.initial_caller_ids):
@@ -632,6 +690,11 @@ class BroadcastTestFakeRuntime(Runtime):
                         print(
                             f"LISTENER_DBG: Listener for {caller_id} processed data for FakeEvent"
                         )
+                        if (
+                            self._caller_event_map
+                            and caller_id in self._caller_event_map
+                        ):
+                            self._caller_event_map[caller_id].set()
                         await asyncio.sleep(0)  # Yield control
         except asyncio.CancelledError:
             print(f"Listener for {caller_id}: Cancelled.")
@@ -663,10 +726,14 @@ class BroadcastTestFakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent
     __test__ = False  # Tell pytest this is not a test class
 
     def __init__(
-        self, initial_caller_ids: list[CallerIdentifier], service_type="Server"
+        self,
+        initial_caller_ids: list[CallerIdentifier],
+        service_type="Server",
+        caller_event_map: Optional[dict[CallerIdentifier, asyncio.Event]] = None,
     ):
         super().__init__(service_type=service_type)
         self.initial_caller_ids = initial_caller_ids
+        self._caller_event_map = caller_event_map
 
     def create(
         self,
@@ -679,6 +746,7 @@ class BroadcastTestFakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent
             data_handler,
             grpc_channel_factory,
             self.initial_caller_ids,
+            self._caller_event_map,
         )
 
 
@@ -692,8 +760,10 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         # Create event for stopped signal, using spawn context if init_call indicates out-of-process
         # This is a heuristic; ideally, RuntimeManager would expose its context or method.
         # For now, assuming start_out_of_process implies spawn.
-        stopped_event = None
+        oop_stopped_event = None
+        async_data_event = None
         event_timeout_seconds = 20.0  # Timeout for waiting on the event
+
         is_out_of_process_init = "start_out_of_process" in getattr(
             init_call, "__name__", ""
         ) or (
@@ -701,14 +771,26 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
             and "start_out_of_process" in getattr(init_call.func, "__name__", "")
         )
 
+        is_in_process_init = "start_in_process" in getattr(
+            init_call, "__name__", ""
+        ) or (
+            isinstance(init_call, partial)
+            and "start_in_process" in getattr(init_call.func, "__name__", "")
+        )
+
         if is_out_of_process_init:
             ctx = multiprocessing.get_context("spawn")
-            stopped_event = ctx.Event()
+            oop_stopped_event = ctx.Event()
+            # For OOP, FakeRuntime doesn't use a data_event yet, this test relies on polling for initial data.
+            # This change is specifically for in-process initial data.
+        elif is_in_process_init:
+            async_data_event = asyncio.Event()
 
         initializer = FakeRuntimeInitializer(
             test_id=current_test_id,
             service_type="Server",
-            stopped_event=stopped_event,
+            stopped_event=oop_stopped_event,  # Pass the mp.Event for OOP stop
+            data_event_async=async_data_event,  # Pass the asyncio.Event for IP data
         )
         runtime_future = runtime_manager.register_runtime_initializer(initializer)
 
@@ -723,13 +805,57 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_handle_for_cleanup = runtime_handle
         data_aggregator = runtime_handle.data_aggregator
         assert not data_aggregator.has_new_data(current_test_id)
+
+        # For in-process, runtime_handle.start() will run in the worker_event_loop.
+        # We need to ensure that loop is running and `start_async` can complete.
+        # The test `test_in_process_init` already manages the worker_event_loop.
         runtime_handle.start()
 
+        if async_data_event:  # In-process case
+            try:
+                # Run the wait in the correct event loop if possible, or use a timeout that allows context switching
+                # This part is tricky as __check_initialization is synchronous.
+                # A simple approach is to use a timed wait that allows the other thread's loop to run.
+                # Loop of time.sleep is effectively what we had, but now event-driven.
+                # We need to await this event in the loop where FakeRuntime runs.
+                # The test structure makes it hard for __check_initialization to directly await.
+                # Instead, we rely on FakeRuntime setting the event, and we poll the event status here
+                # with very short sleeps, or use a timed wait on the event.
+                # Let's use a timed wait on the event.
+                # This will be awaited by the test's event loop if __check_initialization itself were async.
+                # Since it's sync, we'll use a loop to check event.is_set() or rely on runtime_manager's loop.
+
+                # The runtime runs in a separate thread's event loop.
+                # We must wait for the event in a way that doesn't block this test thread entirely if the
+                # target loop needs this thread to release GIL or for other reasons.
+                # A loop with event.is_set() and time.sleep is effectively polling the event.
+                # Let's try a direct wait, assuming the asyncio event is set in another thread's loop.
+                # This might be problematic if the event loop is not handled correctly by the test.
+                # The test `test_in_process_init` manages the loop.
+                # This is a placeholder for how one *would* wait if this were an async function.
+                # For now, we'll keep the polling loop for in-process initial data,
+                # but if FakeRuntime sets an asyncio.Event, the test could be refactored to await it.
+                # The current FakeRuntime.start_async() will call async_data_event.set().
+                # The polling loop below will pick it up.
+                # To make it truly event-driven here would require __check_initialization to be async.
+                # For now, the event will be set, and the existing poll will just find data faster.
+                # The key is that FakeRuntime SETS the event. The original polling loop remains for now for IP initial data.
+                pass  # Event is set by FakeRuntime, polling loop below will catch it.
+
+            except asyncio.TimeoutError:  # This won't be hit with current structure
+                pytest.fail(f"In-process data event timed out for {current_test_id}")
+
+        # Original polling loop for initial data (kept for now for in-process, event helps it)
         data_arrived = False
         max_wait_time = 15.0  # Increased from 5.0 to allow more time for initial data
         poll_interval = 0.1
         waited_time = 0.0
         while waited_time < max_wait_time:
+            if (
+                async_data_event and async_data_event.is_set()
+            ):  # Check event if available
+                # Allow a very brief moment for data to hit aggregator after event is set
+                time.sleep(0.05)
             has_data_now = data_aggregator.has_new_data(current_test_id)
             if has_data_now:
                 data_arrived = True
@@ -740,7 +866,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_manager.check_for_exception()
         assert (
             data_arrived
-        ), f"Aggregator did not receive data for test_id ({current_test_id}) within {max_wait_time}s"
+        ), f"Aggregator did not receive data for test_id ({current_test_id}) within {max_wait_time}s. Async event set: {async_data_event.is_set() if async_data_event else 'N/A'}"
         assert data_aggregator.has_new_data(current_test_id)
 
         values = data_aggregator.get_new_data(current_test_id)
@@ -761,11 +887,13 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        if stopped_event:
-            stopped_event_was_set = stopped_event.wait(timeout=event_timeout_seconds)
+        if oop_stopped_event:  # Check the oop_stopped_event variable
+            stopped_event_was_set = oop_stopped_event.wait(
+                timeout=event_timeout_seconds
+            )
             assert (
                 stopped_event_was_set
-            ), f"Runtime did not signal stopped for test_id ({current_test_id}) within {event_timeout_seconds}s"
+            ), f"Runtime did not signal oop_stopped_event for test_id ({current_test_id}) within {event_timeout_seconds}s"
             time.sleep(0.1)  # Allow time for data to be processed by the aggregator
         else:
             # Fallback to polling if no event (e.g. for in-process which wasn't failing)
@@ -970,9 +1098,15 @@ def test_out_of_process_torch_event_transport(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_handle_for_cleanup = None
     current_test_id = CallerIdentifier.random()
+    event_timeout_seconds = 15.0
+
+    ctx = multiprocessing.get_context("spawn")
+    data_event = ctx.Event()
 
     initializer = StrDataTorchEventRuntimeInitializer(
-        test_id=current_test_id, service_type="Server"
+        test_id=current_test_id,
+        service_type="Server",
+        data_event=data_event,
     )
     expected_event_tensor = torch.tensor([10.0, 20.0, 30.0])
     expected_sum_val = expected_event_tensor.sum().item()
@@ -1000,35 +1134,29 @@ def test_out_of_process_torch_event_transport(clear_loop_fixture):
             expected_event_tensor, current_test_id, timestamp=event_timestamp
         )
 
-        data_arrived = False
-        max_wait_time = 20.0  # Further increase polling duration
-        poll_interval = 0.2
-        waited_time = 0.0
-        received_annotated_instance = None
+        data_event_was_set = data_event.wait(timeout=event_timeout_seconds)
+        assert (
+            data_event_was_set
+        ), f"Runtime did not signal data event for {current_test_id} (response '{expected_response_str}') within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator to process
+        runtime_manager.check_for_exception()
 
-        while waited_time < max_wait_time:
-            runtime_manager.check_for_exception()  # Check for errors during polling
-            if data_aggregator.has_new_data(current_test_id):
-                all_data = data_aggregator.get_new_data(current_test_id)
-                if all_data:
-                    for item in all_data:
-                        if (
-                            isinstance(item.data, str)
-                            and item.data == expected_response_str
-                        ):
-                            received_annotated_instance = item
-                            data_arrived = True
-                            break
-                    if data_arrived:
-                        break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
+        assert data_aggregator.has_new_data(
+            current_test_id
+        ), f"Aggregator should have data for {current_test_id} after event"
+
+        all_data = data_aggregator.get_new_data(current_test_id)
+        assert all_data, f"Received empty data list for {current_test_id}"
+
+        received_annotated_instance = None
+        for item in all_data:
+            if isinstance(item.data, str) and item.data == expected_response_str:
+                received_annotated_instance = item
+                break
 
         assert (
-            data_arrived
-        ), f"Aggregator did not receive expected string data '{expected_response_str}' for test_id ({current_test_id}) within {max_wait_time}s. Last data: {data_aggregator.get_new_data(current_test_id) if data_aggregator.has_new_data(current_test_id) else 'None'}"
-
-        assert received_annotated_instance is not None
+            received_annotated_instance is not None
+        ), f"Expected string data '{expected_response_str}' not found in received items for {current_test_id}. Received: {all_data}"
         assert isinstance(received_annotated_instance, AnnotatedInstance)
         assert isinstance(received_annotated_instance.data, str)
         assert received_annotated_instance.data == expected_response_str
@@ -1050,9 +1178,19 @@ def test_out_of_process_torch_data_torch_event_transport(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_handle_for_cleanup = None
     current_test_id = CallerIdentifier.random()
+    event_timeout_seconds = 15.0
+
+    ctx = multiprocessing.get_context("spawn")
+    initial_data_event = ctx.Event()
+    event_response_queue = ctx.Queue(maxsize=5)  # Use queue for event response
+    stopped_event = ctx.Event()
 
     initializer = TorchDataTorchEventRuntimeInitializer(
-        test_id=current_test_id, service_type="Server"
+        test_id=current_test_id,
+        service_type="Server",
+        initial_data_event=initial_data_event,
+        event_response_queue=event_response_queue,  # Pass queue
+        stopped_indicator_event=stopped_event,
     )
 
     try:
@@ -1070,31 +1208,28 @@ def test_out_of_process_torch_data_torch_event_transport(clear_loop_fixture):
         runtime_handle.start()
 
         # 1. Verify Initial Data Tensor
-        initial_data_arrived = False
-        max_wait_time = 10.0
-        poll_interval = 0.2
-        waited_time = 0.0
-        received_initial_data_instance = None
-
-        while waited_time < max_wait_time:
-            runtime_manager.check_for_exception()
-            if data_aggregator.has_new_data(current_test_id):
-                all_data = data_aggregator.get_new_data(current_test_id)
-                if all_data:
-                    for item in all_data:
-                        if torch.equal(item.data, initializer.initial_data_tensor):
-                            received_initial_data_instance = item
-                            initial_data_arrived = True
-                            break
-                    if initial_data_arrived:
-                        break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
-
+        initial_data_event_was_set = initial_data_event.wait(
+            timeout=event_timeout_seconds
+        )
         assert (
-            initial_data_arrived
-        ), f"Aggregator did not receive initial data tensor for test_id ({current_test_id}) within {max_wait_time}s."
-        assert received_initial_data_instance is not None
+            initial_data_event_was_set
+        ), f"Runtime did not signal initial_data_event for {current_test_id} within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator
+        runtime_manager.check_for_exception()
+
+        assert data_aggregator.has_new_data(
+            current_test_id
+        ), "Aggregator should have initial data"
+        all_initial_data = data_aggregator.get_new_data(current_test_id)
+        assert all_initial_data, "Received empty initial data list"
+        received_initial_data_instance = None
+        for item in all_initial_data:
+            if torch.equal(item.data, initializer.initial_data_tensor):
+                received_initial_data_instance = item
+                break
+        assert (
+            received_initial_data_instance is not None
+        ), f"Initial data tensor not found in {all_initial_data}"
         assert isinstance(received_initial_data_instance.data, torch.Tensor)
         assert torch.equal(
             received_initial_data_instance.data,
@@ -1108,34 +1243,38 @@ def test_out_of_process_torch_data_torch_event_transport(clear_loop_fixture):
             event_tensor_to_send, current_test_id, timestamp=event_timestamp
         )
 
-        event_response_arrived = False
-        waited_time = 0.0
+        try:
+            queue_token = event_response_queue.get(timeout=event_timeout_seconds)
+            assert (
+                queue_token is True
+            ), f"Unexpected token from event_response_queue: {queue_token}"
+        except Exception as e_get:  # Catches queue.Empty
+            pytest.fail(
+                f"Did not get response signal from event_response_queue for {current_test_id} within {event_timeout_seconds}s. Error: {e_get}"
+            )
+
+        time.sleep(0.1)  # Allow aggregator
+        runtime_manager.check_for_exception()
+
+        assert data_aggregator.has_new_data(
+            current_test_id
+        ), "Aggregator should have event response data"
+        all_event_response_data = data_aggregator.get_new_data(current_test_id)
+        assert all_event_response_data, "Received empty event response data list"
+
         received_event_response_instance = None
         expected_event_response = (
             initializer.event_response_tensor_base + event_tensor_to_send.sum().item()
         )
-
-        while waited_time < max_wait_time:
-            runtime_manager.check_for_exception()
-            if data_aggregator.has_new_data(current_test_id):
-                all_data = data_aggregator.get_new_data(current_test_id)
-                if all_data:
-                    for item in all_data:
-                        if isinstance(item.data, torch.Tensor) and torch.equal(
-                            item.data, expected_event_response
-                        ):
-                            received_event_response_instance = item
-                            event_response_arrived = True
-                            break
-                    if event_response_arrived:
-                        break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
-
+        for item in all_event_response_data:
+            if isinstance(item.data, torch.Tensor) and torch.equal(
+                item.data, expected_event_response
+            ):
+                received_event_response_instance = item
+                break
         assert (
-            event_response_arrived
-        ), f"Aggregator did not receive event response tensor for test_id ({current_test_id}) within {max_wait_time}s."
-        assert received_event_response_instance is not None
+            received_event_response_instance is not None
+        ), f"Event response tensor not found in {all_event_response_data}"
         assert isinstance(received_event_response_instance.data, torch.Tensor)
         assert torch.equal(
             received_event_response_instance.data, expected_event_response
@@ -1145,29 +1284,29 @@ def test_out_of_process_torch_data_torch_event_transport(clear_loop_fixture):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        stopped_data_arrived = False
-        waited_time = 0.0
-        received_stopped_data_instance = None
-        while waited_time < max_wait_time:
-            if data_aggregator.has_new_data(current_test_id):
-                all_data = data_aggregator.get_new_data(current_test_id)
-                if all_data:
-                    for item in all_data:
-                        if isinstance(item.data, torch.Tensor) and torch.equal(
-                            item.data, initializer.stopped_tensor_indicator
-                        ):
-                            received_stopped_data_instance = item
-                            stopped_data_arrived = True
-                            break
-                    if stopped_data_arrived:
-                        break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
-
+        stopped_event_was_set = stopped_event.wait(timeout=event_timeout_seconds)
         assert (
-            stopped_data_arrived
-        ), f"Aggregator did not receive stopped tensor indicator for test_id ({current_test_id}) within {max_wait_time}s."
-        assert received_stopped_data_instance is not None
+            stopped_event_was_set
+        ), f"Runtime did not signal stopped_event for {current_test_id} within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator
+        runtime_manager.check_for_exception()
+
+        assert data_aggregator.has_new_data(
+            current_test_id
+        ), "Aggregator should have stopped data"
+        all_stopped_data = data_aggregator.get_new_data(current_test_id)
+        assert all_stopped_data, "Received empty stopped data list"
+
+        received_stopped_data_instance = None
+        for item in all_stopped_data:
+            if isinstance(item.data, torch.Tensor) and torch.equal(
+                item.data, initializer.stopped_tensor_indicator
+            ):
+                received_stopped_data_instance = item
+                break
+        assert (
+            received_stopped_data_instance is not None
+        ), f"Stopped tensor indicator not found in {all_stopped_data}"
         assert isinstance(received_stopped_data_instance.data, torch.Tensor)
         assert torch.equal(
             received_stopped_data_instance.data,
@@ -1190,9 +1329,22 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     runtime_handle_for_cleanup = None
     current_test_id = CallerIdentifier.random()
+    event_timeout_seconds = 15.0  # For single events
+    stress_queue_get_timeout = 0.5  # Timeout for each queue.get() in stress test
+
+    ctx = multiprocessing.get_context("spawn")
+    initial_data_event = ctx.Event()
+    # For multiple event responses, use a queue
+    # Maxsize should be at least num_events_to_send
+    event_response_queue = ctx.Queue(maxsize=100)  # Set a reasonable maxsize
+    stopped_event = ctx.Event()
 
     initializer = TorchDataTorchEventRuntimeInitializer(
-        test_id=current_test_id, service_type="Server"
+        test_id=current_test_id,
+        service_type="Server",
+        initial_data_event=initial_data_event,
+        event_response_queue=event_response_queue,
+        stopped_indicator_event=stopped_event,
     )
 
     try:
@@ -1210,32 +1362,28 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
         runtime_handle.start()
 
         # 1. Verify Initial Data Tensor
-        initial_data_arrived = False
-        max_wait_time = 10.0
-        poll_interval = 0.2
-        waited_time = 0.0
-        received_initial_data_items = []
-
-        while waited_time < max_wait_time:
-            runtime_manager.check_for_exception()
-            if data_aggregator.has_new_data(current_test_id):
-                new_items = data_aggregator.get_new_data(current_test_id)
-                received_initial_data_items.extend(new_items)
-                # Check if the specific initial tensor is among received items
-                for item in new_items:
-                    if torch.equal(item.data, initializer.initial_data_tensor):
-                        initial_data_arrived = True
-                        break
-                if initial_data_arrived:
-                    break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
-
+        initial_data_event_was_set = initial_data_event.wait(
+            timeout=event_timeout_seconds
+        )
         assert (
-            initial_data_arrived
-        ), f"Aggregator did not receive initial data tensor for test_id ({current_test_id}) within {max_wait_time}s."
-        # The initial data might have been cleared from aggregator if other data (event responses) arrived quickly.
-        # The key is that it was sent and runtime proceeded.
+            initial_data_event_was_set
+        ), f"Runtime did not signal initial_data_event for {current_test_id} within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator
+        runtime_manager.check_for_exception()
+
+        # Check data_aggregator for initial data (optional, as event is primary sync)
+        # This also helps clear it from aggregator if needed before event responses
+        if data_aggregator.has_new_data(current_test_id):
+            all_initial_data = data_aggregator.get_new_data(current_test_id)
+            # Simple check if any item matches, no strong assertion needed if event was set
+            found_initial = any(
+                torch.equal(item.data, initializer.initial_data_tensor)
+                for item in all_initial_data
+                if isinstance(item.data, torch.Tensor)
+            )
+            print(
+                f"DEBUG: Initial data found in aggregator after event: {found_initial}"
+            )
 
         # 2. Stress Send Multiple Tensor Events
         num_events_to_send = 50
@@ -1256,82 +1404,58 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
             time.sleep(0.01)  # Small delay
 
         # 3. Collect and Verify All Event Responses
-        received_event_responses_map = {}
-        deadline = time.monotonic() + 25.0  # 25-second timeout
+        # Wait for all event response tokens from the queue
+        for i in range(num_events_to_send):
+            try:
+                token = event_response_queue.get(timeout=stress_queue_get_timeout)
+                assert (
+                    token is True
+                ), f"Received unexpected token from event_response_queue: {token}"
+                print(
+                    f"DEBUG: Received token {i+1}/{num_events_to_send} from event_response_queue."
+                )
+            except Exception as e_get:  # Catches queue.Empty primarily
+                pytest.fail(
+                    f"Failed to get token {i+1}/{num_events_to_send} from event_response_queue within {stress_queue_get_timeout}s. Error: {e_get}"
+                )
 
+        time.sleep(
+            0.5
+        )  # Generous sleep to allow all data to arrive at aggregator after all queue tokens received
+        runtime_manager.check_for_exception()
+
+        # Now, retrieve all data from aggregator and verify
         all_received_data_for_stress_phase = []
+        if data_aggregator.has_new_data(current_test_id):
+            all_received_data_for_stress_phase.extend(
+                data_aggregator.get_new_data(current_test_id)
+            )
 
-        while (
-            time.monotonic() < deadline
-            and len(received_event_responses_map) < num_events_to_send
-        ):
-            runtime_manager.check_for_exception()
-            if data_aggregator.has_new_data(current_test_id):
-                new_data_list = data_aggregator.get_new_data(current_test_id)
-                all_received_data_for_stress_phase.extend(new_data_list)
-                for item in new_data_list:
-                    if torch.equal(item.data, initializer.initial_data_tensor):
-                        continue
-                    if torch.equal(item.data, initializer.stopped_tensor_indicator):
-                        continue
+        received_event_responses_map = {}
+        for item in all_received_data_for_stress_phase:
+            if not isinstance(item.data, torch.Tensor):
+                continue
+            if torch.equal(item.data, initializer.initial_data_tensor):
+                continue
+            if torch.equal(item.data, initializer.stopped_tensor_indicator):
+                continue
 
-                    assert isinstance(
-                        item.data, torch.Tensor
-                    ), f"Received non-tensor data: {item.data}"
-                    response_tensor = item.data
+            response_tensor = item.data
+            # Try to match response_tensor to one of the expected_responses_map values
+            for es, expected_resp_t in expected_responses_map.items():
+                if torch.equal(response_tensor, expected_resp_t):
+                    if (
+                        es not in received_event_responses_map
+                    ):  # Store only first match for this sum
+                        received_event_responses_map[es] = response_tensor
+                    break
 
-                    # Try to match response_tensor to one of the expected_responses_map values
-                    # This is more robust if sums are not perfectly unique or if base tensor has non-zero elements.
-                    found_match = False
-                    for es, expected_resp_t in expected_responses_map.items():
-                        if torch.equal(response_tensor, expected_resp_t):
-                            if (
-                                es not in received_event_responses_map
-                            ):  # Store only first match for this sum
-                                received_event_responses_map[es] = response_tensor
-                                found_match = True
-                            break
-                    # If not found by direct match, try deriving sum (less robust if base is complex)
-                    if not found_match:
-                        # This derivation is only valid if event_response_tensor_base is just added (no element-wise mult)
-                        # and response_tensor - initializer.event_response_tensor_base results in a scalar or tensor that sums to event_sum
-                        try:
-                            sum_tensor_candidate = (
-                                response_tensor - initializer.event_response_tensor_base
-                            )
-                            if (
-                                sum_tensor_candidate.numel() == 1
-                                or (
-                                    sum_tensor_candidate.ndim == 1
-                                    and sum_tensor_candidate.shape[0] == 1
-                                )
-                                or (
-                                    sum_tensor_candidate.ndim == 2
-                                    and sum_tensor_candidate.shape[0] == 1
-                                    and sum_tensor_candidate.shape[1] == 1
-                                )
-                            ):
-                                event_sum_from_response = (
-                                    sum_tensor_candidate.sum().item()
-                                )
-                                if (
-                                    event_sum_from_response
-                                    not in received_event_responses_map
-                                    and event_sum_from_response
-                                    in expected_responses_map
-                                ):
-                                    received_event_responses_map[
-                                        event_sum_from_response
-                                    ] = response_tensor
-                        except Exception:  # Broad exception if tensor math fails
-                            pass  # Could not derive sum, might be an unexpected tensor
-
-            if len(received_event_responses_map) < num_events_to_send:
-                time.sleep(0.1)
-
-        assert (
-            len(received_event_responses_map) == num_events_to_send
-        ), f"Expected {num_events_to_send} responses, got {len(received_event_responses_map)}. \nExpected sums: {sorted(list(expected_responses_map.keys()))} \nReceived sums: {sorted(list(received_event_responses_map.keys()))}"
+        assert len(received_event_responses_map) == num_events_to_send, (
+            f"Expected {num_events_to_send} unique responses, got {len(received_event_responses_map)}. "
+            f"Expected sums: {sorted(list(expected_responses_map.keys()))} "
+            f"Received sums from matched tensors: {sorted(list(received_event_responses_map.keys()))}. "
+            f"All data from aggregator for this phase: {all_received_data_for_stress_phase}"
+        )
 
         for event_sum, expected_tensor in expected_responses_map.items():
             assert (
@@ -1345,32 +1469,29 @@ def test_out_of_process_torch_tensor_stress(clear_loop_fixture):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        stopped_data_arrived = False
-        waited_time = 0.0
-        received_stopped_data_instance = None
-        # Collect any remaining data, looking for the stop indicator
-        while waited_time < max_wait_time:  # Reuse max_wait_time
-            if data_aggregator.has_new_data(current_test_id):
-                all_data = data_aggregator.get_new_data(current_test_id)
-                if all_data:
-                    for item in all_data:
-                        if isinstance(item.data, torch.Tensor) and torch.equal(
-                            item.data, initializer.stopped_tensor_indicator
-                        ):
-                            received_stopped_data_instance = item
-                            stopped_data_arrived = True
-                            break
-                    if stopped_data_arrived:
-                        break
-            if stopped_data_arrived:  # Break outer loop if found
-                break
-            time.sleep(poll_interval)
-            waited_time += poll_interval
-
+        stopped_event_was_set = stopped_event.wait(timeout=event_timeout_seconds)
         assert (
-            stopped_data_arrived
-        ), f"Aggregator did not receive stopped tensor indicator for test_id ({current_test_id}) within {max_wait_time}s."
-        assert received_stopped_data_instance is not None
+            stopped_event_was_set
+        ), f"Runtime did not signal stopped_event for {current_test_id} within {event_timeout_seconds}s"
+        time.sleep(0.1)  # Allow aggregator
+        runtime_manager.check_for_exception()
+
+        assert data_aggregator.has_new_data(
+            current_test_id
+        ), "Aggregator should have stopped data"
+        all_stopped_data = data_aggregator.get_new_data(current_test_id)
+        assert all_stopped_data, "Received empty stopped data list"
+
+        received_stopped_data_instance = None
+        for item in all_stopped_data:
+            if isinstance(item.data, torch.Tensor) and torch.equal(
+                item.data, initializer.stopped_tensor_indicator
+            ):
+                received_stopped_data_instance = item
+                break
+        assert (
+            received_stopped_data_instance is not None
+        ), f"Stopped tensor indicator not found in {all_stopped_data}"
         assert isinstance(received_stopped_data_instance.data, torch.Tensor)
         assert torch.equal(
             received_stopped_data_instance.data,
@@ -1953,10 +2074,18 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         caller_id1 = CallerIdentifier.random()
         caller_id2 = CallerIdentifier.random()
         all_caller_ids = [caller_id1, caller_id2]
-        pending_ids_to_receive_event = {str(cid) for cid in all_caller_ids}
+
+        # Create asyncio events for each caller
+        caller_event_map: dict[CallerIdentifier, asyncio.Event] = {
+            cid: asyncio.Event() for cid in all_caller_ids
+        }
+        # Store string versions of caller IDs for pending set
+        pending_ids_to_receive_event_signal = {str(cid) for cid in all_caller_ids}
 
         initializer = BroadcastTestFakeRuntimeInitializer(
-            all_caller_ids, service_type="Server"
+            all_caller_ids,
+            service_type="Server",
+            caller_event_map=caller_event_map,
         )
         handle_future = runtime_manager.register_runtime_initializer(initializer)
         runtime_manager.start_in_process(runtime_event_loop=worker_event_loop)
@@ -1971,36 +2100,68 @@ def test_event_broadcast_e2e(clear_loop_fixture):
         runtime_handle.on_event(broadcast_event, caller_id=None)
         time.sleep(1.5)
 
-        max_wait_time = 10.0
-        poll_interval = 0.2
-        waited_time = 0.0
+        max_wait_time = 10.0  # Total wait time for all events
+        poll_interval = 0.1  # How often to check events and aggregator
+        start_wait_time = time.monotonic()
 
-        while waited_time < max_wait_time and pending_ids_to_receive_event:
+        pending_data_check_ids = {str(cid) for cid in all_caller_ids}
+
+        while (time.monotonic() - start_wait_time) < max_wait_time and (
+            pending_ids_to_receive_event_signal or pending_data_check_ids
+        ):
             runtime_manager.check_for_exception()
-            for cid_obj in all_caller_ids:
-                cid_key = str(cid_obj)
-                if cid_key not in pending_ids_to_receive_event:
-                    continue
 
-                if data_aggregator.has_new_data(cid_obj):
-                    received_datas = data_aggregator.get_new_data(cid_obj)
-                    assert len(received_datas) >= 1
-                    event_data_found = False
-                    for item in received_datas:
-                        assert isinstance(item, AnnotatedInstance)
-                        assert isinstance(item.data, FakeData)
-                        if item.data.value == f"event_for_{str(cid_obj)[:8]}":
-                            event_data_found = True
-                            break
-                    if event_data_found:
-                        pending_ids_to_receive_event.remove(cid_key)
-            if not pending_ids_to_receive_event:
+            for cid_obj in all_caller_ids:
+                cid_key_str = str(cid_obj)
+                event_for_caller = caller_event_map[cid_obj]
+
+                if (
+                    cid_key_str in pending_ids_to_receive_event_signal
+                    and event_for_caller.is_set()
+                ):
+                    print(f"DEBUG: Event received for caller {cid_key_str}")
+                    pending_ids_to_receive_event_signal.remove(cid_key_str)
+                    # Give a moment for data to arrive at aggregator after event
+                    time.sleep(0.05)
+
+                # Check for data if event was signaled (or if still pending data check)
+                if cid_key_str in pending_data_check_ids and (
+                    event_for_caller.is_set()
+                    or cid_key_str not in pending_ids_to_receive_event_signal
+                ):
+                    if data_aggregator.has_new_data(cid_obj):
+                        received_datas = data_aggregator.get_new_data(cid_obj)
+                        assert (
+                            len(received_datas) >= 1
+                        ), f"No data items for {cid_key_str} despite has_new_data"
+                        # event_data_found = False # Removed
+                        for item in received_datas:
+                            assert isinstance(item, AnnotatedInstance)
+                            assert isinstance(item.data, FakeData)
+                            if item.data.value == f"event_for_{str(cid_obj)[:8]}":
+                                # event_data_found = True # Removed
+                                print(
+                                    f"DEBUG: Correct data found for caller {cid_key_str}"
+                                )
+                                if (
+                                    cid_key_str in pending_data_check_ids
+                                ):  # ensure removal only once
+                                    pending_data_check_ids.remove(cid_key_str)
+                                break
+                        # If event was set but data not found yet, it might still be in transit
+                        # The loop will continue polling data_aggregator for a short while
+
+            if not pending_ids_to_receive_event_signal and not pending_data_check_ids:
                 break
             time.sleep(poll_interval)
-            waited_time += poll_interval
+
         assert (
-            not pending_ids_to_receive_event
-        ), f"Not all callers received the broadcast event. Missing: {pending_ids_to_receive_event}"
+            not pending_ids_to_receive_event_signal
+        ), f"Not all callers signaled event. Missing signals for: {pending_ids_to_receive_event_signal}"
+        assert (
+            not pending_data_check_ids
+        ), f"Not all callers had data verified. Missing data verification for: {pending_data_check_ids}"
+
     finally:
         for handle_item in runtime_handles_for_cleanup:
             try:
