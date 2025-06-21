@@ -8,7 +8,7 @@ runtimes manage incoming data and events for individual clients or connections.
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Generic, List, Optional, TypeVar, overload
 
 import grpc
@@ -153,7 +153,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
                 `ServerTimestamp` fails, the gRPC call will be aborted.
         """
         assert timestamp is not None
-        
+
         actual_timestamp: datetime
         if isinstance(timestamp, ServerTimestamp):
             maybe_timestamp = await self.desynchronize(timestamp, context)
