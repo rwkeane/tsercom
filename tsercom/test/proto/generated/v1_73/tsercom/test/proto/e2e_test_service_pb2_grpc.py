@@ -3,25 +3,30 @@
 import grpc
 import warnings
 
-from tsercom.test.proto import e2e_test_service_pb2 as tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2
+from tsercom.test.proto import (
+    e2e_test_service_pb2 as tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2,
+)
 
-GRPC_GENERATED_VERSION = '1.73.0'
+GRPC_GENERATED_VERSION = "1.73.0"
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
 try:
     from grpc._utilities import first_version_is_lower
-    _version_not_supported = first_version_is_lower(GRPC_VERSION, GRPC_GENERATED_VERSION)
+
+    _version_not_supported = first_version_is_lower(
+        GRPC_VERSION, GRPC_GENERATED_VERSION
+    )
 except ImportError:
     _version_not_supported = True
 
 if _version_not_supported:
     raise RuntimeError(
-        f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in tsercom/test/proto/e2e_test_service_pb2_grpc.py depends on'
-        + f' grpcio>={GRPC_GENERATED_VERSION}.'
-        + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
-        + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
+        f"The grpc package installed is at version {GRPC_VERSION},"
+        + f" but the generated code in tsercom/test/proto/e2e_test_service_pb2_grpc.py depends on"
+        + f" grpcio>={GRPC_GENERATED_VERSION}."
+        + f" Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}"
+        + f" or downgrade your generated code using grpcio-tools<={GRPC_VERSION}."
     )
 
 
@@ -35,124 +40,127 @@ class E2ETestServiceStub(object):
             channel: A grpc.Channel.
         """
         self.Echo = channel.unary_unary(
-                '/tsercom.E2ETestService/Echo',
-                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoRequest.SerializeToString,
-                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
-                _registered_method=True)
+            "/tsercom.E2ETestService/Echo",
+            request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoRequest.SerializeToString,
+            response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
+            _registered_method=True,
+        )
         self.ServerStreamData = channel.unary_stream(
-                '/tsercom.E2ETestService/ServerStreamData',
-                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
-                _registered_method=True)
+            "/tsercom.E2ETestService/ServerStreamData",
+            request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+            response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
+            _registered_method=True,
+        )
         self.ClientStreamData = channel.stream_unary(
-                '/tsercom.E2ETestService/ClientStreamData',
-                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
-                _registered_method=True)
+            "/tsercom.E2ETestService/ClientStreamData",
+            request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+            response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
+            _registered_method=True,
+        )
         self.BidirectionalStreamData = channel.stream_stream(
-                '/tsercom.E2ETestService/BidirectionalStreamData',
-                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
-                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
-                _registered_method=True)
+            "/tsercom.E2ETestService/BidirectionalStreamData",
+            request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
+            response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
+            _registered_method=True,
+        )
         self.ExchangeData = channel.stream_stream(
-                '/tsercom.E2ETestService/ExchangeData',
-                request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamRequest.SerializeToString,
-                response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamResponse.FromString,
-                _registered_method=True)
+            "/tsercom.E2ETestService/ExchangeData",
+            request_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamRequest.SerializeToString,
+            response_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamResponse.FromString,
+            _registered_method=True,
+        )
 
 
 class E2ETestServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Echo(self, request, context):
-        """A simple unary RPC for echo functionality.
-        """
+        """A simple unary RPC for echo functionality."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ServerStreamData(self, request, context):
-        """A server-streaming RPC.
-        """
+        """A server-streaming RPC."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ClientStreamData(self, request_iterator, context):
-        """A client-streaming RPC.
-        """
+        """A client-streaming RPC."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def BidirectionalStreamData(self, request_iterator, context):
-        """A bidirectional-streaming RPC.
-        """
+        """A bidirectional-streaming RPC."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ExchangeData(self, request_iterator, context):
-        """RPC for E2E test with CallerId handshake and data transfer.
-        """
+        """RPC for E2E test with CallerId handshake and data transfer."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
 
 def add_E2ETestServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Echo': grpc.unary_unary_rpc_method_handler(
-                    servicer.Echo,
-                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoRequest.FromString,
-                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.SerializeToString,
-            ),
-            'ServerStreamData': grpc.unary_stream_rpc_method_handler(
-                    servicer.ServerStreamData,
-                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
-                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.SerializeToString,
-            ),
-            'ClientStreamData': grpc.stream_unary_rpc_method_handler(
-                    servicer.ClientStreamData,
-                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
-                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.SerializeToString,
-            ),
-            'BidirectionalStreamData': grpc.stream_stream_rpc_method_handler(
-                    servicer.BidirectionalStreamData,
-                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
-                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.SerializeToString,
-            ),
-            'ExchangeData': grpc.stream_stream_rpc_method_handler(
-                    servicer.ExchangeData,
-                    request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamRequest.FromString,
-                    response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamResponse.SerializeToString,
-            ),
+        "Echo": grpc.unary_unary_rpc_method_handler(
+            servicer.Echo,
+            request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoRequest.FromString,
+            response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.SerializeToString,
+        ),
+        "ServerStreamData": grpc.unary_stream_rpc_method_handler(
+            servicer.ServerStreamData,
+            request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
+            response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.SerializeToString,
+        ),
+        "ClientStreamData": grpc.stream_unary_rpc_method_handler(
+            servicer.ClientStreamData,
+            request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
+            response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.SerializeToString,
+        ),
+        "BidirectionalStreamData": grpc.stream_stream_rpc_method_handler(
+            servicer.BidirectionalStreamData,
+            request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.FromString,
+            response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.SerializeToString,
+        ),
+        "ExchangeData": grpc.stream_stream_rpc_method_handler(
+            servicer.ExchangeData,
+            request_deserializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamRequest.FromString,
+            response_serializer=tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamResponse.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'tsercom.E2ETestService', rpc_method_handlers)
+        "tsercom.E2ETestService", rpc_method_handlers
+    )
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('tsercom.E2ETestService', rpc_method_handlers)
+    server.add_registered_method_handlers("tsercom.E2ETestService", rpc_method_handlers)
 
 
- # This class is part of an EXPERIMENTAL API.
+# This class is part of an EXPERIMENTAL API.
 class E2ETestService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Echo(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def Echo(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/tsercom.E2ETestService/Echo',
+            "/tsercom.E2ETestService/Echo",
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoRequest.SerializeToString,
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
             options,
@@ -163,23 +171,26 @@ class E2ETestService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ServerStreamData(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ServerStreamData(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/tsercom.E2ETestService/ServerStreamData',
+            "/tsercom.E2ETestService/ServerStreamData",
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
             options,
@@ -190,23 +201,26 @@ class E2ETestService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ClientStreamData(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ClientStreamData(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/tsercom.E2ETestService/ClientStreamData',
+            "/tsercom.E2ETestService/ClientStreamData",
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.EchoResponse.FromString,
             options,
@@ -217,23 +231,26 @@ class E2ETestService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def BidirectionalStreamData(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def BidirectionalStreamData(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.stream_stream(
             request_iterator,
             target,
-            '/tsercom.E2ETestService/BidirectionalStreamData',
+            "/tsercom.E2ETestService/BidirectionalStreamData",
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataRequest.SerializeToString,
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.StreamDataResponse.FromString,
             options,
@@ -244,23 +261,26 @@ class E2ETestService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ExchangeData(request_iterator,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ExchangeData(
+        request_iterator,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.stream_stream(
             request_iterator,
             target,
-            '/tsercom.E2ETestService/ExchangeData',
+            "/tsercom.E2ETestService/ExchangeData",
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamRequest.SerializeToString,
             tsercom_dot_test_dot_proto_dot_e2e__test__service__pb2.E2EStreamResponse.FromString,
             options,
@@ -271,4 +291,5 @@ class E2ETestService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
