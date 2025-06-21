@@ -2,8 +2,9 @@
 
 import logging
 import multiprocessing  # Ensure multiprocessing is imported fully
+from collections.abc import Callable
 from multiprocessing.context import BaseContext  # For type hinting context
-from typing import Any, Callable, Tuple, cast
+from typing import Any, cast
 
 from tsercom.api.split_process.split_process_error_watcher_source import (
     SplitProcessErrorWatcherSource,
@@ -37,7 +38,7 @@ class ProcessCreator:
     def create_process(
         self,
         target: Callable[..., Any],
-        args: Tuple[Any, ...],
+        args: tuple[Any, ...],
         daemon: bool,
     ) -> multiprocessing.Process | None:
         """Creates and returns a multiprocessing.Process using the stored context.
@@ -55,10 +56,20 @@ class ProcessCreator:
         """
         try:
             # BaseContext does not define .Process, but concrete contexts do.
-            # Use getattr and cast to satisfy mypy, assuming self._context has it.
+            # Use getattr and cast to satisfy mypy.
+            process_constructor_attr = getattr(self._context, "Process", None)
+            if not process_constructor_attr or not callable(
+                process_constructor_attr
+            ):
+                logger.error(
+                    "Context %s does not have a callable 'Process' attribute.",
+                    type(self._context).__name__,
+                )
+                return None
+
             process_constructor = cast(
                 Callable[..., multiprocessing.Process],
-                getattr(self._context, "Process"),
+                process_constructor_attr,
             )
             return process_constructor(target=target, args=args, daemon=daemon)
 

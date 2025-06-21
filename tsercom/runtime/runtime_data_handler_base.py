@@ -239,7 +239,9 @@ class RuntimeDataHandlerBase(
                         await poller.async_close()
                     elif hasattr(poller, "stop"):
                         _logger.debug("Calling stop on poller: %s", poller_repr)
-                        poller.stop()  # Assuming stop is synchronous; if it's async, this is problematic
+                        # Assuming stop is synchronous;
+                        # if it's async, this is problematic
+                        poller.stop()
                     else:
                         _logger.warning(
                             "Poller %s has no async_close or stop method.", poller_repr

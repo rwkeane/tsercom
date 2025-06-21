@@ -294,7 +294,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @overload
     def get_interpolated_at(
         self, timestamp: datetime.datetime
-    ) -> Dict[CallerIdentifier, DataTypeT]:
+    ) -> dict[CallerIdentifier, DataTypeT]:
         """Performs interpolation for a single timestamp across all callers.
 
         Returns a dictionary mapping each `CallerIdentifier` to its successfully
@@ -334,7 +334,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     @abstractmethod
     def get_interpolated_at(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier | None = None
-    ) -> DataTypeT | None | Dict[CallerIdentifier, DataTypeT]:
+    ) -> DataTypeT | None | dict[CallerIdentifier, DataTypeT]:
         """Performs linear interpolation to estimate data at a specific time.
 
         This method estimates the data value at the given `timestamp` by

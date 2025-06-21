@@ -1,4 +1,5 @@
-from typing import Iterator, List, TypeVar
+from collections.abc import Iterator
+from typing import TypeVar
 
 import torch
 
@@ -18,7 +19,7 @@ class SerializableTensorUpdate:
     or as part of a tensor initialization state.
     """
 
-    def __init__(self, chunks: List[SerializableTensorChunk]):
+    def __init__(self, chunks: list[SerializableTensorChunk]):
         self.__chunks = chunks
 
     def to_grpc_type(self) -> TensorUpdate:
@@ -63,5 +64,5 @@ class SerializableTensorUpdate:
         return iter(self.__chunks)
 
     @property
-    def chunks(self) -> List[SerializableTensorChunk]:
+    def chunks(self) -> list[SerializableTensorChunk]:
         return self.__chunks
