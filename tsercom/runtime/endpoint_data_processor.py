@@ -9,7 +9,7 @@ runtimes manage incoming data and events for individual clients or connections.
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Generic, List, Optional, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 import grpc
 
@@ -56,7 +56,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     async def desynchronize(
         self,
         timestamp: ServerTimestamp,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> datetime | None:
         """Converts a server-side timestamp to a local, desynchronized datetime.
 
@@ -72,7 +72,8 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
             timestamp: The `ServerTimestamp` (usually a protobuf message containing
                 seconds and nanos) received from the remote endpoint.
             context: Optional. The `grpc.aio.ServicerContext` for a gRPC call.
-                If provided and desynchronization fails, the call will be aborted.
+                If provided and desynchronization fails, the call will be
+                aborted.
 
         Returns:
             A local `datetime` object representing the server timestamp in UTC.
@@ -83,7 +84,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def deregister_caller(self) -> None:
-        """Performs cleanup and resource release when the associated caller is deregistered.
+        """
+        Performs cleanup and resource release when the associated caller is
+        deregistered.
 
         Subclasses should implement this to handle any necessary cleanup
         when an endpoint is no longer active or considered valid. This might
@@ -107,7 +110,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         self,
         data: DataTypeT,
         timestamp: ServerTimestamp,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> None:
         """Processes incoming data with a `ServerTimestamp`.
 
@@ -119,15 +122,16 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         Args:
             data: The data item of type `DataTypeT` to process.
             timestamp: The `ServerTimestamp` associated with the data.
-            context: Optional. The `grpc.aio.ServicerContext` for a gRPC call,
-                used for potentially aborting the call if timestamp desynchronization fails.
+            context: Optional. The `grpc.aio.ServicerContext` for a gRPC call, used
+                for potentially aborting the call if timestamp desynchronization
+                fails.
         """
 
     async def process_data(
         self,
         data: DataTypeT,
         timestamp: datetime | ServerTimestamp,
-        context: Optional[grpc.aio.ServicerContext] = None,
+        context: grpc.aio.ServicerContext | None = None,
     ) -> None:
         """Processes incoming data, handling timestamp normalization and delegation.
 
@@ -172,7 +176,9 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-        """Processes the data item with its fully synchronized and normalized `datetime`.
+        """
+        Processes the data item with its fully synchronized and normalized
+        `datetime`.
 
         Subclasses must implement this method to define the specific business logic
         for handling the incoming data and its associated `datetime` timestamp.
@@ -187,7 +193,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     @abstractmethod
     def __aiter__(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+    ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
         """Returns an asynchronous iterator for events specific to this endpoint.
 
         Subclasses must implement this to provide a mechanism for consuming

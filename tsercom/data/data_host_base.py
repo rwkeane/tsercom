@@ -1,6 +1,6 @@
 """DataHostBase: reusable base for DataHost & RemoteDataReader."""
 
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from tsercom.data.data_host import DataHost
 from tsercom.data.data_timeout_tracker import DataTimeoutTracker
@@ -27,7 +27,7 @@ class DataHostBase(
     def __init__(
         self,
         watcher: ThreadWatcher,
-        aggregation_client: Optional[RemoteDataAggregator.Client] = None,
+        aggregation_client: RemoteDataAggregator.Client | None = None,
         timeout_seconds: int = 60,
         *args: Any,
         **kwargs: Any,
@@ -46,12 +46,13 @@ class DataHostBase(
         # This ensures sequential processing of data aggregation tasks.
         thread_pool = watcher.create_tracked_thread_pool_executor(max_workers=1)
 
-        tracker: Optional[DataTimeoutTracker] = None
+        tracker: DataTimeoutTracker | None = None
         if timeout_seconds > 0:
             tracker = DataTimeoutTracker(timeout_seconds)
             tracker.start()
 
-        # Assign to a local variable first, then to self.__aggregator to avoid redefinition error.
+        # Assign to a local variable first, then to self.__aggregator to avoid
+        # redefinition error.
         aggregator_instance: RemoteDataAggregatorImpl[DataTypeT]
         if tracker is not None:
             aggregator_instance = RemoteDataAggregatorImpl[DataTypeT](

@@ -1,7 +1,6 @@
 """Selects and manages gRPC channel factories based on configuration."""
 
 import logging
-from typing import Optional
 
 from tsercom.rpc.grpc_util.channel_auth_config import (
     BaseChannelAuthConfig,
@@ -37,12 +36,12 @@ class ChannelFactorySelector:
         try:
             with open(file_path, "rb") as f:
                 return f.read()
-        except IOError as e:
+        except OSError as e:
             logger.error("Error reading file %s: %s", file_path, e)
             raise  # Re-raise the exception to be handled by the caller
 
     def create_factory(
-        self, auth_config: Optional[BaseChannelAuthConfig]
+        self, auth_config: BaseChannelAuthConfig | None
     ) -> GrpcChannelFactory:
         """
         Creates an instance of a GrpcChannelFactory based on the provided
@@ -67,10 +66,9 @@ class ChannelFactorySelector:
             logger.info("Creating GrpcChannelFactory for Server CA configuration.")
             ca_cert_pem = self._read_file_content(auth_config.server_ca_cert_path)
             if not ca_cert_pem:
-
                 raise ValueError(
-                    "Failed to read server_ca_cert_path: %s"
-                    % auth_config.server_ca_cert_path
+                    "Failed to read server_ca_cert_path: "
+                    f"{auth_config.server_ca_cert_path}"
                 )
             return ServerAuthGrpcChannelFactory(
                 root_ca_cert_pem=ca_cert_pem,
@@ -83,10 +81,9 @@ class ChannelFactorySelector:
                 auth_config.pinned_server_cert_path
             )
             if not pinned_cert_pem:
-
                 raise ValueError(
-                    "Failed to read pinned_server_cert_path: %s"
-                    % auth_config.pinned_server_cert_path
+                    "Failed to read pinned_server_cert_path: "
+                    f"{auth_config.pinned_server_cert_path}"
                 )
             return PinnedServerAuthGrpcChannelFactory(
                 expected_server_cert_pem=pinned_cert_pem,
@@ -116,5 +113,5 @@ class ChannelFactorySelector:
         # (implicit else after all returns from ifs)
 
         raise ValueError(
-            "Unknown or unsupported ChannelAuthConfig type: %s" % type(auth_config)
+            f"Unknown or unsupported ChannelAuthConfig type: {type(auth_config)}"
         )

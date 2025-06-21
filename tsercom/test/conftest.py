@@ -1,5 +1,5 @@
 import asyncio
-from typing import Generator  # Added for type hint
+from collections.abc import Generator  # Added for type hint
 
 import pytest
 from pytest import FixtureRequest  # Added for type hint
@@ -25,9 +25,10 @@ def manage_tsercom_loop(
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
-        # If no loop is running (e.g. test is not marked with @pytest.mark.asyncio properly,
-        # or it's a synchronous test that shouldn't use this part of the fixture)
-        # then this fixture should not attempt to set the tsercom global loop.
+        # If no loop is running (e.g. test is not marked with
+        # @pytest.mark.asyncio properly, or it's a synchronous test that
+        # shouldn't use this part of the fixture) then this fixture should not
+        # attempt to set the tsercom global loop.
         yield
         return
 

@@ -4,9 +4,6 @@ import asyncio
 import logging
 from typing import (
     Any,
-    List,
-    Optional,
-    Union,
 )
 
 import grpc
@@ -26,17 +23,19 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         self,
         client_cert_pem: bytes | str,
         client_key_pem: bytes | str,
-        root_ca_cert_pem: Optional[bytes | str] = None,
-        server_hostname_override: Optional[str] = None,
+        root_ca_cert_pem: bytes | str | None = None,
+        server_hostname_override: str | None = None,
     ):
         """
-        Initializes the factory with client credentials and optional CA for server validation.
+        Initializes the factory with client credentials and optional CA for
+        server validation.
 
         Args:
             client_cert_pem: PEM-encoded client certificate (bytes or string).
             client_key_pem: PEM-encoded client private key (bytes or string).
-            root_ca_cert_pem: Optional PEM-encoded root CA certificate for server validation.
-                              If None, server certificate is not validated by the client.
+            root_ca_cert_pem: Optional PEM-encoded root CA certificate for server
+                              validation. If None, server certificate is not
+                              validated by the client.
             server_hostname_override: If provided, this hostname will be used
                                       for SSL target name override.
         """
@@ -52,7 +51,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         else:
             self.client_key_pem_bytes = client_key_pem
 
-        self.root_ca_cert_pem_bytes: Optional[bytes]  # Declare type once
+        self.root_ca_cert_pem_bytes: bytes | None  # Declare type once
         if root_ca_cert_pem:
             if isinstance(root_ca_cert_pem, str):
                 self.root_ca_cert_pem_bytes = root_ca_cert_pem.encode("utf-8")
@@ -61,12 +60,12 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         else:
             self.root_ca_cert_pem_bytes = None
 
-        self.server_hostname_override: Optional[str] = server_hostname_override
+        self.server_hostname_override: str | None = server_hostname_override
         super().__init__()
 
     async def find_async_channel(
-        self, addresses: Union[List[str], str], port: int
-    ) -> Optional[grpc.Channel]:
+        self, addresses: list[str] | str, port: int
+    ) -> grpc.Channel | None:
         """
         Attempts to establish a secure gRPC channel using client credentials.
 
@@ -78,7 +77,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
         """
-        address_list: List[str]
+        address_list: list[str]
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
@@ -91,7 +90,8 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
             auth_type += " (No Server Validation by Client)"
 
         logger.info(
-            f"Attempting secure connection ({auth_type}) to addresses: {address_list} on port {port}"
+            f"Attempting secure connection ({auth_type}) to addresses: "
+            f"{address_list} on port {port}"
         )
 
         credentials = grpc.ssl_channel_credentials(
@@ -109,7 +109,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 )
             )
 
-        active_channel: Optional[grpc.aio.Channel] = None
+        active_channel: grpc.aio.Channel | None = None
 
         for current_address in address_list:
             target = f"{current_address}:{port}"
@@ -133,7 +133,8 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
 
             except grpc.aio.AioRpcError as e:
                 logger.warning(
-                    f"Secure connection to {target} ({auth_type}) failed: gRPC Error {e.code()} - {e.details()}"
+                    f"Secure connection to {target} ({auth_type}) failed: "
+                    f"gRPC Error {e.code()} - {e.details()}"
                 )
             except asyncio.TimeoutError:
                 logger.warning(
@@ -141,7 +142,8 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                 )
             except Exception as e:
                 logger.error(
-                    f"An unexpected error occurred while trying to connect to {target} ({auth_type}): {e}"
+                    f"An unexpected error occurred while trying to connect to "
+                    f"{target} ({auth_type}): {e}"
                 )
                 if isinstance(e, AssertionError):  # Re-raise assertion errors
                     raise
@@ -153,6 +155,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                     active_channel = None  # Reset to prevent re-closing
 
         logger.warning(
-            f"Failed to establish secure connection ({auth_type}) to any of the provided addresses: {address_list} on port {port}"
+            f"Failed to establish secure connection ({auth_type}) to any of "
+            f"the provided addresses: {address_list} on port {port}"
         )
         return None

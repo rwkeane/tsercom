@@ -29,21 +29,24 @@ class MockThreadWatcher(ThreadWatcher):
         # For testing EventLoopFactory, we need a real ThrowingThread
         # that actually starts the target, so the event loop gets created.
         # We can spy on its creation.
-        # The on_error_cb for this ThrowingThread will be self.on_exception_seen from the real watcher.
+        # The on_error_cb for this ThrowingThread will be self.on_exception_seen
+        # from the real watcher.
         real_watcher_for_throwing_thread = ThreadWatcher()
         # ^ Use a real one here just for the ThrowingThread's callback,
         # but we're primarily interested in the factory's watcher.
-        # This is a bit tricky. The EventLoopFactory passes *its* watcher's on_exception_seen
-        # to the ThrowingThread it creates.
+        # This is a bit tricky. The EventLoopFactory passes *its* watcher's
+        # on_exception_seen to the ThrowingThread it creates.
         # So, if we pass `self` (MockThreadWatcher) to EventLoopFactory, then
         # `self.on_exception_seen` will be used by the ThrowingThread.
 
-        # Let's simplify: the EventLoopFactory uses the on_exception_seen of the watcher it was given.
-        # The create_tracked_thread of the watcher it was given is used to create the thread.
-        # So, this mock's create_tracked_thread will be called.
+        # Let's simplify: the EventLoopFactory uses the on_exception_seen of the
+        # watcher it was given. The create_tracked_thread of the watcher it was
+        # given is used to create the thread. So, this mock's
+        # create_tracked_thread will be called.
 
-        # We must use the *actual* `on_exception_seen` from the watcher instance that EventLoopFactory holds,
-        # which is `self` in this mocked context when `EventLoopFactory(mock_watcher)` is used.
+        # We must use the *actual* `on_exception_seen` from the watcher instance
+        # that EventLoopFactory holds, which is `self` in this mocked context
+        # when `EventLoopFactory(mock_watcher)` is used.
         thread = ThrowingThread(target=target, on_error_cb=self.on_exception_seen)
         self.tracked_threads_created.append(thread)
         return thread
@@ -60,10 +63,10 @@ class MockThreadWatcher(ThreadWatcher):
 def mock_watcher() -> MockThreadWatcher:
     watcher = MockThreadWatcher()
     yield watcher
-    # Teardown: Ensure any threads started by the factory via this watcher are cleaned up.
-    # This is tricky because the loop runs forever. We need to stop the loop first.
-    # This fixture itself doesn't directly know about loops created by the factory.
-    # Tests using the factory should manage loop shutdown.
+    # Teardown: Ensure any threads started by the factory via this watcher are
+    # cleaned up. This is tricky because the loop runs forever. We need to stop
+    # the loop first. This fixture itself doesn't directly know about loops
+    # created by the factory. Tests using the factory should manage loop shutdown.
 
 
 @pytest.fixture
@@ -78,10 +81,11 @@ def factory_with_real_watcher():
     # Store watcher for tests to access if needed, e.g., for checking exceptions
     # This is tricky because the factory doesn't expose its watcher.
     # Tests needing to check ThreadWatcher state should use the mock_watcher.
-    # This fixture is more for testing the factory with a non-mocked watcher if specific interactions
-    # with ThrowingThread (not easily mockable via MockThreadWatcher.create_tracked_thread) are tested.
-    # For now, let's assume mock_watcher is sufficient.
-    # If a test *really* needs a real watcher and to inspect it, it can create both.
+    # This fixture is more for testing the factory with a non-mocked watcher
+    # if specific interactions with ThrowingThread (not easily mockable via
+    # MockThreadWatcher.create_tracked_thread) are tested. For now, let's assume
+    # mock_watcher is sufficient. If a test *really* needs a real watcher and
+    # to inspect it, it can create both.
     yield factory  # Return the factory
     # Cleanup will be handled by the tests that use this factory to start loops.
 
@@ -110,7 +114,8 @@ class TestEventLoopFactory:
         with pytest.raises(ValueError, match="Watcher argument cannot be None"):
             EventLoopFactory(watcher=None)  # type: ignore
 
-        # mocker.MagicMock(spec=ThreadWatcher) will fail issubclass check because type is MagicMock
+        # mocker.MagicMock(spec=ThreadWatcher) will fail issubclass check
+        # because type is MagicMock
         with pytest.raises(
             TypeError,
             match="Watcher must be a subclass of ThreadWatcher, got MagicMock",
@@ -257,9 +262,10 @@ class TestEventLoopFactory:
     #     self, mocker, mock_watcher: MockThreadWatcher # Ensure mocker is injected
     # ) -> None:
     #     """
-    #     Test scenario where start_event_loop (the target of ThrowingThread) raises an exception
-    #     BEFORE loop.run_forever() is called. This should be caught by the ThrowingThread
-    #     and reported to watcher's on_exception_seen via ThrowingThread's mechanism.
+    #     Test scenario where start_event_loop (the target of ThrowingThread)
+    #     raises an exception BEFORE loop.run_forever() is called. This should
+    #     be caught by the ThrowingThread and reported to watcher's
+    #     on_exception_seen via ThrowingThread's mechanism.
     #     """
     #     error_in_start_target_msg = "Error within start_event_loop target"
 
@@ -289,7 +295,6 @@ class TestEventLoopFactory:
     #         assert not loop_thread.is_alive(), "Loop thread should have died."
 
     #     if thread_for_factory.is_alive():
-    #         print("Warning: factory.start_asyncio_loop() call may have hung. Test relies on daemon thread.")
     #         factory_under_test._EventLoopFactory__event_loop_thread = ( # type: ignore
     #             None
     #         )

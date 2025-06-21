@@ -36,7 +36,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
                          (i.e., non-blocking and potentially lossy if full).
                          Defaults to True.
         """
-        self.__queue: "MpQueue[QueueTypeT]" = queue
+        self.__queue: MpQueue[QueueTypeT] = queue
         self.__is_blocking: bool = is_blocking
 
     def put_blocking(self, obj: QueueTypeT, timeout: float | None = None) -> bool:

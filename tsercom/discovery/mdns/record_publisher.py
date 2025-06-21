@@ -1,9 +1,8 @@
 """Publishes mDNS service records using zeroconf."""
 
 import logging
-from typing import Dict, Optional
 
-from zeroconf import ServiceInfo, IPVersion
+from zeroconf import IPVersion, ServiceInfo
 from zeroconf.asyncio import AsyncZeroconf
 
 from tsercom.discovery.mdns.mdns_publisher import MdnsPublisher
@@ -35,8 +34,8 @@ class RecordPublisher(MdnsPublisher):
         name: str,  # The mDNS instance name (e.g., "MyDevice")
         type_: str,  # The base service type (e.g., "_myservice")
         port: int,
-        properties: Optional[Dict[bytes, bytes | None]] = None,
-        zc_instance: Optional[AsyncZeroconf] = None,  # Added
+        properties: dict[bytes, bytes | None] | None = None,
+        zc_instance: AsyncZeroconf | None = None,  # Added
     ) -> None:
         """Initializes the RecordPublisher.
 
@@ -55,7 +54,8 @@ class RecordPublisher(MdnsPublisher):
         if type_ is None or not type_.startswith("_"):
             # Long error message
             raise ValueError(
-                f"Service type_ must start with an underscore (e.g., '_myservice'), got '{type_}'."
+                f"Service type_ must start with an underscore (e.g., '_myservice'), "
+                f"got '{type_}'."
             )
 
         if properties is None:
@@ -64,16 +64,17 @@ class RecordPublisher(MdnsPublisher):
         self.__ptr: str = f"{type_}._tcp.local."
         self.__srv: str = f"{name}.{self.__ptr}"
         self.__port: int = port
-        self.__txt: Dict[bytes, bytes | None] = properties
-        self.__shared_zc: Optional[AsyncZeroconf] = zc_instance
-        self.__owned_zc: Optional[AsyncZeroconf] = None
+        self.__txt: dict[bytes, bytes | None] = properties
+        self.__shared_zc: AsyncZeroconf | None = zc_instance
+        self.__owned_zc: AsyncZeroconf | None = None
         self._zc: AsyncZeroconf | None = (
             None  # This will point to either shared_zc or owned_zc
         )
         self._service_info: ServiceInfo | None = None
 
         # Logging the service being published for traceability.
-        # Replacing print with logging for better practice, assuming logger is configured elsewhere.
+        # Replacing print with logging for better practice, assuming logger is
+        # configured elsewhere.
 
     async def publish(self) -> None:
         if self._zc:
@@ -116,7 +117,8 @@ class RecordPublisher(MdnsPublisher):
             if self._zc:  # Check if _zc is valid before trying to use it
                 if service_info_at_start_of_close:
                     _logger.info(
-                        "Attempting to unregister service %s using service_info: %s (ZC type: %s)",
+                        "Attempting to unregister service %s using service_info: %s "
+                        "(ZC type: %s)",
                         self.__srv,
                         service_info_at_start_of_close,
                         ("shared" if self.__shared_zc else "owned"),
@@ -129,17 +131,22 @@ class RecordPublisher(MdnsPublisher):
                     _logger.info("Service %s unregistered successfully.", self.__srv)
                 else:
                     _logger.warning(
-                        "No self._service_info found for %s at start of close method. Skipping unregistration call.",
+                        "No self._service_info found for %s at start of close "
+                        "method. Skipping unregistration call.",
                         self.__srv,
                     )
-                    # If there's no service_info, unregistration wasn't needed for this object's state from publish perspective.
-                    unregistration_succeeded = True  # Considered successful as no action was pending for this _service_info
+                    # If there's no service_info, unregistration wasn't needed
+                    # for this object's state from publish perspective.
+                    unregistration_succeeded = True  # Considered successful as no
+                    # action was pending for this
+                    # _service_info
             else:
                 _logger.warning(
                     "No active Zeroconf instance (_zc) for %s. Cannot unregister.",
                     self.__srv,
                 )
-                # If _zc is None, we can't unregister, so treat as "nothing to do" for unregistration.
+                # If _zc is None, we can't unregister, so treat as "nothing to do"
+                # for unregistration.
                 unregistration_succeeded = True
 
             # Close owned zeroconf instance if it exists
@@ -152,12 +159,14 @@ class RecordPublisher(MdnsPublisher):
             # Log detailed error for unregistration or closing owned_zc
             if unregistration_attempted and not unregistration_succeeded:
                 _logger.error(
-                    "CRITICAL: Exception during async_unregister_service for %s. Service may still be registered. Error: %s",
+                    "CRITICAL: Exception during async_unregister_service for %s. "
+                    "Service may still be registered. Error: %s",
                     self.__srv,
                     e,
                     exc_info=True,
                 )
-            else:  # Error during closing owned_zc or other unexpected error if _zc was None initially
+            else:  # Error during closing owned_zc or other unexpected error if _zc
+                # was None initially
                 _logger.error(
                     "Exception during close operation for %s. Error: %s",
                     self.__srv,
@@ -165,12 +174,14 @@ class RecordPublisher(MdnsPublisher):
                     exc_info=True,
                 )
         finally:
-            # Only nullify _service_info if unregistration was successful or wasn't needed.
+            # Only nullify _service_info if unregistration was successful or
+            # wasn't needed.
             if unregistration_succeeded:
                 self._service_info = None
             else:
                 _logger.warning(
-                    "self._service_info for %s was NOT cleared because unregistration failed or was not confirmed.",
+                    "self._service_info for %s was NOT cleared because "
+                    "unregistration failed or was not confirmed.",
                     self.__srv,
                 )
 
@@ -181,12 +192,14 @@ class RecordPublisher(MdnsPublisher):
             # Final debug log for state
             if not self._service_info and not self._zc and not self.__owned_zc:
                 _logger.debug(
-                    "RecordPublisher for %s fully cleaned up (service_info, _zc, _owned_zc are None).",
+                    "RecordPublisher for %s fully cleaned up (service_info, _zc, "
+                    "_owned_zc are None).",
                     self.__srv,
                 )
             else:
                 _logger.debug(
-                    "RecordPublisher for %s post-close state: _service_info is %s, _zc is %s, _owned_zc is %s",
+                    "RecordPublisher for %s post-close state: _service_info is %s, "
+                    "_zc is %s, _owned_zc is %s",
                     self.__srv,
                     ("None" if not self._service_info else "Present"),
                     ("None" if not self._zc else "Present"),
@@ -195,9 +208,10 @@ class RecordPublisher(MdnsPublisher):
 
 
 # === Developer Note: mDNS Name Reuse with python-zeroconf ===
-# Observations during testing (e.g., in `discovery_e2etest.py::test_instance_update_reflects_changes`)
-# suggest that when using a shared `AsyncZeroconf` instance, or even with separate
-# instances in rapid succession, `python-zeroconf` can exhibit sensitivities
+# Observations during testing (e.g., in
+# `discovery_e2etest.py::test_instance_update_reflects_changes`) suggest that
+# when using a shared `AsyncZeroconf` instance, or even with separate instances
+# in rapid succession, `python-zeroconf` can exhibit sensitivities
 # to unregistering a service instance name and then immediately re-registering
 # the exact same name. This can lead to `zeroconf._exceptions.NonUniqueNameException`
 # or `zeroconf._exceptions.NotRunningException` if the shared instance's state
@@ -209,8 +223,9 @@ class RecordPublisher(MdnsPublisher):
 #      (e.g., appending a version suffix like "_v2").
 #   2. Ensuring the old `AsyncZeroconf` instance used for the original service
 #      is completely closed, and a new `AsyncZeroconf` instance is used for
-#      the listener and the "updated" service publisher, if strict name reuse
-#      is attempted. This was the pattern adopted to fix `test_instance_update_reflects_changes`.
+#      the listener and the "updated" service publisher, if strict name reuse is
+#      attempted. This was the pattern adopted to fix
+#      `test_instance_update_reflects_changes`.
 #   3. Introducing significant delays between unregistration and re-registration,
 #      though the necessary duration can be unreliable.
 #

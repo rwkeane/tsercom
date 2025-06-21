@@ -12,7 +12,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Generic, Optional, Set, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.service_source import (
@@ -108,12 +108,12 @@ class ServiceConnector(
         self.__service_source: ServiceSource[SourceServiceInfoT] = service_source
         self.__connection_factory: ConnectionFactory[ChannelTypeT] = connection_factory
 
-        self.__callers: Set[CallerIdentifier] = set()
+        self.__callers: set[CallerIdentifier] = set()
 
         # The event loop is captured on the first relevant async operation,
         # typically in _on_service_added, to ensure subsequent operations
         # are scheduled on the same loop for consistency.
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = None
+        self.__event_loop: asyncio.AbstractEventLoop | None = None
 
         super().__init__()
 
@@ -128,7 +128,9 @@ class ServiceConnector(
         await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
-        """Marks a connected service instance (client from ServiceConnector\'s perspective) as failed.
+        """
+        Marks a connected service instance (client from ServiceConnector's
+        perspective) as failed.
 
         This removes the `caller_id` from the set of tracked active connections,
         allowing the `ServiceConnector` to attempt a new connection if the same
@@ -151,15 +153,18 @@ class ServiceConnector(
                 called and discovery is active).
         """
         if self.__event_loop is None:
-            # Attempt to capture loop if not already. This might occur if mark_client_failed
-            # is called before any service discovery callback has set the loop.
+            # Attempt to capture loop if not already. This might occur if
+            # mark_client_failed is called before any service discovery callback
+            # has set the loop.
             logging.warning(
-                "mark_client_failed called before event loop was captured by a discovery event."
+                "mark_client_failed called before event loop was captured by a "
+                "discovery event."
             )
             self.__event_loop = get_running_loop_or_none()
             if self.__event_loop is None:
                 logging.error(
-                    "Failed to get current event loop in mark_client_failed. Cannot proceed."
+                    "Failed to get current event loop in mark_client_failed. "
+                    "Cannot proceed."
                 )
                 # Or raise RuntimeError if this is considered a critical failure path.
                 return
@@ -235,27 +240,30 @@ class ServiceConnector(
 
         if caller_id in self.__callers:
             logging.debug(
-                "Service with CallerIdentifier %s (Name: %s) already connected or connect attempt in progress. Skipping.",
+                "Service with CallerIdentifier %s (Name: %s) already connected or "
+                "connect attempt in progress. Skipping.",
                 caller_id,
                 connection_info.name,
             )
             return
 
         logging.info(
-            "Service %s (CallerIdentifier: %s) discovered at %s:%s. Attempting connection.",
+            "Service %s (CallerIdentifier: %s) discovered at %s:%s. "
+            "Attempting connection.",
             connection_info.name,
             caller_id,
             connection_info.addresses,
             connection_info.port,
         )
 
-        channel: Optional[ChannelTypeT] = await self.__connection_factory.connect(
+        channel: ChannelTypeT | None = await self.__connection_factory.connect(
             connection_info.addresses, connection_info.port
         )
 
         if channel is None:
             logging.warning(
-                "Could not establish gRPC channel for service %s (CallerIdentifier: %s) at %s:%s.",
+                "Could not establish gRPC channel for service %s "
+                "(CallerIdentifier: %s) at %s:%s.",
                 connection_info.name,
                 caller_id,
                 connection_info.addresses,
@@ -264,7 +272,8 @@ class ServiceConnector(
             return
 
         logging.info(
-            "Successfully established gRPC channel for service %s (CallerIdentifier: %s).",
+            "Successfully established gRPC channel for service %s "
+            "(CallerIdentifier: %s).",
             connection_info.name,
             caller_id,
         )
@@ -281,7 +290,7 @@ class ServiceConnector(
         logging.info("Stopping ServiceConnector...")
 
         if hasattr(self.__service_source, "stop_discovery") and callable(
-            getattr(self.__service_source, "stop_discovery")
+            self.__service_source.stop_discovery
         ):
             try:
                 await self.__service_source.stop_discovery()
@@ -296,9 +305,10 @@ class ServiceConnector(
 
         self.__callers.clear()
 
-        # Note: Channel closing logic would go here if ServiceConnector directly managed channels.
-        # In the current structure, the client of ServiceConnector receives the channel
-        # and is responsible for its lifecycle.
+        # Note: Channel closing logic would go here if ServiceConnector directly
+        # managed channels. In the current structure, the client of
+        # ServiceConnector receives the channel and is responsible for its
+        # lifecycle.
 
         logging.info("ServiceConnector stopped.")
 

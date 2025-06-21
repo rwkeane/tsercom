@@ -3,9 +3,11 @@
 import logging
 import socket
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, Generic, List, Optional
+from collections.abc import Callable
+from typing import Generic
 
 from zeroconf.asyncio import AsyncZeroconf
+
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from tsercom.discovery.mdns.record_listener import RecordListener
 from tsercom.discovery.service_info import (
@@ -13,9 +15,8 @@ from tsercom.discovery.service_info import (
     ServiceInfoT,
 )
 
-
 MdnsListenerFactory = Callable[
-    [MdnsListener.Client, str, Optional[AsyncZeroconf]], MdnsListener
+    [MdnsListener.Client, str, AsyncZeroconf | None], MdnsListener
 ]
 
 
@@ -63,8 +64,8 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         client: "InstanceListener.Client",
         service_type: str,
         *,
-        mdns_listener_factory: Optional[MdnsListenerFactory] = None,
-        zc_instance: Optional[AsyncZeroconf] = None,
+        mdns_listener_factory: MdnsListenerFactory | None = None,
+        zc_instance: AsyncZeroconf | None = None,
     ) -> None:
         """Initializes the InstanceListener.
 
@@ -88,7 +89,8 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             # The error message still refers to the conceptual "InstanceListener.Client"
             # as that's what the user would code against.
             raise TypeError(
-                f"Client must be an InstanceListener.Client, got {type(client).__name__}."
+                f"Client must be an InstanceListener.Client, "
+                f"got {type(client).__name__}."
             )
         if not isinstance(service_type, str):
             raise TypeError(
@@ -104,7 +106,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
             def default_mdns_listener_factory(
                 listener_client: MdnsListener.Client,
                 s_type: str,
-                zc: Optional[AsyncZeroconf],  # Added zc to factory signature
+                zc: AsyncZeroconf | None,  # Added zc to factory signature
             ) -> MdnsListener:
                 return RecordListener(listener_client, s_type, zc_instance=zc)
 
@@ -121,20 +123,22 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         if self.__listener:
             await self.__listener.start()  # Changed to await
         else:
-            # This case should ideally not be reached if __init__ ensures __listener is set.
+            # This case should ideally not be reached if __init__ ensures
+            # __listener is set.
             logging.error(
                 "InstanceListener cannot start: __listener is not initialized."
             )
 
     def __populate_service_info(
-        # This method aggregates information from disparate mDNS records (SRV, A/AAAA, TXT)
-        # to build a cohesive ServiceInfo object representing a discovered service.
+        # This method aggregates information from disparate mDNS records
+        # (SRV, A/AAAA, TXT) to build a cohesive ServiceInfo object
+        # representing a discovered service.
         self,
         record_name: str,
         port: int,
-        addresses: List[bytes],
-        txt_record: Dict[bytes, bytes | None],
-    ) -> Optional[ServiceInfo]:
+        addresses: list[bytes],
+        txt_record: dict[bytes, bytes | None],
+    ) -> ServiceInfo | None:
         """Constructs a `ServiceInfo` object from raw mDNS record data.
 
         Args:
@@ -157,13 +161,13 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         # TODO(dev): Enhance IP address conversion for IPv6.
         # socket.inet_ntoa() is IPv4-specific. Need address family info.
         # Example IPv6: socket.inet_ntop(socket.AF_INET6, addr_bytes)
-        addresses_out: List[str] = []
+        addresses_out: list[str] = []
         for addr_bytes in addresses:
             try:
                 # Assumes IPv4 from `socket.inet_ntoa`.
                 address_str = socket.inet_ntoa(addr_bytes)
                 addresses_out.append(address_str)
-            except (socket.error, TypeError, ValueError) as e:
+            except (OSError, TypeError, ValueError) as e:
                 logging.warning(
                     "Failed to convert address bytes for '%s': %s",
                     record_name,
@@ -201,7 +205,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         return ServiceInfo(readable_name_str, port, addresses_out, record_name)
 
     def _convert_service_info(
-        self, service_info: ServiceInfo, _txt_record: Dict[bytes, bytes | None]
+        self, service_info: ServiceInfo, _txt_record: dict[bytes, bytes | None]
     ) -> ServiceInfoT:
         """Converts base `ServiceInfo` to specific `ServiceInfoT`.
 
@@ -227,8 +231,8 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         self,
         name: str,
         port: int,
-        addresses: List[bytes],
-        txt_record: Dict[bytes, bytes | None],
+        addresses: list[bytes],
+        txt_record: dict[bytes, bytes | None],
     ) -> None:
         """Callback from `RecordListener` with mDNS records for a service.
 
@@ -277,12 +281,8 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
     async def async_stop(self) -> None:
         # Stops the listener and cleans up resources.
-        if hasattr(self.__listener, "close") and callable(
-            getattr(self.__listener, "close")
-        ):
+        if hasattr(self.__listener, "close") and callable(self.__listener.close):
             await self.__listener.close()
-        elif hasattr(self.__listener, "stop") and callable(
-            getattr(self.__listener, "stop")
-        ):
+        elif hasattr(self.__listener, "stop") and callable(self.__listener.stop):
             self.__listener.stop()
         logging.info("InstanceListener stopped.")

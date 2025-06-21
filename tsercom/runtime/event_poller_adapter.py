@@ -1,6 +1,7 @@
 """Adapter for event pollers to provide a consistent interface."""
 
-from typing import AsyncIterator, Generic, List, TypeVar
+from collections.abc import AsyncIterator
+from typing import Generic, TypeVar
 
 from tsercom.data.event_instance import EventInstance
 from tsercom.data.serializable_annotated_instance import (
@@ -46,19 +47,19 @@ class EventToSerializableAnnInstancePollerAdapter(
 
     async def __anext__(
         self,
-    ) -> List[SerializableAnnotatedInstance[EventTypeT]]:
+    ) -> list[SerializableAnnotatedInstance[EventTypeT]]:
         # This adapter assumes the source_poller.__anext__ returns a List,
         # which is typical for AsyncPoller implementations.
         event_instance_list = await self._source_poller.__anext__()
 
-        serializable_list: List[SerializableAnnotatedInstance[EventTypeT]] = []
+        serializable_list: list[SerializableAnnotatedInstance[EventTypeT]] = []
         for event_inst in event_instance_list:
             serializable_list.append(self._convert_event_instance(event_inst))
         return serializable_list
 
     def __aiter__(
         self,
-    ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
+    ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
         return self
 
     # This adapter primarily focuses on transforming the output via __anext__.

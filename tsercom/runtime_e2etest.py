@@ -2,6 +2,7 @@
 
 import asyncio
 import datetime
+import logging  # Added
 import time
 from collections.abc import Callable
 from concurrent.futures import Future
@@ -48,7 +49,7 @@ if multiprocessing.get_start_method(allow_none=True) != "spawn":
             multiprocessing.set_start_method("spawn", force=True)
     except RuntimeError as e:
         # This can happen if the context has already been used.
-        print(
+        logging.debug(
             f"INFO: Could not set multiprocessing start method to spawn in {__file__}: {e}"
         )
         pass
@@ -269,18 +270,18 @@ class StrDataTorchEventRuntime(Runtime):
 
     async def _event_listener_loop(self):
         if self.__responder is None:
-            print(
+            logging.debug(
                 f"ERROR: {self.__class__.__name__} responder not initialized for event loop."
             )
             return
 
-        print(
+        logging.debug(
             f"DEBUG: {self.__class__.__name__} starting event listener loop for {self.__test_id}"
         )
         try:
             async for event_list in self.__responder:
                 for annotated_event in event_list:
-                    print(
+                    logging.debug(
                         f"DEBUG: {self.__class__.__name__} received event: {type(annotated_event.data)}"
                     )
                     if isinstance(annotated_event.data, torch.Tensor):
@@ -288,7 +289,7 @@ class StrDataTorchEventRuntime(Runtime):
                         self.expected_event_tensor_sum_str = (
                             f"processed_tensor_event_{event_tensor.sum().item()}"
                         )
-                        print(
+                        logging.debug(
                             f"DEBUG: {self.__class__.__name__} processing tensor event, sum str: {self.expected_event_tensor_sum_str}"
                         )
                         if self.__responder:
@@ -296,18 +297,18 @@ class StrDataTorchEventRuntime(Runtime):
                                 self.expected_event_tensor_sum_str,
                                 datetime.datetime.now(datetime.timezone.utc),
                             )
-                            print(
+                            logging.debug(
                                 f"DEBUG: {self.__class__.__name__} sent data response: {self.expected_event_tensor_sum_str}"
                             )
                             if self.__data_event:
                                 self.__data_event.set()  # Signal after sending the specific data
                                 # self.__data_event = None # Optional: make event one-shot if it's only for one piece of data
         except asyncio.CancelledError:
-            print(
+            logging.debug(
                 f"DEBUG: {self.__class__.__name__} event listener loop cancelled for {self.__test_id}"
             )
         except Exception as e:
-            print(
+            logging.debug(
                 f"ERROR: {self.__class__.__name__} exception in event_listener_loop: {e}"
             )
 
@@ -320,7 +321,7 @@ class StrDataTorchEventRuntime(Runtime):
             self.__responder is not None
         ), f"{self.__class__.__name__} failed to register caller."
         self._listener_task = asyncio.create_task(self._event_listener_loop())
-        print(f"DEBUG: {self.__class__.__name__} started for {self.__test_id}")
+        logging.debug(f"DEBUG: {self.__class__.__name__} started for {self.__test_id}")
 
     async def stop(self, exception) -> None:
         if self._listener_task and not self._listener_task.done():
@@ -337,10 +338,10 @@ class StrDataTorchEventRuntime(Runtime):
                     datetime.datetime.now(datetime.timezone.utc),
                 )
             except Exception as e:
-                print(
+                logging.debug(
                     f"ERROR: {self.__class__.__name__} error during stop's process_data: {e}"
                 )
-        print(f"DEBUG: {self.__class__.__name__} stopped for {self.__test_id}")
+        logging.debug(f"DEBUG: {self.__class__.__name__} stopped for {self.__test_id}")
 
 
 class StrDataTorchEventRuntimeInitializer(RuntimeInitializer[str, torch.Tensor]):
@@ -403,17 +404,17 @@ class TorchDataTorchEventRuntime(Runtime):
 
     async def _event_listener_loop(self):
         if self.__responder is None:
-            print(
+            logging.debug(
                 f"ERROR: {self.__class__.__name__} responder not initialized for event loop."
             )
             return
-        print(
+        logging.debug(
             f"DEBUG: {self.__class__.__name__} starting event listener loop for {self.__test_id}"
         )
         try:
             async for event_list in self.__responder:
                 for annotated_event in event_list:
-                    print(
+                    logging.debug(
                         f"DEBUG: {self.__class__.__name__} received event: {type(annotated_event.data)}"
                     )
                     if isinstance(annotated_event.data, torch.Tensor):
@@ -422,7 +423,7 @@ class TorchDataTorchEventRuntime(Runtime):
                             self.initializer.event_response_tensor_base
                             + event_tensor.sum().item()
                         )
-                        print(
+                        logging.debug(
                             f"DEBUG: {self.__class__.__name__} processing tensor event, response: {response_tensor}"
                         )
                         if self.__responder:
@@ -430,7 +431,7 @@ class TorchDataTorchEventRuntime(Runtime):
                                 response_tensor,
                                 datetime.datetime.now(datetime.timezone.utc),
                             )
-                            print(
+                            logging.debug(
                                 f"DEBUG: {self.__class__.__name__} sent data response: {response_tensor}"
                             )
                             if self._event_response_queue:
@@ -443,11 +444,11 @@ class TorchDataTorchEventRuntime(Runtime):
                                         f"ERROR: {self.__class__.__name__} could not put to event_response_queue: {e_queue}"
                                     )
         except asyncio.CancelledError:
-            print(
+            logging.debug(
                 f"DEBUG: {self.__class__.__name__} event listener loop cancelled for {self.__test_id}"
             )
         except Exception as e:
-            print(
+            logging.debug(
                 f"ERROR: {self.__class__.__name__} exception in event_listener_loop: {e}"
             )
 
@@ -460,7 +461,7 @@ class TorchDataTorchEventRuntime(Runtime):
             self.__responder is not None
         ), f"{self.__class__.__name__} failed to register caller."
 
-        print(
+        logging.debug(
             f"DEBUG: {self.__class__.__name__} sending initial data: {self.initializer.initial_data_tensor}"
         )
         await self.__responder.process_data(
@@ -471,7 +472,7 @@ class TorchDataTorchEventRuntime(Runtime):
             self._initial_data_event.set()
 
         self._listener_task = asyncio.create_task(self._event_listener_loop())
-        print(f"DEBUG: {self.__class__.__name__} started for {self.__test_id}")
+        logging.debug(f"DEBUG: {self.__class__.__name__} started for {self.__test_id}")
 
     async def stop(self, exception) -> None:
         if self._listener_task and not self._listener_task.done():
@@ -483,7 +484,7 @@ class TorchDataTorchEventRuntime(Runtime):
 
         if self.__responder:
             try:
-                print(
+                logging.debug(
                     f"DEBUG: {self.__class__.__name__} sending stopped indicator: {self.initializer.stopped_tensor_indicator}"
                 )
                 await self.__responder.process_data(
@@ -493,10 +494,10 @@ class TorchDataTorchEventRuntime(Runtime):
                 if self._stopped_indicator_event:
                     self._stopped_indicator_event.set()
             except Exception as e:
-                print(
+                logging.debug(
                     f"ERROR: {self.__class__.__name__} error during stop's process_data: {e}"
                 )
-        print(f"DEBUG: {self.__class__.__name__} stopped for {self.__test_id}")
+        logging.debug(f"DEBUG: {self.__class__.__name__} stopped for {self.__test_id}")
 
 
 class TorchDataTorchEventRuntimeInitializer(
@@ -657,14 +658,16 @@ class BroadcastTestFakeRuntime(Runtime):
                 )
                 if responder is None:
                     # Handle case where responder might be None, e.g. log or skip
-                    print(f"Warning: Responder for {cid} is None.")
+                    logging.debug(f"Warning: Responder for {cid} is None.")
                     continue
                 self._responders[cid] = responder
                 task = asyncio.create_task(self._event_listener_loop(cid, responder))
                 self._listener_tasks.append(task)
             except Exception as e:
                 # Log or handle registration errors
-                print(f"Error registering caller {cid} or starting listener: {e}")
+                logging.debug(
+                    f"Error registering caller {cid} or starting listener: {e}"
+                )
 
     async def _event_listener_loop(
         self,
@@ -679,7 +682,7 @@ class BroadcastTestFakeRuntime(Runtime):
                         # Ensure annotated_event.caller_id is handled if it can be None
                         # For broadcast, original caller_id on event might be None
                         # but we are processing for a specific responder's caller_id here.
-                        print(
+                        logging.debug(
                             f"Listener for {caller_id}: Received FakeEvent. Processing..."
                         )
                         processed_data = FakeData(f"event_for_{str(caller_id)[:8]}")
@@ -687,7 +690,7 @@ class BroadcastTestFakeRuntime(Runtime):
                             processed_data,
                             datetime.datetime.now(datetime.timezone.utc),
                         )
-                        print(
+                        logging.debug(
                             f"LISTENER_DBG: Listener for {caller_id} processed data for FakeEvent"
                         )
                         if (
@@ -697,12 +700,12 @@ class BroadcastTestFakeRuntime(Runtime):
                             self._caller_event_map[caller_id].set()
                         await asyncio.sleep(0)  # Yield control
         except asyncio.CancelledError:
-            print(f"Listener for {caller_id}: Cancelled.")
+            logging.debug(f"Listener for {caller_id}: Cancelled.")
             # Log cancellation if necessary
             pass
         except Exception as e:
             # Log other exceptions during event listening
-            print(f"Error in event listener for {caller_id}: {e}")
+            logging.debug(f"Error in event listener for {caller_id}: {e}")
 
     async def stop(self, exception) -> None:
         for task in self._listener_tasks:
@@ -719,7 +722,7 @@ class BroadcastTestFakeRuntime(Runtime):
                 )
             except Exception as e:
                 # Log error during stop processing
-                print(f"Error processing stop data for {cid}: {e}")
+                logging.debug(f"Error processing stop data for {cid}: {e}")
 
 
 class BroadcastTestFakeRuntimeInitializer(RuntimeInitializer[FakeData, FakeEvent]):
@@ -1129,7 +1132,9 @@ def test_out_of_process_torch_event_transport(clear_loop_fixture):
         time.sleep(5.0)  # Further increase initial sleep
 
         event_timestamp = datetime.datetime.now(datetime.timezone.utc)
-        # DEBUG_TEST print removed
+        logging.debug(
+            f"DEBUG_TEST: Sending event: {expected_event_tensor} to {current_test_id}"
+        )
         runtime_handle.on_event(
             expected_event_tensor, current_test_id, timestamp=event_timestamp
         )
@@ -1168,7 +1173,7 @@ def test_out_of_process_torch_event_transport(clear_loop_fixture):
             try:
                 runtime_handle_for_cleanup.stop()
             except Exception as e:
-                print(f"Error during cleanup stop: {e}")
+                logging.debug(f"Error during cleanup stop: {e}")
         runtime_manager.shutdown()
 
 
@@ -1318,7 +1323,7 @@ def test_out_of_process_torch_data_torch_event_transport(clear_loop_fixture):
             try:
                 runtime_handle_for_cleanup.stop()
             except Exception as e:
-                print(f"Error during cleanup stop: {e}")
+                logging.debug(f"Error during cleanup stop: {e}")
         runtime_manager.shutdown()
 
 
@@ -1952,7 +1957,7 @@ def test_in_process_initializer_create_error(clear_loop_fixture):
 
     except ValueError as e:
         if str(e) == error_msg and not called_check_for_exception:
-            print(
+            logging.debug(
                 f"Caught expected error '{error_msg}' directly from start_in_process, not from check_for_exception as test was re-specified."
             )
             pass
@@ -2034,7 +2039,9 @@ def test_out_of_process_error_direct_run_until_exception(clear_loop_fixture):
                 pass
         runtime_manager.shutdown()
         if test_thread and test_thread.is_alive():
-            print("Warning: Test thread for run_until_exception did not exit cleanly.")
+            logging.warning(
+                "Warning: Test thread for run_until_exception did not exit cleanly."
+            )
             pass
         elif test_thread:
             test_thread.join(timeout=1)
@@ -2168,7 +2175,7 @@ def test_event_broadcast_e2e(clear_loop_fixture):
                 if handle_item:
                     handle_item.stop()
             except Exception as e:
-                print(f"Error during handle.stop() for {handle_item}: {e}")
+                logging.debug(f"Error during handle.stop() for {handle_item}: {e}")
                 pass
         runtime_manager.shutdown()
         # time.sleep(0.2)  # Diagnostic sleep removed

@@ -2,9 +2,9 @@
 
 import asyncio
 import threading
-from collections.abc import Coroutine
+from collections.abc import AsyncIterator, Callable, Coroutine
 from functools import partial
-from typing import Any, AsyncIterator, Callable, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none as default_get_running_loop_or_none,
@@ -30,9 +30,7 @@ class IsRunningTracker(Atomic[bool]):
 
     def __init__(
         self,
-        get_loop_func: Optional[
-            Callable[[], Optional[asyncio.AbstractEventLoop]]
-        ] = None,
+        get_loop_func: Callable[[], asyncio.AbstractEventLoop | None] | None = None,
     ) -> None:
         """
         Initializes an IsRunningTracker instance.
@@ -87,8 +85,9 @@ class IsRunningTracker(Atomic[bool]):
                 # if/when an async method requiring the loop is first called.
                 # For a simple stop() before any async usage, just setting the
                 # boolean flag via super().set() is enough. If an async method
-                # like wait_until_stopped is called later, __ensure_event_loop_initialized
-                # will call __set_impl(self.get()) which will correctly set barriers.
+                # like wait_until_stopped is called later,
+                # __ensure_event_loop_initialized will call __set_impl(self.get())
+                # which will correctly set barriers.
                 return
 
             if self.__event_loop.is_closed():
@@ -109,8 +108,9 @@ class IsRunningTracker(Atomic[bool]):
             with self.__event_loop_lock:
                 self.__running_barrier = asyncio.Event()
                 self.__stopped_barrier = asyncio.Event()
-                # Setting __event_loop to None implies that the next call to set()
-                # or an async method will need to re-capture/re-initialize the loop context.
+                # Setting __event_loop to None implies that the next call to set() or
+                # an async method will need to re-capture/re-initialize the loop
+                # context.
                 self.__event_loop = None
 
         task.add_done_callback(clear_on_done)
@@ -252,8 +252,8 @@ class IsRunningTracker(Atomic[bool]):
             self.__event_loop = self._get_loop_func()
             if self.__event_loop is None:
                 raise RuntimeError(
-                    "Event loop not found by _get_loop_func. "
-                    "Must be called from within a running event loop or have an event loop set."
+                    "Event loop not found by _get_loop_func. Must be called from "
+                    "within a running event loop or have an event loop set."
                 )
             value = self.get()
         await self.__set_impl(value)

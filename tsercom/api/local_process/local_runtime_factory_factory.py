@@ -1,7 +1,7 @@
 """LocalRuntimeFactoryFactory for local RuntimeHandle/Factory pairs."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple, TypeVar
+from typing import TypeVar
 
 from tsercom.api.local_process.local_runtime_factory import LocalRuntimeFactory
 from tsercom.api.local_process.runtime_command_bridge import (
@@ -40,7 +40,7 @@ class LocalRuntimeFactoryFactory(
 
     def _create_pair(
         self, initializer: RuntimeInitializer[DataTypeT, EventTypeT]
-    ) -> Tuple[
+    ) -> tuple[
         RuntimeHandle[DataTypeT, EventTypeT],
         RuntimeFactory[DataTypeT, EventTypeT],
     ]:

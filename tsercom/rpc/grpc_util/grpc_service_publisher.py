@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 
 import grpc
 from grpc_health.v1 import health_pb2, health_pb2_grpc  # type: ignore
@@ -120,7 +120,8 @@ class GrpcServicePublisher:
         Logs successes and failures.
 
         Returns:
-            True if the server successfully bound to at least one address, False otherwise.
+            True if the server successfully bound to at least one address,
+            False otherwise.
         """
         worked = 0
         for address in self.__addresses:
@@ -160,15 +161,16 @@ class GrpcServicePublisher:
         """
         if self.__server is None:
             logging.warning(
-                "GrpcServicePublisher: Server not started or already stopped when calling stop()."
+                "GrpcServicePublisher: Server not started or already stopped "
+                "when calling stop()."
             )
             return
 
         if isinstance(self.__server, grpc.aio.Server):
             logging.error(
-                "GrpcServicePublisher: Synchronous stop() called on an grpc.aio.Server. "
-                "This is incorrect and will not stop the server gracefully. "
-                "Use stop_async() instead."
+                "GrpcServicePublisher: Synchronous stop() called on an "
+                "grpc.aio.Server. This is incorrect and will not stop the "
+                "server gracefully. Use stop_async() instead."
             )
             return
 
@@ -189,7 +191,8 @@ class GrpcServicePublisher:
         """
         if self.__server is None:
             logging.warning(
-                "GrpcServicePublisher: Server not started or already stopped when calling stop_async()."
+                "GrpcServicePublisher: Server not started or already stopped "
+                "when calling stop_async()."
             )
             return
 
@@ -226,10 +229,12 @@ async def check_grpc_channel_health(
 
     Args:
         channel: The gRPC channel to check.
-        service: The name of the service to check. An empty string checks overall server health.
+        service: The name of the service to check. An empty string checks overall
+            server health.
 
     Returns:
-        True if the channel is serving for the specified service, False otherwise (including errors).
+        True if the channel is serving for the specified service, False otherwise
+            (including errors).
     """
     if not channel:
         logging.debug(
@@ -238,7 +243,8 @@ async def check_grpc_channel_health(
         return False
 
     logging.debug(
-        f"Health check: Creating HealthStub for channel: {channel}, service: '{service}'"
+        f"Health check: Creating HealthStub for channel: {channel}, "
+        f"service: '{service}'",
     )
     health_stub = health_pb2_grpc.HealthStub(channel)
     request = health_pb2.HealthCheckRequest(service=service)
@@ -257,12 +263,14 @@ async def check_grpc_channel_health(
                 response.status
             )
             logging.warning(
-                f"Health check: Status is {service_status_name}, expected SERVING. Returning False."
+                f"Health check: Status is {service_status_name}, expected SERVING. "
+                "Returning False.",
             )
             return False
     except grpc.aio.AioRpcError as e:
         logging.error(
-            f"Health check: AioRpcError for channel {channel}: {e.details()} (code: {e.code()})"
+            f"Health check: AioRpcError for channel {channel}: {e.details()} "
+            f"(code: {e.code()})",
         )
         return False
     except Exception as e:

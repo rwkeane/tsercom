@@ -20,8 +20,6 @@ import logging
 from functools import partial
 from typing import (
     Any,
-    List,
-    Optional,
 )
 
 from tsercom.api.split_process.split_process_error_watcher_sink import (
@@ -32,6 +30,7 @@ from tsercom.runtime.client.client_runtime_data_handler import (
     ClientRuntimeDataHandler,
 )
 from tsercom.runtime.runtime import Runtime
+from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
 from tsercom.runtime.runtime_factory import RuntimeFactory
 from tsercom.runtime.server.server_runtime_data_handler import (
     ServerRuntimeDataHandler,
@@ -48,17 +47,15 @@ from tsercom.threading.multiprocess.multiprocess_queue_sink import (
 )
 from tsercom.threading.thread_watcher import ThreadWatcher
 
-from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
-
 logger = logging.getLogger(__name__)
 
 
 def initialize_runtimes(
     thread_watcher: ThreadWatcher,
-    initializers: List[RuntimeFactory[Any, Any]],
+    initializers: list[RuntimeFactory[Any, Any]],
     *,
     is_testing: bool = False,
-) -> List[Runtime]:
+) -> list[Runtime]:
     """Initializes, configures, and starts a list of Tsercom runtimes.
 
     This function iterates through the provided `RuntimeFactory` instances (referred
@@ -97,10 +94,9 @@ def initialize_runtimes(
     assert is_global_event_loop_set(), "Global Tsercom event loop must be set."
 
     channel_factory_selector = ChannelFactorySelector()
-    created_runtimes: List[Runtime] = []
+    created_runtimes: list[Runtime] = []
 
     for initializer_factory in initializers:
-
         data_reader = initializer_factory._remote_data_reader()
         event_poller = initializer_factory._event_poller()
 
@@ -112,8 +108,9 @@ def initialize_runtimes(
         channel_factory = channel_factory_selector.create_factory(auth_config)
 
         # The event poller from the factory should now be directly compatible
-        # with RuntimeDataHandlerBase, which expects AsyncPoller[EventInstance[EventTypeT]].
-        # The conversion to SerializableAnnotatedInstance is handled within _DataProcessorImpl.
+        # with RuntimeDataHandlerBase, which expects
+        # AsyncPoller[EventInstance[EventTypeT]]. The conversion to
+        # SerializableAnnotatedInstance is handled within _DataProcessorImpl.
         #     event_poller
         # )
 
@@ -154,7 +151,8 @@ def initialize_runtimes(
             runtime.start_async, event_loop=active_loop
         )
 
-        # Add a callback to propagate exceptions from runtime startup to the thread_watcher.
+        # Add a callback to propagate exceptions from runtime startup
+        # to the thread_watcher.
         def _runtime_start_done_callback(
             f: concurrent.futures.Future[Any],
             watcher: ThreadWatcher,
@@ -167,8 +165,9 @@ def initialize_runtimes(
                         watcher.on_exception_seen(exc)
                     elif exc is not None:  # BaseException but not Exception
                         logger.warning(
-                            "Runtime start_async future completed with a non-Exception "
-                            "BaseException: %s. This will not be reported via ThreadWatcher.",
+                            "Runtime start_async future completed with a "
+                            "non-Exception BaseException: %s. This will not be "
+                            "reported via ThreadWatcher.",
                             type(exc).__name__,
                         )
 
@@ -184,7 +183,7 @@ def initialize_runtimes(
 
 
 def remote_process_main(
-    initializers: List[RuntimeFactory[Any, Any]],
+    initializers: list[RuntimeFactory[Any, Any]],
     error_queue: MultiprocessQueueSink[Exception],
     *,
     is_testing: bool = False,
@@ -223,8 +222,8 @@ def remote_process_main(
     # Error sink to report exceptions from this process to the parent.
     error_sink = SplitProcessErrorWatcherSink(thread_watcher, error_queue)
 
-    active_runtimes: List[Runtime] = []
-    captured_exception: Optional[Exception] = None
+    active_runtimes: list[Runtime] = []
+    captured_exception: Exception | None = None
     try:
         active_runtimes = initialize_runtimes(
             thread_watcher, initializers, is_testing=is_testing
@@ -244,7 +243,6 @@ def remote_process_main(
     asyncs_task = get_global_event_loop().create_task(aggregate_asyncs)
     for factory in initializers:
         try:
-
             factory._stop()
 
         except Exception as e_factory_stop:

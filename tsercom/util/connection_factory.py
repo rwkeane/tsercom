@@ -1,7 +1,7 @@
 """Defines an abstract factory for creating connections."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, List, Optional, TypeVar, Union
+from typing import Generic, TypeVar
 
 ConnectionTypeT = TypeVar("ConnectionTypeT")
 
@@ -11,8 +11,8 @@ class ConnectionFactory(Generic[ConnectionTypeT], ABC):
 
     @abstractmethod
     async def connect(
-        self, addresses: Union[List[str], str], port: int
-    ) -> Optional[ConnectionTypeT]:
+        self, addresses: list[str] | str, port: int
+    ) -> ConnectionTypeT | None:
         """Establishes a connection to a service.
 
         Args:

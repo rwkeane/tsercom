@@ -1,7 +1,8 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
-import multiprocessing as std_mp  # For type hinting BaseContext
-from typing import Tuple, TypeVar, Generic, Optional
+import multiprocessing as std_mp
+from typing import Generic, TypeVar
+
 import torch.multiprocessing as mp
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -51,9 +52,9 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
 
     def create_queues(
         self,
-        max_ipc_queue_size: Optional[int] = None,
+        max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
-    ) -> Tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
+    ) -> tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
         """Creates a pair of torch.multiprocessing queues wrapped in Sink/Source.
 
         These queues are suitable for inter-process communication, especially
@@ -72,7 +73,8 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
         """
-        # For torch.multiprocessing.Queue, maxsize=0 means platform default (usually large).
+        # For torch.multiprocessing.Queue, maxsize=0 means platform default
+        # (usually large).
         effective_maxsize = 0
         if max_ipc_queue_size is not None and max_ipc_queue_size > 0:
             effective_maxsize = max_ipc_queue_size

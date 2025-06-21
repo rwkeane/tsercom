@@ -2,7 +2,7 @@
 
 import datetime
 from abc import ABC, abstractmethod
-from typing import Generic, Optional, TypeVar, overload
+from typing import Generic, TypeVar, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
@@ -100,9 +100,9 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
     def on_event(
         self,
         event: EventTypeT,
-        caller_id: Optional[CallerIdentifier] = None,
+        caller_id: CallerIdentifier | None = None,
         *,
-        timestamp: Optional[datetime.datetime] = None,
+        timestamp: datetime.datetime | None = None,
     ) -> None:
         """Sends an event to the runtime.
 

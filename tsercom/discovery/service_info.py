@@ -2,7 +2,6 @@
 
 import dataclasses
 from typing import (
-    List,
     TypeVar,
 )
 
@@ -18,7 +17,7 @@ class ServiceInfo:
 
     name: str
     port: int
-    addresses: List[str]
+    addresses: list[str]
     mdns_name: str
 
 

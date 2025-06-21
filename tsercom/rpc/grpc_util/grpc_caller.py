@@ -1,4 +1,7 @@
-"""Provides utility functions for handling gRPC errors, status codes, and retry logic."""
+"""
+Provides utility functions for handling gRPC errors, status codes, and retry
+logic.
+"""
 
 from __future__ import annotations
 
@@ -76,5 +79,5 @@ async def delay_before_retry() -> None:
 
     The delay is uniformly distributed between 4 and 8 seconds.
     """
-    delay = random.uniform(4, 8)
+    delay = random.uniform(4, 8)  # noqa: S311
     await asyncio.sleep(delay)

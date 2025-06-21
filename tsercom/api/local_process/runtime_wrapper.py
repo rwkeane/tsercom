@@ -1,7 +1,7 @@
 """Wraps a local runtime, providing a handle for interaction and data flow."""
 
 from datetime import datetime
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.api.local_process.runtime_command_bridge import (
     RuntimeCommandBridge,
@@ -63,9 +63,9 @@ class RuntimeWrapper(
     def on_event(
         self,
         event: EventTypeT,
-        caller_id: Optional[CallerIdentifier] = None,
+        caller_id: CallerIdentifier | None = None,
         *,
-        timestamp: Optional[datetime] = None,
+        timestamp: datetime | None = None,
     ) -> None:
         """Wraps an incoming event and passes it to the event poller.
 
@@ -112,7 +112,7 @@ class RuntimeWrapper(
 
     def _get_runtime_for_test(
         self,
-    ) -> Optional[Runtime]:  # Renamed method
+    ) -> Runtime | None:  # Renamed method
         """Provides access to the actual underlying Runtime instance (for testing)."""
         if self.__bridge:
             return self.__bridge._get_runtime_for_test()

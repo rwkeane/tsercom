@@ -1,7 +1,6 @@
 """Defines Runtime ABC, a service that can be started and stopped."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class Runtime(ABC):
@@ -20,7 +19,7 @@ class Runtime(ABC):
         """
 
     @abstractmethod
-    async def stop(self, exception: Optional[Exception] = None) -> None:
+    async def stop(self, exception: Exception | None = None) -> None:
         """Asynchronously stops the object.
 
         Subclasses must implement this method to define how the runtime should

@@ -1,7 +1,6 @@
 """Defines the interface for client reconnection management."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class ClientReconnectionManager(ABC):
@@ -13,7 +12,7 @@ class ClientReconnectionManager(ABC):
     """
 
     @abstractmethod
-    async def _on_disconnect(self, error: Optional[Exception] = None) -> None:
+    async def _on_disconnect(self, error: Exception | None = None) -> None:
         """Callback method invoked when a client disconnection occurs.
 
         Subclasses should implement this method to define their specific

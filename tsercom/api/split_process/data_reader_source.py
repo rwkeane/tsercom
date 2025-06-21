@@ -76,7 +76,8 @@ class DataReaderSource(Generic[DataTypeT]):
             if self.__thread.is_alive():
                 # Long error message
                 raise RuntimeError(
-                    f"ERROR: DataReaderSource thread for queue {self.__queue} did not terminate within 5 seconds."
+                    f"ERROR: DataReaderSource thread for queue {self.__queue} "
+                    f"did not terminate within 5 seconds."
                 )
 
     def __poll_for_data(self) -> None:
@@ -90,7 +91,6 @@ class DataReaderSource(Generic[DataTypeT]):
             data = self.__queue.get_blocking(timeout=1)
             if data is not None:
                 try:
-
                     self.__data_reader._on_data_ready(data)
                 except Exception as e:
                     # It's important to catch exceptions here to prevent the

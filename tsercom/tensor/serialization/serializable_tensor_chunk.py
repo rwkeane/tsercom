@@ -1,13 +1,13 @@
 """Serialization utilities for PyTorch Tensors using gRPC messages."""
 
 import logging
-from typing import Optional, Any
+from typing import Any, Optional
 
-import torch
-import numpy as np
 import lz4.frame  # type: ignore[import-untyped]
-from tsercom.tensor.proto import TensorChunk as GrpcTensor
+import numpy as np
+import torch
 
+from tsercom.tensor.proto import TensorChunk as GrpcTensor
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
@@ -28,7 +28,9 @@ class SerializableTensorChunk:
         tensor: torch.Tensor,
         timestamp: SynchronizedTimestamp,
         starting_index: int = 0,
-        compression: GrpcTensor.CompressionType.ValueType = GrpcTensor.CompressionType.NONE,
+        compression: GrpcTensor.CompressionType.ValueType = (
+            GrpcTensor.CompressionType.NONE
+        ),
     ):
         self.__tensor: torch.Tensor = tensor
         self.__timestamp: SynchronizedTimestamp = timestamp
@@ -101,9 +103,9 @@ class SerializableTensorChunk:
     @classmethod
     def try_parse(
         cls,
-        grpc_msg: Optional[GrpcTensor],
+        grpc_msg: GrpcTensor | None,
         dtype: torch.dtype,
-        device: Optional[str] = None,
+        device: str | None = None,
     ) -> Optional["SerializableTensorChunk"]:
         """Attempts to parse a `TensorChunk` message into a `SerializableTensorChunk`.
 
@@ -120,7 +122,8 @@ class SerializableTensorChunk:
                 to this device (e.g., "cuda:0"). Defaults to CPU.
 
         Returns:
-            A `SerializableTensorChunk` instance if parsing is successful, otherwise `None`.
+            A `SerializableTensorChunk` instance if parsing is successful,
+            otherwise `None`.
         """
         if grpc_msg is None:
             logging.warning("Attempted to parse None TensorChunk.")
@@ -129,7 +132,8 @@ class SerializableTensorChunk:
         parsed_timestamp = SynchronizedTimestamp.try_parse(grpc_msg.timestamp)
         if parsed_timestamp is None:
             logging.warning(
-                "Failed to parse timestamp from TensorChunk, cannot create SerializableTensorChunk."
+                "Failed to parse timestamp from TensorChunk, cannot create "
+                "SerializableTensorChunk."
             )
             return None
 
@@ -150,7 +154,8 @@ class SerializableTensorChunk:
             )
             return None
 
-        # Handles errors during byte-to-tensor conversion (e.g., mismatched types, corruption).
+        # Handles errors during byte-to-tensor conversion
+        # (e.g., mismatched types, corruption).
         try:
             # np.frombuffer requires a NumPy-compatible dtype.
             numpy_dtype: Any

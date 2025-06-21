@@ -19,8 +19,6 @@ from datetime import datetime
 from typing import (
     Any,
     Generic,
-    List,
-    Optional,
     TypeVar,
     overload,
 )
@@ -29,11 +27,11 @@ import grpc
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
+from tsercom.data.event_instance import EventInstance
 from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.serializable_annotated_instance import (
     SerializableAnnotatedInstance,
 )
-from tsercom.data.event_instance import EventInstance
 from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.id_tracker import IdTracker
@@ -119,14 +117,15 @@ class RuntimeDataHandlerBase(
             _poller_factory
         )
 
-        self.__dispatch_task: Optional[asyncio.Task[None]] = None
-        # Import get_global_event_loop and is_global_event_loop_set locally to avoid circular dependency issues at module level
+        self.__dispatch_task: asyncio.Task[None] | None = None
+        # Import get_global_event_loop and is_global_event_loop_set locally to
+        # avoid circular dependency issues at module level
         from tsercom.threading.aio.global_event_loop import (
-            is_global_event_loop_set,
             get_global_event_loop,
+            is_global_event_loop_set,
         )
 
-        self._loop_on_init: Optional[asyncio.AbstractEventLoop] = None
+        self._loop_on_init: asyncio.AbstractEventLoop | None = None
         if is_global_event_loop_set():
             self._loop_on_init = get_global_event_loop()
             self.__dispatch_task = self._loop_on_init.create_task(
@@ -161,25 +160,31 @@ class RuntimeDataHandlerBase(
                 task_loop = task.get_loop()
             except RuntimeError:  # Can happen if task is done and loop is closed
                 _logger.warning(
-                    "Could not get loop for task %s during async_close, it might be done and its loop closed.",
+                    "Could not get loop for task %s during async_close, it might "
+                    "be done and its loop closed.",
                     task,
                 )
 
             task_loop_id = id(task_loop) if task_loop else "N/A"
             _logger.debug(
-                "Attempting to close __dispatch_task: %s (created on loop: %s, current task loop: %s)",
+                "Attempting to close __dispatch_task: %s (created on loop: %s, "
+                "current task loop: %s)",
                 task,
                 (id(self._loop_on_init) if self._loop_on_init else "N/A"),
                 task_loop_id,
             )
 
             if not task.done():
-                # It's crucial that task.cancel() and await task happen on the loop the task is running on.
-                # If self._loop_on_init is different from current_loop, this might be an issue.
-                # However, pytest-asyncio and conftest should ensure fixture teardown runs on the same loop as test.
+                # It's crucial that task.cancel() and await task happen on the
+                # loop the task is running on.
+                # If self._loop_on_init is different from current_loop, this
+                # might be an issue. However, pytest-asyncio and conftest should
+                # ensure fixture teardown runs on the same loop as test.
                 if self._loop_on_init and self._loop_on_init is not current_loop:
                     _logger.warning(
-                        "Potential loop mismatch in async_close: task loop %s (init_loop %s) vs current_loop %s. This might cause issues.",
+                        "Potential loop mismatch in async_close: task loop %s "
+                        "(init_loop %s) vs current_loop %s. This might cause "
+                        "issues.",
                         task_loop_id,
                         id(self._loop_on_init),
                         id(current_loop),
@@ -190,12 +195,14 @@ class RuntimeDataHandlerBase(
                 try:
                     await task
                     _logger.debug(
-                        "Dispatch_task %s awaited after cancellation (processed CancelledError).",
+                        "Dispatch_task %s awaited after cancellation "
+                        "(processed CancelledError).",
                         task,
                     )
                 except asyncio.CancelledError:
                     _logger.info(
-                        "Dispatch_task %s successfully cancelled and handled CancelledError.",
+                        "Dispatch_task %s successfully cancelled and handled "
+                        "CancelledError.",
                         task,
                     )
                 except Exception as e:
@@ -237,7 +244,9 @@ class RuntimeDataHandlerBase(
                         await poller.async_close()
                     elif hasattr(poller, "stop"):
                         _logger.debug("Calling stop on poller: %s", poller_repr)
-                        poller.stop()  # Assuming stop is synchronous; if it's async, this is problematic
+                        # Assuming stop is synchronous;
+                        # if it's async, this is problematic
+                        poller.stop()
                     else:
                         _logger.warning(
                             "Poller %s has no async_close or stop method.", poller_repr
@@ -270,9 +279,9 @@ class RuntimeDataHandlerBase(
     @overload
     async def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
-    ) -> Optional[
-        EndpointDataProcessor[DataTypeT, EventTypeT]
-    ]:  # Can return None if context parsing fails
+    ) -> (
+        EndpointDataProcessor[DataTypeT, EventTypeT] | None
+    ):  # Can return None if context parsing fails
         ...
 
     async def register_caller(
@@ -280,7 +289,7 @@ class RuntimeDataHandlerBase(
         caller_id: CallerIdentifier,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[EndpointDataProcessor[DataTypeT, EventTypeT]]:
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
         """Registers a caller and returns an `EndpointDataProcessor` for it.
 
         This method handles different ways of identifying a caller:
@@ -309,9 +318,9 @@ class RuntimeDataHandlerBase(
             TypeError: If `context` is provided but is not of the expected
                 `grpc.aio.ServicerContext` type.
         """
-        _endpoint: Optional[str] = None
-        _port: Optional[int] = None
-        _context: Optional[grpc.aio.ServicerContext] = None
+        _endpoint: str | None = None
+        _port: int | None = None
+        _context: grpc.aio.ServicerContext | None = None
 
         if len(args) == 1 and isinstance(args[0], grpc.aio.ServicerContext):
             _context = args[0]
@@ -375,7 +384,8 @@ class RuntimeDataHandlerBase(
                 return None
             if extracted_port is None:
                 raise ValueError(
-                    f"Could not get client port from context for endpoint: {extracted_endpoint}."
+                    f"Could not get client port from context for endpoint: "
+                    f"{extracted_endpoint}."
                 )
             actual_endpoint = extracted_endpoint
             actual_port = extracted_port
@@ -387,14 +397,13 @@ class RuntimeDataHandlerBase(
         else:
             # This state should be unreachable due to prior validation.
             raise ValueError(
-                "Internal error: Inconsistent endpoint/port/context state after validation."
+                "Internal error: Inconsistent endpoint/port/context state after "
+                "validation."
             )
 
         return await self._register_caller(caller_id, actual_endpoint, actual_port)
 
-    def check_for_caller_id(
-        self, endpoint: str, port: int
-    ) -> Optional[CallerIdentifier]:
+    def check_for_caller_id(self, endpoint: str, port: int) -> CallerIdentifier | None:
         """Checks if a `CallerIdentifier` exists for the given network address.
 
         Args:
@@ -466,7 +475,7 @@ class RuntimeDataHandlerBase(
 
     async def __anext__(
         self,
-    ) -> List[EventInstance[EventTypeT]]:
+    ) -> list[EventInstance[EventTypeT]]:
         """Retrieves the next batch of events from the main event source.
 
         This method makes `RuntimeDataHandlerBase` an asynchronous iterator,
@@ -482,7 +491,7 @@ class RuntimeDataHandlerBase(
 
     def __aiter__(
         self,
-    ) -> AsyncIterator[List[EventInstance[EventTypeT]]]:
+    ) -> AsyncIterator[list[EventInstance[EventTypeT]]]:
         """Returns self as the asynchronous iterator for events.
 
         This allows `RuntimeDataHandlerBase` instances to be used directly in
@@ -522,9 +531,7 @@ class RuntimeDataHandlerBase(
             self, caller_id, clock, data_poller
         )
 
-    def _try_get_caller_id(
-        self, endpoint: str, port: int
-    ) -> Optional[CallerIdentifier]:
+    def _try_get_caller_id(self, endpoint: str, port: int) -> CallerIdentifier | None:
         """Tries to retrieve a `CallerIdentifier` for a given network address.
 
         Args:
@@ -559,7 +566,8 @@ class RuntimeDataHandlerBase(
                             if poller is not None:
                                 poller.on_available(event_item)
                     else:
-                        # try_get by caller_id returns (address, port, data_poller) or None
+                        # try_get by caller_id returns (address, port,
+                        # data_poller) or None
                         id_tracker_entry = self._id_tracker.try_get(
                             event_item.caller_id
                         )
@@ -616,7 +624,7 @@ class RuntimeDataHandlerBase(
                     processor will source events for the specific caller.
             """
             super().__init__(caller_id)
-            self.__data_handler: "RuntimeDataHandlerBase[DataTypeT, EventTypeT]" = (
+            self.__data_handler: RuntimeDataHandlerBase[DataTypeT, EventTypeT] = (
                 data_handler
             )
             self.__clock: SynchronizedClock = clock
@@ -625,8 +633,8 @@ class RuntimeDataHandlerBase(
         async def desynchronize(
             self,
             timestamp: ServerTimestamp,
-            context: Optional[grpc.aio.ServicerContext] = None,
-        ) -> Optional[datetime]:
+            context: grpc.aio.ServicerContext | None = None,
+        ) -> datetime | None:
             """Desynchronizes a `ServerTimestamp` to a local `datetime` object.
 
             Uses the `SynchronizedClock` provided during initialization.
@@ -666,7 +674,9 @@ class RuntimeDataHandlerBase(
             # as EndpointDataProcessor.deregister_caller returns None.
 
         async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-            """Processes data by creating an `AnnotatedInstance` and passing it to the parent.
+            """
+            Processes data by creating an `AnnotatedInstance` and passing it to
+            the parent.
 
             The data is wrapped with its `CallerIdentifier` and the provided
             `datetime` timestamp, then submitted via the parent data handler\'s
@@ -684,10 +694,13 @@ class RuntimeDataHandlerBase(
 
         async def __aiter__(
             self,
-        ) -> AsyncIterator[List[SerializableAnnotatedInstance[EventTypeT]]]:
-            """Returns an asynchronous iterator for events from the dedicated per-caller poller."""
+        ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
+            """
+            Returns an asynchronous iterator for events from the dedicated
+            per-caller poller.
+            """
             async for event_instance_batch in self.__data_poller:
-                processed_batch: List[SerializableAnnotatedInstance[EventTypeT]] = []
+                processed_batch: list[SerializableAnnotatedInstance[EventTypeT]] = []
                 for event_instance in event_instance_batch:
                     synchronized_ts = self.__clock.sync(event_instance.timestamp)
                     serializable_event = SerializableAnnotatedInstance(

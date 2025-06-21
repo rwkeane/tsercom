@@ -1,4 +1,6 @@
-"""Defines the abstract base class for multiprocess queue factories and a deprecated factory function.
+"""
+Defines the abstract base class for multiprocess queue factories and a
+deprecated factory function.
 
 This module provides the `MultiprocessQueueFactory` ABC, which defines the interface
 for queue factories. It also contains the `create_multiprocess_queues` function,
@@ -6,7 +8,7 @@ which is considered for deprecation in favor of concrete factory implementations
 """
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Tuple, Generic, Optional
+from typing import Generic, TypeVar
 
 from tsercom.threading.multiprocess.multiprocess_queue_sink import (
     MultiprocessQueueSink,
@@ -29,9 +31,9 @@ class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
     @abstractmethod
     def create_queues(
         self,
-        max_ipc_queue_size: Optional[int] = None,
+        max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
-    ) -> Tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
+    ) -> tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
         """
         Creates a pair of queues for inter-process communication.
 

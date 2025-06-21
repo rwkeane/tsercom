@@ -8,12 +8,12 @@ truth for time, providing a synchronized clock for its clients, often through
 a `TimeSyncServer`.
 """
 
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.data.annotated_instance import AnnotatedInstance
-from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.data.event_instance import EventInstance
+from tsercom.data.remote_data_reader import RemoteDataReader
 from tsercom.runtime.endpoint_data_processor import EndpointDataProcessor
 from tsercom.runtime.runtime_data_handler_base import RuntimeDataHandlerBase
 from tsercom.threading.aio.async_poller import AsyncPoller
@@ -49,7 +49,7 @@ class ServerRuntimeDataHandler(
         self,
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
-        min_send_frequency_seconds: Optional[float] = None,
+        min_send_frequency_seconds: float | None = None,
         max_queued_responses_per_endpoint: int = 1000,
         *,
         is_testing: bool = False,
@@ -78,14 +78,15 @@ class ServerRuntimeDataHandler(
         )
 
         self.__clock: SynchronizedClock
-        self.__server: Optional[TimeSyncServer] = None  # Store server if created
+        self.__server: TimeSyncServer | None = None  # Store server if created
 
         if is_testing:
             self.__clock = FakeSynchronizedClock()
         else:
             # In a real server scenario, TimeSyncServer provides the clock.
             self.__server = TimeSyncServer()
-            self.__server.start_async()  # Assuming start_async is a non-blocking call that schedules startup
+            # Assuming start_async is a non-blocking call that schedules startup
+            self.__server.start_async()
             self.__clock = self.__server.get_synchronized_clock()
 
     async def _register_caller(

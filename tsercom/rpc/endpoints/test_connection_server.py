@@ -11,7 +11,10 @@ class AsyncTestConnectionServer:
     async def TestConnection(
         self, request: TestConnectionCall, context: grpc.aio.ServicerContext
     ) -> TestConnectionResponse:
-        """Handles an asynchronous TestConnection request. Simply returns an empty response."""
+        """
+        Handles an asynchronous TestConnection request. Simply returns an empty
+        response.
+        """
         return TestConnectionResponse()
 
 
@@ -21,5 +24,8 @@ class TestConnectionServer:
     def TestConnection(
         self, request: TestConnectionCall, context: grpc.ServicerContext
     ) -> TestConnectionResponse:
-        """Handles a synchronous TestConnection request. Simply returns an empty response."""
+        """
+        Handles a synchronous TestConnection request. Simply returns an empty
+        response.
+        """
         return TestConnectionResponse()

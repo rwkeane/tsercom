@@ -1,7 +1,8 @@
 """Manages mDNS service discovery and notifies clients of services."""
 
 import logging
-from typing import Callable, Dict, Generic, Optional, overload
+from collections.abc import Callable
+from typing import Generic, overload
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 from tsercom.discovery.mdns.instance_listener import (
@@ -73,14 +74,11 @@ class DiscoveryHost(
     def __init__(
         self,
         *,
-        service_type: Optional[str] = None,
-        instance_listener_factory: Optional[
-            Callable[
-                [InstanceListener.Client],
-                InstanceListener[ServiceInfoT],
-            ]
-        ] = None,
-        mdns_listener_factory: Optional[MdnsListenerFactory] = None,
+        service_type: str | None = None,
+        instance_listener_factory: (
+            Callable[[InstanceListener.Client], InstanceListener[ServiceInfoT]] | None
+        ) = None,
+        mdns_listener_factory: MdnsListenerFactory | None = None,
     ) -> None:
         """Initializes DiscoveryHost. Overloaded: use one keyword arg.
 
@@ -118,8 +116,9 @@ class DiscoveryHost(
             def instance_factory(
                 client: InstanceListener.Client,
             ) -> InstanceListener[ServiceInfoT]:
-                # If service_type was not provided during __init__ (e.g. using mdns_listener_factory mode),
-                # provide a default service_type for the InstanceListener, as it requires a string.
+                # If service_type was not provided during __init__ (e.g. using
+                # mdns_listener_factory mode), provide a default service_type
+                # for the InstanceListener, as it requires a string.
                 effective_service_type = (
                     service_type
                     if service_type is not None
@@ -133,9 +132,9 @@ class DiscoveryHost(
 
             self.__instance_listener_factory = instance_factory
 
-        self.__discoverer: Optional[InstanceListener[ServiceInfoT]] = None
-        self.__client: Optional[ServiceSource.Client] = None
-        self.__caller_id_map: Dict[str, CallerIdentifier] = {}
+        self.__discoverer: InstanceListener[ServiceInfoT] | None = None
+        self.__client: ServiceSource.Client | None = None
+        self.__caller_id_map: dict[str, CallerIdentifier] = {}
 
     async def start_discovery(self, client: ServiceSource.Client) -> None:
         """Starts service discovery.
@@ -187,7 +186,8 @@ class DiscoveryHost(
             # it's good practice to try and clean it up if it has resources.
             if self.__discoverer:
                 try:
-                    # Assuming async_stop is idempotent and safe to call even if start didn't fully complete
+                    # Assuming async_stop is idempotent and safe to call even if
+                    # start didn't fully complete
                     await self.__discoverer.async_stop()
                 except Exception as stop_e:
                     logging.error(
@@ -215,7 +215,8 @@ class DiscoveryHost(
         if self.__client is None:
             # Programming error: discovery should have been started with a client.
             raise RuntimeError(
-                "DiscoveryHost client not set; discovery may not have been started correctly."
+                "DiscoveryHost client not set; discovery may not have been "
+                "started correctly."
             )
 
         service_mdns_name = connection_info.mdns_name
@@ -245,26 +246,28 @@ class DiscoveryHost(
 
         if self.__client is None:
             logging.warning(
-                "No client configured in DiscoveryHost; cannot notify of service removal: %s",
+                "No client configured in DiscoveryHost; cannot notify of "
+                "service removal: %s",
                 service_name,
             )
             return
 
         if caller_id:
             if hasattr(self.__client, "_on_service_removed") and callable(
-                getattr(self.__client, "_on_service_removed")
+                self.__client._on_service_removed
             ):
-
                 await self.__client._on_service_removed(service_name, caller_id)
             else:
                 logging.warning(
-                    "Client %s does not implement _on_service_removed, cannot notify for %s.",
+                    "Client %s does not implement _on_service_removed, "
+                    "cannot notify for %s.",
                     type(self.__client).__name__,
                     service_name,
                 )
         else:
             logging.warning(
-                "Service %s removed, but was not found in DiscoveryHost's caller_id_map.",
+                "Service %s removed, but was not found in DiscoveryHost's "
+                "caller_id_map.",
                 service_name,
             )
 
@@ -273,11 +276,11 @@ class DiscoveryHost(
         logging.info("Stopping DiscoveryHost...")
         if self.__discoverer is not None:
             if hasattr(self.__discoverer, "async_stop") and callable(
-                getattr(self.__discoverer, "async_stop")
+                self.__discoverer.async_stop
             ):
                 await self.__discoverer.async_stop()
             elif hasattr(self.__discoverer, "stop") and callable(
-                getattr(self.__discoverer, "stop")
+                self.__discoverer.stop
             ):
                 self.__discoverer.stop()
             self.__discoverer = None

@@ -9,7 +9,6 @@ standardized way to surface exceptions that occur in those background contexts.
 
 from abc import ABC, abstractmethod
 
-
 # Defines an interface for objects that can monitor for and report exceptions.
 
 

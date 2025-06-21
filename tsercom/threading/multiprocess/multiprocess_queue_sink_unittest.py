@@ -1,3 +1,4 @@
+import logging
 import pytest
 import multiprocessing  # For multiprocessing.Queue spec
 from multiprocessing import queues  # For spec in MagicMock
@@ -34,6 +35,7 @@ class TestMultiprocessQueueSink:
         mock_mp_queue.put.assert_called_once_with(
             test_obj, block=True, timeout=test_timeout
         )
+
         assert (
             result is True
         ), "put_blocking should return True on success when blocking"
@@ -80,6 +82,7 @@ class TestMultiprocessQueueSink:
         print(
             f"  Calling put_blocking with obj='{test_obj}', is_blocking=False (timeout ignored)"
         )
+
         result = sink.put_blocking(test_obj)
 
         mock_mp_queue.put.assert_called_once_with(test_obj, block=False)
@@ -90,10 +93,10 @@ class TestMultiprocessQueueSink:
 
     # --- Tests for put_nowait (should be unaffected by is_blocking flag) ---
     def test_put_nowait_successful(self, mock_mp_queue):
-        print("\n--- Test: test_put_nowait_successful ---")
+        logging.debug("\n--- Test: test_put_nowait_successful ---")
         sink = MultiprocessQueueSink[int](mock_mp_queue)
         test_obj = 12345
-        print(f"  Calling put_nowait with obj={test_obj}")
+        logging.debug(f"  Calling put_nowait with obj={test_obj}")
 
         # Assume put_nowait() does not raise Full for successful scenario
         mock_mp_queue.put_nowait.return_value = (
@@ -103,16 +106,16 @@ class TestMultiprocessQueueSink:
         result = sink.put_nowait(test_obj)
 
         mock_mp_queue.put_nowait.assert_called_once_with(test_obj)
-        print("  Assertion: mock_mp_queue.put_nowait called correctly - PASSED")
+        logging.debug("  Assertion: mock_mp_queue.put_nowait called correctly - PASSED")
         assert result is True, "put_nowait should return True on success"
-        print("  Assertion: result is True - PASSED")
-        print("--- Test: test_put_nowait_successful finished ---")
+        logging.debug("  Assertion: result is True - PASSED")
+        logging.debug("--- Test: test_put_nowait_successful finished ---")
 
     def test_put_nowait_queue_full(self, mock_mp_queue):
-        print("\n--- Test: test_put_nowait_queue_full ---")
+        logging.debug("\n--- Test: test_put_nowait_queue_full ---")
         # Configure the mock queue's put_nowait method to raise queue.Full
         mock_mp_queue.put_nowait.side_effect = Full
-        print("  mock_mp_queue.put_nowait configured to raise queue.Full")
+        logging.debug("  mock_mp_queue.put_nowait configured to raise queue.Full")
 
         # Test with both is_blocking True and False to ensure it doesn't affect put_nowait
         for is_blocking_state in [True, False]:

@@ -1,7 +1,11 @@
-"""Utilities for extracting CallerIdentifier from gRPC calls, especially from iterators."""
+"""
+Utilities for extracting CallerIdentifier from gRPC calls,
+especially from iterators.
+"""
 
 import logging
-from typing import AsyncIterator, Callable, Optional, Tuple, TypeVar
+from collections.abc import AsyncIterator, Callable
+from typing import TypeVar
 
 import grpc
 
@@ -16,11 +20,11 @@ MAX_CALLER_ID_STRING_LENGTH = 256
 
 async def extract_id_from_first_call(
     iterator: AsyncIterator[TCallType],
-    is_running: Optional[IsRunningTracker] = None,
-    context: Optional[grpc.aio.ServicerContext] = None,
-    extractor: Optional[Callable[[TCallType], GrpcCallerId]] = None,
-    validate_against: Optional[CallerIdentifier] = None,
-) -> Tuple[CallerIdentifier | None, TCallType | None]:
+    is_running: IsRunningTracker | None = None,
+    context: grpc.aio.ServicerContext | None = None,
+    extractor: Callable[[TCallType], GrpcCallerId] | None = None,
+    validate_against: CallerIdentifier | None = None,
+) -> tuple[CallerIdentifier | None, TCallType | None]:
     """
     Extracts the CallerIdentifier for the next available instance received from
     |iterator|, returning both the  CallerId and the call itself if the method
@@ -55,10 +59,12 @@ async def extract_id_from_first_call(
                 )
             break
     except Exception as e:
-        # TODO(developer): Consider checking specific gRPC exception codes for more granular behavior.
+        # TODO(developer): Consider checking specific gRPC exception codes for
+        # more granular behavior.
         if isinstance(e, grpc.RpcError):
             logging.error(
-                f"RpcError while iterating for first call: code={e.code()}, details='{e.details()}'. Original exception: {e}",
+                f"RpcError while iterating for first call: code={e.code()}, "
+                f"details='{e.details()}'. Original exception: {e}",
                 exc_info=True,
             )
         else:
@@ -88,9 +94,9 @@ async def extract_id_from_first_call(
 
 async def extract_id_from_call(
     call: TCallType,
-    context: Optional[grpc.aio.ServicerContext] = None,
-    extractor: Optional[Callable[[TCallType], GrpcCallerId]] = None,
-    validate_against: Optional[CallerIdentifier] = None,
+    context: grpc.aio.ServicerContext | None = None,
+    extractor: Callable[[TCallType], GrpcCallerId] | None = None,
+    validate_against: CallerIdentifier | None = None,
 ) -> CallerIdentifier | None:
     """
     Extracts the CallerIdentifier associated with |call|, returning the CallerId
@@ -129,12 +135,16 @@ async def extract_id_from_call(
 
     if len(extracted.id) > MAX_CALLER_ID_STRING_LENGTH:
         logging.error(
-            f"CallerID string exceeds maximum length. Length: {len(extracted.id)}, Max: {MAX_CALLER_ID_STRING_LENGTH}"
+            f"CallerID string exceeds maximum length. Length: {len(extracted.id)}, "
+            f"Max: {MAX_CALLER_ID_STRING_LENGTH}"
         )
         if context is not None:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
-                f"CallerID string exceeds maximum length of {MAX_CALLER_ID_STRING_LENGTH}.",
+                (
+                    f"CallerID string exceeds maximum length of "
+                    f"{MAX_CALLER_ID_STRING_LENGTH}."
+                ),
             )
         return None
 

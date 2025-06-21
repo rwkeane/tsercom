@@ -1,13 +1,11 @@
 import asyncio
 import logging
 from abc import abstractmethod
+from collections.abc import Callable, Coroutine
 from functools import partial
 from typing import (
     Any,
-    Callable,
-    Coroutine,
     Generic,
-    Optional,
     TypeVar,
 )
 
@@ -16,7 +14,11 @@ from tsercom.rpc.connection.client_reconnection_handler import (
 )
 from tsercom.rpc.grpc_util.grpc_caller import (
     delay_before_retry as default_delay_before_retry,
+)
+from tsercom.rpc.grpc_util.grpc_caller import (
     is_grpc_error as default_is_grpc_error,
+)
+from tsercom.rpc.grpc_util.grpc_caller import (
     is_server_unavailable_error as default_is_server_unavailable_error,
 )
 from tsercom.threading.aio.aio_utils import (
@@ -42,14 +44,12 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
     def __init__(
         self,
         watcher: ThreadWatcher,
-        safe_disconnection_handler: Optional[Callable[[], None]] = None,
-        event_loop: Optional[asyncio.AbstractEventLoop] = None,
-        delay_before_retry_func: Optional[
-            Callable[[], Coroutine[Any, Any, None]]
-        ] = None,
-        is_grpc_error_func: Optional[Callable[[Exception], bool]] = None,
-        is_server_unavailable_error_func: Optional[Callable[[Exception], bool]] = None,
-        max_retries: Optional[int] = 5,
+        safe_disconnection_handler: Callable[[], None] | None = None,
+        event_loop: asyncio.AbstractEventLoop | None = None,
+        delay_before_retry_func: Callable[[], Coroutine[Any, Any, None]] | None = None,
+        is_grpc_error_func: Callable[[Exception], bool] | None = None,
+        is_server_unavailable_error_func: Callable[[Exception], bool] | None = None,
+        max_retries: int | None = 5,
     ) -> None:
         """Initializes the ClientDisconnectionRetrier.
 
@@ -70,12 +70,13 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         """
         if not isinstance(watcher, ThreadWatcher):
             raise TypeError(
-                f"Watcher must be an instance of ThreadWatcher, got {type(watcher).__name__}."
+                f"Watcher must be an instance of ThreadWatcher, "
+                f"got {type(watcher).__name__}."
             )
 
-        self.__instance: Optional[TInstanceType] = None
+        self.__instance: TInstanceType | None = None
         self.__watcher: ThreadWatcher = watcher
-        self.__safe_disconnection_handler: Optional[Callable[[], None]] = (
+        self.__safe_disconnection_handler: Callable[[], None] | None = (
             safe_disconnection_handler
         )
         self.__provided_event_loop = event_loop
@@ -90,9 +91,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         self.__max_retries = max_retries
 
         # Event loop on which this instance's async methods should primarily run.
-        self.__event_loop: Optional[asyncio.AbstractEventLoop] = (
-            self.__provided_event_loop
-        )
+        self.__event_loop: asyncio.AbstractEventLoop | None = self.__provided_event_loop
 
     @abstractmethod
     async def _connect(self) -> TInstanceType:
@@ -137,7 +136,8 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
 
             if self.__event_loop is None:
                 raise RuntimeError(
-                    "Event loop not initialized before starting ClientDisconnectionRetrier."
+                    "Event loop not initialized before starting "
+                    "ClientDisconnectionRetrier."
                 )
 
             self.__instance = await self._connect()
@@ -149,7 +149,8 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             if not isinstance(self.__instance, Stopable):
                 self.__instance = None  # Clear instance before raising
                 raise TypeError(
-                    f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
+                    f"Connected instance must be an instance of Stopable, "
+                    f"got {type(self.__instance).__name__}."
                 )
 
             logging.info(
@@ -157,10 +158,12 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             )
             return True
         except Exception as error:
-            # If it's a server unavailable error, don't raise, just log and return False.
+            # If it's a server unavailable error, don't raise, just log and
+            # return False.
             if self.__is_server_unavailable_error_func(error):
                 logging.warning(
-                    f"Initial connection to server FAILED with server unavailable error: {error}"
+                    f"Initial connection to server FAILED with server "
+                    f"unavailable error: {error}"
                 )
                 return False
             # For other errors, re-raise them.
@@ -170,7 +173,9 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             raise
 
     async def stop(self) -> None:
-        """Stops the managed instance and ensures operations run on the correct event loop.
+        """
+        Stops the managed instance and ensures operations run on the correct
+        event loop.
 
         If called from a different event loop than the one `start` was called on,
         it reschedules itself onto the original event loop. Stops the connected
@@ -178,9 +183,11 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         """
         if self.__event_loop is None:
             logging.warning(
-                "ClientDisconnectionRetrier.stop called before start or without a valid event loop."
+                "ClientDisconnectionRetrier.stop called before start or without "
+                "a valid event loop."
             )
-            # Set the event even if the loop is not available, as other parts might check it.
+            # Set the event even if the loop is not available, as other parts
+            # might check it.
             self.__stop_retrying_event.set()
             return
         self.__stop_retrying_event.set()
@@ -195,7 +202,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             self.__instance = None
         logging.info("ClientDisconnectionRetrier stopped.")
 
-    async def _on_disconnect(self, error: Optional[Exception] = None) -> None:
+    async def _on_disconnect(self, error: Exception | None = None) -> None:
         """Handles disconnection events and attempts reconnection if appropriate.
 
         This method is typically called when an operation on the managed instance
@@ -213,11 +220,13 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         # This method must run on the captured event loop.
         if self.__event_loop is None:  # Should not happen if start() was called.
             logging.error(
-                "_on_disconnect called without a valid event loop. Ensure start() was successful."
+                "_on_disconnect called without a valid event loop. "
+                "Ensure start() was successful."
             )
-            # If error is None, it might mean a clean disconnect signal without an error.
-            # However, the original logic implies error is usually an Exception.
-            # We'll proceed assuming if error is None, it's a no-op for error reporting/handling.
+            # If error is None, it might mean a clean disconnect signal without
+            # an error. However, the original logic implies error is usually an
+            # Exception. We'll proceed assuming if error is None, it's a no-op
+            # for error reporting/handling.
             if error is not None:  # Ensure error is an exception before reporting
                 self.__watcher.on_exception_seen(error)
             return
@@ -226,12 +235,13 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             run_on_event_loop(partial(self._on_disconnect, error), self.__event_loop)
             return
 
-        # If error is None, we might not proceed with the rest of the logic
-        # or handle it as a non-error disconnect.
-        # For now, let's assume if error is None, we don't proceed with error-specific logic.
+        # If error is None, we might not proceed with the rest of the logic or
+        # handle it as a non-error disconnect. For now, let's assume if error
+        # is None, we don't proceed with error-specific logic.
         if error is None:
             logging.info(
-                "_on_disconnect called with error=None. No action taken for error processing."
+                "_on_disconnect called with error=None. No action taken for "
+                "error processing."
             )
             return
 
@@ -240,38 +250,46 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             logging.error(f"AssertionError during disconnect: {error}")
             self.__watcher.on_exception_seen(error)
             # Depending on policy, might re-raise or stop retrying.
-            # For now, it will be caught by the general "not server unavailable" case later if not re-raised here.
+            # For now, it will be caught by the general "not server unavailable"
+            # case later if not re-raised here.
             # Re-raising immediately for critical assertion failures.
             raise error  # Re-raise to ensure it's handled as critical
 
-        # If the instance was already stopped/cleared (e.g., by a concurrent stop call), do nothing.
+        # If the instance was already stopped/cleared (e.g., by a concurrent
+        # stop call), do nothing.
         if self.__instance is None:
             logging.info("_on_disconnect called but instance is already None.")
             return
 
         logging.warning(
-            f"Disconnect detected for instance. Error: {error}. Attempting to stop current instance."
+            f"Disconnect detected for instance. Error: {error}. Attempting to "
+            "stop current instance."
         )
-        await self.__instance.stop()  # Ensure self.__instance is not None before calling stop
+        await (
+            self.__instance.stop()
+        )  # Ensure self.__instance is not None before calling stop
         self.__instance = None
 
         if self.__is_grpc_error_func(
             error  # error is now confirmed not None
         ) and not self.__is_server_unavailable_error_func(error):
             logging.warning(
-                f"Non-retriable gRPC session error: {error}. Notifying disconnection handler if available."
+                f"Non-retriable gRPC session error: {error}. Notifying "
+                "disconnection handler if available."
             )
             if self.__safe_disconnection_handler is not None:
                 # Await if the handler is a coroutine.
                 if asyncio.iscoroutinefunction(self.__safe_disconnection_handler):
                     await self.__safe_disconnection_handler()
                 else:
-                    self.__safe_disconnection_handler()  # mypy issue with callable check
+                    self.__safe_disconnection_handler()  # mypy issue with
+                    # callable check
             return
 
         if not self.__is_server_unavailable_error_func(error):  # error is not None here
             logging.error(
-                f"Local error or non-server-unavailable gRPC error: {error}. Reporting to ThreadWatcher."
+                f"Local error or non-server-unavailable gRPC error: {error}. "
+                "Reporting to ThreadWatcher."
             )
             self.__watcher.on_exception_seen(error)
             # Do not attempt to retry for these errors.
@@ -279,25 +297,29 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
 
         # If it IS a server unavailable error, attempt to reconnect.
         logging.info(
-            f"Server unavailable error: {error}. Initiating reconnection attempts."  # error is not None here
+            f"Server unavailable error: {error}. Initiating reconnection "
+            "attempts."  # error is not None here
         )
 
         retry_count = 0
         while True:
             if self.__max_retries is not None and retry_count >= self.__max_retries:
                 logging.warning(
-                    f"Max retries ({self.__max_retries}) reached. Stopping reconnection attempts."
+                    f"Max retries ({self.__max_retries}) reached. Stopping "
+                    "reconnection attempts."
                 )
                 break
 
             if self.__stop_retrying_event.is_set():
                 logging.info(
-                    "ClientDisconnectionRetrier: Stop retrying event was set before delay. Breaking from retry loop."
+                    "ClientDisconnectionRetrier: Stop retrying event was set "
+                    "before delay. Breaking from retry loop."
                 )
                 break
 
             # Create tasks for the delay and for waiting on the stop event
-            # Ensure self.__delay_before_retry_func is awaited as it's a coroutine function
+            # Ensure self.__delay_before_retry_func is awaited as it's a
+            # coroutine function
             delay_coro: Coroutine[Any, Any, None] = self.__delay_before_retry_func()
             delay_task: asyncio.Task[None] = self.__event_loop.create_task(delay_coro)
             stop_event_wait_task: asyncio.Task[bool] = self.__event_loop.create_task(
@@ -311,7 +333,8 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
 
             if stop_event_wait_task in done:
                 logging.info(
-                    "ClientDisconnectionRetrier: Stop retrying event was set during delay period. Breaking from retry loop."
+                    "ClientDisconnectionRetrier: Stop retrying event was set "
+                    "during delay period. Breaking from retry loop."
                 )
                 if not delay_task.done():
                     delay_task.cancel()
@@ -332,17 +355,19 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
 
                 if self.__instance is None:
                     logging.error("_connect() returned None during retry. Will retry.")
-                    # This state indicates an issue with _connect not raising an error on failure.
-                    # Continue loop to retry after delay.
+                    # This state indicates an issue with _connect not raising an
+                    # error on failure. Continue loop to retry after delay.
                     continue
                 if not isinstance(self.__instance, Stopable):
                     logging.error(
-                        f"Reconnected instance is not Stopable ({type(self.__instance).__name__}). Stopping retries."
+                        f"Reconnected instance is not Stopable "
+                        f"({type(self.__instance).__name__}). Stopping retries."
                     )
                     # This is a critical type error, stop retrying.
                     self.__instance = None  # Clear instance before raising
                     raise TypeError(
-                        f"Connected instance must be an instance of Stopable, got {type(self.__instance).__name__}."
+                        f"Connected instance must be an instance of Stopable, "
+                        f"got {type(self.__instance).__name__}."
                     )
 
                 logging.info("Successfully reconnected.")
@@ -352,15 +377,18 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
                     # If the error during retry is not a server unavailable error,
                     # it's a more serious issue. Report it and stop retrying.
                     logging.error(
-                        f"Non-server-unavailable error during reconnection attempt: {retry_error}. Stopping retries."
+                        f"Non-server-unavailable error during reconnection attempt: "
+                        f"{retry_error}. Stopping retries."
                     )
                     self.__watcher.on_exception_seen(retry_error)
                     raise  # Re-raise the error to stop the retry loop.
                 else:
-                    # If it's still a server unavailable error, log it and continue the loop.
+                    # If it's still a server unavailable error, log it and
+                    # continue the loop.
                     logging.warning(
                         f"Still server unavailable during retry: {retry_error}"
                     )
                 retry_count += 1
-            # Ensure the loop continues if a server unavailable error occurred inside the try block.
-            # No explicit 'continue' needed here as the loop naturally continues if no 'break' or 'raise'.
+            # Ensure the loop continues if a server unavailable error occurred
+            # inside the try block. No explicit 'continue' needed here as the
+            # loop naturally continues if no 'break' or 'raise'.

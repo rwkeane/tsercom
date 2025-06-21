@@ -1,7 +1,6 @@
 """Manages time synchronization with multiple IP endpoints."""
 
 import logging
-from typing import Dict
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.client_synchronized_clock import (
@@ -31,7 +30,7 @@ class TimeSyncTracker:
             is_testing: If True, uses `FakeTimeSyncClient`.
         """
         self.__thread_watcher = thread_watcher
-        self.__map: Dict[str, tuple[int, ClientSynchronizedClock.Client]] = {}
+        self.__map: dict[str, tuple[int, ClientSynchronizedClock.Client]] = {}
         self.__is_test_run = is_testing
 
     def on_connect(self, ip: str) -> SynchronizedClock:
@@ -74,11 +73,10 @@ class TimeSyncTracker:
             KeyError: If the IP was not previously tracked.
         """
         if ip not in self.__map:
-
             msg = (
-                "IP address '%s' not found in timesync tracker during "
-                "disconnect. May have already been disconnected or "
-                "never tracked." % ip
+                f"IP address '{ip}' not found in timesync tracker during "
+                f"disconnect. May have already been disconnected or "
+                f"never tracked."
             )
             raise KeyError(msg)
 

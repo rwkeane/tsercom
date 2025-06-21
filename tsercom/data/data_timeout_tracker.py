@@ -4,7 +4,6 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import List
 
 from tsercom.threading.aio.aio_utils import (
     is_running_on_event_loop,
@@ -47,7 +46,7 @@ class DataTimeoutTracker:
             timeout_seconds: Interval in secs for notifying `Tracked` objects.
         """
         self.__timeout_seconds: int = timeout_seconds
-        self.__tracked_list: List[DataTimeoutTracker.Tracked] = []
+        self.__tracked_list: list[DataTimeoutTracker.Tracked] = []
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
     def register(self, tracked: Tracked) -> None:
@@ -112,7 +111,6 @@ class DataTimeoutTracker:
                 break
             for tracked_item in list(self.__tracked_list):  # Iterate a copy
                 try:
-
                     tracked_item._on_triggered(self.__timeout_seconds)
 
                 except Exception as e:
@@ -136,6 +134,7 @@ class DataTimeoutTracker:
             logger.info("Unregistered item: %s", tracked)
         except ValueError:
             logger.warning(
-                "Attempted to unregister a non-registered or already unregistered item: %s",
+                "Attempted to unregister a non-registered or already "
+                "unregistered item: %s",
                 tracked,
             )

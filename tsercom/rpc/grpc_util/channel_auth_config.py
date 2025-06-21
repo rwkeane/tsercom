@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -26,7 +25,7 @@ class ServerCAChannelConfig(BaseChannelAuthConfig):
     """
 
     server_ca_cert_path: str
-    server_hostname_override: Optional[str] = field(default=None)
+    server_hostname_override: str | None = field(default=None)
 
 
 @dataclass(frozen=True)
@@ -37,7 +36,7 @@ class PinnedServerChannelConfig(BaseChannelAuthConfig):
     """
 
     pinned_server_cert_path: str
-    server_hostname_override: Optional[str] = field(default=None)
+    server_hostname_override: str | None = field(default=None)
 
 
 @dataclass(frozen=True)
@@ -49,4 +48,4 @@ class ClientAuthChannelConfig(BaseChannelAuthConfig):
 
     client_cert_path: str
     client_key_path: str
-    server_hostname_override: Optional[str] = field(default=None)
+    server_hostname_override: str | None = field(default=None)

@@ -65,6 +65,8 @@ Documentation = "https://github.com/rwkeane/tsercom"
 Repository = "https://github.com/rwkeane/tsercom"
 Issues = "https://github.com/rwkeane/tsercom/issues"
 
+# BUILDING THE PROJECT
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["tsercom*"]
@@ -78,25 +80,60 @@ include-package-data = true # To let me include protos
 write_to = "tsercom/_version.py"
 write_to_template = "__version__ = '{version}'"
 
+# BLACK SETTINGS
+
 [tool.black]
 line-length = 88
 
+# RUFF SETTINGS
+
 [tool.ruff]
 line-length = 88  # Must match Black's line-length
-
-[tool.ruff.lint]
 exclude = [
     ".git",
     "__pycache__",
     "build",
     "dist",
     "venv",
-    "**/*_pb2.py",     # Clearer exclusion for .py files
-    "**/*_pb2.pyi",    # Explicitly exclude .pyi files
-    "**/*_pb2_grpc.py", # Clearer exclusion
-    "**/*_unittest.py", # Clearer exclusion
+    "**/*_pb2.py",
+    "**/*_pb2.pyi",
+    "**/*_pb2_grpc.py",
+    "**/*_unittest.py",
+    "**/*_unittests.py",
+    "**/*_test.py",
+    "**/*_tests.py",
+    "**/*_e2etest.py",
+    "**/*_e2etests.py",
+    "*/proto/*", # Catches files like tsercom/caller_id/proto/generated/v1_64/caller_id_pb2.py
+    "scripts/*",
 ]
+
+[tool.ruff.lint]
+# Select all the recommended rule sets.
+select = [
+    "F",  # Pyflakes (finds unused imports, undefined names)
+    "E",  # pycodestyle errors  
+    "W",  # pycodestyle warnings (enable for full PEP 8)
+    "I",  # isort (import sorting)
+    "B",  # flake8-bugbear (finds likely bugs)
+    "UP", # pyupgrade (modernize syntax)
+    "S",  # bandit (security checks)
+    # "SIM",# flake8-simplify (suggests simpler code)
+    "T20",# flake8-print (finds leftover print statements)
+    "TID",# flake8-tidy-imports (enforce import styles)
+    # "D",  # pydocstyle (docstring conventions)
+]
+ignore = ["S101", "S104"]
+
+# Allow ruff's auto-fix for all enabled rules.
 fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+# Ensure ruff's isort implementation knows where your source code starts.
+known-first-party = ["tsercom"]
+
+# PYTEST SETTINGS
 
 [tool.pytest.ini_options]
 python_files = [
@@ -117,11 +154,13 @@ markers = [
     "asyncio: mark a test as asynchronous (run by pytest-asyncio)",
 ]
 asyncio_default_fixture_loop_scope = "function"
-filterwarnings = [
+filterwarnings = [ 
     "ignore:cannot collect test class 'TestConnectionCall'.*has a __init__ constructor:pytest.PytestCollectionWarning",
     "ignore:cannot collect test class 'TestConnectionResponse'.*has a __init__ constructor:pytest.PytestCollectionWarning",
     "ignore:cannot collect test class 'E2ETestServiceStub'.*has a __init__ constructor:pytest.PytestCollectionWarning",
 ]
+
+# MYPY SETTINGS
 
 [tool.mypy]
 strict = true
@@ -171,44 +210,7 @@ disable_error_code = ["attr-defined"]
 module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*" ]  # Target the grpc module and its submodules
 ignore_missing_imports = true
 
-[tool.pylint.MASTER]
-# Comma-separated list of glob patterns for files/directories to ignore.
-# This list consolidates exclusions from Ruff, Mypy, and setuptools configurations.
-ignore-paths = [
-    '^.git',
-    '.*__pycache__/.*',
-    '^build/.*',
-    '^dist/.*',
-    '^venv/.*',
-    '^docs/.*',
-    '^tests/.*',
-    '^scripts/.*',
-    # Protobuf and gRPC generated files (from Ruff and Mypy)
-    '^.*_pb2.py',
-    '^.*_pb2.pyi',
-    '^.*_pb2_grpc.py',
-    '^.*/proto/.*',
-    # Test files (based on pytest config, Ruff, and Mypy exclusions)
-    # These patterns should cover the specific ones in mypy and pytest
-    '.*_test.py',
-    '.*_tests.py',
-    '.*_unittest.py',
-    '.*_unittests.py',
-    '.*_e2etest.py',
-    '.*_e2etests.py',
-    '^tsercom/_version\.py$',
-]
-
-[tool.pylint.format]
-max-line-length = 80  # Differs with Black's and Ruff's line-length by design.
-
-[tool.pylint."MESSAGES CONTROL"]
-disable = [
-    "C0301",
-    "R0801",
-    "W0511",
-    "W2301",
-]
+# CODE COVERAGE SETTINGS
 
 [tool.coverage.run]
 source = ["tsercom"]

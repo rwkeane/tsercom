@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from typing import List, Optional, Union
 
 import grpc
 
@@ -18,8 +17,8 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
     """
 
     async def find_async_channel(
-        self, addresses: Union[List[str], str], port: int
-    ) -> Optional[grpc.Channel]:
+        self, addresses: list[str] | str, port: int
+    ) -> grpc.Channel | None:
         """Attempts to establish an insecure gRPC channel.
 
         Iterates through the provided addresses, attempting to connect to each
@@ -35,7 +34,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
             otherwise `None`.
         """
         assert addresses is not None
-        address_list: List[str]
+        address_list: list[str]
         if isinstance(addresses, str):
             address_list = [addresses]
         else:
@@ -66,6 +65,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
                 # For other exceptions, continue to the next address.
 
         logging.warning(
-            f"Failed to connect to any of the provided addresses: {address_list} on port {port}"
+            f"Failed to connect to any of the provided addresses: {address_list} "
+            f"on port {port}"
         )
         return None

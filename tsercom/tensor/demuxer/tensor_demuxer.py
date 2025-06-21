@@ -6,11 +6,7 @@ import abc
 import asyncio
 import bisect
 import datetime
-from typing import (
-    List,
-    Tuple,
-    Optional,
-)
+
 import torch
 
 from tsercom.tensor.serialization.serializable_tensor_chunk import (
@@ -21,7 +17,8 @@ from tsercom.tensor.serialization.serializable_tensor_chunk import (
 class TensorDemuxer:
     """
     Aggregates granular tensor index updates back into complete tensor objects.
-    Internal storage for explicit updates per timestamp uses torch.Tensors for efficiency.
+    Internal storage for explicit updates per timestamp uses torch.Tensors for
+    efficiency.
     """
 
     class Client(abc.ABC):
@@ -42,7 +39,7 @@ class TensorDemuxer:
         client: "TensorDemuxer.Client",
         tensor_length: int,
         data_timeout_seconds: float = 60.0,
-        device: Optional[str] = "cpu",
+        device: str | None = "cpu",
     ):
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
@@ -53,24 +50,24 @@ class TensorDemuxer:
         self.__tensor_length = tensor_length
         self.__data_timeout_seconds = data_timeout_seconds
         self.__device = device
-        self.__processed_keyframes: List[
-            Tuple[
+        self.__processed_keyframes: list[
+            tuple[
                 datetime.datetime,
                 torch.Tensor,
-                Tuple[torch.Tensor, torch.Tensor],
+                tuple[torch.Tensor, torch.Tensor],
             ]
         ] = []
-        self.__latest_update_timestamp: Optional[datetime.datetime] = None
+        self.__latest_update_timestamp: datetime.datetime | None = None
         self.__lock: asyncio.Lock = asyncio.Lock()
 
     @property
     def _processed_keyframes(
         self,
-    ) -> List[
-        Tuple[
+    ) -> list[
+        tuple[
             datetime.datetime,
             torch.Tensor,
-            Tuple[torch.Tensor, torch.Tensor],
+            tuple[torch.Tensor, torch.Tensor],
         ]
     ]:
         return self.__processed_keyframes
@@ -132,7 +129,7 @@ class TensorDemuxer:
 
             # Store the state of the tensor *before* this chunk's updates for this TS
             # This is used to determine if _on_keyframe_updated needs to be called.
-            pre_chunk_calculated_tensor_for_ts: Optional[torch.Tensor] = None
+            pre_chunk_calculated_tensor_for_ts: torch.Tensor | None = None
 
             if (
                 insertion_point < len(self.__processed_keyframes)
@@ -171,7 +168,7 @@ class TensorDemuxer:
 
             for i, value_from_chunk_tensor in enumerate(chunk_tensor):
                 tensor_index = chunk.starting_index + i
-                value = float(value_from_chunk_tensor.item())  # Defensive cast to float
+                value = float(value_from_chunk_tensor.item())
 
                 if not 0 <= tensor_index < self.__tensor_length:
                     continue
@@ -188,7 +185,8 @@ class TensorDemuxer:
 
                 if existing_explicit_entry_indices.numel() > 0:
                     entry_pos = existing_explicit_entry_indices[0]
-                    # Only update if value actually changed to avoid unnecessary marking of keyframe as changed
+                    # Only update if value actually changed to avoid unnecessary
+                    # marking of keyframe as changed
                     if explicit_values[entry_pos].item() != value:
                         explicit_values[entry_pos] = current_update_val_tensor
                 else:
@@ -217,7 +215,8 @@ class TensorDemuxer:
                     )
                 )
 
-            # Keyframe considered changed if it's new and contains data, or if its calculated tensor differs.
+            # Keyframe considered changed if it's new and contains data, or if
+            # its calculated tensor differs.
             keyframe_content_changed = False
             if is_new_timestamp_entry and explicit_indices.numel() > 0:
                 keyframe_content_changed = True
@@ -281,12 +280,13 @@ class TensorDemuxer:
                             ts_next, new_calculated_tensor_next
                         )
                     else:
-                        # If a cascaded tensor doesn't change, subsequent ones won't either from this cascade path
+                        # If a cascaded tensor doesn't change, subsequent ones
+                        # won't either from this cascade path
                         break
 
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
-    ) -> Optional[torch.Tensor]:
+    ) -> torch.Tensor | None:
         async with self.__lock:
             i = bisect.bisect_left(
                 self.__processed_keyframes, timestamp, key=lambda x: x[0]
