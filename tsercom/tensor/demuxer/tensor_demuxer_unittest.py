@@ -62,7 +62,9 @@ async def demuxer(
     demuxer_instance = TensorDemuxer(
         client=mock_client, tensor_length=4, data_timeout_seconds=60.0
     )
-    return demuxer_instance, mock_client
+    # No explicit async_close for TensorDemuxer as it doesn't manage ongoing tasks in current version
+    yield demuxer_instance, mock_client
+    # If TensorDemuxer had async_close: await demuxer_instance.async_close()
 
 
 @pytest_asyncio.fixture
@@ -87,7 +89,9 @@ async def demuxer_short_timeout(
     demuxer_instance = TensorDemuxer(
         client=mock_client, tensor_length=4, data_timeout_seconds=0.1
     )
-    return demuxer_instance, mock_client
+    yield demuxer_instance, mock_client
+    # No explicit async_close for TensorDemuxer as it doesn't manage ongoing tasks in current version
+    # If TensorDemuxer had async_close: await demuxer_instance.async_close()
 
 
 T0_std = datetime.datetime(2023, 1, 1, 12, 0, 0)
