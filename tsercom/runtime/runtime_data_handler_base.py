@@ -12,7 +12,7 @@ for client and server-side operations, respectively.
 """
 
 import asyncio
-import logging  # Added import
+import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from datetime import datetime
@@ -48,7 +48,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 EventTypeT = TypeVar("EventTypeT")
 DataTypeT = TypeVar("DataTypeT")
 
-_logger = logging.getLogger(__name__)  # Added logger
+_logger = logging.getLogger(__name__)
 
 
 class RuntimeDataHandlerBase(
@@ -110,7 +110,6 @@ class RuntimeDataHandlerBase(
         self.__max_queued_responses_per_endpoint = max_queued_responses_per_endpoint
 
         def _poller_factory() -> AsyncPoller[EventInstance[EventTypeT]]:
-            # AsyncPoller constructor takes `max_responses_queued`
             return AsyncPoller(
                 min_poll_frequency_seconds=min_send_frequency_seconds,
                 max_responses_queued=self.__max_queued_responses_per_endpoint,
@@ -127,11 +126,9 @@ class RuntimeDataHandlerBase(
             get_global_event_loop,
         )
 
-        self._loop_on_init: Optional[asyncio.AbstractEventLoop] = (
-            None  # Added type hint
-        )
+        self._loop_on_init: Optional[asyncio.AbstractEventLoop] = None
         if is_global_event_loop_set():
-            self._loop_on_init = get_global_event_loop()  # Store loop used at init
+            self._loop_on_init = get_global_event_loop()
             self.__dispatch_task = self._loop_on_init.create_task(
                 self.__dispatch_poller_data_loop()
             )
@@ -141,7 +138,6 @@ class RuntimeDataHandlerBase(
                 id(self._loop_on_init),
             )
         else:
-            # self._loop_on_init is already None due to the type hint and default initialization
             _logger.warning(
                 "No global event loop set during RuntimeDataHandlerBase init. "
                 "__dispatch_poller_data_loop will not start."
@@ -160,7 +156,6 @@ class RuntimeDataHandlerBase(
             and self.__dispatch_task
         ):
             task = self.__dispatch_task
-            # Ensure task loop retrieval is safe
             task_loop = None
             try:
                 task_loop = task.get_loop()
@@ -530,26 +525,23 @@ class RuntimeDataHandlerBase(
                             event_item.caller_id
                         )
                         if id_tracker_entry is None:
-                            # Potentially log this? Caller might have deregistered.
+                            # Caller might have deregistered.
                             continue
 
                         _address, _port, per_caller_poller = id_tracker_entry
                         if per_caller_poller is not None:
                             per_caller_poller.on_available(event_item)
-                        # else: Potentially log if poller is None but entry existed?
                 await asyncio.sleep(0)  # Yield control occasionally
         except asyncio.CancelledError:
             _logger.info("__dispatch_poller_data_loop received CancelledError.")
             raise  # Important to propagate for the awaiter
         except Exception as e:
-            # This logging was originally just print(), changed to _logger.critical
             _logger.critical(
                 "CRITICAL ERROR in __dispatch_poller_data_loop: %s: %s",
                 type(e).__name__,
                 e,
                 exc_info=True,
             )
-            # Consider how to report this to ThreadWatcher if applicable
             raise
         finally:
             _logger.info("__dispatch_poller_data_loop finished.")

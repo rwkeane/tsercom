@@ -86,7 +86,9 @@ class TestTorchMultiprocessQueueFactory:
         received1_s = source_sized.get_blocking(timeout=0.1)
         assert torch.equal(received1_s, tensor1_s)
         # get_blocking returns None on timeout/Empty from underlying queue
-        assert source_sized.get_blocking(timeout=0.01) is None # Attempt to get another item
+        assert (
+            source_sized.get_blocking(timeout=0.01) is None
+        )  # Attempt to get another item
 
         # Case 2: Unbounded (None), blocking queue
         factory_unbounded = TorchMultiprocessQueueFactory[torch.Tensor](

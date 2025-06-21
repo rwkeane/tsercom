@@ -2,9 +2,9 @@
 
 import pytest
 import multiprocessing as std_mp
-from typing import Type, Any, Dict, ClassVar, Optional # Added Optional
+from typing import Type, Any, Dict, ClassVar, Optional  # Added Optional
 from multiprocessing.queues import Queue as MpQueueType  # For type hinting
-from queue import Empty # Import Empty
+from queue import Empty  # Import Empty
 
 from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
@@ -95,7 +95,7 @@ class TestDefaultMultiprocessQueueFactory:
         # test_max_size = 1
         # test_is_blocking = False
         # factory = DefaultMultiprocessQueueFactory[Dict[str, Any]](
-            # max_ipc_queue_size=test_max_size, is_ipc_blocking=test_is_blocking
+        # max_ipc_queue_size=test_max_size, is_ipc_blocking=test_is_blocking
         # )
         # sink: MultiprocessQueueSink[Dict[str, Any]]
         # source: MultiprocessQueueSource[Dict[str, Any]] # Not needed due to refactor
@@ -126,7 +126,6 @@ class TestDefaultMultiprocessQueueFactory:
         #      # For now, we'll trust the parameter was passed.
         #      pass
 
-
         # data_to_send1 = {"key": "value1", "number": 123}
         # data_to_send2 = {"key": "value2", "number": 456}
         # try:
@@ -142,7 +141,6 @@ class TestDefaultMultiprocessQueueFactory:
         #     elif test_max_size != 1 or test_is_blocking: # if queue can hold more or it's blocking
         #         put_successful2_alt = sink.put_blocking(data_to_send2, timeout=1)
         #         assert put_successful2_alt, "sink.put_blocking failed for item 2 (alt path)"
-
 
         #     received_data1 = source.get_blocking(timeout=1)
         #     assert (

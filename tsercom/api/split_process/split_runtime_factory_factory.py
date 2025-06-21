@@ -121,12 +121,10 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                         ):
                             break
 
-        # Declare data_event_queue_factory with the base type for mypy
         event_queue_factory: MultiprocessQueueFactory[EventInstance[EventTypeT]]
         data_queue_factory: MultiprocessQueueFactory[AnnotatedInstance[DataTypeT]]
         command_queue_factory: MultiprocessQueueFactory[RuntimeCommand]
 
-        # Get IPC settings from the initializer (which is a RuntimeConfig instance)
         max_ipc_q_size = initializer.max_ipc_queue_size
         is_ipc_block = initializer.is_ipc_blocking
 
@@ -135,7 +133,6 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
             uses_torch_tensor = True
 
         if uses_torch_tensor:
-            # Assuming EventInstance and AnnotatedInstance generics are compatible with Torch queues
             event_queue_factory = TorchMultiprocessQueueFactory[
                 EventInstance[EventTypeT]
             ](
@@ -162,12 +159,10 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
                 is_ipc_blocking=is_ipc_block,
             )
 
-        # Command queues always use the default factory
         command_queue_factory = DefaultMultiprocessQueueFactory[RuntimeCommand](
             max_ipc_queue_size=max_ipc_q_size,
             is_ipc_blocking=is_ipc_block,
         )
-        # --- End dynamic queue factory selection ---
 
         event_sink: MultiprocessQueueSink[EventInstance[EventTypeT]]
         event_source: MultiprocessQueueSource[EventInstance[EventTypeT]]
