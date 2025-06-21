@@ -44,9 +44,7 @@ class EchoResponse(google.protobuf.message.Message):
         *,
         response: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing.Literal["response", b"response"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["response", b"response"]) -> None: ...
 
 global___EchoResponse = EchoResponse
 
@@ -79,12 +77,7 @@ class StreamDataResponse(google.protobuf.message.Message):
         data_chunk: builtins.str = ...,
         sequence_number: builtins.int = ...,
     ) -> None: ...
-    def ClearField(
-        self,
-        field_name: typing.Literal[
-            "data_chunk", b"data_chunk", "sequence_number", b"sequence_number"
-        ],
-    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data_chunk", b"data_chunk", "sequence_number", b"sequence_number"]) -> None: ...
 
 global___StreamDataResponse = StreamDataResponse
 
@@ -108,31 +101,9 @@ class E2EStreamRequest(google.protobuf.message.Message):
         caller_id: caller_id_pb2.CallerId | None = ...,
         data_chunk: tensor_pb2.TensorChunk | None = ...,
     ) -> None: ...
-    def HasField(
-        self,
-        field_name: typing.Literal[
-            "caller_id",
-            b"caller_id",
-            "data_chunk",
-            b"data_chunk",
-            "payload",
-            b"payload",
-        ],
-    ) -> builtins.bool: ...
-    def ClearField(
-        self,
-        field_name: typing.Literal[
-            "caller_id",
-            b"caller_id",
-            "data_chunk",
-            b"data_chunk",
-            "payload",
-            b"payload",
-        ],
-    ) -> None: ...
-    def WhichOneof(
-        self, oneof_group: typing.Literal["payload", b"payload"]
-    ) -> typing.Literal["caller_id", "data_chunk"] | None: ...
+    def HasField(self, field_name: typing.Literal["caller_id", b"caller_id", "data_chunk", b"data_chunk", "payload", b"payload"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["caller_id", b"caller_id", "data_chunk", b"data_chunk", "payload", b"payload"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["payload", b"payload"]) -> typing.Literal["caller_id", "data_chunk"] | None: ...
 
 global___E2EStreamRequest = E2EStreamRequest
 
@@ -154,30 +125,8 @@ class E2EStreamResponse(google.protobuf.message.Message):
         ack_message: builtins.str = ...,
         data_chunk: tensor_pb2.TensorChunk | None = ...,
     ) -> None: ...
-    def HasField(
-        self,
-        field_name: typing.Literal[
-            "ack_message",
-            b"ack_message",
-            "data_chunk",
-            b"data_chunk",
-            "payload",
-            b"payload",
-        ],
-    ) -> builtins.bool: ...
-    def ClearField(
-        self,
-        field_name: typing.Literal[
-            "ack_message",
-            b"ack_message",
-            "data_chunk",
-            b"data_chunk",
-            "payload",
-            b"payload",
-        ],
-    ) -> None: ...
-    def WhichOneof(
-        self, oneof_group: typing.Literal["payload", b"payload"]
-    ) -> typing.Literal["ack_message", "data_chunk"] | None: ...
+    def HasField(self, field_name: typing.Literal["ack_message", b"ack_message", "data_chunk", b"data_chunk", "payload", b"payload"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["ack_message", b"ack_message", "data_chunk", b"data_chunk", "payload", b"payload"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["payload", b"payload"]) -> typing.Literal["ack_message", "data_chunk"] | None: ...
 
 global___E2EStreamResponse = E2EStreamResponse

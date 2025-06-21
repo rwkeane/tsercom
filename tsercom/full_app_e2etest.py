@@ -47,7 +47,6 @@ from tsercom.rpc.grpc_util.channel_info import ChannelInfo  # Renamed
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
 from tsercom.runtime.runtime import Runtime
-
 # from tsercom.runtime.runtime_identity import RuntimeIdentity # Removed due to missing file
 from tsercom.runtime.runtime_config import ServiceType
 from tsercom.runtime.runtime_data_handler import RuntimeDataHandler
@@ -491,7 +490,7 @@ class E2eTestServicer(E2ETestServiceServicer):
         self._received_data_q = received_data_q
         self._sent_data_q = sent_data_q
         self._server_id_full = server_id_str or str(uuid.uuid4())
-        self._server_id_short = self._server_id_full[:8]  # Consistent short ID
+        self._server_id_short = self._server_id_full[:8] # Consistent short ID
         logging.info(
             f"E2eTestServicer instance created with ID: {self._server_id_short} (full: {self._server_id_full})"
         )
@@ -502,7 +501,9 @@ class E2eTestServicer(E2ETestServiceServicer):
         logging.info(
             f"E2eTestServicer ({self._server_id_short}) received Echo request: {request.message}"
         )
-        e2e_servicer_received_messages.append(request.message)
+        e2e_servicer_received_messages.append(
+            request.message
+        )
         # Reverted to original Echo response format for compatibility with existing tests
         return EchoResponse(response=f"Server echoes: {request.message}")
 
@@ -634,7 +635,7 @@ class E2eTestServicer(E2ETestServiceServicer):
 
 
 class TestDataSourceRuntime(Runtime):
-    __test__ = False  # Prevent pytest collection
+    __test__ = False # Prevent pytest collection
     """
     Hosts the E2ETestService for other runtimes to connect to.
     Simulates a data source advertising itself.
@@ -733,7 +734,7 @@ class TestDataSourceRuntime(Runtime):
         logging.info(f"TestDataSourceRuntime {self._identity_short} stopped.")
 
     @property
-    def identity_str(self) -> str:  # Changed from RuntimeIdentity to str
+    def identity_str(self) -> str: # Changed from RuntimeIdentity to str
         return self._identity_full
 
     @property
@@ -749,7 +750,7 @@ class AggregatorStreamHandler:
     def __init__(
         self,
         stub: E2ETestServiceStub,
-        client_id_str: str,  # Changed from RuntimeIdentity
+        client_id_str: str, # Changed from RuntimeIdentity
         received_ack_q: Queue[str],
         received_data_q: Queue[TensorChunk],
         send_data_q: Queue[Optional[TensorChunk]],
@@ -820,7 +821,7 @@ class AggregatorStreamHandler:
                     await self._received_ack_q.put(ack)
                     if (
                         "CallerId" in ack
-                        and self._client_id_full in ack  # Check full ID in ACK
+                        and self._client_id_full in ack # Check full ID in ACK
                         and "received" in ack
                     ):
                         self._handshake_done.set()
@@ -944,7 +945,7 @@ class AggregatorStreamHandler:
 class TestDataAggregatorRuntime(
     Runtime, ServiceConnector[ServiceInfo, grpc.aio.Channel].Client
 ):
-    __test__ = False  # Prevent pytest collection
+    __test__ = False # Prevent pytest collection
     """
     Discovers TestDataSourceRuntime and initiates a gRPC stream for data exchange.
     Simulates a data aggregator.
@@ -1021,7 +1022,7 @@ class TestDataAggregatorRuntime(
     async def _on_channel_connected(
         self,
         connection_info: ServiceInfo,
-        caller_id: CallerIdentifier,  # This is the ID of the ServiceConnector itself, not the runtime
+        caller_id: CallerIdentifier, # This is the ID of the ServiceConnector itself, not the runtime
         channel_info: ChannelInfo,
     ) -> None:
         logging.info(
@@ -1031,7 +1032,7 @@ class TestDataAggregatorRuntime(
         stub = E2ETestServiceStub(channel_info.channel)
         self._stream_handler = AggregatorStreamHandler(
             stub=stub,
-            client_id_str=self._identity_full,  # Pass own full ID to handler
+            client_id_str=self._identity_full, # Pass own full ID to handler
             received_ack_q=self._client_received_ack_q,
             received_data_q=self._client_received_data_q,
             send_data_q=self._client_send_data_q,
@@ -1092,7 +1093,7 @@ class TestDataAggregatorRuntime(
         return await self._stream_handler.wait_for_handshake(timeout)
 
     @property
-    def identity_str(self) -> str:  # Changed from RuntimeIdentity to str
+    def identity_str(self) -> str: # Changed from RuntimeIdentity to str
         return self._identity_full
 
     def is_connected_and_handshake_done(self) -> bool:
