@@ -29,6 +29,7 @@ StdContextType = type(multiprocessing.get_context("spawn"))
 # and as the class to instantiate after its module's _TORCH_AVAILABLE is patched.
 from tsercom.threading.multiprocess.multiprocessing_context_provider import (
     MultiprocessingContextProvider as OriginalMultiprocessingContextProvider,
+    QueueTypeT, # Import the TypeVar
 )
 from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
@@ -83,10 +84,10 @@ def test_lazy_init_with_torch_available() -> None:
             mock_torch_ctx_instance = mock.MagicMock(spec=TorchContextType)
             mock_get_torch_ctx.return_value = mock_torch_ctx_instance
 
-            mock_torch_q_factory_instance = mock.MagicMock(
-                spec=TorchMultiprocessQueueFactory
-            )
-            mock_torch_q_factory_class.return_value = mock_torch_q_factory_instance
+            # mock_torch_q_factory_class is the mock for the class TorchMultiprocessQueueFactory
+            mock_final_torch_factory_instance = mock.MagicMock(spec=TorchMultiprocessQueueFactory)
+            mock_specialized_torch_class_callable = mock.MagicMock(return_value=mock_final_torch_factory_instance)
+            mock_torch_q_factory_class.__getitem__.return_value = mock_specialized_torch_class_callable
 
             # First access of context
             context1 = provider.context
@@ -97,10 +98,11 @@ def test_lazy_init_with_torch_available() -> None:
             factory1 = provider.queue_factory
             # mock_get_torch_ctx should still be called once (due to factory accessing context)
             mock_get_torch_ctx.assert_called_once()
-            mock_torch_q_factory_class.assert_called_once_with(
-                context=mock_torch_ctx_instance
-            )
-            assert factory1 is mock_torch_q_factory_instance
+            # Check the call chain for factory creation
+            # from typing import Any # No longer asserting with Any for __getitem__
+            mock_torch_q_factory_class.__getitem__.assert_called_once_with(QueueTypeT)
+            mock_specialized_torch_class_callable.assert_called_once_with(context=mock_torch_ctx_instance)
+            assert factory1 is mock_final_torch_factory_instance
 
             # Second access
             context2 = provider.context
@@ -108,7 +110,8 @@ def test_lazy_init_with_torch_available() -> None:
 
             # Creation methods should still only have been called once
             mock_get_torch_ctx.assert_called_once()
-            mock_torch_q_factory_class.assert_called_once()
+            mock_torch_q_factory_class.__getitem__.assert_called_once()
+            mock_specialized_torch_class_callable.assert_called_once()
             assert context2 is context1  # Check for cached instance
             assert factory2 is factory1  # Check for cached instance
 
@@ -137,10 +140,10 @@ def test_lazy_init_with_torch_unavailable() -> None:
             mock_std_ctx_instance = mock.MagicMock(spec=StdContextType)
             mock_get_std_ctx.return_value = mock_std_ctx_instance
 
-            mock_std_q_factory_instance = mock.MagicMock(
-                spec=DefaultMultiprocessQueueFactory
-            )
-            mock_std_q_factory_class.return_value = mock_std_q_factory_instance
+            # Setup for Factory[QueueTypeT](context=...)
+            mock_final_std_factory_instance = mock.MagicMock(spec=DefaultMultiprocessQueueFactory)
+            mock_specialized_std_class_callable = mock.MagicMock(return_value=mock_final_std_factory_instance)
+            mock_std_q_factory_class.__getitem__.return_value = mock_specialized_std_class_callable
 
             # First access
             context1 = provider.context
@@ -149,17 +152,18 @@ def test_lazy_init_with_torch_unavailable() -> None:
 
             factory1 = provider.queue_factory
             mock_get_std_ctx.assert_called_once()
-            mock_std_q_factory_class.assert_called_once_with(
-                context=mock_std_ctx_instance
-            )
-            assert factory1 is mock_std_q_factory_instance
+            # from typing import Any # No longer asserting with Any for __getitem__
+            mock_std_q_factory_class.__getitem__.assert_called_once_with(QueueTypeT)
+            mock_specialized_std_class_callable.assert_called_once_with(context=mock_std_ctx_instance)
+            assert factory1 is mock_final_std_factory_instance
 
             # Second access
             context2 = provider.context
             factory2 = provider.queue_factory
 
             mock_get_std_ctx.assert_called_once()
-            mock_std_q_factory_class.assert_called_once()
+            mock_std_q_factory_class.__getitem__.assert_called_once()
+            mock_specialized_std_class_callable.assert_called_once()
             assert context2 is context1
             assert factory2 is factory1
 

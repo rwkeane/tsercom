@@ -316,7 +316,7 @@ def test_set_runtime_pending_stop_timeout_on_result(bridge, fake_runtime, mocker
     assert callable(called_arg)
     # To be very precise, one could check called_arg.func and called_arg.args
 
-    mock_future_for_stop.result.assert_called_once_with(timeout=5.0)
+    mock_future_for_stop.result.assert_called_once_with(timeout=20.0) # Sync with RuntimeCommandBridge
 
 
 def test_stop_after_runtime_set_timeout_on_result(bridge, fake_runtime, mocker):
@@ -353,7 +353,7 @@ def test_stop_after_runtime_set_timeout_on_result(bridge, fake_runtime, mocker):
 
     assert fake_runtime.stop_called, "Runtime's stop method should have been called."
     mock_run_on_event_loop.assert_called_once()
-    mock_future_for_stop.result.assert_called_once_with(timeout=5.0)
+    mock_future_for_stop.result.assert_called_once_with(timeout=20.0) # Sync with RuntimeCommandBridge
 
 
 # Test that run_on_event_loop is called when setting runtime with a pending start

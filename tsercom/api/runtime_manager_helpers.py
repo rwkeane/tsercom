@@ -20,23 +20,32 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessCreator:
-    """Wraps `multiprocessing.Process` for centralized creation and testing."""
+    """Wraps `multiprocessing.Process` for centralized creation and testing,
+    using a pre-configured multiprocessing context.
+    """
+
+    def __init__(self, context: BaseContext):
+        """Initializes the ProcessCreator with a specific multiprocessing context.
+
+        Args:
+            context: The multiprocessing context (e.g., from
+                     `multiprocessing.get_context()` or a Torch context)
+                     to be used for creating new processes.
+        """
+        self._context: BaseContext = context
 
     def create_process(
         self,
         target: Callable[..., Any],
         args: Tuple[Any, ...],
         daemon: bool,
-        context: Optional[BaseContext] = None,
     ) -> Optional[multiprocessing.Process]:
-        """Creates and returns a multiprocessing.Process, optionally using a specific context.
+        """Creates and returns a multiprocessing.Process using the stored context.
 
         Args:
             target: Callable for the new process's run() method.
             args: Argument tuple for the target.
             daemon: Whether the process is a daemon.
-            context: Optional multiprocessing context to use for creating the process.
-                     If None, uses the default `multiprocessing.Process`.
 
         Returns:
             `multiprocessing.Process` instance or `None` on error.
@@ -45,15 +54,12 @@ class ProcessCreator:
             Exception: Catches any `Process` instantiation errors.
         """
         try:
-            if context:
-                # BaseContext does not define .Process, but concrete contexts do.
-                # Use getattr and cast to satisfy mypy.
-                process_constructor = cast(
-                    Callable[..., multiprocessing.Process], getattr(context, "Process")
-                )
-                return process_constructor(target=target, args=args, daemon=daemon)
-            # Fallback to default multiprocessing.Process if context is not provided
-            return multiprocessing.Process(target=target, args=args, daemon=daemon)
+            # BaseContext does not define .Process, but concrete contexts do.
+            # Use getattr and cast to satisfy mypy, assuming self._context has it.
+            process_constructor = cast(
+                Callable[..., multiprocessing.Process], getattr(self._context, "Process")
+            )
+            return process_constructor(target=target, args=args, daemon=daemon)
 
         except Exception as e:
             target_name = (

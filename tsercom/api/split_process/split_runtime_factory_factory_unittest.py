@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from typing import Iterator  # Added Iterator
+from typing import Iterator, Any  # Added Any
 from unittest import mock
 import multiprocessing  # Added for context object
 
@@ -31,9 +31,7 @@ MockRuntimeInitializer = mock.Mock(spec=RuntimeInitializer)
 MockThreadPoolExecutor = mock.Mock(spec=ThreadPoolExecutor)
 MockThreadWatcher = mock.Mock(spec=ThreadWatcher)
 
-# Mock queue factories and context for testing
-MockDefaultQueueFactory = mock.Mock(spec=DefaultMultiprocessQueueFactory)
-MockTorchQueueFactory = mock.Mock(spec=TorchMultiprocessQueueFactory)
+# Mock context for testing (Queue factory mocks will be created per test)
 MockStdContext = mock.Mock(spec=multiprocessing.get_context("spawn").__class__)
 MockTorchContext = mock.Mock(
     spec=MPContextType
@@ -41,13 +39,25 @@ MockTorchContext = mock.Mock(
 
 
 @pytest.fixture
-def mock_mp_context_provider() -> Iterator[mock.Mock]:
-    """Fixture to mock MultiprocessingContextProvider."""
-    with mock.patch(
-        "tsercom.api.split_process.split_runtime_factory_factory.MultiprocessingContextProvider"
-    ) as mock_provider_class:
-        mock_provider_instance = mock_provider_class.return_value
-        yield mock_provider_instance
+def mock_mp_context_provider() -> Iterator[mock.Mock]: # Removed mocker, not used in this version
+    """Fixture to mock MultiprocessingContextProvider, handling Generic[Any]."""
+    patch_target = "tsercom.api.split_process.split_runtime_factory_factory.MultiprocessingContextProvider"
+
+    # This is the mock instance we want SplitRuntimeFactoryFactory to use for self.__mp_context_provider
+    mock_provider_instance_to_be_used_by_sut = mock.MagicMock()
+
+    # This mock will represent the specialized type callable, e.g., MultiprocessingContextProvider[Any]
+    # When this is called (instantiated), it should return mock_provider_instance_to_be_used_by_sut
+    mock_specialized_provider_type_callable = mock.MagicMock(return_value=mock_provider_instance_to_be_used_by_sut)
+
+    # This mock replaces the class name "MultiprocessingContextProvider" in the target module.
+    # It needs to handle being subscripted (via __getitem__).
+    mock_class_replacement = mock.MagicMock()
+    mock_class_replacement.__getitem__.return_value = mock_specialized_provider_type_callable
+
+    with mock.patch(patch_target, new=mock_class_replacement): # Use 'new' to replace with our preconfigured mock
+        # The test will receive the instance that SUT will use.
+        yield mock_provider_instance_to_be_used_by_sut
 
 
 @pytest.fixture
@@ -65,27 +75,40 @@ def split_runtime_factory_factory_instance(
 def test_create_pair_uses_default_context_and_factory(
     split_runtime_factory_factory_instance: SplitRuntimeFactoryFactory,
     mock_mp_context_provider: mock.Mock,
+    mocker: Any, # Add mocker fixture
 ) -> None:
     """
     Tests that _create_pair uses the context and factory from the provider
     (simulating default/non-torch case).
     """
     # Configure the mock provider to return a standard context and default factory
-    mock_std_context_instance = MockStdContext()
-    mock_default_q_factory_instance = MockDefaultQueueFactory()
-    # Configure separate .context and .queue_factory properties
+    mock_std_context_instance = MockStdContext() # Use module-level mock context instance
+
+    # Configure the mock provider to return a standard context and default factory
+    mock_std_context_instance = MockStdContext() # Use module-level mock context instance
+
+    # Configure the mock provider to return a standard context and default factory
+    mock_std_context_instance = MockStdContext() # Use module-level mock context instance
+
+    the_queue_factory_mock_instance_std = mock.MagicMock()
+
     type(mock_mp_context_provider).context = mock.PropertyMock(
         return_value=mock_std_context_instance
     )
     type(mock_mp_context_provider).queue_factory = mock.PropertyMock(
-        return_value=mock_default_q_factory_instance
+        return_value=the_queue_factory_mock_instance_std
     )
 
-    # Mock the create_queues method for event, data on the returned queue_factory mock
-    mock_default_q_factory_instance.create_queues.side_effect = [
-        (mock.Mock(), mock.Mock()),  # Event queues
-        (mock.Mock(), mock.Mock()),  # Data queues
-    ]
+    # Directly patch the create_queues method on this instance using mocker
+    # (mocker fixture is implicitly available in pytest test methods)
+    mock_create_queues_std = mocker.patch.object(
+        the_queue_factory_mock_instance_std,
+        'create_queues',
+        side_effect=[
+            (mock.MagicMock(), mock.MagicMock()),
+            (mock.MagicMock(), mock.MagicMock()),
+        ]
+    )
 
     # Setup mocks for DefaultMultiprocessQueueFactory for command queue
 
@@ -120,7 +143,7 @@ def test_create_pair_uses_default_context_and_factory(
         assert mock_mp_context_provider.queue_factory
 
         # Assert that the factory instance from provider was used for event and data queues
-        assert mock_default_q_factory_instance.create_queues.call_count == 2
+        assert mock_create_queues_std.call_count == 2
 
         # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the correct context
         # The call is DefaultMultiprocessQueueFactory[RuntimeCommand](coTorchMemcpyQueueFactoryinstance)
@@ -144,27 +167,33 @@ def test_create_pair_uses_default_context_and_factory(
 def test_create_pair_uses_torch_context_and_factory(
     split_runtime_factory_factory_instance: SplitRuntimeFactoryFactory,
     mock_mp_context_provider: mock.Mock,
+    mocker: Any, # Add mocker fixture
 ) -> None:
     """
     Tests that _create_pair uses the context and factory from the provider
     (simulating torch case).
     """
     # Configure the mock provider to return a torch context and torch factory
-    mock_torch_context_instance = MockTorchContext()
-    mock_torch_q_factory_instance = MockTorchQueueFactory()
-    # Configure separate .context and .queue_factory properties
+    mock_torch_context_instance = MockTorchContext() # Use module-level mock context instance
+
+    # Create a specific mock instance for the queue factory to be returned by the provider
+    the_queue_factory_mock_instance_torch = mock.MagicMock()
+    # Assign a new mock to its create_queues attribute using mocker
+    mock_create_queues_torch = mocker.patch.object(
+        the_queue_factory_mock_instance_torch,
+        'create_queues',
+        side_effect=[
+            (mock.MagicMock(), mock.MagicMock()),  # Event queues
+            (mock.MagicMock(), mock.MagicMock()),  # Data queues
+        ]
+    )
+
     type(mock_mp_context_provider).context = mock.PropertyMock(
         return_value=mock_torch_context_instance
     )
     type(mock_mp_context_provider).queue_factory = mock.PropertyMock(
-        return_value=mock_torch_q_factory_instance
+        return_value=the_queue_factory_mock_instance_torch
     )
-
-    # Mock the create_queues method for event, data on the returned queue_factory mock
-    mock_torch_q_factory_instance.create_queues.side_effect = [
-        (mock.Mock(), mock.Mock()),  # Event queues
-        (mock.Mock(), mock.Mock()),  # Data queues
-    ]
 
     # Setup mocks for DefaultMultiprocessQueueFactory for command queue (similar to above)
     mock_configured_cmd_instance_torch = mock.Mock()
@@ -200,7 +229,7 @@ def test_create_pair_uses_torch_context_and_factory(
         assert mock_mp_context_provider.queue_factory
 
         # Assert that the factory instance from provider was used for event and data queues
-        assert mock_torch_q_factory_instance.create_queues.call_count == 2
+        assert mock_create_queues_torch.call_count == 2
 
         # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the torch context
         from tsercom.api.runtime_command import RuntimeCommand  # Import for assertion
