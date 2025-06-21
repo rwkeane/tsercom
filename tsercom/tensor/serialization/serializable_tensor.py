@@ -3,10 +3,11 @@
 import logging
 from typing import Any, Optional
 
-import numpy as np
 import lz4.frame  # type: ignore[import-untyped]
-from tsercom.tensor.proto import TensorChunk as GrpcTensor
+import numpy as np
+import torch
 
+from tsercom.tensor.proto import TensorChunk as GrpcTensor
 from tsercom.timesync.common.synchronized_timestamp import (
     SynchronizedTimestamp,
 )
@@ -27,7 +28,9 @@ class SerializableTensorChunk:
         tensor: torch.Tensor,
         timestamp: SynchronizedTimestamp,
         starting_index: int = 0,
-        compression: GrpcTensor.CompressionType.ValueType = GrpcTensor.CompressionType.NONE,
+        compression: GrpcTensor.CompressionType.ValueType = (
+            GrpcTensor.CompressionType.NONE
+        ),
     ):
         self.__tensor: torch.Tensor = tensor
         self.__timestamp: SynchronizedTimestamp = timestamp
@@ -100,7 +103,7 @@ class SerializableTensorChunk:
     @classmethod
     def try_parse(
         cls,
-        grpc_msg: grpc_msg: TensorChunk | None,
+        grpc_msg: GrpcTensor | None,
         dtype: torch.dtype,
         device: str | None = None,
     ) -> Optional["SerializableTensorChunk"]:
@@ -151,7 +154,8 @@ class SerializableTensorChunk:
             )
             return None
 
-        # Handles errors during byte-to-tensor conversion (e.g., mismatched types, corruption).
+        # Handles errors during byte-to-tensor conversion
+        # (e.g., mismatched types, corruption).
         try:
             # np.frombuffer requires a NumPy-compatible dtype.
             numpy_dtype: Any

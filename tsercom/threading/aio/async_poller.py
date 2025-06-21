@@ -18,10 +18,10 @@ import asyncio
 import threading
 from collections import deque  # Use collections.deque directly
 from collections.abc import AsyncIterator
-from typing import Generic, TypeVar, TYPE_CHECKING  # Added TYPE_CHECKING here
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 # Defer import of IsRunningTracker to break circular dependency
-from tsercom.threading.aio.aio_utils import ( # IsRunningTracker import removed from top
+from tsercom.threading.aio.aio_utils import (
     get_running_loop_or_none,
     is_running_on_event_loop,
     run_on_event_loop,
@@ -33,7 +33,7 @@ from tsercom.threading.aio.rate_limiter import (
 )
 
 if TYPE_CHECKING:
-    from tsercom.util.is_running_tracker import IsRunningTracker # Import for type checking
+    from tsercom.util.is_running_tracker import IsRunningTracker
 
 ResultTypeT = TypeVar("ResultTypeT")
 
@@ -73,7 +73,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                 If `None` or non-positive, a `NullRateLimiter` is used,
                 imposing no such delay.
         """
-        self.__max_responses_queued: Optional[int] = max_responses_queued
+        self.__max_responses_queued: int | None = max_responses_queued
         self.__rate_limiter: RateLimiter
         if min_poll_frequency_seconds is not None and min_poll_frequency_seconds > 0:
             self.__rate_limiter = RateLimiterImpl(min_poll_frequency_seconds)
@@ -84,9 +84,8 @@ class AsyncPoller(Generic[ResultTypeT]):
         self.__barrier: asyncio.Event = asyncio.Event()
         self.__lock: threading.Lock = threading.Lock()  # Protects __responses
 
-        if not TYPE_CHECKING: # Runtime import
-            from tsercom.util.is_running_tracker import IsRunningTracker
-        self.__is_loop_running: "IsRunningTracker" = IsRunningTracker() # String literal hint
+        from tsercom.util.is_running_tracker import IsRunningTracker # Runtime import
+        self.__is_loop_running: IsRunningTracker = IsRunningTracker()
         self.__is_loop_running.start()  # Start the poller as running by default
         self.__event_loop: asyncio.AbstractEventLoop | None = None
 

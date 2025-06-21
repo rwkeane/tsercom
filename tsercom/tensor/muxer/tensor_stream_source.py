@@ -1,20 +1,19 @@
 import datetime
-from typing import Optional, List
 
 import torch
 
-from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
-from tsercom.tensor.muxer.sparse_tensor_multiplexer import SparseTensorMultiplexer
 from tsercom.tensor.muxer.complete_tensor_multiplexer import CompleteTensorMultiplexer
+from tsercom.tensor.muxer.sparse_tensor_multiplexer import SparseTensorMultiplexer
+from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
+from tsercom.tensor.serialization.serializable_tensor import SerializableTensorChunk
 from tsercom.tensor.serialization.serializable_tensor_initializer import (
     SerializableTensorInitializer,
 )
-from tsercom.tensor.serialization.serializable_tensor import SerializableTensorChunk
 from tsercom.tensor.serialization.serializable_tensor_update import (
     SerializableTensorUpdate,
 )
-from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 from tsercom.threading.aio.async_poller import AsyncPoller
+from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 
 class _InternalMuxerClient(TensorMultiplexer.Client):
@@ -60,7 +59,7 @@ class TensorStreamSource(TensorMultiplexer.Client):
         self.__internal_muxer_client = _InternalMuxerClient(owner_source=self)
 
         fill_value_float: float = 0.0
-        initial_chunks: List[SerializableTensorChunk] = []
+        initial_chunks: list[SerializableTensorChunk] = []
 
         if self.__initial_tensor.numel() > 0:
             # Determine the most frequent value as the fill_value
@@ -74,7 +73,7 @@ class TensorStreamSource(TensorMultiplexer.Client):
                 fill_value_float = float(fill_value_tensor.item())
 
             creation_timestamp = self.__clock.now
-            current_chunk_values_list: List[torch.Tensor] = []
+            current_chunk_values_list: list[torch.Tensor] = []
             current_chunk_start_index: int = -1
 
             for i, value_tensor_element in enumerate(self.__initial_tensor):
@@ -107,7 +106,7 @@ class TensorStreamSource(TensorMultiplexer.Client):
                     )
                 )
 
-        initial_state_update: Optional[SerializableTensorUpdate] = None
+        initial_state_update: SerializableTensorUpdate | None = None
         if initial_chunks:
             initial_state_update = SerializableTensorUpdate(chunks=initial_chunks)
 
@@ -144,11 +143,13 @@ class TensorStreamSource(TensorMultiplexer.Client):
             raise TypeError("new_tensor must be a torch.Tensor.")
         if new_tensor.shape != self.__initial_tensor.shape:
             raise ValueError(
-                f"new_tensor shape {new_tensor.shape} must match initial_tensor shape {self.__initial_tensor.shape}"
+                f"new_tensor shape {new_tensor.shape} must match "
+                f"initial_tensor shape {self.__initial_tensor.shape}"
             )
         if new_tensor.dtype != self.__initial_tensor.dtype:
             raise ValueError(
-                f"new_tensor dtype {new_tensor.dtype} must match initial_tensor dtype {self.__initial_tensor.dtype}"
+                f"new_tensor dtype {new_tensor.dtype} must match "
+                f"initial_tensor dtype {self.__initial_tensor.dtype}"
             )
         await self.__multiplexer.process_tensor(new_tensor, timestamp)
 
@@ -165,7 +166,7 @@ class TensorStreamSource(TensorMultiplexer.Client):
 
     async def __anext__(self) -> SerializableTensorUpdate:
         """Retrieves the next batch of tensor chunks as a SerializableTensorUpdate."""
-        chunks: List[SerializableTensorChunk] = await self.__async_poller.__anext__()
+        chunks: list[SerializableTensorChunk] = await self.__async_poller.__anext__()
         return SerializableTensorUpdate(chunks=chunks)
 
     @property
