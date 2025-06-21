@@ -7,13 +7,9 @@ from typing import (
     Any,
     Generic,
     TypeVar,
-    Callable,
-    Any,
-    Union,
-    Iterable,
-    Optional,
 )
-import torch 
+
+import torch
 import torch.multiprocessing as mp
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -74,7 +70,7 @@ class TorchMemcpyQueueFactory(
 
     def create_queues(
         self,
-        max_ipc_queue_size: Optional[int] = None,
+        max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[
         "TorchMemcpyQueueSink[QueueElementT]",
@@ -133,14 +129,14 @@ class TorchMemcpyQueueSource(
     def __init__(
         self,
         queue: "mp.Queue[QueueElementT]",
-        tensor_accessor: Optional[
-            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = None,
+        tensor_accessor: (
+            Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = None,
     ) -> None:
         super().__init__(queue)
-        self.__tensor_accessor: Optional[
-            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = tensor_accessor
+        self.__tensor_accessor: (
+            Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = tensor_accessor
 
     def get_blocking(self, timeout: float | None = None) -> QueueElementT | None:
         """
@@ -200,15 +196,15 @@ class TorchMemcpyQueueSink(
     def __init__(
         self,
         queue: "mp.Queue[QueueElementT]",
-        tensor_accessor: Optional[
-            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = None,
+        tensor_accessor: (
+            Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = None,
         is_blocking: bool = True,
     ) -> None:
         super().__init__(queue, is_blocking=is_blocking)
-        self.__tensor_accessor: Optional[
-            Callable[[QueueElementT], Union[torch.Tensor, Iterable[torch.Tensor]]]
-        ] = tensor_accessor
+        self.__tensor_accessor: (
+            Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
+        ) = tensor_accessor
 
     def put_blocking(self, obj: QueueElementT, timeout: float | None = None) -> bool:
         """

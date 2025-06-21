@@ -58,7 +58,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         min_send_frequency_seconds: float | None = None,
         auth_config: BaseChannelAuthConfig | None = None,
         max_queued_responses_per_endpoint: int = 1000,
-        max_ipc_queue_size: Optional[int] = None,
+        max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
@@ -92,7 +92,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         min_send_frequency_seconds: float | None = None,
         auth_config: BaseChannelAuthConfig | None = None,
         max_queued_responses_per_endpoint: int = 1000,
-        max_ipc_queue_size: Optional[int] = None,
+        max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
@@ -136,7 +136,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         min_send_frequency_seconds: float | None = None,
         auth_config: BaseChannelAuthConfig | None = None,
         max_queued_responses_per_endpoint: int = 1000,
-        max_ipc_queue_size: Optional[int] = None,
+        max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
@@ -250,7 +250,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         self.__max_queued_responses_per_endpoint: int = (
             max_queued_responses_per_endpoint
         )
-        self.__max_ipc_queue_size: Optional[int] = max_ipc_queue_size
+        self.__max_ipc_queue_size: int | None = max_ipc_queue_size
         self.__is_ipc_blocking: bool = is_ipc_blocking
         self.__data_reader_sink_is_lossy: bool = data_reader_sink_is_lossy
 
@@ -346,7 +346,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         return self.__max_queued_responses_per_endpoint
 
     @property
-    def max_ipc_queue_size(self) -> Optional[int]:
+    def max_ipc_queue_size(self) -> int | None:
         """The maximum size of core inter-process communication queues.
 
         This value is used for the `maxsize` parameter of `multiprocessing.Queue`

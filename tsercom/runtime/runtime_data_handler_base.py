@@ -125,7 +125,7 @@ class RuntimeDataHandlerBase(
             is_global_event_loop_set,
         )
 
-        self._loop_on_init: asyncio.AbstractEventLoop | None = None 
+        self._loop_on_init: asyncio.AbstractEventLoop | None = None
         if is_global_event_loop_set():
             self._loop_on_init = get_global_event_loop()
             self.__dispatch_task = self._loop_on_init.create_task(
