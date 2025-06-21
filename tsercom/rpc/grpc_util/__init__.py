@@ -10,13 +10,13 @@ from tsercom.rpc.grpc_util.channel_auth_config import (
     PinnedServerChannelConfig,
     ServerCAChannelConfig,
 )
+from tsercom.rpc.grpc_util.channel_info import ChannelInfo
 from tsercom.rpc.grpc_util.grpc_caller import (
     is_grpc_error,
     is_server_unavailable_error,
 )
 from tsercom.rpc.grpc_util.grpc_channel_factory import GrpcChannelFactory
 from tsercom.rpc.grpc_util.grpc_service_publisher import GrpcServicePublisher
-from tsercom.rpc.grpc_util.channel_info import ChannelInfo
 
 __all__ = [
     "BaseChannelAuthConfig",

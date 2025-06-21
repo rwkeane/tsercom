@@ -1,5 +1,4 @@
 import torch
-from typing import Optional  # Added import
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 
@@ -11,8 +10,8 @@ class LinearInterpolationStrategy(SmoothingStrategy):
 
     def __init__(
         self,
-        max_extrapolation_seconds: Optional[float] = None,
-        max_interpolation_gap_seconds: Optional[float] = None,
+        max_extrapolation_seconds: float | None = None,
+        max_interpolation_gap_seconds: float | None = None,
     ):
         super().__init__()
         self.max_extrapolation_seconds = max_extrapolation_seconds

@@ -39,7 +39,7 @@ class TensorDemuxer:
         client: "TensorDemuxer.Client",
         tensor_length: int,
         data_timeout_seconds: float = 60.0,
-        device: Optional[str] = "cpu",
+        device: str | None = "cpu",
     ):
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")

@@ -85,8 +85,9 @@ class IsRunningTracker(Atomic[bool]):
                 # if/when an async method requiring the loop is first called.
                 # For a simple stop() before any async usage, just setting the
                 # boolean flag via super().set() is enough. If an async method
-                # like wait_until_stopped is called later, __ensure_event_loop_initialized
-                # will call __set_impl(self.get()) which will correctly set barriers.
+                # like wait_until_stopped is called later,
+                # __ensure_event_loop_initialized will call __set_impl(self.get())
+                # which will correctly set barriers.
                 return
 
             if self.__event_loop.is_closed():
@@ -107,8 +108,9 @@ class IsRunningTracker(Atomic[bool]):
             with self.__event_loop_lock:
                 self.__running_barrier = asyncio.Event()
                 self.__stopped_barrier = asyncio.Event()
-                # Setting __event_loop to None implies that the next call to set()
-                # or an async method will need to re-capture/re-initialize the loop context.
+                # Setting __event_loop to None implies that the next call to set() or
+                # an async method will need to re-capture/re-initialize the loop
+                # context.
                 self.__event_loop = None
 
         task.add_done_callback(clear_on_done)

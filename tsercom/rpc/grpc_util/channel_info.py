@@ -1,6 +1,7 @@
 import dataclasses
 
 import grpc
+
 from tsercom.rpc.grpc_util.grpc_service_publisher import check_grpc_channel_health
 
 
