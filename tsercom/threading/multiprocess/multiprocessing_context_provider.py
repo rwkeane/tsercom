@@ -1,5 +1,5 @@
-from typing import Optional, TypeVar, Generic
 from multiprocessing.context import BaseContext as StdBaseContext
+from typing import Generic, TypeVar
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
     MultiprocessQueueFactory,
@@ -35,8 +35,8 @@ class MultiprocessingContextProvider(Generic[QueueTypeT]):
                             Defaults to "spawn".
         """
         self._context_method: str = context_method
-        self.__lazy_context: Optional[StdBaseContext] = None
-        self.__lazy_queue_factory: Optional[MultiprocessQueueFactory[QueueTypeT]] = None
+        self.__lazy_context: StdBaseContext | None = None
+        self.__lazy_queue_factory: MultiprocessQueueFactory[QueueTypeT] | None = None
 
     @property
     def context(self) -> StdBaseContext:
@@ -55,9 +55,11 @@ class MultiprocessingContextProvider(Generic[QueueTypeT]):
                 self.__lazy_context = get_std_context(self._context_method)
 
         if self.__lazy_context is None:
-            # This case should ideally not happen if get_context calls are successful
+            # This case should ideally not happen if get_context calls are
+            # successful
             raise RuntimeError(
-                f"Failed to obtain multiprocessing context using method '{self._context_method}'"
+                "Failed to obtain multiprocessing context using method "
+                f"'{self._context_method}'"
             )
         return self.__lazy_context
 
@@ -72,20 +74,24 @@ class MultiprocessingContextProvider(Generic[QueueTypeT]):
                 self.context
             )  # Ensures context is initialized before factory creation
             if _TORCH_AVAILABLE:
-                from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
+                # pylint: disable=C0415
+                from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (  # noqa: E501
                     TorchMultiprocessQueueFactory,
                 )
 
-                # If QueueTypeT is Any, this effectively becomes TorchMultiprocessQueueFactory[Any]
+                # If QueueTypeT is Any, this effectively becomes
+                # TorchMultiprocessQueueFactory[Any]
                 self.__lazy_queue_factory = TorchMultiprocessQueueFactory[QueueTypeT](
                     context=current_context
                 )
             else:
-                from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+                # pylint: disable=C0415
+                from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (  # noqa: E501
                     DefaultMultiprocessQueueFactory,
                 )
 
-                # If QueueTypeT is Any, this effectively becomes DefaultMultiprocessQueueFactory[Any]
+                # If QueueTypeT is Any, this effectively becomes
+                # DefaultMultiprocessQueueFactory[Any]
                 self.__lazy_queue_factory = DefaultMultiprocessQueueFactory[QueueTypeT](
                     context=current_context
                 )

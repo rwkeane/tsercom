@@ -465,7 +465,7 @@ class RemoteDataAggregatorImpl(
 
     def get_interpolated_at(  # type: ignore[override] # Matches new abstract signature
         self, timestamp: datetime.datetime, identifier: CallerIdentifier | None = None
-    ) -> DataTypeT | None | Dict[CallerIdentifier, DataTypeT]:
+    ) -> DataTypeT | None | dict[CallerIdentifier, DataTypeT]:
         """Performs linear interpolation to estimate data at a specific time.
 
         This method estimates the data value at the given `timestamp` by
@@ -503,7 +503,7 @@ class RemoteDataAggregatorImpl(
                     )
                 return organizer.get_interpolated_at(timestamp)
 
-            results: Dict[CallerIdentifier, DataTypeT] = {}
+            results: dict[CallerIdentifier, DataTypeT] = {}
             for key, organizer_item in self.__organizers.items():
                 interpolated_value = organizer_item.get_interpolated_at(
                     timestamp=timestamp

@@ -33,7 +33,7 @@ from tsercom.threading.aio.rate_limiter import (
 )
 
 if TYPE_CHECKING:
-    from tsercom.util.is_running_tracker import IsRunningTracker
+    pass
 
 ResultTypeT = TypeVar("ResultTypeT")
 

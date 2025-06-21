@@ -5,11 +5,11 @@ import torch
 from tsercom.tensor.muxer.complete_tensor_multiplexer import CompleteTensorMultiplexer
 from tsercom.tensor.muxer.sparse_tensor_multiplexer import SparseTensorMultiplexer
 from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
-from tsercom.tensor.serialization.serializable_tensor_initializer import (
-    SerializableTensorInitializer,
-)
 from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
+)
+from tsercom.tensor.serialization.serializable_tensor_initializer import (
+    SerializableTensorInitializer,
 )
 from tsercom.tensor.serialization.serializable_tensor_update import (
     SerializableTensorUpdate,

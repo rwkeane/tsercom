@@ -11,19 +11,16 @@ from typing import (
 
 import torch
 
-from tsercom.tensor.muxer.complete_tensor_multiplexer import (
-    CompleteTensorMultiplexer
+from tsercom.tensor.muxer.complete_tensor_multiplexer import CompleteTensorMultiplexer
+from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
+    SparseTensorMultiplexer,
 )
 from tsercom.tensor.muxer.tensor_multiplexer import TensorMultiplexer
 from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
-from tsercom.tensor.muxer.sparse_tensor_multiplexer import (
-    SparseTensorMultiplexer,
-)
-from tsercom.tensor.serialization.serializable_tensor import (
-    SerializableTensorChunk,
-)
+
+# Removed duplicate incorrect import of SerializableTensorChunk
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 # Forward declaration for type hinting if Publisher were defined after
