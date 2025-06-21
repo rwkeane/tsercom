@@ -1932,6 +1932,7 @@ def test_event_broadcast_e2e(clear_loop_fixture):
                 print(f"Error during handle.stop() for {handle_item}: {e}")
                 pass
         runtime_manager.shutdown()
+        # time.sleep(0.2)  # Diagnostic sleep removed
         if event_thread.is_alive():
             event_thread.join(timeout=2)
 

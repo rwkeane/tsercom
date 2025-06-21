@@ -594,86 +594,116 @@ class TestRemoteProcessMain:
     @pytest.mark.asyncio
     async def test_remote_process_main_exception_in_factory_stop(self, mocker):
         """Tests error handling when a factory's _stop method fails."""
-        # Rely on conftest.py:manage_tsercom_loop to set/clear the event loop
+        # Patch loop management functions to prevent remote_process_main
+        # from creating its own loop. The test relies on the pytest-asyncio loop
+        # being available via the (mocked) get_global_event_loop.
+        mocker.patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
+        mocker.patch(
+            "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
+        )
+
+        _MockThreadWatcher_factory_stop = mocker.patch(
+            "tsercom.runtime.runtime_main.ThreadWatcher"
+        )
+        MockSplitProcessErrorWatcherSink = mocker.patch(
+            "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
+        )
+        mock_initialize_runtimes = mocker.patch(
+            "tsercom.runtime.runtime_main.initialize_runtimes"
+        )
+        # _mock_run_on_event_loop_factory_stop is not used by the relevant code path.
+
+        mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
+
+        mock_factory1 = mocker.Mock(spec=RuntimeFactory)
+        stop_exception = RuntimeError("Factory1 stop failed")
+        mock_factory1._stop.side_effect = stop_exception
+
+        mock_factory2 = mocker.Mock(spec=RuntimeFactory)
+        mock_factory2._stop = mocker.Mock()  # No side effect
+
+        mock_factories = [mock_factory1, mock_factory2]
+
+        mock_runtime1 = mocker.AsyncMock(spec=Runtime)
+        mock_runtime1.stop = mocker.AsyncMock()  # This is rt.stop()
+        mock_initialize_runtimes.return_value = [mock_runtime1]
+
+        # Mock the event loop that remote_process_main will use via get_global_event_loop
+        mock_loop_factory_stop = mocker.patch(
+            "tsercom.runtime.runtime_main.get_global_event_loop"
+        ).return_value
+
+        captured_awaitable_for_task = None
+        # This will store the MagicMock(spec=asyncio.Task) instance returned by the side_effect
+        last_returned_mock_task_instance = None
+
+        def record_awaitable_and_return_mock_task(awaitable_to_run):
+            nonlocal captured_awaitable_for_task, last_returned_mock_task_instance
+            captured_awaitable_for_task = awaitable_to_run
+
+            mock_task = mocker.MagicMock(spec=asyncio.Task)
+            # Simulate a successfully completed task for task.result()
+            mock_task.result.return_value = None
+            # To avoid InvalidStateError, task.done() must be true if result() is called without exceptions
+            # Configure methods correctly using type() and PropertyMock for attributes that behave like methods
+            type(mock_task).done = mocker.PropertyMock(return_value=True)
+            type(mock_task).cancelled = mocker.PropertyMock(return_value=False)
+            type(mock_task).exception = mocker.PropertyMock(return_value=None)
+
+            last_returned_mock_task_instance = mock_task
+            return mock_task
+
+        mock_loop_factory_stop.create_task.side_effect = (
+            record_awaitable_and_return_mock_task
+        )
+
+        # Simulate run_until_exception completing normally to reach the finally block
+        mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
+        mock_sink_instance.run_until_exception.return_value = None
+
+        mock_logger = mocker.patch("tsercom.runtime.runtime_main.logger")
+
+        # Call remote_process_main - it should not re-raise the factory stop exception
         try:
-            mocker.patch("tsercom.runtime.runtime_main.clear_tsercom_event_loop")
-            _MockThreadWatcher_factory_stop = mocker.patch(
-                "tsercom.runtime.runtime_main.ThreadWatcher"
-            )
-            mocker.patch(
-                "tsercom.runtime.runtime_main.create_tsercom_event_loop_from_watcher"
-            )
-            MockSplitProcessErrorWatcherSink = mocker.patch(
-                "tsercom.runtime.runtime_main.SplitProcessErrorWatcherSink"
-            )
-            mock_initialize_runtimes = mocker.patch(
-                "tsercom.runtime.runtime_main.initialize_runtimes"
-            )
-            _mock_run_on_event_loop_factory_stop = mocker.patch(
-                "tsercom.runtime.runtime_main.run_on_event_loop"
+            remote_process_main(mock_factories, mock_error_queue)
+        except Exception as e:
+            pytest.fail(
+                f"remote_process_main raised unexpected exception from factory stop: {e}"
             )
 
-            mock_error_queue = mocker.Mock(spec=MultiprocessQueueSink)
+        # Assertions for factory stopping
+        mock_factory1._stop.assert_called_once()
+        mock_logger.error.assert_any_call(
+            "Error stopping factory %s: %s", mock_factory1, stop_exception
+        )
+        mock_factory2._stop.assert_called_once()
 
-            mock_factory1 = mocker.Mock(spec=RuntimeFactory)
-            stop_exception = RuntimeError("Factory1 stop failed")
-            mock_factory1._stop.side_effect = stop_exception
+        # Assertions for runtime stopping logic
+        mock_runtime1.stop.assert_called_once()
 
-            mock_factory2 = mocker.Mock(spec=RuntimeFactory)
-            mock_factory2._stop = mocker.Mock()  # No side effect for the second factory
+        # Check that create_task was called on the loop
+        assert mock_loop_factory_stop.create_task.call_count == 1
 
-            mock_factories = [mock_factory1, mock_factory2]
+        # Ensure the captured awaitable (from asyncio.wait_for) is run by the test's event loop
+        assert captured_awaitable_for_task is not None
+        import inspect  # Required for isawaitable
 
-            # Simulate some runtimes being initialized
-            mock_runtime1 = mocker.AsyncMock(spec=Runtime)
-            mock_runtime1.stop = mocker.AsyncMock()
-            mock_initialize_runtimes.return_value = [mock_runtime1]
+        assert inspect.isawaitable(
+            captured_awaitable_for_task
+        ), "Captured object was not an awaitable"
 
-            # Mock the event loop and task chain for this test too
-            mock_loop_factory_stop = mocker.patch(
-                "tsercom.runtime.runtime_main.get_global_event_loop"
-            ).return_value
-            # asyncs_task is an asyncio.Task, not an AsyncMock
-            mock_task_factory_stop = mocker.MagicMock(spec=asyncio.Task)
-            mock_loop_factory_stop.create_task.return_value = mock_task_factory_stop
-            mock_task_factory_stop.result.return_value = (
-                None  # Simulate task completion
-            )
+        try:
+            await captured_awaitable_for_task
+        except asyncio.TimeoutError:
+            pass
+        except Exception as e_await:
+            pytest.fail(f"Awaiting the captured task failed unexpectedly: {e_await}")
 
-            # Simulate a clean exit from the main try block to reach finally
-            mock_sink_instance = MockSplitProcessErrorWatcherSink.return_value
-            # Allow run_until_exception to complete normally without raising an exception
-            mock_sink_instance.run_until_exception.return_value = None
-
-            mock_logger = mocker.patch("tsercom.runtime.runtime_main.logger")
-
-            # Call remote_process_main - it should not re-raise the factory stop exception
-            try:
-                remote_process_main(mock_factories, mock_error_queue)
-            except Exception as e:
-                # We don't expect exceptions from factory._stop to propagate out of remote_process_main
-                pytest.fail(f"remote_process_main raised unexpected exception: {e}")
-
-            mock_factory1._stop.assert_called_once()
-            mock_logger.error.assert_any_call(  # Use assert_any_call if other errors might be logged
-                "Error stopping factory %s: %s", mock_factory1, stop_exception
-            )
-            mock_factory2._stop.assert_called_once()
-            # Ensure runtime stop is still called
-            # mock_run_on_event_loop.assert_called_once() # This was incorrect
-            mock_runtime1.stop.assert_called_once()  # Check the AsyncMock
-            mock_loop_factory_stop.create_task.assert_called_once()
-            mock_task_factory_stop.result.assert_called_once()
-            # The following lines regarding 'called_partial' and 'args' are removed
-            # as 'args' is not defined in this scope due to previous changes.
-            # The relevant checks are already made above.
-            del mock_runtime1
-            del mock_loop_factory_stop
-            del mock_task_factory_stop
-            del mock_logger
-            del mock_sink_instance
-        finally:
-            pass  # clear_tsercom_event_loop() will be handled by conftest
+        # Check that result() was called on the mock task instance that the side_effect returned.
+        assert (
+            last_returned_mock_task_instance is not None
+        ), "The mock task instance was not captured by the side_effect."
+        last_returned_mock_task_instance.result.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_exception_in_run_until_exception(

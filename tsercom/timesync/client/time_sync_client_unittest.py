@@ -1,6 +1,10 @@
 """Tests for TimeSyncClient."""
 
 import pytest
+from tsercom.threading.aio.global_event_loop import (
+    clear_tsercom_event_loop,
+    is_global_event_loop_set,
+)
 import time
 import threading
 from unittest.mock import MagicMock
@@ -13,6 +17,26 @@ from tsercom.timesync.common.constants import kNtpVersion
 from tsercom.timesync.client.client_synchronized_clock import (
     ClientSynchronizedClock,
 )
+
+
+# Fixture to ensure tsercom's global event loop is not set for these sync tests
+@pytest.fixture(autouse=True, scope="module")
+def ensure_no_tsercom_global_loop_for_sync_tests():
+    # This fixture primarily ensures that if a previous async test module
+    # set a tsercom global loop, it's cleared before these synchronous tests run.
+    # It assumes that synchronous tests in this module should not expect or
+    # rely on a pre-existing tsercom global asyncio loop.
+    if is_global_event_loop_set():
+        clear_tsercom_event_loop()
+
+    # Yield to let the tests in the module run.
+    yield
+
+    # Optional: Post-module cleanup if necessary, but usually clear_tsercom_event_loop
+    # should be sufficient if called at the right scope (e.g., session/module
+    # fixtures for async tests). Here, we just ensure it's clear for this module's duration.
+    if is_global_event_loop_set():  # Should ideally not be set by tests in this module
+        clear_tsercom_event_loop()
 
 
 @pytest.fixture
