@@ -46,7 +46,9 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
     """
 
     def __init__(
-        self, thread_pool: ThreadPoolExecutor, thread_watcher: ThreadWatcher
+        self,
+        thread_pool: ThreadPoolExecutor,
+        thread_watcher: ThreadWatcher,
     ) -> None:
         """Initializes the SplitRuntimeFactoryFactory.
 
@@ -59,6 +61,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__thread_watcher: ThreadWatcher = thread_watcher
         # Default to "spawn" context method as it is generally safer and widely compatible.
+        # MultiprocessingContextProvider will determine internally whether to use torch or standard context.
         self.__mp_context_provider = MultiprocessingContextProvider(
             context_method="spawn"
         )

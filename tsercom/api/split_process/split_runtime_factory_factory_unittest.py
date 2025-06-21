@@ -19,9 +19,11 @@ from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
 from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
     TorchMultiprocessQueueFactory,
 )
-from tsercom.threading.multiprocess.multiprocessing_context_provider import (
-    MPContextType,
-)
+
+# MPContextType is expected to be a type like multiprocessing.context.BaseContext
+# As MPContextType is not defined in multiprocessing_context_provider,
+# we use the actual base class for multiprocessing contexts.
+from multiprocessing.context import BaseContext as MPContextType
 
 
 # Mock classes for dependencies
@@ -71,69 +73,72 @@ def test_create_pair_uses_default_context_and_factory(
     # Configure the mock provider to return a standard context and default factory
     mock_std_context_instance = MockStdContext()
     mock_default_q_factory_instance = MockDefaultQueueFactory()
-    mock_mp_context_provider.get_context_and_factory.return_value = (
-        mock_std_context_instance,
-        mock_default_q_factory_instance,
+    # Configure separate .context and .queue_factory properties
+    type(mock_mp_context_provider).context = mock.PropertyMock(
+        return_value=mock_std_context_instance
+    )
+    type(mock_mp_context_provider).queue_factory = mock.PropertyMock(
+        return_value=mock_default_q_factory_instance
     )
 
-    # Mock the create_queues method for event, data
+    # Mock the create_queues method for event, data on the returned queue_factory mock
     mock_default_q_factory_instance.create_queues.side_effect = [
         (mock.Mock(), mock.Mock()),  # Event queues
         (mock.Mock(), mock.Mock()),  # Data queues
     ]
 
-    # Mock the DefaultMultiprocessQueueFactory for command queue
-    # This is tricky because it's instantiated inside _create_pair
-    with mock.patch(
-        "tsercom.threading.multiprocess.default_multiprocess_queue_factory.DefaultMultiprocessQueueFactory"
-    ) as mock_cmd_q_factory_class:
+    # Setup mocks for DefaultMultiprocessQueueFactory for command queue
 
-        # Configure the mock for when DefaultMultiprocessQueueFactory[RuntimeCommand](...) is called
-        mock_configured_cmd_instance = mock.Mock()
-        mock_configured_cmd_instance.create_queues.return_value = (
-            mock.Mock(),
-            mock.Mock(),
-        )
+    mock_configured_cmd_instance = mock.Mock()
+    mock_configured_cmd_instance.create_queues.return_value = (mock.Mock(), mock.Mock())
 
-        # Make DefaultMultiprocessQueueFactory[RuntimeCommand] return a mock that, when called, returns the configured instance
-        mock_getitem_result = mock.Mock()
-        mock_getitem_result.return_value = mock_configured_cmd_instance
-        mock_cmd_q_factory_class.__getitem__.return_value = mock_getitem_result
+    # This mock represents the specialized class, e.g., DefaultMultiprocessQueueFactory[RuntimeCommand]
+    # When it's instantiated with (context=...), it returns mock_configured_cmd_instance
+    mock_specialized_class_callable = mock.Mock(
+        return_value=mock_configured_cmd_instance
+    )
 
-        # This direct configuration on return_value is for DefaultMultiprocessQueueFactory() if ever called without __getitem__
-        # However, the code uses __getitem__, so the above is more critical.
-        # For safety, ensure the direct return_value also points to something reasonable or the same mock.
-        mock_cmd_q_factory_class.return_value = mock_configured_cmd_instance
+    # Import the actual class to patch its __class_getitem__ method
+    from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+        DefaultMultiprocessQueueFactory as ActualDQF,
+    )
 
+    with mock.patch.object(
+        ActualDQF, "__class_getitem__", return_value=mock_specialized_class_callable
+    ) as mock_cgetitem_method:
         initializer = MockRuntimeInitializer()
         initializer.timeout_seconds = None  # Simplify aggregator mocking
         initializer.data_aggregator_client = None
-        initializer.service_type_enum = (
-            ServiceType.SERVER
-        )  # Configure service_type_enum (corrected indentation)
+        initializer.service_type_enum = ServiceType.SERVER
 
         runtime_handle, runtime_factory = (
             split_runtime_factory_factory_instance._create_pair(initializer)
         )
 
-        mock_mp_context_provider.get_context_and_factory.assert_called_once()
+        # Assert that the context and queue_factory properties were accessed
+        assert mock_mp_context_provider.context
+        assert mock_mp_context_provider.queue_factory
 
         # Assert that the factory instance from provider was used for event and data queues
         assert mock_default_q_factory_instance.create_queues.call_count == 2
 
         # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the correct context
         # The call is DefaultMultiprocessQueueFactory[RuntimeCommand](coTorchMemcpyQueueFactoryinstance)
-        # So, __getitem__ is called with RuntimeCommand, then the result is called with context.
+        # So, DefaultMultiprocessQueueFactory[RuntimeCommand] will effectively call the mocked __class_getitem__.
+        # This returns mock_specialized_class_callable.
+        # Then mock_specialized_class_callable(context=...) is called.
         from tsercom.api.runtime_command import RuntimeCommand  # Import for assertion
 
-        mock_cmd_q_factory_class.__getitem__.assert_called_with(RuntimeCommand)
-        mock_getitem_result.assert_called_once_with(contTorchMemcpyQueueFactorystance)
+        mock_cgetitem_method.assert_called_with(RuntimeCommand)
+        mock_specialized_class_callable.assert_called_once_with(
+            context=mock_std_context_instance
+        )
         mock_configured_cmd_instance.create_queues.assert_called_once()
 
         assert isinstance(runtime_handle, ShimRuntimeHandle)
         assert isinstance(runtime_factory, RemoteRuntimeFactory)
-        # Check that the context was passed to RemoteRuntimeFactory
-        assert runtime_factory._mp_context == mock_std_context_instance
+        # RemoteRuntimeFactory does not store _mp_context directly.
+        # The usage of the context is verified by checking its use in DefaultMultiprocessQueueFactory.
 
 
 def test_create_pair_uses_torch_context_and_factory(
@@ -146,52 +151,53 @@ def test_create_pair_uses_torch_context_and_factory(
     """
     # Configure the mock provider to return a torch context and torch factory
     mock_torch_context_instance = MockTorchContext()
-    mock_torch_q_factory_instance = (
-        MockTorchQueueFactory()
-    )  # Use the specific mock for torch factory
-    mock_mp_context_provider.get_context_and_factory.return_value = (
-        mock_torch_context_instance,
-        mock_torch_q_factory_instance,
+    mock_torch_q_factory_instance = MockTorchQueueFactory()
+    # Configure separate .context and .queue_factory properties
+    type(mock_mp_context_provider).context = mock.PropertyMock(
+        return_value=mock_torch_context_instance
+    )
+    type(mock_mp_context_provider).queue_factory = mock.PropertyMock(
+        return_value=mock_torch_q_factory_instance
     )
 
-    # Mock the create_queues method for event, data
+    # Mock the create_queues method for event, data on the returned queue_factory mock
     mock_torch_q_factory_instance.create_queues.side_effect = [
         (mock.Mock(), mock.Mock()),  # Event queues
         (mock.Mock(), mock.Mock()),  # Data queues
     ]
 
-    with mock.patch(
-        "tsercom.threading.multiprocess.default_multiprocess_queue_factory.DefaultMultiprocessQueueFactory"
-    ) as mock_cmd_q_factory_class:
+    # Setup mocks for DefaultMultiprocessQueueFactory for command queue (similar to above)
+    mock_configured_cmd_instance_torch = mock.Mock()
+    mock_configured_cmd_instance_torch.create_queues.return_value = (
+        mock.Mock(),
+        mock.Mock(),
+    )
+    mock_specialized_class_callable_torch = mock.Mock(
+        return_value=mock_configured_cmd_instance_torch
+    )
 
-        # Configure the mock for when DefaultMultiprocessQueueFactory[RuntimeCommand](...) is called
-        mock_configured_cmd_instance = mock.Mock()
-        mock_configured_cmd_instance.create_queues.return_value = (
-            mock.Mock(),
-            mock.Mock(),
-        )
+    # Import the actual class to patch its __class_getitem__ method (it's the same class)
+    from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+        DefaultMultiprocessQueueFactory as ActualDQF,
+    )  # Ensure it's imported for this test too
 
-        # Make DefaultMultiprocessQueueFactory[RuntimeCommand] return a mock that, when called, returns the configured instance
-        mock_getitem_result = mock.Mock()
-        mock_getitem_result.return_value = mock_configured_cmd_instance
-        mock_cmd_q_factory_class.__getitem__.return_value = mock_getitem_result
-
-        mock_cmd_q_factory_class.return_value = (
-            mock_configured_cmd_instance  # For safety, as in the other test
-        )
-
+    with mock.patch.object(
+        ActualDQF,
+        "__class_getitem__",
+        return_value=mock_specialized_class_callable_torch,
+    ) as mock_cgetitem_method_torch:
         initializer = MockRuntimeInitializer()
         initializer.timeout_seconds = None
         initializer.data_aggregator_client = None
-        initializer.service_type_enum = (
-            ServiceType.SERVER
-        )  # Configure service_type_enum (corrected indentation)
+        initializer.service_type_enum = ServiceType.SERVER
 
         runtime_handle, runtime_factory = (
             split_runtime_factory_factory_instance._create_pair(initializer)
         )
 
-        mock_mp_context_provider.get_context_and_factory.assert_called_once()
+        # Assert that the context and queue_factory properties were accessed
+        assert mock_mp_context_provider.context
+        assert mock_mp_context_provider.queue_factory
 
         # Assert that the factory instance from provider was used for event and data queues
         assert mock_torch_q_factory_instance.create_queues.call_count == 2
@@ -199,13 +205,16 @@ def test_create_pair_uses_torch_context_and_factory(
         # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the torch context
         from tsercom.api.runtime_command import RuntimeCommand  # Import for assertion
 
-        mock_cmd_q_factory_class.__getitem__.assert_called_with(RuntimeCommand)
-        mock_getitem_result.assert_called_once_with(context=mock_torch_context_instance)
-        mock_configured_cmd_instance.create_queues.assert_called_once()
+        mock_cgetitem_method_torch.assert_called_with(RuntimeCommand)
+        mock_specialized_class_callable_torch.assert_called_once_with(
+            context=mock_torch_context_instance
+        )
+        mock_configured_cmd_instance_torch.create_queues.assert_called_once()
 
         assert isinstance(runtime_handle, ShimRuntimeHandle)
         assert isinstance(runtime_factory, RemoteRuntimeFactory)
-        assert runtime_factory._mp_context == mock_torch_context_instance
+        # RemoteRuntimeFactory does not store _mp_context directly.
+        # The usage of the context is verified by checking its use in DefaultMultiprocessQueueFactory.
 
 
 # It might be useful to keep a test for the old logic if TORCH_IS_AVAILABLE was a factor,

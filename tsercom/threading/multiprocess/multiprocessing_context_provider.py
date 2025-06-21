@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 from multiprocessing.context import BaseContext as StdBaseContext
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -34,7 +34,7 @@ class MultiprocessingContextProvider:
         """
         self._context_method: str = context_method
         self.__lazy_context: Optional[StdBaseContext] = None
-        self.__lazy_queue_factory: Optional["MultiprocessQueueFactory"] = None
+        self.__lazy_queue_factory: Optional[MultiprocessQueueFactory[Any]] = None
 
     @property
     def context(self) -> StdBaseContext:
@@ -60,7 +60,7 @@ class MultiprocessingContextProvider:
         return self.__lazy_context
 
     @property
-    def queue_factory(self) -> "MultiprocessQueueFactory":
+    def queue_factory(self) -> MultiprocessQueueFactory[Any]:
         """
         The queue factory instance.
         Initialized lazily on first access, using the lazily initialized context.

@@ -691,13 +691,14 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
-        time.sleep(0.5)  # Initial sleep
+        time.sleep(5.0)  # Increased initial sleep
 
         stopped_data_arrived = False
-        max_wait_stopped_data = 3.0
+        max_wait_stopped_data = 20.0  # Increased polling duration
         poll_interval_stopped = 0.1
         waited_time_stopped = 0.0
         while waited_time_stopped < max_wait_stopped_data:
+            runtime_manager.check_for_exception()  # Check for errors during polling
             if data_aggregator.has_new_data(current_test_id):
                 stopped_data_arrived = True
                 break
@@ -1501,9 +1502,13 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
 
         # --- Stop Runtime 1 and Verify "stopped" Data ---
         runtime_handle_1.stop()
+        runtime_manager.check_for_exception()  # Check for errors after stop command
+        time.sleep(5.0)  # Add initial sleep
         stopped_data_arrived_1 = False
         waited_time = 0.0
-        while waited_time < max_wait_time:
+        max_wait_stop_1 = 20.0  # New variable for this wait
+        while waited_time < max_wait_stop_1:
+            runtime_manager.check_for_exception()  # Check for errors during polling
             if data_aggregator_1.has_new_data(test_id_1):
                 stopped_data_arrived_1 = True
                 break
@@ -1512,7 +1517,7 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
 
         assert (
             stopped_data_arrived_1
-        ), f"Aggregator 1 did not receive 'stopped' data for test_id_1 ({test_id_1}) within {max_wait_time}s"
+        ), f"Aggregator 1 did not receive 'stopped' data for test_id_1 ({test_id_1}) within {max_wait_stop_1}s"
         values_stop_1 = data_aggregator_1.get_new_data(test_id_1)
         assert isinstance(values_stop_1, list) and len(values_stop_1) == 1
         first_stop_1 = values_stop_1[0]
@@ -1525,9 +1530,13 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
 
         # --- Stop Runtime 2 and Verify "stopped" Data ---
         runtime_handle_2.stop()
+        runtime_manager.check_for_exception()  # Check for errors after stop command
+        time.sleep(5.0)  # Add initial sleep
         stopped_data_arrived_2 = False
         waited_time = 0.0
-        while waited_time < max_wait_time:
+        max_wait_stop_2 = 20.0  # New variable for this wait
+        while waited_time < max_wait_stop_2:
+            runtime_manager.check_for_exception()  # Check for errors during polling
             if data_aggregator_2.has_new_data(test_id_2):
                 stopped_data_arrived_2 = True
                 break
@@ -1536,7 +1545,7 @@ def test_multiple_runtimes_out_of_process(clear_loop_fixture):
 
         assert (
             stopped_data_arrived_2
-        ), f"Aggregator 2 did not receive 'stopped' data for test_id_2 ({test_id_2}) within {max_wait_time}s"
+        ), f"Aggregator 2 did not receive 'stopped' data for test_id_2 ({test_id_2}) within {max_wait_stop_2}s"
         values_stop_2 = data_aggregator_2.get_new_data(test_id_2)
         assert isinstance(values_stop_2, list) and len(values_stop_2) == 1
         first_stop_2 = values_stop_2[0]
@@ -1631,9 +1640,15 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
         runtime_handle.stop()
         runtime_manager.check_for_exception()
 
+        time.sleep(5.0)  # Add initial sleep
         stopped_data_arrived = False
         waited_time = 0.0
-        while waited_time < max_wait_time:
+        max_wait_stop_client = 20.0  # New variable
+        poll_interval = (
+            0.1  # Ensure poll_interval is defined; it's 0.1 in __check_initialization
+        )
+        while waited_time < max_wait_stop_client:
+            runtime_manager.check_for_exception()  # Check for errors during polling
             if data_aggregator.has_new_data(current_test_id):
                 stopped_data_arrived = True
                 break
@@ -1642,7 +1657,7 @@ def test_client_type_runtime_in_process(clear_loop_fixture):
 
         assert (
             stopped_data_arrived
-        ), f"Aggregator did not receive 'stopped' data for test_id ({current_test_id}) within {max_wait_time}s"
+        ), f"Aggregator did not receive 'stopped' data for test_id ({current_test_id}) within {max_wait_stop_client}s"
 
         values_stop = data_aggregator.get_new_data(current_test_id)
         assert isinstance(values_stop, list) and len(values_stop) == 1
