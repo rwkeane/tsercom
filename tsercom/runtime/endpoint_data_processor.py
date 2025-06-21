@@ -133,8 +133,6 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
         This method serves as the primary entry point for data. It normalizes
         the provided timestamp:
-        - If `timestamp` is `None`, the current UTC time (`datetime.now(timezone.utc)`)
-          is used.
         - If `timestamp` is a `ServerTimestamp`, it is desynchronized to a local
           UTC `datetime` object using the `desynchronize` method. If
           desynchronization fails (returns `None`) and a `grpc.aio.ServicerContext`
@@ -154,10 +152,10 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
                 gRPC call. If provided and timestamp desynchronization from a
                 `ServerTimestamp` fails, the gRPC call will be aborted.
         """
+        assert timestamp is not None
+        
         actual_timestamp: datetime
-        if timestamp is None:
-            actual_timestamp = datetime.now(timezone.utc)
-        elif isinstance(timestamp, ServerTimestamp):
+        if isinstance(timestamp, ServerTimestamp):
             maybe_timestamp = await self.desynchronize(timestamp, context)
             if maybe_timestamp is None:
                 if context:
