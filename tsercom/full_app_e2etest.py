@@ -702,7 +702,7 @@ class TestDataSourceRuntimeInitializer(RuntimeInitializer[Any, Any]):
         ],  # Type params not critical for this test structure
         grpc_channel_factory: GrpcChannelFactory,  # Not directly used by DataSource, but part of signature
     ) -> Runtime:
-        return TestDataSourceRuntime(
+        return TestDataSourceRuntime( # TestDataSourceRuntime creates its own server_ready_event
             thread_watcher=thread_watcher,
             grpc_port=self._grpc_port,
             service_name=self._service_name,
