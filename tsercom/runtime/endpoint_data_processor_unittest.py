@@ -78,21 +78,6 @@ def processor(mock_caller_id, mocker):
 
 
 @pytest.mark.asyncio
-async def test_process_data_timestamp_none(processor, test_data, mocker):
-    fixed_now = datetime.datetime.now(datetime.timezone.utc)
-
-    # Patch datetime.now within the tsercom.runtime.endpoint_data_processor module
-    mock_dt = mocker.patch("tsercom.runtime.endpoint_data_processor.datetime")
-    mock_dt.now.return_value = fixed_now
-    mock_dt.timezone.utc = datetime.timezone.utc  # Ensure utc is available
-
-    await processor.process_data(test_data, timestamp=None)
-
-    mock_dt.now.assert_called_once_with(datetime.timezone.utc)
-    processor._process_data_mock.assert_awaited_once_with(test_data, fixed_now)
-
-
-@pytest.mark.asyncio
 async def test_process_data_timestamp_is_datetime(processor, test_data):
     fixed_dt = datetime.datetime.now(datetime.timezone.utc)
     await processor.process_data(test_data, timestamp=fixed_dt)

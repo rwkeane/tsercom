@@ -7,6 +7,7 @@ from unittest.mock import (
 )
 from concurrent.futures import Future
 import asyncio
+import multiprocessing  # Import the whole module
 from multiprocessing import Process  # For spec in ProcessCreator mock
 import functools  # For checking functools.partial
 from typing import (
@@ -108,11 +109,19 @@ class TestRuntimeManager:
             return_value=None,
             autospec=True,
         )
-        # Patch the __init__ method of the target class
-        mock_sff_init = mocker.patch(
-            "tsercom.api.split_process.split_runtime_factory_factory.SplitRuntimeFactoryFactory.__init__",
-            return_value=None,  # __init__ should return None
-            autospec=True,  # Ensures the mock has the same signature as the original __init__
+        # Patch the SplitRuntimeFactoryFactory class
+        mock_sff_class = mocker.patch(
+            "tsercom.api.runtime_manager.SplitRuntimeFactoryFactory",  # Patched where RuntimeManager imports it
+            autospec=True,
+        )
+        # Configure the instance that will be created by RuntimeManager
+        mock_sff_instance = mock_sff_class.return_value
+        # Mock its multiprocessing_context property
+        mock_mp_context = mocker.MagicMock(
+            spec=multiprocessing.context.BaseContext
+        )  # For ProcessCreator
+        type(mock_sff_instance).multiprocessing_context = PropertyMock(
+            return_value=mock_mp_context
         )
 
         mock_pc_constructor = mocker.patch(
@@ -131,29 +140,30 @@ class TestRuntimeManager:
         manager: RuntimeManager[Any, Any] = RuntimeManager(is_testing=True)
 
         mock_tw.assert_called_once()
-        mock_lff_init.assert_called_once_with(mocker.ANY, mock_thread_pool)
-        # SplitRuntimeFactoryFactory __init__ no longer takes IPC params directly from RuntimeManager
-        mock_sff_init.assert_called_once_with(
-            mocker.ANY,  # self
-            thread_pool=mock_thread_pool,
-            thread_watcher=mock_thread_watcher_instance,
-            # max_ipc_queue_size and is_ipc_blocking are no longer passed here
+        mock_lff_init.assert_called_once_with(
+            mocker.ANY, mock_thread_pool
+        )  # __init__ of LocalRFF
+
+        # Check that SplitRuntimeFactoryFactory class was instantiated
+        mock_sff_class.assert_called_once_with(
+            mock_thread_pool, mock_thread_watcher_instance
         )
-        mock_pc_constructor.assert_called_once()
+        # Check that ProcessCreator was instantiated with the context from the SFF instance
+        mock_pc_constructor.assert_called_once_with(context=mock_mp_context)
+
         mock_sewsf_constructor.assert_called_once()
         assert manager._RuntimeManager__is_testing is True  # type: ignore[attr-defined]
         assert (
             manager._RuntimeManager__thread_watcher  # type: ignore[attr-defined]
             is mock_thread_watcher_instance
         )
-        # Corrected assertions for the new mocking strategy (patching __init__)
         assert isinstance(
             manager._RuntimeManager__local_runtime_factory_factory,  # type: ignore[attr-defined]
             LocalRuntimeFactoryFactory,
         )
-        assert isinstance(
-            manager._RuntimeManager__split_runtime_factory_factory,  # type: ignore[attr-defined]
-            SplitRuntimeFactoryFactory,
+        # The __split_runtime_factory_factory is now the mock_sff_instance
+        assert (
+            manager._RuntimeManager__split_runtime_factory_factory is mock_sff_instance  # type: ignore[attr-defined]
         )
         assert (
             manager._RuntimeManager__process_creator  # type: ignore[attr-defined]

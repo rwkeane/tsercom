@@ -1,8 +1,9 @@
 """Tests for ServerRuntimeDataHandler."""
 
 import pytest
+import pytest_asyncio  # Added import
 import asyncio
-import unittest.mock  # Added import
+import unittest.mock
 from tsercom.threading.aio.global_event_loop import (
     set_tsercom_event_loop,
     clear_tsercom_event_loop,
@@ -24,40 +25,13 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 class TestServerRuntimeDataHandler:
     """Tests for the ServerRuntimeDataHandler class."""
 
-    @pytest.fixture(autouse=True)
-    def _disabled_manage_event_loop(self):
-        """Ensures a global event loop is set for tsercom for each test."""
-        loop = None
-        try:
-            # Try to get existing loop, or create new if none for current context
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_closed():
-                    raise RuntimeError("existing loop is closed")
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            set_tsercom_event_loop(loop)
-            yield loop
-        finally:
-            clear_tsercom_event_loop()
-            # Only close the loop if this fixture created it and it is not the default policy loop
-            # This logic is simplified; robust loop management can be complex.
-            # For unit tests, often creating/closing a new loop per test is safest.
-            if (
-                loop
-                and not getattr(loop, "_default_loop", False)
-                and not loop.is_closed()
-            ):
-                if loop.is_running():
-                    loop.call_soon_threadsafe(loop.stop)
-                # Ensure all tasks are given a chance to cancel if loop was running
-                # cancellation_tasks = [task for task in asyncio.all_tasks(loop) if not task.done()] \
-                # if cancellation_tasks: \
-                #    for task in cancellation_tasks: \
-                #        task.cancel() \
-                #    # loop.run_until_complete(asyncio.gather(*cancellation_tasks, return_exceptions=True)) \
-                # loop.close() # Closing can be problematic if other things expect to use it.
+    # Removed _disabled_manage_event_loop fixture.
+    # Assuming pytest-asyncio handles loop setup, and tsercom's global loop
+    # will be managed by a central conftest.py fixture or tests will ensure
+    # asyncio.get_running_loop() is sufficient for SUT.
+    # If RuntimeDataHandlerBase needs explicit global loop setting,
+    # a new fixture like manage_tsercom_global_loop (using pytest-asyncio's event_loop)
+    # should be added, ideally in a conftest.py.
 
     @pytest.fixture
     def mock_thread_watcher(self, mocker):
@@ -93,24 +67,37 @@ class TestServerRuntimeDataHandler:
         """Provides a mock EndpointDataProcessor instance."""
         return mocker.MagicMock(spec=EndpointDataProcessor)
 
-    @pytest.fixture
-    def handler_with_mocks(
+    @pytest_asyncio.fixture
+    async def handler_with_mocks(
         self,
         mock_data_reader,
         mock_event_source_poller,
-        mock_time_sync_server_instance,
+        mock_time_sync_server_instance,  # This mock will be used by ServerRuntimeDataHandler
         mock_id_tracker_instance,
         mocker,
     ):
         """Sets up ServerRuntimeDataHandler with mocked class dependencies."""
+        # Ensure stop_async is an AsyncMock on the time_sync_server_instance
+        # This is called by ServerRuntimeDataHandler.stop_async()
+        mock_time_sync_server_instance.stop_async = mocker.AsyncMock()
+
+        # If ServerRuntimeDataHandler.stop_async() calls super().async_close(),
+        # and we want to prevent the real RuntimeDataHandlerBase.async_close()
+        # from running (e.g. to avoid its real __dispatch_task logic),
+        # then we should mock RuntimeDataHandlerBase.async_close.
+        mock_base_async_close = mocker.patch(
+            "tsercom.runtime.runtime_data_handler_base.RuntimeDataHandlerBase.async_close",
+            new_callable=mocker.AsyncMock,
+        )
+
         mock_TimeSyncServer_class = mocker.patch(
             "tsercom.runtime.server.server_runtime_data_handler.TimeSyncServer",
-            return_value=mock_time_sync_server_instance,
+            return_value=mock_time_sync_server_instance,  # This is the mock instance
             autospec=True,
         )
         mock_id_tracker_init = mocker.patch(
             "tsercom.runtime.id_tracker.IdTracker.__init__",
-            return_value=None,  # __init__ should return None
+            return_value=None,
         )
 
         handler_instance = ServerRuntimeDataHandler(
@@ -128,7 +115,17 @@ class TestServerRuntimeDataHandler:
             "id_tracker_init_mock": mock_id_tracker_init,
             "time_sync_server_instance_mock": mock_time_sync_server_instance,
             "id_tracker_instance_mock": mock_id_tracker_instance,
+            "base_async_close_mock": mock_base_async_close,  # Pass the new mock
         }
+
+        # Teardown
+        try:
+            # This will call the real ServerRuntimeDataHandler.stop_async()
+            # which should call mock_time_sync_server_instance.stop_async() (AsyncMock)
+            # and super().async_close() (which is now mock_base_async_close, an AsyncMock)
+            await handler_instance.stop_async()
+        except Exception as e:
+            print(f"Error during handler_with_mocks teardown: {e}")
 
     @pytest.mark.asyncio
     async def test_init(
@@ -170,11 +167,30 @@ class TestServerRuntimeDataHandler:
 
     @pytest.mark.asyncio
     async def test_register_caller(
-        self, handler_with_mocks, mock_endpoint_data_processor, mocker
+        self,
+        handler_with_mocks,
+        mock_endpoint_data_processor,
+        mocker,  # handler_with_mocks is an async fixture
     ):
         """Tests _register_caller method for correct registration flow."""
-        handler = handler_with_mocks["handler"]
-        id_tracker_instance_mock = handler_with_mocks["id_tracker_instance_mock"]
+        # Correctly consume the async fixture
+        hwm_data = handler_with_mocks  # In pytest-asyncio, the fixture result is directly awaitable if it's a coroutine,
+        # or directly usable if it's a regular value from an async fixture.
+        # If the async fixture `yields`, it's an async generator.
+        # The previous change made it `async def` that `yields`.
+
+        # If handler_with_mocks is an async generator (due to yield), we'd iterate:
+        # async for hwm_data_item in handler_with_mocks:
+        #    hwm_data = hwm_data_item # Assuming it yields only once
+        #    break
+        # However, pytest-asyncio might resolve the single yield from an async fixture directly.
+        # Let's assume direct result for now, if it's an `async def` fixture that `returns` or `yields once`.
+        # The typical pattern for an async fixture that yields once is that the test receives the yielded value.
+
+        # The fixture `handler_with_mocks` yields a dictionary.
+        # Pytest should handle awaiting the async fixture and providing the yielded value.
+        handler = hwm_data["handler"]
+        id_tracker_instance_mock = hwm_data["id_tracker_instance_mock"]
 
         mock_caller_id = CallerIdentifier.random()
         mock_endpoint = "192.168.1.100"

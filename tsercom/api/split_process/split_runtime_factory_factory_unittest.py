@@ -1,512 +1,269 @@
-import pytest
-from unittest.mock import MagicMock
+from concurrent.futures import ThreadPoolExecutor
+from typing import Iterator, Any  # Added Any
+from unittest import mock
+import multiprocessing  # Added for context object
 
-# Module to be tested & whose attributes will be patched
-import tsercom.api.split_process.split_runtime_factory_factory as srff_module
+import pytest
+
 from tsercom.api.split_process.split_runtime_factory_factory import (
     SplitRuntimeFactoryFactory,
 )
-from tsercom.api.runtime_factory_factory import (
-    RuntimeFactoryFactory as BaseRuntimeFactoryFactory,
-)
-
-import torch
-import multiprocessing as std_mp
-import torch.multiprocessing as torch_mp
-from typing import TypeVar, Generic, Any
-
+from tsercom.api.split_process.remote_runtime_factory import RemoteRuntimeFactory
+from tsercom.api.split_process.shim_runtime_handle import ShimRuntimeHandle
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
-from tsercom.threading.multiprocess.multiprocess_queue_sink import (
-    MultiprocessQueueSink,
+from tsercom.runtime.runtime_config import ServiceType  # Added import
+from tsercom.threading.thread_watcher import ThreadWatcher
+from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+    DefaultMultiprocessQueueFactory,
 )
-from tsercom.threading.multiprocess.multiprocess_queue_source import (
-    MultiprocessQueueSource,
+from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
+    TorchMultiprocessQueueFactory,
 )
 
-
-# --- Fake Classes for Dependencies & Patched Classes ---
-
-
-class FakeThreadPoolExecutor:
-    def __init__(self, max_workers=None):
-        self.max_workers = max_workers
-        self.shutdown_called = False
-
-    def shutdown(self, wait=True):
-        self.shutdown_called = True
+# MPContextType is expected to be a type like multiprocessing.context.BaseContext
+# As MPContextType is not defined in multiprocessing_context_provider,
+# we use the actual base class for multiprocessing contexts.
+from multiprocessing.context import BaseContext as MPContextType
 
 
-class FakeThreadWatcher:
-    def __init__(self, name="FakeThreadWatcher"):
-        self.name = name
+# Mock classes for dependencies
+MockRuntimeInitializer = mock.Mock(spec=RuntimeInitializer)
+MockThreadPoolExecutor = mock.Mock(spec=ThreadPoolExecutor)
+MockThreadWatcher = mock.Mock(spec=ThreadWatcher)
 
-
-class FakeRuntimeInitializer(RuntimeInitializer[str, str]):
-    def __init__(
-        self,
-        service_type="Server",
-        data_aggregator_client=None,
-        timeout_seconds=60,
-    ):
-        super().__init__(
-            service_type=service_type,
-            data_aggregator_client=data_aggregator_client,
-            timeout_seconds=timeout_seconds,
-        )
-
-    def create(self) -> Any:
-        return MagicMock()
-
-
-LocalDataTypeT = TypeVar("LocalDataTypeT")
-LocalEventTypeT = TypeVar("LocalEventTypeT")
-
-
-class GenericFakeRuntimeInitializer(
-    RuntimeInitializer[LocalDataTypeT, LocalEventTypeT],
-    Generic[LocalDataTypeT, LocalEventTypeT],
-):
-    def __init__(
-        self,
-        service_type="Server",
-        data_aggregator_client=None,
-        timeout_seconds=60,
-    ):
-        super().__init__(
-            service_type=service_type,
-            data_aggregator_client=data_aggregator_client,
-            timeout_seconds=timeout_seconds,
-        )
-
-    def create(self, thread_watcher, data_handler, grpc_channel_factory) -> Any:
-        return MagicMock()
-
-
-g_fake_remote_runtime_factory_instances = []
-g_fake_remote_data_aggregator_instances = []
-g_fake_shim_runtime_handle_instances = []
-
-
-class FakeRemoteRuntimeFactory:
-    __class_getitem__ = classmethod(lambda cls, item: cls)
-
-    def __init__(self, initializer, event_source, data_reader_sink, command_source):
-        self.initializer = initializer
-        self.event_source = event_source
-        self.data_reader_sink = data_reader_sink
-        self.command_source = command_source
-        g_fake_remote_runtime_factory_instances.append(self)
-
-
-class FakeRemoteDataAggregatorImpl:
-    __class_getitem__ = classmethod(lambda cls, item: cls)
-
-    def __init__(self, thread_pool, client, timeout=None):
-        self.thread_pool = thread_pool
-        self.client = client
-        self.timeout = timeout
-        g_fake_remote_data_aggregator_instances.append(self)
-
-
-class FakeShimRuntimeHandle:
-    __class_getitem__ = classmethod(lambda cls, item: cls)
-
-    def __init__(
-        self,
-        thread_watcher,
-        event_queue,
-        data_queue,
-        runtime_command_queue,
-        data_aggregator,
-        block=False,
-    ):
-        self.thread_watcher = thread_watcher
-        self.event_queue = event_queue
-        self.data_queue = data_queue
-        self.runtime_command_queue = runtime_command_queue
-        self.data_aggregator = data_aggregator
-        self.block = block
-        g_fake_shim_runtime_handle_instances.append(self)
-
-
-class FakeRuntimeFactoryFactoryClient(BaseRuntimeFactoryFactory.Client):
-    def __init__(self):
-        self.handle_ready_called = False
-        self.received_handle = None
-
-    def _on_handle_ready(self, handle):
-        self.handle_ready_called = True
-        self.received_handle = handle
-
-
-# --- Pytest Fixtures ---
-@pytest.fixture(autouse=True)
-def clear_globals_and_mocks(mocker):
-    global g_fake_remote_runtime_factory_instances, g_fake_remote_data_aggregator_instances, g_fake_shim_runtime_handle_instances
-    g_fake_remote_runtime_factory_instances = []
-    g_fake_remote_data_aggregator_instances = []
-    g_fake_shim_runtime_handle_instances = []
-    mocker.resetall()
+# Mock context for testing (Queue factory mocks will be created per test)
+MockStdContext = mock.Mock(spec=multiprocessing.get_context("spawn").__class__)
+MockTorchContext = mock.Mock(
+    spec=MPContextType
+)  # Use the alias, or torch specific if definitely testing torch path
 
 
 @pytest.fixture
-def fake_executor():
-    return FakeThreadPoolExecutor()
+def mock_mp_context_provider() -> (
+    Iterator[mock.Mock]
+):  # Removed mocker, not used in this version
+    """Fixture to mock MultiprocessingContextProvider, handling Generic[Any]."""
+    patch_target = "tsercom.api.split_process.split_runtime_factory_factory.MultiprocessingContextProvider"
 
+    # This is the mock instance we want SplitRuntimeFactoryFactory to use for self.__mp_context_provider
+    mock_provider_instance_to_be_used_by_sut = mock.MagicMock()
 
-@pytest.fixture
-def fake_watcher():
-    return FakeThreadWatcher()
-
-
-@pytest.fixture
-def fake_initializer():
-    return FakeRuntimeInitializer()
-
-
-@pytest.fixture
-def fake_client():
-    return FakeRuntimeFactoryFactoryClient()
-
-
-std_mp_context = std_mp.get_context("spawn")
-torch_mp_context = torch_mp.get_context("spawn")
-
-
-@pytest.fixture
-def mock_queue_factories(mocker):
-    mock_default_init = mocker.patch.object(
-        srff_module.DefaultMultiprocessQueueFactory,
-        "__init__",
-        return_value=None,
+    # This mock will represent the specialized type callable, e.g., MultiprocessingContextProvider[Any]
+    # When this is called (instantiated), it should return mock_provider_instance_to_be_used_by_sut
+    mock_specialized_provider_type_callable = mock.MagicMock(
+        return_value=mock_provider_instance_to_be_used_by_sut
     )
-    default_queues_results = []
-    for _ in range(3):
-        q = std_mp_context.Queue()
-        default_queues_results.append(
-            (MultiprocessQueueSink(q), MultiprocessQueueSource(q))
-        )
-    mock_default_create_queues = mocker.patch.object(
-        srff_module.DefaultMultiprocessQueueFactory,
+
+    # This mock replaces the class name "MultiprocessingContextProvider" in the target module.
+    # It needs to handle being subscripted (via __getitem__).
+    mock_class_replacement = mock.MagicMock()
+    mock_class_replacement.__getitem__.return_value = (
+        mock_specialized_provider_type_callable
+    )
+
+    with mock.patch(
+        patch_target, new=mock_class_replacement
+    ):  # Use 'new' to replace with our preconfigured mock
+        # The test will receive the instance that SUT will use.
+        yield mock_provider_instance_to_be_used_by_sut
+
+
+@pytest.fixture
+def split_runtime_factory_factory_instance(
+    mock_mp_context_provider: mock.Mock,
+) -> SplitRuntimeFactoryFactory:  # Depends on the above fixture
+    """Fixture to create a SplitRuntimeFactoryFactory instance with a mocked provider."""
+    # The provider is already mocked by mock_mp_context_provider fixture
+    return SplitRuntimeFactoryFactory(
+        thread_pool=MockThreadPoolExecutor(),
+        thread_watcher=MockThreadWatcher(),
+    )
+
+
+def test_create_pair_uses_default_context_and_factory(
+    split_runtime_factory_factory_instance: SplitRuntimeFactoryFactory,
+    mock_mp_context_provider: mock.Mock,
+    mocker: Any,  # Add mocker fixture
+) -> None:
+    """
+    Tests that _create_pair uses the context and factory from the provider
+    (simulating default/non-torch case).
+    """
+    # Configure the mock provider to return a standard context and default factory
+    mock_std_context_instance = (
+        MockStdContext()
+    )  # Use module-level mock context instance
+
+    # Configure the mock provider to return a standard context and default factory
+    mock_std_context_instance = (
+        MockStdContext()
+    )  # Use module-level mock context instance
+
+    # Configure the mock provider to return a standard context and default factory
+    mock_std_context_instance = (
+        MockStdContext()
+    )  # Use module-level mock context instance
+
+    the_queue_factory_mock_instance_std = mock.MagicMock()
+
+    type(mock_mp_context_provider).context = mock.PropertyMock(
+        return_value=mock_std_context_instance
+    )
+    type(mock_mp_context_provider).queue_factory = mock.PropertyMock(
+        return_value=the_queue_factory_mock_instance_std
+    )
+
+    # Directly patch the create_queues method on this instance using mocker
+    # (mocker fixture is implicitly available in pytest test methods)
+    mock_create_queues_std = mocker.patch.object(
+        the_queue_factory_mock_instance_std,
         "create_queues",
-        side_effect=default_queues_results,
+        side_effect=[
+            (mock.MagicMock(), mock.MagicMock()),
+            (mock.MagicMock(), mock.MagicMock()),
+        ],
     )
-    mock_torch_init = mocker.patch.object(
-        srff_module.TorchMultiprocessQueueFactory,
-        "__init__",
-        return_value=None,
+
+    # Setup mocks for DefaultMultiprocessQueueFactory for command queue
+
+    mock_configured_cmd_instance = mock.Mock()
+    mock_configured_cmd_instance.create_queues.return_value = (mock.Mock(), mock.Mock())
+
+    # This mock represents the specialized class, e.g., DefaultMultiprocessQueueFactory[RuntimeCommand]
+    # When it's instantiated with (context=...), it returns mock_configured_cmd_instance
+    mock_specialized_class_callable = mock.Mock(
+        return_value=mock_configured_cmd_instance
     )
-    torch_queues_results = []
-    for _ in range(2):
-        q = torch_mp_context.Queue()
-        torch_queues_results.append(
-            (MultiprocessQueueSink(q), MultiprocessQueueSource(q))
+
+    # Import the actual class to patch its __class_getitem__ method
+    from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+        DefaultMultiprocessQueueFactory as ActualDQF,
+    )
+
+    with mock.patch.object(
+        ActualDQF, "__class_getitem__", return_value=mock_specialized_class_callable
+    ) as mock_cgetitem_method:
+        initializer = MockRuntimeInitializer()
+        initializer.timeout_seconds = None  # Simplify aggregator mocking
+        initializer.data_aggregator_client = None
+        initializer.service_type_enum = ServiceType.SERVER
+
+        runtime_handle, runtime_factory = (
+            split_runtime_factory_factory_instance._create_pair(initializer)
         )
-    mock_torch_create_queues = mocker.patch.object(
-        srff_module.TorchMultiprocessQueueFactory,
+
+        # Assert that the context and queue_factory properties were accessed
+        assert mock_mp_context_provider.context
+        assert mock_mp_context_provider.queue_factory
+
+        # Assert that the factory instance from provider was used for event and data queues
+        assert mock_create_queues_std.call_count == 2
+
+        # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the correct context
+        # The call is DefaultMultiprocessQueueFactory[RuntimeCommand](coTorchMemcpyQueueFactoryinstance)
+        # So, DefaultMultiprocessQueueFactory[RuntimeCommand] will effectively call the mocked __class_getitem__.
+        # This returns mock_specialized_class_callable.
+        # Then mock_specialized_class_callable(context=...) is called.
+        from tsercom.api.runtime_command import RuntimeCommand  # Import for assertion
+
+        mock_cgetitem_method.assert_called_with(RuntimeCommand)
+        mock_specialized_class_callable.assert_called_once_with(
+            context=mock_std_context_instance
+        )
+        mock_configured_cmd_instance.create_queues.assert_called_once()
+
+        assert isinstance(runtime_handle, ShimRuntimeHandle)
+        assert isinstance(runtime_factory, RemoteRuntimeFactory)
+        # RemoteRuntimeFactory does not store _mp_context directly.
+        # The usage of the context is verified by checking its use in DefaultMultiprocessQueueFactory.
+
+
+def test_create_pair_uses_torch_context_and_factory(
+    split_runtime_factory_factory_instance: SplitRuntimeFactoryFactory,
+    mock_mp_context_provider: mock.Mock,
+    mocker: Any,  # Add mocker fixture
+) -> None:
+    """
+    Tests that _create_pair uses the context and factory from the provider
+    (simulating torch case).
+    """
+    # Configure the mock provider to return a torch context and torch factory
+    mock_torch_context_instance = (
+        MockTorchContext()
+    )  # Use module-level mock context instance
+
+    # Create a specific mock instance for the queue factory to be returned by the provider
+    the_queue_factory_mock_instance_torch = mock.MagicMock()
+    # Assign a new mock to its create_queues attribute using mocker
+    mock_create_queues_torch = mocker.patch.object(
+        the_queue_factory_mock_instance_torch,
         "create_queues",
-        side_effect=torch_queues_results,
-    )
-    return {
-        "default_init": mock_default_init,
-        "default_create_queues": mock_default_create_queues,
-        "torch_init": mock_torch_init,
-        "torch_create_queues": mock_torch_create_queues,
-        "_default_results_list": default_queues_results,
-        "_torch_results_list": torch_queues_results,
-    }
-
-
-@pytest.fixture
-def patch_other_dependencies(request, mocker):
-    originals = {
-        "RemoteRuntimeFactory": getattr(srff_module, "RemoteRuntimeFactory", None),
-        "RemoteDataAggregatorImpl": getattr(
-            srff_module, "RemoteDataAggregatorImpl", None
-        ),
-        "ShimRuntimeHandle": getattr(srff_module, "ShimRuntimeHandle", None),
-    }
-    setattr(srff_module, "RemoteRuntimeFactory", FakeRemoteRuntimeFactory)
-    setattr(srff_module, "RemoteDataAggregatorImpl", FakeRemoteDataAggregatorImpl)
-    setattr(srff_module, "ShimRuntimeHandle", FakeShimRuntimeHandle)
-
-    def cleanup():
-        for attr, original_value in originals.items():
-            if original_value:
-                setattr(srff_module, attr, original_value)
-            elif hasattr(srff_module, attr):
-                delattr(srff_module, attr)
-
-    request.addfinalizer(cleanup)
-
-
-# --- Unit Tests ---
-def test_create_factory_and_pair_logic_default_queues(
-    fake_executor,
-    fake_watcher,
-    fake_initializer,
-    fake_client,
-    mock_queue_factories,
-    patch_other_dependencies,
-):
-    # Configure fake_initializer with specific IPC settings
-    # These should be used by _create_pair when it instantiates queue factories
-    setattr(fake_initializer, "_RuntimeConfig__max_ipc_queue_size", 50)
-    setattr(fake_initializer, "_RuntimeConfig__is_ipc_blocking", False)
-    # Ensure properties reflect these overrides for direct access if needed by SRFF logic
-    # (though current SRFF _create_pair uses direct property access on initializer)
-    # No, SRFF will use initializer.max_ipc_queue_size which reads from __ value.
-
-    factory_factory = SplitRuntimeFactoryFactory(
-        thread_pool=fake_executor, thread_watcher=fake_watcher
-    )
-    returned_factory = factory_factory.create_factory(fake_client, fake_initializer)
-
-    # Expect 3 calls to DefaultMultiprocessQueueFactory.__init__
-    # (event, data, command queues when no torch is involved)
-    assert mock_queue_factories["default_init"].call_count == 3
-    for call_args in mock_queue_factories["default_init"].call_args_list:
-        assert (
-            call_args[1]["max_ipc_queue_size"] == fake_initializer.max_ipc_queue_size
-        )  # Now from initializer
-        assert (
-            call_args[1]["is_ipc_blocking"] == fake_initializer.is_ipc_blocking
-        )  # Now from initializer
-
-    assert mock_queue_factories["default_create_queues"].call_count == 3
-    mock_queue_factories["torch_init"].assert_not_called()
-    assert mock_queue_factories["torch_create_queues"].call_count == 0
-
-    assert len(g_fake_remote_runtime_factory_instances) == 1
-    remote_factory = g_fake_remote_runtime_factory_instances[0]
-    assert len(g_fake_shim_runtime_handle_instances) == 1
-    shim_handle = g_fake_shim_runtime_handle_instances[0]
-
-    event_sink_q = shim_handle.event_queue._MultiprocessQueueSink__queue
-    event_source_q = remote_factory.event_source._MultiprocessQueueSource__queue
-    assert isinstance(event_sink_q, type(std_mp_context.Queue()))
-    assert (
-        event_sink_q
-        is mock_queue_factories["_default_results_list"][0][
-            0
-        ]._MultiprocessQueueSink__queue
-    )
-    assert (
-        event_source_q
-        is mock_queue_factories["_default_results_list"][0][
-            1
-        ]._MultiprocessQueueSource__queue
+        side_effect=[
+            (mock.MagicMock(), mock.MagicMock()),  # Event queues
+            (mock.MagicMock(), mock.MagicMock()),  # Data queues
+        ],
     )
 
-    data_sink_q = remote_factory.data_reader_sink._MultiprocessQueueSink__queue
-    data_source_q = shim_handle.data_queue._MultiprocessQueueSource__queue
-    assert isinstance(data_sink_q, type(std_mp_context.Queue()))
-    assert (
-        data_sink_q
-        is mock_queue_factories["_default_results_list"][1][
-            0
-        ]._MultiprocessQueueSink__queue
+    type(mock_mp_context_provider).context = mock.PropertyMock(
+        return_value=mock_torch_context_instance
     )
-    assert (
-        data_source_q
-        is mock_queue_factories["_default_results_list"][1][
-            1
-        ]._MultiprocessQueueSource__queue
+    type(mock_mp_context_provider).queue_factory = mock.PropertyMock(
+        return_value=the_queue_factory_mock_instance_torch
     )
 
-    cmd_sink_q = shim_handle.runtime_command_queue._MultiprocessQueueSink__queue
-    cmd_source_q = remote_factory.command_source._MultiprocessQueueSource__queue
-    assert isinstance(cmd_sink_q, type(std_mp_context.Queue()))
-    assert (
-        cmd_sink_q
-        is mock_queue_factories["_default_results_list"][2][
-            0
-        ]._MultiprocessQueueSink__queue
+    # Setup mocks for DefaultMultiprocessQueueFactory for command queue (similar to above)
+    mock_configured_cmd_instance_torch = mock.Mock()
+    mock_configured_cmd_instance_torch.create_queues.return_value = (
+        mock.Mock(),
+        mock.Mock(),
     )
-    assert (
-        cmd_source_q
-        is mock_queue_factories["_default_results_list"][2][
-            1
-        ]._MultiprocessQueueSource__queue
+    mock_specialized_class_callable_torch = mock.Mock(
+        return_value=mock_configured_cmd_instance_torch
     )
 
-    assert len(g_fake_remote_data_aggregator_instances) == 1
-    aggregator_instance = g_fake_remote_data_aggregator_instances[0]
-    assert aggregator_instance.thread_pool is fake_executor
-    assert aggregator_instance.client == fake_initializer.data_aggregator_client
-    assert aggregator_instance.timeout == fake_initializer.timeout_seconds
+    # Import the actual class to patch its __class_getitem__ method (it's the same class)
+    from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
+        DefaultMultiprocessQueueFactory as ActualDQF,
+    )  # Ensure it's imported for this test too
 
-    assert remote_factory.initializer is fake_initializer
-    assert shim_handle.thread_watcher is fake_watcher
-    assert shim_handle.data_aggregator is aggregator_instance
-    assert returned_factory is remote_factory
-    assert fake_client.handle_ready_called
-    assert fake_client.received_handle is shim_handle
+    with mock.patch.object(
+        ActualDQF,
+        "__class_getitem__",
+        return_value=mock_specialized_class_callable_torch,
+    ) as mock_cgetitem_method_torch:
+        initializer = MockRuntimeInitializer()
+        initializer.timeout_seconds = None
+        initializer.data_aggregator_client = None
+        initializer.service_type_enum = ServiceType.SERVER
 
-
-@pytest.mark.parametrize(
-    "initializer_type, data_type, event_type, expected_torch_calls, expected_default_data_event_calls, expected_default_cmd_calls, expected_internal_q_type",
-    [
-        (
-            GenericFakeRuntimeInitializer[torch.Tensor, str],
-            torch.Tensor,
-            str,
-            1,
-            0,
-            1,
-            type(torch_mp_context.Queue()),
-        ),
-        (
-            GenericFakeRuntimeInitializer[str, torch.Tensor],
-            str,
-            torch.Tensor,
-            1,
-            0,
-            1,
-            type(torch_mp_context.Queue()),
-        ),
-        (
-            GenericFakeRuntimeInitializer[torch.Tensor, torch.Tensor],
-            torch.Tensor,
-            torch.Tensor,
-            1,
-            0,
-            1,
-            type(torch_mp_context.Queue()),
-        ),
-        (
-            GenericFakeRuntimeInitializer[str, int],
-            str,
-            int,
-            0,
-            1,
-            1,
-            type(std_mp_context.Queue()),
-        ),
-    ],
-)
-def test_dynamic_queue_selection(
-    fake_executor,
-    fake_watcher,
-    mock_queue_factories,
-    patch_other_dependencies,
-    initializer_type,
-    data_type,
-    event_type,
-    expected_torch_calls,
-    expected_default_data_event_calls,
-    expected_default_cmd_calls,
-    expected_internal_q_type,
-):
-    factory_factory = SplitRuntimeFactoryFactory(
-        thread_pool=fake_executor, thread_watcher=fake_watcher
-    )
-
-    # Configure specific_initializer with test IPC settings
-    test_ipc_q_size_for_selection = 75
-    test_ipc_blocking_for_selection = False
-
-    # Instantiate the generic initializer
-    specific_initializer = (
-        initializer_type()
-    )  # Default args from GenericFakeRuntimeInitializer
-    # Override IPC settings on the instance for this test
-    setattr(
-        specific_initializer,
-        "_RuntimeConfig__max_ipc_queue_size",
-        test_ipc_q_size_for_selection,
-    )
-    setattr(
-        specific_initializer,
-        "_RuntimeConfig__is_ipc_blocking",
-        test_ipc_blocking_for_selection,
-    )
-
-    factory_factory._create_pair(specific_initializer)
-
-    # Check calls to __init__ of queue factories
-    total_torch_init_calls = 0
-    if expected_torch_calls > 0:  # For data and event queues if torch type
-        total_torch_init_calls = 2  # Data and Event
-        assert mock_queue_factories["torch_init"].call_count == total_torch_init_calls
-        for call_args in mock_queue_factories["torch_init"].call_args_list:
-            assert (
-                call_args[1]["max_ipc_queue_size"]
-                == specific_initializer.max_ipc_queue_size
-            )
-            assert (
-                call_args[1]["is_ipc_blocking"] == specific_initializer.is_ipc_blocking
-            )
-    else:
-        mock_queue_factories["torch_init"].assert_not_called()
-
-    total_default_init_calls = 0
-    if expected_default_data_event_calls > 0:  # For data and event if not torch
-        total_default_init_calls = 2  # Data and Event
-    total_default_init_calls += 1  # Always one for command queue
-
-    assert mock_queue_factories["default_init"].call_count == total_default_init_calls
-    for call_args in mock_queue_factories["default_init"].call_args_list:
-        assert (
-            call_args[1]["max_ipc_queue_size"]
-            == specific_initializer.max_ipc_queue_size
+        runtime_handle, runtime_factory = (
+            split_runtime_factory_factory_instance._create_pair(initializer)
         )
-        assert call_args[1]["is_ipc_blocking"] == specific_initializer.is_ipc_blocking
 
-    # Check calls to create_queues (unchanged logic for this, just verify counts)
-    assert mock_queue_factories["torch_create_queues"].call_count == (
-        expected_torch_calls * 2
-    )
-    assert mock_queue_factories["default_create_queues"].call_count == (
-        (expected_default_data_event_calls * 2) + expected_default_cmd_calls
-    )
+        # Assert that the context and queue_factory properties were accessed
+        assert mock_mp_context_provider.context
+        assert mock_mp_context_provider.queue_factory
 
-    assert len(g_fake_remote_runtime_factory_instances) == 1
-    remote_factory = g_fake_remote_runtime_factory_instances[0]
-    assert len(g_fake_shim_runtime_handle_instances) == 1
-    shim_handle = g_fake_shim_runtime_handle_instances[0]
+        # Assert that the factory instance from provider was used for event and data queues
+        assert mock_create_queues_torch.call_count == 2
 
-    event_sink_q = shim_handle.event_queue._MultiprocessQueueSink__queue
-    assert isinstance(event_sink_q, expected_internal_q_type)
+        # Assert that DefaultMultiprocessQueueFactory was instantiated for command queue with the torch context
+        from tsercom.api.runtime_command import RuntimeCommand  # Import for assertion
 
-    data_source_q = shim_handle.data_queue._MultiprocessQueueSource__queue
-    assert isinstance(data_source_q, expected_internal_q_type)
+        mock_cgetitem_method_torch.assert_called_with(RuntimeCommand)
+        mock_specialized_class_callable_torch.assert_called_once_with(
+            context=mock_torch_context_instance
+        )
+        mock_configured_cmd_instance_torch.create_queues.assert_called_once()
 
-    cmd_sink_q = shim_handle.runtime_command_queue._MultiprocessQueueSink__queue
-    assert isinstance(cmd_sink_q, type(std_mp_context.Queue()))
+        assert isinstance(runtime_handle, ShimRuntimeHandle)
+        assert isinstance(runtime_factory, RemoteRuntimeFactory)
+        # RemoteRuntimeFactory does not store _mp_context directly.
+        # The usage of the context is verified by checking its use in DefaultMultiprocessQueueFactory.
 
 
-def test_init_method(fake_executor, fake_watcher):
-    # test_max_ipc_q_size = 99 # No longer passed to __init__
-    # test_is_ipc_blocking = False # No longer passed to __init__
-    factory_factory = SplitRuntimeFactoryFactory(
-        thread_pool=fake_executor,
-        thread_watcher=fake_watcher,
-        # max_ipc_queue_size and is_ipc_blocking are removed from constructor
-    )
-    assert factory_factory._SplitRuntimeFactoryFactory__thread_pool is fake_executor
-    assert factory_factory._SplitRuntimeFactoryFactory__thread_watcher is fake_watcher
-    # Attributes _max_ipc_queue_size and _is_ipc_blocking are no longer on the instance
-    assert not hasattr(factory_factory, "_max_ipc_queue_size")
-    assert not hasattr(factory_factory, "_is_ipc_blocking")
-
-
-def test_create_pair_aggregator_no_timeout(
-    fake_executor,
-    fake_watcher,
-    mocker,
-    mock_queue_factories,
-    patch_other_dependencies,
-):
-    factory_factory = SplitRuntimeFactoryFactory(
-        thread_pool=fake_executor, thread_watcher=fake_watcher
-    )
-    initializer_no_timeout = GenericFakeRuntimeInitializer[str, str](
-        timeout_seconds=None
-    )
-    mock_aggregator_init = mocker.spy(srff_module.RemoteDataAggregatorImpl, "__init__")
-    factory_factory._create_pair(initializer_no_timeout)
-    mock_aggregator_init.assert_called_once()
-    assert mock_queue_factories["default_create_queues"].call_count == 3
-    created_aggregator_instance = g_fake_remote_data_aggregator_instances[0]
-    assert created_aggregator_instance.timeout is None
+# It might be useful to keep a test for the old logic if TORCH_IS_AVAILABLE was a factor,
+# but now that's encapsulated in the provider. The tests above cover provider interaction.
+# The original tests for SplitRuntimeFactoryFactory might have tested queue types based on
+# TORCH_IS_AVAILABLE and data types. This is now tested in MultiprocessingContextProvider's tests.
+# The critical part for SplitRuntimeFactoryFactory is that it *uses* the provider correctly.

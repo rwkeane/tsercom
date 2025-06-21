@@ -211,6 +211,45 @@ class RuntimeDataHandlerBase(
         else:
             _logger.debug("No __dispatch_task found or already cleared in async_close.")
 
+        # The IdTracker itself does not have a stop method.
+        # Cleanup of individual tracked items (pollers).
+        if hasattr(self, "_RuntimeDataHandlerBase__id_tracker") and self.__id_tracker:
+            all_pollers = []
+            try:
+                all_pollers = self.__id_tracker.get_all_tracked_data()
+            except Exception as e_get_pollers:
+                _logger.error(
+                    "Error getting all tracked data from IdTracker: %s",
+                    e_get_pollers,
+                    exc_info=True,
+                )
+
+            for poller in all_pollers:
+                if poller is None:
+                    continue
+
+                poller_repr = repr(
+                    poller
+                )  # For logging, in case poller becomes invalid after close/stop
+                try:
+                    if hasattr(poller, "async_close"):
+                        _logger.debug("Calling async_close on poller: %s", poller_repr)
+                        await poller.async_close()
+                    elif hasattr(poller, "stop"):
+                        _logger.debug("Calling stop on poller: %s", poller_repr)
+                        poller.stop()  # Assuming stop is synchronous; if it's async, this is problematic
+                    else:
+                        _logger.warning(
+                            "Poller %s has no async_close or stop method.", poller_repr
+                        )
+                except Exception as e_poller_stop:
+                    _logger.error(
+                        "Error cleaning up poller %s: %s",
+                        poller_repr,
+                        e_poller_stop,
+                        exc_info=True,
+                    )
+
     @property
     def _id_tracker(
         self,
