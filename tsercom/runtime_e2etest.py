@@ -121,8 +121,8 @@ class FakeRuntime(Runtime):
         assert self.__responder is not None
         # Use a fresh timestamp to ensure it's the latest data
         current_stop_time = datetime.datetime.now(datetime.timezone.utc)
-        log_message = f"FakeRuntime ({self.__test_id}) stopping. Data: {stopped}, Timestamp: {current_stop_time}" # Kept for now, minimal
-        print(log_message) # Kept for now, minimal
+        log_message = f"FakeRuntime ({self.__test_id}) stopping. Data: {stopped}, Timestamp: {current_stop_time}"  # Kept for now, minimal
+        print(log_message)  # Kept for now, minimal
         await self.__responder.process_data(FakeData(stopped), current_stop_time)
 
 
@@ -657,7 +657,7 @@ def __check_initialization(init_call: Callable[[RuntimeManager], None]):
         runtime_handle.start()
 
         data_arrived = False
-        max_wait_time = 15.0 # Increased from 5.0 to allow more time for initial data
+        max_wait_time = 15.0  # Increased from 5.0 to allow more time for initial data
         poll_interval = 0.1
         waited_time = 0.0
         while waited_time < max_wait_time:

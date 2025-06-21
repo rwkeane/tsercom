@@ -181,7 +181,6 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             # process_creators also need to be made context-aware in a specific way.
             self.__process_creator = process_creator
 
-
         self.__initializers: List[InitializationPair[DataTypeT, EventTypeT]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
         self.__error_watcher: Optional[SplitProcessErrorWatcherSource] = None

@@ -29,7 +29,7 @@ StdContextType = type(multiprocessing.get_context("spawn"))
 # and as the class to instantiate after its module's _TORCH_AVAILABLE is patched.
 from tsercom.threading.multiprocess.multiprocessing_context_provider import (
     MultiprocessingContextProvider as OriginalMultiprocessingContextProvider,
-    QueueTypeT, # Import the TypeVar
+    QueueTypeT,  # Import the TypeVar
 )
 from tsercom.threading.multiprocess.default_multiprocess_queue_factory import (
     DefaultMultiprocessQueueFactory,
@@ -59,6 +59,7 @@ from tsercom.threading.multiprocess.torch_multiprocess_queue_factory import (
 #         reloaded_module = importlib.reload(sys.modules[provider_module_name])
 # Obsolete helper function removed.
 
+
 @pytest.mark.skipif(
     not _TORCH_INSTALLED,
     reason="PyTorch is not installed, skipping torch-specific tests",
@@ -85,9 +86,15 @@ def test_lazy_init_with_torch_available() -> None:
             mock_get_torch_ctx.return_value = mock_torch_ctx_instance
 
             # mock_torch_q_factory_class is the mock for the class TorchMultiprocessQueueFactory
-            mock_final_torch_factory_instance = mock.MagicMock(spec=TorchMultiprocessQueueFactory)
-            mock_specialized_torch_class_callable = mock.MagicMock(return_value=mock_final_torch_factory_instance)
-            mock_torch_q_factory_class.__getitem__.return_value = mock_specialized_torch_class_callable
+            mock_final_torch_factory_instance = mock.MagicMock(
+                spec=TorchMultiprocessQueueFactory
+            )
+            mock_specialized_torch_class_callable = mock.MagicMock(
+                return_value=mock_final_torch_factory_instance
+            )
+            mock_torch_q_factory_class.__getitem__.return_value = (
+                mock_specialized_torch_class_callable
+            )
 
             # First access of context
             context1 = provider.context
@@ -101,7 +108,9 @@ def test_lazy_init_with_torch_available() -> None:
             # Check the call chain for factory creation
             # from typing import Any # No longer asserting with Any for __getitem__
             mock_torch_q_factory_class.__getitem__.assert_called_once_with(QueueTypeT)
-            mock_specialized_torch_class_callable.assert_called_once_with(context=mock_torch_ctx_instance)
+            mock_specialized_torch_class_callable.assert_called_once_with(
+                context=mock_torch_ctx_instance
+            )
             assert factory1 is mock_final_torch_factory_instance
 
             # Second access
@@ -141,9 +150,15 @@ def test_lazy_init_with_torch_unavailable() -> None:
             mock_get_std_ctx.return_value = mock_std_ctx_instance
 
             # Setup for Factory[QueueTypeT](context=...)
-            mock_final_std_factory_instance = mock.MagicMock(spec=DefaultMultiprocessQueueFactory)
-            mock_specialized_std_class_callable = mock.MagicMock(return_value=mock_final_std_factory_instance)
-            mock_std_q_factory_class.__getitem__.return_value = mock_specialized_std_class_callable
+            mock_final_std_factory_instance = mock.MagicMock(
+                spec=DefaultMultiprocessQueueFactory
+            )
+            mock_specialized_std_class_callable = mock.MagicMock(
+                return_value=mock_final_std_factory_instance
+            )
+            mock_std_q_factory_class.__getitem__.return_value = (
+                mock_specialized_std_class_callable
+            )
 
             # First access
             context1 = provider.context
@@ -154,7 +169,9 @@ def test_lazy_init_with_torch_unavailable() -> None:
             mock_get_std_ctx.assert_called_once()
             # from typing import Any # No longer asserting with Any for __getitem__
             mock_std_q_factory_class.__getitem__.assert_called_once_with(QueueTypeT)
-            mock_specialized_std_class_callable.assert_called_once_with(context=mock_std_ctx_instance)
+            mock_specialized_std_class_callable.assert_called_once_with(
+                context=mock_std_ctx_instance
+            )
             assert factory1 is mock_final_std_factory_instance
 
             # Second access

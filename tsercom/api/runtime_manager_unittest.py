@@ -7,7 +7,7 @@ from unittest.mock import (
 )
 from concurrent.futures import Future
 import asyncio
-import multiprocessing # Import the whole module
+import multiprocessing  # Import the whole module
 from multiprocessing import Process  # For spec in ProcessCreator mock
 import functools  # For checking functools.partial
 from typing import (
@@ -111,14 +111,18 @@ class TestRuntimeManager:
         )
         # Patch the SplitRuntimeFactoryFactory class
         mock_sff_class = mocker.patch(
-            "tsercom.api.runtime_manager.SplitRuntimeFactoryFactory", # Patched where RuntimeManager imports it
-            autospec=True
+            "tsercom.api.runtime_manager.SplitRuntimeFactoryFactory",  # Patched where RuntimeManager imports it
+            autospec=True,
         )
         # Configure the instance that will be created by RuntimeManager
         mock_sff_instance = mock_sff_class.return_value
         # Mock its multiprocessing_context property
-        mock_mp_context = mocker.MagicMock(spec=multiprocessing.context.BaseContext) # For ProcessCreator
-        type(mock_sff_instance).multiprocessing_context = PropertyMock(return_value=mock_mp_context)
+        mock_mp_context = mocker.MagicMock(
+            spec=multiprocessing.context.BaseContext
+        )  # For ProcessCreator
+        type(mock_sff_instance).multiprocessing_context = PropertyMock(
+            return_value=mock_mp_context
+        )
 
         mock_pc_constructor = mocker.patch(
             "tsercom.api.runtime_manager.ProcessCreator", autospec=True
@@ -136,7 +140,9 @@ class TestRuntimeManager:
         manager: RuntimeManager[Any, Any] = RuntimeManager(is_testing=True)
 
         mock_tw.assert_called_once()
-        mock_lff_init.assert_called_once_with(mocker.ANY, mock_thread_pool) # __init__ of LocalRFF
+        mock_lff_init.assert_called_once_with(
+            mocker.ANY, mock_thread_pool
+        )  # __init__ of LocalRFF
 
         # Check that SplitRuntimeFactoryFactory class was instantiated
         mock_sff_class.assert_called_once_with(

@@ -57,7 +57,8 @@ class ProcessCreator:
             # BaseContext does not define .Process, but concrete contexts do.
             # Use getattr and cast to satisfy mypy, assuming self._context has it.
             process_constructor = cast(
-                Callable[..., multiprocessing.Process], getattr(self._context, "Process")
+                Callable[..., multiprocessing.Process],
+                getattr(self._context, "Process"),
             )
             return process_constructor(target=target, args=args, daemon=daemon)
 
