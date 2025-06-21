@@ -125,9 +125,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         self.__thread_watcher: ThreadWatcher = (
             thread_watcher if thread_watcher is not None else ThreadWatcher()
         )
-        self.__process_creator: ProcessCreator = (
-            process_creator if process_creator is not None else ProcessCreator()
-        )
+        # self.__process_creator is initialized after self.__split_runtime_factory_factory
         self.__split_error_watcher_source_factory: SplitErrorWatcherSourceFactory = (
             split_error_watcher_source_factory
             if split_error_watcher_source_factory is not None
@@ -161,6 +159,27 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             self.__split_runtime_factory_factory = SplitRuntimeFactoryFactory(
                 default_split_factory_thread_pool, self.__thread_watcher
             )
+
+        # Initialize ProcessCreator with the context from split_runtime_factory_factory
+        # Ensure the factory instance has the 'multiprocessing_context' property.
+        if not hasattr(self.__split_runtime_factory_factory, "multiprocessing_context"):
+            # This could happen if a mock or an unexpected factory type is passed in
+            # that doesn't conform to the expected interface of SplitRuntimeFactoryFactory.
+            raise TypeError(
+                "self.__split_runtime_factory_factory instance does not have "
+                "'multiprocessing_context' property."
+            )
+
+        mp_context = self.__split_runtime_factory_factory.multiprocessing_context
+
+        if process_creator is None:
+            self.__process_creator: ProcessCreator = ProcessCreator(context=mp_context)
+        else:
+            # If a process_creator is passed in, we assume it's already configured
+            # with the desired context, or it does not need one (e.g. for testing).
+            # This part of the logic might need refinement if externally provided
+            # process_creators also need to be made context-aware in a specific way.
+            self.__process_creator = process_creator
 
         self.__initializers: List[InitializationPair[DataTypeT, EventTypeT]] = []
         self.__has_started: IsRunningTracker = IsRunningTracker()
@@ -334,6 +353,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         )
         process_daemon = start_as_daemon or self.__is_testing
 
+        # ProcessCreator is now initialized with context, so no need to pass it here.
         self.__process = self.__process_creator.create_process(
             target=process_target,
             args=(),
