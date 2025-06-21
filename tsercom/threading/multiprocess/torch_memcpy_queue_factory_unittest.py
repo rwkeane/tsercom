@@ -99,10 +99,10 @@ class TestTorchMultiprocessQueueFactory:
         self,
     ) -> None:
         # Case 1: Sized, non-blocking queue
-        factory_sized = TorchMemcpyQueueFactory[torch.Tensor](
+        factory = TorchMemcpyQueueFactory[torch.Tensor]()
+        sink_sized, source_sized = factory.create_queues(
             max_ipc_queue_size=1, is_ipc_blocking=False
         )
-        sink_sized, source_sized = factory_sized.create_queues()
         assert isinstance(sink_sized, TorchMemcpyQueueSink)
         assert isinstance(source_sized, TorchMemcpyQueueSource)
         assert not sink_sized._MultiprocessQueueSink__is_blocking
@@ -117,10 +117,10 @@ class TestTorchMultiprocessQueueFactory:
         assert source_sized.get_blocking(timeout=0.01) is None
 
         # Case 2: Unbounded (None), blocking queue
-        factory_unbounded = TorchMemcpyQueueFactory[torch.Tensor](
+        # factory instance can be reused
+        sink_unbounded, source_unbounded = factory.create_queues(
             max_ipc_queue_size=None, is_ipc_blocking=True
         )
-        sink_unbounded, source_unbounded = factory_unbounded.create_queues()
         assert isinstance(sink_unbounded, TorchMemcpyQueueSink)
         assert isinstance(source_unbounded, TorchMemcpyQueueSource)
         assert sink_unbounded._MultiprocessQueueSink__is_blocking

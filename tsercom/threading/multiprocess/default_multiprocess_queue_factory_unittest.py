@@ -39,12 +39,12 @@ class TestDefaultMultiprocessQueueFactory:
         respecting max_ipc_queue_size and is_ipc_blocking.
         """
         # Test with a specific max size
-        factory_sized = DefaultMultiprocessQueueFactory[Dict[str, Any]](
-            max_ipc_queue_size=1, is_ipc_blocking=False
-        )
+        factory = DefaultMultiprocessQueueFactory[Dict[str, Any]]()
         sink_sized: MultiprocessQueueSink[Dict[str, Any]]
         source_sized: MultiprocessQueueSource[Dict[str, Any]]
-        sink_sized, source_sized = factory_sized.create_queues()
+        sink_sized, source_sized = factory.create_queues(
+            max_ipc_queue_size=1, is_ipc_blocking=False
+        )
 
         assert isinstance(
             sink_sized, MultiprocessQueueSink
@@ -54,13 +54,13 @@ class TestDefaultMultiprocessQueueFactory:
         ), "Second item is not a MultiprocessQueueSource (sized)"
         assert not sink_sized._MultiprocessQueueSink__is_blocking
 
-        # Test with unbounded (None) max size
-        factory_unbounded = DefaultMultiprocessQueueFactory[Dict[str, Any]](
-            max_ipc_queue_size=None, is_ipc_blocking=True
-        )
+        # Test with unbounded (None) max size and blocking
+        # factory instance can be reused or new one created
         sink_unbounded: MultiprocessQueueSink[Dict[str, Any]]
         source_unbounded: MultiprocessQueueSource[Dict[str, Any]]
-        sink_unbounded, source_unbounded = factory_unbounded.create_queues()
+        sink_unbounded, source_unbounded = factory.create_queues(
+            max_ipc_queue_size=None, is_ipc_blocking=True
+        )
         assert isinstance(
             sink_unbounded, MultiprocessQueueSink
         ), "First item is not a MultiprocessQueueSink (unbounded)"
