@@ -276,15 +276,80 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         raise NotImplementedError()
 
     @overload
-    def get_interpolated_at(self, timestamp: datetime.datetime) -> DataTypeT | None: ...
+    def get_interpolated_at(
+        self, timestamp: datetime.datetime
+    ) -> Dict[CallerIdentifier, DataTypeT]:
+        """Performs interpolation for a single timestamp across all callers.
+
+        Returns a dictionary mapping each `CallerIdentifier` to its successfully
+        interpolated data (`DataTypeT`). Callers for which interpolation is
+        not possible (e.g., out of bounds, insufficient data) are omitted
+        from the dictionary.
+
+        Args:
+            timestamp: The specific time for which to estimate data.
+
+        Returns:
+            A dictionary where keys are `CallerIdentifier` and values are
+            the successfully interpolated data instances (`DataTypeT`).
+        """
+        ...
 
     @overload
     def get_interpolated_at(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier
-    ) -> DataTypeT | None: ...
+    ) -> DataTypeT | None:
+        """Performs interpolation for a specific caller at a single timestamp.
+
+        Estimates data for the given `identifier` at the specified `timestamp`
+        using linear interpolation.
+
+        Args:
+            timestamp: The specific time for which to estimate data.
+            identifier: The `CallerIdentifier` for which to interpolate.
+
+        Returns:
+            The interpolated data instance (`DataTypeT`) for the specified
+            caller, or `None` if interpolation is not possible (e.g.,
+            out of bounds, insufficient data).
+        """
+        ...
 
     @abstractmethod
     def get_interpolated_at(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier | None = None
-    ) -> DataTypeT | None:
+    ) -> DataTypeT | None | Dict[CallerIdentifier, DataTypeT]:
+        """Performs linear interpolation to estimate data at a specific time.
+
+        This method estimates the data value at the given `timestamp` by
+        linearly interpolating between the two closest data points available
+        in the internal buffer.
+
+        - If `identifier` is specified, interpolation is performed for that
+          single caller. Returns `DataTypeT` or `None`.
+        - If `identifier` is `None`, interpolation is performed for all known
+          callers. Returns a `Dict[CallerIdentifier, DataTypeT]`, omitting
+          callers for whom interpolation was not successful.
+
+        If the `timestamp` matches an existing data point exactly for a given
+        `identifier`, that data point is returned (or included in the dictionary).
+
+        If the `timestamp` is outside the range of available data, or if
+        insufficient data points exist for interpolation for an `identifier`,
+        `None` is returned (if `identifier` was specified), or the caller is
+        omitted from the dictionary (if `identifier` was `None`).
+
+        Args:
+            timestamp: The specific time (as a `datetime.datetime` object)
+                for which to estimate the data.
+            identifier: Optional. The `CallerIdentifier` for which to perform
+                interpolation. If `None`, interpolation is attempted for all callers.
+
+        Returns:
+            If `identifier` is provided: An instance of `DataTypeT` representing
+            the interpolated data, or `None`.
+            If `identifier` is `None`: A dictionary mapping each `CallerIdentifier`
+            to its successfully interpolated data (`DataTypeT`). Callers for whom
+            interpolation failed are omitted.
+        """
         raise NotImplementedError()
