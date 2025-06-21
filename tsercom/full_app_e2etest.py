@@ -1,4 +1,4 @@
-from tsercom.test.proto.generated.v1_73 import (  # Updated import path
+from tsercom.test.proto.generated.v1_73 import (
     e2e_test_service_pb2_grpc,
     e2e_test_service_pb2,
 )
@@ -9,20 +9,26 @@ from tsercom.timesync.common.proto.generated.v1_73 import time_pb2
 
 import asyncio
 import logging
-from typing import Optional, TYPE_CHECKING, AsyncIterator, Any, AsyncGenerator, Callable # Added Callable
+from typing import (
+    Optional,
+    TYPE_CHECKING,
+    AsyncIterator,
+    Any,
+    AsyncGenerator,
+    Callable,
+)
 
 import grpc
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc  # type: ignore
 import pytest
 import pytest_asyncio
 import socket
-import uuid # Added import for uuid
+import uuid
 
 from tsercom.api import RuntimeManager
-from tsercom.caller_id.caller_identifier import CallerIdentifier # Re-added
-# Removed RuntimeOutOfProcessConfigLoader import
+from tsercom.caller_id.caller_identifier import CallerIdentifier  # Re-added
+
 from tsercom.discovery.discovery_host import DiscoveryHost
-from tsercom.discovery.mdns.instance_listener import MdnsListenerFactory
 from tsercom.discovery.mdns.instance_publisher import InstancePublisher
 from tsercom.discovery.service_connector import ServiceConnector
 from tsercom.discovery.service_info import ServiceInfo
@@ -32,26 +38,19 @@ from tsercom.runtime.runtime import Runtime
 from tsercom.runtime.runtime_config import ServiceType
 from tsercom.runtime.runtime_data_handler import (
     RuntimeDataHandler,
-)  # Keep if used by existing code
+)
 from tsercom.runtime.runtime_initializer import RuntimeInitializer
 from tsercom.threading.aio.global_event_loop import clear_tsercom_event_loop
-# Atomic import will be removed by ruff if not used after deletions.
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.is_running_tracker import (
     IsRunningTracker,
-) # IsRunningTracker import reinstated
+)
 from tsercom.discovery.mdns.mdns_listener import MdnsListener
 from zeroconf.asyncio import AsyncZeroconf
 
 
-if TYPE_CHECKING:
-    pass
-
-
-# Removed has_been_hit global variable, as test_anomoly_service is being removed.
-
 class FakeMdnsListener(MdnsListener):
-    __test__ = False  # To prevent pytest from collecting it as a test
+    __test__ = False
 
     def __init__(
         self,
@@ -60,8 +59,6 @@ class FakeMdnsListener(MdnsListener):
         port: int,
         zc_instance: Optional[AsyncZeroconf] = None,
     ):
-        # zc_instance is accepted for signature compatibility but not used by this Fake
-        # super().__init__() # MdnsListener's parent (ServiceListener) has no __init__
         self.__client = client
         self.__service_type = service_type
         self.__port = port
@@ -98,10 +95,10 @@ class FakeMdnsListener(MdnsListener):
         # TestDataAggregatorRuntime uses ServiceInfo for SourceServiceInfoT.
 
         service_info = ServiceInfo(
-            name=fake_mdns_instance_name, # This can be simplified, often mdns_name is used as 'name' too
+            name=fake_mdns_instance_name,
             addresses=[socket.inet_ntoa(fake_ip_address_bytes)],
             port=self.__port,
-            mdns_name=fake_mdns_instance_name # mdns_name is typically the full instance name
+            mdns_name=fake_mdns_instance_name,
         )
 
         # CallerIdentifier needs a unique ID. We can base it on the instance name.
@@ -109,15 +106,22 @@ class FakeMdnsListener(MdnsListener):
         # Using NAMESPACE_DNS as an example; any consistent namespace UUID would work.
         # DiscoveryHost._on_service_added will internally create a CallerIdentifier from service_info.mdns_name.
         # So, fake_mdns_instance_name (which becomes service_info.mdns_name) must be a UUID string.
-        mdns_compatible_name_for_uuid_basis = self.__service_type.replace('.', '-') + "-fake-instance"
-        generated_mdns_uuid_str = str(uuid.uuid5(uuid.NAMESPACE_DNS, mdns_compatible_name_for_uuid_basis))
+        mdns_compatible_name_for_uuid_basis = (
+            self.__service_type.replace(".", "-") + "-fake-instance"
+        )
+        generated_mdns_uuid_str = str(
+            uuid.uuid5(uuid.NAMESPACE_DNS, mdns_compatible_name_for_uuid_basis)
+        )
 
         # Ensure fake_mdns_instance_name used for ServiceInfo.mdns_name is the UUID string
         service_info = ServiceInfo(
-            name=fake_mdns_instance_name, # User-friendly name can remain as is
-            addresses=['::1', socket.inet_ntoa(fake_ip_address_bytes)], # Try IPv6 loopback first, then IPv4
+            name=fake_mdns_instance_name,  # User-friendly name can remain as is
+            addresses=[
+                "::1",
+                socket.inet_ntoa(fake_ip_address_bytes),
+            ],  # Try IPv6 loopback first, then IPv4
             port=self.__port,
-            mdns_name=generated_mdns_uuid_str # This must be the UUID string
+            mdns_name=generated_mdns_uuid_str,  # This must be the UUID string
         )
 
         # DiscoveryHost (self.__client) implements InstanceListener.Client,
@@ -180,7 +184,7 @@ class TestDataSourceRuntime(Runtime):
         self._server_received_data_queue = server_received_data_queue
         self._server_data_to_send_queue = server_data_to_send_queue
         self._server_caller_id_storage = server_caller_id_storage
-        self._server_ready_event = asyncio.Event() # Event to signal gRPC server is up
+        self._server_ready_event = asyncio.Event()  # Event to signal gRPC server is up
 
         self._grpc_publisher: Optional[GrpcServicePublisher] = None
         self._instance_publisher: Optional[InstancePublisher] = None
@@ -230,8 +234,10 @@ class TestDataSourceRuntime(Runtime):
             )
 
         await self._grpc_publisher.start_async(_add_servicers)
-        self._server_ready_event.set() # Signal that server is ready
-        logging.info(f"TestDataSourceRuntime gRPC server started and ready_event set for port {self._grpc_port}.")
+        self._server_ready_event.set()  # Signal that server is ready
+        logging.info(
+            f"TestDataSourceRuntime gRPC server started and ready_event set for port {self._grpc_port}."
+        )
 
         self._instance_publisher = InstancePublisher(
             port=self._grpc_port,
@@ -244,7 +250,9 @@ class TestDataSourceRuntime(Runtime):
             f"TestDataSourceRuntime {self._service_name} published via mDNS on type {self._mdns_service_type} and port {self._grpc_port}."
         )
 
-    async def stop(self, exception: Optional[Exception] = None) -> None: # Renamed from stop_async
+    async def stop(
+        self, exception: Optional[Exception] = None
+    ) -> None:  # Renamed from stop_async
         if not self._is_running.get_and_set(
             False
         ):  # Ensure it was running and set to not running
@@ -274,7 +282,9 @@ class TestDataAggregatorRuntime(Runtime, ServiceConnector.Client):
     def __init__(
         self,
         thread_watcher: ThreadWatcher,
-        instance_listener_factory: Callable[[MdnsListener.Client], FakeMdnsListener],  # Corrected
+        instance_listener_factory: Callable[
+            [MdnsListener.Client], FakeMdnsListener
+        ],  # Corrected
         grpc_channel_factory: GrpcChannelFactory,
         own_caller_id: caller_id_pb2.CallerId,
         handshake_done_event: asyncio.Event,
@@ -296,13 +306,13 @@ class TestDataAggregatorRuntime(Runtime, ServiceConnector.Client):
         self._target_service_type = "_e2e_stream_data_source._tcp"  # Must match what TestDataSourceRuntime publishes
 
         self._discovery_host = DiscoveryHost(
-            instance_listener_factory=instance_listener_factory, # Corrected: Use instance_listener_factory
+            instance_listener_factory=instance_listener_factory,  # Corrected: Use instance_listener_factory
             # No service_type needed here for DiscoveryHost when instance_listener_factory is used
         )
         self._service_connector = ServiceConnector[ServiceInfo, grpc.aio.Channel](
             client=self,
-            connection_factory=self._grpc_channel_factory, # Corrected keyword
-            service_source=self._discovery_host,         # Corrected keyword
+            connection_factory=self._grpc_channel_factory,  # Corrected keyword
+            service_source=self._discovery_host,  # Corrected keyword
         )
         self._stub: Optional[e2e_test_service_pb2_grpc.E2ETestServiceStub] = None
         self._stream_active_event = (
@@ -323,7 +333,9 @@ class TestDataAggregatorRuntime(Runtime, ServiceConnector.Client):
             f"TestDataAggregatorRuntime started, discovering {self._target_service_type}."
         )
 
-    async def stop(self, exception: Optional[Exception] = None) -> None: # Renamed from stop_async
+    async def stop(
+        self, exception: Optional[Exception] = None
+    ) -> None:  # Renamed from stop_async
         if not self._is_running.get_and_set(False):
             logging.warning("TestDataAggregatorRuntime already stopped or not started.")
             return
@@ -345,9 +357,9 @@ class TestDataAggregatorRuntime(Runtime, ServiceConnector.Client):
 
     async def _on_channel_connected(
         self,
-        connection_info: ServiceInfo, # Corrected: Matches ServiceConnector.Client ABC
-        caller_id: CallerIdentifier,   # Corrected: Matches ServiceConnector.Client ABC
-        channel: grpc.aio.Channel,   # This was correct
+        connection_info: ServiceInfo,  # Corrected: Matches ServiceConnector.Client ABC
+        caller_id: CallerIdentifier,  # Corrected: Matches ServiceConnector.Client ABC
+        channel: grpc.aio.Channel,  # This was correct
     ) -> None:
         logging.info(
             f"TestDataAggregatorRuntime: Channel connected to service '{connection_info.name}' (CallerID: {caller_id.id})."
@@ -360,8 +372,10 @@ class TestDataAggregatorRuntime(Runtime, ServiceConnector.Client):
         self._active_calls.append(stream_task)
         logging.info("TestDataAggregatorRuntime: gRPC stream management task started.")
 
-    async def _on_channel_disconnected( # This signature is not defined by ServiceConnector.Client ABC, but by ServiceSource.Client
-        self, service_name: str, caller_id: CallerIdentifier # Corrected to match ServiceSource.Client
+    async def _on_channel_disconnected(  # This signature is not defined by ServiceConnector.Client ABC, but by ServiceSource.Client
+        self,
+        service_name: str,
+        caller_id: CallerIdentifier,  # Corrected to match ServiceSource.Client
     ) -> None:
         logging.info(
             f"TestDataAggregatorRuntime: Channel disconnected from service '{service_name}' (CallerID: {caller_id.id})."
@@ -702,7 +716,7 @@ class TestDataSourceRuntimeInitializer(RuntimeInitializer[Any, Any]):
         ],  # Type params not critical for this test structure
         grpc_channel_factory: GrpcChannelFactory,  # Not directly used by DataSource, but part of signature
     ) -> Runtime:
-        return TestDataSourceRuntime( # TestDataSourceRuntime creates its own server_ready_event
+        return TestDataSourceRuntime(  # TestDataSourceRuntime creates its own server_ready_event
             thread_watcher=thread_watcher,
             grpc_port=self._grpc_port,
             service_name=self._service_name,
@@ -716,7 +730,9 @@ class TestDataSourceRuntimeInitializer(RuntimeInitializer[Any, Any]):
 class TestDataAggregatorRuntimeInitializer(RuntimeInitializer[Any, Any]):
     def __init__(
         self,
-        instance_listener_factory: Callable[[MdnsListener.Client], FakeMdnsListener], # Corrected type
+        instance_listener_factory: Callable[
+            [MdnsListener.Client], FakeMdnsListener
+        ],  # Corrected type
         own_caller_id: caller_id_pb2.CallerId,
         handshake_done_event: asyncio.Event,
         aggregator_received_data_queue: asyncio.Queue[tensor_pb2.TensorChunk],
@@ -724,7 +740,9 @@ class TestDataAggregatorRuntimeInitializer(RuntimeInitializer[Any, Any]):
         connection_established_event: asyncio.Event,
     ):
         super().__init__(service_type=ServiceType.CLIENT)  # Or a custom type
-        self._instance_listener_factory = instance_listener_factory # Corrected assignment
+        self._instance_listener_factory = (
+            instance_listener_factory  # Corrected assignment
+        )
         self._own_caller_id = own_caller_id
         self._handshake_done_event = handshake_done_event
         self._aggregator_received_data_queue = aggregator_received_data_queue
@@ -739,7 +757,7 @@ class TestDataAggregatorRuntimeInitializer(RuntimeInitializer[Any, Any]):
     ) -> Runtime:
         return TestDataAggregatorRuntime(
             thread_watcher=thread_watcher,
-            instance_listener_factory=self._instance_listener_factory, # Corrected parameter passed
+            instance_listener_factory=self._instance_listener_factory,  # Corrected parameter passed
             grpc_channel_factory=grpc_channel_factory,
             own_caller_id=self._own_caller_id,
             handshake_done_event=self._handshake_done_event,
@@ -791,7 +809,9 @@ async def test_full_e2e_with_discovery_and_grpc_stream(clear_loop_fixture, caplo
     # RuntimeManager creates its own ThreadWatcher if is_testing=True,
     # but SplitRuntimeFactoryFactory needs one at construction.
     from concurrent.futures import ThreadPoolExecutor
-    from tsercom.api.split_process.split_runtime_factory_factory import SplitRuntimeFactoryFactory
+    from tsercom.api.split_process.split_runtime_factory_factory import (
+        SplitRuntimeFactoryFactory,
+    )
 
     # Create a dedicated ThreadWatcher for the test environment
     # This ensures that if RuntimeManager's internal watcher has specific lifecycle assumptions,
@@ -802,29 +822,37 @@ async def test_full_e2e_with_discovery_and_grpc_stream(clear_loop_fixture, caplo
     # Using a small number of threads for test purposes.
     # Ensure this executor is shutdown properly, though for test scope it might auto-clean.
     # For robust cleanup, could manage it with try/finally or context manager if test was longer.
-    test_thread_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="SplitFactoryTest")
+    test_thread_pool = ThreadPoolExecutor(
+        max_workers=2, thread_name_prefix="SplitFactoryTest"
+    )
 
-    split_factory = SplitRuntimeFactoryFactory[Any, Any]( # Using Any for DataTypeT, EventTypeT as per test
+    split_factory = SplitRuntimeFactoryFactory[
+        Any, Any
+    ](  # Using Any for DataTypeT, EventTypeT as per test
         thread_pool=test_thread_pool, thread_watcher=test_thread_watcher
     )
 
     runtime_manager = RuntimeManager(
-        split_runtime_factory_factory=split_factory, # Corrected keyword argument
-        is_testing=True  # is_testing also provides a default ThreadWatcher to RuntimeManager itself
+        split_runtime_factory_factory=split_factory,  # Corrected keyword argument
+        is_testing=True,  # is_testing also provides a default ThreadWatcher to RuntimeManager itself
     )
 
     # Fake mDNS Listener setup for the TestDataAggregatorRuntime
     # The TestDataAggregatorRuntime (client) will use this to "discover" the TestDataSourceRuntime (server).
     # The FakeMdnsListener needs to know the port of the service it's faking.
     # Using instance_listener_factory route for DiscoveryHost
-    target_service_type_for_discovery = "_e2e_stream_data_source._tcp"  # Used by FakeMdnsListener
+    target_service_type_for_discovery = (
+        "_e2e_stream_data_source._tcp"  # Used by FakeMdnsListener
+    )
 
-    def instance_listener_factory_for_test(aggregator_runtime_as_client: MdnsListener.Client) -> FakeMdnsListener:
+    def instance_listener_factory_for_test(
+        aggregator_runtime_as_client: MdnsListener.Client,
+    ) -> FakeMdnsListener:
         # DATA_SOURCE_PORT and target_service_type_for_discovery are from the outer scope
         return FakeMdnsListener(
             aggregator_runtime_as_client,
             target_service_type_for_discovery,
-            DATA_SOURCE_PORT
+            DATA_SOURCE_PORT,
         )
 
     # Initializer for TestDataSourceRuntime (Server)
@@ -842,7 +870,7 @@ async def test_full_e2e_with_discovery_and_grpc_stream(clear_loop_fixture, caplo
     # Initializer for TestDataAggregatorRuntime (Client)
     aggregator_caller_id = caller_id_pb2.CallerId(id=AGGREGATOR_CALLER_ID_STR)
     data_aggregator_initializer = TestDataAggregatorRuntimeInitializer(
-        instance_listener_factory=instance_listener_factory_for_test, # Changed from mdns_listener_factory
+        instance_listener_factory=instance_listener_factory_for_test,  # Changed from mdns_listener_factory
         own_caller_id=aggregator_caller_id,
         handshake_done_event=handshake_done_event_at_client,
         aggregator_received_data_queue=ds_to_agg_data_q,  # Where Agg puts data from DS
@@ -869,7 +897,9 @@ async def test_full_e2e_with_discovery_and_grpc_stream(clear_loop_fixture, caplo
     ds_runtime_actual_for_event = ds_runtime_handle._get_runtime_for_test()
     assert isinstance(ds_runtime_actual_for_event, TestDataSourceRuntime)
     logging.info("Test: Waiting for DataSourceRuntime server to be ready...")
-    await asyncio.wait_for(ds_runtime_actual_for_event.server_ready_event.wait(), timeout=10.0)
+    await asyncio.wait_for(
+        ds_runtime_actual_for_event.server_ready_event.wait(), timeout=10.0
+    )
     logging.info("Test: DataSourceRuntime server is ready.")
 
     agg_runtime_handle.start()
@@ -908,9 +938,13 @@ async def test_full_e2e_with_discovery_and_grpc_stream(clear_loop_fixture, caplo
         await agg_runtime_actual._aggregator_data_to_send_queue.put(agg_chunk_to_send)
 
         logging.info("Test: Waiting for DataSource to receive data...")
-        received_by_ds_chunk = await asyncio.wait_for(agg_to_ds_data_q.get(), timeout=5.0)
+        received_by_ds_chunk = await asyncio.wait_for(
+            agg_to_ds_data_q.get(), timeout=5.0
+        )
         assert received_by_ds_chunk.data_bytes == agg_payload_bytes
-        logging.info(f"Test: DataSource received: {received_by_ds_chunk.data_bytes.decode()}")
+        logging.info(
+            f"Test: DataSource received: {received_by_ds_chunk.data_bytes.decode()}"
+        )
         agg_to_ds_data_q.task_done()
 
         # 3. Trigger data transfer: DataSource (server) to Aggregator (client)
@@ -928,26 +962,32 @@ async def test_full_e2e_with_discovery_and_grpc_stream(clear_loop_fixture, caplo
         await ds_runtime_actual._server_data_to_send_queue.put(ds_chunk_to_send)
 
         logging.info("Test: Waiting for Aggregator to receive data...")
-        received_by_agg_chunk = await asyncio.wait_for(ds_to_agg_data_q.get(), timeout=5.0) # ds_to_agg_data_q is correct here
+        received_by_agg_chunk = await asyncio.wait_for(
+            ds_to_agg_data_q.get(), timeout=5.0
+        )  # ds_to_agg_data_q is correct here
         assert received_by_agg_chunk.data_bytes == ds_payload_bytes
-        logging.info(f"Test: Aggregator received: {received_by_agg_chunk.data_bytes.decode()}")
-        ds_to_agg_data_q.task_done() # Correct queue to mark task_done on for aggregator receiving
+        logging.info(
+            f"Test: Aggregator received: {received_by_agg_chunk.data_bytes.decode()}"
+        )
+        ds_to_agg_data_q.task_done()  # Correct queue to mark task_done on for aggregator receiving
 
         # 4. Shutdown
         logging.info("Test: Shutting down runtimes...")
-        if agg_runtime_handle: # Check if handle exists before stopping
+        if agg_runtime_handle:  # Check if handle exists before stopping
             agg_runtime_handle.stop()
-        if ds_runtime_handle: # Check if handle exists before stopping
+        if ds_runtime_handle:  # Check if handle exists before stopping
             ds_runtime_handle.stop()
 
-        await asyncio.sleep(1.0) # Allow time for graceful shutdown
+        await asyncio.sleep(1.0)  # Allow time for graceful shutdown
 
-        if runtime_manager: # Check if manager exists before shutdown
+        if runtime_manager:  # Check if manager exists before shutdown
             runtime_manager.shutdown()
-        logging.info("test_full_e2e_with_discovery_and_grpc_stream completed successfully.")
+        logging.info(
+            "test_full_e2e_with_discovery_and_grpc_stream completed successfully."
+        )
     finally:
         # Cleanup for ThreadPoolExecutor and ThreadWatcher
-        if 'test_thread_pool' in locals() and test_thread_pool:
+        if "test_thread_pool" in locals() and test_thread_pool:
             test_thread_pool.shutdown(wait=True)
 
         # ThreadWatcher in tsercom typically has a stop() method that might also join.
@@ -960,8 +1000,12 @@ async def test_full_e2e_with_discovery_and_grpc_stream(clear_loop_fixture, caplo
         # SplitRuntimeFactoryFactory doesn't explicitly start/stop it.
         # It's typically started if it's monitoring something.
         # For safety, add a check and attempt to stop if method exists.
-        if 'test_thread_watcher' in locals() and hasattr(test_thread_watcher, 'stop') and callable(getattr(test_thread_watcher, 'stop')):
+        if (
+            "test_thread_watcher" in locals()
+            and hasattr(test_thread_watcher, "stop")
+            and callable(getattr(test_thread_watcher, "stop"))
+        ):
             logging.info("Attempting to stop test_thread_watcher...")
-            test_thread_watcher.stop() # type: ignore
+            test_thread_watcher.stop()  # type: ignore
 
         logging.info("Test resources cleanup attempted in finally block.")
