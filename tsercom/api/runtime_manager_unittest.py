@@ -132,13 +132,12 @@ class TestRuntimeManager:
 
         mock_tw.assert_called_once()
         mock_lff_init.assert_called_once_with(mocker.ANY, mock_thread_pool)
-        # For SplitRuntimeFactoryFactory, assert it was called with the correct IPC parameters
+        # SplitRuntimeFactoryFactory __init__ no longer takes IPC params directly from RuntimeManager
         mock_sff_init.assert_called_once_with(
             mocker.ANY,  # self
             thread_pool=mock_thread_pool,
             thread_watcher=mock_thread_watcher_instance,
-            max_ipc_queue_size=-1,  # Default value from RuntimeManager
-            is_ipc_blocking=True,  # Default value from RuntimeManager
+            # max_ipc_queue_size and is_ipc_blocking are no longer passed here
         )
         mock_pc_constructor.assert_called_once()
         mock_sewsf_constructor.assert_called_once()

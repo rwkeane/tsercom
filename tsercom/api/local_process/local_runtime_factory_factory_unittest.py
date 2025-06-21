@@ -85,7 +85,6 @@ class FakeRuntimeInitializer:
         self._RuntimeConfig__is_ipc_blocking = is_ipc_blocking
         self._RuntimeConfig__data_reader_sink_is_lossy = data_reader_sink_is_lossy
 
-
         # Attributes/methods that might be called by the class under test or its collaborators
         self.create_called = False
         self.create_args = None

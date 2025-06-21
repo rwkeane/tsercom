@@ -86,7 +86,7 @@ class RuntimeDataHandlerBase(
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
         min_send_frequency_seconds: float | None = None,
-        max_queued_responses_per_endpoint: int = 1000,  # Default from RuntimeConfig
+        max_queued_responses_per_endpoint: int = 1000,
     ):
         """Initializes the RuntimeDataHandlerBase.
 

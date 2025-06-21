@@ -68,76 +68,47 @@ class TestTorchMultiprocessQueueFactory:
         MultiprocessQueueSource instances, internally using torch.multiprocessing.Queue,
         can handle torch.Tensors, and respects IPC queue parameters.
         """
-        test_max_size = 1
-        test_is_blocking = False
-        factory = TorchMultiprocessQueueFactory[torch.Tensor](
-            max_ipc_queue_size=test_max_size, is_ipc_blocking=test_is_blocking
+        # Case 1: Sized, non-blocking queue
+        factory_sized = TorchMultiprocessQueueFactory[torch.Tensor](
+            max_ipc_queue_size=1, is_ipc_blocking=False
         )
-        sink: MultiprocessQueueSink[torch.Tensor]
-        source: MultiprocessQueueSource[torch.Tensor]
-        sink, source = factory.create_queues()
+        sink_sized, source_sized = factory_sized.create_queues()
+        assert isinstance(sink_sized, MultiprocessQueueSink)
+        assert isinstance(source_sized, MultiprocessQueueSource)
+        assert (
+            not sink_sized._MultiprocessQueueSink__is_blocking
+        )  # Check private attribute
 
-        assert isinstance(
-            sink, MultiprocessQueueSink
-        ), "First item is not a MultiprocessQueueSink"
-        assert isinstance(
-            source, MultiprocessQueueSource
-        ), "Second item is not a MultiprocessQueueSource"
+        tensor1_s = torch.randn(2, 3)
+        tensor2_s = torch.randn(2, 3)
+        assert sink_sized.put_blocking(tensor1_s) is True
+        assert sink_sized.put_blocking(tensor2_s) is False  # Full, non-blocking
+        received1_s = source_sized.get_blocking(timeout=0.1)
+        assert torch.equal(received1_s, tensor1_s)
+        # get_blocking returns None on timeout/Empty from underlying queue
+        assert source_sized.get_blocking(timeout=0.01) is None # Attempt to get another item
 
-        assert sink._is_blocking == test_is_blocking
+        # Case 2: Unbounded (None), blocking queue
+        factory_unbounded = TorchMultiprocessQueueFactory[torch.Tensor](
+            max_ipc_queue_size=None, is_ipc_blocking=True
+        )
+        sink_unbounded, source_unbounded = factory_unbounded.create_queues()
+        assert isinstance(sink_unbounded, MultiprocessQueueSink)
+        assert isinstance(source_unbounded, MultiprocessQueueSource)
+        assert (
+            sink_unbounded._MultiprocessQueueSink__is_blocking
+        )  # Check private attribute
 
-        # Behavioral test for queue size
-        tensor_to_send1 = torch.randn(2, 3)
-        tensor_to_send2 = torch.randn(2, 3)
-        try:
-            put_successful1 = sink.put_blocking(
-                tensor_to_send1, timeout=1
-            )  # timeout ignored
-            assert (
-                put_successful1
-            ), "sink.put_blocking (non-blocking) failed for tensor1"
-
-            if test_max_size == 1 and not test_is_blocking:
-                put_successful2 = sink.put_blocking(
-                    tensor_to_send2, timeout=1
-                )  # timeout ignored
-                assert (
-                    not put_successful2
-                ), "sink.put_blocking (non-blocking) should have failed for tensor2"
-
-            received_tensor1 = source.get_blocking(timeout=1)
-            assert (
-                received_tensor1 is not None
-            ), "source.get_blocking returned None (timeout) for tensor1"
-            assert torch.equal(
-                tensor_to_send1, received_tensor1
-            ), "Tensor1 sent and received via Sink/Source are not equal."
-
-            if not (
-                test_max_size == 1 and not test_is_blocking
-            ):  # If tensor2 should have been put
-                # This path is for when max_size > 1 or it's blocking.
-                # Since we only tested max_size = 1 and non-blocking for the second put failure,
-                # if we reach here, it implies the second put should have succeeded (if it happened).
-                # However, this test is primarily for test_max_size = 1, non-blocking.
-                # For a more robust test of blocking or larger queues, a separate test case is better.
-                if (
-                    test_max_size != 1 or test_is_blocking
-                ):  # if tensor2 was actually put
-                    put_successful2_alt = sink.put_blocking(tensor_to_send2, timeout=1)
-                    assert (
-                        put_successful2_alt
-                    ), "sink.put_blocking failed for tensor2 (alt path)"
-                    received_tensor2 = source.get_blocking(timeout=1)
-                    assert (
-                        received_tensor2 is not None
-                    ), "source.get_blocking returned None for tensor2"
-                    assert torch.equal(
-                        tensor_to_send2, received_tensor2
-                    ), "Tensor2 not equal"
-
-        except Exception as e:
-            pytest.fail(f"Tensor transfer via Sink/Source failed with exception: {e}")
+        tensor1_u = torch.randn(2, 3)
+        tensor2_u = torch.randn(2, 3)
+        assert sink_unbounded.put_blocking(tensor1_u) is True
+        assert (
+            sink_unbounded.put_blocking(tensor2_u) is True
+        )  # Unbounded, should succeed
+        received1_u = source_unbounded.get_blocking(timeout=0.1)
+        received2_u = source_unbounded.get_blocking(timeout=0.1)
+        assert torch.equal(received1_u, tensor1_u)
+        assert torch.equal(received2_u, tensor2_u)
 
     @pytest.mark.timeout(20)
     @pytest.mark.parametrize("start_method", ["fork", "spawn", "forkserver"])

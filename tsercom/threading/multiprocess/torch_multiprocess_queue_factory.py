@@ -1,7 +1,7 @@
 """Defines a factory for creating torch.multiprocessing queues."""
 
 import multiprocessing as std_mp  # For type hinting BaseContext
-from typing import Tuple, TypeVar, Generic
+from typing import Tuple, TypeVar, Generic, Optional
 import torch.multiprocessing as mp
 
 from tsercom.threading.multiprocess.multiprocess_queue_factory import (
@@ -34,7 +34,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         self,
         ctx_method: str = "spawn",
         context: std_mp.context.BaseContext | None = None,
-        max_ipc_queue_size: int = -1,
+        max_ipc_queue_size: Optional[int] = None,
         is_ipc_blocking: bool = True,
     ):
         """Initializes the TorchMultiprocessQueueFactory.
@@ -46,16 +46,17 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             context: An optional existing multiprocessing context to use.
                      If None, a new context is created using ctx_method.
             max_ipc_queue_size: The maximum size for the created IPC queues.
-                                Defaults to -1 (unbounded for torch.mp.Queue).
+                                `None` or non-positive means unbounded.
+                                Defaults to `None`.
             is_ipc_blocking: Determines if `put` operations on the created IPC
                              queues should block. Defaults to True.
         """
         if context is not None:
-            self._mp_context = context
+            self.__mp_context = context
         else:
-            self._mp_context = mp.get_context(ctx_method)
-        self._max_ipc_queue_size: int = max_ipc_queue_size
-        self._is_ipc_blocking: bool = is_ipc_blocking
+            self.__mp_context = mp.get_context(ctx_method)
+        self.__max_ipc_queue_size: Optional[int] = max_ipc_queue_size
+        self.__is_ipc_blocking: bool = is_ipc_blocking
 
     def create_queues(
         self,
@@ -72,13 +73,14 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             instances, both using a torch.multiprocessing.Queue internally.
         """
         # For torch.multiprocessing.Queue, maxsize=0 means platform default (usually large).
-        # If max_ipc_queue_size is -1 (our "unbounded" signal), use 0 for torch queue.
-        effective_maxsize = (
-            self._max_ipc_queue_size if self._max_ipc_queue_size > 0 else 0
-        )
-        torch_queue: mp.Queue[T] = self._mp_context.Queue(maxsize=effective_maxsize)
+        # If self.__max_ipc_queue_size is None or non-positive, use 0 for torch queue.
+        effective_maxsize = 0
+        if self.__max_ipc_queue_size is not None and self.__max_ipc_queue_size > 0:
+            effective_maxsize = self.__max_ipc_queue_size
+
+        torch_queue: mp.Queue[T] = self.__mp_context.Queue(maxsize=effective_maxsize)
         # MultiprocessQueueSink and MultiprocessQueueSource are generic and compatible
         # with torch.multiprocessing.Queue, allowing consistent queue interaction.
-        sink = MultiprocessQueueSink[T](torch_queue, is_blocking=self._is_ipc_blocking)
+        sink = MultiprocessQueueSink[T](torch_queue, is_blocking=self.__is_ipc_blocking)
         source = MultiprocessQueueSource[T](torch_queue)
         return sink, source

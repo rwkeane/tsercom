@@ -98,9 +98,6 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         split_error_watcher_source_factory: Optional[
             SplitErrorWatcherSourceFactory
         ] = None,
-        # IPC Queue Configs - align defaults with RuntimeConfig
-        max_ipc_queue_size: int = -1,
-        is_ipc_blocking: bool = True,
     ) -> None:
         """Initializes the RuntimeManager.
 
@@ -114,19 +111,14 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
                 in-process runtimes. If `None`, a default instance is created.
             split_runtime_factory_factory: An optional factory for creating
                 out-of-process (split) runtimes. If `None`, a default instance
-                is created.
+                is created, which will use IPC settings from the RuntimeConfig
+                of the initializers it processes.
             process_creator: An optional helper for creating new processes,
                 primarily for testing. If `None`, a default `ProcessCreator`
                 is used.
             split_error_watcher_source_factory: An optional factory for creating
                 `SplitProcessErrorWatcherSource` instances, used for monitoring
                 out-of-process runtimes. If `None`, a default factory is used.
-            max_ipc_queue_size: The maximum size for core inter-process
-                communication (IPC) queues. Defaults to -1 (unbounded).
-                Passed to default SplitRuntimeFactoryFactory if one is created.
-            is_ipc_blocking: Determines if `put` operations on core IPC queues
-                should block. Defaults to True.
-                Passed to default SplitRuntimeFactoryFactory if one is created.
         """
         super().__init__()
 
@@ -170,8 +162,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             self.__split_runtime_factory_factory = SplitRuntimeFactoryFactory(
                 thread_pool=default_split_factory_thread_pool,
                 thread_watcher=self.__thread_watcher,
-                max_ipc_queue_size=max_ipc_queue_size,
-                is_ipc_blocking=is_ipc_blocking,
+                # IPC settings will be derived from RuntimeInitializer by SRFF
             )
 
         self.__initializers: List[InitializationPair[DataTypeT, EventTypeT]] = []

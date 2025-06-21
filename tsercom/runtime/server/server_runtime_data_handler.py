@@ -50,7 +50,7 @@ class ServerRuntimeDataHandler(
         data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]],
         event_source: AsyncPoller[EventInstance[EventTypeT]],
         min_send_frequency_seconds: Optional[float] = None,
-        max_queued_responses_per_endpoint: int = 1000,  # Default from RuntimeConfig
+        max_queued_responses_per_endpoint: int = 1000,
         *,
         is_testing: bool = False,
     ):

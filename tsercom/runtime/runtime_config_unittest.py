@@ -100,7 +100,7 @@ class TestRuntimeConfig:
         assert config_client.timeout_seconds == 60
         assert config_client.data_aggregator_client is None
         assert config_client.max_queued_responses_per_endpoint == 1000
-        assert config_client.max_ipc_queue_size == -1
+        assert config_client.max_ipc_queue_size is None
         assert config_client.is_ipc_blocking is True
         assert config_client.data_reader_sink_is_lossy is True
 
@@ -108,7 +108,7 @@ class TestRuntimeConfig:
         assert config_server.timeout_seconds == 60
         assert config_server.data_aggregator_client is None
         assert config_server.max_queued_responses_per_endpoint == 1000
-        assert config_server.max_ipc_queue_size == -1
+        assert config_server.max_ipc_queue_size is None
         assert config_server.is_ipc_blocking is True
         assert config_server.data_reader_sink_is_lossy is True
 

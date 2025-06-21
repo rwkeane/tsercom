@@ -249,13 +249,16 @@ def test_create_factory_and_pair_logic_default_queues(
     mock_queue_factories,
     patch_other_dependencies,
 ):
-    test_max_ipc_q_size = 50
-    test_is_ipc_blocking = False
+    # Configure fake_initializer with specific IPC settings
+    # These should be used by _create_pair when it instantiates queue factories
+    setattr(fake_initializer, "_RuntimeConfig__max_ipc_queue_size", 50)
+    setattr(fake_initializer, "_RuntimeConfig__is_ipc_blocking", False)
+    # Ensure properties reflect these overrides for direct access if needed by SRFF logic
+    # (though current SRFF _create_pair uses direct property access on initializer)
+    # No, SRFF will use initializer.max_ipc_queue_size which reads from __ value.
+
     factory_factory = SplitRuntimeFactoryFactory(
-        thread_pool=fake_executor,
-        thread_watcher=fake_watcher,
-        max_ipc_queue_size=test_max_ipc_q_size,
-        is_ipc_blocking=test_is_ipc_blocking,
+        thread_pool=fake_executor, thread_watcher=fake_watcher
     )
     returned_factory = factory_factory.create_factory(fake_client, fake_initializer)
 
@@ -263,9 +266,12 @@ def test_create_factory_and_pair_logic_default_queues(
     # (event, data, command queues when no torch is involved)
     assert mock_queue_factories["default_init"].call_count == 3
     for call_args in mock_queue_factories["default_init"].call_args_list:
-        # self, ctx_method="spawn", context=None, max_ipc_queue_size=-1, is_ipc_blocking=True
-        assert call_args[1]["max_ipc_queue_size"] == test_max_ipc_q_size
-        assert call_args[1]["is_ipc_blocking"] == test_is_ipc_blocking
+        assert (
+            call_args[1]["max_ipc_queue_size"] == fake_initializer.max_ipc_queue_size
+        )  # Now from initializer
+        assert (
+            call_args[1]["is_ipc_blocking"] == fake_initializer.is_ipc_blocking
+        )  # Now from initializer
 
     assert mock_queue_factories["default_create_queues"].call_count == 3
     mock_queue_factories["torch_init"].assert_not_called()
@@ -392,16 +398,30 @@ def test_dynamic_queue_selection(
     expected_default_cmd_calls,
     expected_internal_q_type,
 ):
-    test_max_ipc_q_size = 75
-    test_is_ipc_blocking = False
     factory_factory = SplitRuntimeFactoryFactory(
-        thread_pool=fake_executor,
-        thread_watcher=fake_watcher,
-        max_ipc_queue_size=test_max_ipc_q_size,
-        is_ipc_blocking=test_is_ipc_blocking,
+        thread_pool=fake_executor, thread_watcher=fake_watcher
     )
 
-    specific_initializer = initializer_type(data_aggregator_client=None)
+    # Configure specific_initializer with test IPC settings
+    test_ipc_q_size_for_selection = 75
+    test_ipc_blocking_for_selection = False
+
+    # Instantiate the generic initializer
+    specific_initializer = (
+        initializer_type()
+    )  # Default args from GenericFakeRuntimeInitializer
+    # Override IPC settings on the instance for this test
+    setattr(
+        specific_initializer,
+        "_RuntimeConfig__max_ipc_queue_size",
+        test_ipc_q_size_for_selection,
+    )
+    setattr(
+        specific_initializer,
+        "_RuntimeConfig__is_ipc_blocking",
+        test_ipc_blocking_for_selection,
+    )
+
     factory_factory._create_pair(specific_initializer)
 
     # Check calls to __init__ of queue factories
@@ -410,8 +430,13 @@ def test_dynamic_queue_selection(
         total_torch_init_calls = 2  # Data and Event
         assert mock_queue_factories["torch_init"].call_count == total_torch_init_calls
         for call_args in mock_queue_factories["torch_init"].call_args_list:
-            assert call_args[1]["max_ipc_queue_size"] == test_max_ipc_q_size
-            assert call_args[1]["is_ipc_blocking"] == test_is_ipc_blocking
+            assert (
+                call_args[1]["max_ipc_queue_size"]
+                == specific_initializer.max_ipc_queue_size
+            )
+            assert (
+                call_args[1]["is_ipc_blocking"] == specific_initializer.is_ipc_blocking
+            )
     else:
         mock_queue_factories["torch_init"].assert_not_called()
 
@@ -422,8 +447,11 @@ def test_dynamic_queue_selection(
 
     assert mock_queue_factories["default_init"].call_count == total_default_init_calls
     for call_args in mock_queue_factories["default_init"].call_args_list:
-        assert call_args[1]["max_ipc_queue_size"] == test_max_ipc_q_size
-        assert call_args[1]["is_ipc_blocking"] == test_is_ipc_blocking
+        assert (
+            call_args[1]["max_ipc_queue_size"]
+            == specific_initializer.max_ipc_queue_size
+        )
+        assert call_args[1]["is_ipc_blocking"] == specific_initializer.is_ipc_blocking
 
     # Check calls to create_queues (unchanged logic for this, just verify counts)
     assert mock_queue_factories["torch_create_queues"].call_count == (
@@ -449,18 +477,18 @@ def test_dynamic_queue_selection(
 
 
 def test_init_method(fake_executor, fake_watcher):
-    test_max_ipc_q_size = 99
-    test_is_ipc_blocking = False
+    # test_max_ipc_q_size = 99 # No longer passed to __init__
+    # test_is_ipc_blocking = False # No longer passed to __init__
     factory_factory = SplitRuntimeFactoryFactory(
         thread_pool=fake_executor,
         thread_watcher=fake_watcher,
-        max_ipc_queue_size=test_max_ipc_q_size,
-        is_ipc_blocking=test_is_ipc_blocking,
+        # max_ipc_queue_size and is_ipc_blocking are removed from constructor
     )
     assert factory_factory._SplitRuntimeFactoryFactory__thread_pool is fake_executor
     assert factory_factory._SplitRuntimeFactoryFactory__thread_watcher is fake_watcher
-    assert factory_factory._max_ipc_queue_size == test_max_ipc_q_size
-    assert factory_factory._is_ipc_blocking == test_is_ipc_blocking
+    # Attributes _max_ipc_queue_size and _is_ipc_blocking are no longer on the instance
+    assert not hasattr(factory_factory, "_max_ipc_queue_size")
+    assert not hasattr(factory_factory, "_is_ipc_blocking")
 
 
 def test_create_pair_aggregator_no_timeout(

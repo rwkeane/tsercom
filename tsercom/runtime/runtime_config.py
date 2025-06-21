@@ -58,7 +58,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
         max_queued_responses_per_endpoint: int = 1000,
-        max_ipc_queue_size: int = -1,
+        max_ipc_queue_size: Optional[int] = None,
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
@@ -73,7 +73,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             max_queued_responses_per_endpoint: The maximum number of responses
                 that can be queued from a single remote endpoint. Defaults to 1000.
             max_ipc_queue_size: The maximum size of core inter-process communication
-                queues. Defaults to -1 (unbounded).
+                queues. `None` or non-positive means unbounded. Defaults to `None`.
             is_ipc_blocking: Whether IPC queue `put` operations should block if the
                 queue is full. Defaults to True (blocking). If False, operations
                 may be lossy if the queue is full.
@@ -92,7 +92,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
         max_queued_responses_per_endpoint: int = 1000,
-        max_ipc_queue_size: int = -1,
+        max_ipc_queue_size: Optional[int] = None,
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
@@ -107,7 +107,7 @@ class RuntimeConfig(Generic[DataTypeT]):
             max_queued_responses_per_endpoint: The maximum number of responses
                 that can be queued from a single remote endpoint. Defaults to 1000.
             max_ipc_queue_size: The maximum size of core inter-process communication
-                queues. Defaults to -1 (unbounded).
+                queues. `None` or non-positive means unbounded. Defaults to `None`.
             is_ipc_blocking: Whether IPC queue `put` operations should block if the
                 queue is full. Defaults to True (blocking). If False, operations
                 may be lossy if the queue is full.
@@ -136,7 +136,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         min_send_frequency_seconds: Optional[float] = None,
         auth_config: Optional[BaseChannelAuthConfig] = None,
         max_queued_responses_per_endpoint: int = 1000,
-        max_ipc_queue_size: int = -1,
+        max_ipc_queue_size: Optional[int] = None,
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
@@ -174,8 +174,8 @@ class RuntimeConfig(Generic[DataTypeT]):
                 responses. Defaults to 1000.
             max_ipc_queue_size: The maximum size for core inter-process
                 communication (IPC) queues (e.g., `multiprocessing.Queue`).
-                A value of -1 or 0 typically means platform-dependent unbounded
-                or very large. Defaults to -1.
+                If `None` or a non-positive integer, the queue size is considered
+                unbounded (platform-dependent default). Defaults to `None`.
             is_ipc_blocking: Determines if `put` operations on core IPC queues
                 should block when the queue is full (`True`) or be non-blocking
                 and potentially lossy (`False`). Defaults to `True`.
@@ -249,7 +249,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         self.__max_queued_responses_per_endpoint: int = (
             max_queued_responses_per_endpoint
         )
-        self.__max_ipc_queue_size: int = max_ipc_queue_size
+        self.__max_ipc_queue_size: Optional[int] = max_ipc_queue_size
         self.__is_ipc_blocking: bool = is_ipc_blocking
         self.__data_reader_sink_is_lossy: bool = data_reader_sink_is_lossy
 
@@ -345,16 +345,16 @@ class RuntimeConfig(Generic[DataTypeT]):
         return self.__max_queued_responses_per_endpoint
 
     @property
-    def max_ipc_queue_size(self) -> int:
+    def max_ipc_queue_size(self) -> Optional[int]:
         """The maximum size of core inter-process communication queues.
 
         This value is used for the `maxsize` parameter of `multiprocessing.Queue`
         or `torch.multiprocessing.Queue` instances used for core IPC.
-        A value of -1 or 0 typically indicates an unbounded or platform-dependent
-        maximum size.
+        If `None` or a non-positive integer, the queue is effectively unbounded
+        (platform-dependent default size).
 
         Returns:
-            The configured maximum size for IPC queues.
+            The configured maximum size for IPC queues, or `None` for unbounded.
         """
         return self.__max_ipc_queue_size
 
