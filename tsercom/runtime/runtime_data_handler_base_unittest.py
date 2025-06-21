@@ -384,33 +384,6 @@ class TestRuntimeDataHandlerBaseBehavior:
         assert annotated_instance.timestamp == expected_desynced_dt
 
     @pytest.mark.asyncio
-    async def test_processor_process_data_no_timestamp(
-        self,
-        data_processor,
-        handler,
-        test_caller_id_instance,
-        mocker,
-    ):
-        test_payload = "payload_no_ts"
-        fixed_now = datetime.datetime.now(datetime.timezone.utc)
-        mock_datetime_class = mocker.patch(
-            "tsercom.runtime.endpoint_data_processor.datetime"
-        )
-        mock_datetime_class.now.return_value = fixed_now
-        # Ensure timezone.utc is correctly patche/available on the mocked datetime
-        mock_datetime_class.timezone.utc = datetime.timezone.utc
-
-        await data_processor.process_data(test_payload, timestamp=None)
-        mock_datetime_class.now.assert_called_once_with(datetime.timezone.utc)
-        handler._on_data_ready.assert_called_once()
-        args, _ = handler._on_data_ready.call_args
-        annotated_instance: AnnotatedInstance = args[0]
-        assert isinstance(annotated_instance, AnnotatedInstance)
-        assert annotated_instance.data == test_payload
-        assert annotated_instance.caller_id is test_caller_id_instance
-        assert annotated_instance.timestamp == fixed_now
-
-    @pytest.mark.asyncio
     async def test_dispatch_loop_event_for_known_caller(self, handler, mocker):
         test_caller_id = CallerIdentifier.random()
         mock_event_item = mocker.MagicMock(

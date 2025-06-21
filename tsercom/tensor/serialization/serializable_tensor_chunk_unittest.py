@@ -7,7 +7,7 @@ import datetime
 from typing import Tuple, List, Any
 import lz4.frame
 
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 from tsercom.timesync.common.synchronized_timestamp import (

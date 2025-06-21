@@ -6,7 +6,7 @@ import torch
 from unittest.mock import AsyncMock
 
 # New imports
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 from tsercom.timesync.common.synchronized_timestamp import (

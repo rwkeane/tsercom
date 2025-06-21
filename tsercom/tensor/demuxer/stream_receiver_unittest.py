@@ -8,14 +8,14 @@ import pytest_asyncio
 from pytest_mock import MockerFixture
 import torch
 
-from tsercom.tensor.stream_receiver import TensorStreamReceiver
+from tsercom.tensor.demuxer.stream_receiver import TensorStreamReceiver
 from tsercom.tensor.proto import (
     TensorInitializer as GrpcTensorInitializer,
 )
 from tsercom.tensor.serialization.serializable_tensor_initializer import (
     SerializableTensorInitializer,
 )
-from tsercom.tensor.serialization.serializable_tensor import (
+from tsercom.tensor.serialization.serializable_tensor_chunk import (
     SerializableTensorChunk,
 )
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
@@ -246,7 +246,8 @@ async def test_init_smoothed_demuxer_start_called(
 ) -> None:
     mock_demuxer_start = mocker.AsyncMock()
     mocker.patch(
-        "tsercom.tensor.stream_receiver.SmoothedTensorDemuxer.start", mock_demuxer_start
+        "tsercom.tensor.demuxer.stream_receiver.SmoothedTensorDemuxer.start",
+        mock_demuxer_start,
     )
 
     sti = serializable_tensor_initializer_factory(
