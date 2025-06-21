@@ -49,7 +49,7 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
 
     def create_queues(
         self,
-        max_ipc_queue_size: Optional[int] = None,
+        max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
         """
@@ -67,7 +67,8 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a context-aware `multiprocessing.Queue` internally.
         """
-        # A maxsize of <= 0 for multiprocessing.Queue means platform-dependent default (effectively "unbounded").
+        # A maxsize of <= 0 for multiprocessing.Queue means platform-dependent
+        # default (effectively "unbounded").
         effective_maxsize = 0
         if max_ipc_queue_size is not None and max_ipc_queue_size > 0:
             effective_maxsize = max_ipc_queue_size

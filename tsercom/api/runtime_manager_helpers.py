@@ -58,9 +58,7 @@ class ProcessCreator:
             # BaseContext does not define .Process, but concrete contexts do.
             # Use getattr and cast to satisfy mypy.
             process_constructor_attr = getattr(self._context, "Process", None)
-            if not process_constructor_attr or not callable(
-                process_constructor_attr
-            ):
+            if not process_constructor_attr or not callable(process_constructor_attr):
                 logger.error(
                     "Context %s does not have a callable 'Process' attribute.",
                     type(self._context).__name__,
