@@ -246,7 +246,8 @@ async def test_init_smoothed_demuxer_start_called(
 ) -> None:
     mock_demuxer_start = mocker.AsyncMock()
     mocker.patch(
-        "tsercom.tensor.demuxer.stream_receiver.SmoothedTensorDemuxer.start", mock_demuxer_start
+        "tsercom.tensor.demuxer.stream_receiver.SmoothedTensorDemuxer.start",
+        mock_demuxer_start,
     )
 
     sti = serializable_tensor_initializer_factory(

@@ -193,9 +193,7 @@ def test_init_with_timeout_creates_and_starts_tracker(
         client=cast(RemoteDataAggregator.Client, mock_client),
         timeout=timeout_seconds,
     )
-    mock_data_timeout_tracker_class.assert_called_once_with(
-        timeout_seconds
-    )
+    mock_data_timeout_tracker_class.assert_called_once_with(timeout_seconds)
     mock_instance_created_by_class: MagicMock = (
         mock_data_timeout_tracker_class.return_value
     )
@@ -887,12 +885,18 @@ def test_get_interpolated_at_no_id_returns_dict_of_organizer_results(
 
     result = aggregator.get_interpolated_at(timestamp_to_query)
 
-    actual_org1.get_interpolated_at.assert_called_once_with(timestamp=timestamp_to_query)
-    actual_org2.get_interpolated_at.assert_called_once_with(timestamp=timestamp_to_query)
+    actual_org1.get_interpolated_at.assert_called_once_with(
+        timestamp=timestamp_to_query
+    )
+    actual_org2.get_interpolated_at.assert_called_once_with(
+        timestamp=timestamp_to_query
+    )
 
     # Caller_id_2 results in None, so it should be omitted from the dict
     expected_dict: dict[CallerIdentifier, InterpolableExposedData] = {
         caller_id_1: data1_interpolated,
     }
     assert result == expected_dict
+
+
 # Removed superfluous end of file marker
