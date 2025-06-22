@@ -38,14 +38,13 @@ class TensorStreamReceiver(TensorDemuxer.Client):
         *,
         data_timeout_seconds: float = 60.0,
     ) -> None:
-        """Initializes a TensorStreamReceiver with a standard TensorDemuxer.
-        This configuration is used for receiving raw tensor keyframes
-        without interpolation.
+        """Initialize for raw tensor keyframes (no interpolation).
+
+        Uses a standard `TensorDemuxer`.
 
         Args:
-            initializer: The tensor initializer (Serializable or gRPC).
-            data_timeout_seconds: Timeout for data chunks.
-
+            initializer: Tensor initializer (Serializable or gRPC).
+            data_timeout_seconds: Timeout for data chunks. Default 60s.
         """
         ...
 
@@ -59,16 +58,16 @@ class TensorStreamReceiver(TensorDemuxer.Client):
         data_timeout_seconds: float = 60.0,
         align_output_timestamps: bool = False,
     ) -> None:
-        """Initializes a TensorStreamReceiver with a SmoothedTensorDemuxer.
-        This configuration is used for receiving interpolated tensor data.
+        """Initialize for interpolated tensor data.
+
+        Uses a `SmoothedTensorDemuxer`.
 
         Args:
-            initializer: The tensor initializer (Serializable or gRPC).
-            smoothing_strategy: The strategy for smoothing/interpolating tensor data.
-            output_interval_seconds: Interval for generating smoothed tensors.
-            data_timeout_seconds: Timeout for data chunks.
-            align_output_timestamps: Whether to align output timestamps.
-
+            initializer: Tensor initializer (Serializable or gRPC).
+            smoothing_strategy: Strategy for smoothing/interpolating data.
+            output_interval_seconds: Interval for smoothed tensor output. Default 0.1s.
+            data_timeout_seconds: Timeout for data chunks. Default 60s.
+            align_output_timestamps: If output timestamps should be aligned. Default False.
         """
         ...
 

@@ -275,7 +275,18 @@ class RuntimeDataHandlerBase(
     @overload
     async def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]: ...
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
+        """Register a caller with an explicit endpoint address and port.
+
+        Args:
+            caller_id: The unique identifier for the caller.
+            endpoint: The network endpoint address (e.g., IP address).
+            port: The network port number.
+
+        Returns:
+            An `EndpointDataProcessor` for the registered caller.
+        """
+        ...
 
     @overload
     async def register_caller(
@@ -283,6 +294,17 @@ class RuntimeDataHandlerBase(
     ) -> (
         EndpointDataProcessor[DataTypeT, EventTypeT] | None
     ):  # Can return None if context parsing fails
+        """Register a caller using a gRPC servicer context to derive endpoint.
+
+        Args:
+            caller_id: The unique identifier for the caller.
+            context: The `grpc.aio.ServicerContext` from which to extract
+                the caller's endpoint information.
+
+        Returns:
+            An `EndpointDataProcessor` for the registered caller, or `None` if
+            endpoint information cannot be extracted from the context.
+        """
         ...
 
     async def register_caller(

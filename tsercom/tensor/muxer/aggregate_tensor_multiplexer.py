@@ -247,17 +247,13 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
     async def add_to_aggregation(
         self, publisher: Publisher, tensor_length: int, *, sparse: bool = False
     ) -> None:
-        """Adds a publisher whose tensor will be appended to the end of the aggregate
-        tensor.
+        """Add a publisher, appending its tensor to the aggregate.
 
         Args:
-            publisher: The Publisher instance providing the tensor data.
-            tensor_length: The length of the tensor provided by this publisher.
-            sparse: If True, a SparseTensorMultiplexer will be used internally for this
-                    publisher, meaning only changed indices are processed and sent to
-                    this AggregateTensorMultiplexer's _InternalClient. If False, a
-                    CompleteTensorMultiplexer is used, sending the full tensor.
-
+            publisher: The `Publisher` providing tensor data.
+            tensor_length: Length of the publisher's tensor.
+            sparse: If True, use `SparseTensorMultiplexer` internally for this
+                publisher; else, use `CompleteTensorMultiplexer`. Default False.
         """
         ...
 
@@ -270,18 +266,14 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         *,
         sparse: bool = False,
     ) -> None:
-        """Adds a publisher whose tensor will be mapped to a specific range within the
-        aggregate tensor.
+        """Add a publisher, mapping its tensor to a specific range.
 
         Args:
-            publisher: The Publisher instance providing the tensor data.
-            index_range: The specific range (e.g., range(10, 20)) in the aggregate
-                         tensor where this publisher's data will be placed.
-            tensor_length: The length of the tensor provided by this publisher. Must
-                           match len(index_range).
-            sparse: If True, a SparseTensorMultiplexer will be used internally.
-                    If False, a CompleteTensorMultiplexer is used.
-
+            publisher: The `Publisher` providing tensor data.
+            index_range: The range in the aggregate tensor for this publisher's data.
+            tensor_length: Length of the publisher's tensor (must match range length).
+            sparse: If True, use `SparseTensorMultiplexer` internally;
+                else, `CompleteTensorMultiplexer`. Default False.
         """
         ...
 

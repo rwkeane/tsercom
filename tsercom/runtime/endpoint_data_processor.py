@@ -99,13 +99,11 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @overload
     async def process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-        """Processes incoming data with an explicit `datetime` timestamp.
+        """Process data with an explicit `datetime` timestamp.
 
         Args:
-            data: The data item of type `DataTypeT` to process.
-            timestamp: The `datetime` object associated with the data. It is
-                assumed to be an aware datetime object (e.g., in UTC).
-
+            data: The data to process.
+            timestamp: Aware `datetime` object for the data (assumed UTC).
         """
 
     @overload
@@ -115,20 +113,13 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         timestamp: ServerTimestamp,
         context: grpc.aio.ServicerContext | None = None,
     ) -> None:
-        """Processes incoming data with a `ServerTimestamp`.
-
-        The `ServerTimestamp` is first desynchronized to a local `datetime`
-        object using the `desynchronize` method. If desynchronization fails
-        and a `context` is provided, the gRPC call associated with the context
-        may be aborted.
+        """Process data with a `ServerTimestamp`, desynchronizing it.
 
         Args:
-            data: The data item of type `DataTypeT` to process.
-            timestamp: The `ServerTimestamp` associated with the data.
-            context: Optional. The `grpc.aio.ServicerContext` for a gRPC call, used
-                for potentially aborting the call if timestamp desynchronization
-                fails.
-
+            data: The data to process.
+            timestamp: `ServerTimestamp` to be desynchronized.
+            context: Optional gRPC context for error reporting if
+                desynchronization fails.
         """
 
     async def process_data(

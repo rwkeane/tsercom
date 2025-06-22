@@ -53,14 +53,37 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
     # These guide type checkers and IDEs for better developer experience.
     @overload
     def on_event(self, event: EventTypeT) -> None:
+        """Send an event with only the event data.
+
+        Timestamp defaults to now, no specific caller.
+
+        Args:
+            event: The event data to send.
+        """
         ...
 
     @overload
     def on_event(self, event: EventTypeT, caller_id: CallerIdentifier) -> None:
+        """Send an event with event data and a caller ID.
+
+        Timestamp defaults to now.
+
+        Args:
+            event: The event data to send.
+            caller_id: ID of the caller originating the event.
+        """
         ...
 
     @overload
     def on_event(self, event: EventTypeT, *, timestamp: datetime.datetime) -> None:
+        """Send an event with event data and a specific timestamp.
+
+        No specific caller.
+
+        Args:
+            event: The event data to send.
+            timestamp: Timestamp for the event.
+        """
         ...
 
     @overload
@@ -71,30 +94,12 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         *,
         timestamp: datetime.datetime,
     ) -> None:
-        ...
-
-    @abstractmethod
-    def on_event(
-        self,
-        event: EventTypeT,
-        caller_id: CallerIdentifier | None = None,
-        *,
-        timestamp: datetime.datetime | None = None,
-    ) -> None:
-        """Send an event to the runtime.
-
-        The event can be sent with or without a specific caller ID and
-        with an optional custom timestamp. If no caller ID is provided,
-        the event may be broadcast or handled by a default mechanism.
-        If no timestamp is provided, the current time is typically used
-        by the implementation.
+        """Send an event with event data, caller ID, and a specific timestamp.
 
         Args:
             event: The event data to send.
-            caller_id: Optional. ID of the caller originating the event.
-                       If specified, event might be targeted or filtered.
+            caller_id: ID of the caller originating the event.
             timestamp: Timestamp for the event.
-
         """
         ...
 
@@ -113,6 +118,8 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         the event may be broadcast or handled by a default mechanism.
         If no timestamp is provided, the current time is typically used
         by the implementation.
+
+        Refer to the `@overload` signatures for specific combinations of parameters.
 
         Args:
             event: The event data to send.

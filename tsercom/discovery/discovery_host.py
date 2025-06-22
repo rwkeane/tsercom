@@ -28,12 +28,10 @@ class DiscoveryHost(
 
     @overload
     def __init__(self, *, service_type: str):
-        """Initialize DiscoveryHost to listen for a specific mDNS service type.
+        """Initialize with a specific mDNS service type.
 
         Args:
-            service_type: The mDNS service type string to discover
-                          (e.g., "_my_service._tcp.local.").
-
+            service_type: The mDNS service type (e.g., "_my_service._tcp.local.").
         """
         ...
 
@@ -46,15 +44,11 @@ class DiscoveryHost(
             InstanceListener[ServiceInfoT],
         ],
     ):
-        """Initialize DiscoveryHost with a factory for a custom InstanceListener.
-
-        This allows using a custom mDNS discovery mechanism or configuration.
+        """Initialize with a factory for a custom `InstanceListener`.
 
         Args:
-            instance_listener_factory: A callable that takes an
-                `InstanceListener.Client` (which will be this DiscoveryHost instance)
-                and returns an `InstanceListener[ServiceInfoT]` instance.
-
+            instance_listener_factory: Callable creating an `InstanceListener`.
+                Takes `self` (as `InstanceListener.Client`) and returns the listener.
         """
         ...
 
@@ -64,13 +58,13 @@ class DiscoveryHost(
         *,
         mdns_listener_factory: MdnsListenerFactory,
     ):
-        """Initialize DiscoveryHost with a factory for a custom InstanceListener.
+        """Initialize with a factory for a custom `MdnsListener`.
 
-        This allows using a custom mDNS discovery mechanism or configuration.
+        Used by the default `InstanceListener` if `instance_listener_factory`
+        is not provided.
 
         Args:
-            mdns_listener_factory: A callable to create a new MdnsListener.
-
+            mdns_listener_factory: Callable creating an `MdnsListener`.
         """
         ...
 

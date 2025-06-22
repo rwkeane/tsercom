@@ -63,24 +63,18 @@ class RuntimeConfig(Generic[DataTypeT]):
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
-        """Initializes with ServiceType enum and optional configurations.
+        """Initialize with `ServiceType` enum and detailed configurations.
 
         Args:
-            service_type: The operational mode as a `ServiceType` enum.
+            service_type: `ServiceType.CLIENT` or `ServiceType.SERVER`.
             data_aggregator_client: Optional client for data aggregation.
-            timeout_seconds: Data timeout in seconds. Defaults to 60.
-            min_send_frequency_seconds: Minimum event send interval.
-            auth_config: Optional channel authentication configuration.
-            max_queued_responses_per_endpoint: The maximum number of responses
-                that can be queued from a single remote endpoint. Defaults to 1000.
-            max_ipc_queue_size: The maximum size of core inter-process communication
-                queues. `None` or non-positive means unbounded. Defaults to `None`.
-            is_ipc_blocking: Whether IPC queue `put` operations should block if the
-                queue is full. Defaults to True (blocking). If False, operations
-                may be lossy if the queue is full.
-            data_reader_sink_is_lossy: Controls if the `DataReaderSink` used by
-                `RemoteRuntimeFactory` is lossy. Defaults to True.
-
+            timeout_seconds: Data timeout. Default 60s. `None` for no timeout.
+            min_send_frequency_seconds: Min event send interval. `None` for no min.
+            auth_config: Channel authentication configuration.
+            max_queued_responses_per_endpoint: Max queued responses per endpoint.
+            max_ipc_queue_size: Max IPC queue size. `None` for unbounded.
+            is_ipc_blocking: If IPC queue `put` is blocking. Default True.
+            data_reader_sink_is_lossy: If `DataReaderSink` is lossy. Default True.
         """
         ...
 
@@ -98,16 +92,27 @@ class RuntimeConfig(Generic[DataTypeT]):
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
+        """Initialize with service type string and detailed configurations.
+
+        Args:
+            service_type: "Client" or "Server".
+            data_aggregator_client: Optional client for data aggregation.
+            timeout_seconds: Data timeout. Default 60s. `None` for no timeout.
+            min_send_frequency_seconds: Min event send interval. `None` for no min.
+            auth_config: Channel authentication configuration.
+            max_queued_responses_per_endpoint: Max queued responses per endpoint.
+            max_ipc_queue_size: Max IPC queue size. `None` for unbounded.
+            is_ipc_blocking: If IPC queue `put` is blocking. Default True.
+            data_reader_sink_is_lossy: If `DataReaderSink` is lossy. Default True.
+        """
         ...
 
     @overload
     def __init__(self, *, other_config: "RuntimeConfig[DataTypeT]"):
-        """Initializes by cloning settings from another RuntimeConfig instance.
+        """Initialize by cloning from another `RuntimeConfig` instance.
 
         Args:
-            other_config: An existing `RuntimeConfig` instance to clone.
-                All other parameters will be ignored if this is provided.
-
+            other_config: The `RuntimeConfig` instance to clone.
         """
         ...
 

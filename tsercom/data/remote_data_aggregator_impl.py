@@ -45,6 +45,12 @@ class RemoteDataAggregatorImpl(
         thread_pool: ThreadPoolExecutor,
         client: RemoteDataAggregator.Client | None = None,
     ):
+        """Initialize with thread pool and optional client.
+
+        Args:
+            thread_pool: ThreadPoolExecutor for async tasks.
+            client: Optional client for data event callbacks.
+        """
         ...
 
     @overload
@@ -55,6 +61,13 @@ class RemoteDataAggregatorImpl(
         *,
         tracker: DataTimeoutTracker,
     ):
+        """Initialize with thread pool, client, and custom timeout tracker.
+
+        Args:
+            thread_pool: ThreadPoolExecutor for async tasks.
+            client: Optional client for data event callbacks.
+            tracker: Custom DataTimeoutTracker instance.
+        """
         ...
 
     @overload
@@ -65,6 +78,13 @@ class RemoteDataAggregatorImpl(
         *,
         timeout: int,
     ):
+        """Initialize with thread pool, client, and timeout for default tracker.
+
+        Args:
+            thread_pool: ThreadPoolExecutor for async tasks.
+            client: Optional client for data event callbacks.
+            timeout: Timeout duration in seconds for default DataTimeoutTracker.
+        """
         ...
 
     def __init__(
@@ -142,10 +162,25 @@ class RemoteDataAggregatorImpl(
 
     @overload
     def has_new_data(self) -> dict[CallerIdentifier, bool]:
+        """Check for new data from all registered callers.
+
+        Returns:
+            A dictionary mapping each `CallerIdentifier` to a boolean indicating
+            if new data is available from that caller.
+        """
         ...
 
     @overload
     def has_new_data(self, identifier: CallerIdentifier) -> bool:
+        """Check for new data from a specific caller.
+
+        Args:
+            identifier: The `CallerIdentifier` of the specific caller to check.
+
+        Returns:
+            True if new data is available from the specified caller,
+            False otherwise (including if the caller is not found).
+        """
         ...
 
     def has_new_data(
@@ -178,10 +213,24 @@ class RemoteDataAggregatorImpl(
 
     @overload
     def get_new_data(self) -> dict[CallerIdentifier, list[DataTypeT]]:
+        """Retrieve all new data items from all registered callers.
+
+        Returns:
+            A dictionary mapping each `CallerIdentifier` to a list of its new
+            data items (`DataTypeT`).
+        """
         ...
 
     @overload
     def get_new_data(self, identifier: CallerIdentifier) -> list[DataTypeT]:
+        """Retrieve all new data items from a specific caller.
+
+        Args:
+            identifier: The `CallerIdentifier` of the specific caller.
+
+        Returns:
+            A list of new data items (`DataTypeT`) for the specified caller.
+        """
         ...
 
     def get_new_data(
@@ -221,10 +270,25 @@ class RemoteDataAggregatorImpl(
     def get_most_recent_data(
         self,
     ) -> dict[CallerIdentifier, DataTypeT | None]:
+        """Retrieve the most recent data item from all registered callers.
+
+        Returns:
+            A dictionary mapping each `CallerIdentifier` to its most recent
+            data item (`DataTypeT`), or None if no data is available for a caller.
+        """
         ...
 
     @overload
     def get_most_recent_data(self, identifier: CallerIdentifier) -> DataTypeT | None:
+        """Retrieve the most recent data item from a specific caller.
+
+        Args:
+            identifier: The `CallerIdentifier` of the specific caller.
+
+        Returns:
+            The most recent data item (`DataTypeT`) for the specified caller,
+            or None if no data is available.
+        """
         ...
 
     def get_most_recent_data(
@@ -264,12 +328,31 @@ class RemoteDataAggregatorImpl(
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
     ) -> dict[CallerIdentifier, DataTypeT | None]:
+        """Retrieve data items for a specific timestamp from all callers.
+
+        Args:
+            timestamp: The `datetime.datetime` for which to retrieve data.
+
+        Returns:
+            A dictionary mapping each `CallerIdentifier` to its data item
+            (`DataTypeT`) at the specified timestamp, or None if not available.
+        """
         ...
 
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier
     ) -> DataTypeT | None:
+        """Retrieve the data item for a specific timestamp from a specific caller.
+
+        Args:
+            timestamp: The `datetime.datetime` for which to retrieve data.
+            identifier: The `CallerIdentifier` of the specific caller.
+
+        Returns:
+            The data item (`DataTypeT`) for the specified caller at the given
+            timestamp, or None if not available.
+        """
         ...
 
     def get_data_for_timestamp(

@@ -85,10 +85,16 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
 
     @overload
     def stop(self) -> None:
+        """Stop data processing for all callers."""
         ...
 
     @overload
     def stop(self, identifier: CallerIdentifier) -> None:  # Renamed id to identifier
+        """Stop data processing for a specific caller.
+
+        Args:
+            identifier: The caller for which to stop data processing.
+        """
         ...
 
     @abstractmethod
@@ -106,12 +112,26 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
 
     @overload
     def has_new_data(self) -> dict[CallerIdentifier, bool]:
+        """Check for new data for all callers.
+
+        Returns:
+            A dictionary mapping each `CallerIdentifier` to a boolean indicating
+            if new data is available.
+        """
         ...
 
     @overload
     def has_new_data(
         self, identifier: CallerIdentifier
     ) -> bool:  # Renamed id to identifier
+        """Check for new data for a specific caller.
+
+        Args:
+            identifier: The caller to check for new data.
+
+        Returns:
+            True if new data is available for the specified caller, False otherwise.
+        """
         ...
 
     @abstractmethod
@@ -153,12 +173,25 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
 
     @overload
     def get_new_data(self) -> dict[CallerIdentifier, list[DataTypeT]]:
+        """Retrieve new data for all callers.
+
+        Returns:
+            A dictionary mapping `CallerIdentifier` to a list of new data items.
+        """
         ...
 
     @overload
     def get_new_data(
         self, identifier: CallerIdentifier
     ) -> list[DataTypeT]:  # Renamed id to identifier
+        """Retrieve new data for a specific caller.
+
+        Args:
+            identifier: The caller for which to retrieve new data.
+
+        Returns:
+            A list of new data items for the specified caller.
+        """
         ...
 
     @abstractmethod
@@ -176,12 +209,27 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
 
     @overload
     def get_most_recent_data(self) -> dict[CallerIdentifier, DataTypeT | None]:
+        """Retrieve the most recent data for all callers.
+
+        Returns:
+            A dictionary mapping `CallerIdentifier` to its most recent data item
+            (or None if unavailable).
+        """
         ...
 
     @overload
     def get_most_recent_data(
         self, identifier: CallerIdentifier
     ) -> DataTypeT | None:  # Renamed id to identifier
+        """Retrieve the most recent data for a specific caller.
+
+        Args:
+            identifier: The caller for which to retrieve the most recent data.
+
+        Returns:
+            The most recent data item for the specified caller, or None if
+            unavailable.
+        """
         ...
 
     @abstractmethod
@@ -202,6 +250,15 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
     ) -> dict[CallerIdentifier, DataTypeT | None]:
+        """Retrieve data for a specific timestamp for all callers.
+
+        Args:
+            timestamp: The timestamp to retrieve data for.
+
+        Returns:
+            A dictionary mapping `CallerIdentifier` to its data item (or None)
+            at the specified timestamp.
+        """
         ...
 
     @overload
@@ -210,6 +267,15 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         timestamp: datetime.datetime,
         identifier: CallerIdentifier,  # Renamed id to identifier
     ) -> DataTypeT | None:
+        """Retrieve data for a specific timestamp for a specific caller.
+
+        Args:
+            timestamp: The timestamp to retrieve data for.
+            identifier: The caller for which to retrieve data.
+
+        Returns:
+            The data item for the specified caller at the timestamp, or None.
+        """
         ...
 
     @abstractmethod
@@ -231,12 +297,30 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     def get_interpolated_at(
         self, timestamp: datetime.datetime
     ) -> dict[CallerIdentifier, DataTypeT]:
+        """Interpolate data at a specific time for all callers.
+
+        Args:
+            timestamp: The time for which to estimate data.
+
+        Returns:
+            A dictionary mapping `CallerIdentifier` to its interpolated data.
+            Callers for whom interpolation fails are omitted.
+        """
         ...
 
     @overload
     def get_interpolated_at(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier
     ) -> DataTypeT | None:
+        """Interpolate data at a specific time for a specific caller.
+
+        Args:
+            timestamp: The time for which to estimate data.
+            identifier: The caller for which to perform interpolation.
+
+        Returns:
+            Interpolated data for the caller, or None if interpolation fails.
+        """
         ...
 
     @abstractmethod

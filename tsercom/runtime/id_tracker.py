@@ -67,16 +67,14 @@ class IdTracker(Generic[TrackedDataT]):
     def try_get(
         self, caller_id_obj: CallerIdentifier
     ) -> tuple[str, int, TrackedDataT | None] | None:
-        """Tries to get address and data by CallerIdentifier.
+        """Try to get (address, port, data) by `CallerIdentifier`.
 
         Args:
-            caller_id_obj: The CallerIdentifier to look up.
+            caller_id_obj: The `CallerIdentifier` to look up.
 
         Returns:
-            Optional[tuple[str, int, Optional[TrackedDataT]]]:
-                A tuple (address, port, tracked_data) if found, else None.
-                `tracked_data` is None if no data_factory was used.
-
+            A tuple (address, port, tracked_data) if found, else `None`.
+            `tracked_data` is `None` if no `data_factory` was used.
         """
         ...
 
@@ -84,17 +82,15 @@ class IdTracker(Generic[TrackedDataT]):
     def try_get(
         self, address: str, port: int
     ) -> tuple[CallerIdentifier, TrackedDataT | None] | None:
-        """Tries to get CallerIdentifier and data by address/port.
+        """Try to get (`CallerIdentifier`, data) by address and port.
 
         Args:
             address: The IP address or hostname.
             port: The port number.
 
         Returns:
-            Optional[tuple[CallerIdentifier, Optional[TrackedDataT]]]:
-                A tuple (caller_identifier, tracked_data) if found, else None.
-                `tracked_data` is None if no data_factory was used.
-
+            A tuple (caller_identifier, tracked_data) if found, else `None`.
+            `tracked_data` is `None` if no `data_factory` was used.
         """
         ...
 
@@ -230,19 +226,17 @@ class IdTracker(Generic[TrackedDataT]):
     def get(
         self, caller_id_obj: CallerIdentifier
     ) -> tuple[str, int, TrackedDataT | None]:
-        """Gets address and data by CallerIdentifier, raises KeyError if not found.
+        """Get (address, port, data) by `CallerIdentifier`.
 
         Args:
-            caller_id_obj: The CallerIdentifier to look up.
+            caller_id_obj: The `CallerIdentifier` to look up.
 
         Returns:
-            tuple[str, int, Optional[TrackedDataT]]:
-                A tuple (address, port, tracked_data).
-                `tracked_data` is None if no data_factory was used.
+            A tuple (address, port, tracked_data).
+            `tracked_data` is `None` if no `data_factory` was used.
 
         Raises:
-            KeyError: If the `caller_id_obj` is not found.
-
+            KeyError: If `caller_id_obj` is not found.
         """
         ...
 
@@ -250,20 +244,18 @@ class IdTracker(Generic[TrackedDataT]):
     def get(
         self, address: str, port: int
     ) -> tuple[CallerIdentifier, TrackedDataT | None]:
-        """Gets CallerIdentifier and data by address/port, raises KeyError if not found.
+        """Get (`CallerIdentifier`, data) by address and port.
 
         Args:
             address: The IP address or hostname.
             port: The port number.
 
         Returns:
-            tuple[CallerIdentifier, Optional[TrackedDataT]]:
-                A tuple (caller_identifier, tracked_data).
-                `tracked_data` is None if no data_factory was used.
+            A tuple (caller_identifier, tracked_data).
+            `tracked_data` is `None` if no `data_factory` was used.
 
         Raises:
             KeyError: If the address/port combination is not found.
-
         """
         ...
 
