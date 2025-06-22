@@ -19,6 +19,8 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
     for serialization and deserialization.
     """
 
+    # TODO(b/265342911): Consider making SerializableAnnotatedInstance a public class.
+    # If so, the docstring for __init__ should be updated to reflect that.
     def __init__(
         self,
         data: DataTypeT,
@@ -33,7 +35,6 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
                 if not specific to a caller (e.g., broadcast event).
             timestamp: The `SynchronizedTimestamp` representing when this data
                        was created or received, ensuring time consistency.
-
         """
         self.__data: DataTypeT = data
         self.__caller_id: CallerIdentifier | None = caller_id
@@ -45,7 +46,6 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
 
         Returns:
             The underlying data of type `DataTypeT`.
-
         """
         return self.__data
 
@@ -55,7 +55,6 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
 
         Returns:
             The `CallerIdentifier` instance, or `None` if not specific to a caller.
-
         """
         return self.__caller_id
 
@@ -65,6 +64,5 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
 
         Returns:
             A `SynchronizedTimestamp` object.
-
         """
         return self.__timestamp

@@ -35,7 +35,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         ctx_method: str = "spawn",
         context: std_mp.context.BaseContext | None = None,
     ):
-        """Initializes the TorchMultiprocessQueueFactory.
+        """Initialize the TorchMultiprocessQueueFactory.
 
         Args:
             ctx_method: The multiprocessing context method to use if context
@@ -55,7 +55,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
-        """Creates a pair of torch.multiprocessing queues wrapped in Sink/Source.
+        """Create a pair of torch.multiprocessing queues wrapped in Sink/Source.
 
         These queues are suitable for inter-process communication, especially
         when transferring torch.Tensor objects, as they can utilize shared

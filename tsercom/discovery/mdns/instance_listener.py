@@ -287,6 +287,11 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         await self.__client._on_service_removed(name)
 
     async def async_stop(self) -> None:
+        """Stop the mDNS listener and clean up associated resources.
+
+        This method attempts to gracefully close the underlying mDNS listener
+        (e.g., `RecordListener`) which handles the actual network interactions.
+        """
         # Stops the listener and cleans up resources.
         if hasattr(self.__listener, "close") and callable(self.__listener.close):
             await self.__listener.close()

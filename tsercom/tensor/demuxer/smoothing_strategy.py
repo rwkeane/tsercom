@@ -1,3 +1,4 @@
+"""Defines the abstract base class for tensor data smoothing strategies."""
 import abc
 
 import torch

@@ -32,7 +32,7 @@ class TimeSyncServer:
     """
 
     def __init__(self, address: str = "0.0.0.0", ntp_port: int = kNtpPort) -> None:
-        """Initializes the TimeSyncServer.
+        """Initialize the TimeSyncServer.
 
         Args:
             address: IP address to bind NTP server to. Defaults to "0.0.0.0".
@@ -52,7 +52,7 @@ class TimeSyncServer:
         return self.__is_running.get()
 
     def start_async(self) -> bool:
-        """Starts the server. May only be called once."""
+        """Start the server. May only be called once."""
         assert not self.__is_running.get()
 
         self.__bind_socket()
@@ -62,7 +62,7 @@ class TimeSyncServer:
         return self.__is_running.get()
 
     def stop(self) -> None:
-        """Stops server. Unhealthy state afterwards, cannot be reused."""
+        """Stop server. Unhealthy state afterwards, cannot be reused."""
         self.__is_running.set(False)
         with self.__socket_lock:
             self.__socket.close()
@@ -75,14 +75,14 @@ class TimeSyncServer:
             )
 
     def get_synchronized_clock(self) -> SynchronizedClock:
-        """Returns a SynchronizedClock instance suitable for the server.
+        """Return a SynchronizedClock instance suitable for the server.
 
         Server's local time is authoritative. Returns ServerSynchronizedClock.
         """
         return ServerSynchronizedClock()
 
     def __bind_socket(self) -> None:
-        """Binds UDP socket. Sets running state or logs EADDRINUSE."""
+        """Bind UDP socket. Sets running state or logs EADDRINUSE."""
         try:
             with self.__socket_lock:
                 self.__socket.bind((self.__address, self.__port))
@@ -99,7 +99,7 @@ class TimeSyncServer:
             raise
 
     async def __run_server(self) -> None:
-        """Main async loop for NTP server. Listens, processes, responds."""
+        """Run main async loop for NTP server. Listens, processes, responds."""
         ntp_packet_format = "!B B B b 11I"
         ntp_client_mode = 3
         ntp_server_mode = 4
@@ -194,7 +194,7 @@ class TimeSyncServer:
         logging.info("NTP server stopped.")
 
     async def __receive(self, s: socket.socket) -> tuple[bytes, tuple[str, int]]:
-        """Async receives data from UDP socket via executor."""
+        """Receive data asynchronously from UDP socket via executor."""
         loop = get_running_loop_or_none()
         assert loop is not None, "Cannot run __receive without event loop."
         data, addr = await loop.run_in_executor(
@@ -205,7 +205,7 @@ class TimeSyncServer:
     async def __send(
         self, s: socket.socket, response_packet: bytes, addr: tuple[str, int]
     ) -> None:
-        """Async sends data via UDP socket via executor."""
+        """Send data asynchronously via UDP socket via executor."""
         loop = get_running_loop_or_none()
         assert loop is not None, "Cannot run __send without event loop."
         await loop.run_in_executor(

@@ -1,3 +1,4 @@
+"""Defines a fake synchronized clock for testing and non-sync scenarios."""
 import datetime
 
 from tsercom.timesync.common.synchronized_clock import SynchronizedClock
@@ -17,7 +18,7 @@ class FakeSynchronizedClock(SynchronizedClock):
     """
 
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
-        """ "Desynchronizes" a SynchronizedTimestamp back to a naive datetime object.
+        """ "Desynchronize" a SynchronizedTimestamp back to a naive datetime object.
 
         In this fake implementation, this method directly returns the datetime
         object contained within the `SynchronizedTimestamp` without any

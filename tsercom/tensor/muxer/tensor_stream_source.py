@@ -1,3 +1,4 @@
+"""Provides TensorStreamSource for creating and publishing tensor streams."""
 import datetime
 
 import torch
@@ -20,6 +21,11 @@ from tsercom.timesync.common.synchronized_clock import SynchronizedClock
 
 class _InternalMuxerClient(TensorMultiplexer.Client):
     def __init__(self, owner_source: "TensorStreamSource"):
+        """Initialize the _InternalMuxerClient.
+
+        Args:
+            owner_source: The TensorStreamSource that owns this internal client.
+        """
         self.__owner_source = owner_source
 
     async def on_chunk_update(self, chunk: SerializableTensorChunk) -> None:
@@ -135,11 +141,36 @@ class TensorStreamSource(TensorMultiplexer.Client):
 
     @property
     def initializer(self) -> SerializableTensorInitializer:
+        """Get the `SerializableTensorInitializer` for this stream.
+
+        This initializer should be sent to the remote `TensorStreamReceiver`
+        to correctly configure it for receiving this tensor stream.
+
+        Returns:
+            The `SerializableTensorInitializer` instance.
+        """
         return self.__tensor_initializer
 
     async def update(
         self, new_tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
+        """Update the tensor stream with a new tensor snapshot.
+
+        This method processes the `new_tensor` at the given `timestamp`
+        through the internal `TensorMultiplexer`. The multiplexer will
+        then generate and emit chunks of data representing the changes
+        or the full tensor, depending on its configuration (sparse or complete).
+
+        Args:
+            new_tensor: The new 1D tensor data. Must match the shape and dtype
+                of the initial tensor provided during construction.
+            timestamp: The `datetime.datetime` associated with this tensor update.
+
+        Raises:
+            TypeError: If `new_tensor` is not a `torch.Tensor`.
+            ValueError: If `new_tensor` shape or dtype does not match the
+                initial tensor.
+        """
         if not isinstance(new_tensor, torch.Tensor):
             raise TypeError("new_tensor must be a torch.Tensor.")
         if new_tensor.shape != self.__initial_tensor.shape:
@@ -162,6 +193,7 @@ class TensorStreamSource(TensorMultiplexer.Client):
         self.__async_poller.on_available(chunk)
 
     def __aiter__(self) -> "TensorStreamSource":
+        """Return self as the asynchronous iterator."""
         return self
 
     async def __anext__(self) -> SerializableTensorUpdate:

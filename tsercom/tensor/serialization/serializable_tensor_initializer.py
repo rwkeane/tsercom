@@ -1,3 +1,4 @@
+"""Defines SerializableTensorInitializer for tensor configuration and initial state."""
 from collections.abc import Iterator
 from typing import TypeVar
 
@@ -45,18 +46,39 @@ class SerializableTensorInitializer:
 
     @property
     def shape(self) -> list[int]:
+        """Get the shape of the tensor.
+
+        Returns:
+            A list of integers representing the tensor dimensions.
+        """
         return self.__shape
 
     @property
     def dtype_str(self) -> str:
+        """Get the data type of the tensor as a string.
+
+        Returns:
+            A string representation of the tensor's data type (e.g., "float32").
+        """
         return self.__dtype_str
 
     @property
     def fill_value(self) -> float:
+        """Get the default value used to fill the tensor upon creation.
+
+        Returns:
+            The fill value as a float.
+        """
         return self.__fill_value
 
     @property
     def initial_state(self) -> SerializableTensorUpdate | None:
+        """Get the initial state of the tensor, if provided.
+
+        Returns:
+            A `SerializableTensorUpdate` object containing initial data chunks,
+            or `None` if no initial state was specified.
+        """
         return self.__initial_state
 
     def to_grpc_type(self) -> TensorInitializer:
@@ -131,6 +153,15 @@ class SerializableTensorInitializer:
         )
 
     def __iter__(self) -> Iterator[SerializableTensorChunk] | None:
+        """Return an iterator over the initial tensor chunks, if any.
+
+        If no initial state is defined, returns None. Otherwise, returns
+        an iterator over the `SerializableTensorChunk` objects contained
+        in the `initial_state`.
+
+        Returns:
+            An iterator over `SerializableTensorChunk` objects or `None`.
+        """
         if self.__initial_state is None:
             return None
         return iter(self.__initial_state)

@@ -1,3 +1,4 @@
+"""Defines the base class for data exposed by Tsercom runtimes."""
 import dataclasses
 from datetime import datetime
 

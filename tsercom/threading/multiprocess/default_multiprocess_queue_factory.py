@@ -30,7 +30,7 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         ctx_method: str = "spawn",
         context: std_mp.context.BaseContext | None = None,
     ):
-        """Initializes the DefaultMultiprocessQueueFactory.
+        """Initialize the DefaultMultiprocessQueueFactory.
 
         Args:
             ctx_method: The multiprocessing context method to use if a specific
@@ -52,7 +52,7 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
-        """Creates a pair of standard multiprocessing queues wrapped in Sink/Source,
+        """Create a pair of standard multiprocessing queues wrapped in Sink/Source,
         using the configured multiprocessing context.
 
         Args:

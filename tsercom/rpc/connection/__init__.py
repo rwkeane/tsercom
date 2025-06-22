@@ -1,3 +1,4 @@
+"""Provides classes for managing client connections, including reconnection logic."""
 from tsercom.rpc.connection.client_disconnection_retrier import (
     ClientDisconnectionRetrier,
 )

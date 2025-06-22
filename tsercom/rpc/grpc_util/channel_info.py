@@ -1,5 +1,6 @@
 import dataclasses
 
+"""Provides ChannelInfo dataclass for gRPC channel details and health check."""
 import grpc
 
 from tsercom.rpc.grpc_util.grpc_service_publisher import check_grpc_channel_health

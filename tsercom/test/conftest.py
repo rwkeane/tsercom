@@ -1,3 +1,8 @@
+"""Pytest configuration file for tsercom tests.
+
+This file includes fixtures that are automatically applied to tests,
+such as managing the global tsercom event loop for asyncio tests.
+"""
 import asyncio
 from collections.abc import Generator  # Added for type hint
 
@@ -15,6 +20,19 @@ from tsercom.threading.aio.global_event_loop import (
 def manage_tsercom_loop(
     request: FixtureRequest,
 ) -> Generator[None, None, None]:
+    """Manage the tsercom global event loop for asyncio tests.
+
+    This fixture automatically sets the tsercom global event loop to the
+    one provided by pytest-asyncio for tests marked with `@pytest.mark.asyncio`.
+    It ensures that the loop is cleared after the test if this fixture was
+    the one to set it.
+
+    Args:
+        request: The pytest FixtureRequest object.
+
+    Yields:
+        None.
+    """
     # Only apply this fixture if the test is marked with asyncio
     if not request.node.get_closest_marker("asyncio"):
         yield

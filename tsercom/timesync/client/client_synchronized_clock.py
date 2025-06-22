@@ -22,7 +22,7 @@ class ClientSynchronizedClock(SynchronizedClock):
 
         @abstractmethod
         def get_offset_seconds(self) -> float:
-            """Retrieves the time offset in seconds between this client and the
+            """Retrieve the time offset in seconds between this client and the
             server.
 
             A positive value indicates that the client's clock is ahead of the
@@ -36,18 +36,18 @@ class ClientSynchronizedClock(SynchronizedClock):
 
         @abstractmethod
         def get_synchronized_clock(self) -> SynchronizedClock:
-            """Returns a SynchronizedClock instance using this client for offsets."""
+            """Return a SynchronizedClock instance using this client for offsets."""
 
         @abstractmethod
         def start_async(self) -> None:
-            """Starts the time synchronization client asynchronously."""
+            """Start the time synchronization client asynchronously."""
 
         @abstractmethod
         def stop(self) -> None:
-            """Stops the time synchronization client."""
+            """Stop the time synchronization client."""
 
     def __init__(self, client: "ClientSynchronizedClock.Client") -> None:
-        """Initializes the ClientSynchronizedClock.
+        """Initialize the ClientSynchronizedClock.
 
         Args:
             client: ClientSynchronizedClock.Client instance for time offset.

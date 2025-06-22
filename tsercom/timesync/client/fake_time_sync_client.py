@@ -27,7 +27,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
     def __init__(
         self, watcher: ThreadWatcher, server_ip: str, ntp_port: int = kNtpPort
     ) -> None:
-        """Initializes the FakeTimeSyncClient.
+        """Initialize the FakeTimeSyncClient.
 
         Args:
             watcher: A ThreadWatcher instance.
@@ -56,7 +56,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         self.__start_barrier = threading.Event()
 
     def get_synchronized_clock(self) -> SynchronizedClock:
-        """Returns a SynchronizedClock instance using this client.
+        """Return a SynchronizedClock instance using this client.
 
         Returns:
             A ClientSynchronizedClock configured with this FakeTimeSyncClient.
@@ -65,7 +65,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         return ClientSynchronizedClock(self)
 
     def get_offset_seconds(self) -> float:
-        """Retrieves the current time offset in seconds.
+        """Retrieve the current time offset in seconds.
 
         Waits until client started (via `start_async`). Fake client
         typically returns an average of `__time_offsets` (usually 0.0).
@@ -82,7 +82,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
             return sum(self.__time_offsets) / count
 
     def is_running(self) -> bool:
-        """Checks if the time synchronization client is marked as running.
+        """Check if the time synchronization client is marked as running.
 
         Returns:
             True if the client is running, False otherwise.
@@ -91,7 +91,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         return self.__is_running.get()
 
     def stop(self) -> None:
-        """Stops the NTP synchronization client.
+        """Stop the NTP synchronization client.
 
         Sets running state to False and clears start barrier.
         """
@@ -99,7 +99,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         self.__start_barrier.clear()
 
     def start_async(self) -> None:
-        """Starts the "fake" NTP synchronization client.
+        """Start the "fake" NTP synchronization client.
 
         Marks client as running, initializes time offset to 0.0.
         No actual network synchronization is performed.

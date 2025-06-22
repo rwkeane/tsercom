@@ -24,6 +24,11 @@ class EventToSerializableAnnInstancePollerAdapter(
     """
 
     def __init__(self, source_poller: AsyncPoller[EventInstance[EventTypeT]]):
+        """Initialize the EventToSerializableAnnInstancePollerAdapter.
+
+        Args:
+            source_poller: The underlying poller that provides `EventInstance` objects.
+        """
         super().__init__()
         self._source_poller = source_poller
 
@@ -46,6 +51,18 @@ class EventToSerializableAnnInstancePollerAdapter(
     async def __anext__(
         self,
     ) -> list[SerializableAnnotatedInstance[EventTypeT]]:
+        """Retrieve the next batch of converted event instances.
+
+        This method fetches a batch of `EventInstance` objects from the
+        source poller, converts each to a `SerializableAnnotatedInstance`,
+        and returns the new batch.
+
+        Returns:
+            A list of `SerializableAnnotatedInstance[EventTypeT]`.
+
+        Raises:
+            StopAsyncIteration: If the source poller is exhausted.
+        """
         # This adapter assumes the source_poller.__anext__ returns a List,
         # which is typical for AsyncPoller implementations.
         event_instance_list = await self._source_poller.__anext__()
@@ -58,6 +75,7 @@ class EventToSerializableAnnInstancePollerAdapter(
     def __aiter__(
         self,
     ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
+        """Return self as the asynchronous iterator."""
         return self
 
     # This adapter primarily focuses on transforming the output via __anext__.

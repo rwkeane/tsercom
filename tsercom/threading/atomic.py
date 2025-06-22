@@ -22,7 +22,7 @@ class Atomic(Generic[AtomicTypeT]):
     """
 
     def __init__(self, value: AtomicTypeT) -> None:
-        """Initializes the Atomic wrapper with an initial value.
+        """Initialize the Atomic wrapper with an initial value.
 
         Args:
             value (AtomicTypeT): The initial value to be stored atomically.

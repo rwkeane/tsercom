@@ -32,6 +32,16 @@ class SerializableTensorChunk:
             GrpcTensor.CompressionType.NONE
         ),
     ):
+        """Initialize a SerializableTensorChunk.
+
+        Args:
+            tensor: The PyTorch tensor data for this chunk.
+            timestamp: The synchronized timestamp for this chunk.
+            starting_index: The starting index of this chunk within a larger
+                conceptual 1D tensor. Defaults to 0.
+            compression: The compression type used for the tensor data.
+                Defaults to NONE.
+        """
         self.__tensor: torch.Tensor = tensor
         self.__timestamp: SynchronizedTimestamp = timestamp
         self.__starting_index: int = starting_index

@@ -280,6 +280,12 @@ class DiscoveryHost(
             )
 
     async def stop_discovery(self) -> None:
+        """Stop service discovery and clean up resources.
+
+        This method stops the underlying mDNS listener and clears internal
+        state, including the registered client and the map of discovered
+        service names to CallerIdentifiers.
+        """
         # Stops service discovery and cleans up resources.
         logging.info("Stopping DiscoveryHost...")
         if self.__discoverer is not None:

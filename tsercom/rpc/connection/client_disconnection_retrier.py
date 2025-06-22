@@ -32,6 +32,25 @@ from tsercom.util.stopable import Stopable
 TInstanceType = TypeVar("TInstanceType", bound=Stopable)
 
 
+# Module-level docstring for client_disconnection_retrier.py
+"""Defines ClientDisconnectionRetrier for robust client connection management.
+
+This module provides an abstract base class `ClientDisconnectionRetrier`
+designed to handle transient network issues when connecting to a remote
+service. It encapsulates logic for:
+- Initial connection attempts.
+- Detection of server unavailable errors (or other configurable disconnection
+  conditions).
+- Automatic reconnection attempts with configurable delays and maximum retries.
+- Callbacks for critical non-retriable disconnections.
+
+Subclasses need to implement the `_connect` method to provide the specific
+mechanism for establishing a connection (e.g., creating a gRPC channel and stub).
+The class leverages asyncio for its asynchronous operations and requires an
+event loop to be running.
+"""
+
+
 class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManager):
     """Abstract base class for managing client connections with automatic retry logic.
 
@@ -51,7 +70,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         is_server_unavailable_error_func: Callable[[Exception], bool] | None = None,
         max_retries: int | None = 5,
     ) -> None:
-        """Initializes the ClientDisconnectionRetrier.
+        """Initialize the ClientDisconnectionRetrier.
 
         Args:
             watcher: A `ThreadWatcher` instance to report critical exceptions.
@@ -97,7 +116,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
 
     @abstractmethod
     async def _connect(self) -> TInstanceType:
-        """Abstract method to establish a connection and return the connected instance.
+        """Establish a connection and return the connected instance.
 
         Subclasses must implement this method to provide the logic for creating
         and returning a connected, `Stopable` instance of `TInstanceType`.
@@ -115,7 +134,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         pass
 
     async def start(self) -> bool:
-        """Attempts to establish the initial connection.
+        """Attempt to establish the initial connection.
 
         It captures the event loop on which it's first called. If the connection
         fails due to a server unavailable error, it logs a warning and returns False.
@@ -177,7 +196,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             raise
 
     async def stop(self) -> None:
-        """Stops the managed instance and ensures operations run on the correct
+        """Stop the managed instance and ensure operations run on the correct
         event loop.
 
         If called from a different event loop than the one `start` was called on,
@@ -206,7 +225,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         logging.info("ClientDisconnectionRetrier stopped.")
 
     async def _on_disconnect(self, error: Exception | None = None) -> None:
-        """Handles disconnection events and attempts reconnection if appropriate.
+        """Handle disconnection events and attempt reconnection if appropriate.
 
         This method is typically called when an operation on the managed instance
         raises an exception indicating a disconnection. It ensures execution on

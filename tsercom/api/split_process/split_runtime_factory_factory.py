@@ -72,6 +72,11 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
 
     @property
     def multiprocessing_context(self) -> BaseContext:
+        """Get the multiprocessing context used by this factory.
+
+        Returns:
+            The `multiprocessing.context.BaseContext` instance.
+        """
         return self.__mp_context_provider.context
 
     def _create_pair(

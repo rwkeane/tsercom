@@ -83,6 +83,12 @@ class RecordListener(MdnsListener):
         self.__browser: AsyncServiceBrowser | None = None
 
     async def start(self) -> None:
+        """Start the mDNS service browser.
+
+        This method initializes and starts the `AsyncServiceBrowser` from the
+        `zeroconf` library, which actively listens for mDNS service announcements
+        of the configured type on the network.
+        """
         self.__browser = AsyncServiceBrowser(
             self.__mdns.zeroconf, [self.__expected_type], listener=self
         )
@@ -247,6 +253,12 @@ class RecordListener(MdnsListener):
         )
 
     async def close(self) -> None:
+        """Close the mDNS listener and clean up resources.
+
+        This method stops the service browser and closes the underlying
+        AsyncZeroconf instance if it was created and owned by this listener.
+        If the AsyncZeroconf instance was shared, it is not closed here.
+        """
         # Closes the mDNS listener and the underlying AsyncZeroconf instance.
         if self.__browser:
             logging.info(

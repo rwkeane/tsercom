@@ -63,7 +63,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         min_poll_frequency_seconds: float | None = None,
         max_responses_queued: int | None = 30,
     ) -> None:
-        """Initializes the AsyncPoller.
+        """Initialize the AsyncPoller.
 
         Args:
             min_poll_frequency_seconds: Optional. If provided and positive,
@@ -103,7 +103,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         return self.__event_loop
 
     def on_available(self, new_instance: ResultTypeT) -> None:
-        """Makes a new item available to consumers of this poller.
+        """Make a new item available to consumers of this poller.
 
         This method is thread-safe. It adds the `new_instance` to an internal
         queue. If the queue length exceeds `MAX_RESPONSES`, the oldest item
@@ -128,7 +128,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             run_on_event_loop(self.__set_results_available, self.__event_loop)
 
     async def __set_results_available(self) -> None:
-        """Internal coroutine to set the barrier event, run on the poller's event
+        """Set internal coroutine to set the barrier event, run on the poller's event
         loop.
         """
         with self.__lock:
@@ -136,7 +136,7 @@ class AsyncPoller(Generic[ResultTypeT]):
                 self.__barrier.set()
 
     def flush(self) -> None:
-        """Removes all currently queued items from the poller.
+        """Remove all currently queued items from the poller.
 
         This method is thread-safe.
         """
@@ -237,7 +237,7 @@ class AsyncPoller(Generic[ResultTypeT]):
         return self
 
     async def __anext__(self) -> list[ResultTypeT]:
-        """Asynchronously retrieves the next batch of available items.
+        """Asynchronously retrieve the next batch of available items.
 
         This method is part of the asynchronous iterator protocol, allowing
         `AsyncPoller` instances to be used in `async for` loops. It calls
@@ -257,7 +257,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             raise StopAsyncIteration(f"AsyncPoller iteration stopped: {e}") from e
 
     def __len__(self) -> int:
-        """Returns the current number of items in the internal response queue.
+        """Return the current number of items in the internal response queue.
 
         This provides a snapshot of the queue length. Note that the length can
         change immediately after this call in a concurrent environment.
@@ -267,7 +267,7 @@ class AsyncPoller(Generic[ResultTypeT]):
             return len(self.__responses)
 
     def stop(self) -> None:
-        """Stops the poller and signals any waiting consumers to terminate.
+        """Stop the poller and signal any waiting consumers to terminate.
 
         This method sets an internal flag (`self.__is_loop_running`) to `False`,
         indicating that the poller should stop its operations. It then sets the

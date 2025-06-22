@@ -47,7 +47,7 @@ class TorchMemcpyQueueFactory(
             Callable[[Any], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = None,
     ) -> None:
-        """Initializes the TorchMemcpyQueueFactory.
+        """Initialize the TorchMemcpyQueueFactory.
 
         Args:
             ctx_method: The multiprocessing context method to use if no
@@ -75,7 +75,7 @@ class TorchMemcpyQueueFactory(
         "TorchMemcpyQueueSink[QueueElementT]",
         "TorchMemcpyQueueSource[QueueElementT]",
     ]:  # Return specialized generic sink/source
-        """Creates a pair of torch.multiprocessing queues wrapped in specialized
+        """Create a pair of torch.multiprocessing queues wrapped in specialized
         Tensor Sink/Source.
 
         These queues are suitable for inter-process communication. If a
@@ -131,13 +131,21 @@ class TorchMemcpyQueueSource(
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = None,
     ) -> None:
+        """Initialize the TorchMemcpyQueueSource.
+
+        Args:
+            queue: The underlying `torch.multiprocessing.Queue` to source from.
+            tensor_accessor: An optional function to find and access tensors within
+                queued items for calling `share_memory_()`. If None, the item
+                itself is checked if it's a tensor.
+        """
         super().__init__(queue)
         self.__tensor_accessor: (
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = tensor_accessor
 
     def get_blocking(self, timeout: float | None = None) -> QueueElementT | None:
-        """Gets an item from the queue. If a tensor_accessor is provided, it's used
+        """Get an item from the queue. If a tensor_accessor is provided, it's used
         to find and call share_memory_() on any torch.Tensor objects within the item.
         If no accessor, it checks if the item itself is a tensor.
 
@@ -199,13 +207,23 @@ class TorchMemcpyQueueSink(
         ) = None,
         is_blocking: bool = True,
     ) -> None:
+        """Initialize the TorchMemcpyQueueSink.
+
+        Args:
+            queue: The underlying `torch.multiprocessing.Queue` to sink to.
+            tensor_accessor: An optional function to find and access tensors within
+                items for calling `share_memory_()`. If None, the item itself
+                is checked if it's a tensor.
+            is_blocking: If True (default), `put_blocking` will block if the
+                queue is full. If False, it will behave like `put_nowait`.
+        """
         super().__init__(queue, is_blocking=is_blocking)
         self.__tensor_accessor: (
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = tensor_accessor
 
     def put_blocking(self, obj: QueueElementT, timeout: float | None = None) -> bool:
-        """Puts an item into the queue. If a tensor_accessor is provided, it's used
+        """Put an item into the queue. If a tensor_accessor is provided, it's used
         to find and call share_memory_() on any torch.Tensor objects.
         If no accessor is provided, it checks if the object itself is a tensor.
 

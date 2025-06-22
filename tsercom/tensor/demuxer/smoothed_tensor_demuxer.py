@@ -33,6 +33,22 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         fill_value: int | float = float("nan"),
         name: str | None = None,
     ):
+        """Initialize the SmoothedTensorDemuxer.
+
+        Args:
+            tensor_shape: The shape of the output tensor.
+            output_client: The client to notify with reconstructed/smoothed tensors.
+            smoothing_strategy: The strategy used for interpolating tensor values.
+            output_interval_seconds: The target interval for generating output tensors.
+            data_timeout_seconds: How long to keep raw keyframe data before it's
+                considered stale by the parent TensorDemuxer.
+            align_output_timestamps: If True, output timestamps will be aligned to
+                multiples of `output_interval_seconds`. If False, output is
+                driven more directly by keyframe updates and current time.
+            fill_value: The value to use for tensor elements where interpolation
+                is not possible (e.g., due to insufficient data).
+            name: An optional name for this demuxer instance, for logging.
+        """
         self.__tensor_shape_internal = tensor_shape
         _1d_tensor_length = 1
         if tensor_shape:

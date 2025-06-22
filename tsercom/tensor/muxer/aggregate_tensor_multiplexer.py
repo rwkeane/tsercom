@@ -87,6 +87,15 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             aggregator_ref: weakref.ref["AggregateTensorMultiplexer"],
             publisher_start_index: int,
         ):
+            """Initialize the _InternalClient.
+
+            Args:
+                aggregator_ref: A weak reference to the parent
+                    AggregateTensorMultiplexer.
+                publisher_start_index: The starting index in the aggregate tensor
+                    where the publisher's data, handled by the multiplexer this
+                    client is attached to, will be placed.
+            """
             self.__aggregator_ref = aggregator_ref
             self.__publisher_start_index = publisher_start_index
 

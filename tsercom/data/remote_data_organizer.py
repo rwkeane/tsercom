@@ -1,3 +1,4 @@
+"""Organizes and provides access to time-ordered data from a remote endpoint."""
 import datetime
 import logging
 import threading
@@ -32,6 +33,8 @@ class RemoteDataOrganizer(
     new data becomes available.
     """
 
+    # TODO(b/265342911): Consider making RemoteDataOrganizer a public class.
+    # If so, the docstring for __init__ should be updated to reflect that.
     class Client(ABC):
         """Interface for clients that need to be notified by `RemoteDataOrganizer`."""
 
@@ -44,7 +47,6 @@ class RemoteDataOrganizer(
 
             Args:
                 data_organizer: The `RemoteDataOrganizer` instance that has new data.
-
             """
             raise NotImplementedError
 
@@ -63,7 +65,6 @@ class RemoteDataOrganizer(
                        data this organizer will manage.
             client: An optional client implementing `RemoteDataOrganizer.Client`
                     to receive callbacks when new data is available.
-
         """
         self.__thread_pool: ThreadPoolExecutor = thread_pool
         self.__caller_id: CallerIdentifier = caller_id
@@ -82,7 +83,6 @@ class RemoteDataOrganizer(
 
         Returns:
             The `CallerIdentifier` instance.
-
         """
         return self.__caller_id
 
@@ -92,7 +92,6 @@ class RemoteDataOrganizer(
         Raises:
             RuntimeError: If the organizer is already running (typically by
                 `IsRunningTracker.start()`).
-
         """
         self.__is_running.start()
 
@@ -106,7 +105,6 @@ class RemoteDataOrganizer(
         Raises:
             RuntimeError: If the organizer is not running or has already been
                 stopped (typically by `IsRunningTracker.stop()`).
-
         """
         self.__is_running.stop()
 
@@ -118,7 +116,6 @@ class RemoteDataOrganizer(
 
         Returns:
             True if new data is available, False otherwise.
-
         """
         with self.__data_lock:
             if not self.__data:
@@ -136,7 +133,6 @@ class RemoteDataOrganizer(
         Returns:
             A list of new `DataTypeT` items, ordered from most recent to oldest.
             Returns an empty list if no new data is available.
-
         """
         with self.__data_lock:
             results: list[DataTypeT] = []
@@ -156,7 +152,6 @@ class RemoteDataOrganizer(
 
         Returns:
             The most recent `DataTypeT` item, or `None` if no data has been received.
-
         """
         with self.__data_lock:
             if not self.__data:
@@ -173,7 +168,6 @@ class RemoteDataOrganizer(
             The `DataTypeT` item whose timestamp is the latest at or before the
             specified `timestamp`, or `None` if no such data exists (e.g., all
             data is newer, or no data at all).
-
         """
         with self.__data_lock:
             if not self.__data:
@@ -193,7 +187,6 @@ class RemoteDataOrganizer(
                         client: An optional client implementing
                                 `RemoteDataOrganizer.Client` to receive callbacks
                                 when new data is available.
-
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -215,7 +208,6 @@ class RemoteDataOrganizer(
             TypeError: If `new_data` is not an instance of `ExposedData`.
             AssertionError: If `new_data.caller_id` does not match this
                             organizer's `caller_id`.
-
         """
         if not isinstance(new_data, ExposedData):
             raise TypeError(
@@ -237,7 +229,6 @@ class RemoteDataOrganizer(
 
         Args:
             new_data: The `DataTypeT` item to process.
-
         """
         if not self.__is_running.get():
             return
@@ -264,7 +255,6 @@ class RemoteDataOrganizer(
                         client: An optional client implementing
                                 `RemoteDataOrganizer.Client` to receive callbacks
                                 when new data is available.
-
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -295,7 +285,6 @@ class RemoteDataOrganizer(
 
         Args:
             timeout_seconds: The duration of the timeout that triggered this callback.
-
         """
         self.__thread_pool.submit(partial(self.__timeout_old_data, timeout_seconds))
 
@@ -309,7 +298,6 @@ class RemoteDataOrganizer(
         Args:
             timeout_seconds: The timeout duration in seconds. Data older than
                              `now - timeout_seconds` will be removed.
-
         """
         if not self.__is_running.get():
             return
@@ -339,7 +327,6 @@ class RemoteDataOrganizer(
             if the internal data store is empty or if interpolation
             fails (e.g., due to non-numeric data types that do not
             support arithmetic operations).
-
         """
         with self.__data_lock:
             if not self.__data:
@@ -370,7 +357,6 @@ class RemoteDataOrganizer(
                         client: An optional client implementing
                                 `RemoteDataOrganizer.Client` to receive callbacks
                                 when new data is available.
-
                     """
                     self.timestamp: datetime.datetime = ts
 

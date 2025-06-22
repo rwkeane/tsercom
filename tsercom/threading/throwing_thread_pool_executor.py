@@ -25,7 +25,7 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
         *args: Any,  # Positional arguments for ThreadPoolExecutor
         **kwargs: Any,  # Keyword arguments for ThreadPoolExecutor
     ) -> None:
-        """Initializes a ThrowingThreadPoolExecutor.
+        """Initialize a ThrowingThreadPoolExecutor.
 
         Args:
             error_cb: Callback for exceptions/warnings in a task.
@@ -41,7 +41,7 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
     def submit(
         self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs
     ) -> Future[T]:
-        """Submits a callable to be executed asynchronously.
+        """Submit a callable to be executed asynchronously.
 
         `fn` is wrapped; if it raises `Exception` or `Warning`, `error_cb`
         is called, then the exception is re-raised.
@@ -58,7 +58,7 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
         """
 
         def wrapper(*args2: P.args, **kwargs2: P.kwargs) -> T:
-            """Internal wrapper to run submitted function and handle exceptions.
+            """Wrap internal submitted function and handle exceptions.
 
             Args:
                 *args2: Positional arguments for the original function.

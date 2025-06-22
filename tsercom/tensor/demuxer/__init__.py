@@ -1,3 +1,8 @@
+"""Provides classes for demultiplexing tensor data streams.
+
+This includes base demuxers and strategies for smoothing or interpolating
+tensor data received in chunks.
+"""
 from tsercom.tensor.demuxer.linear_interpolation_strategy import (
     LinearInterpolationStrategy,
 )

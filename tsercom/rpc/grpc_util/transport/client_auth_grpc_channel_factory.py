@@ -1,3 +1,9 @@
+"""Defines a factory for creating gRPC channels with client-side TLS authentication.
+
+This factory configures gRPC channels to use a client certificate and private key
+for authentication. Optionally, it can also be configured to validate the server's
+certificate against a provided root CA certificate.
+"""
 from __future__ import annotations
 
 import asyncio

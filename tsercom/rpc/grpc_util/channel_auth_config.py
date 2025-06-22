@@ -1,3 +1,12 @@
+"""Defines data classes for gRPC channel authentication configurations.
+
+This module provides a base class `BaseChannelAuthConfig` and specific
+configuration classes for different authentication scenarios, such as:
+- Insecure channels (`InsecureChannelConfig`)
+- Server authentication using a CA (`ServerCAChannelConfig`)
+- Server authentication by pinning a specific certificate (`PinnedServerChannelConfig`)
+- Client certificate authentication (`ClientAuthChannelConfig`)
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

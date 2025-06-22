@@ -1,3 +1,4 @@
+"""Provides a context provider for multiprocessing, adapting to PyTorch if available."""
 from multiprocessing.context import BaseContext as StdBaseContext
 from typing import Generic, TypeVar
 
@@ -25,7 +26,7 @@ class MultiprocessingContextProvider(Generic[QueueTypeT]):
     """
 
     def __init__(self, context_method: str = "spawn"):
-        """Initializes the MultiprocessingContextProvider.
+        """Initialize the MultiprocessingContextProvider.
 
         Args:
             context_method: The method to use for getting the multiprocessing

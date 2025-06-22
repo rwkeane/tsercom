@@ -32,7 +32,7 @@ class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
         max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
-        """Creates a pair of queues for inter-process communication.
+        """Create a pair of queues for inter-process communication.
 
         Args:
             max_ipc_queue_size: The maximum size for the created IPC queues.

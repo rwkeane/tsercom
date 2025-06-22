@@ -1,3 +1,4 @@
+"""Provides TensorStreamReceiver for receiving and consuming tensor streams."""
 import asyncio
 import datetime
 import logging  # Added for logging

@@ -1,3 +1,4 @@
+"""Implements a linear interpolation strategy for tensor data."""
 import torch
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
@@ -11,6 +12,18 @@ class LinearInterpolationStrategy(SmoothingStrategy):
         max_extrapolation_seconds: float | None = None,
         max_interpolation_gap_seconds: float | None = None,
     ):
+        """Initialize the linear interpolation strategy.
+
+        Args:
+            max_extrapolation_seconds: Optional. Maximum time in seconds to
+                extrapolate beyond the first or last keyframe. If None,
+                extrapolation is unbounded (uses boundary keyframe values).
+            max_interpolation_gap_seconds: Optional. Maximum time gap in seconds
+                between two keyframes for interpolation to be considered valid.
+                If the gap is larger, behavior might be to return NaN or handle
+                as an error (not strictly enforced by this base method but
+                can be used by callers or subclasses).
+        """
         super().__init__()
         self.max_extrapolation_seconds = max_extrapolation_seconds
         self.max_interpolation_gap_seconds = max_interpolation_gap_seconds

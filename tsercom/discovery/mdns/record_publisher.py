@@ -78,6 +78,14 @@ class RecordPublisher(MdnsPublisher):
         # configured elsewhere.
 
     async def publish(self) -> None:
+        """Publish the service to make it discoverable via mDNS.
+
+        Constructs a `zeroconf.ServiceInfo` object with the configured
+        details (name, type, port, properties, addresses) and registers it
+        with an `AsyncZeroconf` instance. If an `AsyncZeroconf` instance was
+        provided during initialization (shared), it's used. Otherwise, a new
+        `AsyncZeroconf` instance is created and managed by this publisher.
+        """
         if self._zc:
             _logger.info("Service %s already published. Re-registering.", self.__srv)
             # Optionally, unregister first or update. For now, assume

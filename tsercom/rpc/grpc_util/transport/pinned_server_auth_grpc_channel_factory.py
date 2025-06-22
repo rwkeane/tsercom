@@ -1,3 +1,4 @@
+"""Defines a factory for gRPC channels with server certificate pinning."""
 from __future__ import annotations
 
 import asyncio

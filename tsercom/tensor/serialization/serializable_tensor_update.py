@@ -1,3 +1,4 @@
+"""Defines SerializableTensorUpdate for representing a collection of tensor chunks."""
 from collections.abc import Iterator
 from typing import TypeVar
 
@@ -19,6 +20,12 @@ class SerializableTensorUpdate:
     """
 
     def __init__(self, chunks: list[SerializableTensorChunk]):
+        """Initialize a SerializableTensorUpdate.
+
+        Args:
+            chunks: A list of `SerializableTensorChunk` objects that constitute
+                this update.
+        """
         self.__chunks = chunks
 
     def to_grpc_type(self) -> TensorUpdate:
@@ -60,8 +67,14 @@ class SerializableTensorUpdate:
         return cls(chunks=parsed_chunks)
 
     def __iter__(self) -> Iterator[SerializableTensorChunk]:
+        """Return an iterator over the tensor chunks in this update."""
         return iter(self.__chunks)
 
     @property
     def chunks(self) -> list[SerializableTensorChunk]:
+        """Get the list of tensor chunks in this update.
+
+        Returns:
+            A list of `SerializableTensorChunk` objects.
+        """
         return self.__chunks

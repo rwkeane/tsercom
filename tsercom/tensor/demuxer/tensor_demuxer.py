@@ -34,6 +34,20 @@ class TensorDemuxer:
         data_timeout_seconds: float = 60.0,
         device: str | None = "cpu",
     ):
+        """Initialize the TensorDemuxer.
+
+        Args:
+            client: The client to notify when a full tensor is reconstructed or updated.
+            tensor_length: The expected length of the 1D tensor.
+            data_timeout_seconds: How long to keep keyframe data before it's
+                considered stale and potentially cleaned up.
+            device: The PyTorch device (e.g., "cpu", "cuda:0") on which to
+                perform tensor operations. Received chunks will be moved to this
+                device.
+
+        Raises:
+            ValueError: If `tensor_length` or `data_timeout_seconds` are not positive.
+        """
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
         if data_timeout_seconds <= 0:
