@@ -99,7 +99,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
             SplitErrorWatcherSourceFactory | None
         ) = None,
     ) -> None:
-        """Initializes the RuntimeManager.
+        """Initialize the RuntimeManager.
 
         Args:
             is_testing: If True, configures certain operations for testing
@@ -209,7 +209,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         self,
         runtime_initializer: RuntimeInitializer[DataTypeT, EventTypeT],
     ) -> Future[RuntimeHandle[DataTypeT, EventTypeT]]:
-        """Registers a `RuntimeInitializer` to be managed and launched.
+        """Register a `RuntimeInitializer` to be managed and launched.
 
         This method must be called before `start_in_process` or
         `start_out_of_process`. Each registered initializer will result in the
@@ -271,7 +271,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         self,
         runtime_event_loop: AbstractEventLoop,
     ) -> None:
-        """Creates and starts all registered runtimes in the current process.
+        """Create and start all registered runtimes in the current process.
 
         Tsercom operations for the initialized runtimes will run on the provided
         `runtime_event_loop`. The global Tsercom event loop is set to this loop.
@@ -312,7 +312,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
     def start_out_of_process(
         self, start_as_daemon: bool = True
     ) -> None:  # Changed default to True
-        """Creates and starts registered runtimes in a new, separate process.
+        """Create and start registered runtimes in a new, separate process.
 
         This method uses the `SplitRuntimeFactoryFactory` to prepare runtime
         factories suitable for inter-process communication. A new process is
@@ -405,7 +405,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         self.__thread_watcher.run_until_exception()
 
     def check_for_exception(self) -> None:
-        """Checks for and re-raises the first caught exception from managed runtimes.
+        """Check for and re-raise the first caught exception from managed runtimes.
 
         If an exception has been propagated from any runtime and caught by the
         manager\'s error watching mechanisms, this method re-raises that
@@ -483,7 +483,7 @@ class RuntimeManager(ErrorWatcher, Generic[DataTypeT, EventTypeT]):
         self,
         factory_factory: RuntimeFactoryFactory[DataTypeT, EventTypeT],
     ) -> list[RuntimeFactory[DataTypeT, EventTypeT]]:
-        """Creates runtime factories for all registered initializers.
+        """Create runtime factories for all registered initializers.
 
         This internal helper method iterates through each `InitializationPair`
         (containing a `RuntimeInitializer` and a `Future` for its `RuntimeHandle`)
@@ -530,7 +530,7 @@ class RuntimeFuturePopulator(
     """
 
     def __init__(self, future: Future[RuntimeHandle[DataTypeT, EventTypeT]]) -> None:
-        """Initializes the RuntimeFuturePopulator.
+        """Initialize the RuntimeFuturePopulator.
 
         Args:
             future: The `Future` object that will be populated with the
@@ -543,7 +543,7 @@ class RuntimeFuturePopulator(
         self,
         handle: RuntimeHandle[DataTypeT, EventTypeT],  # Use imported TypeVars
     ) -> None:
-        """Callback invoked by a `RuntimeFactory` when its `RuntimeHandle` is ready.
+        """Handle callback from `RuntimeFactory` when `RuntimeHandle` is ready.
 
         This method fulfills the `Future` (provided during initialization) with
         the given `handle`.

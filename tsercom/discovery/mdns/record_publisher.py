@@ -37,7 +37,7 @@ class RecordPublisher(MdnsPublisher):
         properties: dict[bytes, bytes | None] | None = None,
         zc_instance: AsyncZeroconf | None = None,  # Added
     ) -> None:
-        """Initializes the RecordPublisher.
+        """Initialize the RecordPublisher.
 
         Args:
             name: Instance name (e.g., "MyDevice"). Forms part of full mDNS name
@@ -109,7 +109,7 @@ class RecordPublisher(MdnsPublisher):
             )
 
     async def close(self) -> None:
-        """Closes the Zeroconf instance and unregisters services."""
+        """Close the Zeroconf instance and unregister services."""
         service_info_at_start_of_close = self._service_info
         unregistration_attempted = False
         unregistration_succeeded = False

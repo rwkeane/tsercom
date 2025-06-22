@@ -17,14 +17,14 @@ class CallerIdMap(Generic[MapValueT]):
     """
 
     def __init__(self) -> None:
-        """Initializes a new CallerIdMap instance."""
+        """Initialize a new CallerIdMap instance."""
         self.__lock = threading.Lock()
         self.__map: dict[CallerIdentifier, MapValueT] = {}
 
     def find_instance(
         self, caller_id: CallerIdentifier, factory: Callable[[], MapValueT]
     ) -> MapValueT:
-        """Finds an instance associated with a caller_id, creating it if necessary.
+        """Find an instance associated with a caller_id, creating it if necessary.
 
         If an instance for the given `caller_id` already exists, it's returned.
         Otherwise, the `factory` function is called to create a new instance,
@@ -36,7 +36,7 @@ class CallerIdMap(Generic[MapValueT]):
             return self.__map[caller_id]
 
     def for_all_items(self, function: Callable[[MapValueT], None]) -> None:
-        """Executes a function for all items currently in the map.
+        """Execute a function for all items currently in the map.
 
         This method iterates over a snapshot of the map's values. Modifications
         to the map during iteration won't affect processed items. Thread-safe.
@@ -51,7 +51,7 @@ class CallerIdMap(Generic[MapValueT]):
             function(val)
 
     def count(self) -> int:
-        """Returns the number of items in the map.
+        """Return the number of items in the map.
 
         This operation is thread-safe.
         """
@@ -59,5 +59,5 @@ class CallerIdMap(Generic[MapValueT]):
             return len(self.__map)
 
     def __len__(self) -> int:
-        """Returns item count, making `len()` usable. Thread-safe."""
+        """Return item count, making `len()` usable. Thread-safe."""
         return self.count()

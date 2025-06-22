@@ -15,8 +15,7 @@ AddServicerCB = Callable[["grpc.Server"], None]
 
 
 class GrpcServicePublisher:
-    """Helper class to publish gRPC services.
-    """
+    """Helper class to publish gRPC services."""
 
     def __init__(
         self,
@@ -39,8 +38,7 @@ class GrpcServicePublisher:
         self.__watcher = watcher
 
     def start(self, connect_call: AddServicerCB) -> None:
-        """Starts a synchronous server.
-        """
+        """Starts a synchronous server."""
         self.__server: grpc.Server = grpc.server(  # type: ignore
             self.__watcher.create_tracked_thread_pool_executor(max_workers=10)
         )
@@ -184,8 +182,7 @@ class GrpcServicePublisher:
         logging.info("GrpcServicePublisher: gRPC Server stopped (sync call).")
 
     async def stop_async(self) -> None:
-        """Stops the asynchronous gRPC server gracefully.
-        """
+        """Stops the asynchronous gRPC server gracefully."""
         if self.__server is None:
             logging.warning(
                 "GrpcServicePublisher: Server not started or already stopped "

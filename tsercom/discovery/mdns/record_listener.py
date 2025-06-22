@@ -26,7 +26,7 @@ class RecordListener(MdnsListener):
         service_type: str,
         zc_instance: AsyncZeroconf | None = None,
     ) -> None:
-        """Initializes the RecordListener.
+        """Initialize the RecordListener.
 
         Args:
             client: Implements `MdnsListener.Client` interface.
@@ -90,7 +90,7 @@ class RecordListener(MdnsListener):
     # --- ServiceListener interface methods ---
 
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called by `zeroconf` when a service's info (e.g., TXT) is updated."""
+        """Call by `zeroconf` when a service's info (e.g., TXT) is updated."""
         logging.info(
             "Sync update_service called: type='%s', name='%s'. "
             "Scheduling async handler.",
@@ -100,7 +100,7 @@ class RecordListener(MdnsListener):
         asyncio.create_task(self._handle_update_service(type_, name))
 
     async def _handle_update_service(self, type_: str, name: str) -> None:
-        """Async handler for service updates."""
+        """Handle async updates for services."""
         logging.info(
             "Async handler _handle_update_service started for: type='%s', name='%s'",
             type_,
@@ -146,7 +146,7 @@ class RecordListener(MdnsListener):
         )
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called by `zeroconf` when a service is removed from the network."""
+        """Call by `zeroconf` when a service is removed from the network."""
         logging.info(
             "Sync remove_service called: type='%s', name='%s'. "
             "Scheduling async handler.",
@@ -161,12 +161,12 @@ class RecordListener(MdnsListener):
         asyncio.create_task(self._handle_remove_service_wrapper(type_, name))
 
     async def _handle_remove_service_wrapper(self, type_: str, name: str) -> None:
-        """Wrapper to ensure a small sleep after task creation from sync context."""
+        """Wrap to ensure a small sleep after task creation from sync context."""
         await self._handle_remove_service(type_, name)
         await asyncio.sleep(0)  # Yield control to allow the task to potentially start
 
     async def _handle_remove_service(self, type_: str, name: str) -> None:
-        """Async handler for service removal."""
+        """Handle async service removal."""
         logging.info(
             "[REC_LISTENER] _handle_remove_service (async) started for name: "
             "%s, type: %s",
@@ -192,7 +192,7 @@ class RecordListener(MdnsListener):
         )
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called by `zeroconf` when a new service is discovered."""
+        """Call by `zeroconf` when a new service is discovered."""
         logging.info(
             "Sync add_service called: type='%s', name='%s'. Scheduling async handler.",
             type_,
@@ -201,7 +201,7 @@ class RecordListener(MdnsListener):
         asyncio.create_task(self._handle_add_service(type_, name))
 
     async def _handle_add_service(self, type_: str, name: str) -> None:
-        """Async handler for service additions."""
+        """Handle async service additions."""
         logging.info(
             "Async handler _handle_add_service started for: type='%s', name='%s'",
             type_,

@@ -39,8 +39,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         ],
         handler_call_details: grpc.HandlerCallDetails,
     ) -> grpc.RpcMethodHandler:
-        """Intercepts the RPC call, catching exceptions and invoking the callback.
-        """
+        """Intercepts the RPC call, catching exceptions and invoking the callback."""
         handler: grpc.RpcMethodHandler = await continuation(handler_call_details)
 
         # If there's no handler, it means this RPC is not implemented.

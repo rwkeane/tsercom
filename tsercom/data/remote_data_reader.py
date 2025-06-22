@@ -19,7 +19,7 @@ class RemoteDataReader(ABC, Generic[DataTypeT]):
 
     @abstractmethod
     def _on_data_ready(self, new_data: DataTypeT) -> None:
-        """Callback method to process a new data item.
+        """Handle callback method to process a new data item.
 
         Implementers should define the logic to handle the `new_data`
         when this method is invoked.

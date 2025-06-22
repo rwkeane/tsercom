@@ -36,7 +36,7 @@ class InstancePublisher:
         ) = None,
         zc_instance: AsyncZeroconf | None = None,
     ) -> None:
-        """Initializes the InstancePublisher.
+        """Initialize the InstancePublisher.
 
         Args:
             port: Network port of the service.
@@ -132,7 +132,7 @@ class InstancePublisher:
             )
 
     def _make_txt_record(self) -> dict[bytes, bytes | None]:
-        """Creates TXT record dict for mDNS. Incl. pub timestamp & opt. name.
+        """Create TXT record dict for mDNS. Incl. pub timestamp & opt. name.
 
         Returns:
             Dict (bytes: bytes/None) for mDNS TXT record.
@@ -148,7 +148,7 @@ class InstancePublisher:
         return properties
 
     async def publish(self) -> None:
-        """Publishes the service instance using mDNS.
+        """Publish the service instance using mDNS.
 
         This method delegates to the underlying `RecordPublisher` to make the
         service visible on the network.
@@ -156,7 +156,7 @@ class InstancePublisher:
         await self.__record_publisher.publish()
 
     async def close(self) -> None:
-        """Closes the underlying record publisher if it supports closing."""
+        """Close the underlying record publisher if it supports closing."""
         if hasattr(self.__record_publisher, "close") and callable(
             self.__record_publisher.close
         ):
@@ -176,7 +176,7 @@ class InstancePublisher:
             )
 
     def __get_current_date_time_bytes(self) -> bytes:
-        """Gets current date/time as UTF-8 encoded string.
+        """Get current date/time as UTF-8 encoded string.
 
         Returns:
             Timestamp as bytes (e.g., "YYYY-MM-DD HH:MM:SS.ffffff").

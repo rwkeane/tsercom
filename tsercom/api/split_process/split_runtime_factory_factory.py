@@ -50,7 +50,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         thread_pool: ThreadPoolExecutor,
         thread_watcher: ThreadWatcher,
     ) -> None:
-        """Initializes the SplitRuntimeFactoryFactory.
+        """Initialize the SplitRuntimeFactoryFactory.
 
         Args:
             thread_pool: ThreadPoolExecutor for async tasks.
@@ -80,7 +80,7 @@ class SplitRuntimeFactoryFactory(RuntimeFactoryFactory[DataTypeT, EventTypeT]):
         RuntimeHandle[DataTypeT, EventTypeT],
         RuntimeFactory[DataTypeT, EventTypeT],
     ]:
-        """Creates a handle and factory for a split-process runtime.
+        """Create a handle and factory for a split-process runtime.
 
         Sets up IPC queues using the MultiprocessingContextProvider.
         Creates `RemoteRuntimeFactory` (for child process) and
