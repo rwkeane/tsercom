@@ -48,8 +48,7 @@ class IsRunningTracker(Atomic[bool]):
 
     @property
     def is_running(self) -> bool:
-        """Returns whether or not this instance is currently running.
-        """
+        """Returns whether or not this instance is currently running."""
         return self.get()
 
     def start(self) -> None:

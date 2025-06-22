@@ -16,8 +16,7 @@ class MdnsListener(ServiceListener):
 
     @abstractmethod
     async def start(self) -> None:
-        """Starts listening for mDNS services.
-        """
+        """Starts listening for mDNS services."""
         raise NotImplementedError(
             "MdnsListener.start must be implemented by subclasses."
         )

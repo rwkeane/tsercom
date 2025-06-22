@@ -54,7 +54,7 @@ class RemoteRuntimeFactory(
         data_reader_queue: MultiprocessQueueSink[AnnotatedInstance[DataTypeT]],
         command_source_queue: MultiprocessQueueSource[RuntimeCommand],
     ) -> None:
-        """Initializes the RemoteRuntimeFactory.
+        """Initialize the RemoteRuntimeFactory.
 
         Args:
             initializer: Initializer for the runtime.
@@ -92,7 +92,7 @@ class RemoteRuntimeFactory(
     def _remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
-        """Provides the data reader sink for the remote runtime.
+        """Provide the data reader sink for the remote runtime.
 
         Lazily initializes and returns a `DataReaderSink`.
 
@@ -111,7 +111,7 @@ class RemoteRuntimeFactory(
     def _event_poller(
         self,
     ) -> AsyncPoller[EventInstance[EventTypeT]]:
-        """Provides the event poller for events from remote runtime.
+        """Provide the event poller for events from remote runtime.
 
         Lazily initializes and returns an `EventSource`.
 
@@ -129,7 +129,7 @@ class RemoteRuntimeFactory(
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        """Creates remote Runtime instance and sets up command handling.
+        """Create remote Runtime instance and set up command handling.
 
         Initializes core runtime. Starts event source (if initialized via
         `_event_poller`). Sets up command source to relay to new runtime.
@@ -164,7 +164,7 @@ class RemoteRuntimeFactory(
         return runtime
 
     def _stop(self) -> None:
-        """Stops command source and event source."""
+        """Stop command source and event source."""
         if self.__command_source is not None:
             self.__command_source.stop_async()
         if (

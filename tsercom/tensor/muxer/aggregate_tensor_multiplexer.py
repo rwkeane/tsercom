@@ -32,8 +32,7 @@ TimestampedTensor = tuple[datetime.datetime, torch.Tensor]
 
 
 class Publisher:
-    """A source of tensor data that can be registered with AggregateTensorMultiplexer.
-    """
+    """A source of tensor data that can be registered with AggregateTensorMultiplexer."""
 
     def __init__(self) -> None:
         """Initializes the Publisher."""

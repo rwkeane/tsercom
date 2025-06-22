@@ -18,12 +18,10 @@ TimestampedTensor = tuple[datetime.datetime, TensorHistoryValue]
 
 
 class TensorMultiplexer(abc.ABC):
-    """Abstract base class for multiplexing tensor updates.
-    """
+    """Abstract base class for multiplexing tensor updates."""
 
     class Client(abc.ABC):
-        """Client interface for TensorMultiplexer to report index updates.
-        """
+        """Client interface for TensorMultiplexer to report index updates."""
 
         @abc.abstractmethod
         async def on_chunk_update(self, chunk: "SerializableTensorChunk") -> None:

@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Optional
 
-import lz4.frame  # type: ignore[import-untyped]
+import lz4.frame
 import numpy as np
 import torch
 

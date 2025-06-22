@@ -30,7 +30,7 @@ class LocalRuntimeFactoryFactory(
     """Creates LocalRuntimeFactory instances and associated RuntimeHandles."""
 
     def __init__(self, thread_pool: ThreadPoolExecutor) -> None:
-        """Initializes the LocalRuntimeFactoryFactory.
+        """Initialize the LocalRuntimeFactoryFactory.
 
         Args:
             thread_pool: ThreadPoolExecutor for managing asynchronous tasks.
@@ -45,7 +45,7 @@ class LocalRuntimeFactoryFactory(
         RuntimeHandle[DataTypeT, EventTypeT],
         RuntimeFactory[DataTypeT, EventTypeT],
     ]:
-        """Creates a RuntimeHandle and its corresponding LocalRuntimeFactory.
+        """Create a RuntimeHandle and its corresponding LocalRuntimeFactory.
 
         Sets up components for a local runtime: data aggregation, event
         polling, and command bridging.

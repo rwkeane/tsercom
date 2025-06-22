@@ -1,3 +1,5 @@
+"""Manages and organizes data from a single remote source (caller)."""
+
 import datetime
 import logging
 import threading
@@ -39,8 +41,7 @@ class RemoteDataOrganizer(
         def _on_data_available(
             self, data_organizer: "RemoteDataOrganizer[DataTypeT]"
         ) -> None:
-            """Callback invoked when new data is processed and available in the
-            organizer.
+            """Invoke callback when new data is processed and available in the organizer.
 
             Args:
                 data_organizer: The `RemoteDataOrganizer` instance that has new data.
@@ -54,7 +55,7 @@ class RemoteDataOrganizer(
         caller_id: CallerIdentifier,
         client: Optional["RemoteDataOrganizer.Client"] = None,
     ) -> None:
-        """Initializes a RemoteDataOrganizer.
+        """Initialize a RemoteDataOrganizer.
 
         Args:
             thread_pool: A `ThreadPoolExecutor` used for submitting data
@@ -87,7 +88,7 @@ class RemoteDataOrganizer(
         return self.__caller_id
 
     def start(self) -> None:
-        """Starts this data organizer, allowing it to process incoming data.
+        """Start this data organizer, allowing it to process incoming data.
 
         Raises:
             RuntimeError: If the organizer is already running (typically by
@@ -97,7 +98,7 @@ class RemoteDataOrganizer(
         self.__is_running.start()
 
     def stop(self) -> None:
-        """Stops this data organizer from processing new data.
+        """Stop this data organizer from processing new data.
 
         Once stopped, no new data will be added, and data timeout mechanisms
         (if part of a `DataTimeoutTracker`) might cease or behave differently
@@ -111,7 +112,7 @@ class RemoteDataOrganizer(
         self.__is_running.stop()
 
     def has_new_data(self) -> bool:
-        """Checks if new data has been received since the last call to `get_new_data`.
+        """Check if new data has been received since the last call to `get_new_data`.
 
         "New data" is defined as data items with a timestamp more recent than
         the timestamp of the last item retrieved by `get_new_data`.
@@ -128,7 +129,7 @@ class RemoteDataOrganizer(
             return most_recent_timestamp > last_access_timestamp  # type: ignore[no-any-return]
 
     def get_new_data(self) -> list[DataTypeT]:
-        """Retrieves all data items received since the last call to this method.
+        """Retrieve all data items received since the last call to this method.
 
         Updates the internal "last access" timestamp to the timestamp of the
         most recent item retrieved in this call.
@@ -152,7 +153,7 @@ class RemoteDataOrganizer(
             return results
 
     def get_most_recent_data(self) -> DataTypeT | None:
-        """Returns the most recently received data item, regardless of last access time.
+        """Return the most recently received data item, regardless of last access time.
 
         Returns:
             The most recent `DataTypeT` item, or `None` if no data has been received.
@@ -164,7 +165,7 @@ class RemoteDataOrganizer(
             return self.__data[-1]  # type: ignore[no-any-return]
 
     def get_data_for_timestamp(self, timestamp: datetime.datetime) -> DataTypeT | None:
-        """Returns the most recent data item received at or before the given timestamp.
+        """Return the most recent data item received at or before the given timestamp.
 
         Args:
             timestamp: The specific `datetime` to find data for.
@@ -183,17 +184,10 @@ class RemoteDataOrganizer(
 
             class DummyItemForBisectSearch:
                 def __init__(self, ts: datetime.datetime) -> None:
-                    """Initializes a RemoteDataOrganizer.
+                    """Initialize a dummy item for bisect search.
 
                     Args:
-                        thread_pool: A `ThreadPoolExecutor` used for submitting data
-                                     processing tasks asynchronously.
-                        caller_id: The `CallerIdentifier` for the remote endpoint
-                                   whose data this organizer will manage.
-                        client: An optional client implementing
-                                `RemoteDataOrganizer.Client` to receive callbacks
-                                when new data is available.
-
+                        ts: The timestamp for the dummy item.
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -203,7 +197,7 @@ class RemoteDataOrganizer(
             return self.__data[idx - 1]  # type: ignore[no-any-return]
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
-        """Handles an incoming data item.
+        """Handle an incoming data item.
 
         Validates the data, ensures it matches the organizer's `caller_id`,
         and submits it for asynchronous processing via `__on_data_ready_impl`.
@@ -229,7 +223,7 @@ class RemoteDataOrganizer(
         self.__thread_pool.submit(self.__on_data_ready_impl, new_data)
 
     def __on_data_ready_impl(self, new_data: DataTypeT) -> None:
-        """Internal implementation to process and store new data.
+        """Process and store new data internally.
 
         This method is executed by the thread pool. It adds the new data to the
         internal deque in chronological order (most recent first) and notifies
@@ -254,17 +248,10 @@ class RemoteDataOrganizer(
 
             class DummyItemForBisectSearch:
                 def __init__(self, ts: datetime.datetime) -> None:
-                    """Initializes a RemoteDataOrganizer.
+                    """Initialize a dummy item for bisect search.
 
                     Args:
-                        thread_pool: A `ThreadPoolExecutor` used for submitting data
-                                     processing tasks asynchronously.
-                        caller_id: The `CallerIdentifier` for the remote endpoint
-                                   whose data this organizer will manage.
-                        client: An optional client implementing
-                                `RemoteDataOrganizer.Client` to receive callbacks
-                                when new data is available.
-
+                        ts: The timestamp for the dummy item.
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -288,7 +275,7 @@ class RemoteDataOrganizer(
             self.__client._on_data_available(self)
 
     def _on_triggered(self, timeout_seconds: int) -> None:
-        """Callback from `DataTimeoutTracker` when a timeout period elapses.
+        """Handle callback from `DataTimeoutTracker` when a timeout period elapses.
 
         Submits the `__timeout_old_data` method to the thread pool to remove
         stale data. This is part of the `DataTimeoutTracker.Tracked` interface.
@@ -300,7 +287,7 @@ class RemoteDataOrganizer(
         self.__thread_pool.submit(partial(self.__timeout_old_data, timeout_seconds))
 
     def __timeout_old_data(self, timeout_seconds: int) -> None:
-        """Removes data older than the specified timeout period.
+        """Remove data older than the specified timeout period.
 
         This method is executed by the thread pool. It calculates the oldest
         allowed timestamp and removes all data items from the end of the deque
@@ -360,17 +347,10 @@ class RemoteDataOrganizer(
 
             class DummyItemForBisectSearch:
                 def __init__(self, ts: datetime.datetime) -> None:
-                    """Initializes a RemoteDataOrganizer.
+                    """Initialize a dummy item for bisect search.
 
                     Args:
-                        thread_pool: A `ThreadPoolExecutor` used for submitting data
-                                     processing tasks asynchronously.
-                        caller_id: The `CallerIdentifier` for the remote endpoint
-                                   whose data this organizer will manage.
-                        client: An optional client implementing
-                                `RemoteDataOrganizer.Client` to receive callbacks
-                                when new data is available.
-
+                        ts: The timestamp for the dummy item.
                     """
                     self.timestamp: datetime.datetime = ts
 

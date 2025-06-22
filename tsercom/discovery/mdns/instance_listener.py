@@ -37,7 +37,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
         @abstractmethod
         async def _on_service_added(self, connection_info: ServiceInfoT) -> None:
-            """Callback invoked when a new service instance is discovered.
+            """Invoke callback when a new service instance is discovered.
 
             Args:
                 connection_info: Info about discovered service (`ServiceInfoT`).
@@ -50,7 +50,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
 
         @abstractmethod
         async def _on_service_removed(self, service_name: str) -> None:
-            """Callback invoked when a service instance is removed.
+            """Invoke callback when a service instance is removed.
 
             Args:
                 service_name: The mDNS instance name of the removed service.
@@ -69,11 +69,13 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         mdns_listener_factory: MdnsListenerFactory | None = None,
         zc_instance: AsyncZeroconf | None = None,
     ) -> None:
-        """Initializes the InstanceListener.
+        """Initialize the InstanceListener.
 
         Args:
             client: `InstanceListener.Client` for service notifications.
             service_type: mDNS service type (e.g., "_my_service._tcp.local.").
+            mdns_listener_factory: Optional factory to create `MdnsListener`.
+            zc_instance: Optional `AsyncZeroconf` instance.
 
         Raises:
             ValueError: If `client` is None.
@@ -122,7 +124,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         assert isinstance(self.__listener, MdnsListener), type(self.__listener)
 
     async def start(self) -> None:
-        """Starts the underlying mDNS listener."""
+        """Start the underlying mDNS listener."""
         if self.__listener:
             await self.__listener.start()  # Changed to await
         else:
@@ -142,7 +144,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         addresses: list[bytes],
         txt_record: dict[bytes, bytes | None],
     ) -> ServiceInfo | None:
-        """Constructs a `ServiceInfo` object from raw mDNS record data.
+        """Construct a `ServiceInfo` object from raw mDNS record data.
 
         Args:
             record_name: mDNS instance name.
@@ -211,7 +213,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
     def _convert_service_info(
         self, service_info: ServiceInfo, _txt_record: dict[bytes, bytes | None]
     ) -> ServiceInfoT:
-        """Converts base `ServiceInfo` to specific `ServiceInfoT`.
+        """Convert base `ServiceInfo` to specific `ServiceInfoT`.
 
         Override if `ServiceInfoT` is more specific and needs extra parsing
         of `_txt_record`. Default is passthrough.
@@ -239,7 +241,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         addresses: list[bytes],
         txt_record: dict[bytes, bytes | None],
     ) -> None:
-        """Callback from `RecordListener` with mDNS records for a service.
+        """Handle callback from `RecordListener` with mDNS records for a service.
 
         Implements `MdnsListener.Client`. Populates `ServiceInfo`, converts
         to `ServiceInfoT`, then notifies its own client via `_on_service_added`
@@ -271,7 +273,7 @@ class InstanceListener(Generic[ServiceInfoT], MdnsListener.Client):
         service_type: str,
         record_listener_uuid: str,
     ) -> None:
-        """Callback from `RecordListener` when a service is removed.
+        """Handle callback from `RecordListener` when a service is removed.
 
         Implements `MdnsListener.Client`. Notifies its own client via
         `_on_service_removed` on the event loop.

@@ -1,5 +1,4 @@
-"""Provides the TensorDemuxer class for aggregating granular tensor updates.
-"""
+"""Provides the TensorDemuxer class for aggregating granular tensor updates."""
 
 import abc
 import asyncio
@@ -20,15 +19,13 @@ class TensorDemuxer:
     """
 
     class Client(abc.ABC):
-        """Client interface for TensorDemuxer to report reconstructed tensors.
-        """
+        """Client interface for TensorDemuxer to report reconstructed tensors."""
 
         @abc.abstractmethod
         async def on_tensor_changed(
             self, tensor: torch.Tensor, timestamp: datetime.datetime
         ) -> None:
-            """Called when a tensor for a given timestamp is created or modified.
-            """
+            """Called when a tensor for a given timestamp is created or modified."""
 
     def __init__(
         self,

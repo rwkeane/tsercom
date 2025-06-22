@@ -28,7 +28,7 @@ class DiscoveryHost(
 
     @overload
     def __init__(self, *, service_type: str):
-        """Initializes DiscoveryHost to listen for a specific mDNS service type.
+        """Initialize DiscoveryHost to listen for a specific mDNS service type.
 
         Args:
             service_type: The mDNS service type string to discover
@@ -46,7 +46,7 @@ class DiscoveryHost(
             InstanceListener[ServiceInfoT],
         ],
     ):
-        """Initializes DiscoveryHost with a factory for a custom InstanceListener.
+        """Initialize DiscoveryHost with a factory for a custom InstanceListener.
 
         This allows using a custom mDNS discovery mechanism or configuration.
 
@@ -64,7 +64,7 @@ class DiscoveryHost(
         *,
         mdns_listener_factory: MdnsListenerFactory,
     ):
-        """Initializes DiscoveryHost with a factory for a custom InstanceListener.
+        """Initialize DiscoveryHost with a factory for a custom InstanceListener.
 
         This allows using a custom mDNS discovery mechanism or configuration.
 
@@ -83,16 +83,18 @@ class DiscoveryHost(
         ) = None,
         mdns_listener_factory: MdnsListenerFactory | None = None,
     ) -> None:
-        """Initializes DiscoveryHost. Overloaded: use one keyword arg.
+        """Initialize DiscoveryHost. Overloaded: use one keyword arg.
 
         Args:
             service_type: mDNS service type (e.g., "_my_service._tcp.local.").
             instance_listener_factory: Callable creating `InstanceListener`.
                 Allows custom listener configs (e.g., different mDNS libs).
                 Factory gets `self` as client for the listener.
+            mdns_listener_factory: Optional factory for creating `MdnsListener`
+                instances, allowing for custom mDNS backends or configurations.
 
         Raises:
-            ValueError: If neither or both args provided.
+            ValueError: If invalid combination of arguments provided.
 
         """
         # Ensure exclusive provision of service_type or factory
@@ -141,7 +143,7 @@ class DiscoveryHost(
         self.__caller_id_map: dict[str, CallerIdentifier] = {}
 
     async def start_discovery(self, client: ServiceSource.Client) -> None:
-        """Starts service discovery.
+        """Start service discovery.
 
         Calls async `__start_discovery_impl`. Discovered services reported
         to `client` via `_on_service_added`. Fulfills `ServiceSource` interface.
@@ -156,7 +158,7 @@ class DiscoveryHost(
         self,
         client: ServiceSource.Client,
     ) -> None:
-        """Internal implementation for starting discovery.
+        """Start discovery internally.
 
         Initializes and starts `InstanceListener` using `service_type` or
         `instance_listener_factory`.
@@ -206,7 +208,7 @@ class DiscoveryHost(
             )
 
     async def _on_service_added(self, connection_info: ServiceInfoT) -> None:  # type: ignore[override]
-        """Callback from `InstanceListener` when a new service instance is found.
+        """Handle callback from `InstanceListener` when a new service instance is found.
 
         Implements `InstanceListener.Client`. Assigns/retrieves `CallerIdentifier`
         for the new service. Notifies `DiscoveryHost`'s client
@@ -238,7 +240,7 @@ class DiscoveryHost(
         await self.__client._on_service_added(connection_info, caller_id)
 
     async def _on_service_removed(self, service_name: str) -> None:
-        """Handles a service being removed.
+        """Handle a service being removed.
 
         Notifies the ServiceSource.Client that a service, identified by its
         mDNS name, is no longer available. It also removes the service's
@@ -280,6 +282,7 @@ class DiscoveryHost(
             )
 
     async def stop_discovery(self) -> None:
+        """Stop service discovery and clean up resources."""
         # Stops service discovery and cleans up resources.
         logging.info("Stopping DiscoveryHost...")
         if self.__discoverer is not None:

@@ -1,3 +1,5 @@
+"""Defines the base ExposedData class for data instances with metadata."""
+
 import dataclasses
 from datetime import datetime
 

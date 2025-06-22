@@ -16,7 +16,7 @@ class CallerIdentifier:
     """
 
     def __init__(self, id_value: uuid.UUID) -> None:
-        """Initializes a new CallerIdentifier instance.
+        """Initialize a new CallerIdentifier instance.
 
         Args:
             id_value: The UUID to wrap. Must be an instance of `uuid.UUID`.
@@ -31,7 +31,7 @@ class CallerIdentifier:
 
     @staticmethod
     def random() -> "CallerIdentifier":
-        """Creates a new CallerIdentifier from a randomly generated UUID.
+        """Create a new CallerIdentifier from a randomly generated UUID.
 
         Returns:
             A new `CallerIdentifier` instance.
@@ -45,7 +45,7 @@ class CallerIdentifier:
         cls,
         value: str | CallerId,  # Using typing.Union for broader compatibility
     ) -> Optional["CallerIdentifier"]:
-        """Tries to parse a string or gRPC CallerId object into a CallerIdentifier.
+        """Try to parse a string or gRPC CallerId object into a CallerIdentifier.
 
         Args:
             value: The value to parse. Can be a string UUID
@@ -77,7 +77,7 @@ class CallerIdentifier:
             return None
 
     def to_grpc_type(self) -> CallerId:
-        """Converts this to its gRPC `CallerId` representation.
+        """Convert this to its gRPC `CallerId` representation.
 
         Returns:
             A gRPC `CallerId` protobuf message.
@@ -86,7 +86,7 @@ class CallerIdentifier:
         return CallerId(id=str(self.__id))
 
     def __hash__(self) -> int:
-        """Returns the hash of the underlying UUID.
+        """Return the hash of the underlying UUID.
 
         Returns:
             An integer hash value.
@@ -95,7 +95,7 @@ class CallerIdentifier:
         return hash(self.__id)
 
     def __eq__(self, other: object) -> bool:
-        """Checks equality with another CallerIdentifier.
+        """Check equality with another CallerIdentifier.
 
         Instances are equal if their underlying UUIDs are equal.
 
@@ -115,7 +115,7 @@ class CallerIdentifier:
         return self.__id == other.__id
 
     def __ne__(self, other: object) -> bool:
-        """Checks inequality with another CallerIdentifier.
+        """Check inequality with another CallerIdentifier.
 
         Args:
             other: The object to compare with.
@@ -133,7 +133,7 @@ class CallerIdentifier:
         return not equal_result
 
     def __str__(self) -> str:
-        """Returns the string representation of the underlying UUID.
+        """Return the string representation of the underlying UUID.
 
         Returns:
             A string representation of the UUID.
@@ -142,7 +142,7 @@ class CallerIdentifier:
         return str(self.__id)
 
     def __repr__(self) -> str:
-        """Returns a developer-friendly string representation of this instance.
+        """Return a developer-friendly string representation of this instance.
 
         Returns:
             A string in the format `CallerIdentifier('uuid_string')`.
@@ -151,7 +151,7 @@ class CallerIdentifier:
         return f"CallerIdentifier('{self.__id}')"
 
     def __format__(self, format_spec: str) -> str:
-        """Formats the underlying UUID according to the given format specification.
+        """Format the underlying UUID according to the given format specification.
 
         Args:
             format_spec: Format spec string (e.g., 's', 'n', 'h').

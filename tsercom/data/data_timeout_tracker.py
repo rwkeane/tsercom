@@ -32,7 +32,7 @@ class DataTimeoutTracker:
 
         @abstractmethod
         def _on_triggered(self, timeout_seconds: int) -> None:
-            """Callback method invoked when a timeout period elapses.
+            """Invoke callback method when a timeout period elapses.
 
             Args:
                 timeout_seconds: The duration of the timeout that triggered
@@ -41,7 +41,7 @@ class DataTimeoutTracker:
             """
 
     def __init__(self, timeout_seconds: int = 60) -> None:
-        """Initializes the DataTimeoutTracker.
+        """Initialize the DataTimeoutTracker.
 
         Args:
             timeout_seconds: Interval in secs for notifying `Tracked` objects.
@@ -52,7 +52,7 @@ class DataTimeoutTracker:
         self.__is_running: IsRunningTracker = IsRunningTracker()
 
     def register(self, tracked: Tracked) -> None:
-        """Registers a 'Tracked' object to be monitored for timeouts.
+        """Register a 'Tracked' object to be monitored for timeouts.
 
         The registration is performed asynchronously on the event loop.
 
@@ -63,7 +63,7 @@ class DataTimeoutTracker:
         run_on_event_loop(partial(self.__register_impl, tracked))
 
     async def __register_impl(self, tracked: Tracked) -> None:
-        """Internal implementation to register a 'Tracked' object.
+        """Register a 'Tracked' object internally.
 
         Must run on event loop.
 
@@ -78,7 +78,7 @@ class DataTimeoutTracker:
         self.__tracked_list.append(tracked)
 
     def start(self) -> None:
-        """Starts the periodic timeout checking mechanism.
+        """Start the periodic timeout checking mechanism.
 
         This schedules the `__execute_periodically` coroutine on the event loop.
 
@@ -95,7 +95,7 @@ class DataTimeoutTracker:
             run_on_event_loop(self.__signal_stop_impl)
 
     async def __signal_stop_impl(self) -> None:
-        """Internal implementation to signal stop on the event loop."""
+        """Signal stop internally on the event loop."""
         # Ensure this runs on the loop, though run_on_event_loop handles it.
         assert is_running_on_event_loop(), "Stop signal must be on event loop."
         if self.__is_running.get():  # Double check on the loop
@@ -133,7 +133,7 @@ class DataTimeoutTracker:
         run_on_event_loop(partial(self.__unregister_impl, tracked))
 
     async def __unregister_impl(self, tracked: Tracked) -> None:
-        """Internal implementation to unregister a 'Tracked' object."""
+        """Unregister a 'Tracked' object internally."""
         assert is_running_on_event_loop(), "Unregistration must be on event loop."
         try:
             self.__tracked_list.remove(tracked)
