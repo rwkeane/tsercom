@@ -433,9 +433,10 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """This method is not used directly for AggregateTensorMultiplexer.
+        """Handles direct tensor processing; not used by AggregateTensorMultiplexer.
+
         Data is received via registered Publishers through
-        _notify_update_from_publisher.
+        `_notify_update_from_publisher`.
         """
         raise NotImplementedError(
             "AggregateTensorMultiplexer receives data via registered Publishers, "

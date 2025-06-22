@@ -16,8 +16,9 @@ AtomicTypeT = TypeVar("AtomicTypeT")
 
 # Provides thread-safe, atomic access to a value.
 class Atomic(Generic[AtomicTypeT]):
-    """This class provides atomic access (via locks) to an underlying type.
-    It ensures that operations like getting and setting the value are
+    """Provides atomic access (via locks) to an underlying type.
+
+    Ensures that operations like getting and setting the value are
     thread-safe.
     """
 

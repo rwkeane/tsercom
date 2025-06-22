@@ -13,15 +13,14 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 
 
 class FakeTimeSyncClient(ClientSynchronizedClock.Client):
-    """This class is used to synchronize clocks with an endpoint running an
-    TimeSyncServer. Specifically, this class defines the client-side of an NTP
-    client-server handshake, receiving the offset from a call to the server.
+    """A fake client for synchronizing clocks with a TimeSyncServer endpoint.
 
-    NOTE: Despite the name and the original intention described above, this
-    current implementation is a "fake" client. It does not perform any actual
-    NTP network synchronization. The `start_async` method simply initializes
-    the time offset to zero, and `get_offset_seconds` will return this initial
-    (or averaged) offset.
+    Implements the client-side of an NTP handshake by receiving an offset
+    from a simulated server call.
+
+    NOTE: This is a "fake" client and does not perform actual NTP network
+    synchronization. `start_async` initializes the time offset to zero,
+    and `get_offset_seconds` returns this (or an averaged) offset.
     """
 
     def __init__(

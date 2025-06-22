@@ -19,12 +19,13 @@ ReturnTypeT = TypeVar("ReturnTypeT")
 
 
 class IsRunningTracker(Atomic[bool]):
-    """This class provides a state-tracker to track whether the using object is
-    running or stopped (the initial state), and utilities to work with this
-    state.
+    """Provides a state-tracker for running/stopped status and utilities.
 
-    NOTE: Only set(), start(), stop() are thread-safe. Other methods,
-    once called from an asyncio event loop, must stay on that loop.
+    Tracks whether an object is running or stopped (initial state).
+    Offers utilities to work with this state.
+
+    NOTE: Only `set()`, `start()`, and `stop()` are thread-safe. Other methods,
+    once called from an asyncio event loop, must remain on that loop.
     """
 
     def __init__(

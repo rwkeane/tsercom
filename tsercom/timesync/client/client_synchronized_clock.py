@@ -10,8 +10,9 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 class ClientSynchronizedClock(SynchronizedClock):
-    """This class defines a clock that is synchronized with the server-side clock
-    as defined by |client|.
+    """Defines a clock synchronized with a server-side clock via a client.
+
+    The synchronization is based on the offset provided by the `client` argument.
     """
 
     class Client(ABC):
