@@ -441,11 +441,11 @@ def generate_protos(project_root: Path) -> None:
         package_dir,
         "test/proto/e2e_test_service.proto",
         [
-            "test/proto",
-            "caller_id/proto",
-            "rpc/proto",
-            "timesync/common/proto",
-            "tensor/proto",
+            "test/proto",  # Dir of the file itself
+            "caller_id/proto",  # Dir of caller_id.proto
+            "tensor/proto",  # Dir of tensor.proto
+            "timesync/common/proto",  # For tensor.proto's import of time.proto
+            "..",  # Project root for resolving tsercom/... import statements
         ],
     )
 
