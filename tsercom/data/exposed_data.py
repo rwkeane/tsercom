@@ -5,8 +5,8 @@ interface for all data objects that are managed and transmitted within the
 Tsercom system. It mandates that all data carry a `caller_id` and a `timestamp`.
 """
 
-from abc import ABC, abstractmethod
 import datetime
+from abc import ABC, abstractmethod
 
 from tsercom.caller_id.caller_identifier import CallerIdentifier
 

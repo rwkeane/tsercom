@@ -1,3 +1,5 @@
+"""Defines the abstract base class for synchronized clocks."""
+
 import datetime
 from abc import ABC, abstractmethod
 

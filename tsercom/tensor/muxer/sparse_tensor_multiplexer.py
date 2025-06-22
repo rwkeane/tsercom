@@ -35,7 +35,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
-        """Initializes the SparseTensorMultiplexer.
+        """Initialize the SparseTensorMultiplexer.
 
         Args:
             client: The client to notify of index updates.
@@ -90,8 +90,10 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         new_tensor: TensorHistoryValue,
         timestamp: datetime.datetime,
     ) -> None:
-        """Calculates the difference between two tensor states, groups contiguous changes
-        into `SerializableTensorChunk` objects, and emits them to the client.
+        """Calculate difference between tensor states, group changes, and emit chunks.
+
+        Differences are grouped into `SerializableTensorChunk` objects and
+        emitted to the client.
         """
         if len(old_tensor) != len(new_tensor):
             return
@@ -140,8 +142,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """Processes a new tensor snapshot, handling out-of-order updates and
-        history management.
+        """Process a new tensor snapshot, handling out-of-order updates and history.
 
         This method calculates differences against the previous relevant tensor
         state, emits these changes as chunks, and manages a cascading update
@@ -226,5 +227,5 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     def get_latest_processed_timestamp_for_testing(
         self,
     ) -> datetime.datetime | None:
-        """Gets the latest processed timestamp for testing purposes."""
+        """Get the latest processed timestamp for testing purposes."""
         return self.__latest_processed_timestamp

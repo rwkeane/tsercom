@@ -12,7 +12,7 @@ class Runtime(ABC):
 
     @abstractmethod
     async def start_async(self) -> None:
-        """Starts the runtime service asynchronously.
+        """Start the runtime service asynchronously.
 
         Subclasses must implement this method to define the startup logic
         for the service.

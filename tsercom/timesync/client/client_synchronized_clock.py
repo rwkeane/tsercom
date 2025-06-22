@@ -57,6 +57,16 @@ class ClientSynchronizedClock(SynchronizedClock):
         super().__init__()
 
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
+        """Convert a server-time timestamp to the client's local time.
+
+        Args:
+            time: A `SynchronizedTimestamp` representing time in the server's
+                  synchronized domain.
+
+        Returns:
+            A `datetime.datetime` object representing the equivalent time in the
+            client's local, unsynchronized time frame.
+        """
         # A positive offset means the client is ahead of the server.
         # A negative offset means the client is behind the server.
         offset_seconds = self.__client.get_offset_seconds()
@@ -75,6 +85,16 @@ class ClientSynchronizedClock(SynchronizedClock):
         return timestamp_dt - offset_timedelta
 
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
+        """Convert a client's local time to the server's synchronized time.
+
+        Args:
+            timestamp: A `datetime.datetime` object representing time in the
+                       client's local, unsynchronized time frame.
+
+        Returns:
+            A `SynchronizedTimestamp` representing the equivalent time in the
+            server's synchronized domain.
+        """
         # A positive offset means the client is ahead of the server.
         # A negative offset means the client is behind the server.
         offset_seconds = self.__client.get_offset_seconds()

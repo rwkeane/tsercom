@@ -1,3 +1,5 @@
+"""Provides a utility class for managing and accessing multiprocessing contexts."""
+
 from multiprocessing.context import BaseContext as StdBaseContext
 from typing import Generic, TypeVar
 

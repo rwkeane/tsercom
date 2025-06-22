@@ -1,16 +1,26 @@
+"""Defines a linear interpolation strategy for tensors."""
+
 import torch
 
 from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 
 
 class LinearInterpolationStrategy(SmoothingStrategy):
-    """Implements linear interpolation for a series of data points using torch.Tensor."""
+    """Implements linear interpolation for data points using torch.Tensor."""
 
     def __init__(
         self,
         max_extrapolation_seconds: float | None = None,
         max_interpolation_gap_seconds: float | None = None,
     ):
+        """Initialize the linear interpolation strategy.
+
+        Args:
+            max_extrapolation_seconds: Maximum seconds to extrapolate beyond the
+                last keyframe. If None, extrapolation is unbounded.
+            max_interpolation_gap_seconds: Maximum time gap between keyframes
+                for interpolation. If None, interpolation occurs regardless of gap.
+        """
         super().__init__()
         self.max_extrapolation_seconds = max_extrapolation_seconds
         self.max_interpolation_gap_seconds = max_interpolation_gap_seconds
@@ -21,7 +31,7 @@ class LinearInterpolationStrategy(SmoothingStrategy):
         values: torch.Tensor,  # float tensor
         required_timestamps: torch.Tensor,  # float tensor
     ) -> torch.Tensor:
-        """Performs linear interpolation using torch.Tensor operations.
+        """Perform linear interpolation using torch.Tensor operations.
 
         Timestamps are expected to be numerical (e.g., Unix timestamps as float).
 

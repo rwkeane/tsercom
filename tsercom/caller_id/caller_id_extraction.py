@@ -25,7 +25,7 @@ async def extract_id_from_first_call(
     extractor: Callable[[TCallType], GrpcCallerId] | None = None,
     validate_against: CallerIdentifier | None = None,
 ) -> tuple[CallerIdentifier | None, TCallType | None]:
-    """Extract the CallerIdentifier for the next available instance received from an iterator.
+    """Extract CallerIdentifier for the next instance from an iterator.
 
     Returns both the CallerId and the call itself if the method succeeds.
 

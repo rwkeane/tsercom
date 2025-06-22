@@ -121,9 +121,9 @@ class RemoteDataAggregatorImpl(
             AssertionError: If both `tracker` and `timeout` are provided.
 
         """
-        assert not (
-            timeout is not None and tracker is not None
-        ), "Cannot specify both 'timeout' and 'tracker' simultaneously."
+        assert not (timeout is not None and tracker is not None), (
+            "Cannot specify both 'timeout' and 'tracker' simultaneously."
+        )
 
         if tracker is None and timeout is not None and timeout > 0:
             tracker = DataTimeoutTracker(timeout)
@@ -431,7 +431,7 @@ class RemoteDataAggregatorImpl(
             self.__client._on_data_available(self, data_organizer.caller_id)
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
-        """Handle incoming raw data, routing it to the appropriate `RemoteDataOrganizer`.
+        """Handle incoming raw data, routing to the correct `RemoteDataOrganizer`.
 
         This method is part of the `RemoteDataReader` interface. If an organizer
         for the data's `caller_id` doesn't exist, one is created and started.

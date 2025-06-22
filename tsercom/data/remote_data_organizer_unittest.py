@@ -36,11 +36,39 @@ class DummyCallerIdentifier:
 # --- Concrete Dummy ExposedData for type checks and usage ---
 class DummyExposedDataForOrganizerTests(ExposedData):
     __test__ = False
+    # _caller_id: DummyCallerIdentifier | None # No longer needed with property
+    # _timestamp: datetime.datetime # No longer needed with property
     data: float
 
+    def __init__(self, caller_id: DummyCallerIdentifier | None, timestamp: datetime.datetime, data_val: float = 0.0):
+        self._caller_id_val = caller_id
+        self._timestamp_val = timestamp
+        self.data = data_val
+
+    @property
+    def caller_id(self) -> DummyCallerIdentifier | None:
+        """Return the identifier of the instance that generated this data."""
+        return self._caller_id_val
+
+    @property
+    def timestamp(self) -> datetime.datetime:
+        """Return the timestamp when this data was generated or recorded."""
+        return self._timestamp_val
+
+    @timestamp.setter
+    def timestamp(self, value: datetime.datetime) -> None:
+        """Set the timestamp."""
+        self._timestamp_val = value
+
+    # Ensure 'data' is a direct attribute that can be set after deepcopy
+    # The __init__ already sets self.data = data_val
+
     def __repr__(self):
+        # Use the property to access caller_id and timestamp safely
+        caller_id_repr = self.caller_id.id_str if self.caller_id else "None"
+        timestamp_repr = self.timestamp if hasattr(self, '_timestamp_val') else "N/A" # Check if initialized
         data_repr = getattr(self, "data", "N/A")
-        return f"DummyExposedDataForOrganizerTests(caller_id='{self.caller_id.id_str}', timestamp='{self.timestamp}', data={data_repr})"
+        return f"DummyExposedDataForOrganizerTests(caller_id='{caller_id_repr}', timestamp='{timestamp_repr}', data={data_repr})"
 
 
 # --- Fixtures ---
@@ -103,8 +131,8 @@ def create_data(caller_id, timestamp_input, data_val=0.0):
     else:
         base_time = datetime.datetime(2023, 1, 1, 0, 0, 0)
         ts = base_time + datetime.timedelta(seconds=timestamp_input)
-    instance = DummyExposedDataForOrganizerTests(caller_id, ts)
-    instance.data = data_val
+    # Pass data_val to the constructor directly
+    instance = DummyExposedDataForOrganizerTests(caller_id, ts, data_val=data_val)
     return instance
 
 

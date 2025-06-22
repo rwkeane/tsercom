@@ -1,3 +1,5 @@
+"""Defines a serializable representation of a tensor update, composed of chunks."""
+
 from collections.abc import Iterator
 from typing import TypeVar
 
@@ -19,10 +21,15 @@ class SerializableTensorUpdate:
     """
 
     def __init__(self, chunks: list[SerializableTensorChunk]):
+        """Initialize a SerializableTensorUpdate.
+
+        Args:
+            chunks: A list of `SerializableTensorChunk` objects composing this update.
+        """
         self.__chunks = chunks
 
     def to_grpc_type(self) -> TensorUpdate:
-        """Converts this object to its gRPC protobuf representation."""
+        """Convert this object to its gRPC protobuf representation."""
         grpc_chunks = [chunk.to_grpc_type() for chunk in self.__chunks]
         return TensorUpdate(chunks=grpc_chunks)
 
@@ -32,7 +39,7 @@ class SerializableTensorUpdate:
         grpc_msg: TensorUpdate,
         dtype: torch.dtype,
     ) -> STU | None:
-        """Attempts to parse a TensorUpdate protobuf message.
+        """Attempt to parse a TensorUpdate protobuf message.
 
         Args:
             grpc_msg: The protobuf message to parse.
@@ -60,8 +67,10 @@ class SerializableTensorUpdate:
         return cls(chunks=parsed_chunks)
 
     def __iter__(self) -> Iterator[SerializableTensorChunk]:
+        """Iterate over the tensor chunks in this update."""
         return iter(self.__chunks)
 
     @property
     def chunks(self) -> list[SerializableTensorChunk]:
+        """Return the list of tensor chunks in this update."""
         return self.__chunks

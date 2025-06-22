@@ -31,14 +31,14 @@ class ServerRuntimeDataHandler(
     Generic[DataTypeT, EventTypeT],
     RuntimeDataHandlerBase[DataTypeT, EventTypeT],
 ):
-    """Handles data, events, and caller management for server-side runtimes.
+    r"""Handles data, events, and caller management for server-side runtimes.
 
     This class extends `RuntimeDataHandlerBase` to provide functionality
     specific to server runtimes. It uses the `IdTracker` (from the base class)
     to manage associations for connecting clients. For time synchronization,
     it typically initializes a `TimeSyncServer` to provide a consistent time
     source for these clients. In testing mode, a `FakeSynchronizedClock` can
-    be used instead. The server\'s own clock is considered authoritative.
+    be used instead. The server's own clock is considered authoritative.
 
     Type Args:
         DataTypeT: The generic type of data objects that this handler processes.
@@ -54,7 +54,7 @@ class ServerRuntimeDataHandler(
         *,
         is_testing: bool = False,
     ):
-        """Initializes the ServerRuntimeDataHandler.
+        """Initialize the ServerRuntimeDataHandler.
 
         Args:
             data_reader: The `RemoteDataReader` where incoming data, after being
@@ -93,11 +93,11 @@ class ServerRuntimeDataHandler(
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
-        """Registers a new client caller.
+        r"""Register a new client caller.
 
         This implementation adds the client caller (identified by `caller_id`,
         `endpoint`, and `port`) to the internal `IdTracker`. It then uses the
-        server\'s own synchronized clock (`self.__clock`) when creating the
+        server's own synchronized clock (`self.__clock`) when creating the
         `EndpointDataProcessor` for this caller, as the server is the time
         authority.
 
@@ -116,7 +116,7 @@ class ServerRuntimeDataHandler(
         return self._create_data_processor(caller_id, self.__clock)
 
     async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
-        """Handles unregistration of a client caller.
+        """Handle unregistration of a client caller.
 
         In the current server-side implementation, this method is a no-op
         and always returns `False`. The rationale is that server-side IDs might

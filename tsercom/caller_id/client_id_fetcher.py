@@ -57,9 +57,9 @@ class ClientIdFetcher:
                     id_response: GetIdResponse = await self.__stub.GetId(GetIdRequest())
 
                     # Ensure the response is of the expected type.
-                    assert isinstance(
-                        id_response, GetIdResponse
-                    ), f"Expected GetIdResponse, got {type(id_response)}"
+                    assert isinstance(id_response, GetIdResponse), (
+                        f"Expected GetIdResponse, got {type(id_response)}"
+                    )
 
                     # CallerIdentifier.try_parse can return None if invalid.
                     # id_response.id is CallerId msg;

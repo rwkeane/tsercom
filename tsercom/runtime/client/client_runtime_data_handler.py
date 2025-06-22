@@ -31,7 +31,7 @@ class ClientRuntimeDataHandler(
     Generic[DataTypeT, EventTypeT],
     RuntimeDataHandlerBase[DataTypeT, EventTypeT],
 ):
-    """Handles data, events, and caller management for client-side runtimes.
+    r"""Handles data, events, and caller management for client-side runtimes.
 
     This class extends `RuntimeDataHandlerBase` to provide functionality
     specific to client runtimes. A key responsibility is managing time
@@ -40,7 +40,7 @@ class ClientRuntimeDataHandler(
     caller (remote endpoint) it registers.
 
     When registering a caller (representing a connection to a remote server),
-    it initiates time synchronization for that server\'s endpoint and uses the
+    it initiates time synchronization for that server's endpoint and uses the
     resulting synchronized clock when creating the `EndpointDataProcessor` for
     that caller. Similarly, it notifies the `TimeSyncTracker` upon unregistering
     a caller.
@@ -124,11 +124,11 @@ class ClientRuntimeDataHandler(
         return self._create_data_processor(caller_id, clock)
 
     async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
-        """Unregisters a remote caller and cleans up associated resources.
+        r"""Unregister a remote caller and clean up associated resources.
 
         This method removes the specified `caller_id` from the `IdTracker`.
         It also notifies the `TimeSyncTracker` that the connection to the
-        caller\'s endpoint has been terminated, allowing the tracker to clean up
+        caller's endpoint has been terminated, allowing the tracker to clean up
         any resources associated with time synchronization for that endpoint.
 
         Args:

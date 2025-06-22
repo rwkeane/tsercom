@@ -265,7 +265,7 @@ class RecordListener(MdnsListener):
 
         if not self.__is_shared_zc and self.__mdns:
             logging.info(
-                "Closing owned AsyncZeroconf instance for RecordListener, " "type: %s",
+                "Closing owned AsyncZeroconf instance for RecordListener, type: %s",
                 self.__expected_type,
             )
             try:

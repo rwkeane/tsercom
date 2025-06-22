@@ -72,6 +72,7 @@ class SynchronizedTimestamp:
         return ServerTimestamp(timestamp=timestamp_pb)
 
     def __gt__(self, other: TimestampType) -> bool:
+        """Return True if this timestamp is greater than the other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
@@ -85,6 +86,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() > other_dt
 
     def __ge__(self, other: TimestampType) -> bool:
+        """Return True if this timestamp is greater than or equal to the other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
@@ -98,6 +100,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() >= other_dt
 
     def __lt__(self, other: TimestampType) -> bool:
+        """Return True if this timestamp is less than the other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
@@ -111,6 +114,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() < other_dt
 
     def __le__(self, other: TimestampType) -> bool:
+        """Return True if this timestamp is less than or equal to the other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
@@ -124,6 +128,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() <= other_dt
 
     def __eq__(self, other: object) -> bool:
+        """Return True if this timestamp is equal to the other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         elif not isinstance(other, datetime.datetime):
@@ -133,6 +138,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() == other_dt
 
     def __ne__(self, other: object) -> bool:
+        """Return True if this timestamp is not equal to the other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         elif not isinstance(other, datetime.datetime):

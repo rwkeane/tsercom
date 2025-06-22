@@ -1,3 +1,5 @@
+"""Defines a serializable representation of tensor initialization parameters."""
+
 from collections.abc import Iterator
 from typing import TypeVar
 
@@ -45,22 +47,26 @@ class SerializableTensorInitializer:
 
     @property
     def shape(self) -> list[int]:
+        """Return the shape of the tensor."""
         return self.__shape
 
     @property
     def dtype_str(self) -> str:
+        """Return the data type of the tensor as a string."""
         return self.__dtype_str
 
     @property
     def fill_value(self) -> float:
+        """Return the default fill value for the tensor."""
         return self.__fill_value
 
     @property
     def initial_state(self) -> SerializableTensorUpdate | None:
+        """Return the initial state of the tensor, if provided."""
         return self.__initial_state
 
     def to_grpc_type(self) -> TensorInitializer:
-        """Converts this object to its gRPC protobuf representation."""
+        """Convert this object to its gRPC protobuf representation."""
         grpc_initial_state: TensorUpdate | None = None  # Changed type hint
         if self.__initial_state is not None:
             grpc_initial_state = self.__initial_state.to_grpc_type()
@@ -74,9 +80,10 @@ class SerializableTensorInitializer:
 
     @classmethod
     def try_parse(
-        cls: type[STI], grpc_msg: TensorInitializer  # Changed type hint
+        cls: type[STI],
+        grpc_msg: TensorInitializer,  # Changed type hint
     ) -> STI | None:
-        """Attempts to parse a TensorInitializer protobuf message.
+        """Attempt to parse a TensorInitializer protobuf message.
 
         The method maps the `dtype` string from the protobuf message to a
         `torch.dtype`. This torch dtype is crucial for parsing any tensor
@@ -131,6 +138,7 @@ class SerializableTensorInitializer:
         )
 
     def __iter__(self) -> Iterator[SerializableTensorChunk] | None:
+        """Iterate over the initial state's tensor chunks, if present."""
         if self.__initial_state is None:
             return None
         return iter(self.__initial_state)

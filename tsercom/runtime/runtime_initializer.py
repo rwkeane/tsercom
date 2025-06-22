@@ -40,13 +40,13 @@ class RuntimeInitializer(
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        """Creates a new Runtime instance. This method will only be called once
-        per instance.
+        """Create a new Runtime instance. This method will only be called once per instance.
 
-        |thread_watcher| provides APIs for error handling, and is required for
-        calling many Tsercom APIs.
-        data_handler: The `RuntimeDataHandler` responsible for providing event
-            data from the `RuntimeHandle` and for sending data back to that instance.
-        grpc_channel_factory: A factory used to create gRPC channels as per
-            user specification. This is a required dependency.
+        Args:
+            thread_watcher: Provides APIs for error handling, and is required for
+                calling many Tsercom APIs.
+            data_handler: The `RuntimeDataHandler` responsible for providing event
+                data from the `RuntimeHandle` and for sending data back to that instance.
+            grpc_channel_factory: A factory used to create gRPC channels as per
+                user specification. This is a required dependency.
         """

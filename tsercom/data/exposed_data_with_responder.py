@@ -53,8 +53,19 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
             )
 
         self.__responder: RemoteDataResponder[ResponseTypeT] = responder
+        self._caller_id_val = caller_id
+        self._timestamp_val = timestamp
+        # super().__init__(caller_id, timestamp) # ExposedData has no __init__
 
-        super().__init__(caller_id, timestamp)
+    @property
+    def caller_id(self) -> CallerIdentifier | None:
+        """Return the identifier of the instance that generated this data."""
+        return self._caller_id_val
+
+    @property
+    def timestamp(self) -> datetime.datetime:
+        """Return the timestamp when this data was generated or recorded."""
+        return self._timestamp_val
 
     def _respond(self, response: ResponseTypeT) -> None:
         """Send a response using the associated `RemoteDataResponder`.

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+"""Provides a gRPC channel factory for TLS connections with server authentication."""
+
 import logging
 from typing import Any
 
@@ -13,8 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
-    """Creates a gRPC channel where the client authenticates the server
-    using a provided root CA certificate.
+    """Create a gRPC channel where the client authenticates the server.
+
+    Authentication uses a provided root CA certificate.
     """
 
     def __init__(
@@ -22,7 +25,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
         root_ca_cert_pem: bytes | str,
         server_hostname_override: str | None = None,
     ):
-        """Initializes the factory with the root CA certificate.
+        """Initialize the factory with the root CA certificate.
 
         Args:
             root_ca_cert_pem: PEM-encoded root CA certificate (bytes or string).
@@ -45,8 +48,9 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """Attempts to establish a secure gRPC channel to the specified address(es)
-        and port, authenticating the server using the root CA.
+        """Attempt to establish a secure gRPC channel with server authentication.
+
+        Authenticates the server using the root CA.
 
         Args:
             addresses: A single address string or a list of address strings to try.
@@ -55,7 +59,6 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
         Returns:
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
-
         """
         address_list: list[str]
         if isinstance(addresses, str):

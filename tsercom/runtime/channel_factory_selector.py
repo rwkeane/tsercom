@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 
 
 class ChannelFactorySelector:
-    """Selects gRPC channel factories based on ChannelAuthConfig."""
+    """Select and create a GrpcChannelFactory based on authentication config."""
 
     def _read_file_content(self, file_path: str | None) -> bytes | None:
-        """Reads the content of a file if the path is provided."""
+        """Read the content of a file if the path is provided."""
         if file_path is None:
             return None
         try:
@@ -43,8 +43,7 @@ class ChannelFactorySelector:
     def create_factory(
         self, auth_config: BaseChannelAuthConfig | None
     ) -> GrpcChannelFactory:
-        """Creates an instance of a GrpcChannelFactory based on the provided
-        ChannelAuthConfig.
+        """Create an instance of a GrpcChannelFactory based on the provided config.
 
         Args:
             auth_config: The channel authentication configuration object,

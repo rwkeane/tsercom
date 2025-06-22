@@ -1,3 +1,5 @@
+"""Defines the abstract base class for tensor smoothing strategies."""
+
 import abc
 
 import torch

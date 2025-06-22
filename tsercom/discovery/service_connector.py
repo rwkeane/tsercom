@@ -74,7 +74,7 @@ class ServiceConnector(
             caller_id: CallerIdentifier,
             channel: ChannelTypeT,
         ) -> None:
-            """Handle callback invoked when a channel to a discovered service is connected.
+            """Handle callback for when a channel to a discovered service connects.
 
             Args:
                 connection_info: The `ServiceInfoT` object containing details
@@ -130,7 +130,9 @@ class ServiceConnector(
         await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
-        r"""Mark a connected service instance (client from ServiceConnector's perspective) as failed.
+        r"""Mark a connected service instance as failed.
+
+        (Client from ServiceConnector's perspective).
 
         This removes the `caller_id` from the set of tracked active connections,
         allowing the `ServiceConnector` to attempt a new connection if the same
@@ -151,6 +153,7 @@ class ServiceConnector(
             RuntimeError: If an event loop cannot be determined when attempting
                 to schedule the operation (should not happen if `start` has been
                 called and discovery is active).
+
         """
         if self.__event_loop is None:
             # Attempt to capture loop if not already. This might occur if
@@ -189,6 +192,7 @@ class ServiceConnector(
 
         Args:
             caller_id: The `CallerIdentifier` of the client to remove.
+
         """
         assert caller_id in self.__callers, (
             f"Attempted to mark unknown caller {caller_id} as failed. "
@@ -288,6 +292,11 @@ class ServiceConnector(
         )
 
     async def stop(self) -> None:
+        """Stop the ServiceConnector and clean up its resources.
+
+        This method attempts to stop the underlying service discovery mechanism
+        and clears the set of tracked active callers.
+        """
         logging.info("Stopping ServiceConnector...")
 
         if hasattr(self.__service_source, "stop_discovery") and callable(

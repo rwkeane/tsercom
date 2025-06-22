@@ -543,7 +543,9 @@ class RuntimeFuturePopulator(
         self,
         handle: RuntimeHandle[DataTypeT, EventTypeT],  # Use imported TypeVars
     ) -> None:
-        """Handle callback invoked by a `RuntimeFactory` when its `RuntimeHandle` is ready.
+        """Handle callback invoked by a `RuntimeFactory`.
+
+        The callback is invoked when its `RuntimeHandle` is ready.
 
         This method fulfills the `Future` (provided during initialization) with
         the given `handle`.

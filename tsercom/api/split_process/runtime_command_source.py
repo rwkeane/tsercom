@@ -55,15 +55,15 @@ class RuntimeCommandSource:
         """
         # Ensure that start_async is called only once and in a valid state.
         # Long but readable assertion message
-        assert (
-            self.__is_running is None
-        ), "RuntimeCommandSource already started or in an inconsistent state."
+        assert self.__is_running is None, (
+            "RuntimeCommandSource already started or in an inconsistent state."
+        )
         self.__is_running = IsRunningTracker()
         assert not self.__is_running.get(), "IsRunningTracker started prematurely."
         # Long but readable assertion message
-        assert (
-            self.__runtime is None
-        ), "Runtime instance already set before start_async."
+        assert self.__runtime is None, (
+            "Runtime instance already set before start_async."
+        )
 
         self.__is_running.start()
         self.__runtime = runtime
@@ -133,9 +133,9 @@ class RuntimeCommandSource:
         RuntimeCommandSource.logger.info("RuntimeCommandSource.stop_async() called")
         # Ensure stop_async is called only when running and in a valid state.
         # Long but readable assertion message
-        assert (
-            self.__is_running is not None
-        ), "RuntimeCommandSource not started or in an inconsistent state."
+        assert self.__is_running is not None, (
+            "RuntimeCommandSource not started or in an inconsistent state."
+        )
         assert self.__is_running.get(), "RuntimeCommandSource is not marked as running."
 
         self.__is_running.stop()

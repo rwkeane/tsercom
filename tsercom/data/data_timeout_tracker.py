@@ -72,9 +72,9 @@ class DataTimeoutTracker:
 
         """
         # Ensure this part of the registration runs on the designated event loop.
-        assert (
-            is_running_on_event_loop()
-        ), "Registration implementation must run on the event loop."
+        assert is_running_on_event_loop(), (
+            "Registration implementation must run on the event loop."
+        )
         self.__tracked_list.append(tracked)
 
     def start(self) -> None:

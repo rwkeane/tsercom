@@ -94,7 +94,8 @@ class DiscoveryHost(
                  Allows custom mDNS discovery mechanism or configuration.
 
         Raises:
-            ValueError: If incorrect number of arguments provided (expected exactly one).
+            ValueError: If incorrect number of arguments provided (expected
+                exactly one).
 
         """
         # Ensure exclusive provision of service_type or factory

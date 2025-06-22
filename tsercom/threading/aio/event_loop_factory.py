@@ -111,7 +111,7 @@ class EventLoopFactory:
 
         barrier.wait()  # Wait for event loop to be set up
 
-        assert (
-            self.__event_loop is not None
-        ), "Event loop was not initialized in the thread."
+        assert self.__event_loop is not None, (
+            "Event loop was not initialized in the thread."
+        )
         return self.__event_loop

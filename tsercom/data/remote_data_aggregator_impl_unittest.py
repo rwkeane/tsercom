@@ -24,10 +24,25 @@ from tsercom.data.remote_data_organizer import (
 
 # --- Concrete Dummy ExposedData for type checks ---
 class DummyConcreteExposedData(ExposedData):
+    data: Any # Define data attribute for type hinting if necessary
+
     def __init__(
-        self, caller_id: CallerIdentifier, timestamp: datetime.datetime
+        self, caller_id: CallerIdentifier, timestamp: datetime.datetime, data: Any = None
     ):  # Changed DummyCallerIdentifier
-        super().__init__(caller_id, timestamp)
+        self._caller_id_val = caller_id
+        self._timestamp_val = timestamp
+        self.data = data # Store data
+        # super().__init__(caller_id, timestamp) # ExposedData has no __init__
+
+    @property
+    def caller_id(self) -> CallerIdentifier | None:
+        """Return the identifier of the instance that generated this data."""
+        return self._caller_id_val
+
+    @property
+    def timestamp(self) -> datetime.datetime:
+        """Return the timestamp when this data was generated or recorded."""
+        return self._timestamp_val
 
 
 # --- Fixtures ---
@@ -93,9 +108,10 @@ def exposed_data_factory(
     def _factory(
         caller_id: CallerIdentifier = caller_id_1,
         timestamp: Optional[datetime.datetime] = None,
+        data: Any = "default_test_data" # Add data param with a default
     ) -> DummyConcreteExposedData:  # Added types
         ts: datetime.datetime = timestamp or datetime.datetime.now()
-        return DummyConcreteExposedData(caller_id, ts)
+        return DummyConcreteExposedData(caller_id, ts, data)
 
     return _factory
 
@@ -107,12 +123,24 @@ class InterpolableExposedData(ExposedData):
         timestamp: datetime.datetime,
         value: float,
     ):
-        super().__init__(caller_id, timestamp)
+        # super().__init__(caller_id, timestamp) # ExposedData has no __init__
+        self._caller_id_val = caller_id
+        self._timestamp_val = timestamp
         self.value: float = value
 
     @property
+    def caller_id(self) -> CallerIdentifier | None:
+        """Return the identifier of the instance that generated this data."""
+        return self._caller_id_val
+
+    @property
+    def timestamp(self) -> datetime.datetime:
+        """Return the timestamp when this data was generated or recorded."""
+        return self._timestamp_val
+
+    @property
     def frame_timestamp(self) -> datetime.datetime:
-        return self.timestamp
+        return self._timestamp_val # Use the concrete attribute
 
     def __lt__(self, other: object) -> bool:
         if not isinstance(other, InterpolableExposedData):

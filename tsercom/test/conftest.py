@@ -1,3 +1,5 @@
+"""Pytest configuration and global fixtures for tsercom tests."""
+
 import asyncio
 from collections.abc import Generator  # Added for type hint
 
@@ -15,6 +17,18 @@ from tsercom.threading.aio.global_event_loop import (
 def manage_tsercom_loop(
     request: FixtureRequest,
 ) -> Generator[None, None, None]:
+    """Manage the tsercom global event loop for each test function.
+
+    Clears and sets up a new event loop before each test, and clears it
+    after the test, unless the test is marked with 'skip_global_loop_management'.
+    This ensures a clean event loop state for each test.
+
+    Args:
+        request: The pytest FixtureRequest object.
+
+    Yields:
+        None.
+    """
     # Only apply this fixture if the test is marked with asyncio
     if not request.node.get_closest_marker("asyncio"):
         yield

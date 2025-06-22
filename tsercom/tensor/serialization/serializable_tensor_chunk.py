@@ -32,6 +32,16 @@ class SerializableTensorChunk:
             GrpcTensor.CompressionType.NONE
         ),
     ):
+        """Initialize a SerializableTensorChunk.
+
+        Args:
+            tensor: The PyTorch tensor data for this chunk.
+            timestamp: The synchronized timestamp for this chunk.
+            starting_index: The starting index of this chunk within a larger
+                conceptual 1D tensor. Defaults to 0.
+            compression: The compression type used for the tensor data.
+                Defaults to NONE.
+        """
         self.__tensor: torch.Tensor = tensor
         self.__timestamp: SynchronizedTimestamp = timestamp
         self.__starting_index: int = starting_index
@@ -58,7 +68,7 @@ class SerializableTensorChunk:
         return self.__compression
 
     def to_grpc_type(self) -> GrpcTensor:
-        """Converts this instance into a `TensorChunk` gRPC message.
+        """Convert this instance into a `TensorChunk` gRPC message.
 
         The tensor data is flattened to 1D, then its numerical data is
         converted to raw bytes. This byte string is placed in the `data_bytes`
@@ -108,7 +118,7 @@ class SerializableTensorChunk:
         dtype: torch.dtype,
         device: str | None = None,
     ) -> Optional["SerializableTensorChunk"]:
-        """Attempts to parse a `TensorChunk` message into a `SerializableTensorChunk`.
+        """Attempt to parse a `TensorChunk` message into a `SerializableTensorChunk`.
 
         This method reconstructs a 1D PyTorch tensor from the raw `data_bytes`
         in the message, interpreting these bytes according to the provided `dtype`.

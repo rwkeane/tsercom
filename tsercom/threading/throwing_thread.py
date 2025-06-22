@@ -32,7 +32,12 @@ class ThrowingThread(threading.Thread):
             on_error_cb: Callback for exceptions in the target callable.
             args: Arguments to pass to the target function.
             kwargs: Keyword arguments to pass to the target function.
-            group, name, daemon: Standard threading.Thread arguments.
+            group: Should be None; reserved for future extension when `ThreadGroup`
+                   class is implemented.
+            name: The thread name. By default, a unique name is constructed of
+                  the form "Thread-N".
+            daemon: A boolean value indicating whether this thread is a daemon
+                    thread.
 
         """
         assert on_error_cb is not None, "on_error_cb cannot be None"

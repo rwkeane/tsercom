@@ -18,12 +18,10 @@ from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
 # Note: Similar utility exists in cpython or could be contributed.
 def get_running_loop_or_none() -> AbstractEventLoop | None:
-    """Returns EventLoop this function was called from, or None if not
-    called from an EventLoop (returns None).
+    """Return the current running event loop, or None if not called from an event loop.
 
     Returns:
         Optional[AbstractEventLoop]: The current event loop or None.
-
     """
     try:
         current_loop = asyncio.get_running_loop()
@@ -36,8 +34,7 @@ def get_running_loop_or_none() -> AbstractEventLoop | None:
 def is_running_on_event_loop(
     event_loop: AbstractEventLoop | None = None,
 ) -> bool:
-    """Returns true if current function is on SPECIFIC |event_loop|,
-    or ANY event loop if |event_loop| is None.
+    """Return true if current function is on SPECIFIC `event_loop`, or ANY event loop.
 
     Args:
         event_loop: Specific event loop to check against.
@@ -45,7 +42,6 @@ def is_running_on_event_loop(
 
     Returns:
         bool: True if on specified loop (or any if None), else False.
-
     """
     try:
         current_loop = asyncio.get_running_loop()
@@ -64,10 +60,10 @@ def run_on_event_loop(
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> concurrent.futures.Future[T]:
-    """Runs a coroutine on the specified event loop.
+    """Run a coroutine on the specified event loop.
 
-    If no event_loop provided, uses global event loop.
-    Raises RuntimeError if global event loop is not set.
+    If no event_loop provided, use global event loop.
+    Raise RuntimeError if global event loop is not set.
 
     Args:
         call: The coroutine function to execute.

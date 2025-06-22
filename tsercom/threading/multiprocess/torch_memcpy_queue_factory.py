@@ -131,6 +131,13 @@ class TorchMemcpyQueueSource(
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = None,
     ) -> None:
+        """Initialize the TorchMemcpyQueueSource.
+
+        Args:
+            queue: The underlying `torch.multiprocessing.Queue`.
+            tensor_accessor: Optional function to access tensors within queue items
+                and prepare them for shared memory transfer on get.
+        """
         super().__init__(queue)
         self.__tensor_accessor: (
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
@@ -199,6 +206,14 @@ class TorchMemcpyQueueSink(
         ) = None,
         is_blocking: bool = True,
     ) -> None:
+        """Initialize the TorchMemcpyQueueSink.
+
+        Args:
+            queue: The underlying `torch.multiprocessing.Queue`.
+            tensor_accessor: Optional function to access tensors within queue items
+                and prepare them for shared memory transfer on put.
+            is_blocking: Whether `put_blocking` should block if the queue is full.
+        """
         super().__init__(queue, is_blocking=is_blocking)
         self.__tensor_accessor: (
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None

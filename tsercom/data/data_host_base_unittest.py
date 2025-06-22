@@ -16,8 +16,18 @@ from tsercom.data.exposed_data import ExposedData
 class DummyExposedData(ExposedData):
     """A dummy implementation of ExposedData for type hinting and instantiation."""
 
-    def __init__(self, mocker, caller_id_mock, timestamp_mock):
-        super().__init__(caller_id_mock, timestamp_mock)
+    def __init__(self, caller_id_actual: CallerIdentifier | None, timestamp_actual: datetime.datetime):
+        self._caller_id_val = caller_id_actual
+        self._timestamp_val = timestamp_actual
+        # No super().__init__() as ExposedData does not have one.
+
+    @property
+    def caller_id(self) -> CallerIdentifier | None:
+        return self._caller_id_val
+
+    @property
+    def timestamp(self) -> datetime.datetime:
+        return self._timestamp_val
 
 
 @pytest.fixture
@@ -182,8 +192,9 @@ def test_data_host_base_on_data_ready_calls_aggregator_on_data_ready(
         watcher=mock_thread_watcher, timeout_seconds=0
     )
 
+    # Use the actual mock objects for caller_id and timestamp
     test_data = DummyExposedData(
-        mocker, caller_id_mock=mock_caller_id, timestamp_mock=mock_datetime_now
+        caller_id_actual=mock_caller_id, timestamp_actual=mock_datetime_now
     )
     data_host._on_data_ready(test_data)
 

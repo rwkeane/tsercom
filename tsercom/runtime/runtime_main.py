@@ -56,18 +56,18 @@ def initialize_runtimes(
     *,
     is_testing: bool = False,
 ) -> list[Runtime]:
-    """Initializes, configures, and starts a list of Tsercom runtimes.
+    r"""Initialize, configure, and start a list of Tsercom runtimes.
 
     This function iterates through the provided `RuntimeFactory` instances (referred
     to as `initializers` in this context, though they are factories that produce
     `RuntimeInitializer` instances internally). For each factory, it:
     1. Retrieves the data reader and event poller.
-    2. Creates a gRPC channel factory based on the runtime\'s auth config.
+    2. Creates a gRPC channel factory based on the runtime's auth config.
     3. Determines if the runtime is client or server type.
     4. Instantiates the appropriate `RuntimeDataHandler` (`ClientRuntimeDataHandler`
        or `ServerRuntimeDataHandler`), wrapping the event poller with an
        `EventToSerializableAnnInstancePollerAdapter`.
-    5. Calls the factory\'s `create` method to get a `Runtime` instance.
+    5. Calls the factory's `create` method to get a `Runtime` instance.
     6. Schedules the `runtime_instance.start_async()` coroutine on the global
        Tsercom event loop and adds a callback to report exceptions to the
        `thread_watcher`.
@@ -158,7 +158,11 @@ def initialize_runtimes(
             f: concurrent.futures.Future[Any],
             watcher: ThreadWatcher,
         ) -> None:
-            """Callback to handle completion of a runtime's start_async future."""
+            """Handle completion of a runtime's start_async future.
+
+            This callback logs any exceptions that occurred during the runtime's
+            asynchronous startup and reports them to the provided `ThreadWatcher`.
+            """
             try:
                 if f.done() and not f.cancelled():
                     exc = f.exception()
@@ -189,7 +193,7 @@ def remote_process_main(
     *,
     is_testing: bool = False,
 ) -> None:
-    """Main entry point for a Tsercom runtime operating in a remote process.
+    """Set up and run Tsercom runtimes in a remote process.
 
     This function is intended to be the target for a new process created by
     `RuntimeManager.start_out_of_process`. It performs the necessary setup for

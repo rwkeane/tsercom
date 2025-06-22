@@ -31,18 +31,17 @@ __g_global_event_loop_lock = threading.Lock()
 
 
 def is_global_event_loop_set() -> bool:
-    """Checks if the global event loop for tsercom has been set.
+    """Check if the global event loop for tsercom has been set.
 
     Returns:
         bool: True if global event loop is set, False otherwise.
-
     """
     # No 'global' needed for read-only access to module-level variable
     return __g_global_event_loop is not None
 
 
 def get_global_event_loop() -> AbstractEventLoop:
-    """Retrieves the global event loop used by tsercom.
+    """Retrieve the global event loop used by tsercom.
 
     Asserts that the event loop has been set before calling.
 
@@ -51,17 +50,16 @@ def get_global_event_loop() -> AbstractEventLoop:
 
     Raises:
         AssertionError: If global event loop has not been set.
-
     """
     # No 'global' needed for read-only access
-    assert (
-        __g_global_event_loop is not None
-    ), "Global event loop accessed before being set."
+    assert __g_global_event_loop is not None, (
+        "Global event loop accessed before being set."
+    )
     return __g_global_event_loop
 
 
 def clear_tsercom_event_loop(try_stop_loop: bool = True) -> None:
-    """Clears the global event loop reference used by tsercom.
+    """Clear the global event loop reference used by tsercom.
 
     If `try_stop_loop` is True and loop was created internally by
     tsercom's factory, it attempts to stop the loop.
@@ -92,7 +90,7 @@ def clear_tsercom_event_loop(try_stop_loop: bool = True) -> None:
 
 
 def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
-    """Creates a new asyncio EventLoop running on a new thread.
+    """Create a new asyncio EventLoop, run it on a new thread, and set it globally.
 
     This EventLoop is for tsercom's asyncio tasks. Errors are reported
     to the |watcher|. Global Event Loop may only be set once.
@@ -118,7 +116,7 @@ def create_tsercom_event_loop_from_watcher(watcher: ThreadWatcher) -> None:
 
 
 def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
-    """Sets the EventLoop for Tsercom to use for internal operations.
+    """Set the EventLoop for Tsercom to use for internal operations.
 
     The Global Event Loop may only be set once.
 
@@ -143,7 +141,7 @@ def set_tsercom_event_loop(event_loop: AbstractEventLoop) -> None:
 
 
 def set_tsercom_event_loop_to_current_thread() -> None:
-    """Sets global event loop to current thread's loop, creating if needed.
+    """Set global event loop to current thread's loop, creating if needed.
 
     If no current loop exists, a new one is created and set for this thread.
     If current loop is closed, it's replaced. Global loop must not be set.

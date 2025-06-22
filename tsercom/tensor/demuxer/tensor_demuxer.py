@@ -25,7 +25,7 @@ class TensorDemuxer:
         async def on_tensor_changed(
             self, tensor: torch.Tensor, timestamp: datetime.datetime
         ) -> None:
-            """Called when a tensor for a given timestamp is created or modified."""
+            """Handle tensor creation or modification at a given timestamp."""
 
     def __init__(
         self,
@@ -34,6 +34,14 @@ class TensorDemuxer:
         data_timeout_seconds: float = 60.0,
         device: str | None = "cpu",
     ):
+        """Initialize the TensorDemuxer.
+
+        Args:
+            client: The client to notify when tensor states change.
+            tensor_length: The expected length of the 1D tensor.
+            data_timeout_seconds: How long to keep keyframe data.
+            device: The torch device to use for tensor operations (e.g., "cpu", "cuda").
+        """
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
         if data_timeout_seconds <= 0:
@@ -71,6 +79,7 @@ class TensorDemuxer:
 
     @property
     def tensor_length(self) -> int:
+        """Return the expected length of the full tensor."""
         return self.__tensor_length
 
     async def _on_keyframe_updated(
@@ -91,6 +100,13 @@ class TensorDemuxer:
             self.__processed_keyframes = self.__processed_keyframes[keep_from_index:]
 
     async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
+        """Process an incoming tensor chunk.
+
+        Updates internal keyframe storage and notifies client of tensor changes.
+
+        Args:
+            chunk: The `SerializableTensorChunk` containing tensor data.
+        """
         async with self.__lock:
             chunk_tensor = chunk.tensor.to(self.__device)
             timestamp = chunk.timestamp.as_datetime()
@@ -280,6 +296,14 @@ class TensorDemuxer:
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
     ) -> torch.Tensor | None:
+        """Retrieve the full tensor state at a specific timestamp.
+
+        Args:
+            timestamp: The exact timestamp for which to retrieve the tensor.
+
+        Returns:
+            A clone of the tensor at the given timestamp if found, otherwise None.
+        """
         async with self.__lock:
             i = bisect.bisect_left(
                 self.__processed_keyframes, timestamp, key=lambda x: x[0]

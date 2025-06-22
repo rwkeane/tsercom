@@ -21,8 +21,7 @@ TrackedDataT = TypeVar("TrackedDataT")
 
 
 class IdTracker(Generic[TrackedDataT]):
-    """Tracks associations between CallerIdentifiers, network addresses, and
-    optional data.
+    """Track associations between CallerIdentifiers, network addresses, and optional data.
 
     This class provides a thread-safe, bidirectional dictionary-like structure
     to map `CallerIdentifier` instances to (address, port) tuples and vice-versa.
@@ -47,7 +46,7 @@ class IdTracker(Generic[TrackedDataT]):
     """
 
     def __init__(self, data_factory: Callable[[], TrackedDataT] | None = None) -> None:
-        """Initializes the IdTracker.
+        """Initialize the IdTracker.
 
         Args:
             data_factory: An optional callable that takes no arguments and returns
@@ -55,7 +54,6 @@ class IdTracker(Generic[TrackedDataT]):
                 is used to generate and store data associated with each new
                 `CallerIdentifier` added to the tracker. If `None`, no custom
                 data is stored besides the ID-address mapping.
-
         """
         self.__data_factory: Callable[[], TrackedDataT] | None = data_factory
         self.__lock: threading.Lock = threading.Lock()
@@ -67,7 +65,7 @@ class IdTracker(Generic[TrackedDataT]):
     def try_get(
         self, caller_id_obj: CallerIdentifier
     ) -> tuple[str, int, TrackedDataT | None] | None:
-        """Tries to get address and data by CallerIdentifier.
+        """Try to get address and data by CallerIdentifier.
 
         Args:
             caller_id_obj: The CallerIdentifier to look up.
@@ -84,7 +82,7 @@ class IdTracker(Generic[TrackedDataT]):
     def try_get(
         self, address: str, port: int
     ) -> tuple[CallerIdentifier, TrackedDataT | None] | None:
-        """Tries to get CallerIdentifier and data by address/port.
+        """Try to get CallerIdentifier and data by address/port.
 
         Args:
             address: The IP address or hostname.
@@ -105,8 +103,7 @@ class IdTracker(Generic[TrackedDataT]):
         | tuple[CallerIdentifier, TrackedDataT | None]
         | None
     ):
-        """Attempts to retrieve associated information for a given identifier or
-        address.
+        """Attempt to retrieve associated information for a given identifier or address.
 
         This method provides a way to look up mappings without raising an
         exception if the key is not found.
@@ -230,7 +227,7 @@ class IdTracker(Generic[TrackedDataT]):
     def get(
         self, caller_id_obj: CallerIdentifier
     ) -> tuple[str, int, TrackedDataT | None]:
-        """Gets address and data by CallerIdentifier, raises KeyError if not found.
+        """Get address and data by CallerIdentifier, raising KeyError if not found.
 
         Args:
             caller_id_obj: The CallerIdentifier to look up.
@@ -250,7 +247,7 @@ class IdTracker(Generic[TrackedDataT]):
     def get(
         self, address: str, port: int
     ) -> tuple[CallerIdentifier, TrackedDataT | None]:
-        """Gets CallerIdentifier and data by address/port, raises KeyError if not found.
+        """Get CallerIdentifier and data by address/port, raising KeyError if not found.
 
         Args:
             address: The IP address or hostname.
@@ -273,7 +270,7 @@ class IdTracker(Generic[TrackedDataT]):
         tuple[str, int, TrackedDataT | None]
         | tuple[CallerIdentifier, TrackedDataT | None]
     ):
-        """Retrieves associated information, raising KeyError if not found.
+        """Retrieve associated information, raising KeyError if not found.
 
         This method behaves like `try_get` but raises a `KeyError` if the
         lookup key (either `CallerIdentifier` or address/port combination)
@@ -304,7 +301,7 @@ class IdTracker(Generic[TrackedDataT]):
         return resolved_result
 
     def add(self, caller_id_obj: CallerIdentifier, address: str, port: int) -> None:
-        """Adds or updates a bidirectional mapping.
+        """Add or update a bidirectional mapping.
 
         If the `caller_id_obj` already exists, its associated address/port
         and tracked data (if a `data_factory` was used for the original add)
@@ -356,7 +353,7 @@ class IdTracker(Generic[TrackedDataT]):
                 self.__data_map[caller_id_obj] = self.__data_factory()
 
     def has_id(self, caller_id_obj: CallerIdentifier) -> bool:
-        """Checks if the given `CallerIdentifier` is tracked.
+        """Check if the given `CallerIdentifier` is tracked.
 
         Args:
             caller_id_obj: The `CallerIdentifier` to check.
@@ -369,7 +366,7 @@ class IdTracker(Generic[TrackedDataT]):
             return caller_id_obj in self.__id_to_address
 
     def has_address(self, address: str, port: int) -> bool:
-        """Checks if the given address/port combination is tracked.
+        """Check if the given address/port combination is tracked.
 
         Args:
             address: The IP address or hostname.
@@ -383,14 +380,14 @@ class IdTracker(Generic[TrackedDataT]):
             return (address, port) in self.__address_to_id
 
     def __len__(self) -> int:
-        """Returns the number of unique `CallerIdentifier` mappings stored."""
+        """Return the number of unique `CallerIdentifier` mappings stored."""
         with self.__lock:
             # Asserting consistency, should ideally always be true.
             assert len(self.__id_to_address) == len(self.__address_to_id)
             return len(self.__id_to_address)
 
     def __iter__(self) -> Iterator[CallerIdentifier]:
-        """Returns an iterator over the tracked `CallerIdentifier`s."""
+        """Return an iterator over the tracked `CallerIdentifier`s."""
         with self.__lock:
             # Returns an iterator over a copy of the keys to allow safe
             # iteration if modifications occur in another thread (though
@@ -398,7 +395,7 @@ class IdTracker(Generic[TrackedDataT]):
             return iter(list(self.__id_to_address.keys()))
 
     def remove(self, caller_id_obj: CallerIdentifier) -> bool:
-        """Removes a `CallerIdentifier` and all its associated mappings.
+        """Remove a `CallerIdentifier` and all its associated mappings.
 
         This includes its address/port mapping and any tracked data associated
         via the `data_factory`.
@@ -426,7 +423,7 @@ class IdTracker(Generic[TrackedDataT]):
             return True
 
     def get_all_tracked_data(self) -> list[TrackedDataT]:
-        """Retrieves all data items stored in the tracker.
+        """Retrieve all data items stored in the tracker.
 
         This method is thread-safe. It returns a new list containing
         all values from the internal data map.

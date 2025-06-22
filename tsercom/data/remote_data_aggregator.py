@@ -27,7 +27,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     """
 
     class Client(ABC):
-        """Interface for clients wishing to receive callbacks from a RemoteDataAggregator.
+        """Interface for clients receiving RemoteDataAggregator callbacks.
 
         Implementers of this interface can register with a `RemoteDataAggregator`
         to be notified about changes in data state or endpoint connectivity.
@@ -39,7 +39,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
             aggregator: "RemoteDataAggregator[DataTypeT]",
             caller_id: CallerIdentifier,
         ) -> None:
-            """Handle callback invoked when new data becomes available for a specific caller.
+            """Handle callback for new data available for a specific caller.
 
             Args:
                 aggregator: The `RemoteDataAggregator` instance that detected
@@ -246,7 +246,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
     ) -> dict[CallerIdentifier, DataTypeT | None]:
-        """Retrieve the most recent data item received before or at a specific timestamp.
+        """Retrieve most recent data item before or at a specific timestamp.
 
         Retrieves for all callers.
         Returns `None` for a caller if no suitable data exists or if it has
@@ -268,7 +268,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         timestamp: datetime.datetime,
         identifier: CallerIdentifier,  # Renamed id to identifier
     ) -> DataTypeT | None:
-        """Retrieve the most recent data item received before or at a specific timestamp.
+        """Retrieve most recent data item before or at a specific timestamp.
 
         Retrieves for a specific caller.
         Returns `None` if no suitable data exists for this caller or if it has
