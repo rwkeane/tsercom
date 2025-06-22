@@ -63,7 +63,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
-        """Initializes with ServiceType enum and optional configurations.
+        """Initialize with ServiceType enum and optional configurations.
 
         Args:
             service_type: The operational mode as a `ServiceType` enum.
@@ -98,7 +98,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
-        """Initializes with service type as string and optional configurations.
+        """Initialize with service type as string and optional configurations.
 
         Args:
             service_type: The operational mode as "Client" or "Server".
@@ -121,7 +121,7 @@ class RuntimeConfig(Generic[DataTypeT]):
 
     @overload
     def __init__(self, *, other_config: "RuntimeConfig[DataTypeT]"):
-        """Initializes by cloning settings from another RuntimeConfig instance.
+        """Initialize by cloning settings from another RuntimeConfig instance.
 
         Args:
             other_config: An existing `RuntimeConfig` instance to clone.
@@ -144,7 +144,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
-        """Initializes the RuntimeConfig.
+        """Initialize the RuntimeConfig.
 
         This constructor is overloaded. You can initialize either by specifying
         `service_type` along with other optional parameters, or by providing
@@ -260,7 +260,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         self.__data_reader_sink_is_lossy: bool = data_reader_sink_is_lossy
 
     def is_client(self) -> bool:
-        """Checks if the runtime is configured to operate as a client.
+        """Check if the runtime is configured to operate as a client.
 
         A client runtime typically initiates connections, may receive a
         `CallerIdentifier` from a server, and synchronizes its time with servers.
@@ -272,7 +272,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         return self.__service_type == ServiceType.CLIENT
 
     def is_server(self) -> bool:
-        """Checks if the runtime is configured to operate as a server.
+        """Check if the runtime is configured to operate as a server.
 
         A server runtime typically accepts connections, assigns `CallerIdentifier`s
         to connecting clients, and acts as the authoritative source for time

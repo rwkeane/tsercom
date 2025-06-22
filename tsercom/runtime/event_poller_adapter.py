@@ -21,17 +21,27 @@ class EventToSerializableAnnInstancePollerAdapter(
 ):
     """Adapts an AsyncPoller[EventInstance[EventTypeT]] to an
     AsyncPoller[SerializableAnnotatedInstance[EventTypeT]].
+
     """
 
     def __init__(self, source_poller: AsyncPoller[EventInstance[EventTypeT]]):
+        """Initialize the EventToSerializableAnnInstancePollerAdapter.
+
+        Args:
+            source_poller: The source `AsyncPoller[EventInstance[EventTypeT]]`
+                           to adapt.
+        """
         super().__init__()
         self._source_poller = source_poller
 
     def _convert_event_instance(
         self, event_inst: EventInstance[EventTypeT]
     ) -> SerializableAnnotatedInstance[EventTypeT]:
-        """Placeholder: EventInstance to SerializableAnnotatedInstance conversion.
-        Actual implementation would require proper serialization.
+        """Convert an EventInstance to a SerializableAnnotatedInstance.
+
+        Actual implementation would require proper serialization if the EventTypeT
+        itself is not directly serializable or if additional processing is needed.
+        This current implementation performs a direct mapping.
         """
         # For broadcast events, caller_id can be None.
         # SerializableAnnotatedInstance supports caller_id being None.
@@ -46,6 +56,10 @@ class EventToSerializableAnnInstancePollerAdapter(
     async def __anext__(
         self,
     ) -> list[SerializableAnnotatedInstance[EventTypeT]]:
+        """Retrieve the next batch of adapted event instances.
+
+        Pulls from the source poller and converts events.
+        """
         # This adapter assumes the source_poller.__anext__ returns a List,
         # which is typical for AsyncPoller implementations.
         event_instance_list = await self._source_poller.__anext__()
@@ -58,6 +72,7 @@ class EventToSerializableAnnInstancePollerAdapter(
     def __aiter__(
         self,
     ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
+        """Return self as an asynchronous iterator."""
         return self
 
     # This adapter primarily focuses on transforming the output via __anext__.

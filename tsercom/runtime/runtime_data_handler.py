@@ -49,7 +49,7 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
         *args: Any,
         **kwargs: Any,
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
-        """Registers a caller with the runtime.
+        """Register a caller with the runtime.
 
         This method associates a `CallerIdentifier` with its network endpoint
         (via `endpoint` and `port` args), or extracted from a

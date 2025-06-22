@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessCreator:
-    """Wraps `multiprocessing.Process` for centralized creation and testing,
-    using a pre-configured multiprocessing context.
+    """Wraps `multiprocessing.Process` for centralized creation and testing.
 
+    Uses a pre-configured multiprocessing context.
     """
 
     def __init__(self, context: BaseContext):

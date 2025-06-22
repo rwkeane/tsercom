@@ -1,10 +1,8 @@
-"""Provides RemoteDataAggregatorImpl, a concrete implementation of the
-RemoteDataAggregator interface.
+"""Provides RemoteDataAggregatorImpl, a concrete implementation of the RemoteDataAggregator interface.
 
 This class manages RemoteDataOrganizer instances for each data source
 (identified by CallerIdentifier) and handles data timeout tracking. It acts as
 a central point for collecting and accessing data from multiple remote endpoints.
-
 """
 
 import datetime
@@ -99,28 +97,8 @@ class RemoteDataAggregatorImpl(
         tracker: DataTimeoutTracker | None = None,
         timeout: int | None = None,
     ) -> None:
-        """Initialize the RemoteDataAggregatorImpl.
-
-        This constructor is overloaded. It can be called with:
-        - `thread_pool` and optional `client`.
-        - `thread_pool`, optional `client`, and `tracker` (for timeout tracking).
-        - `thread_pool`, optional `client`, and `timeout` (to create a default tracker).
-
-        Args:
-            thread_pool: A `ThreadPoolExecutor` for running asynchronous tasks,
-                         primarily for `RemoteDataOrganizer` instances.
-            client: An optional client implementing `RemoteDataAggregator.Client`
-                    to receive callbacks for data events.
-            tracker: An optional `DataTimeoutTracker` instance. If provided, it's
-                     used to track data timeouts. `timeout` should not be provided.
-            timeout: An optional integer specifying the timeout duration in seconds.
-                     If provided, a `DataTimeoutTracker` is created and started.
-                     `tracker` should not be provided.
-
-        Raises:
-            AssertionError: If both `tracker` and `timeout` are provided.
-
-        """
+        """Initialize the RemoteDataAggregatorImpl. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         assert not (
             timeout is not None and tracker is not None
         ), "Cannot specify both 'timeout' and 'tracker' simultaneously."
@@ -192,20 +170,8 @@ class RemoteDataAggregatorImpl(
     def has_new_data(
         self, identifier: CallerIdentifier | None = None
     ) -> dict[CallerIdentifier, bool] | bool:
-        """Check for new data for one or all callers.
-
-        Args:
-            identifier: Optional `CallerIdentifier`. If provided, checks for this
-                specific caller. Otherwise, checks for all callers.
-
-        Returns:
-            If `identifier` is provided, returns a boolean indicating if new data
-            is available for that caller (returns False if the `identifier` is
-            not found).
-            If `identifier` is None, returns a dictionary mapping each
-            `CallerIdentifier` to a boolean.
-
-        """
+        """Check for new data for one or all callers. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         with self.__lock:
             if identifier is not None:
                 organizer = self.__organizers.get(identifier)
@@ -244,23 +210,8 @@ class RemoteDataAggregatorImpl(
     def get_new_data(
         self, identifier: CallerIdentifier | None = None
     ) -> dict[CallerIdentifier, list[DataTypeT]] | list[DataTypeT]:
-        """Retrieve new data for one or all callers.
-
-        Args:
-            identifier: Optional `CallerIdentifier`. If provided, retrieves data
-                for this specific caller. Otherwise, retrieves data for all
-                callers.
-
-        Returns:
-            If `identifier` is provided, returns a list of new data items for
-            that caller.
-            If `identifier` is None, returns a dictionary mapping each
-            `CallerIdentifier` to a list of its new data items.
-
-        Raises:
-            KeyError: If `identifier` is provided but not found.
-
-        """
+        """Retrieve new data for one or all callers. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         with self.__lock:
             if identifier is not None:
                 organizer = self.__organizers.get(identifier)
@@ -307,23 +258,8 @@ class RemoteDataAggregatorImpl(
     def get_most_recent_data(
         self, identifier: CallerIdentifier | None = None
     ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
-        """Retrieve the most recent data for one or all callers.
-
-        Args:
-            identifier: Optional `CallerIdentifier`. If provided, retrieves data
-                for this specific caller. Otherwise, retrieves data for all
-                callers.
-
-        Returns:
-            If `identifier` is provided, returns the most recent data item
-            (or None) for that caller.
-            If `identifier` is None, returns a dictionary mapping each
-            `CallerIdentifier` to its most recent data item (or None).
-
-        Raises:
-            KeyError: If `identifier` is provided but not found.
-
-        """
+        """Retrieve the most recent data for one or all callers. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         with self.__lock:
             if identifier is not None:
                 organizer = self.__organizers.get(identifier)
@@ -378,25 +314,8 @@ class RemoteDataAggregatorImpl(
         timestamp: datetime.datetime,
         identifier: CallerIdentifier | None = None,
     ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
-        """Retrieve data for a specific timestamp for one or all callers.
-
-        Args:
-            timestamp: The `datetime` to compare data against.
-            identifier: Optional `CallerIdentifier`. If provided, retrieves data
-                for this specific caller. Otherwise, retrieves data for all
-                callers.
-
-        Returns:
-            If `identifier` is provided, returns the data item (or None) for
-            that caller at the given timestamp.
-            If `identifier` is None, returns a dictionary mapping each
-            `CallerIdentifier` to its data item (or None) at the given
-            timestamp.
-
-        Raises:
-            KeyError: If `identifier` is provided but not found.
-
-        """
+        """Retrieve data for a specific timestamp for one or all callers. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         with self.__lock:
             if identifier is not None:
                 organizer = self.__organizers.get(identifier)

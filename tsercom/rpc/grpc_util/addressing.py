@@ -4,7 +4,7 @@ import grpc
 
 
 def get_client_ip(context: "grpc.aio.ServicerContext") -> str | None:
-    """Extracts the client IP address from a gRPC servicer context.
+    """Extract the client IP address from a gRPC servicer context.
 
     Parses the peer string to identify IPv4, IPv6, or Unix domain socket addresses.
 
@@ -30,7 +30,7 @@ def get_client_ip(context: "grpc.aio.ServicerContext") -> str | None:
 
 
 def get_client_port(context: "grpc.aio.ServicerContext") -> int | None:
-    """Extracts the client port number from a gRPC servicer context.
+    """Extract the client port number from a gRPC servicer context.
 
     Parses the peer string to find the port.
 

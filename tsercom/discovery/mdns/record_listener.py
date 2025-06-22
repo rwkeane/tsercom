@@ -26,12 +26,13 @@ class RecordListener(MdnsListener):
         service_type: str,
         zc_instance: AsyncZeroconf | None = None,
     ) -> None:
-        """Initializes the RecordListener.
+        """Initialize the RecordListener.
 
         Args:
             client: Implements `MdnsListener.Client` interface.
             service_type: Base mDNS service type (e.g., "_myservice").
                           Appended with "._tcp.local." internally.
+            zc_instance: Optional `AsyncZeroconf` instance for mDNS operations.
 
         Raises:
             ValueError: If args invalid or service_type missing leading '_'.
@@ -83,6 +84,7 @@ class RecordListener(MdnsListener):
         self.__browser: AsyncServiceBrowser | None = None
 
     async def start(self) -> None:
+        """Start the mDNS service browser."""
         self.__browser = AsyncServiceBrowser(
             self.__mdns.zeroconf, [self.__expected_type], listener=self
         )
@@ -90,7 +92,7 @@ class RecordListener(MdnsListener):
     # --- ServiceListener interface methods ---
 
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called by `zeroconf` when a service's info (e.g., TXT) is updated."""
+        """Handle service info updates from `zeroconf` (e.g., TXT record changes)."""
         logging.info(
             "Sync update_service called: type='%s', name='%s'. "
             "Scheduling async handler.",
@@ -146,7 +148,7 @@ class RecordListener(MdnsListener):
         )
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called by `zeroconf` when a service is removed from the network."""
+        """Call by `zeroconf` when a service is removed from the network."""
         logging.info(
             "Sync remove_service called: type='%s', name='%s'. "
             "Scheduling async handler.",
@@ -161,7 +163,7 @@ class RecordListener(MdnsListener):
         asyncio.create_task(self._handle_remove_service_wrapper(type_, name))
 
     async def _handle_remove_service_wrapper(self, type_: str, name: str) -> None:
-        """Wrapper to ensure a small sleep after task creation from sync context."""
+        """Wrap to ensure a small sleep after task creation from sync context."""
         await self._handle_remove_service(type_, name)
         await asyncio.sleep(0)  # Yield control to allow the task to potentially start
 
@@ -192,7 +194,7 @@ class RecordListener(MdnsListener):
         )
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called by `zeroconf` when a new service is discovered."""
+        """Call by `zeroconf` when a new service is discovered."""
         logging.info(
             "Sync add_service called: type='%s', name='%s'. Scheduling async handler.",
             type_,
@@ -247,6 +249,7 @@ class RecordListener(MdnsListener):
         )
 
     async def close(self) -> None:
+        """Close the mDNS listener and clean up resources."""
         # Closes the mDNS listener and the underlying AsyncZeroconf instance.
         if self.__browser:
             logging.info(

@@ -109,22 +109,8 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         *,
         timestamp: datetime.datetime | None = None,
     ) -> None:
-        """Send an event to the runtime.
-
-        The event can be sent with or without a specific caller ID and
-        with an optional custom timestamp. If no caller ID is provided,
-        the event may be broadcast or handled by a default mechanism.
-        If no timestamp is provided, the current time is typically used
-        by the implementation.
-
-        Args:
-            event: The event data to send.
-            caller_id: Optional. ID of the caller originating the event.
-                       If specified, event might be targeted or filtered.
-            timestamp: Optional. Timestamp for the event.
-                       If None, implementations default to `datetime.now()`.
-
-        """
+        """Send an event to the runtime. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         raise NotImplementedError()
 
     @abstractmethod

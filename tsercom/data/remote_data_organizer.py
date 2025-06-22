@@ -188,6 +188,7 @@ class RemoteDataOrganizer(
 
                     Args:
                         ts: The timestamp for the dummy item.
+
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -252,6 +253,7 @@ class RemoteDataOrganizer(
 
                     Args:
                         ts: The timestamp for the dummy item.
+
                     """
                     self.timestamp: datetime.datetime = ts
 
@@ -351,6 +353,7 @@ class RemoteDataOrganizer(
 
                     Args:
                         ts: The timestamp for the dummy item.
+
                     """
                     self.timestamp: datetime.datetime = ts
 

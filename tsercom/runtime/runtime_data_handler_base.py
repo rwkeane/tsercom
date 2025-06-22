@@ -86,7 +86,7 @@ class RuntimeDataHandlerBase(
         min_send_frequency_seconds: float | None = None,
         max_queued_responses_per_endpoint: int = 1000,
     ):
-        """Initializes the RuntimeDataHandlerBase.
+        """Initialize the RuntimeDataHandlerBase.
 
         Args:
             data_reader: The `RemoteDataReader` instance where processed data
@@ -144,7 +144,7 @@ class RuntimeDataHandlerBase(
             )
 
     async def async_close(self) -> None:
-        """Cancels and awaits the background dispatch task."""
+        """Cancel and await the background dispatch task."""
         current_loop = asyncio.get_running_loop()
         _logger.info(
             "RuntimeDataHandlerBase async_close called. Current loop: %s",
@@ -291,7 +291,7 @@ class RuntimeDataHandlerBase(
         *args: Any,
         **kwargs: Any,
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
-        """Registers a caller and returns an `EndpointDataProcessor` for it.
+        """Register a caller and return an `EndpointDataProcessor` for it.
 
         This method handles different ways of identifying a caller:
         1. By explicit `endpoint` (e.g., IP address) and `port` number.
@@ -406,7 +406,7 @@ class RuntimeDataHandlerBase(
         return await self._register_caller(caller_id, actual_endpoint, actual_port)
 
     def check_for_caller_id(self, endpoint: str, port: int) -> CallerIdentifier | None:
-        """Checks if a `CallerIdentifier` exists for the given network address.
+        """Check if a `CallerIdentifier` exists for the given network address.
 
         Args:
             endpoint: The IP address or hostname of the caller.

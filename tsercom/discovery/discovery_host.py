@@ -83,20 +83,8 @@ class DiscoveryHost(
         ) = None,
         mdns_listener_factory: MdnsListenerFactory | None = None,
     ) -> None:
-        """Initialize DiscoveryHost. Overloaded: use one keyword arg.
-
-        Args:
-            service_type: mDNS service type (e.g., "_my_service._tcp.local.").
-            instance_listener_factory: Callable creating `InstanceListener`.
-                Allows custom listener configs (e.g., different mDNS libs).
-                Factory gets `self` as client for the listener.
-            mdns_listener_factory: Optional factory for creating `MdnsListener`
-                instances, allowing for custom mDNS backends or configurations.
-
-        Raises:
-            ValueError: If invalid combination of arguments provided.
-
-        """
+        """Initialize DiscoveryHost. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         # Ensure exclusive provision of service_type or factory
         num_modes_selected = sum(
             [

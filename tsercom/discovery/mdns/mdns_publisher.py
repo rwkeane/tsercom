@@ -12,7 +12,7 @@ class MdnsPublisher(ABC):
 
     @abstractmethod
     async def publish(self) -> None:
-        """Publishes the service instance via mDNS.
+        """Publish the service instance via mDNS.
 
         Implementations should handle the necessary steps to make the service
         discoverable on the network according to their mDNS library and

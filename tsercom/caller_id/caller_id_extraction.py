@@ -1,7 +1,4 @@
-"""Utilities for extracting CallerIdentifier from gRPC calls,
-especially from iterators.
-
-"""
+"""Utilities for extracting CallerIdentifier from gRPC calls, especially from iterators."""
 
 import logging
 from collections.abc import AsyncIterator, Callable
