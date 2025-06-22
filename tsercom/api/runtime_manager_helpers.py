@@ -21,12 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessCreator:
-    """Wraps `multiprocessing.Process` for centralized creation and testing,
-    using a pre-configured multiprocessing context.
+    """Wraps `multiprocessing.Process` for centralized creation and testing.
+
+    Uses a pre-configured multiprocessing context.
     """
 
     def __init__(self, context: BaseContext):
-        """Initializes the ProcessCreator with a specific multiprocessing context.
+        """Initialize the ProcessCreator with a specific multiprocessing context.
 
         Args:
             context: The multiprocessing context (e.g., from
@@ -42,7 +43,7 @@ class ProcessCreator:
         args: tuple[Any, ...],
         daemon: bool,
     ) -> multiprocessing.Process | None:
-        """Creates and returns a multiprocessing.Process using the stored context.
+        """Create and return a multiprocessing.Process using the stored context.
 
         Args:
             target: Callable for the new process's run() method.
@@ -95,7 +96,7 @@ class SplitErrorWatcherSourceFactory:
         thread_watcher: ThreadWatcher,
         error_source_queue: MultiprocessQueueSource[Exception],
     ) -> SplitProcessErrorWatcherSource:
-        """Creates a new SplitProcessErrorWatcherSource.
+        """Create a new SplitProcessErrorWatcherSource.
 
         Args:
             thread_watcher: ThreadWatcher for the error watcher.

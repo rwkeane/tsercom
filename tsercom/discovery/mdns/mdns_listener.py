@@ -16,8 +16,7 @@ class MdnsListener(ServiceListener):
 
     @abstractmethod
     async def start(self) -> None:
-        """Starts listening for mDNS services.
-        """
+        """Start listening for mDNS services."""
         raise NotImplementedError(
             "MdnsListener.start must be implemented by subclasses."
         )
@@ -29,22 +28,22 @@ class MdnsListener(ServiceListener):
     # matching the synchronous signatures from ServiceListener.
     @abstractmethod
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called when a new service is discovered."""
+        """Handle callback when a new service is discovered."""
         raise NotImplementedError()
 
     @abstractmethod
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called when a service is removed."""
+        """Handle callback when a service is removed."""
         raise NotImplementedError()
 
     @abstractmethod
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        """Called when a service is updated."""
+        """Handle callback when a service is updated."""
         raise NotImplementedError()
 
     @abstractmethod
     async def close(self) -> None:
-        """Stops listening and cleans up resources."""
+        """Stop listening and clean up resources."""
         raise NotImplementedError()
 
     class Client(ABC):
@@ -62,7 +61,7 @@ class MdnsListener(ServiceListener):
             addresses: list[bytes],  # Raw binary IP addresses.
             txt_record: dict[bytes, bytes | None],  # Parsed TXT record.
         ) -> None:
-            """Callback for new or updated service discovery.
+            """Handle callback for new or updated service discovery.
 
             Args:
                 name: Unique mDNS name (e.g., "MyDevice._myservice._tcp.local").
@@ -82,7 +81,7 @@ class MdnsListener(ServiceListener):
         async def _on_service_removed(
             self, name: str, service_type: str, record_listener_uuid: str
         ) -> None:
-            """Callback for service removal.
+            """Handle callback for service removal.
 
             Args:
                 name: Unique mDNS name (e.g., "MyDevice._myservice._tcp.local").

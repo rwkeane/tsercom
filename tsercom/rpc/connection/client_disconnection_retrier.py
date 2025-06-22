@@ -1,3 +1,5 @@
+"""Handles client disconnection and automatic reconnection attempts with retry logic."""
+
 import asyncio
 import logging
 from abc import abstractmethod
@@ -51,7 +53,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         is_server_unavailable_error_func: Callable[[Exception], bool] | None = None,
         max_retries: int | None = 5,
     ) -> None:
-        """Initializes the ClientDisconnectionRetrier.
+        """Initialize the ClientDisconnectionRetrier.
 
         Args:
             watcher: A `ThreadWatcher` instance to report critical exceptions.
@@ -115,7 +117,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         pass
 
     async def start(self) -> bool:
-        """Attempts to establish the initial connection.
+        """Attempt to establish the initial connection.
 
         It captures the event loop on which it's first called. If the connection
         fails due to a server unavailable error, it logs a warning and returns False.
@@ -177,8 +179,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             raise
 
     async def stop(self) -> None:
-        """Stops the managed instance and ensures operations run on the correct
-        event loop.
+        """Stop the managed instance and ensure operations run on the correct event loop.
 
         If called from a different event loop than the one `start` was called on,
         it reschedules itself onto the original event loop. Stops the connected
@@ -206,7 +207,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
         logging.info("ClientDisconnectionRetrier stopped.")
 
     async def _on_disconnect(self, error: Exception | None = None) -> None:
-        """Handles disconnection events and attempts reconnection if appropriate.
+        """Handle disconnection events and attempt reconnection if appropriate.
 
         This method is typically called when an operation on the managed instance
         raises an exception indicating a disconnection. It ensures execution on

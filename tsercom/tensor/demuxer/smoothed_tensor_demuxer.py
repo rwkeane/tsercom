@@ -1,5 +1,4 @@
-"""Provides the SmoothedTensorDemuxer class for interpolating tensor data over time.
-"""
+"""Provides the SmoothedTensorDemuxer class for interpolating tensor data over time."""
 
 import asyncio
 import datetime

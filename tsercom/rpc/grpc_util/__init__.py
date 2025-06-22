@@ -1,3 +1,5 @@
+"""Utility functions and classes for working with gRPC."""
+
 # tsercom/rpc/grpc_util/__init__.py
 from tsercom.rpc.grpc_util.addressing import get_client_ip, get_client_port
 from tsercom.rpc.grpc_util.async_grpc_exception_interceptor import (

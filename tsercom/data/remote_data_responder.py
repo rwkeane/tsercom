@@ -18,7 +18,7 @@ class RemoteDataResponder(ABC, Generic[ResponseTypeT]):
 
     @abstractmethod
     def _on_response_ready(self, response: ResponseTypeT) -> None:
-        """Callback method to handle and send a response.
+        """Handle callback to handle and send a response.
 
         Implementers should define the logic to transmit the `response`
         back to the original requester or an appropriate destination.

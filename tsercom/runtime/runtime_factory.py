@@ -78,8 +78,7 @@ class RuntimeFactory(
         """
 
     def _stop(self) -> None:
-        """Stops any underlying calls and executions associated with this instance.
-        """
+        """Stops any underlying calls and executions associated with this instance."""
 
     # Properties to expose RuntimeConfig values directly for convenience
     # These are inherited from RuntimeConfig via RuntimeInitializer,

@@ -25,7 +25,7 @@ class SerializableAnnotatedInstance(Generic[DataTypeT]):
         caller_id: CallerIdentifier | None,
         timestamp: SynchronizedTimestamp,
     ) -> None:
-        """Initializes a SerializableAnnotatedInstance.
+        """Initialize a SerializableAnnotatedInstance.
 
         Args:
             data: The actual data payload to be wrapped.

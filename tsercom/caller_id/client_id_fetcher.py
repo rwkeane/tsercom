@@ -20,7 +20,7 @@ class ClientIdFetcher:
     logger = logging.getLogger(__name__)
 
     def __init__(self, stub: Any) -> None:
-        """Initializes the ClientIdFetcher.
+        """Initialize the ClientIdFetcher.
 
         Args:
             stub: The gRPC stub with `GetId(GetIdRequest) -> GetIdResponse` method.

@@ -21,7 +21,7 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
             connection_info: ServiceInfoT,
             caller_id: CallerIdentifier,
         ) -> None:
-            """Called when a new service instance is discovered.
+            """Handle callback when a new service instance is discovered.
 
             Args:
                 connection_info: Info about the discovered service.
@@ -39,7 +39,7 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
             service_name: str,
             caller_id: CallerIdentifier,
         ) -> None:
-            """Callback invoked when a previously discovered service is removed.
+            """Handle callback invoked when a previously discovered service is removed.
 
             Args:
                 service_name: The mDNS instance name of the removed service.
@@ -54,7 +54,7 @@ class ServiceSource(Generic[ServiceInfoT], ABC):
 
     @abstractmethod
     async def start_discovery(self, client: "ServiceSource.Client") -> None:
-        """Starts service discovery.
+        """Start service discovery.
 
         `ServiceSource` looks for services, notifies `client` of finds.
 

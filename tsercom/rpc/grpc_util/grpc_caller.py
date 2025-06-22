@@ -1,6 +1,4 @@
-"""Provides utility functions for handling gRPC errors, status codes, and retry
-logic.
-"""
+"""Provides utility functions for handling gRPC errors, status codes, and retry logic."""
 
 from __future__ import annotations
 
@@ -12,7 +10,7 @@ from google.rpc.status_pb2 import Status
 
 
 def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
-    """Extracts the gRPC status code from a gRPC exception.
+    """Extract the gRPC status code from a gRPC exception.
 
     Args:
         error: The exception, potentially a gRPC error.
@@ -39,7 +37,7 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
 
 
 def is_server_unavailable_error(error: Exception) -> bool:
-    """Checks if an exception indicates a gRPC server unavailable error.
+    """Check if an exception indicates a gRPC server unavailable error.
 
     This includes `UNAVAILABLE` and `DEADLINE_EXCEEDED` status codes,
     and `StopAsyncIteration` which can occur during stream termination.
@@ -64,7 +62,7 @@ def is_server_unavailable_error(error: Exception) -> bool:
 
 
 def is_grpc_error(error: Exception) -> bool:
-    """Checks if the given exception is a gRPC-related error.
+    """Check if the given exception is a gRPC-related error.
 
     Args:
         error: The exception to check.
@@ -77,7 +75,7 @@ def is_grpc_error(error: Exception) -> bool:
 
 
 async def delay_before_retry() -> None:
-    """Asynchronously waits for a random duration before a retry attempt.
+    """Wait asynchronously for a random duration before a retry attempt.
 
     The delay is uniformly distributed between 4 and 8 seconds.
     """

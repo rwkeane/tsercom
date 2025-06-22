@@ -33,7 +33,7 @@ class DataHost(ABC, Generic[DataTypeT]):
 
     @abstractmethod
     def _remote_data_aggregator(self) -> RemoteDataAggregator[DataTypeT]:
-        """Provides the `RemoteDataAggregator` instance.
+        """Provide the `RemoteDataAggregator` instance.
 
         This abstract method must be implemented by subclasses to return their
         specific instance of `RemoteDataAggregator`. This aggregator is then

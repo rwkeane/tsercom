@@ -14,13 +14,13 @@ class CallerIdentifierWaiter:
     """
 
     def __init__(self) -> None:
-        """Initializes a new CallerIdentifierWaiter instance."""
+        """Initialize a new CallerIdentifierWaiter instance."""
         self.__caller_id: CallerIdentifier | None = None
         # Use an asyncio.Event as a barrier to signal when the caller_id is set.
         self.__barrier = asyncio.Event()
 
     async def get_caller_id_async(self) -> CallerIdentifier:
-        """Waits for and returns the `CallerIdentifier` once set.
+        """Wait for and return the `CallerIdentifier` once set.
 
         Blocks asynchronously until `set_caller_id` is called.
 
@@ -40,7 +40,7 @@ class CallerIdentifierWaiter:
         return self.__caller_id
 
     def has_id(self) -> bool:
-        """Checks if the `CallerIdentifier` has been set.
+        """Check if the `CallerIdentifier` has been set.
 
         This is a synchronous check.
 
@@ -52,7 +52,7 @@ class CallerIdentifierWaiter:
         return self.__caller_id is not None
 
     async def set_caller_id(self, caller_id: CallerIdentifier) -> None:
-        """Sets the `CallerIdentifier` and notifies waiters.
+        """Set the `CallerIdentifier` and notify waiters.
 
         Can only be called once. Subsequent calls will raise an error.
 

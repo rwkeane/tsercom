@@ -41,19 +41,19 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     def start(self) -> None:
-        """Starts the associated runtime or service."""
+        """Start the associated runtime or service."""
         raise NotImplementedError()
 
     @abstractmethod
     def stop(self) -> None:
-        """Stops the associated runtime or service."""
+        """Stop the associated runtime or service."""
         raise NotImplementedError()
 
     # Overloads for the on_event method, defining different ways to call it.
     # These guide type checkers and IDEs for better developer experience.
     @overload
     def on_event(self, event: EventTypeT) -> None:
-        """Sends an event to the runtime with only the event data.
+        """Send an event to the runtime with only the event data.
 
         Args:
             event: The event data to send.
@@ -63,7 +63,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
 
     @overload
     def on_event(self, event: EventTypeT, caller_id: CallerIdentifier) -> None:
-        """Sends an event to the runtime with event data and a caller ID.
+        """Send an event to the runtime with event data and a caller ID.
 
         Args:
             event: The event data to send.
@@ -74,7 +74,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
 
     @overload
     def on_event(self, event: EventTypeT, *, timestamp: datetime.datetime) -> None:
-        """Sends an event to the runtime with event data and a specific timestamp.
+        """Send an event to the runtime with event data and a specific timestamp.
 
         Args:
             event: The event data to send.
@@ -91,7 +91,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         *,
         timestamp: datetime.datetime,
     ) -> None:
-        """Sends an event with event data, caller ID, and a specific timestamp.
+        """Send an event with event data, caller ID, and a specific timestamp.
 
         Args:
             event: The event data to send.
@@ -109,7 +109,7 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         *,
         timestamp: datetime.datetime | None = None,
     ) -> None:
-        """Sends an event to the runtime.
+        """Send an event to the runtime.
 
         The event can be sent with or without a specific caller ID and
         with an optional custom timestamp. If no caller ID is provided,

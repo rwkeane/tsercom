@@ -1,3 +1,5 @@
+"""Manages client-side connection logic, including retries and reconnection."""
+
 from tsercom.rpc.connection.client_disconnection_retrier import (
     ClientDisconnectionRetrier,
 )

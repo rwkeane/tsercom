@@ -32,7 +32,7 @@ class DataHostBase(
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Initializes the DataHostBase.
+        """Initialize the DataHostBase.
 
         Args:
             watcher: ThreadWatcher to monitor threads for the data aggregator.
@@ -68,7 +68,7 @@ class DataHostBase(
         super().__init__(*args, **kwargs)
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
-        """Handles new data by passing it to the internal data aggregator.
+        """Handle new data by passing it to the internal data aggregator.
 
         This method is called when new data is available, typically from a
         source that this DataHostBase is reading from (as a RemoteDataReader).
@@ -80,7 +80,7 @@ class DataHostBase(
         self.__aggregator._on_data_ready(new_data)
 
     def _remote_data_aggregator(self) -> RemoteDataAggregator[DataTypeT]:
-        """Provides the internal `RemoteDataAggregator` instance.
+        """Provide the internal `RemoteDataAggregator` instance.
 
         This method fulfills the `DataHost` abstract contract.
 

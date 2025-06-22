@@ -37,7 +37,7 @@ class RecordPublisher(MdnsPublisher):
         properties: dict[bytes, bytes | None] | None = None,
         zc_instance: AsyncZeroconf | None = None,  # Added
     ) -> None:
-        """Initializes the RecordPublisher.
+        """Initialize the RecordPublisher.
 
         Args:
             name: Instance name (e.g., "MyDevice"). Forms part of full mDNS name
@@ -46,6 +46,7 @@ class RecordPublisher(MdnsPublisher):
             port: Network port service is on.
             properties: Optional dict for TXT record (bytes: bytes/None).
                         Defaults to {}.
+            zc_instance: Optional pre-configured AsyncZeroconf instance.
 
         Raises:
             ValueError: If `type_` is None or not `startswith("_")`.
@@ -78,6 +79,12 @@ class RecordPublisher(MdnsPublisher):
         # configured elsewhere.
 
     async def publish(self) -> None:
+        """Publish the service on mDNS.
+
+        If already published, it updates the service registration.
+        Otherwise, it registers the service. Handles creation or usage of
+        an `AsyncZeroconf` instance.
+        """
         if self._zc:
             _logger.info("Service %s already published. Re-registering.", self.__srv)
             # Optionally, unregister first or update. For now, assume
@@ -109,7 +116,12 @@ class RecordPublisher(MdnsPublisher):
             )
 
     async def close(self) -> None:
-        """Closes the Zeroconf instance and unregisters services."""
+        """Close the RecordPublisher, unregistering the service and closing resources.
+
+        If the service was published, it attempts to unregister it.
+        If this instance owns the `AsyncZeroconf` object (i.e., it was not
+        provided a shared one), it closes the `AsyncZeroconf` instance.
+        """
         service_info_at_start_of_close = self._service_info
         unregistration_attempted = False
         unregistration_succeeded = False

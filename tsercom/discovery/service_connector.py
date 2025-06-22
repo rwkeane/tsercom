@@ -74,7 +74,7 @@ class ServiceConnector(
             caller_id: CallerIdentifier,
             channel: ChannelTypeT,
         ) -> None:
-            """Callback invoked when a channel to a discovered service is connected.
+            """Handle callback invoked when a channel to a discovered service is connected.
 
             Args:
                 connection_info: The `ServiceInfoT` object containing details
@@ -92,7 +92,7 @@ class ServiceConnector(
         connection_factory: ConnectionFactory[ChannelTypeT],
         service_source: ServiceSource[SourceServiceInfoT],
     ) -> None:
-        """Initializes the ServiceConnector.
+        """Initialize the ServiceConnector.
 
         Args:
             client: An instance that implements the `ServiceConnector.Client`
@@ -120,7 +120,7 @@ class ServiceConnector(
         super().__init__()
 
     async def start(self) -> None:
-        """Starts the service discovery process.
+        """Start the service discovery process.
 
         This method initiates discovery by calling `start_discovery` on the
         configured `ServiceSource`, passing `self` as the client to receive
@@ -130,15 +130,14 @@ class ServiceConnector(
         await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
-        """Marks a connected service instance (client from ServiceConnector's
-        perspective) as failed.
+        r"""Mark a connected service instance (client from ServiceConnector's perspective) as failed.
 
         This removes the `caller_id` from the set of tracked active connections,
         allowing the `ServiceConnector` to attempt a new connection if the same
         service instance (with the same `caller_id`) is re-discovered by the
         `ServiceSource`.
 
-        The operation is scheduled to run on the `ServiceConnector`\'s captured
+        The operation is scheduled to run on the `ServiceConnector`'s captured
         event loop to ensure thread-safety and proper async context.
 
         Args:
@@ -152,7 +151,6 @@ class ServiceConnector(
             RuntimeError: If an event loop cannot be determined when attempting
                 to schedule the operation (should not happen if `start` has been
                 called and discovery is active).
-
         """
         if self.__event_loop is None:
             # Attempt to capture loop if not already. This might occur if
@@ -184,14 +182,13 @@ class ServiceConnector(
         await self._mark_client_failed_impl(caller_id)
 
     async def _mark_client_failed_impl(self, caller_id: CallerIdentifier) -> None:
-        """Internal implementation for marking a client as failed.
+        r"""Implement marking a client as failed internally.
 
-        This method must be called on the `ServiceConnector`\'s event loop.
+        This method must be called on the `ServiceConnector`'s event loop.
         It removes the `caller_id` from the set of active callers.
 
         Args:
             caller_id: The `CallerIdentifier` of the client to remove.
-
         """
         assert caller_id in self.__callers, (
             f"Attempted to mark unknown caller {caller_id} as failed. "
@@ -209,7 +206,7 @@ class ServiceConnector(
         connection_info: SourceServiceInfoT,
         caller_id: CallerIdentifier,
     ) -> None:
-        """Handles new service discovery events from the `ServiceSource`.
+        """Handle new service discovery events from the `ServiceSource`.
 
         This method is called by the `ServiceSource` when a new service instance
         is discovered. It captures the event loop on its first invocation.
@@ -319,7 +316,7 @@ class ServiceConnector(
     async def _on_service_removed(
         self, service_name: str, caller_id: CallerIdentifier
     ) -> None:
-        """Handles a service being removed, as notified by the ServiceSource.
+        """Handle a service being removed, as notified by the ServiceSource.
 
         This method is part of the ServiceSource.Client interface. It removes
         the CallerIdentifier from internal tracking.

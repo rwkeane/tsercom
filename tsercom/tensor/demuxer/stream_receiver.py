@@ -167,8 +167,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
 
     @property
     def initializer(self) -> SerializableTensorInitializer:
-        """The TensorInitializer object that the remote, sending process needs.
-        """
+        """The TensorInitializer object that the remote, sending process needs."""
         return self.__initializer
 
     async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
