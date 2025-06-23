@@ -6,7 +6,7 @@ import torch
 
 
 class SmoothingStrategy(ABC):
-    """Abstract base class for defining strategies to smooth or interpolate tensor data."""
+    """Abstract base class for strategies to smooth or interpolate tensor data."""
 
     @abstractmethod
     def interpolate_series(

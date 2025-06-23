@@ -16,13 +16,14 @@ AtomicTypeT = TypeVar("AtomicTypeT")
 
 # Provides thread-safe, atomic access to a value.
 class Atomic(Generic[AtomicTypeT]):
-    """This class provides atomic access (via locks) to an underlying type.
+    """Provides atomic access (via locks) to an underlying type.
+
     It ensures that operations like getting and setting the value are
     thread-safe.
     """
 
     def __init__(self, value: AtomicTypeT) -> None:
-        """Initializes the Atomic wrapper with an initial value.
+        """Initialize the Atomic wrapper with an initial value.
 
         Args:
             value (AtomicTypeT): The initial value to be stored atomically.

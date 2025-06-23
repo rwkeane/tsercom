@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
-    """Creates a gRPC channel where the client authenticates the server by matching its certificate against an expected server certificate (pinning)."""
+    """Client authenticates server by pinning against a specific server certificate."""
 
     def __init__(
         self,

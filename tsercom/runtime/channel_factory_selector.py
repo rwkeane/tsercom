@@ -43,7 +43,7 @@ class ChannelFactorySelector:
     def create_factory(
         self, auth_config: BaseChannelAuthConfig | None
     ) -> GrpcChannelFactory:
-        """Create an instance of a GrpcChannelFactory based on the provided ChannelAuthConfig.
+        """Create a GrpcChannelFactory based on the provided ChannelAuthConfig.
 
         Args:
             auth_config: The channel authentication configuration object,

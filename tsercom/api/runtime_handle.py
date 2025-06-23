@@ -53,32 +53,45 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
     # These guide type checkers and IDEs for better developer experience.
     @overload
     def on_event(self, event: EventTypeT) -> None:
-        """Send an event to the runtime with only the event data.
+        """Send an event to the associated runtime.
+
+        This overload is used when only the event data is provided. The system
+        will typically assign a default caller ID and use the current time as
+        the timestamp.
 
         Args:
-            event: The event data to send.
+            event: The event data to send. (Type: EventTypeT)
 
         """
         ...
 
     @overload
     def on_event(self, event: EventTypeT, caller_id: CallerIdentifier) -> None:
-        """Send an event to the runtime with event data and a caller ID.
+        """Send an event to the associated runtime with a specific caller ID.
+
+        This overload is used when the event data and a specific caller ID are
+        provided. The system will typically use the current time as the timestamp.
 
         Args:
-            event: The event data to send.
-            caller_id: ID of the caller originating the event.
+            event: The event data to send. (Type: EventTypeT)
+            caller_id: The identifier of the entity originating this event.
+                (Type: CallerIdentifier)
 
         """
         ...
 
     @overload
     def on_event(self, event: EventTypeT, *, timestamp: datetime.datetime) -> None:
-        """Send an event to the runtime with event data and a specific timestamp.
+        """Send an event to the associated runtime with a specific timestamp.
+
+        This overload is used when the event data and a specific timestamp are
+        provided. The system will typically assign a default caller ID.
+        The timestamp must be provided as a keyword argument.
 
         Args:
-            event: The event data to send.
-            timestamp: Timestamp for the event.
+            event: The event data to send. (Type: EventTypeT)
+            timestamp: The explicit timestamp for this event.
+                (Type: datetime.datetime)
 
         """
         ...
@@ -93,10 +106,16 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
     ) -> None:
         """Send an event with event data, caller ID, and a specific timestamp.
 
+        This overload is used when event data, a specific caller ID, and an
+        explicit timestamp are all provided. The timestamp must be provided as
+        a keyword argument.
+
         Args:
-            event: The event data to send.
-            caller_id: ID of the caller originating the event.
-            timestamp: Timestamp for the event.
+            event: The event data to send. (Type: EventTypeT)
+            caller_id: The identifier of the entity originating this event.
+                (Type: CallerIdentifier)
+            timestamp: The explicit timestamp for this event.
+                (Type: datetime.datetime)
 
         """
         ...
@@ -109,8 +128,15 @@ class RuntimeHandle(ABC, Generic[DataTypeT, EventTypeT]):
         *,
         timestamp: datetime.datetime | None = None,
     ) -> None:
-        """Send an event to the runtime. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        """Send an event to the runtime.
+
+        This is the main implementation for sending an event. It can be called
+        with various combinations of event data, caller ID, and timestamp.
+        Refer to the specific @overload signatures for detailed argument
+        combinations and their descriptions. If caller_id or timestamp are
+        not provided, system defaults may be used.
+        """
+        # Main impl docstring is minimal per prompt (overloads documented).
         raise NotImplementedError()
 
     @abstractmethod

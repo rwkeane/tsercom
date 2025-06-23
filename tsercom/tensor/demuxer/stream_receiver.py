@@ -49,7 +49,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
             data_timeout_seconds: Timeout for data chunks.
 
         """
-        ...
+        pass
 
     @overload
     def __init__(
@@ -73,7 +73,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
             align_output_timestamps: Whether to align output timestamps.
 
         """
-        ...
+        pass
 
     def __init__(
         self,
@@ -84,7 +84,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
         align_output_timestamps: bool = False,
     ) -> None:
         """Initialize TensorStreamReceiver. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         self.__is_running_tracker: IsRunningTracker = IsRunningTracker()
         self.__queue: asyncio.Queue[tuple[torch.Tensor, datetime.datetime]] = (
             asyncio.Queue()
@@ -170,7 +170,7 @@ class TensorStreamReceiver(TensorDemuxer.Client):
     async def on_tensor_changed(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """Handle tensor changes from the internal demuxer (TensorDemuxer.Client interface).
+        """Handle tensor changes from internal demuxer (TensorDemuxer.Client).
 
         Called by the internal demuxer when a tensor is reconstructed or updated.
         """

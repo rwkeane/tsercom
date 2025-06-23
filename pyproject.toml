@@ -123,7 +123,7 @@ select = [
     "TID",# flake8-tidy-imports (enforce import styles)
     "D",  # pydocstyle (docstring conventions)
 ]
-ignore = ["S101", "S104"]
+ignore = ["S101", "S104", "D418"]
 
 # Allow ruff's auto-fix for all enabled rules.
 fixable = ["ALL"]

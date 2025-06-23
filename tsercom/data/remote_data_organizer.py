@@ -41,7 +41,7 @@ class RemoteDataOrganizer(
         def _on_data_available(
             self, data_organizer: "RemoteDataOrganizer[DataTypeT]"
         ) -> None:
-            """Invoke callback when new data is processed and available in the organizer.
+            """Invoke callback when new data is processed and available in organizer.
 
             Args:
                 data_organizer: The `RemoteDataOrganizer` instance that has new data.

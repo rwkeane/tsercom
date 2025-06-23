@@ -10,24 +10,23 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 class ClientSynchronizedClock(SynchronizedClock):
-    """This class defines a clock that is synchronized with the server-side clock
-    as defined by |client|.
+    """Define a clock synchronized with the server-side clock via a client.
+
+    The client provides the time offset.
     """
 
     class Client(ABC):
-        """An abstract interface for a client that can provide the time offset
-        between this client and a server. This offset is used by the
-        ClientSynchronizedClock to adjust timestamps.
+        """Abstract interface for a client providing server time offset.
+
+        Used by `ClientSynchronizedClock` to adjust timestamps.
         """
 
         @abstractmethod
         def get_offset_seconds(self) -> float:
-            """Retrieves the time offset in seconds between this client and the
-            server.
+            """Retrieve the time offset in seconds between this client and server.
 
-            A positive value indicates that the client's clock is ahead of the
-            server's clock. A negative value indicates that the client's clock
-            is behind the server's clock.
+            A positive value indicates client clock is ahead of server.
+            A negative value indicates client clock is behind server.
 
             Returns:
                 The time offset in seconds as a float.
@@ -36,18 +35,18 @@ class ClientSynchronizedClock(SynchronizedClock):
 
         @abstractmethod
         def get_synchronized_clock(self) -> SynchronizedClock:
-            """Returns a SynchronizedClock instance using this client for offsets."""
+            """Return a SynchronizedClock instance using this client for offsets."""
 
         @abstractmethod
         def start_async(self) -> None:
-            """Starts the time synchronization client asynchronously."""
+            """Start the time synchronization client asynchronously."""
 
         @abstractmethod
         def stop(self) -> None:
-            """Stops the time synchronization client."""
+            """Stop the time synchronization client."""
 
     def __init__(self, client: "ClientSynchronizedClock.Client") -> None:
-        """Initializes the ClientSynchronizedClock.
+        """Initialize the ClientSynchronizedClock.
 
         Args:
             client: ClientSynchronizedClock.Client instance for time offset.
@@ -57,6 +56,15 @@ class ClientSynchronizedClock(SynchronizedClock):
         super().__init__()
 
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
+        """Convert a SynchronizedTimestamp (server time) to local client time.
+
+        Args:
+            time: The server-referenced SynchronizedTimestamp.
+
+        Returns:
+            A datetime object representing the timestamp in the client's local time.
+
+        """
         # A positive offset means the client is ahead of the server.
         # A negative offset means the client is behind the server.
         offset_seconds = self.__client.get_offset_seconds()
@@ -75,6 +83,16 @@ class ClientSynchronizedClock(SynchronizedClock):
         return timestamp_dt - offset_timedelta
 
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
+        """Convert a local client datetime to a server-referenced SynchronizedTimestamp.
+
+        Args:
+            timestamp: A datetime object in the client's local time.
+
+        Returns:
+            A SynchronizedTimestamp representing the input time in the server's
+            time domain.
+
+        """
         # A positive offset means the client is ahead of the server.
         # A negative offset means the client is behind the server.
         offset_seconds = self.__client.get_offset_seconds()

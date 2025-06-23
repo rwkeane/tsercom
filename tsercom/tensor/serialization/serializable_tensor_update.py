@@ -1,4 +1,4 @@
-"""Defines SerializableTensorUpdate for representing tensor updates as a collection of chunks."""
+"""Defines SerializableTensorUpdate for representing tensor updates via chunks."""
 
 from collections.abc import Iterator
 from typing import TypeVar

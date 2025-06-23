@@ -1,4 +1,4 @@
-"""Provides an asynchronous gRPC server interceptor for centralized exception handling."""
+"""Provides an async gRPC server interceptor for centralized exception handling."""
 
 from collections.abc import AsyncIterator, Awaitable, Callable  # Added AsyncIterator
 from typing import cast  # Added cast
@@ -10,8 +10,9 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore[misc]
-    """A gRPC interceptor that handles exceptions in async server methods and forwards them to a provided callback.
+    """A gRPC interceptor for exception handling in async server methods.
 
+    Exceptions are forwarded to a callback.
     NOTE: This class is _REALLY_ reaching into the internals of GRPC's
     experimental APIs, so it's possible that a future update will break it, but
     unlikely given how closely these methods already mirror the non-async

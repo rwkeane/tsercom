@@ -19,7 +19,7 @@ class EventToSerializableAnnInstancePollerAdapter(
     Generic[EventTypeT],
     AsyncPoller[SerializableAnnotatedInstance[EventTypeT]],
 ):
-    """Adapts an AsyncPoller[EventInstance[EventTypeT]] to an AsyncPoller[SerializableAnnotatedInstance[EventTypeT]]."""
+    """Adapts EventInstance poller to SerializableAnnotatedInstance poller."""
 
     def __init__(self, source_poller: AsyncPoller[EventInstance[EventTypeT]]):
         """Initialize the EventToSerializableAnnInstancePollerAdapter.

@@ -275,7 +275,19 @@ class RuntimeDataHandlerBase(
     @overload
     async def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]: ...
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
+        """Register a caller using an explicit endpoint address and port.
+
+        Args:
+            caller_id: The unique identifier for the caller.
+            endpoint: The network endpoint string (e.g., IP address) of the caller.
+            port: The network port number of the caller.
+
+        Returns:
+            An `EndpointDataProcessor` instance for the registered caller.
+
+        """
+        pass
 
     @overload
     async def register_caller(
@@ -283,7 +295,18 @@ class RuntimeDataHandlerBase(
     ) -> (
         EndpointDataProcessor[DataTypeT, EventTypeT] | None
     ):  # Can return None if context parsing fails
-        ...
+        """Register a caller using a gRPC service context.
+
+        Args:
+            caller_id: The unique identifier for the caller.
+            context: The gRPC servicer context, used to extract endpoint info.
+
+        Returns:
+            An `EndpointDataProcessor` for the caller, or `None` if endpoint info
+            cannot be extracted from the context.
+
+        """
+        pass
 
     async def register_caller(
         self,
@@ -684,7 +707,7 @@ class RuntimeDataHandlerBase(
             # as EndpointDataProcessor.deregister_caller returns None.
 
         async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-            r"""Process data by creating an `AnnotatedInstance` and passing it to the parent.
+            r"""Process data by creating `AnnotatedInstance` and passing to parent.
 
             The data is wrapped with its `CallerIdentifier` and the provided
             `datetime` timestamp, then submitted via the parent data handler\'s
@@ -704,7 +727,7 @@ class RuntimeDataHandlerBase(
         async def __aiter__(
             self,
         ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
-            """Return an asynchronous iterator for events from the dedicated per-caller poller."""
+            """Return async iterator for events from the dedicated per-caller poller."""
             async for event_instance_batch in self.__data_poller:
                 processed_batch: list[SerializableAnnotatedInstance[EventTypeT]] = []
                 for event_instance in event_instance_batch:

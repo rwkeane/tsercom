@@ -24,7 +24,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
     """
 
     def __init__(self, queue: "MpQueue[QueueTypeT]", is_blocking: bool = True) -> None:
-        """Initializes with a given multiprocessing queue.
+        """Initialize with a given multiprocessing queue.
 
         Args:
             queue: The multiprocessing queue to be used as the sink.
@@ -38,7 +38,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
         self.__is_blocking: bool = is_blocking
 
     def put_blocking(self, obj: QueueTypeT, timeout: float | None = None) -> bool:
-        """Puts item into queue. Behavior depends on `self.__is_blocking`.
+        """Put item into queue. Behavior depends on `self.__is_blocking`.
 
         If `self.__is_blocking` is True (default), this method blocks if necessary
         until space is available in the queue or the timeout expires.
@@ -75,7 +75,7 @@ class MultiprocessQueueSink(Generic[QueueTypeT]):
                 return False
 
     def put_nowait(self, obj: QueueTypeT) -> bool:
-        """Puts an item into the queue without blocking.
+        """Put an item into the queue without blocking.
 
         If the queue is full, this method returns immediately.
 

@@ -23,7 +23,7 @@ class GrpcServicePublisher:
         port: int,
         addresses: str | Iterable[str] | None = None,
     ):
-        """Create a new gRPC Service hosted on a given ``port`` and network interfaces associated with ``addresses``."""
+        """Create a new gRPC Service on ``port`` and network ``addresses``."""
         if addresses is None:
             addresses = get_all_address_strings()
         elif isinstance(addresses, str):

@@ -114,7 +114,7 @@ class CompleteTensorMultiplexer(TensorMultiplexer):
     def _cleanup_old_data(self, current_max_timestamp: datetime.datetime) -> None:
         """Remove tensor snapshots from history older than the data_timeout_seconds.
 
-        This is relative to the current_max_timestamp. Assumes lock is held by the caller.
+        Relative to current_max_timestamp. Assumes lock is held by caller.
         """
         if not self.history:
             return

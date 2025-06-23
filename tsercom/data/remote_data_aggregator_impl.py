@@ -1,4 +1,4 @@
-"""Provides RemoteDataAggregatorImpl, a concrete implementation of the RemoteDataAggregator interface.
+"""Provides RemoteDataAggregatorImpl, an implementation of RemoteDataAggregator.
 
 This class manages RemoteDataOrganizer instances for each data source
 (identified by CallerIdentifier) and handles data timeout tracking. It acts as
@@ -98,7 +98,7 @@ class RemoteDataAggregatorImpl(
         timeout: int | None = None,
     ) -> None:
         """Initialize the RemoteDataAggregatorImpl. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         assert not (
             timeout is not None and tracker is not None
         ), "Cannot specify both 'timeout' and 'tracker' simultaneously."
@@ -171,7 +171,7 @@ class RemoteDataAggregatorImpl(
         self, identifier: CallerIdentifier | None = None
     ) -> dict[CallerIdentifier, bool] | bool:
         """Check for new data for one or all callers. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         with self.__lock:
             if identifier is not None:
                 organizer = self.__organizers.get(identifier)
@@ -211,7 +211,7 @@ class RemoteDataAggregatorImpl(
         self, identifier: CallerIdentifier | None = None
     ) -> dict[CallerIdentifier, list[DataTypeT]] | list[DataTypeT]:
         """Retrieve new data for one or all callers. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         with self.__lock:
             if identifier is not None:
                 organizer = self.__organizers.get(identifier)
@@ -258,8 +258,8 @@ class RemoteDataAggregatorImpl(
     def get_most_recent_data(
         self, identifier: CallerIdentifier | None = None
     ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
-        """Retrieve the most recent data for one or all callers. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        """Get most recent data for callers. See overloads."""
+        # Main impl docstring is minimal per prompt (overloads documented).
         with self.__lock:
             if identifier is not None:
                 organizer = self.__organizers.get(identifier)
@@ -314,8 +314,8 @@ class RemoteDataAggregatorImpl(
         timestamp: datetime.datetime,
         identifier: CallerIdentifier | None = None,
     ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
-        """Retrieve data for a specific timestamp for one or all callers. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        """Get data for a timestamp for callers. See overloads."""
+        # Main impl docstring is minimal per prompt (overloads documented).
         with self.__lock:
             if identifier is not None:
                 organizer = self.__organizers.get(identifier)
@@ -350,7 +350,7 @@ class RemoteDataAggregatorImpl(
             self.__client._on_data_available(self, data_organizer.caller_id)
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
-        """Handle incoming raw data, routing it to the appropriate `RemoteDataOrganizer`.
+        """Handle incoming raw data, routing it to the appropriate organizer.
 
         This method is part of the `RemoteDataReader` interface. If an organizer
         for the data's `caller_id` doesn't exist, one is created and started.
@@ -358,7 +358,7 @@ class RemoteDataAggregatorImpl(
         the aggregator's client is notified.
 
         Args:
-            new_data: The incoming data item, which must be a subclass of `ExposedData`.
+            new_data: The incoming data item, must be subclass of `ExposedData`.
 
         Raises:
             TypeError: If `new_data` is not a subclass of `ExposedData`.

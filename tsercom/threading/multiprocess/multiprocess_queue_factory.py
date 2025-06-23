@@ -1,9 +1,7 @@
-"""Defines the abstract base class for multiprocess queue factories and a
-deprecated factory function.
+"""Defines the abstract base class for multiprocess queue factories.
 
 This module provides the `MultiprocessQueueFactory` ABC, which defines the interface
-for queue factories. It also contains the `create_multiprocess_queues` function,
-which is considered for deprecation in favor of concrete factory implementations.
+for queue factories.
 """
 
 from abc import ABC, abstractmethod
@@ -32,7 +30,7 @@ class MultiprocessQueueFactory(ABC, Generic[QueueTypeT]):
         max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[MultiprocessQueueSink[QueueTypeT], MultiprocessQueueSource[QueueTypeT]]:
-        """Creates a pair of queues for inter-process communication.
+        """Create a pair of queues for inter-process communication.
 
         Args:
             max_ipc_queue_size: The maximum size for the created IPC queues.

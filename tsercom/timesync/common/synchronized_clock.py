@@ -1,3 +1,5 @@
+"""Defines the SynchronizedClock abstract base class for time synchronization."""
+
 import datetime
 from abc import ABC, abstractmethod
 
@@ -34,7 +36,7 @@ class SynchronizedClock(ABC):
 
     @abstractmethod
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
-        """Converts a SynchronizedTimestamp to a local naive datetime.datetime object.
+        """Convert a SynchronizedTimestamp to a local naive datetime.datetime object.
 
         This method takes a timestamp that is considered to be in the
         synchronized time domain and converts it back to the local system's
@@ -52,7 +54,7 @@ class SynchronizedClock(ABC):
 
     @abstractmethod
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
-        """Converts a local naive datetime.datetime object to a SynchronizedTimestamp.
+        """Convert a local naive datetime.datetime object to a SynchronizedTimestamp.
 
         This method takes a naive datetime object from the local system and
         applies the clock's synchronization logic (e.g., adding an offset

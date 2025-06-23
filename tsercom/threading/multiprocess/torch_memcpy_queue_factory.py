@@ -28,15 +28,12 @@ QueueElementT = TypeVar("QueueElementT")
 class TorchMemcpyQueueFactory(
     MultiprocessQueueFactory[QueueElementT], Generic[QueueElementT]
 ):
-    """Provides an implementation of `MultiprocessQueueFactory` specialized for
-    `torch.Tensor` objects.
+    """Provides `MultiprocessQueueFactory` specialized for `torch.Tensor` objects.
 
-    It utilizes `torch.multiprocessing.Queue` instances, which are chosen
-    for their ability to leverage shared memory, thereby optimizing the
-    inter-process transfer of tensor data by potentially avoiding costly
-    serialization and deserialization. The `create_queues` method returns
-    these torch queues wrapped in the standard `MultiprocessQueueSink` and
-    `MultiprocessQueueSource` for interface consistency.
+    It utilizes `torch.multiprocessing.Queue` instances, chosen for their
+    ability to leverage shared memory, optimizing inter-process transfer of
+    tensor data. The `create_queues` method returns these torch queues
+    wrapped in `MultiprocessQueueSink` and `MultiprocessQueueSource`.
     """
 
     def __init__(
@@ -47,7 +44,7 @@ class TorchMemcpyQueueFactory(
             Callable[[Any], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = None,
     ) -> None:
-        """Initializes the TorchMemcpyQueueFactory.
+        """Initialize the TorchMemcpyQueueFactory.
 
         Args:
             ctx_method: The multiprocessing context method to use if no
@@ -75,8 +72,7 @@ class TorchMemcpyQueueFactory(
         "TorchMemcpyQueueSink[QueueElementT]",
         "TorchMemcpyQueueSource[QueueElementT]",
     ]:  # Return specialized generic sink/source
-        """Creates a pair of torch.multiprocessing queues wrapped in specialized
-        Tensor Sink/Source.
+        """Create torch.multiprocessing queues wrapped in specialized Sink/Source.
 
         These queues are suitable for inter-process communication. If a
         tensor_accessor is provided, it will be used by the sink/source to handle
@@ -117,11 +113,10 @@ class TorchMemcpyQueueFactory(
 class TorchMemcpyQueueSource(
     Generic[QueueElementT], MultiprocessQueueSource[QueueElementT]
 ):
-    """A MultiprocessQueueSource that can find and prepare torch.Tensor objects
-    (single, or an iterable of tensors) for shared memory transfer using a
-    provided tensor_accessor function after an item is retrieved from the
-    queue. If no accessor is provided, it defaults to checking if the object
-    itself is a tensor.
+    """A `MultiprocessQueueSource` that prepares tensors for shared memory transfer.
+
+    Uses a `tensor_accessor` to find tensors in retrieved items and calls
+    `share_memory_()` on them. If no accessor, checks if item is a tensor.
     """
 
     def __init__(
@@ -131,14 +126,23 @@ class TorchMemcpyQueueSource(
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = None,
     ) -> None:
+        """Initialize TorchMemcpyQueueSource.
+
+        Args:
+            queue: The underlying torch.multiprocessing.Queue.
+            tensor_accessor: Optional function to find tensors within queue items.
+
+        """
         super().__init__(queue)
         self.__tensor_accessor: (
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = tensor_accessor
 
     def get_blocking(self, timeout: float | None = None) -> QueueElementT | None:
-        """Gets an item from the queue. If a tensor_accessor is provided, it's used
-        to find and call share_memory_() on any torch.Tensor objects within the item.
+        """Get an item from queue; prepares tensors in it for shared memory.
+
+        If a `tensor_accessor` is provided, it's used to find and call
+        `share_memory_()` on any `torch.Tensor` objects within the item.
         If no accessor, it checks if the item itself is a tensor.
 
         Args:
@@ -185,10 +189,11 @@ class TorchMemcpyQueueSource(
 class TorchMemcpyQueueSink(
     Generic[QueueElementT], MultiprocessQueueSink[QueueElementT]
 ):
-    """A MultiprocessQueueSink that can find and prepare torch.Tensor objects
-    (single, or an iterable of tensors) for shared memory transfer using a
-    provided tensor_accessor function. If no accessor is provided, it defaults
-    to checking if the object itself is a tensor.
+    """A `MultiprocessQueueSink` that prepares tensors for shared memory transfer.
+
+    Uses a `tensor_accessor` to find tensors in items before putting them
+    into the queue and calls `share_memory_()` on them. If no accessor,
+    checks if the item itself is a tensor.
     """
 
     def __init__(
@@ -199,14 +204,24 @@ class TorchMemcpyQueueSink(
         ) = None,
         is_blocking: bool = True,
     ) -> None:
+        """Initialize TorchMemcpyQueueSink.
+
+        Args:
+            queue: The underlying torch.multiprocessing.Queue.
+            tensor_accessor: Optional function to find tensors within queue items.
+            is_blocking: If True, put operations block when queue is full.
+
+        """
         super().__init__(queue, is_blocking=is_blocking)
         self.__tensor_accessor: (
             Callable[[QueueElementT], torch.Tensor | Iterable[torch.Tensor]] | None
         ) = tensor_accessor
 
     def put_blocking(self, obj: QueueElementT, timeout: float | None = None) -> bool:
-        """Puts an item into the queue. If a tensor_accessor is provided, it's used
-        to find and call share_memory_() on any torch.Tensor objects.
+        """Put an item into queue; prepares tensors in it for shared memory.
+
+        If a `tensor_accessor` is provided, it's used to find and call
+        `share_memory_()` on any `torch.Tensor` objects within the item.
         If no accessor is provided, it checks if the object itself is a tensor.
 
         Args:

@@ -6,7 +6,7 @@ from tsercom.tensor.demuxer.smoothing_strategy import SmoothingStrategy
 
 
 class LinearInterpolationStrategy(SmoothingStrategy):
-    """Implements linear interpolation for a series of data points using torch.Tensor."""
+    """Implements linear interpolation for data points using torch.Tensor."""
 
     def __init__(
         self,
