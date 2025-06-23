@@ -24,7 +24,7 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
         timestamp: datetime.datetime,
         responder: RemoteDataResponder[ResponseTypeT],
     ) -> None:
-        """Initializes the ExposedDataWithResponder.
+        """Initialize the ExposedDataWithResponder.
 
         Args:
             caller_id: `CallerIdentifier` for the data.
@@ -35,6 +35,7 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
         Raises:
             ValueError: If `responder` is None.
             TypeError: If `responder` is not a `RemoteDataResponder` subclass.
+
         """
         if responder is None:
             # Long error message
@@ -56,10 +57,10 @@ class ExposedDataWithResponder(Generic[ResponseTypeT], ExposedData):
         super().__init__(caller_id, timestamp)
 
     def _respond(self, response: ResponseTypeT) -> None:
-        """Sends a response using the associated `RemoteDataResponder`.
+        """Send a response using the associated `RemoteDataResponder`.
 
         Args:
             response: The response data of type `ResponseTypeT` to send.
-        """
 
+        """
         self.__responder._on_response_ready(response)

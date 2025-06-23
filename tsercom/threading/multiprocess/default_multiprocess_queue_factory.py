@@ -17,8 +17,7 @@ T = TypeVar("T")
 
 
 class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
-    """
-    A concrete factory for creating standard multiprocessing queues.
+    """A concrete factory for creating standard multiprocessing queues.
 
     This factory uses the standard `multiprocessing.Queue`.
     The `create_queues` method returns queues wrapped in
@@ -31,7 +30,7 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         ctx_method: str = "spawn",
         context: std_mp.context.BaseContext | None = None,
     ):
-        """Initializes the DefaultMultiprocessQueueFactory.
+        """Initialize the DefaultMultiprocessQueueFactory.
 
         Args:
             ctx_method: The multiprocessing context method to use if a specific
@@ -40,6 +39,7 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
             context: An optional existing multiprocessing context (e.g., from
                      `multiprocessing.get_context()`). If None, a new context
                      is created using the specified `ctx_method`.
+
         """
         if context is not None:
             self.__mp_context: std_mp.context.BaseContext = context
@@ -52,9 +52,9 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
-        """
-        Creates a pair of standard multiprocessing queues wrapped in Sink/Source,
-        using the configured multiprocessing context.
+        """Create a pair of standard multiprocessing queues wrapped in Sink/Source.
+
+        Uses the configured multiprocessing context.
 
         Args:
             max_ipc_queue_size: The maximum size for the created IPC queues.
@@ -66,6 +66,7 @@ class DefaultMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         Returns:
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a context-aware `multiprocessing.Queue` internally.
+
         """
         # A maxsize of <= 0 for multiprocessing.Queue means platform-dependent
         # default (effectively "unbounded").

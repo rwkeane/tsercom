@@ -5,8 +5,8 @@ import logging
 from collections.abc import Callable, Iterable
 
 import grpc
-from grpc_health.v1 import health_pb2, health_pb2_grpc  # type: ignore
-from grpc_health.v1._async import HealthServicer  # type: ignore[import-untyped]
+from grpc_health.v1 import health_pb2, health_pb2_grpc
+from grpc_health.v1._async import HealthServicer
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings
@@ -15,9 +15,7 @@ AddServicerCB = Callable[["grpc.Server"], None]
 
 
 class GrpcServicePublisher:
-    """
-    Helper class to publish gRPC services.
-    """
+    """Helper class to publish gRPC services."""
 
     def __init__(
         self,
@@ -25,10 +23,7 @@ class GrpcServicePublisher:
         port: int,
         addresses: str | Iterable[str] | None = None,
     ):
-        """
-        Creates a new gRPC Service hosted on a given ``port`` and network
-        interfaces assocaited with ``addresses``.
-        """
+        """Create a new gRPC Service on ``port`` and network ``addresses``."""
         if addresses is None:
             addresses = get_all_address_strings()
         elif isinstance(addresses, str):
@@ -41,9 +36,7 @@ class GrpcServicePublisher:
         self.__watcher = watcher
 
     def start(self, connect_call: AddServicerCB) -> None:
-        """
-        Starts a synchronous server.
-        """
+        """Start a synchronous server."""
         self.__server: grpc.Server = grpc.server(  # type: ignore
             self.__watcher.create_tracked_thread_pool_executor(max_workers=10)
         )
@@ -52,8 +45,8 @@ class GrpcServicePublisher:
         self.__server.start()
 
     async def start_async(self, connect_call: AddServicerCB) -> None:
-        """
-        Starts an asynchronous server and waits for it to be serving.
+        """Start an asynchronous server and wait for it to be serving.
+
         Runs on the event loop this coroutine is scheduled on.
         """
         # __start_async_impl is an async method, so it can be directly awaited.
@@ -61,12 +54,13 @@ class GrpcServicePublisher:
         await self.__start_async_impl(connect_call)
 
     async def __start_async_impl(self, connect_call: AddServicerCB) -> None:
-        """Internal implementation to start the asynchronous gRPC server.
+        """Start the asynchronous gRPC server internally.
 
         Configures the server with an exception interceptor and starts it.
 
         Args:
             connect_call: Callback to add servicer implementations to the server.
+
         """
         # Moved import here to break potential circular dependency
 
@@ -99,6 +93,7 @@ class GrpcServicePublisher:
             service: The name of the service to set the status for.
                      An empty string sets the overall server health.
             status: The desired health status (e.g., SERVING, NOT_SERVING).
+
         """
         if self._health_servicer is None:
             logging.error(
@@ -122,6 +117,7 @@ class GrpcServicePublisher:
         Returns:
             True if the server successfully bound to at least one address,
             False otherwise.
+
         """
         worked = 0
         for address in self.__addresses:
@@ -154,8 +150,8 @@ class GrpcServicePublisher:
         return worked != 0
 
     def stop(self) -> None:
-        """
-        Stops the server.
+        """Stop the server.
+
         For grpc.aio.Server, use stop_async() instead.
         This method is intended for synchronous grpc.server.
         """
@@ -186,9 +182,7 @@ class GrpcServicePublisher:
         logging.info("GrpcServicePublisher: gRPC Server stopped (sync call).")
 
     async def stop_async(self) -> None:
-        """
-        Stops the asynchronous gRPC server gracefully.
-        """
+        """Stop the asynchronous gRPC server gracefully."""
         if self.__server is None:
             logging.warning(
                 "GrpcServicePublisher: Server not started or already stopped "
@@ -225,7 +219,7 @@ class GrpcServicePublisher:
 async def check_grpc_channel_health(
     channel: grpc.aio.Channel, service: str = ""
 ) -> bool:
-    """Checks the health of a given gRPC channel for a specific service.
+    """Check the health of a given gRPC channel for a specific service.
 
     Args:
         channel: The gRPC channel to check.
@@ -235,6 +229,7 @@ async def check_grpc_channel_health(
     Returns:
         True if the channel is serving for the specified service, False otherwise
             (including errors).
+
     """
     if not channel:
         logging.debug(

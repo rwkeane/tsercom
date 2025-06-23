@@ -34,12 +34,50 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
     async def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
+        """Register a caller using an explicit endpoint address and port.
+
+        This overload is used when the network location (IP address or hostname
+        and port) of the caller is known directly.
+
+        Args:
+            caller_id: The unique identifier for the caller.
+                (Type: CallerIdentifier)
+            endpoint: The network endpoint string (e.g., IP address or hostname)
+                of the caller. (Type: str)
+            port: The network port number of the caller. (Type: int)
+
+        Returns:
+            EndpointDataProcessor[DataTypeT, EventTypeT]: An endpoint processor
+            instance for the registered caller.
+
+        """
         pass
 
     @overload
     async def register_caller(
         self, caller_id: CallerIdentifier, context: grpc.aio.ServicerContext
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
+        """Register a caller using a gRPC service context.
+
+        This overload is typically used on the server side of a gRPC call,
+        where the caller's network information can be extracted from the
+        provided `ServicerContext`.
+
+        Args:
+            caller_id: The unique identifier for the caller.
+                (Type: CallerIdentifier)
+            context: The gRPC asynchronous servicer context from which the
+                caller's endpoint information (IP and port) will be extracted.
+                (Type: grpc.aio.ServicerContext)
+
+        Returns:
+            Optional[EndpointDataProcessor[DataTypeT, EventTypeT]]: An endpoint
+            processor instance for the registered caller if its network address
+            can be successfully extracted from the context. Returns `None` if
+            the address cannot be determined (e.g., for non-IP based transports
+            or if context does not provide peer info).
+
+        """
         pass
 
     @abstractmethod
@@ -49,7 +87,7 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
         *args: Any,
         **kwargs: Any,
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
-        """Registers a caller with the runtime.
+        """Register a caller with the runtime.
 
         This method associates a `CallerIdentifier` with its network endpoint
         (via `endpoint` and `port` args), or extracted from a
@@ -67,4 +105,5 @@ class RuntimeDataHandler(ABC, Generic[DataTypeT, EventTypeT]):
             An `EndpointDataProcessor` instance configured for the registered
             caller if successful. Returns `None` if registration fails (e.g.,
             if IP address cannot be extracted from the gRPC context).
+
         """

@@ -44,7 +44,7 @@ class ShimRuntimeHandle(
         data_aggregator: RemoteDataAggregatorImpl[AnnotatedInstance[DataTypeT]],
         block: bool = False,
     ) -> None:
-        """Initializes the ShimRuntimeHandle.
+        """Initialize the ShimRuntimeHandle.
 
         Args:
             thread_watcher: ThreadWatcher to monitor helper threads.
@@ -54,6 +54,7 @@ class ShimRuntimeHandle(
             data_aggregator: Aggregator for data from remote via data_queue.
             block: If True, `on_event` blocks until event is queued.
                    If False, it's non-blocking.
+
         """
         super().__init__()
 
@@ -77,7 +78,7 @@ class ShimRuntimeHandle(
         )
 
     def start(self) -> None:
-        """Starts the remote runtime interaction.
+        """Start the remote runtime interaction.
 
         Starts local data reader source to poll for data, then sends 'start'
         command to remote runtime via command queue.
@@ -96,7 +97,7 @@ class ShimRuntimeHandle(
             datetime.datetime | None
         ) = None,  # Added for RuntimeHandle compatibility
     ) -> None:
-        """Sends an event to the remote runtime.
+        """Send an event to the remote runtime.
 
         Event is placed on event queue. Behavior (blocking/non-blocking)
         depends on `block` flag from init. `caller_id` and `timestamp` are
@@ -106,6 +107,7 @@ class ShimRuntimeHandle(
             event: The event to send.
             caller_id: Optional caller ID (ignored).
             timestamp: Optional event timestamp (ignored).
+
         """
         # `caller_id` and `timestamp` are part of RuntimeHandle interface,
         # but shim doesn't use them when sending to queue.
@@ -126,7 +128,7 @@ class ShimRuntimeHandle(
             self.__event_queue.put_nowait(event_instance)
 
     def stop(self) -> None:
-        """Stops the remote runtime interaction.
+        """Stop the remote runtime interaction.
 
         Sends 'stop' command to remote runtime via command queue,
         then stops local data reader source.
@@ -135,7 +137,7 @@ class ShimRuntimeHandle(
         self.__data_reader_source.stop()
 
     def _on_data_ready(self, new_data: AnnotatedInstance[DataTypeT]) -> None:
-        """Callback for when new data is ready from the `DataReaderSource`.
+        """Handle new data from the `DataReaderSource`.
 
         This is part of `RemoteDataReader` interface. `DataReaderSource`
         (polling data queue from remote) calls this. This forwards data
@@ -143,6 +145,7 @@ class ShimRuntimeHandle(
 
         Args:
             new_data: New data item from remote runtime.
+
         """
         # This handle (as RemoteDataReader) gets data from DataReaderSource
         # and forwards to the __data_aggregator from init.
@@ -152,10 +155,11 @@ class ShimRuntimeHandle(
     def _get_remote_data_aggregator(
         self,
     ) -> RemoteDataAggregator[AnnotatedInstance[DataTypeT]]:
-        """Provides the remote data aggregator for this handle.
+        """Provide the remote data aggregator for this handle.
 
         Returns:
             The `RemoteDataAggregator` that processes data from remote.
+
         """
         return self.__data_aggregator
 

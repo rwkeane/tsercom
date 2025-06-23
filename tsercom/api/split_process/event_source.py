@@ -26,10 +26,11 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
         self,
         event_source: MultiprocessQueueSource[EventInstance[EventTypeT]],
     ) -> None:
-        """Initializes the EventSource.
+        """Initialize the EventSource.
 
         Args:
             event_source: Multiprocess queue source for polling events.
+
         """
         self.__event_source = event_source
         self.__is_running = IsRunningTracker()
@@ -44,19 +45,20 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
         return self.__is_running.get()
 
     def start(self, thread_watcher: ThreadWatcher) -> None:
-        """Starts the event polling thread.
+        """Start the event polling thread.
 
         New thread polls for events. `loop_until_exception` has polling logic.
         Call this to begin event processing.
 
         Args:
             thread_watcher: ThreadWatcher to monitor the polling thread.
+
         """
         self.__is_running.start()
         self.__thread_watcher = thread_watcher
 
         def loop_until_exception() -> None:
-            """Polls events from queue and calls on_available until stopped."""
+            """Poll events from queue and call on_available until stopped."""
             while self.__is_running.get():
                 remote_instance = self.__event_source.get_blocking(timeout=1)
                 if remote_instance is not None:
@@ -74,7 +76,7 @@ class EventSource(Generic[EventTypeT], AsyncPoller[EventInstance[EventTypeT]]):
         self.__thread.start()
 
     def stop(self) -> None:
-        """Stops event polling thread, signals termination, and waits for join."""
+        """Stop event polling thread, signal termination, and wait for join."""
         self.__is_running.stop()
         if self.__thread and self.__thread.is_alive():
             self.__thread.join(timeout=5)

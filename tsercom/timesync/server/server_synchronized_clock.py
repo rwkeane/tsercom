@@ -9,8 +9,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 class ServerSynchronizedClock(SynchronizedClock):
-    """
-    A synchronized clock implementation representing the server's perspective.
+    """A synchronized clock implementation representing the server's perspective.
 
     On the server, its local time is the authoritative synchronized
     time. Thus, `sync`/`desync` operations are effectively pass-through:
@@ -22,8 +21,7 @@ class ServerSynchronizedClock(SynchronizedClock):
     """
 
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
-        """
-        Converts a SynchronizedTimestamp to a naive server local datetime.
+        """Convert a SynchronizedTimestamp to a naive server local datetime.
 
         Server's local time is authoritative synchronized time; this method
         returns the datetime from provided SynchronizedTimestamp directly.
@@ -33,12 +31,12 @@ class ServerSynchronizedClock(SynchronizedClock):
 
         Returns:
             The naive datetime.datetime object representing server local time.
+
         """
         return time.as_datetime()
 
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
-        """
-        Converts a naive server local datetime to a SynchronizedTimestamp.
+        """Convert a naive server local datetime to a SynchronizedTimestamp.
 
         Server's local time is authoritative; this method creates a
         SynchronizedTimestamp directly from the given naive datetime object
@@ -50,5 +48,6 @@ class ServerSynchronizedClock(SynchronizedClock):
 
         Returns:
             A SynchronizedTimestamp representing the server's local time.
+
         """
         return SynchronizedTimestamp(timestamp)

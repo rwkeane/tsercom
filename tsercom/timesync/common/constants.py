@@ -1,6 +1,6 @@
-"""
-Defines common constants for NTP (Network Time Protocol) settings used within
-Tsercom, such as the protocol version and default port.
+"""Defines common constants for NTP settings used within Tsercom.
+
+Such as the protocol version and default port.
 """
 
 # NTP protocol version used by the application.

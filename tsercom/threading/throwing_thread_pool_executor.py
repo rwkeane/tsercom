@@ -12,8 +12,7 @@ T = TypeVar("T")
 
 # Catches exceptions from submitted tasks and reports them.
 class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
-    """
-    Subclass of `ThreadPoolExecutor` that enhances exception handling.
+    """Subclass of `ThreadPoolExecutor` that enhances exception handling.
 
     Wraps submitted callables to catch exceptions (incl. `Warning`s),
     report them via error callback, then re-raises the exception.
@@ -26,14 +25,14 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
         *args: Any,  # Positional arguments for ThreadPoolExecutor
         **kwargs: Any,  # Keyword arguments for ThreadPoolExecutor
     ) -> None:
-        """
-        Initializes a ThrowingThreadPoolExecutor.
+        """Initialize a ThrowingThreadPoolExecutor.
 
         Args:
             error_cb: Callback for exceptions/warnings in a task.
                       The exception object is passed to it.
             *args: Variable length arguments for `ThreadPoolExecutor` superclass.
             **kwargs: Keyword arguments for `ThreadPoolExecutor` superclass.
+
         """
         assert error_cb is not None, "error_cb cannot be None"
         self.__error_cb = error_cb
@@ -42,8 +41,7 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
     def submit(
         self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs
     ) -> Future[T]:
-        """
-        Submits a callable to be executed asynchronously.
+        """Submit a callable to be executed asynchronously.
 
         `fn` is wrapped; if it raises `Exception` or `Warning`, `error_cb`
         is called, then the exception is re-raised.
@@ -56,11 +54,11 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
         Returns:
             A `Future` for the callable's execution. It will raise
             the original exception on `result()` if one occurred.
+
         """
 
         def wrapper(*args2: P.args, **kwargs2: P.kwargs) -> T:
-            """
-            Internal wrapper to run submitted function and handle exceptions.
+            """Wrap submitted function and handle exceptions.
 
             Args:
                 *args2: Positional arguments for the original function.
@@ -72,6 +70,7 @@ class ThrowingThreadPoolExecutor(ThreadPoolExecutor):
             Raises:
                 Exception: Re-raises any caught exception from original func.
                 Warning: Re-raises any warning caught from original function.
+
             """
             try:
                 return fn(*args2, **kwargs2)

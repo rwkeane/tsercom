@@ -605,10 +605,12 @@ class FaultyCreateRuntimeInitializer(RuntimeInitializer):
         error_message="CreateFailed",
         error_type=TypeError,
         service_type="Client",
+        error_event: Optional[multiprocessing.Event] = None,  # Add event
     ):
         super().__init__(service_type=service_type)
         self.error_message = error_message
         self.error_type = error_type
+        self._error_event = error_event  # Store event
 
     def create(
         self,
@@ -616,6 +618,8 @@ class FaultyCreateRuntimeInitializer(RuntimeInitializer):
         data_handler: RuntimeDataHandler,
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
+        if self._error_event:  # Set event before raising
+            self._error_event.set()
         raise self.error_type(self.error_message)
 
 
@@ -1519,11 +1523,15 @@ def test_out_of_process_error_check_for_exception(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "RemoteFailureOops"
 
+    ctx = multiprocessing.get_context("spawn")
+    child_error_event = ctx.Event()
+
     handle_future = runtime_manager.register_runtime_initializer(
         ErrorThrowingRuntimeInitializer(
             error_message=error_msg,
             error_type=ValueError,
             service_type="Server",
+            error_event=child_error_event,  # Pass event here
         )
     )
     runtime_manager.start_out_of_process()
@@ -1535,7 +1543,27 @@ def test_out_of_process_error_check_for_exception(clear_loop_fixture):
         pytest.fail(f"Failed to get or start runtime_handle: {e_handle}")
 
     # Increased wait time for error propagation in out-of-process scenarios
-    time.sleep(5.0)
+    # time.sleep(5.0) # Replaced with event-based synchronization
+
+    # The event is passed to the original initializer.
+    # RuntimeManager already started, need to get new handle if re-registering after start
+    # For this test, let's assume runtime_manager was just started and we are getting the first handle.
+    # If start_out_of_process was already called, and we re-register, the behavior might be complex.
+    # The original code structure implies start_out_of_process happens *after* register.
+    # My previous thought on re-registering handle_future was incorrect.
+    # The initial handle_future is the correct one.
+
+    event_timeout = 10.0  # Generous timeout for the event
+    # Ensure runtime_handle.start() was called if it's needed to trigger start_async
+    # The previous code block already did this.
+
+    event_was_set = child_error_event.wait(timeout=event_timeout)
+    assert (
+        event_was_set
+    ), f"Child process did not signal error_event within {event_timeout}s."
+
+    time.sleep(0.2)  # Short pause for IPC to complete after event is set
+
     with pytest.raises(ValueError, match=error_msg):
         runtime_manager.check_for_exception()
 
@@ -1543,17 +1571,39 @@ def test_out_of_process_error_check_for_exception(clear_loop_fixture):
 def test_out_of_process_error_run_until_exception(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "RemoteRunUntilFailure"
-    runtime_manager.register_runtime_initializer(
+
+    ctx = multiprocessing.get_context("spawn")
+    child_error_event = ctx.Event()
+
+    handle_future = runtime_manager.register_runtime_initializer(  # Store handle_future
         ErrorThrowingRuntimeInitializer(
-            error_message=error_msg, error_type=RuntimeError
+            error_message=error_msg,
+            error_type=RuntimeError,
+            error_event=child_error_event,
         )
     )
     runtime_manager.start_out_of_process()
+
+    try:  # Ensure runtime handle is started
+        runtime_handle = handle_future.result(timeout=2)
+        runtime_handle.start()
+    except Exception as e_handle:
+        pytest.fail(
+            f"Failed to get or start runtime_handle for run_until_exception test: {e_handle}"
+        )
+
+    event_timeout = 10.0
+    event_was_set = child_error_event.wait(timeout=event_timeout)
+    assert (
+        event_was_set
+    ), f"Child process did not signal error_event for run_until_exception within {event_timeout}s."
+
+    time.sleep(0.2)  # Pause for IPC
+
+    # The original test used a loop of check_for_exception.
+    # run_until_exception should block and raise.
     with pytest.raises(RuntimeError, match=error_msg):
-        runtime_manager.check_for_exception()
-        for _ in range(5):
-            time.sleep(1)
-            runtime_manager.check_for_exception()
+        runtime_manager.run_until_exception()  # Changed to run_until_exception
 
 
 def test_in_process_error_check_for_exception(clear_loop_fixture):
@@ -1600,12 +1650,28 @@ def test_in_process_error_check_for_exception(clear_loop_fixture):
 def test_out_of_process_initializer_create_error(clear_loop_fixture):
     runtime_manager = RuntimeManager(is_testing=True)
     error_msg = "CreateOops"
+
+    ctx = multiprocessing.get_context("spawn")  # Define ctx and child_error_event
+    child_error_event = ctx.Event()
+
     runtime_manager.register_runtime_initializer(
-        FaultyCreateRuntimeInitializer(error_message=error_msg, error_type=TypeError)
+        FaultyCreateRuntimeInitializer(
+            error_message=error_msg,
+            error_type=TypeError,
+            error_event=child_error_event,  # Pass event
+        )
     )
     runtime_manager.start_out_of_process()
-    # Increased wait time for error propagation in out-of-process scenarios
-    time.sleep(5.0)
+
+    # Wait for the child to signal it's about to raise the error (in create)
+    event_timeout = 10.0
+    event_was_set = child_error_event.wait(timeout=event_timeout)
+    assert (
+        event_was_set
+    ), f"Child process did not signal error_event for FaultyCreate within {event_timeout}s."
+
+    time.sleep(0.2)  # Pause for IPC
+
     with pytest.raises(TypeError, match=error_msg):
         runtime_manager.check_for_exception()
 

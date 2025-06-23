@@ -19,16 +19,12 @@ T = TypeVar("T")
 
 
 class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
-    """
-    Provides an implementation of `MultiprocessQueueFactory` specialized for
-    `torch.Tensor` objects.
+    """Provides `MultiprocessQueueFactory` specialized for `torch.Tensor` objects.
 
-    It utilizes `torch.multiprocessing.Queue` instances, which are chosen
-    for their ability to leverage shared memory, thereby optimizing the
-    inter-process transfer of tensor data by potentially avoiding costly
-    serialization and deserialization. The `create_queues` method returns
-    these torch queues wrapped in the standard `MultiprocessQueueSink` and
-    `MultiprocessQueueSource` for interface consistency.
+    It utilizes `torch.multiprocessing.Queue` instances, chosen for their
+    ability to leverage shared memory, optimizing inter-process transfer of
+    tensor data. The `create_queues` method returns these torch queues
+    wrapped in `MultiprocessQueueSink` and `MultiprocessQueueSource`.
     """
 
     def __init__(
@@ -36,7 +32,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         ctx_method: str = "spawn",
         context: std_mp.context.BaseContext | None = None,
     ):
-        """Initializes the TorchMultiprocessQueueFactory.
+        """Initialize the TorchMultiprocessQueueFactory.
 
         Args:
             ctx_method: The multiprocessing context method to use if context
@@ -44,6 +40,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
                         include 'fork' and 'forkserver'.
             context: An optional existing multiprocessing context to use.
                      If None, a new context is created using ctx_method.
+
         """
         if context is not None:
             self.__mp_context = context
@@ -55,7 +52,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         max_ipc_queue_size: int | None = None,
         is_ipc_blocking: bool = True,
     ) -> tuple[MultiprocessQueueSink[T], MultiprocessQueueSource[T]]:
-        """Creates a pair of torch.multiprocessing queues wrapped in Sink/Source.
+        """Create a pair of torch.multiprocessing queues wrapped in Sink/Source.
 
         These queues are suitable for inter-process communication, especially
         when transferring torch.Tensor objects, as they can utilize shared
@@ -72,6 +69,7 @@ class TorchMultiprocessQueueFactory(MultiprocessQueueFactory[T], Generic[T]):
         Returns:
             A tuple containing MultiprocessQueueSink and MultiprocessQueueSource
             instances, both using a torch.multiprocessing.Queue internally.
+
         """
         # For torch.multiprocessing.Queue, maxsize=0 means platform default
         # (usually large).

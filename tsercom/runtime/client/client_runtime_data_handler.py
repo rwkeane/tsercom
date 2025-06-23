@@ -31,7 +31,7 @@ class ClientRuntimeDataHandler(
     Generic[DataTypeT, EventTypeT],
     RuntimeDataHandlerBase[DataTypeT, EventTypeT],
 ):
-    """Handles data, events, and caller management for client-side runtimes.
+    r"""Handles data, events, and caller management for client-side runtimes.
 
     This class extends `RuntimeDataHandlerBase` to provide functionality
     specific to client runtimes. A key responsibility is managing time
@@ -40,7 +40,7 @@ class ClientRuntimeDataHandler(
     caller (remote endpoint) it registers.
 
     When registering a caller (representing a connection to a remote server),
-    it initiates time synchronization for that server\'s endpoint and uses the
+    it initiates time synchronization for that server's endpoint and uses the
     resulting synchronized clock when creating the `EndpointDataProcessor` for
     that caller. Similarly, it notifies the `TimeSyncTracker` upon unregistering
     a caller.
@@ -60,7 +60,7 @@ class ClientRuntimeDataHandler(
         *,
         is_testing: bool = False,
     ):
-        """Initializes the ClientRuntimeDataHandler.
+        """Initialize the ClientRuntimeDataHandler.
 
         Args:
             thread_watcher: The `ThreadWatcher` instance for monitoring any
@@ -78,6 +78,7 @@ class ClientRuntimeDataHandler(
             is_testing: If True, configures certain components like
                 `TimeSyncTracker` to use test-specific behaviors (e.g.,
                 a fake time synchronization mechanism).
+
         """
         super().__init__(
             data_reader,
@@ -93,7 +94,7 @@ class ClientRuntimeDataHandler(
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
-        """Registers a new remote caller (e.g., a server this client connects to).
+        """Register a new remote caller (e.g., a server this client connects to).
 
         This implementation adds the caller (identified by `caller_id`, `endpoint`,
         and `port`) to the internal `IdTracker` (managed by the base class).
@@ -113,6 +114,7 @@ class ClientRuntimeDataHandler(
             An `EndpointDataProcessor` instance configured for communication
             with the registered remote caller, using a synchronized clock for
             that endpoint.
+
         """
         # Add to IdTracker (from base class) to associate caller_id with address
         self._id_tracker.add(caller_id, endpoint, port)
@@ -122,11 +124,11 @@ class ClientRuntimeDataHandler(
         return self._create_data_processor(caller_id, clock)
 
     async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
-        """Unregisters a remote caller and cleans up associated resources.
+        r"""Unregister a remote caller and clean up associated resources.
 
         This method removes the specified `caller_id` from the `IdTracker`.
         It also notifies the `TimeSyncTracker` that the connection to the
-        caller\'s endpoint has been terminated, allowing the tracker to clean up
+        caller's endpoint has been terminated, allowing the tracker to clean up
         any resources associated with time synchronization for that endpoint.
 
         Args:
@@ -136,6 +138,7 @@ class ClientRuntimeDataHandler(
             True if the caller was found in the `IdTracker` and successfully
             unregistered (including from the clock tracker), False otherwise
             (e.g., if the `caller_id` was not found).
+
         """
         # Retrieve address details before removing from IdTracker
         # try_get by ID returns (address, port, data_poller)

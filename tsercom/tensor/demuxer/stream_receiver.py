@@ -1,3 +1,5 @@
+"""Provides TensorStreamReceiver for consuming tensor data streams."""
+
 import asyncio
 import datetime
 import logging  # Added for logging
@@ -23,8 +25,7 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 
 
 class TensorStreamReceiver(TensorDemuxer.Client):
-    """
-    A high-level helper class to receive and consume a tsercom tensor stream.
+    """A high-level helper class to receive and consume a tsercom tensor stream.
 
     This class encapsulates the setup of a TensorDemuxer or SmoothedTensorDemuxer
     and provides the TensorInitializer needed by the remote sender, along with
@@ -38,16 +39,17 @@ class TensorStreamReceiver(TensorDemuxer.Client):
         *,
         data_timeout_seconds: float = 60.0,
     ) -> None:
-        """
-        Initializes a TensorStreamReceiver with a standard TensorDemuxer.
+        """Initialize a TensorStreamReceiver with a standard TensorDemuxer.
+
         This configuration is used for receiving raw tensor keyframes
         without interpolation.
 
         Args:
             initializer: The tensor initializer (Serializable or gRPC).
             data_timeout_seconds: Timeout for data chunks.
+
         """
-        ...
+        pass
 
     @overload
     def __init__(
@@ -59,8 +61,8 @@ class TensorStreamReceiver(TensorDemuxer.Client):
         data_timeout_seconds: float = 60.0,
         align_output_timestamps: bool = False,
     ) -> None:
-        """
-        Initializes a TensorStreamReceiver with a SmoothedTensorDemuxer.
+        """Initialize a TensorStreamReceiver with a SmoothedTensorDemuxer.
+
         This configuration is used for receiving interpolated tensor data.
 
         Args:
@@ -69,8 +71,9 @@ class TensorStreamReceiver(TensorDemuxer.Client):
             output_interval_seconds: Interval for generating smoothed tensors.
             data_timeout_seconds: Timeout for data chunks.
             align_output_timestamps: Whether to align output timestamps.
+
         """
-        ...
+        pass
 
     def __init__(
         self,
@@ -80,22 +83,8 @@ class TensorStreamReceiver(TensorDemuxer.Client):
         output_interval_seconds: float = 0.1,
         align_output_timestamps: bool = False,
     ) -> None:
-        """
-        Unified constructor for TensorStreamReceiver.
-
-        Accepts either a SerializableTensorInitializer or a GrpcTensorInitializer
-        to configure the tensor stream. Handles both raw (TensorDemuxer) and
-        smoothed (SmoothedTensorDemuxer) stream reception based on the presence
-        of `smoothing_strategy`. Overloads provide type-hinting for specific use cases.
-
-        Args:
-            initializer: The tensor initializer (Serializable or gRPC object).
-            smoothing_strategy: If provided, uses SmoothedTensorDemuxer with this
-                strategy.
-            data_timeout_seconds: Timeout for data chunks (applies to both demuxers).
-            output_interval_seconds: Interval for SmoothedTensorDemuxer output.
-            align_output_timestamps: Alignment for SmoothedTensorDemuxer timestamps.
-        """
+        """Initialize TensorStreamReceiver. See overloads for details."""
+        # Main impl docstring is minimal per prompt (overloads documented).
         self.__is_running_tracker: IsRunningTracker = IsRunningTracker()
         self.__queue: asyncio.Queue[tuple[torch.Tensor, datetime.datetime]] = (
             asyncio.Queue()
@@ -168,14 +157,12 @@ class TensorStreamReceiver(TensorDemuxer.Client):
 
     @property
     def initializer(self) -> SerializableTensorInitializer:
-        """
-        The TensorInitializer object that the remote, sending process needs.
-        """
+        """The TensorInitializer object that the remote, sending process needs."""
         return self.__initializer
 
     async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
-        """
-        Called by the tsercom runtime when a new tensor chunk arrives.
+        """Handle a new tensor chunk from the tsercom runtime.
+
         Delegates the chunk to the internal demuxer.
         """
         await self.__demuxer.on_chunk_received(chunk)
@@ -183,8 +170,8 @@ class TensorStreamReceiver(TensorDemuxer.Client):
     async def on_tensor_changed(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """
-        Implementation of TensorDemuxer.Client.
+        """Handle tensor changes from internal demuxer (TensorDemuxer.Client).
+
         Called by the internal demuxer when a tensor is reconstructed or updated.
         """
         tensor_to_put = tensor
@@ -220,14 +207,14 @@ class TensorStreamReceiver(TensorDemuxer.Client):
             # handles items/task_done if needed.
 
     async def __aiter__(self) -> AsyncIterator[tuple[torch.Tensor, datetime.datetime]]:
-        """Returns an asynchronous iterator managed by IsRunningTracker."""
+        """Return an asynchronous iterator managed by IsRunningTracker."""
         return await self.__is_running_tracker.create_stoppable_iterator(
             self.__internal_queue_iterator()
         )
 
     async def stop(self) -> None:
-        """
-        Stops the tensor stream receiver and cleans up resources.
+        """Stop the tensor stream receiver and clean up resources.
+
         Stops the internal demuxer and the IsRunningTracker.
         """
         if isinstance(self.__demuxer, SmoothedTensorDemuxer):

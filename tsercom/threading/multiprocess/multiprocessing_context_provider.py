@@ -1,3 +1,5 @@
+"""Provides MultiprocessingContextProvider for managing mp contexts and queues."""
+
 from multiprocessing.context import BaseContext as StdBaseContext
 from typing import Generic, TypeVar
 
@@ -17,8 +19,7 @@ QueueTypeT = TypeVar("QueueTypeT")
 
 
 class MultiprocessingContextProvider(Generic[QueueTypeT]):
-    """
-    Provides the appropriate multiprocessing context and queue factory.
+    """Provides the appropriate multiprocessing context and queue factory.
 
     This class checks for the availability of PyTorch and returns either
     PyTorch-specific or standard Python multiprocessing objects.
@@ -26,13 +27,13 @@ class MultiprocessingContextProvider(Generic[QueueTypeT]):
     """
 
     def __init__(self, context_method: str = "spawn"):
-        """
-        Initializes the MultiprocessingContextProvider.
+        """Initialize the MultiprocessingContextProvider.
 
         Args:
             context_method: The method to use for getting the multiprocessing
                             context (e.g., "spawn", "fork", "forkserver").
                             Defaults to "spawn".
+
         """
         self._context_method: str = context_method
         self.__lazy_context: StdBaseContext | None = None
@@ -40,8 +41,8 @@ class MultiprocessingContextProvider(Generic[QueueTypeT]):
 
     @property
     def context(self) -> StdBaseContext:
-        """
-        The multiprocessing context.
+        """The multiprocessing context.
+
         Initialized lazily on first access.
         """
         if self.__lazy_context is None:
@@ -65,8 +66,8 @@ class MultiprocessingContextProvider(Generic[QueueTypeT]):
 
     @property
     def queue_factory(self) -> MultiprocessQueueFactory[QueueTypeT]:
-        """
-        The queue factory instance.
+        """The queue factory instance.
+
         Initialized lazily on first access, using the lazily initialized context.
         """
         if self.__lazy_queue_factory is None:

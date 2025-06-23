@@ -19,7 +19,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """Attempts to establish an insecure gRPC channel.
+        """Attempt to establish an insecure gRPC channel.
 
         Iterates through the provided addresses, attempting to connect to each
         at the specified port. Returns a `ChannelInfo` object for the first
@@ -32,6 +32,7 @@ class InsecureGrpcChannelFactory(GrpcChannelFactory):
         Returns:
             A `grpc.Channel` instance if a connection is successful,
             otherwise `None`.
+
         """
         assert addresses is not None
         address_list: list[str]

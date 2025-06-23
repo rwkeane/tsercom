@@ -27,10 +27,11 @@ class RuntimeCommandSource:
         self,
         runtime_command_queue: MultiprocessQueueSource[RuntimeCommand],
     ) -> None:
-        """Initializes the RuntimeCommandSource.
+        """Initialize the RuntimeCommandSource.
 
         Args:
             runtime_command_queue: Queue for receiving `RuntimeCommand` objects.
+
         """
         self.__runtime_command_queue = runtime_command_queue
         self.__is_running: IsRunningTracker | None = None
@@ -39,7 +40,7 @@ class RuntimeCommandSource:
         self.__thread_watcher: ThreadWatcher | None = None
 
     def start_async(self, thread_watcher: ThreadWatcher, runtime: Runtime) -> None:
-        """Starts the command watching thread and associates the runtime.
+        """Start the command watching thread and associate the runtime.
 
         Initializes running state, stores runtime, and starts a new thread
         to poll the command queue. `watch_commands` has polling logic.
@@ -50,6 +51,7 @@ class RuntimeCommandSource:
 
         Raises:
             AssertionError: If called multiple times or state is inconsistent.
+
         """
         # Ensure that start_async is called only once and in a valid state.
         # Long but readable assertion message
@@ -68,7 +70,7 @@ class RuntimeCommandSource:
         self.__thread_watcher = thread_watcher  # Store thread_watcher
 
         def watch_commands() -> None:
-            """Polls for commands and executes them on the runtime."""
+            """Poll for commands and execute them on the runtime."""
             while (  # Long condition
                 self.__is_running and self.__is_running.get()
             ):  # Check both instance and its value
@@ -119,13 +121,14 @@ class RuntimeCommandSource:
         self.__command_thread.start()
 
     def stop_async(self) -> None:
-        """Stops the command watching thread.
+        """Stop the command watching thread.
 
         Signals the polling thread to terminate. Thread exits after current
         poll attempt (with timeout) and observing `is_running` state change.
 
         Raises:
             AssertionError: If not running or internal state inconsistent.
+
         """
         RuntimeCommandSource.logger.info("RuntimeCommandSource.stop_async() called")
         # Ensure stop_async is called only when running and in a valid state.

@@ -13,28 +13,25 @@ from tsercom.util.is_running_tracker import IsRunningTracker
 
 
 class FakeTimeSyncClient(ClientSynchronizedClock.Client):
-    """
-    This class is used to synchronize clocks with an endpoint running an
-    TimeSyncServer. Specifically, this class defines the client-side of an NTP
-    client-server handshake, receiving the offset from a call to the server.
+    """A fake client for time synchronization.
 
-    NOTE: Despite the name and the original intention described above, this
-    current implementation is a "fake" client. It does not perform any actual
-    NTP network synchronization. The `start_async` method simply initializes
-    the time offset to zero, and `get_offset_seconds` will return this initial
-    (or averaged) offset.
+    Used for testing or when NTP is unavailable. This class defines the
+    client-side of an NTP client-server handshake but does not perform
+    any actual network synchronization. The `start_async` method simply
+    initializes the time offset to zero, and `get_offset_seconds`
+    returns this offset.
     """
 
     def __init__(
         self, watcher: ThreadWatcher, server_ip: str, ntp_port: int = kNtpPort
     ) -> None:
-        """
-        Initializes the FakeTimeSyncClient.
+        """Initialize the FakeTimeSyncClient.
 
         Args:
             watcher: A ThreadWatcher instance.
             server_ip: IP address of the time sync server (unused in fake).
             ntp_port: Port for NTP communication (unused in fake).
+
         """
         self.__watcher = watcher
         self.__server_ip = server_ip
@@ -57,23 +54,23 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         self.__start_barrier = threading.Event()
 
     def get_synchronized_clock(self) -> SynchronizedClock:
-        """
-        Returns a SynchronizedClock instance using this client.
+        """Return a SynchronizedClock instance using this client.
 
         Returns:
             A ClientSynchronizedClock configured with this FakeTimeSyncClient.
+
         """
         return ClientSynchronizedClock(self)
 
     def get_offset_seconds(self) -> float:
-        """
-        Retrieves the current time offset in seconds.
+        """Retrieve the current time offset in seconds.
 
         Waits until client started (via `start_async`). Fake client
         typically returns an average of `__time_offsets` (usually 0.0).
 
         Returns:
             The time offset in seconds (average of pre-defined values).
+
         """
         self.__start_barrier.wait()
 
@@ -83,17 +80,16 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
             return sum(self.__time_offsets) / count
 
     def is_running(self) -> bool:
-        """
-        Checks if the time synchronization client is marked as running.
+        """Check if the time synchronization client is marked as running.
 
         Returns:
             True if the client is running, False otherwise.
+
         """
         return self.__is_running.get()
 
     def stop(self) -> None:
-        """
-        Stops the NTP synchronization client.
+        """Stop the NTP synchronization client.
 
         Sets running state to False and clears start barrier.
         """
@@ -101,8 +97,7 @@ class FakeTimeSyncClient(ClientSynchronizedClock.Client):
         self.__start_barrier.clear()
 
     def start_async(self) -> None:
-        """
-        Starts the "fake" NTP synchronization client.
+        """Start the "fake" NTP synchronization client.
 
         Marks client as running, initializes time offset to 0.0.
         No actual network synchronization is performed.

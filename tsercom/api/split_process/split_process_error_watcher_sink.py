@@ -24,19 +24,20 @@ class SplitProcessErrorWatcherSink(ErrorWatcher):
         thread_watcher: ThreadWatcher,
         exception_queue: MultiprocessQueueSink[Exception],
     ) -> None:
-        """Initializes the SplitProcessErrorWatcherSink.
+        """Initialize the SplitProcessErrorWatcherSink.
 
         Args:
             thread_watcher: The ThreadWatcher instance that monitors threads
                             for exceptions.
             exception_queue: The multiprocess queue sink to which caught
                              exceptions will be sent.
+
         """
         self.__thread_watcher: ThreadWatcher = thread_watcher
         self.__queue: MultiprocessQueueSink[Exception] = exception_queue
 
     def run_until_exception(self) -> None:
-        """Runs until ThreadWatcher catches an exception, then forwards it.
+        """Run until ThreadWatcher catches an exception, then forward it.
 
         Blocks until `ThreadWatcher` detects an exception in a monitored
         thread. The caught exception is put onto `exception_queue`
@@ -44,6 +45,7 @@ class SplitProcessErrorWatcherSink(ErrorWatcher):
 
         Raises:
             Exception: Re-raises any exception caught by the `ThreadWatcher`.
+
         """
         try:
             self.__thread_watcher.run_until_exception()

@@ -86,7 +86,7 @@ class RuntimeDataHandlerBase(
         min_send_frequency_seconds: float | None = None,
         max_queued_responses_per_endpoint: int = 1000,
     ):
-        """Initializes the RuntimeDataHandlerBase.
+        """Initialize the RuntimeDataHandlerBase.
 
         Args:
             data_reader: The `RemoteDataReader` instance where processed data
@@ -101,6 +101,7 @@ class RuntimeDataHandlerBase(
             max_queued_responses_per_endpoint: The maximum number of responses
                 that can be queued by the `AsyncPoller` created by `_poller_factory`
                 for each remote endpoint. Defaults to 1000.
+
         """
         super().__init__()
         self.__data_reader: RemoteDataReader[AnnotatedInstance[DataTypeT]] = data_reader
@@ -143,7 +144,7 @@ class RuntimeDataHandlerBase(
             )
 
     async def async_close(self) -> None:
-        """Cancels and awaits the background dispatch task."""
+        """Cancel and await the background dispatch task."""
         current_loop = asyncio.get_running_loop()
         _logger.info(
             "RuntimeDataHandlerBase async_close called. Current loop: %s",
@@ -274,7 +275,19 @@ class RuntimeDataHandlerBase(
     @overload
     async def register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
-    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]: ...
+    ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
+        """Register a caller using an explicit endpoint address and port.
+
+        Args:
+            caller_id: The unique identifier for the caller.
+            endpoint: The network endpoint string (e.g., IP address) of the caller.
+            port: The network port number of the caller.
+
+        Returns:
+            An `EndpointDataProcessor` instance for the registered caller.
+
+        """
+        pass
 
     @overload
     async def register_caller(
@@ -282,7 +295,18 @@ class RuntimeDataHandlerBase(
     ) -> (
         EndpointDataProcessor[DataTypeT, EventTypeT] | None
     ):  # Can return None if context parsing fails
-        ...
+        """Register a caller using a gRPC service context.
+
+        Args:
+            caller_id: The unique identifier for the caller.
+            context: The gRPC servicer context, used to extract endpoint info.
+
+        Returns:
+            An `EndpointDataProcessor` for the caller, or `None` if endpoint info
+            cannot be extracted from the context.
+
+        """
+        pass
 
     async def register_caller(
         self,
@@ -290,7 +314,7 @@ class RuntimeDataHandlerBase(
         *args: Any,
         **kwargs: Any,
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT] | None:
-        """Registers a caller and returns an `EndpointDataProcessor` for it.
+        """Register a caller and return an `EndpointDataProcessor` for it.
 
         This method handles different ways of identifying a caller:
         1. By explicit `endpoint` (e.g., IP address) and `port` number.
@@ -317,6 +341,7 @@ class RuntimeDataHandlerBase(
                 endpoint/port with context, or providing partial endpoint/port).
             TypeError: If `context` is provided but is not of the expected
                 `grpc.aio.ServicerContext` type.
+
         """
         _endpoint: str | None = None
         _port: int | None = None
@@ -404,7 +429,7 @@ class RuntimeDataHandlerBase(
         return await self._register_caller(caller_id, actual_endpoint, actual_port)
 
     def check_for_caller_id(self, endpoint: str, port: int) -> CallerIdentifier | None:
-        """Checks if a `CallerIdentifier` exists for the given network address.
+        """Check if a `CallerIdentifier` exists for the given network address.
 
         Args:
             endpoint: The IP address or hostname of the caller.
@@ -413,11 +438,12 @@ class RuntimeDataHandlerBase(
         Returns:
             The `CallerIdentifier` if a mapping exists for the given
             endpoint and port, otherwise `None`.
+
         """
         return self._try_get_caller_id(endpoint, port)
 
     async def _on_data_ready(self, data: AnnotatedInstance[DataTypeT]) -> None:
-        """Callback invoked by `_DataProcessorImpl` when new data is processed.
+        """Handle callback invoked by `_DataProcessorImpl` when new data is processed.
 
         This method forwards the annotated data instance to the underlying
         `RemoteDataReader`.
@@ -428,6 +454,7 @@ class RuntimeDataHandlerBase(
 
         Raises:
             ValueError: If the internal data reader (`self.__data_reader`) is `None`.
+
         """
         if self.__data_reader is None:  # Should not happen with proper init
             raise ValueError("Data reader instance is None.")
@@ -438,7 +465,7 @@ class RuntimeDataHandlerBase(
     async def _register_caller(
         self, caller_id: CallerIdentifier, endpoint: str, port: int
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
-        """Performs subclass-specific logic for registering a new caller.
+        r"""Perform subclass-specific logic for registering a new caller.
 
         This method is called by the public `register_caller` after arguments
         are validated and the caller\'s endpoint and port are determined.
@@ -453,11 +480,12 @@ class RuntimeDataHandlerBase(
 
         Returns:
             An `EndpointDataProcessor` instance configured for the new caller.
+
         """
 
     @abstractmethod
     async def _unregister_caller(self, caller_id: CallerIdentifier) -> bool:
-        """Performs subclass-specific logic for unregistering a caller.
+        """Perform subclass-specific logic for unregistering a caller.
 
         This method is called when a caller associated with the given
         `CallerIdentifier` needs to be removed or cleaned up. Implementations
@@ -471,12 +499,13 @@ class RuntimeDataHandlerBase(
         Returns:
             True if the caller was found and successfully unregistered,
             False otherwise (e.g., if the caller ID was not found).
+
         """
 
     async def __anext__(
         self,
     ) -> list[EventInstance[EventTypeT]]:
-        """Retrieves the next batch of events from the main event source.
+        """Retrieve the next batch of events from the main event source.
 
         This method makes `RuntimeDataHandlerBase` an asynchronous iterator,
         allowing consumers to iterate over events polled by `self.__event_source`.
@@ -486,13 +515,14 @@ class RuntimeDataHandlerBase(
 
         Raises:
             StopAsyncIteration: When the event source is exhausted.
+
         """
         return await self.__event_source.__anext__()
 
     def __aiter__(
         self,
     ) -> AsyncIterator[list[EventInstance[EventTypeT]]]:
-        """Returns self as the asynchronous iterator for events.
+        """Return self as the asynchronous iterator for events.
 
         This allows `RuntimeDataHandlerBase` instances to be used directly in
         `async for` loops to consume events from the main event source.
@@ -502,7 +532,7 @@ class RuntimeDataHandlerBase(
     def _create_data_processor(
         self, caller_id: CallerIdentifier, clock: SynchronizedClock
     ) -> EndpointDataProcessor[DataTypeT, EventTypeT]:
-        """Factory method to create a `_DataProcessorImpl` instance.
+        """Create a `_DataProcessorImpl` instance.
 
         This method retrieves the dedicated `AsyncPoller` for the given `caller_id`
         from the `IdTracker` and uses it to instantiate the
@@ -521,6 +551,7 @@ class RuntimeDataHandlerBase(
             KeyError: If the `caller_id` is not found in the `IdTracker` or if
                 it does not have an associated data poller (which would indicate
                 an internal state inconsistency).
+
         """
         # The IdTracker is configured to store AsyncPoller instances as TrackedDataT.
         _address, _port, data_poller = self.__id_tracker.get(caller_id)
@@ -532,7 +563,7 @@ class RuntimeDataHandlerBase(
         )
 
     def _try_get_caller_id(self, endpoint: str, port: int) -> CallerIdentifier | None:
-        """Tries to retrieve a `CallerIdentifier` for a given network address.
+        """Try to retrieve a `CallerIdentifier` for a given network address.
 
         Args:
             endpoint: The IP address or hostname of the caller.
@@ -541,6 +572,7 @@ class RuntimeDataHandlerBase(
         Returns:
             The `CallerIdentifier` if a mapping exists for the given endpoint
             and port, otherwise `None`.
+
         """
         result_tuple = self.__id_tracker.try_get(endpoint, port)
         if result_tuple is None:
@@ -594,7 +626,7 @@ class RuntimeDataHandlerBase(
             _logger.info("__dispatch_poller_data_loop finished.")
 
     class _DataProcessorImpl(EndpointDataProcessor[DataTypeT, EventTypeT]):
-        """Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
+        r"""Concrete `EndpointDataProcessor` for `RuntimeDataHandlerBase`.
 
         This inner class implements the `EndpointDataProcessor` interface. It
         handles data desynchronization using the provided `SynchronizedClock`,
@@ -611,7 +643,7 @@ class RuntimeDataHandlerBase(
             clock: SynchronizedClock,
             data_poller: AsyncPoller[EventInstance[EventTypeT]],
         ):
-            """Initializes the `_DataProcessorImpl`.
+            """Initialize the `_DataProcessorImpl`.
 
             Args:
                 data_handler: The parent `RuntimeDataHandlerBase` instance to
@@ -622,6 +654,7 @@ class RuntimeDataHandlerBase(
                     `ServerTimestamp` objects.
                 data_poller: The dedicated `AsyncPoller` instance from which this
                     processor will source events for the specific caller.
+
             """
             super().__init__(caller_id)
             self.__data_handler: RuntimeDataHandlerBase[DataTypeT, EventTypeT] = (
@@ -650,6 +683,7 @@ class RuntimeDataHandlerBase(
                 `timestamp` is invalid. If `context` was provided and the
                 timestamp was invalid, the gRPC call would have been aborted
                 before returning `None`.
+
             """
             synchronized_ts_obj = SynchronizedTimestamp.try_parse(timestamp)
             if synchronized_ts_obj is None:
@@ -668,15 +702,12 @@ class RuntimeDataHandlerBase(
             This calls the `_unregister_caller` method of the parent
             `RuntimeDataHandlerBase`.
             """
-
             await self.__data_handler._unregister_caller(self.caller_id)
             # The return value (bool) of _unregister_caller is ignored here,
             # as EndpointDataProcessor.deregister_caller returns None.
 
         async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-            """
-            Processes data by creating an `AnnotatedInstance` and passing it to
-            the parent.
+            r"""Process data by creating `AnnotatedInstance` and passing to parent.
 
             The data is wrapped with its `CallerIdentifier` and the provided
             `datetime` timestamp, then submitted via the parent data handler\'s
@@ -685,6 +716,7 @@ class RuntimeDataHandlerBase(
             Args:
                 data: The data item to process.
                 timestamp: The synchronized `datetime` (UTC) of the data.
+
             """
             wrapped_data = AnnotatedInstance(
                 caller_id=self.caller_id, timestamp=timestamp, data=data
@@ -695,10 +727,7 @@ class RuntimeDataHandlerBase(
         async def __aiter__(
             self,
         ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
-            """
-            Returns an asynchronous iterator for events from the dedicated
-            per-caller poller.
-            """
+            """Return async iterator for events from the dedicated per-caller poller."""
             async for event_instance_batch in self.__data_poller:
                 processed_batch: list[SerializableAnnotatedInstance[EventTypeT]] = []
                 for event_instance in event_instance_batch:

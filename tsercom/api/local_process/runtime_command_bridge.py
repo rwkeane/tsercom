@@ -19,7 +19,7 @@ class RuntimeCommandBridge:
     """
 
     def __init__(self) -> None:
-        """Initializes the RuntimeCommandBridge."""
+        """Initialize the RuntimeCommandBridge."""
         # Stores the last command received if the runtime is not yet set.
         self.__state: Atomic[RuntimeCommand | None] = Atomic[RuntimeCommand | None](
             None
@@ -29,7 +29,7 @@ class RuntimeCommandBridge:
         self.__runtime_mutex: Lock = Lock()
 
     def set_runtime(self, runtime: Runtime) -> None:
-        """Sets the Runtime instance and executes any pending command.
+        """Set the Runtime instance and execute any pending command.
 
         This method should only be called once. If a command (start/stop) was
         issued before the runtime was set, that command is executed now.
@@ -39,6 +39,7 @@ class RuntimeCommandBridge:
 
         Raises:
             RuntimeError: If the runtime has already been set.
+
         """
         with self.__runtime_mutex:
             # Ensure runtime is set only once.
@@ -66,11 +67,11 @@ class RuntimeCommandBridge:
             self.__state.set(None)
 
     def _get_runtime_for_test(self) -> Runtime | None:
-        """Returns the underlying Runtime instance, if set."""
+        """Return the underlying Runtime instance, if set."""
         return self.__runtime
 
     def start(self) -> None:
-        """Requests the Runtime to start.
+        """Request the Runtime to start.
 
         If the Runtime instance is already set, it's started asynchronously.
         Otherwise, the start command is stored and executed when the
@@ -84,7 +85,7 @@ class RuntimeCommandBridge:
                 run_on_event_loop(self.__runtime.start_async)
 
     def stop(self) -> None:
-        """Requests the Runtime to stop.
+        """Request the Runtime to stop.
 
         If the Runtime instance is already set, it's stopped asynchronously.
         Otherwise, the stop command is stored and executed when the

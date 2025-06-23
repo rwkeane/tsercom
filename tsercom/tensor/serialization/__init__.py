@@ -1,5 +1,1 @@
-from tsercom.tensor.serialization.serializable_tensor_chunk import (
-    SerializableTensorChunk,
-)
-
-__all__ = ["SerializableTensorChunk"]
+"""Serialization utilities for tensor data and related structures."""

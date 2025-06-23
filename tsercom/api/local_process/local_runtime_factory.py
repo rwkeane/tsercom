@@ -36,13 +36,14 @@ class LocalRuntimeFactory(
         event_poller: AsyncPoller[EventInstance[EventTypeT]],
         bridge: RuntimeCommandBridge,
     ) -> None:
-        """Initializes a LocalRuntimeFactory.
+        """Initialize a LocalRuntimeFactory.
 
         Args:
             initializer: Creates the runtime core.
             data_reader: Reader for incoming data.
             event_poller: Poller for incoming events.
             bridge: Bridge for command communication.
+
         """
         self.__initializer = initializer
         self.__data_reader = data_reader
@@ -57,7 +58,7 @@ class LocalRuntimeFactory(
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        """Creates a new Runtime instance.
+        """Create a new Runtime instance.
 
         Uses stored `RuntimeInitializer` to construct runtime, then sets up
         the command bridge for this runtime instance.
@@ -69,6 +70,7 @@ class LocalRuntimeFactory(
 
         Returns:
             The newly created and configured Runtime instance.
+
         """
         runtime = self.__initializer.create(
             thread_watcher, data_handler, grpc_channel_factory
@@ -79,24 +81,26 @@ class LocalRuntimeFactory(
     def _remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
-        """Provides the remote data reader for the runtime.
+        """Provide the remote data reader for the runtime.
 
         Part of `RuntimeFactory` contract to make data reader available.
 
         Returns:
             The `RemoteDataReader` for this factory.
+
         """
         return self.__data_reader
 
     def _event_poller(
         self,
     ) -> AsyncPoller[EventInstance[EventTypeT]]:
-        """Provides the event poller for the runtime.
+        """Provide the event poller for the runtime.
 
         Part of `RuntimeFactory` contract to make event poller available.
 
         Returns:
             The `AsyncPoller` for events, configured for this factory.
+
         """
         return self.__event_poller
 

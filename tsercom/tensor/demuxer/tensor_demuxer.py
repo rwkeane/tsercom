@@ -1,6 +1,4 @@
-"""
-Provides the TensorDemuxer class for aggregating granular tensor updates.
-"""
+"""Provides the TensorDemuxer class for aggregating granular tensor updates."""
 
 import abc
 import asyncio
@@ -15,24 +13,20 @@ from tsercom.tensor.serialization.serializable_tensor_chunk import (
 
 
 class TensorDemuxer:
-    """
-    Aggregates granular tensor index updates back into complete tensor objects.
+    """Aggregates granular tensor index updates back into complete tensor objects.
+
     Internal storage for explicit updates per timestamp uses torch.Tensors for
     efficiency.
     """
 
     class Client(abc.ABC):
-        """
-        Client interface for TensorDemuxer to report reconstructed tensors.
-        """
+        """Client interface for TensorDemuxer to report reconstructed tensors."""
 
         @abc.abstractmethod
         async def on_tensor_changed(
             self, tensor: torch.Tensor, timestamp: datetime.datetime
         ) -> None:
-            """
-            Called when a tensor for a given timestamp is created or modified.
-            """
+            """Call when a tensor for a given timestamp is created or modified."""
 
     def __init__(
         self,
@@ -41,6 +35,15 @@ class TensorDemuxer:
         data_timeout_seconds: float = 60.0,
         device: str | None = "cpu",
     ):
+        """Initialize the TensorDemuxer.
+
+        Args:
+            client: Client to notify of reconstructed tensors.
+            tensor_length: Expected 1D length of the tensor.
+            data_timeout_seconds: How long to keep keyframe data.
+            device: PyTorch device for tensor operations (e.g., "cpu", "cuda").
+
+        """
         if tensor_length <= 0:
             raise ValueError("Tensor length must be positive.")
         if data_timeout_seconds <= 0:
@@ -78,6 +81,7 @@ class TensorDemuxer:
 
     @property
     def tensor_length(self) -> int:
+        """Return the expected 1D length of the tensor."""
         return self.__tensor_length
 
     async def _on_keyframe_updated(
@@ -98,6 +102,15 @@ class TensorDemuxer:
             self.__processed_keyframes = self.__processed_keyframes[keep_from_index:]
 
     async def on_chunk_received(self, chunk: SerializableTensorChunk) -> None:
+        """Process an incoming tensor chunk.
+
+        Updates internal keyframes and notifies client if a tensor state changes.
+        Manages data timeout and cascading updates for out-of-order chunks.
+
+        Args:
+            chunk: The `SerializableTensorChunk` containing the tensor data update.
+
+        """
         async with self.__lock:
             chunk_tensor = chunk.tensor.to(self.__device)
             timestamp = chunk.timestamp.as_datetime()
@@ -287,6 +300,15 @@ class TensorDemuxer:
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
     ) -> torch.Tensor | None:
+        """Retrieve a clone of the full tensor state at a specific timestamp.
+
+        Args:
+            timestamp: The exact timestamp for which to retrieve the tensor.
+
+        Returns:
+            A clone of the tensor if the timestamp exists in history, else None.
+
+        """
         async with self.__lock:
             i = bisect.bisect_left(
                 self.__processed_keyframes, timestamp, key=lambda x: x[0]

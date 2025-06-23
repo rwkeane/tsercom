@@ -13,7 +13,7 @@ class ClientReconnectionManager(ABC):
 
     @abstractmethod
     async def _on_disconnect(self, error: Exception | None = None) -> None:
-        """Callback method invoked when a client disconnection occurs.
+        """Invoke callback method when a client disconnection occurs.
 
         Subclasses should implement this method to define their specific
         behavior in response to a disconnection.
@@ -22,5 +22,6 @@ class ClientReconnectionManager(ABC):
             error: The exception that caused or accompanied the disconnection,
                    if any. Can be None if the disconnection was clean or the
                    cause is unknown.
+
         """
         pass

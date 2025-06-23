@@ -25,13 +25,14 @@ class AsyncGetIdServer:
         on_id_created: Callable[[CallerIdentifier], None] | None = None,
         on_disconnect_handler: ClientReconnectionManager | None = None,
     ) -> None:
-        """Initializes the AsyncGetIdServer.
+        """Initialize the AsyncGetIdServer.
 
         Args:
             on_id_created: Optional callback invoked with the new CallerIdentifier
                            when it's generated.
             on_disconnect_handler: Optional ClientReconnectionManager to be
                                    notified on disconnection errors.
+
         """
         self.__callback = on_id_created
         self.__on_disconnect_handler = on_disconnect_handler
@@ -42,7 +43,7 @@ class AsyncGetIdServer:
     async def GetId(
         self, request: GetIdRequest, context: grpc.aio.ServicerContext
     ) -> GetIdResponse:
-        """Handles the GetId gRPC request.
+        """Handle the GetId gRPC request.
 
         Generates a new CallerIdentifier, optionally invokes a callback with it,
         and returns it in a GetIdResponse. Handles exceptions and potential
@@ -54,6 +55,7 @@ class AsyncGetIdServer:
 
         Returns:
             A GetIdResponse containing the new CallerIdentifier.
+
         """
         assert isinstance(request, GetIdRequest), "Invalid request type"
         new_id = (

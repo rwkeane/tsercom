@@ -54,13 +54,14 @@ class RemoteRuntimeFactory(
         data_reader_queue: MultiprocessQueueSink[AnnotatedInstance[DataTypeT]],
         command_source_queue: MultiprocessQueueSource[RuntimeCommand],
     ) -> None:
-        """Initializes the RemoteRuntimeFactory.
+        """Initialize the RemoteRuntimeFactory.
 
         Args:
             initializer: Initializer for the runtime.
             event_source_queue: Queue source for receiving EventInstances.
             data_reader_queue: Queue sink for sending AnnotatedInstances.
             command_source_queue: Queue source for receiving RuntimeCommands.
+
         """
         super().__init__(other_config=initializer)
         self._initializer_instance = initializer
@@ -91,12 +92,13 @@ class RemoteRuntimeFactory(
     def _remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
-        """Provides the data reader sink for the remote runtime.
+        """Provide the data reader sink for the remote runtime.
 
         Lazily initializes and returns a `DataReaderSink`.
 
         Returns:
             A `DataReaderSink` instance.
+
         """
         # Note: Base `RuntimeFactory` expects
         # RemoteDataReader[AnnotatedInstance[DataTypeT]]. DataReaderSink is compatible.
@@ -109,12 +111,13 @@ class RemoteRuntimeFactory(
     def _event_poller(
         self,
     ) -> AsyncPoller[EventInstance[EventTypeT]]:
-        """Provides the event poller for events from remote runtime.
+        """Provide the event poller for events from remote runtime.
 
         Lazily initializes and returns an `EventSource`.
 
         Returns:
             An `EventSource` instance.
+
         """
         if self.__event_source is None:
             self.__event_source = EventSource(self.__event_source_queue)
@@ -126,7 +129,7 @@ class RemoteRuntimeFactory(
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        """Creates remote Runtime instance and sets up command handling.
+        """Create remote Runtime instance and set up command handling.
 
         Initializes core runtime. Starts event source (if initialized via
         `_event_poller`). Sets up command source to relay to new runtime.
@@ -138,6 +141,7 @@ class RemoteRuntimeFactory(
 
         Returns:
             Created Runtime instance, configured for remote operation.
+
         """
         runtime = self._initializer_instance.create(
             thread_watcher=thread_watcher,
@@ -160,7 +164,7 @@ class RemoteRuntimeFactory(
         return runtime
 
     def _stop(self) -> None:
-        """Stops command source and event source."""
+        """Stop command source and event source."""
         if self.__command_source is not None:
             self.__command_source.stop_async()
         if (

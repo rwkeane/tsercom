@@ -22,19 +22,20 @@ class DataReaderSink(Generic[DataTypeT], RemoteDataReader[DataTypeT]):
     def __init__(
         self, queue: MultiprocessQueueSink[DataTypeT], is_lossy: bool = True
     ) -> None:
-        """Initializes the DataReaderSink.
+        """Initialize the DataReaderSink.
 
         Args:
             queue: The multiprocess queue sink to which data will be sent.
             is_lossy: If True (default), data is dropped if the queue is full.
                       If False, a RuntimeError is raised if the queue is full,
                       to prevent data loss.
+
         """
         self.__queue = queue
         self.__is_lossy = is_lossy
 
     def _on_data_ready(self, new_data: DataTypeT) -> None:
-        """Handles new data by putting it onto the multiprocess queue.
+        """Handle new data by putting it onto the multiprocess queue.
 
         This method is called when new data is available to be processed.
         It attempts to put the data onto the configured queue. Behavior
@@ -45,6 +46,7 @@ class DataReaderSink(Generic[DataTypeT], RemoteDataReader[DataTypeT]):
 
         Raises:
             RuntimeError: If `is_lossy` is False and the queue is full.
+
         """
         success = self.__queue.put_nowait(new_data)
         # If putting to queue failed (e.g., full) and this sink is not lossy,

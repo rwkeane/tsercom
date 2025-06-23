@@ -19,7 +19,7 @@ class RateLimiter(ABC):
     """
 
     def __init__(self) -> None:  # noqa: B027
-        """Initializes the rate limiter."""
+        """Initialize the rate limiter."""
         pass
 
     @abstractmethod
@@ -43,7 +43,7 @@ class RateLimiterImpl(RateLimiter):
     """
 
     def __init__(self, interval_seconds: float) -> None:
-        """Initializes the RateLimiterImpl.
+        """Initialize the RateLimiterImpl.
 
         Args:
             interval_seconds: The minimum time interval, in seconds, that must
@@ -52,6 +52,7 @@ class RateLimiterImpl(RateLimiter):
 
         Raises:
             ValueError: If `interval_seconds` is negative.
+
         """
         super().__init__()  # Call superclass __init__
         if interval_seconds < 0:
@@ -62,7 +63,7 @@ class RateLimiterImpl(RateLimiter):
         self.__lock: asyncio.Lock = asyncio.Lock()
 
     async def wait_for_pass(self) -> None:
-        """Waits until the configured interval has passed since the last call.
+        """Wait until the configured interval has passed since the last call.
 
         This method ensures that at least `self._interval` seconds have elapsed
         from the time the previous call to `wait_for_pass` completed.
@@ -90,4 +91,4 @@ class NullRateLimiter(RateLimiter):
     """
 
     async def wait_for_pass(self) -> None:
-        """Allows an operation to pass immediately."""
+        """Allow an operation to pass immediately."""

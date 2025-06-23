@@ -23,18 +23,19 @@ class TimeSyncTracker:
     """
 
     def __init__(self, thread_watcher: ThreadWatcher, *, is_testing: bool = False):
-        """Initializes the TimeSyncTracker.
+        """Initialize the TimeSyncTracker.
 
         Args:
             thread_watcher: For monitoring threads by TimeSyncClient.
             is_testing: If True, uses `FakeTimeSyncClient`.
+
         """
         self.__thread_watcher = thread_watcher
         self.__map: dict[str, tuple[int, ClientSynchronizedClock.Client]] = {}
         self.__is_test_run = is_testing
 
     def on_connect(self, ip: str) -> SynchronizedClock:
-        """Handles a new connection to an IP endpoint for time synchronization.
+        """Handle a new connection to an IP endpoint for time synchronization.
 
         If no `TimeSyncClient` for IP exists, creates and starts one.
         It increments a reference count for the IP.
@@ -44,6 +45,7 @@ class TimeSyncTracker:
 
         Returns:
             A `SynchronizedClock` instance associated with the endpoint.
+
         """
         new_client: ClientSynchronizedClock.Client
         if ip not in self.__map:
@@ -61,7 +63,7 @@ class TimeSyncTracker:
         return client_instance.get_synchronized_clock()
 
     def on_disconnect(self, ip: str) -> None:
-        """Handles a disconnection from an IP endpoint.
+        """Handle a disconnection from an IP endpoint.
 
         Decrements the reference count for the IP. If count reaches zero,
         stops and removes the `TimeSyncClient` for that IP.
@@ -71,6 +73,7 @@ class TimeSyncTracker:
 
         Raises:
             KeyError: If the IP was not previously tracked.
+
         """
         if ip not in self.__map:
             msg = (

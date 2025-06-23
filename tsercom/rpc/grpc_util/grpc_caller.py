@@ -1,7 +1,4 @@
-"""
-Provides utility functions for handling gRPC errors, status codes, and retry
-logic.
-"""
+"""Utilities for handling gRPC errors, status codes, and retry logic."""
 
 from __future__ import annotations
 
@@ -13,7 +10,7 @@ from google.rpc.status_pb2 import Status
 
 
 def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
-    """Extracts the gRPC status code from a gRPC exception.
+    """Extract the gRPC status code from a gRPC exception.
 
     Args:
         error: The exception, potentially a gRPC error.
@@ -21,6 +18,7 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
     Returns:
         The `grpc.StatusCode` if the error is a gRPC error and a status code
         can be extracted, otherwise `None`.
+
     """
     from grpc_status import rpc_status
 
@@ -39,7 +37,7 @@ def get_grpc_status_code(error: Exception) -> grpc.StatusCode | None:
 
 
 def is_server_unavailable_error(error: Exception) -> bool:
-    """Checks if an exception indicates a gRPC server unavailable error.
+    """Check if an exception indicates a gRPC server unavailable error.
 
     This includes `UNAVAILABLE` and `DEADLINE_EXCEEDED` status codes,
     and `StopAsyncIteration` which can occur during stream termination.
@@ -49,6 +47,7 @@ def is_server_unavailable_error(error: Exception) -> bool:
 
     Returns:
         True if the error indicates server unavailability, False otherwise.
+
     """
     if issubclass(type(error), StopAsyncIteration):
         return True
@@ -63,13 +62,14 @@ def is_server_unavailable_error(error: Exception) -> bool:
 
 
 def is_grpc_error(error: Exception) -> bool:
-    """Checks if the given exception is a gRPC-related error.
+    """Check if the given exception is a gRPC-related error.
 
     Args:
         error: The exception to check.
 
     Returns:
         True if the exception has an associated gRPC status code, False otherwise.
+
     """
     return get_grpc_status_code(error) is not None
 

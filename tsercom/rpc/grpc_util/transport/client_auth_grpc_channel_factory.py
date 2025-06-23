@@ -1,3 +1,5 @@
+"""Factory for gRPC channels with client certificate authentication."""
+
 from __future__ import annotations
 
 import asyncio
@@ -14,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
-    """
-    Creates a gRPC channel where the client uses a client certificate and key.
+    """Creates a gRPC channel where the client uses a client certificate and key.
+
     Optionally, it can also validate the server's certificate using a root CA.
     """
 
@@ -26,9 +28,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         root_ca_cert_pem: bytes | str | None = None,
         server_hostname_override: str | None = None,
     ):
-        """
-        Initializes the factory with client credentials and optional CA for
-        server validation.
+        """Init factory with client credentials and optional CA for server validation.
 
         Args:
             client_cert_pem: PEM-encoded client certificate (bytes or string).
@@ -38,6 +38,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
                               validated by the client.
             server_hostname_override: If provided, this hostname will be used
                                       for SSL target name override.
+
         """
         self.client_cert_pem_bytes: bytes
         if isinstance(client_cert_pem, str):
@@ -66,8 +67,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """
-        Attempts to establish a secure gRPC channel using client credentials.
+        """Attempt to establish a secure gRPC channel using client credentials.
 
         Args:
             addresses: A single address string or a list of address strings to try.
@@ -76,6 +76,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         Returns:
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
+
         """
         address_list: list[str]
         if isinstance(addresses, str):

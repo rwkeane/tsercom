@@ -16,9 +16,7 @@ TimestampType: TypeAlias = Union["SynchronizedTimestamp", datetime.datetime]
     eq=False, order=False, unsafe_hash=False
 )  # Retaining custom eq/order
 class SynchronizedTimestamp:
-    """
-    A wrapper around a `datetime.datetime` object to represent a timestamp
-    within a synchronized time context.
+    """A wrapper around a `datetime.datetime` object for synchronized time context.
 
     This class ensures timestamps are explicitly handled as part of a
     synchronized system (e.g., aligned with a server's clock). It provides
@@ -33,7 +31,7 @@ class SynchronizedTimestamp:
     timestamp: datetime.datetime
 
     def __post_init__(self) -> None:
-        """Performs post-initialization validation."""
+        """Perform post-initialization validation."""
         if self.timestamp is None:
             raise TypeError("Timestamp cannot be None.")
         if not isinstance(self.timestamp, datetime.datetime):
@@ -43,7 +41,7 @@ class SynchronizedTimestamp:
     def try_parse(
         cls, other: Timestamp | ServerTimestamp
     ) -> Optional["SynchronizedTimestamp"]:
-        """Tries to parse 'other' into a SynchronizedTimestamp."""
+        """Try to parse 'other' into a SynchronizedTimestamp."""
         if other is None:
             return None
 
@@ -63,16 +61,17 @@ class SynchronizedTimestamp:
             return None
 
     def as_datetime(self) -> datetime.datetime:
-        """Returns the underlying datetime.datetime object."""
+        """Return the underlying datetime.datetime object."""
         return self.timestamp
 
     def to_grpc_type(self) -> ServerTimestamp:
-        """Converts this timestamp to a gRPC ServerTimestamp protobuf message."""
+        """Convert this timestamp to a gRPC ServerTimestamp protobuf message."""
         timestamp_pb = Timestamp()
         timestamp_pb.FromDatetime(self.timestamp)
         return ServerTimestamp(timestamp=timestamp_pb)
 
     def __gt__(self, other: TimestampType) -> bool:
+        """Return self > other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
@@ -86,6 +85,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() > other_dt
 
     def __ge__(self, other: TimestampType) -> bool:
+        """Return self >= other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
@@ -99,6 +99,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() >= other_dt
 
     def __lt__(self, other: TimestampType) -> bool:
+        """Return self < other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
@@ -112,6 +113,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() < other_dt
 
     def __le__(self, other: TimestampType) -> bool:
+        """Return self <= other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         else:
@@ -125,6 +127,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() <= other_dt
 
     def __eq__(self, other: object) -> bool:
+        """Return self == other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         elif not isinstance(other, datetime.datetime):
@@ -134,6 +137,7 @@ class SynchronizedTimestamp:
         return self.as_datetime() == other_dt
 
     def __ne__(self, other: object) -> bool:
+        """Return self != other."""
         if isinstance(other, SynchronizedTimestamp):
             other_dt = other.as_datetime()
         elif not isinstance(other, datetime.datetime):

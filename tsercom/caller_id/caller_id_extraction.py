@@ -1,7 +1,4 @@
-"""
-Utilities for extracting CallerIdentifier from gRPC calls,
-especially from iterators.
-"""
+"""Utilities for extracting CallerIdentifier from gRPC calls, especially iterators."""
 
 import logging
 from collections.abc import AsyncIterator, Callable
@@ -25,8 +22,8 @@ async def extract_id_from_first_call(
     extractor: Callable[[TCallType], GrpcCallerId] | None = None,
     validate_against: CallerIdentifier | None = None,
 ) -> tuple[CallerIdentifier | None, TCallType | None]:
-    """
-    Extracts the CallerIdentifier for the next available instance received from
+    """Extract the CallerIdentifier for the next available instance received from.
+
     |iterator|, returning both the  CallerId and the call itself if the method
     succeeds.
 
@@ -98,9 +95,9 @@ async def extract_id_from_call(
     extractor: Callable[[TCallType], GrpcCallerId] | None = None,
     validate_against: CallerIdentifier | None = None,
 ) -> CallerIdentifier | None:
-    """
-    Extracts the CallerIdentifier associated with |call|, returning the CallerId
-    if the method succeeds.
+    """Extract the CallerIdentifier associated with |call|, returning the CallerId.
+
+    If the method succeeds.
 
     |context| (if provided) is used to respond to the caller if an invalid
     CallerId is given.

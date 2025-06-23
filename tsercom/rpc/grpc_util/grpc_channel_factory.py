@@ -10,8 +10,8 @@ from tsercom.util.connection_factory import ConnectionFactory
 
 
 class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
-    """
-    Abstract factory for creating gRPC channels.
+    """Abstract factory for creating gRPC channels.
+
     It implements the `ConnectionFactory` interface for `grpc.Channel` type.
     Concrete implementations are responsible for the actual channel creation logic.
     """
@@ -22,7 +22,7 @@ class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
         addresses: list[str] | str,
         port: int,
     ) -> grpc.Channel | None:
-        """Finds an asynchronous gRPC channel to the specified address(es) and port.
+        """Find an asynchronous gRPC channel to the specified address(es) and port.
 
         Implementations should attempt to establish a connection and return
         the gRPC channel if successful.
@@ -34,13 +34,14 @@ class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
         Returns:
             A `grpc.Channel` object if a channel is successfully established,
             otherwise `None`.
+
         """
         pass
 
     async def connect(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """Establishes a gRPC channel to the specified address(es) and port.
+        """Establish a gRPC channel to the specified address(es) and port.
 
         This method implements the `ConnectionFactory.connect` interface by
         delegating to the `find_async_channel` method.
@@ -52,5 +53,6 @@ class GrpcChannelFactory(ConnectionFactory[grpc.Channel], ABC):
         Returns:
             An instance of `grpc.Channel` if connection is successful,
             otherwise `None`.
+
         """
         return await self.find_async_channel(addresses, port)

@@ -31,14 +31,15 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
         def _on_handle_ready(
             self, handle: RuntimeHandle[DataTypeT, EventTypeT]
         ) -> None:
-            """Callback invoked when a RuntimeHandle has been successfully created.
+            """Invoke callback when a RuntimeHandle has been successfully created.
 
             Args:
                 handle: The newly created RuntimeHandle.
+
             """
 
     def __init__(self) -> None:
-        """Initializes the RuntimeFactoryFactory."""
+        """Initialize the RuntimeFactoryFactory."""
 
     @abstractmethod
     def _create_pair(
@@ -47,7 +48,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
         RuntimeHandle[DataTypeT, EventTypeT],
         RuntimeFactory[DataTypeT, EventTypeT],
     ]:
-        """Creates a RuntimeHandle and its corresponding RuntimeFactory.
+        """Create a RuntimeHandle and its corresponding RuntimeFactory.
 
         Subclasses must implement this method. It should provide the
         specific logic for instantiating a handle and a factory
@@ -58,6 +59,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
 
         Returns:
             A tuple: (created RuntimeHandle, RuntimeFactory).
+
         """
 
     def create_factory(
@@ -65,7 +67,7 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
         client: "RuntimeFactoryFactory.Client",
         initializer: RuntimeInitializer[DataTypeT, EventTypeT],
     ) -> RuntimeFactory[DataTypeT, EventTypeT]:
-        """Creates a RuntimeFactory and notifies the client when its handle is ready.
+        """Create a RuntimeFactory and notify the client when its handle is ready.
 
         This method orchestrates the creation of a runtime handle and factory pair
         using the `_create_pair` method, then informs the client via the
@@ -81,8 +83,8 @@ class RuntimeFactoryFactory(ABC, Generic[DataTypeT, EventTypeT]):
         Raises:
             ValueError: If the client argument is None.
             TypeError: If the client is not an instance of RuntimeFactoryFactory.Client.
-        """
 
+        """
         if client is None:
             raise ValueError("Client argument cannot be None for create_factory.")
         if not isinstance(client, RuntimeFactoryFactory.Client):

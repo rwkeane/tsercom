@@ -25,11 +25,12 @@ class SplitProcessErrorWatcherSource:
         thread_watcher: ThreadWatcher,
         exception_queue: MultiprocessQueueSource[Exception],
     ) -> None:
-        """Initializes the SplitProcessErrorWatcherSource.
+        """Initialize the SplitProcessErrorWatcherSource.
 
         Args:
             thread_watcher: Local ThreadWatcher to report exceptions from queue to.
             exception_queue: Multiprocess queue source to read exceptions from.
+
         """
         self.__thread_watcher: ThreadWatcher = thread_watcher
         self.__queue: MultiprocessQueueSource[Exception] = exception_queue
@@ -37,18 +38,19 @@ class SplitProcessErrorWatcherSource:
         self.__thread: threading.Thread | None = None
 
     def start(self) -> None:
-        """Starts the thread that polls the exception queue.
+        """Start the thread that polls the exception queue.
 
         New thread continuously monitors the exception queue. If an exception
         is retrieved, it's reported to the local `ThreadWatcher`.
 
         Raises:
             RuntimeError: If `start` is called when already running.
+
         """
         self.__is_running.start()  # Will raise RuntimeError if already running.
 
         def loop_until_exception() -> None:
-            """Polls exception queue, reports exceptions until stopped."""
+            """Poll exception queue, report exceptions until stopped."""
             while self.__is_running.get():
                 # Poll queue with timeout to allow checking is_running.
                 remote_exception = self.__queue.get_blocking(timeout=1)
@@ -74,13 +76,14 @@ class SplitProcessErrorWatcherSource:
         self.__thread.start()
 
     def stop(self) -> None:
-        """Stops the exception polling thread.
+        """Stop the exception polling thread.
 
         Signals polling thread to terminate. Thread exits after current poll
         (with timeout) and observing `is_running` state change.
 
         Raises:
             RuntimeError: If `stop` called when source not currently running.
+
         """
         self.__is_running.stop()  # Will raise RuntimeError if not running.
         if self.__thread is not None:  # Check if thread exists
@@ -99,5 +102,6 @@ class SplitProcessErrorWatcherSource:
 
         Returns:
             True if polling thread is active, False otherwise.
+
         """
         return self.__is_running.get()

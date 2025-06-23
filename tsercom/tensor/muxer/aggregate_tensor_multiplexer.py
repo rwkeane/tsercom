@@ -32,12 +32,10 @@ TimestampedTensor = tuple[datetime.datetime, torch.Tensor]
 
 
 class Publisher:
-    """
-    A source of tensor data that can be registered with AggregateTensorMultiplexer.
-    """
+    """A source of tensor data for AggregateTensorMultiplexer registration."""
 
     def __init__(self) -> None:
-        """Initializes the Publisher."""
+        """Initialize the Publisher."""
         # Using a WeakSet to allow AggregateTensorMultiplexer instances to be
         # garbage collected if they are no longer referenced elsewhere, even
         # if registered with a Publisher.
@@ -46,26 +44,20 @@ class Publisher:
         )
 
     def _add_aggregator(self, aggregator: "AggregateTensorMultiplexer") -> None:
-        """
-        Registers an AggregateTensorMultiplexer to receive updates from this
-        publisher. Typically called by
-        AggregateTensorMultiplexer.register_publisher.
-        """
+        """Register an AggregateTensorMultiplexer to receive updates."""
+        # Typically called by AggregateTensorMultiplexer.register_publisher.
         self._aggregators.add(aggregator)
 
     def _remove_aggregator(self, aggregator: "AggregateTensorMultiplexer") -> None:
-        """
-        Unregisters an AggregateTensorMultiplexer from this publisher.
+        """Unregister an AggregateTensorMultiplexer from this publisher.
+
         Typically called by AggregateTensorMultiplexer.unregister_publisher or
         its cleanup.
         """
         self._aggregators.discard(aggregator)
 
     async def publish(self, tensor: torch.Tensor, timestamp: datetime.datetime) -> None:
-        """
-        Publishes a new tensor snapshot to all registered AggregateTensorMultiplexer
-        instances.
-        """
+        """Publish a tensor snapshot to all registered aggregators."""
         # Iterate over a copy of the set in case of modifications during
         # iteration (though _notify_update_from_publisher is not expected to
         # modify _aggregators directly)
@@ -74,17 +66,16 @@ class Publisher:
 
 
 class AggregateTensorMultiplexer(TensorMultiplexer):
-    """
-    Aggregates tensor data from multiple registered Publisher sources.
+    """Aggregates tensor data from multiple registered Publisher sources.
+
     Each publisher's tensor is mapped to a sub-segment of a larger aggregate tensor.
     """
 
     class _InternalClient(TensorMultiplexer.Client):
-        """
-        An internal client used by AggregateTensorMultiplexer to receive updates
-        from its managed SparseTensorMultiplexer or CompleteTensorMultiplexer instances.
-        It translates local tensor index updates to global index updates
-        and updates the AggregateTensorMultiplexer's own history.
+        """Internal client for AggregateTensorMultiplexer.
+
+        Receives updates from managed multiplexers, translates local tensor
+        index updates to global ones, and updates the aggregate history.
         """
 
         def __init__(
@@ -208,13 +199,13 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
-        """
-        Initializes the AggregateTensorMultiplexer.
+        """Initialize the AggregateTensorMultiplexer.
 
         Args:
             client: The client to notify of index updates for the aggregate tensor.
             clock: The synchronized clock instance.
             data_timeout_seconds: How long to keep aggregated tensor data.
+
         """
         # TensorMultiplexer expects tensor_length > 0.
         # We manage _tensor_length dynamically, starting at 0.
@@ -245,9 +236,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
     async def add_to_aggregation(
         self, publisher: Publisher, tensor_length: int, *, sparse: bool = False
     ) -> None:
-        """
-        Adds a publisher whose tensor will be appended to the end of the aggregate
-        tensor.
+        """Add publisher; its tensor appends to the aggregate tensor.
 
         Args:
             publisher: The Publisher instance providing the tensor data.
@@ -256,8 +245,9 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                     publisher, meaning only changed indices are processed and sent to
                     this AggregateTensorMultiplexer's _InternalClient. If False, a
                     CompleteTensorMultiplexer is used, sending the full tensor.
+
         """
-        ...
+        pass
 
     @overload
     async def add_to_aggregation(
@@ -268,9 +258,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         *,
         sparse: bool = False,
     ) -> None:
-        """
-        Adds a publisher whose tensor will be mapped to a specific range within the
-        aggregate tensor.
+        """Add publisher; its tensor maps to a specific range in aggregate.
 
         Args:
             publisher: The Publisher instance providing the tensor data.
@@ -280,8 +268,9 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
                            match len(index_range).
             sparse: If True, a SparseTensorMultiplexer will be used internally.
                     If False, a CompleteTensorMultiplexer is used.
+
         """
-        ...
+        pass
 
     async def add_to_aggregation(
         self,
@@ -289,10 +278,8 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         *args: Any,  # Catch tensor_length OR index_range, tensor_length
         **kwargs: Any,  # Catch sparse
     ) -> None:
-        """
-        Adds a publisher to the aggregation. The publisher's tensor data will either
-        be appended to the aggregate tensor or mapped to a specific range within it.
-        """
+        """Add a publisher to the aggregation. See overloads for details."""
+        # Main impl docstring minimal (overloads documented).
         async with self.lock:
             start_index: int
             current_tensor_len: int
@@ -432,11 +419,7 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """
-        This method is not used directly for AggregateTensorMultiplexer.
-        Data is received via registered Publishers through
-        _notify_update_from_publisher.
-        """
+        """Do not call; AggregateTensorMultiplexer gets data via Publishers."""
         raise NotImplementedError(
             "AggregateTensorMultiplexer receives data via registered Publishers, "
             "not directly via process_tensor."
@@ -448,8 +431,8 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
         tensor: torch.Tensor,
         timestamp: datetime.datetime,
     ) -> None:
-        """
-        Callback for Publishers to send their tensor updates.
+        """Handle tensor updates from Publishers.
+
         This finds the corresponding internal multiplexer and processes the tensor.
         The internal multiplexer's _InternalClient will then handle updating
         the aggregate history and notifying the main client.
@@ -487,10 +470,9 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             )
 
     def _cleanup_old_data(self, current_max_timestamp: datetime.datetime) -> None:
-        """
-        Removes tensor snapshots from the aggregate history that are older
-        than data_timeout_seconds relative to the current_max_timestamp.
-        Assumes lock is held by the caller.
+        """Remove tensor snapshots from history older than data_timeout_seconds.
+
+        Relative to current_max_timestamp. Assumes lock is held by caller.
         """
         if not self.history:
             return
@@ -513,8 +495,8 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
             self.history[:] = self.history[keep_from_index:]
 
     def _find_insertion_point(self, timestamp: datetime.datetime) -> int:
-        """
-        Finds the insertion point for a new timestamp in the sorted self.history list.
+        """Find the insertion point for a new timestamp in the sorted self.history list.
+
         Assumes lock is held by the caller or method is otherwise protected.
         """
         return bisect.bisect_left(self.history, timestamp, key=lambda x: x[0])
@@ -523,31 +505,28 @@ class AggregateTensorMultiplexer(TensorMultiplexer):
 
     @property
     def actual_aggregate_length(self) -> int:
-        """Gets the actual current length of the aggregated tensor."""
+        """Get the actual current length of the aggregated tensor."""
         return self.__actual_aggregate_length
 
     @property
     def latest_processed_timestamp_property(
         self,
     ) -> datetime.datetime | None:  # Renamed to avoid clash with base if any
-        """
-        Gets the latest timestamp processed by the aggregator, for internal client
-        use.
-        """
+        """Get latest timestamp processed by aggregator (for internal client use)."""
         return self.__latest_processed_timestamp
 
     # Method for test access only
     def get_latest_processed_timestamp_for_testing(
         self,
     ) -> datetime.datetime | None:
-        """Gets the latest processed timestamp for testing purposes."""
+        """Get the latest processed timestamp for testing purposes."""
         return self.__latest_processed_timestamp
 
     # Method for test access only
     def get_publishers_info_for_testing(self) -> list[dict[str, Any]]:
-        """Gets the list of publisher information dictionaries for testing."""
+        """Get the list of publisher information dictionaries for testing."""
         return self.__publishers_info
 
     def _set_latest_processed_timestamp(self, timestamp: datetime.datetime) -> None:
-        """Internal method to set the latest processed timestamp."""
+        """Set the latest processed timestamp (internal method)."""
         self.__latest_processed_timestamp = timestamp

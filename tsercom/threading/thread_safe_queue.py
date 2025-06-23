@@ -21,12 +21,12 @@ class ThreadSafeQueue(Generic[T]):
     """
 
     def __init__(self) -> None:
-        """Initializes a new thread-safe queue."""
+        """Initialize a new thread-safe queue."""
         self._queue: queue.Queue[T] = queue.Queue()
         self._lock = threading.Lock()  # Lock for thread safety in queue operations
 
     def push(self, item: T, block: bool = True, timeout: float | None = None) -> None:
-        """Puts an item into the queue.
+        """Put an item into the queue.
 
         Args:
             item: The item to be added to the queue.
@@ -37,12 +37,13 @@ class ThreadSafeQueue(Generic[T]):
 
         Raises:
             queue.Full: If queue full and `block` is False or timeout.
+
         """
         with self._lock:
             self._queue.put(item, block, timeout)
 
     def pop(self, block: bool = True, timeout: float | None = None) -> T:
-        """Removes and returns an item from the queue.
+        """Remove and return an item from the queue.
 
         Args:
             block: Whether to block if the queue is empty. Defaults to True.
@@ -54,12 +55,13 @@ class ThreadSafeQueue(Generic[T]):
 
         Raises:
             queue.Empty: If queue empty and `block` is False or timeout.
+
         """
         with self._lock:
             return self._queue.get(block, timeout)
 
     def size(self) -> int:
-        """Returns the approximate size of the queue.
+        """Return the approximate size of the queue.
 
         Note: Size may not be exact in multithreaded environments,
         as items can be added/removed between `qsize()` call
@@ -67,18 +69,20 @@ class ThreadSafeQueue(Generic[T]):
 
         Returns:
             Approximate number of items in queue.
+
         """
         with self._lock:
             return self._queue.qsize()
 
     def empty(self) -> bool:
-        """Checks if the queue is empty.
+        """Check if the queue is empty.
 
         Note: Similar to `size()`, empty status can change immediately
         after this method returns in multithreaded context.
 
         Returns:
             True if the queue is empty, False otherwise.
+
         """
         with self._lock:
             return self._queue.empty()
