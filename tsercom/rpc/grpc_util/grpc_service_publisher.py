@@ -5,8 +5,8 @@ import logging
 from collections.abc import Callable, Iterable
 
 import grpc
-from grpc_health.v1 import health_pb2, health_pb2_grpc  # type: ignore
-from grpc_health.v1._async import HealthServicer  # type: ignore[import-not-found]
+from grpc_health.v1 import health_pb2, health_pb2_grpc
+from grpc_health.v1._async import HealthServicer
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings

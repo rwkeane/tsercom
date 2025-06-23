@@ -5,7 +5,7 @@ import threading
 import time
 from collections import deque
 
-import ntplib  # type: ignore[import-not-found]
+import ntplib
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.timesync.client.client_synchronized_clock import (

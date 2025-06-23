@@ -173,7 +173,7 @@ class TorchMemcpyQueueSource(
                         if isinstance(
                             tensor_item, torch.Tensor
                         ):  # Double check for safety
-                            tensor_item.share_memory_()
+                            tensor_item.share_memory_()  # type: ignore[no-untyped-call]
                 except Exception as e:
                     # Log warning if accessor fails, but return the item as is.
                     logging.warning(
@@ -182,7 +182,7 @@ class TorchMemcpyQueueSource(
                     )
             elif isinstance(item, torch.Tensor):
                 # Default behavior if no accessor: try to share if item is a tensor.
-                item.share_memory_()
+                item.share_memory_()  # type: ignore[no-untyped-call]
         return item
 
 
@@ -252,7 +252,7 @@ class TorchMemcpyQueueSink(
                     # tensor types, but good for safety if accessor's contract
                     # is loose. The provided snippet has it, so keeping it.
                     if isinstance(tensor_item, torch.Tensor):
-                        tensor_item.share_memory_()
+                        tensor_item.share_memory_()  # type: ignore[no-untyped-call]
             except Exception as e:
                 # Log a warning if the accessor fails, but still try to put the
                 # original object. The user of the queue might intend for
@@ -263,6 +263,6 @@ class TorchMemcpyQueueSink(
                 )
         elif isinstance(obj, torch.Tensor):
             # Default behavior if no accessor: try to share if obj is a tensor.
-            obj.share_memory_()
+            obj.share_memory_()  # type: ignore[no-untyped-call]
 
         return super().put_blocking(obj, timeout=timeout)

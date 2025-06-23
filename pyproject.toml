@@ -210,6 +210,18 @@ disable_error_code = ["attr-defined"]
 module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*" ]  # Target the grpc module and its submodules
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "grpc_health.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "lz4.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ntplib"
+ignore_missing_imports = true
+
 # CODE COVERAGE SETTINGS
 
 [tool.coverage.run]
