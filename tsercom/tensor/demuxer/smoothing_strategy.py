@@ -1,22 +1,21 @@
-import abc
+"""Defines the abstract base class for tensor data smoothing strategies."""
+
+from abc import ABC, abstractmethod
 
 import torch
 
 
-class SmoothingStrategy(abc.ABC):
-    """Abstract base class for tensor data smoothing strategies.
-    """
+class SmoothingStrategy(ABC):
+    """Abstract base class for defining strategies to smooth or interpolate tensor data."""
 
-    @abc.abstractmethod
+    @abstractmethod
     def interpolate_series(
         self,
-        timestamps: torch.Tensor,
-        values: torch.Tensor,
-        required_timestamps: torch.Tensor,
+        timestamps: torch.Tensor,  # float tensor, e.g., Unix timestamps
+        values: torch.Tensor,  # float tensor
+        required_timestamps: torch.Tensor,  # float tensor
     ) -> torch.Tensor:
-        """Interpolates values for a series of required timestamps based on keyframes.
-
-        Timestamps are expected to be numerical (e.g., Unix timestamps as float).
+        """Interpolate or smooth a series of timestamped tensor values.
 
         Args:
             timestamps: A 1D torch.Tensor of numerical timestamps, sorted ascending.
@@ -26,7 +25,8 @@ class SmoothingStrategy(abc.ABC):
                                  values are needed.
 
         Returns:
-            A 1D torch.Tensor of interpolated values, corresponding to each
-            `required_timestamp`.
+            A 1D torch.Tensor of interpolated/smoothed values, corresponding to
+            each `required_timestamp`.
 
         """
+        raise NotImplementedError

@@ -1,3 +1,5 @@
+"""Factory for gRPC channels with server certificate pinning."""
+
 from __future__ import annotations
 
 import asyncio
@@ -12,16 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
-    """Creates a gRPC channel where the client authenticates the server
-    by matching its certificate against an expected server certificate (pinning).
-    """
+    """Creates a gRPC channel where the client authenticates the server by matching its certificate against an expected server certificate (pinning)."""
 
     def __init__(
         self,
         expected_server_cert_pem: bytes | str,
         server_hostname_override: str | None = None,
     ):
-        """Initializes the factory with the expected server certificate.
+        """Initialize the factory with the expected server certificate.
 
         Args:
             expected_server_cert_pem: PEM-encoded server certificate to pin
@@ -47,8 +47,9 @@ class PinnedServerAuthGrpcChannelFactory(GrpcChannelFactory):
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """Attempts to establish a secure gRPC channel to the specified address(es)
-        and port, authenticating the server by pinning its certificate.
+        """Establish a secure gRPC channel to the specified address(es) and port.
+
+        Authenticates the server by pinning its certificate.
 
         Args:
             addresses: A single address string or a list of address strings to try.

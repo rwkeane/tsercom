@@ -1,3 +1,5 @@
+"""Defines ChannelInfo for gRPC channel details and health checks."""
+
 import dataclasses
 
 import grpc
@@ -14,7 +16,7 @@ class ChannelInfo:
     port: int
 
     async def is_healthy(self) -> bool:
-        """Checks if the underlying gRPC channel is healthy.
+        """Check if the underlying gRPC channel is healthy.
 
         Returns:
             True if the channel is healthy (serving), False otherwise.

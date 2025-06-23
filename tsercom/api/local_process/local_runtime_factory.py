@@ -36,7 +36,7 @@ class LocalRuntimeFactory(
         event_poller: AsyncPoller[EventInstance[EventTypeT]],
         bridge: RuntimeCommandBridge,
     ) -> None:
-        """Initializes a LocalRuntimeFactory.
+        """Initialize a LocalRuntimeFactory.
 
         Args:
             initializer: Creates the runtime core.
@@ -58,7 +58,7 @@ class LocalRuntimeFactory(
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        """Creates a new Runtime instance.
+        """Create a new Runtime instance.
 
         Uses stored `RuntimeInitializer` to construct runtime, then sets up
         the command bridge for this runtime instance.
@@ -81,7 +81,7 @@ class LocalRuntimeFactory(
     def _remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
-        """Provides the remote data reader for the runtime.
+        """Provide the remote data reader for the runtime.
 
         Part of `RuntimeFactory` contract to make data reader available.
 
@@ -94,7 +94,7 @@ class LocalRuntimeFactory(
     def _event_poller(
         self,
     ) -> AsyncPoller[EventInstance[EventTypeT]]:
-        """Provides the event poller for the runtime.
+        """Provide the event poller for the runtime.
 
         Part of `RuntimeFactory` contract to make event poller available.
 

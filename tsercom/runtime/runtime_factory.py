@@ -55,7 +55,7 @@ class RuntimeFactory(
     def _remote_data_reader(
         self,
     ) -> RemoteDataReader[AnnotatedInstance[DataTypeT]]:
-        """Internal abstract method by subclasses to provide the data reader.
+        """Provide the data reader via subclasses (internal abstract method).
 
         This method is typically called by the `remote_data_reader` property.
 
@@ -68,7 +68,7 @@ class RuntimeFactory(
     def _event_poller(
         self,
     ) -> AsyncPoller[EventInstance[EventTypeT]]:
-        """Internal abstract method by subclasses to provide the event poller.
+        """Provide the event poller via subclasses (internal abstract method).
 
         This method is typically called by the `event_poller` property.
 
@@ -78,8 +78,7 @@ class RuntimeFactory(
         """
 
     def _stop(self) -> None:
-        """Stops any underlying calls and executions associated with this instance.
-        """
+        """Stop any underlying calls and executions associated with this instance."""
 
     # Properties to expose RuntimeConfig values directly for convenience
     # These are inherited from RuntimeConfig via RuntimeInitializer,

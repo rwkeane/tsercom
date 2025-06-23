@@ -1,3 +1,5 @@
+"""Factory for gRPC channels with client certificate authentication."""
+
 from __future__ import annotations
 
 import asyncio
@@ -15,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
     """Creates a gRPC channel where the client uses a client certificate and key.
+
     Optionally, it can also validate the server's certificate using a root CA.
     """
 
@@ -25,8 +28,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         root_ca_cert_pem: bytes | str | None = None,
         server_hostname_override: str | None = None,
     ):
-        """Initializes the factory with client credentials and optional CA for
-        server validation.
+        """Initialize the factory with client credentials and optional CA for server validation.
 
         Args:
             client_cert_pem: PEM-encoded client certificate (bytes or string).
@@ -65,7 +67,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """Attempts to establish a secure gRPC channel using client credentials.
+        """Attempt to establish a secure gRPC channel using client credentials.
 
         Args:
             addresses: A single address string or a list of address strings to try.

@@ -25,7 +25,7 @@ class SplitProcessErrorWatcherSource:
         thread_watcher: ThreadWatcher,
         exception_queue: MultiprocessQueueSource[Exception],
     ) -> None:
-        """Initializes the SplitProcessErrorWatcherSource.
+        """Initialize the SplitProcessErrorWatcherSource.
 
         Args:
             thread_watcher: Local ThreadWatcher to report exceptions from queue to.
@@ -38,7 +38,7 @@ class SplitProcessErrorWatcherSource:
         self.__thread: threading.Thread | None = None
 
     def start(self) -> None:
-        """Starts the thread that polls the exception queue.
+        """Start the thread that polls the exception queue.
 
         New thread continuously monitors the exception queue. If an exception
         is retrieved, it's reported to the local `ThreadWatcher`.
@@ -50,7 +50,7 @@ class SplitProcessErrorWatcherSource:
         self.__is_running.start()  # Will raise RuntimeError if already running.
 
         def loop_until_exception() -> None:
-            """Polls exception queue, reports exceptions until stopped."""
+            """Poll exception queue, report exceptions until stopped."""
             while self.__is_running.get():
                 # Poll queue with timeout to allow checking is_running.
                 remote_exception = self.__queue.get_blocking(timeout=1)
@@ -76,7 +76,7 @@ class SplitProcessErrorWatcherSource:
         self.__thread.start()
 
     def stop(self) -> None:
-        """Stops the exception polling thread.
+        """Stop the exception polling thread.
 
         Signals polling thread to terminate. Thread exits after current poll
         (with timeout) and observing `is_running` state change.

@@ -1,3 +1,5 @@
+"""Manages client-side gRPC connection state and retry logic."""
+
 from tsercom.rpc.connection.client_disconnection_retrier import (
     ClientDisconnectionRetrier,
 )

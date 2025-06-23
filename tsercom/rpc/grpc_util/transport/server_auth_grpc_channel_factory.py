@@ -1,3 +1,5 @@
+"""Factory for gRPC channels with server authentication via a root CA."""
+
 from __future__ import annotations
 
 import asyncio
@@ -13,16 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
-    """Creates a gRPC channel where the client authenticates the server
-    using a provided root CA certificate.
-    """
+    """Creates a gRPC channel where the client authenticates the server using a provided root CA certificate."""
 
     def __init__(
         self,
         root_ca_cert_pem: bytes | str,
         server_hostname_override: str | None = None,
     ):
-        """Initializes the factory with the root CA certificate.
+        """Initialize the factory with the root CA certificate.
 
         Args:
             root_ca_cert_pem: PEM-encoded root CA certificate (bytes or string).
@@ -45,8 +45,9 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """Attempts to establish a secure gRPC channel to the specified address(es)
-        and port, authenticating the server using the root CA.
+        """Attempt to establish a secure gRPC channel to the specified address(es) and port.
+
+        Authenticates the server using the root CA.
 
         Args:
             addresses: A single address string or a list of address strings to try.

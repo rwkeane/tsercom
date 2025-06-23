@@ -18,16 +18,14 @@ TimestampedTensor = tuple[datetime.datetime, TensorHistoryValue]
 
 
 class TensorMultiplexer(abc.ABC):
-    """Abstract base class for multiplexing tensor updates.
-    """
+    """Abstract base class for multiplexing tensor updates."""
 
     class Client(abc.ABC):
-        """Client interface for TensorMultiplexer to report index updates.
-        """
+        """Client interface for TensorMultiplexer to report index updates."""
 
         @abc.abstractmethod
         async def on_chunk_update(self, chunk: "SerializableTensorChunk") -> None:
-            """Called when a new tensor chunk is available.
+            """Call when a new tensor chunk is available.
 
             Args:
                 chunk: The `SerializableTensorChunk` containing the update.
@@ -42,7 +40,7 @@ class TensorMultiplexer(abc.ABC):
         clock: "SynchronizedClock",
         data_timeout_seconds: float = 60.0,
     ):
-        """Initializes the TensorMultiplexer.
+        """Initialize the TensorMultiplexer.
 
         Args:
             client: The client to notify of index updates.
@@ -100,7 +98,8 @@ class TensorMultiplexer(abc.ABC):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """Processes a new tensor snapshot at a given timestamp.
+        """Process a new tensor snapshot at a given timestamp.
+
         Subclasses must implement how the tensor is processed and how diffs are emitted.
         """
         raise NotImplementedError
@@ -108,7 +107,7 @@ class TensorMultiplexer(abc.ABC):
     async def get_tensor_at_timestamp(
         self, timestamp: datetime.datetime
     ) -> torch.Tensor | None:
-        """Retrieves a clone of the tensor snapshot for a specific timestamp.
+        """Retrieve a clone of the tensor snapshot for a specific timestamp.
 
         This method assumes that `self._history` is a list of tuples
         (timestamp, tensor_data), sorted by timestamp. Subclasses are

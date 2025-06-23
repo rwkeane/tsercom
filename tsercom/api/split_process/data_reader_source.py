@@ -28,7 +28,7 @@ class DataReaderSource(Generic[DataTypeT]):
         queue: MultiprocessQueueSource[DataTypeT],
         data_reader: RemoteDataReader[DataTypeT],
     ) -> None:
-        """Initializes the DataReaderSource.
+        """Initialize the DataReaderSource.
 
         Args:
             watcher: ThreadWatcher to monitor the polling thread.
@@ -54,7 +54,7 @@ class DataReaderSource(Generic[DataTypeT]):
         return self.__is_running.get()
 
     def start(self) -> None:
-        """Starts the data polling thread.
+        """Start the data polling thread.
 
         A new thread is created and started to poll for data from the queue.
 
@@ -69,7 +69,7 @@ class DataReaderSource(Generic[DataTypeT]):
         self.__thread.start()
 
     def stop(self) -> None:
-        """Stops the data polling thread.
+        """Stop the data polling thread.
 
         Signals polling thread to terminate and waits for it to join (with timeout).
         """

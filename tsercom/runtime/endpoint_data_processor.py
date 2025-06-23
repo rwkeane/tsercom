@@ -40,7 +40,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     """
 
     def __init__(self, caller_id: CallerIdentifier):
-        """Initializes the EndpointDataProcessor.
+        """Initialize the EndpointDataProcessor.
 
         Args:
             caller_id: The unique identifier of the caller endpoint this
@@ -60,7 +60,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         timestamp: ServerTimestamp,
         context: grpc.aio.ServicerContext | None = None,
     ) -> datetime | None:
-        """Converts a server-side timestamp to a local, desynchronized datetime.
+        """Convert a server-side timestamp to a local, desynchronized datetime.
 
         This typically involves using a `SynchronizedClock` specific to the
         connection or service, which accounts for time differences and network
@@ -87,8 +87,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def deregister_caller(self) -> None:
-        """Performs cleanup and resource release when the associated caller is
-        deregistered.
+        """Perform cleanup and resource release when the associated caller is deregistered.
 
         Subclasses should implement this to handle any necessary cleanup
         when an endpoint is no longer active or considered valid. This might
@@ -99,7 +98,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @overload
     async def process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-        """Processes incoming data with an explicit `datetime` timestamp.
+        """Process incoming data with an explicit `datetime` timestamp.
 
         Args:
             data: The data item of type `DataTypeT` to process.
@@ -115,7 +114,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         timestamp: ServerTimestamp,
         context: grpc.aio.ServicerContext | None = None,
     ) -> None:
-        """Processes incoming data with a `ServerTimestamp`.
+        """Process incoming data with a `ServerTimestamp`.
 
         The `ServerTimestamp` is first desynchronized to a local `datetime`
         object using the `desynchronize` method. If desynchronization fails
@@ -137,30 +136,8 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         timestamp: datetime | ServerTimestamp,
         context: grpc.aio.ServicerContext | None = None,
     ) -> None:
-        """Processes incoming data, handling timestamp normalization and delegation.
-
-        This method serves as the primary entry point for data. It normalizes
-        the provided timestamp:
-        - If `timestamp` is a `ServerTimestamp`, it is desynchronized to a local
-          UTC `datetime` object using the `desynchronize` method. If
-          desynchronization fails (returns `None`) and a `grpc.aio.ServicerContext`
-          is provided, the gRPC call is aborted with `grpc.StatusCode.INVALID_ARGUMENT`.
-        - If `timestamp` is already a `datetime` object, it is used directly. It
-          is expected to be an aware datetime object, preferably in UTC.
-
-        After timestamp normalization, this method calls the abstract `_process_data`
-        method with the data and the normalized `datetime` timestamp.
-
-        Args:
-            data: The data item (of generic type `DataTypeT`) to process.
-            timestamp: The timestamp associated with the data. Can be a `datetime`
-                object, a `ServerTimestamp`, or `None` (in which case, current
-                UTC time is used). Defaults to `None`.
-            context: Optional. The `grpc.aio.ServicerContext` for the current
-                gRPC call. If provided and timestamp desynchronization from a
-                `ServerTimestamp` fails, the gRPC call will be aborted.
-
-        """
+        """Process incoming data. See overloads for details and specific timestamp handling."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         assert timestamp is not None
 
         actual_timestamp: datetime
@@ -181,8 +158,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def _process_data(self, data: DataTypeT, timestamp: datetime) -> None:
-        """Processes the data item with its fully synchronized and normalized
-        `datetime`.
+        """Process the data item with its fully synchronized and normalized `datetime`.
 
         Subclasses must implement this method to define the specific business logic
         for handling the incoming data and its associated `datetime` timestamp.
@@ -199,7 +175,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
     def __aiter__(
         self,
     ) -> AsyncIterator[list[SerializableAnnotatedInstance[EventTypeT]]]:
-        """Returns an asynchronous iterator for events specific to this endpoint.
+        """Return an asynchronous iterator for events specific to this endpoint.
 
         Subclasses must implement this to provide a mechanism for consuming
         a stream of events (e.g., `SerializableAnnotatedInstance[EventTypeT]`)

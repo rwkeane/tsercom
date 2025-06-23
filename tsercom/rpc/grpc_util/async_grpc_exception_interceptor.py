@@ -1,6 +1,4 @@
-"""Provides an asynchronous gRPC server interceptor for centralized exception
-handling.
-"""
+"""Provides an asynchronous gRPC server interceptor for centralized exception handling."""
 
 from collections.abc import AsyncIterator, Awaitable, Callable  # Added AsyncIterator
 from typing import cast  # Added cast
@@ -12,8 +10,7 @@ from tsercom.threading.thread_watcher import ThreadWatcher
 
 
 class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore[misc]
-    """A gRPC interceptor that handles exceptions in async server methods and
-    forwards them to a provided callback.
+    """A gRPC interceptor that handles exceptions in async server methods and forwards them to a provided callback.
 
     NOTE: This class is _REALLY_ reaching into the internals of GRPC's
     experimental APIs, so it's possible that a future update will break it, but
@@ -22,7 +19,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
     """
 
     def __init__(self, watcher: ThreadWatcher):
-        """Initializes the AsyncGrpcExceptionInterceptor.
+        """Initialize the AsyncGrpcExceptionInterceptor.
 
         Args:
             watcher: A ThreadWatcher instance to report exceptions to.
@@ -39,8 +36,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         ],
         handler_call_details: grpc.HandlerCallDetails,
     ) -> grpc.RpcMethodHandler:
-        """Intercepts the RPC call, catching exceptions and invoking the callback.
-        """
+        """Intercept the RPC call, catching exceptions and invoking the callback."""
         handler: grpc.RpcMethodHandler = await continuation(handler_call_details)
 
         # If there's no handler, it means this RPC is not implemented.
@@ -80,7 +76,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         method: Callable[[object, grpc.aio.ServicerContext], Awaitable[object]],
         method_name: grpc.HandlerCallDetails,
     ) -> Callable[[object, grpc.aio.ServicerContext], Awaitable[object]]:
-        """Wraps a unary-unary RPC method to provide exception handling."""
+        """Wrap a unary-unary RPC method to provide exception handling."""
 
         async def wrapper(
             request: object, context: grpc.aio.ServicerContext
@@ -107,7 +103,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
     ) -> Callable[
         [object, grpc.aio.ServicerContext], Awaitable[object]
     ]:  # Wrapper returns an Awaitable
-        """Wraps a unary-stream RPC method to provide exception handling."""
+        """Wrap a unary-stream RPC method to provide exception handling."""
 
         async def wrapper(
             request: object, context: grpc.aio.ServicerContext
@@ -140,7 +136,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         ],
         method_name: grpc.HandlerCallDetails,
     ) -> Callable[[object, grpc.aio.ServicerContext], Awaitable[object]]:
-        """Wraps a stream-unary RPC method to provide exception handling."""
+        """Wrap a stream-unary RPC method to provide exception handling."""
 
         async def wrapper(
             request_iterator: object, context: grpc.aio.ServicerContext
@@ -167,7 +163,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
     ) -> Callable[
         [object, grpc.aio.ServicerContext], Awaitable[object]
     ]:  # Wrapper returns an Awaitable
-        """Wraps a stream-stream RPC method to provide exception handling."""
+        """Wrap a stream-stream RPC method to provide exception handling."""
 
         async def wrapper(
             request_iterator: object, context: grpc.aio.ServicerContext
@@ -193,7 +189,7 @@ class AsyncGrpcExceptionInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
     async def _handle_exception(
         self, e: Exception, method_name: str, context: grpc.aio.ServicerContext
     ) -> None:
-        """Handles exceptions raised by RPC methods."""
+        """Handle exceptions raised by RPC methods."""
         if issubclass(type(e), StopAsyncIteration):
             raise e
         if isinstance(e, AssertionError):

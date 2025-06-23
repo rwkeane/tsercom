@@ -1,3 +1,5 @@
+"""Defines SerializableTensorInitializer for tensor stream configuration."""
+
 from collections.abc import Iterator
 from typing import TypeVar
 
@@ -15,8 +17,9 @@ STI = TypeVar("STI", bound="SerializableTensorInitializer")
 
 
 class SerializableTensorInitializer:
-    """Represents the complete initialization information for a tensor,
-    including its shape, data type, a default fill value, and an
+    """Represents the complete initialization information for a tensor.
+
+    Includes its shape, data type, a default fill value, and an
     optional initial set of data chunks.
     """
 
@@ -27,7 +30,7 @@ class SerializableTensorInitializer:
         fill_value: float,
         initial_state: SerializableTensorUpdate | None = None,
     ):
-        """Initializes the tensor configuration.
+        """Initialize the tensor configuration.
 
         Args:
             shape: The full shape of the tensor (e.g., [10, 20]).
@@ -45,22 +48,26 @@ class SerializableTensorInitializer:
 
     @property
     def shape(self) -> list[int]:
+        """Return the full shape of the tensor (e.g., [10, 20])."""
         return self.__shape
 
     @property
     def dtype_str(self) -> str:
+        """Return the data type of the tensor as a string (e.g., "float32")."""
         return self.__dtype_str
 
     @property
     def fill_value(self) -> float:
+        """Return the default value to fill the tensor with."""
         return self.__fill_value
 
     @property
     def initial_state(self) -> SerializableTensorUpdate | None:
+        """Return the optional SerializableTensorUpdate with initial data chunks."""
         return self.__initial_state
 
     def to_grpc_type(self) -> TensorInitializer:
-        """Converts this object to its gRPC protobuf representation."""
+        """Convert this object to its gRPC protobuf representation."""
         grpc_initial_state: TensorUpdate | None = None  # Changed type hint
         if self.__initial_state is not None:
             grpc_initial_state = self.__initial_state.to_grpc_type()
@@ -76,7 +83,7 @@ class SerializableTensorInitializer:
     def try_parse(
         cls: type[STI], grpc_msg: TensorInitializer  # Changed type hint
     ) -> STI | None:
-        """Attempts to parse a TensorInitializer protobuf message.
+        """Attempt to parse a TensorInitializer protobuf message.
 
         The method maps the `dtype` string from the protobuf message to a
         `torch.dtype`. This torch dtype is crucial for parsing any tensor
@@ -131,6 +138,7 @@ class SerializableTensorInitializer:
         )
 
     def __iter__(self) -> Iterator[SerializableTensorChunk] | None:
+        """Return an iterator over initial state chunks, if any."""
         if self.__initial_state is None:
             return None
         return iter(self.__initial_state)
