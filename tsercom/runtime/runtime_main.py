@@ -56,7 +56,7 @@ def initialize_runtimes(
     *,
     is_testing: bool = False,
 ) -> list[Runtime]:
-    """Initializes, configures, and starts a list of Tsercom runtimes.
+    r"""Initialize, configure, and start a list of Tsercom runtimes.
 
     This function iterates through the provided `RuntimeFactory` instances (referred
     to as `initializers` in this context, though they are factories that produce
@@ -158,7 +158,7 @@ def initialize_runtimes(
             f: concurrent.futures.Future[Any],
             watcher: ThreadWatcher,
         ) -> None:
-            """Callback to handle completion of a runtime's start_async future."""
+            """Handle completion of a runtime's start_async future."""
             try:
                 if f.done() and not f.cancelled():
                     exc = f.exception()
@@ -189,7 +189,7 @@ def remote_process_main(
     *,
     is_testing: bool = False,
 ) -> None:
-    """Main entry point for a Tsercom runtime operating in a remote process.
+    """Define the main entry point for a Tsercom runtime operating in a remote process.
 
     This function is intended to be the target for a new process created by
     `RuntimeManager.start_out_of_process`. It performs the necessary setup for

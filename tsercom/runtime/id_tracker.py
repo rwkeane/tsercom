@@ -104,35 +104,8 @@ class IdTracker(Generic[TrackedDataT]):
         | tuple[CallerIdentifier, TrackedDataT | None]
         | None
     ):
-        """Attempt to retrieve associated information for a given identifier or address.
-
-        This method provides a way to look up mappings without raising an
-        exception if the key is not found.
-
-        If looking up by `CallerIdentifier` (`caller_id_obj`):
-            Returns a 3-tuple `(address: str, port: int, tracked_data:
-            Optional[TrackedDataT])` if the `CallerIdentifier` is found.
-            `tracked_data` is the result of the `data_factory` if one was
-            provided and the ID was added with it, otherwise it is `None`.
-
-        If looking up by network address (`address`, `port`):
-            Returns a 2-tuple `(caller_identifier: CallerIdentifier,
-            tracked_data: Optional[TrackedDataT])` if the address/port
-            combination is found. `tracked_data` is determined as above.
-
-        Args:
-            *args: Can be `(CallerIdentifier)` or `(address_str, port_int)`.
-            **kwargs: Can be `id=CallerIdentifier` or `address=str, port=int`.
-
-        Returns:
-            The associated mapping as a tuple if found, otherwise `None`.
-            The structure of the tuple depends on the lookup method (see above).
-
-        Raises:
-            ValueError: If incorrect arguments are provided (e.g., mixing
-                ID and address lookups, or providing partial address information).
-
-        """
+        """Attempt to retrieve associated information. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         _id: CallerIdentifier | None = None
         _address: str | None = None
         _port: int | None = None
@@ -271,25 +244,8 @@ class IdTracker(Generic[TrackedDataT]):
         tuple[str, int, TrackedDataT | None]
         | tuple[CallerIdentifier, TrackedDataT | None]
     ):
-        """Retrieve associated information, raising KeyError if not found.
-
-        This method behaves like `try_get` but raises a `KeyError` if the
-        lookup key (either `CallerIdentifier` or address/port combination)
-        is not found in the tracker.
-
-        Args:
-            *args: Can be `(CallerIdentifier)` or `(address_str, port_int)`.
-            **kwargs: Can be `id=CallerIdentifier` or `address=str, port=int`.
-
-        Returns:
-            The associated mapping as a tuple. The structure of the tuple
-            depends on the lookup method (see `try_get` for details).
-
-        Raises:
-            ValueError: If incorrect arguments are provided.
-            KeyError: If the lookup key is not found.
-
-        """
+        """Retrieve associated information, raising KeyError if not found. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         resolved_result = self.try_get(*args, **kwargs)
         if resolved_result is None:
             query_repr = ""

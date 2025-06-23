@@ -136,30 +136,8 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         timestamp: datetime | ServerTimestamp,
         context: grpc.aio.ServicerContext | None = None,
     ) -> None:
-        """Process incoming data, handling timestamp normalization and delegation.
-
-        This method serves as the primary entry point for data. It normalizes
-        the provided timestamp:
-        - If `timestamp` is a `ServerTimestamp`, it is desynchronized to a local
-          UTC `datetime` object using the `desynchronize` method. If
-          desynchronization fails (returns `None`) and a `grpc.aio.ServicerContext`
-          is provided, the gRPC call is aborted with `grpc.StatusCode.INVALID_ARGUMENT`.
-        - If `timestamp` is already a `datetime` object, it is used directly. It
-          is expected to be an aware datetime object, preferably in UTC.
-
-        After timestamp normalization, this method calls the abstract `_process_data`
-        method with the data and the normalized `datetime` timestamp.
-
-        Args:
-            data: The data item (of generic type `DataTypeT`) to process.
-            timestamp: The timestamp associated with the data. Can be a `datetime`
-                object, a `ServerTimestamp`, or `None` (in which case, current
-                UTC time is used). Defaults to `None`.
-            context: Optional. The `grpc.aio.ServicerContext` for the current
-                gRPC call. If provided and timestamp desynchronization from a
-                `ServerTimestamp` fails, the gRPC call will be aborted.
-
-        """
+        """Process incoming data. See overloads for details and specific timestamp handling."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         assert timestamp is not None
 
         actual_timestamp: datetime

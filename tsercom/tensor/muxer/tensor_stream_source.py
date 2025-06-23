@@ -1,3 +1,5 @@
+"""Provides TensorStreamSource for creating and publishing tensor data streams."""
+
 import datetime
 
 import torch
@@ -42,6 +44,15 @@ class TensorStreamSource(TensorMultiplexer.Client):
         sparse_updates: bool = True,
         muxer_data_timeout_seconds: float = 60.0,
     ):
+        """Initialize the TensorStreamSource.
+
+        Args:
+            initial_tensor: The initial 1D tensor for the stream.
+            clock: A synchronized clock instance.
+            sparse_updates: If True, use SparseTensorMultiplexer; otherwise, CompleteTensorMultiplexer.
+            muxer_data_timeout_seconds: Timeout for underlying multiplexer data.
+
+        """
         self.__multiplexer: TensorMultiplexer
         if not isinstance(initial_tensor, torch.Tensor):
             raise TypeError("initial_tensor must be a torch.Tensor.")
@@ -135,11 +146,23 @@ class TensorStreamSource(TensorMultiplexer.Client):
 
     @property
     def initializer(self) -> SerializableTensorInitializer:
+        """Return the SerializableTensorInitializer for this stream."""
         return self.__tensor_initializer
 
     async def update(
         self, new_tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
+        """Update the tensor stream with a new tensor state.
+
+        Args:
+            new_tensor: The new 1D tensor state. Must match initial shape and dtype.
+            timestamp: The timestamp for this tensor state.
+
+        Raises:
+            TypeError: If new_tensor is not a torch.Tensor.
+            ValueError: If new_tensor shape or dtype does not match the initial tensor.
+
+        """
         if not isinstance(new_tensor, torch.Tensor):
             raise TypeError("new_tensor must be a torch.Tensor.")
         if new_tensor.shape != self.__initial_tensor.shape:
@@ -155,17 +178,19 @@ class TensorStreamSource(TensorMultiplexer.Client):
         await self.__multiplexer.process_tensor(new_tensor, timestamp)
 
     async def on_chunk_update(self, chunk: SerializableTensorChunk) -> None:
-        """Implementation of TensorMultiplexer.Client interface.
+        """Implement TensorMultiplexer.Client interface.
+
         Called by the _InternalMuxerClient when the multiplexer produces a chunk.
         This pushes the chunk into an AsyncPoller for async iteration.
         """
         self.__async_poller.on_available(chunk)
 
     def __aiter__(self) -> "TensorStreamSource":
+        """Return self as the asynchronous iterator."""
         return self
 
     async def __anext__(self) -> SerializableTensorUpdate:
-        """Retrieves the next batch of tensor chunks as a SerializableTensorUpdate."""
+        """Retrieve the next batch of tensor chunks as a SerializableTensorUpdate."""
         chunks: list[SerializableTensorChunk] = await self.__async_poller.__anext__()
         return SerializableTensorUpdate(chunks=chunks)
 

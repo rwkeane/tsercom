@@ -144,59 +144,8 @@ class RuntimeConfig(Generic[DataTypeT]):
         is_ipc_blocking: bool = True,
         data_reader_sink_is_lossy: bool = True,
     ):
-        """Initialize the RuntimeConfig.
-
-        This constructor is overloaded. You can initialize either by specifying
-        `service_type` along with other optional parameters, or by providing
-        an `other_config` instance to clone its settings.
-
-        Args:
-            service_type: The operational mode of the runtime. Can be specified
-                as a `ServiceType` enum member (e.g., `ServiceType.CLIENT`) or
-                as a string literal ("Client" or "Server"). Must be provided if
-                `other_config` is not.
-            other_config: An existing `RuntimeConfig` instance from which to
-                copy all configuration settings. If provided, `service_type` and
-                other direct configuration arguments must not be set.
-            data_aggregator_client: An optional client for a
-                `RemoteDataAggregator`. This is used if the runtime needs to
-                interact with a remote data aggregation service. The client
-                should be parameterized with `DataTypeT`.
-            timeout_seconds: Optional. The timeout duration in seconds for data
-                items. If `None`, data does not time out. Defaults to 60 seconds.
-            min_send_frequency_seconds: Optional. The minimum time interval,
-                in seconds, between the dispatch of event batches. This can be
-                used to control the rate of event processing or transmission.
-                If `None`, there is no minimum frequency enforced at this level.
-            auth_config: Optional. A `BaseChannelAuthConfig` instance defining
-                the authentication and encryption settings for gRPC channels
-                created by the runtime. If `None`, insecure channels may be used.
-            max_queued_responses_per_endpoint: The maximum number of responses
-                that can be queued from a single remote endpoint. This helps
-                prevent a single misbehaving or very active endpoint from
-                overwhelming the system's memory by queuing too many unprocessed
-                responses. Defaults to 1000.
-            max_ipc_queue_size: The maximum size for core inter-process
-                communication (IPC) queues (e.g., `multiprocessing.Queue`).
-                If `None` or a non-positive integer, the queue size is considered
-                unbounded (platform-dependent default). Defaults to `None`.
-            is_ipc_blocking: Determines if `put` operations on core IPC queues
-                should block when the queue is full (`True`) or be non-blocking
-                and potentially lossy (`False`). Defaults to `True`.
-            data_reader_sink_is_lossy: Controls whether the `DataReaderSink`
-                (typically used in split-process scenarios by `RemoteRuntimeFactory`)
-                should drop data if its internal queue is full (True, lossy),
-                or raise an error (False, non-lossy). Defaults to `True`.
-
-        Raises:
-            ValueError: If `service_type` and `other_config` are not mutually
-                exclusive (i.e., both are provided or neither is provided).
-                Also raised if `service_type` is a string and not "Client"
-                or "Server".
-            TypeError: If `service_type` is provided but is not a `ServiceType`
-                enum member or a valid string literal.
-
-        """
+        """Initialize the RuntimeConfig. See overloads for details."""
+        # Main implementation docstring is minimal as overloads are documented per prompt.
         if (service_type is None) == (other_config is None):
             other_config_str = "<Provided>" if other_config is not None else None
             raise ValueError(
