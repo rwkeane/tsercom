@@ -179,7 +179,7 @@ class ClientDisconnectionRetrier(Generic[TInstanceType], ClientReconnectionManag
             raise
 
     async def stop(self) -> None:
-        """Stop the managed instance and ensure operations run on the correct event loop.
+        """Stop the managed instance and ensure operations run on correct event loop.
 
         If called from a different event loop than the one `start` was called on,
         it reschedules itself onto the original event loop. Stops the connected

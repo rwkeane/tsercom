@@ -49,7 +49,7 @@ class TensorStreamSource(TensorMultiplexer.Client):
         Args:
             initial_tensor: The initial 1D tensor for the stream.
             clock: A synchronized clock instance.
-            sparse_updates: If True, use SparseTensorMultiplexer; otherwise, CompleteTensorMultiplexer.
+            sparse_updates: True for SparseTensorMultiplexer, False for Complete.
             muxer_data_timeout_seconds: Timeout for underlying multiplexer data.
 
         """

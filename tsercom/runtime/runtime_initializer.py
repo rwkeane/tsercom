@@ -40,7 +40,7 @@ class RuntimeInitializer(
         data_handler: RuntimeDataHandler[DataTypeT, EventTypeT],
         grpc_channel_factory: GrpcChannelFactory,
     ) -> Runtime:
-        """Create a new Runtime instance; this method will only be called once per instance.
+        """Create a new Runtime instance; called once per instance.
 
         |thread_watcher| provides APIs for error handling, and is required for
         calling many Tsercom APIs.

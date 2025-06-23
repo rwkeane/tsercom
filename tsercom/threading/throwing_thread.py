@@ -25,14 +25,16 @@ class ThrowingThread(threading.Thread):
         name: None = None,
         daemon: bool = True,
     ) -> None:
-        """Initializes a ThrowingThread.
+        """Initialize a ThrowingThread.
 
         Args:
             target: Callable object to be invoked by the run() method.
             on_error_cb: Callback for exceptions in the target callable.
             args: Arguments to pass to the target function.
             kwargs: Keyword arguments to pass to the target function.
-            group, name, daemon: Standard threading.Thread arguments.
+            group: Should be None; for compatibility with `threading.Thread`.
+            name: The thread name.
+            daemon: Whether the thread is a daemon thread.
 
         """
         assert on_error_cb is not None, "on_error_cb cannot be None"
@@ -46,7 +48,7 @@ class ThrowingThread(threading.Thread):
         )
 
     def _wrapped_target(self) -> None:
-        """Method representing the thread's activity.
+        """Represent the thread's activity.
 
         Executes target callable. If target raises an exception, it is
         caught, logged, and reported via `on_error_cb`.
@@ -67,11 +69,11 @@ class ThrowingThread(threading.Thread):
                 self.__on_error_cb(e)
 
     def run(self) -> None:
-        """Overrides Thread.run to call the internal wrapped target."""
+        """Override Thread.run to call the internal wrapped target."""
         self._wrapped_target()
 
     def start(self) -> None:
-        """Starts the thread's activity.
+        """Start the thread's activity.
 
         Calls `super().start()`. If `super().start()` raises an exception,
         it's caught, logged, reported via `on_error_cb`, and re-raised.

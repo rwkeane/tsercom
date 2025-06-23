@@ -87,7 +87,7 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
 
     @abstractmethod
     async def deregister_caller(self) -> None:
-        """Perform cleanup and resource release when the associated caller is deregistered.
+        """Perform cleanup when the associated caller is deregistered.
 
         Subclasses should implement this to handle any necessary cleanup
         when an endpoint is no longer active or considered valid. This might
@@ -136,8 +136,8 @@ class EndpointDataProcessor(ABC, Generic[DataTypeT, EventTypeT]):
         timestamp: datetime | ServerTimestamp,
         context: grpc.aio.ServicerContext | None = None,
     ) -> None:
-        """Process incoming data. See overloads for details and specific timestamp handling."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        """Process incoming data. See overloads for timestamp handling."""
+        # Main impl docstring is minimal per prompt (overloads documented).
         assert timestamp is not None
 
         actual_timestamp: datetime

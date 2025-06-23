@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class SmoothedTensorDemuxer(TensorDemuxer):
-    """Manages per-index keyframe data using torch.Tensors and provides smoothed, interpolated tensor updates.
+    """Manages keyframe data using torch.Tensors and provides smoothed updates.
 
     Uses a specified smoothing strategy for per-index "cascading forward" interpolation.
     """
@@ -114,7 +114,7 @@ class SmoothedTensorDemuxer(TensorDemuxer):
         timestamp: datetime.datetime,
         new_tensor_state: torch.Tensor,
     ) -> None:
-        """Handle callback triggered when the parent TensorDemuxer detects a full keyframe update.
+        """Handle callback when parent TensorDemuxer detects a full keyframe update.
 
         This method then triggers the interpolation and output push.
         """

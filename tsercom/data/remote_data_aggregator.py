@@ -1,4 +1,4 @@
-"""Defines the RemoteDataAggregator abstract base class, an interface for aggregating and accessing data from remote sources."""
+"""Defines RemoteDataAggregator ABC for aggregating data from remote sources."""
 
 import datetime
 from abc import ABC, abstractmethod
@@ -24,7 +24,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     """
 
     class Client(ABC):
-        """Interface for clients wishing to receive callbacks from a RemoteDataAggregator.
+        """Interface for clients wishing to receive callbacks from the aggregator.
 
         Implementers of this interface can register with a `RemoteDataAggregator`
         to be notified about changes in data state or endpoint connectivity.
@@ -52,7 +52,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
             aggregator: "RemoteDataAggregator[DataTypeT]",
             caller_id: CallerIdentifier,
         ) -> None:
-            """Invoke callback when a new endpoint associated with a caller_id starts transmitting data.
+            """Invoke callback when a new endpoint starts transmitting data.
 
             Args:
                 aggregator: The `RemoteDataAggregator` instance reporting the event.
@@ -81,7 +81,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         self, identifier: CallerIdentifier | None = None
     ) -> None:  # Renamed id to identifier
         """Stop data processing. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         raise NotImplementedError()
 
     @overload
@@ -116,7 +116,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         identifier: CallerIdentifier | None = None,  # Renamed id to identifier
     ) -> dict[CallerIdentifier, bool] | bool:
         """Check for new data. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         raise NotImplementedError()
 
     def any_new_data(self) -> bool:
@@ -176,7 +176,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         identifier: CallerIdentifier | None = None,  # Renamed id to identifier
     ) -> dict[CallerIdentifier, list[DataTypeT]] | list[DataTypeT]:
         """Retrieve new data. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         raise NotImplementedError()
 
     @overload
@@ -217,14 +217,14 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         identifier: CallerIdentifier | None = None,  # Renamed id to identifier
     ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieve the most recent data. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         raise NotImplementedError()
 
     @overload
     def get_data_for_timestamp(
         self, timestamp: datetime.datetime
     ) -> dict[CallerIdentifier, DataTypeT | None]:
-        """Retrieve the most recent data item received before or at a specific timestamp for all callers.
+        """Get data at or before a timestamp for all callers.
 
         Returns `None` for a caller if no suitable data exists or if it has
         timed out.
@@ -245,7 +245,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         timestamp: datetime.datetime,
         identifier: CallerIdentifier,  # Renamed id to identifier
     ) -> DataTypeT | None:
-        """Retrieve the most recent data item received before or at a specific timestamp for a specific caller.
+        """Get data at or before a timestamp for a specific caller.
 
         Returns `None` if no suitable data exists for this caller or if it has
         timed out.
@@ -267,7 +267,7 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
         identifier: CallerIdentifier | None = None,  # Renamed id to identifier
     ) -> dict[CallerIdentifier, DataTypeT | None] | DataTypeT | None:
         """Retrieve data for a specific timestamp. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         raise NotImplementedError()
 
     @overload
@@ -316,6 +316,6 @@ class RemoteDataAggregator(ABC, Generic[DataTypeT]):
     def get_interpolated_at(
         self, timestamp: datetime.datetime, identifier: CallerIdentifier | None = None
     ) -> DataTypeT | None | dict[CallerIdentifier, DataTypeT]:
-        """Perform linear interpolation to estimate data at a specific time. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        """Perform linear interpolation. See overloads for details."""
+        # Main impl docstring is minimal per prompt (overloads documented).
         raise NotImplementedError()

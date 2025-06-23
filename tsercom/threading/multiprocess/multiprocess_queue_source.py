@@ -24,7 +24,7 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
     """
 
     def __init__(self, queue: "MpQueue[QueueTypeT]") -> None:
-        """Initializes with a given multiprocessing queue.
+        """Initialize with a given multiprocessing queue.
 
         Args:
             queue: The multiprocessing queue to be used as source.
@@ -33,7 +33,7 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
         self.__queue: MpQueue[QueueTypeT] = queue
 
     def get_blocking(self, timeout: float | None = None) -> QueueTypeT | None:
-        """Retrieves item from queue, blocking if needed until item available.
+        """Retrieve item from queue, blocking if needed until item available.
 
         Args:
             timeout: Max time (secs) to wait for item if queue empty.
@@ -53,7 +53,7 @@ class MultiprocessQueueSource(Generic[QueueTypeT]):
         # Other exceptions (EOFError, OSError) indicate severe queue issues.
 
     def get_or_none(self) -> QueueTypeT | None:
-        """Retrieves an item from the queue without blocking.
+        """Retrieve an item from the queue without blocking.
 
         If the queue is empty, this method returns immediately.
 

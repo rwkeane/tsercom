@@ -1,5 +1,6 @@
-"""Provides EventLoopFactory for creating and managing asyncio event loops
-that run in separate threads, monitored by a ThreadWatcher.
+"""Provides EventLoopFactory for creating and managing asyncio event loops.
+
+That run in separate threads, monitored by a ThreadWatcher.
 """
 
 import asyncio
@@ -21,7 +22,7 @@ class EventLoopFactory:
     """
 
     def __init__(self, watcher: "ThreadWatcher") -> None:
-        """Initializes the EventLoopFactory.
+        """Initialize the EventLoopFactory.
 
         Args:
             watcher: ThreadWatcher instance to monitor event loop thread.
@@ -43,7 +44,7 @@ class EventLoopFactory:
         self.__event_loop: asyncio.AbstractEventLoop | None = None
 
     def start_asyncio_loop(self) -> asyncio.AbstractEventLoop:
-        """Starts an asyncio event loop in a new thread.
+        """Start an asyncio event loop in a new thread.
 
         The loop has an exception handler that logs unhandled exceptions
         and notifies the ThreadWatcher.
@@ -57,7 +58,7 @@ class EventLoopFactory:
         def handle_exception(
             _loop: asyncio.AbstractEventLoop, context: dict[str, Any]
         ) -> None:
-            """Handles exceptions occurring in the event loop.
+            """Handle exceptions occurring in the event loop.
 
             Logs the exception and notifies the ThreadWatcher.
 
@@ -86,7 +87,7 @@ class EventLoopFactory:
                 )
 
         def start_event_loop() -> None:
-            """Initializes and runs the asyncio event loop in this thread.
+            """Initialize and run the asyncio event loop in this thread.
 
             Sets up new loop, custom handler, makes it current for thread,
             signals readiness, and runs loop forever.

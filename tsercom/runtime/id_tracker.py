@@ -21,7 +21,7 @@ TrackedDataT = TypeVar("TrackedDataT")
 
 
 class IdTracker(Generic[TrackedDataT]):
-    """Tracks associations between CallerIdentifiers, network addresses, and optional data.
+    """Tracks associations between CallerIds, network addresses, and optional data.
 
     This class provides a thread-safe, bidirectional dictionary-like structure
     to map `CallerIdentifier` instances to (address, port) tuples and vice-versa.
@@ -104,8 +104,8 @@ class IdTracker(Generic[TrackedDataT]):
         | tuple[CallerIdentifier, TrackedDataT | None]
         | None
     ):
-        """Attempt to retrieve associated information. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        """Attempt to retrieve associated information. See overloads."""
+        # Main impl docstring is minimal per prompt (overloads documented).
         _id: CallerIdentifier | None = None
         _address: str | None = None
         _port: int | None = None
@@ -244,8 +244,8 @@ class IdTracker(Generic[TrackedDataT]):
         tuple[str, int, TrackedDataT | None]
         | tuple[CallerIdentifier, TrackedDataT | None]
     ):
-        """Retrieve associated information, raising KeyError if not found. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        """Retrieve info, raising KeyError if not found. See overloads."""
+        # Main impl docstring minimal (overloads documented).
         resolved_result = self.try_get(*args, **kwargs)
         if resolved_result is None:
             query_repr = ""

@@ -28,7 +28,7 @@ class ClientAuthGrpcChannelFactory(GrpcChannelFactory):
         root_ca_cert_pem: bytes | str | None = None,
         server_hostname_override: str | None = None,
     ):
-        """Initialize the factory with client credentials and optional CA for server validation.
+        """Init factory with client credentials and optional CA for server validation.
 
         Args:
             client_cert_pem: PEM-encoded client certificate (bytes or string).

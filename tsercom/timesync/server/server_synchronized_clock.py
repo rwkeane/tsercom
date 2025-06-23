@@ -21,7 +21,7 @@ class ServerSynchronizedClock(SynchronizedClock):
     """
 
     def desync(self, time: SynchronizedTimestamp) -> datetime.datetime:
-        """Converts a SynchronizedTimestamp to a naive server local datetime.
+        """Convert a SynchronizedTimestamp to a naive server local datetime.
 
         Server's local time is authoritative synchronized time; this method
         returns the datetime from provided SynchronizedTimestamp directly.
@@ -36,7 +36,7 @@ class ServerSynchronizedClock(SynchronizedClock):
         return time.as_datetime()
 
     def sync(self, timestamp: datetime.datetime) -> SynchronizedTimestamp:
-        """Converts a naive server local datetime to a SynchronizedTimestamp.
+        """Convert a naive server local datetime to a SynchronizedTimestamp.
 
         Server's local time is authoritative; this method creates a
         SynchronizedTimestamp directly from the given naive datetime object

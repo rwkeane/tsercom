@@ -123,7 +123,7 @@ select = [
     "TID",# flake8-tidy-imports (enforce import styles)
     "D",  # pydocstyle (docstring conventions)
 ]
-ignore = ["S101", "S104"]
+ignore = ["S101", "S104", "D418"]
 
 # Allow ruff's auto-fix for all enabled rules.
 fixable = ["ALL"]
@@ -208,6 +208,18 @@ disable_error_code = ["attr-defined"]
 
 [[tool.mypy.overrides]]
 module = [ "grpc.*", "grpc_status.*", "google.*", "grpcio.*" ]  # Target the grpc module and its submodules
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "grpc_health.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "lz4.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ntplib"
 ignore_missing_imports = true
 
 # CODE COVERAGE SETTINGS

@@ -25,7 +25,7 @@ class ThreadWatcher(ErrorWatcher):
     """
 
     def __init__(self) -> None:
-        """Initializes ThreadWatcher.
+        """Initialize ThreadWatcher.
 
         Sets up sync primitives for tracking thread exceptions.
         """
@@ -36,7 +36,7 @@ class ThreadWatcher(ErrorWatcher):
     def create_tracked_thread(
         self, target: Callable[[], None], is_daemon: bool = True
     ) -> threading.Thread:
-        """Creates a `ThrowingThread` tracked by this watcher.
+        """Create a `ThrowingThread` tracked by this watcher.
 
         Exceptions on this thread are caught and reported via
         `on_exception_seen`.
@@ -56,7 +56,7 @@ class ThreadWatcher(ErrorWatcher):
     def create_tracked_thread_pool_executor(
         self, *args: Any, **kwargs: Any
     ) -> ThrowingThreadPoolExecutor:
-        """Creates a `ThrowingThreadPoolExecutor` instance.
+        """Create a `ThrowingThreadPoolExecutor` instance.
 
         Threads in this pool report exceptions via `on_exception_seen`.
         Accepts `concurrent.futures.ThreadPoolExecutor` arguments.
@@ -99,7 +99,7 @@ class ThreadWatcher(ErrorWatcher):
                 raise self.__exceptions[0]
 
     def check_for_exception(self) -> None:
-        """Checks for caught exceptions, raises first one if any.
+        """Check for caught exceptions, raises first one if any.
 
         Thread-safe and non-blocking. Does nothing if no exceptions.
 
@@ -121,7 +121,7 @@ class ThreadWatcher(ErrorWatcher):
             raise self.__exceptions[0]
 
     def on_exception_seen(self, e: Exception) -> None:
-        """Callback for exceptions caught by a tracked thread/pool.
+        """Handle callback for exceptions caught by a tracked thread/pool.
 
         Stores exception, signals waiting threads (e.g., in
         `run_until_exception`) that an exception occurred.

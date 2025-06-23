@@ -14,7 +14,7 @@ from tsercom.timesync.common.synchronized_timestamp import (
 
 
 class SerializableTensorChunk:
-    """Wraps a PyTorch tensor, its synchronized timestamp, and a starting index for gRPC serialization.
+    """Wraps a PyTorch tensor, timestamp, and start index for gRPC serialization.
 
     The tensor is part of a larger conceptual 1D tensor.
     The primary purpose is to prepare tensor data, along with its essential

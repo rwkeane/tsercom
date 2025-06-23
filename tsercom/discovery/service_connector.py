@@ -130,7 +130,7 @@ class ServiceConnector(
         await self.__service_source.start_discovery(self)
 
     async def mark_client_failed(self, caller_id: CallerIdentifier) -> None:
-        r"""Mark a connected service instance (client from ServiceConnector's perspective) as failed.
+        r"""Mark a connected service instance as failed.
 
         This removes the `caller_id` from the set of tracked active connections,
         allowing the `ServiceConnector` to attempt a new connection if the same

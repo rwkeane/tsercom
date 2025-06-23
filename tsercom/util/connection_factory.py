@@ -13,7 +13,7 @@ class ConnectionFactory(Generic[ConnectionTypeT], ABC):
     async def connect(
         self, addresses: list[str] | str, port: int
     ) -> ConnectionTypeT | None:
-        """Establishes a connection to a service.
+        """Establish a connection to a service.
 
         Args:
             addresses: A single address string or a list of address strings to try.

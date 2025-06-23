@@ -5,8 +5,8 @@ import logging
 from collections.abc import Callable, Iterable
 
 import grpc
-from grpc_health.v1 import health_pb2, health_pb2_grpc  # type: ignore
-from grpc_health.v1._async import HealthServicer  # type: ignore[import-not-found]
+from grpc_health.v1 import health_pb2, health_pb2_grpc
+from grpc_health.v1._async import HealthServicer
 
 from tsercom.threading.thread_watcher import ThreadWatcher
 from tsercom.util.ip import get_all_address_strings
@@ -23,7 +23,7 @@ class GrpcServicePublisher:
         port: int,
         addresses: str | Iterable[str] | None = None,
     ):
-        """Create a new gRPC Service hosted on a given ``port`` and network interfaces associated with ``addresses``."""
+        """Create a new gRPC Service on ``port`` and network ``addresses``."""
         if addresses is None:
             addresses = get_all_address_strings()
         elif isinstance(addresses, str):

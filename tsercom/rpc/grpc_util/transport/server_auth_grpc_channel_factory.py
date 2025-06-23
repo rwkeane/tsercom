@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
-    """Creates a gRPC channel where the client authenticates the server using a provided root CA certificate."""
+    """Client authenticates server using a provided root CA certificate."""
 
     def __init__(
         self,
@@ -45,7 +45,7 @@ class ServerAuthGrpcChannelFactory(GrpcChannelFactory):
     async def find_async_channel(
         self, addresses: list[str] | str, port: int
     ) -> grpc.Channel | None:
-        """Attempt to establish a secure gRPC channel to the specified address(es) and port.
+        """Attempt to establish a secure gRPC channel to address(es) and port.
 
         Authenticates the server using the root CA.
 

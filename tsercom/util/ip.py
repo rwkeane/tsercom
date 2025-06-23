@@ -6,7 +6,7 @@ import psutil  # type: ignore[import-untyped]
 
 
 def get_all_address_strings() -> list[str]:
-    """Retrieves all IPv4 address strings for all network interfaces.
+    """Retrieve all IPv4 address strings for all network interfaces.
 
     This function iterates through all network interfaces on the system,
     collects all assigned IPv4 addresses, and returns them as a list of strings.
@@ -24,7 +24,7 @@ def get_all_address_strings() -> list[str]:
 
 
 def get_all_addresses() -> list[bytes]:
-    """Retrieves all IPv4 addresses for all network interfaces, as bytes.
+    """Retrieve all IPv4 addresses for all network interfaces, as bytes.
 
     This function first calls `get_all_address_strings()` to get the string
     representation of all IPv4 addresses and then converts each address

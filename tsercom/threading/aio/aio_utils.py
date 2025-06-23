@@ -18,7 +18,7 @@ from tsercom.threading.aio.global_event_loop import get_global_event_loop
 
 # Note: Similar utility exists in cpython or could be contributed.
 def get_running_loop_or_none() -> AbstractEventLoop | None:
-    """Return the event loop this function was called from, or None if not called from an event loop.
+    """Return the event loop this function was called from, or None if not.
 
     Returns:
         Optional[AbstractEventLoop]: The current event loop or None.
@@ -35,11 +35,11 @@ def get_running_loop_or_none() -> AbstractEventLoop | None:
 def is_running_on_event_loop(
     event_loop: AbstractEventLoop | None = None,
 ) -> bool:
-    """Return true if current function is on SPECIFIC |event_loop|, or ANY event loop if |event_loop| is None.
+    """Return true if current function is on |event_loop|, or ANY loop if None.
 
     Args:
-        event_loop: Specific event loop to check against.
-                                                  (None checks any loop).
+        event_loop: Specific event loop to check against
+            (None checks any loop).
 
     Returns:
         bool: True if on specified loop (or any if None), else False.

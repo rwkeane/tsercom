@@ -90,7 +90,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
         new_tensor: TensorHistoryValue,
         timestamp: datetime.datetime,
     ) -> None:
-        """Calculate the difference between two tensor states, group contiguous changes into chunks, and emit them.
+        """Calculate diff, group contiguous changes into chunks, and emit them.
 
         Chunks are `SerializableTensorChunk` objects sent to the client.
         """
@@ -141,7 +141,7 @@ class SparseTensorMultiplexer(TensorMultiplexer):
     async def process_tensor(
         self, tensor: torch.Tensor, timestamp: datetime.datetime
     ) -> None:
-        """Process a new tensor snapshot, handling out-of-order updates and history management.
+        """Process new tensor snapshot, handling out-of-order and history.
 
         This method calculates differences against the previous relevant tensor
         state, emits these changes as chunks, and manages a cascading update

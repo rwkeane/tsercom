@@ -84,7 +84,7 @@ class DiscoveryHost(
         mdns_listener_factory: MdnsListenerFactory | None = None,
     ) -> None:
         """Initialize DiscoveryHost. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         # Ensure exclusive provision of service_type or factory
         num_modes_selected = sum(
             [

@@ -145,7 +145,7 @@ class RuntimeConfig(Generic[DataTypeT]):
         data_reader_sink_is_lossy: bool = True,
     ):
         """Initialize the RuntimeConfig. See overloads for details."""
-        # Main implementation docstring is minimal as overloads are documented per prompt.
+        # Main impl docstring is minimal per prompt (overloads documented).
         if (service_type is None) == (other_config is None):
             other_config_str = "<Provided>" if other_config is not None else None
             raise ValueError(

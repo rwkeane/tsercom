@@ -20,7 +20,7 @@ class ErrorWatcher(ABC):
 
     @abstractmethod
     def run_until_exception(self) -> None:
-        """Runs until an exception is seen, at which point it will be thrown.
+        """Run until an exception is seen, at which point it will be thrown.
 
         This method is intended to be blocking. It should only return
         if an exception occurs that needs to be propagated.
